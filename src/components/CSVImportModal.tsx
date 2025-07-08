@@ -330,7 +330,16 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleImport} disabled={!file || loading}>
+            <Button 
+              onClick={() => {
+                console.log('Import Data button clicked - immediate check!');
+                console.log('File exists:', !!file);
+                console.log('File name:', file?.name);
+                console.log('Loading state:', loading);
+                handleImport();
+              }} 
+              disabled={!file || loading}
+            >
               <Upload className="w-4 h-4 mr-2" />
               {loading ? "Importing..." : "Import Data"}
             </Button>
