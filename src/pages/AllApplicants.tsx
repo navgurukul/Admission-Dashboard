@@ -3,10 +3,10 @@ import { ApplicantTable } from "@/components/ApplicantTable";
 
 const AllApplicants = () => {
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
       
-      <main className="flex-1 overflow-auto">
+      <main className="ml-64 overflow-auto h-screen">
         <div className="p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">

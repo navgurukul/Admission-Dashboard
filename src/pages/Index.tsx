@@ -4,12 +4,12 @@ import { ApplicantTable } from "@/components/ApplicantTable";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <AdmissionsSidebar />
       
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="ml-64 overflow-auto h-screen">
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">

@@ -27,7 +27,7 @@ const stages = [
 
 export function AdmissionsSidebar() {
   return (
-    <div className="bg-gradient-sidebar w-64 min-h-screen flex flex-col border-r border-sidebar-medium">
+    <div className="bg-gradient-sidebar w-64 h-screen fixed left-0 top-0 flex flex-col border-r border-sidebar-medium overflow-y-auto">
       {/* Header */}
       <div className="p-6 border-b border-sidebar-medium">
         <div className="flex items-center space-x-3">
