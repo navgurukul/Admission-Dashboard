@@ -1,7 +1,7 @@
-
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { ClipboardCheck, TrendingUp, Target, Award } from "lucide-react";
+import { ClipboardCheck, TrendingUp, Target, Award, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ type ApplicantData = {
 const Screening = () => {
   const [applicants, setApplicants] = useState<ApplicantData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   // Filter for Screening Tests stage
@@ -126,11 +127,18 @@ const Screening = () => {
     };
   }, []);
 
-  const testsTaken = applicants.length;
-  const programmingTrack = applicants.filter(a => a.qualifying_school?.toLowerCase().includes('programming')).length;
-  const businessTrack = applicants.filter(a => a.qualifying_school?.toLowerCase().includes('business')).length;
-  const averageScore = applicants.length > 0 ? 
-    (applicants.reduce((sum, a) => sum + (a.final_marks || 0), 0) / applicants.length).toFixed(1) : 0;
+  const filteredApplicants = applicants.filter(applicant =>
+    (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
+  );
+
+  const testsTaken = filteredApplicants.length;
+  const programmingTrack = filteredApplicants.filter(a => a.qualifying_school?.toLowerCase().includes('programming')).length;
+  const businessTrack = filteredApplicants.filter(a => a.qualifying_school?.toLowerCase().includes('business')).length;
+  const averageScore = filteredApplicants.length > 0 ? 
+    (filteredApplicants.reduce((sum, a) => sum + (a.final_marks || 0), 0) / filteredApplicants.length).toFixed(1) : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -199,17 +207,28 @@ const Screening = () => {
 
           <div className="bg-card rounded-xl shadow-soft border border-border">
             <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Recent Test Results</h2>
                 <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
                   Export Results
                 </Button>
               </div>
+
+              {/* Search Bar */}
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search by name, phone, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-9"
+                />
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="max-h-96 overflow-y-auto">
               <table className="w-full">
-                <thead className="bg-muted/30">
+                <thead className="bg-muted/30 sticky top-0">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Test Score</th>
@@ -228,17 +247,17 @@ const Screening = () => {
                         </div>
                       </td>
                     </tr>
-                  ) : applicants.length === 0 ? (
+                  ) : filteredApplicants.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-muted-foreground">
                         <div className="flex flex-col items-center space-y-2">
                           <ClipboardCheck className="w-8 h-8 opacity-50" />
-                          <span>No applicants in screening stage</span>
+                          <span>{searchQuery ? 'No applicants found matching your search' : 'No applicants in screening stage'}</span>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    applicants.map((applicant) => (
+                    filteredApplicants.map((applicant) => (
                       <tr key={applicant.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center space-x-3">
@@ -249,21 +268,18 @@ const Screening = () => {
                             </div>
                             <div>
                               <p className="font-medium text-foreground">{applicant.name || 'No Name'}</p>
-                              <p className="text-sm text-muted-foreground">{applicant.unique_number || 'No ID'}</p>
+                              <p className="text-sm text-muted-foreground">{applicant.mobile_no}</p>
                             </div>
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <span className={`text-2xl font-bold ${
-                              (applicant.final_marks || 0) >= 15 ? 'text-status-active' : 
-                              (applicant.final_marks || 0) >= 12 ? 'text-status-prospect' : 
-                              'text-status-fail'
-                            }`}>
-                              {applicant.final_marks || 0}
-                            </span>
-                            <span className="text-sm text-muted-foreground">/ 20</span>
-                          </div>
+                          <span className={`text-2xl font-bold ${
+                            (applicant.final_marks || 0) >= 27 ? 'text-status-active' : 
+                            (applicant.final_marks || 0) >= 18 ? 'text-status-prospect' : 
+                            'text-status-fail'
+                          }`}>
+                            {applicant.final_marks || 0}
+                          </span>
                         </td>
                         <td className="p-4">
                           <span className="text-sm text-foreground">
@@ -283,6 +299,13 @@ const Screening = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Show total count */}
+            <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredApplicants.length} of {applicants.length} applicants
+              </p>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
-
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Mail, UserCheck, UserX, Clock } from "lucide-react";
+import { Mail, UserCheck, UserX, Clock, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ type ApplicantData = {
 const FinalDecisions = () => {
   const [applicants, setApplicants] = useState<ApplicantData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   // Filter for Final Decisions stage
@@ -116,15 +117,22 @@ const FinalDecisions = () => {
     };
   }, []);
 
-  const offersSent = applicants.filter(a => a.offer_letter_status).length;
-  const offersAccepted = applicants.filter(a => 
+  const filteredApplicants = applicants.filter(applicant =>
+    (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
+  );
+
+  const offersSent = filteredApplicants.filter(a => a.offer_letter_status).length;
+  const offersAccepted = filteredApplicants.filter(a => 
     a.offer_letter_status?.toLowerCase().includes('accept') || 
     a.joining_status?.toLowerCase().includes('join')
   ).length;
-  const onboarded = applicants.filter(a => 
+  const onboarded = filteredApplicants.filter(a => 
     a.joining_status === 'Joined' || a.joining_status === 'joined'
   ).length;
-  const pendingResponses = applicants.filter(a => 
+  const pendingResponses = filteredApplicants.filter(a => 
     a.offer_letter_status && !a.joining_status
   ).length;
 
@@ -193,19 +201,30 @@ const FinalDecisions = () => {
             </div>
           </div>
 
-          <div className="bg-card rounded-xl shadow-soft border border-border">
+          <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
             <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Final Decision Pipeline</h2>
                 <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
                   Send Offer Letters
                 </Button>
               </div>
+
+              {/* Search Bar */}
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search by name, phone, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-9"
+                />
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="max-h-96 overflow-y-auto">
               <table className="w-full">
-                <thead className="bg-muted/30">
+                <thead className="bg-muted/30 sticky top-0">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Allotted School</th>
@@ -224,17 +243,17 @@ const FinalDecisions = () => {
                         </div>
                       </td>
                     </tr>
-                  ) : applicants.length === 0 ? (
+                  ) : filteredApplicants.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-muted-foreground">
                         <div className="flex flex-col items-center space-y-2">
                           <UserCheck className="w-8 h-8 opacity-50" />
-                          <span>No applicants in final decisions stage</span>
+                          <span>{searchQuery ? 'No applicants found matching your search' : 'No applicants in final decisions stage'}</span>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    applicants.map((applicant) => (
+                    filteredApplicants.map((applicant) => (
                       <tr key={applicant.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center space-x-3">
@@ -245,7 +264,7 @@ const FinalDecisions = () => {
                             </div>
                             <div>
                               <p className="font-medium text-foreground">{applicant.name || 'No Name'}</p>
-                              <p className="text-sm text-muted-foreground">{applicant.unique_number || 'No ID'}</p>
+                              <p className="text-sm text-muted-foreground">{applicant.mobile_no}</p>
                             </div>
                           </div>
                         </td>
@@ -272,6 +291,13 @@ const FinalDecisions = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Show total count */}
+            <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredApplicants.length} of {applicants.length} applicants
+              </p>
             </div>
           </div>
         </div>

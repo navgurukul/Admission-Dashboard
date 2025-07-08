@@ -1,7 +1,7 @@
-
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Upload, Plus, Phone, Users, FileText } from "lucide-react";
+import { Upload, Plus, Phone, Users, FileText, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,7 @@ type ApplicantData = {
 const Sourcing = () => {
   const [applicants, setApplicants] = useState<ApplicantData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   // Filter for Sourcing & Outreach stage
@@ -127,9 +128,16 @@ const Sourcing = () => {
     };
   }, []);
 
-  const totalApplicants = applicants.length;
-  const contacted = applicants.filter(a => a.mobile_no && a.name).length;
-  const detailsCompleted = applicants.filter(a => a.name && a.city && a.mobile_no).length;
+  const filteredApplicants = applicants.filter(applicant =>
+    (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
+  );
+
+  const totalApplicants = filteredApplicants.length;
+  const contacted = filteredApplicants.filter(a => a.mobile_no && a.name).length;
+  const detailsCompleted = filteredApplicants.filter(a => a.name && a.city && a.mobile_no).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -184,9 +192,9 @@ const Sourcing = () => {
             </div>
           </div>
 
-          <div className="bg-card rounded-xl shadow-soft border border-border">
+          <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
             <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Sourcing Pipeline</h2>
                 <div className="flex space-x-3">
                   <Button variant="outline">
@@ -199,11 +207,22 @@ const Sourcing = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Search Bar */}
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search by name, phone, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-9"
+                />
+              </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="max-h-96 overflow-y-auto">
               <table className="w-full">
-                <thead className="bg-muted/30">
+                <thead className="bg-muted/30 sticky top-0">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Contact</th>
@@ -222,17 +241,17 @@ const Sourcing = () => {
                         </div>
                       </td>
                     </tr>
-                  ) : applicants.length === 0 ? (
+                  ) : filteredApplicants.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-muted-foreground">
                         <div className="flex flex-col items-center space-y-2">
                           <Users className="w-8 h-8 opacity-50" />
-                          <span>No applicants in sourcing stage</span>
+                          <span>{searchQuery ? 'No applicants found matching your search' : 'No applicants in sourcing stage'}</span>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    applicants.map((applicant) => (
+                    filteredApplicants.map((applicant) => (
                       <tr key={applicant.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center space-x-3">
@@ -243,7 +262,7 @@ const Sourcing = () => {
                             </div>
                             <div>
                               <p className="font-medium text-foreground">{applicant.name || 'No Name'}</p>
-                              <p className="text-sm text-muted-foreground">{applicant.unique_number || 'No ID'}</p>
+                              <p className="text-sm text-muted-foreground">{applicant.mobile_no}</p>
                             </div>
                           </div>
                         </td>
@@ -267,6 +286,13 @@ const Sourcing = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* Show total count */}
+            <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredApplicants.length} of {applicants.length} applicants
+              </p>
             </div>
           </div>
         </div>
