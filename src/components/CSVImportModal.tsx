@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string[][]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -206,10 +208,16 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
           description: `${validData.length} applicants imported successfully`,
         });
         
-        onSuccess();
+        // Close modal and reset state
         onClose();
         setFile(null);
         setPreview([]);
+        
+        // Navigate to All Applicants page to show the imported data
+        navigate('/applicants');
+        
+        // Call onSuccess after navigation
+        onSuccess();
       };
       reader.readAsText(file);
     } catch (error) {
