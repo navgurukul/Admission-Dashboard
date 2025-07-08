@@ -14,7 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admission_dashboard: {
+        Row: {
+          allotted_school: string | null
+          block: string | null
+          caste: string | null
+          cfr_comments: string | null
+          cfr_status: string | null
+          city: string | null
+          created_at: string | null
+          current_work: string | null
+          date_of_testing: string | null
+          exam_centre: string | null
+          final_marks: number | null
+          final_notes: string | null
+          gender: string | null
+          joining_status: string | null
+          lr_comments: string | null
+          lr_status: string | null
+          mobile_no: string
+          name: string | null
+          offer_letter_status: string | null
+          qualification: string | null
+          qualifying_school: string | null
+          set_name: string | null
+          triptis_notes: string | null
+          unique_number: string | null
+          updated_at: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          allotted_school?: string | null
+          block?: string | null
+          caste?: string | null
+          cfr_comments?: string | null
+          cfr_status?: string | null
+          city?: string | null
+          created_at?: string | null
+          current_work?: string | null
+          date_of_testing?: string | null
+          exam_centre?: string | null
+          final_marks?: number | null
+          final_notes?: string | null
+          gender?: string | null
+          joining_status?: string | null
+          lr_comments?: string | null
+          lr_status?: string | null
+          mobile_no: string
+          name?: string | null
+          offer_letter_status?: string | null
+          qualification?: string | null
+          qualifying_school?: string | null
+          set_name?: string | null
+          triptis_notes?: string | null
+          unique_number?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          allotted_school?: string | null
+          block?: string | null
+          caste?: string | null
+          cfr_comments?: string | null
+          cfr_status?: string | null
+          city?: string | null
+          created_at?: string | null
+          current_work?: string | null
+          date_of_testing?: string | null
+          exam_centre?: string | null
+          final_marks?: number | null
+          final_notes?: string | null
+          gender?: string | null
+          joining_status?: string | null
+          lr_comments?: string | null
+          lr_status?: string | null
+          mobile_no?: string
+          name?: string | null
+          offer_letter_status?: string | null
+          qualification?: string | null
+          qualifying_school?: string | null
+          set_name?: string | null
+          triptis_notes?: string | null
+          unique_number?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
