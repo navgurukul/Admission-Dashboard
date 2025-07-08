@@ -79,17 +79,21 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
     if (!value || value.trim() === '') return null;
     
     const cleanValue = value.trim();
+    console.log(`Parsing numeric value: "${cleanValue}"`);
     
     try {
       // Check if it's a fraction (like "18/25")
       if (cleanValue.includes('/')) {
+        console.log(`Found fraction: ${cleanValue}`);
         const parts = cleanValue.split('/');
         if (parts.length === 2) {
           const numerator = parseFloat(parts[0]);
           const denominator = parseFloat(parts[1]);
           if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
             // Convert fraction to percentage (18/25 = 72%)
-            return (numerator / denominator) * 100;
+            const result = (numerator / denominator) * 100;
+            console.log(`Converted fraction ${cleanValue} to ${result}`);
+            return result;
           }
         }
       }
@@ -98,6 +102,7 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
       if (cleanValue.includes('%')) {
         const numValue = parseFloat(cleanValue.replace('%', ''));
         if (!isNaN(numValue)) {
+          console.log(`Found percentage: ${cleanValue} -> ${numValue}`);
           return numValue;
         }
       }
@@ -105,6 +110,7 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
       // Regular number parsing
       const numValue = parseFloat(cleanValue);
       if (!isNaN(numValue)) {
+        console.log(`Parsed regular number: ${cleanValue} -> ${numValue}`);
         return numValue;
       }
       
@@ -248,9 +254,13 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
         const data = parseCSV(text);
         console.log('Parsed CSV data:', data);
         
-        // Filter out rows without mobile number (required field)
-        const validData = data.filter(row => row.mobile_no && row.mobile_no.trim() !== '');
-        console.log('Valid data after filtering:', validData);
+        // Filter out rows without mobile number (required field) and ensure numeric fields are properly parsed
+        const validData = data.filter(row => row.mobile_no && row.mobile_no.trim() !== '').map(row => ({
+          ...row,
+          // Ensure final_marks is a number or null, not a string
+          final_marks: typeof row.final_marks === 'string' ? parseNumericValue(row.final_marks) : row.final_marks
+        }));
+        console.log('Valid data after filtering and numeric parsing:', validData);
         
         if (validData.length === 0) {
           console.log('No valid data found');
