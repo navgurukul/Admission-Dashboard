@@ -21,7 +21,7 @@ const navigation = [
 const stages = [
   { name: "Sourcing & Outreach", href: "/sourcing", count: 45 },
   { name: "Screening Tests", href: "/screening", count: 23 },
-  { name: "Interview Rounds", href: "/interviews", count: 12 },
+  { name: "Interview Rounds", href: "/interview-rounds", count: 12 },
   { name: "Final Decisions", href: "/decisions", count: 8 },
 ];
 
