@@ -75,6 +75,47 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
     }
   };
 
+  const parseNumericValue = (value: string): number | null => {
+    if (!value || value.trim() === '') return null;
+    
+    const cleanValue = value.trim();
+    
+    try {
+      // Check if it's a fraction (like "18/25")
+      if (cleanValue.includes('/')) {
+        const parts = cleanValue.split('/');
+        if (parts.length === 2) {
+          const numerator = parseFloat(parts[0]);
+          const denominator = parseFloat(parts[1]);
+          if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
+            // Convert fraction to percentage (18/25 = 72%)
+            return (numerator / denominator) * 100;
+          }
+        }
+      }
+      
+      // Check if it's already a percentage (like "72%")
+      if (cleanValue.includes('%')) {
+        const numValue = parseFloat(cleanValue.replace('%', ''));
+        if (!isNaN(numValue)) {
+          return numValue;
+        }
+      }
+      
+      // Regular number parsing
+      const numValue = parseFloat(cleanValue);
+      if (!isNaN(numValue)) {
+        return numValue;
+      }
+      
+      console.warn(`Invalid numeric format: ${cleanValue}`);
+      return null;
+    } catch (error) {
+      console.warn(`Numeric parsing error for "${cleanValue}":`, error);
+      return null;
+    }
+  };
+
   const parseCSV = (text: string) => {
     const rows = text.split('\n').filter(row => row.trim() !== '');
     const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
@@ -136,7 +177,7 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
             break;
           case 'final marks':
           case 'final_marks':
-            obj.final_marks = value ? parseFloat(value) : null;
+            obj.final_marks = value ? parseNumericValue(value) : null;
             break;
           case 'qualifying school':
           case 'qualifying_school':
