@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Search, Filter, Plus, Eye, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { ApplicantModal } from "./ApplicantModal";
 import { AddApplicantModal } from "./AddApplicantModal";
-import { CSVImportModal } from "./CSVImportModal";
+import CSVImportModal from "./CSVImportModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
