@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Search, Filter, Plus, Eye, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -267,7 +266,6 @@ export function ApplicantTable() {
             <tr>
               <th className="text-left p-4 font-medium text-muted-foreground text-sm">#</th>
               <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant Name</th>
-              <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant ID</th>
               <th className="text-left p-4 font-medium text-muted-foreground text-sm">Current Stage</th>
               <th className="text-left p-4 font-medium text-muted-foreground text-sm">Status</th>
               <th className="text-left p-4 font-medium text-muted-foreground text-sm">Location</th>
@@ -278,13 +276,13 @@ export function ApplicantTable() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="p-4 text-center text-muted-foreground">
+                <td colSpan={7} className="p-4 text-center text-muted-foreground">
                   Loading applicants...
                 </td>
               </tr>
             ) : filteredApplicants.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-4 text-center text-muted-foreground">
+                <td colSpan={7} className="p-4 text-center text-muted-foreground">
                   No applicants found
                 </td>
               </tr>
@@ -309,7 +307,6 @@ export function ApplicantTable() {
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-sm font-mono text-foreground">{applicant.unique_number || 'N/A'}</td>
                   <td className="p-4 text-sm text-foreground">{getCurrentStage(applicant)}</td>
                   <td className="p-4">
                     <StatusBadge status={(applicant.offer_letter_status || applicant.joining_status || 'pending') as any} />

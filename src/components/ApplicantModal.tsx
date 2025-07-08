@@ -72,7 +72,6 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
             </div>
             <div>
               <h3 className="text-lg font-semibold">{applicant.name || 'N/A'}</h3>
-              <p className="text-sm text-muted-foreground">ID: {applicant.unique_number || 'N/A'}</p>
             </div>
             <StatusBadge status={(applicant.offer_letter_status || applicant.joining_status || 'pending') as any} />
           </DialogTitle>
