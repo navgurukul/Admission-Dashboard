@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -22,12 +23,12 @@
     --primary-foreground: 0 0% 100%;
     --primary-light: 25 95% 85%; /* Light orange for hover states */
     
-    /* Blue Sidebar System */
-    --sidebar-dark: 220 91% 15%; /* Blue for sidebar */
-    --sidebar-medium: 220 91% 20%; /* Medium blue for hover */
-    --sidebar-light: 220 91% 25%; /* Light blue for active */
-    --sidebar-text: 210 40% 85%; /* Light text on dark */
-    --sidebar-text-muted: 210 40% 65%; /* Muted sidebar text */
+    /* Black Sidebar System */
+    --sidebar-dark: 0 0% 0%; /* Pure black for sidebar */
+    --sidebar-medium: 0 0% 10%; /* Very dark gray for hover */
+    --sidebar-light: 0 0% 15%; /* Dark gray for active */
+    --sidebar-text: 0 0% 100%; /* Pure white text on dark */
+    --sidebar-text-muted: 0 0% 70%; /* Light gray sidebar text */
 
     /* Status Color System */
     --status-active: 142 71% 45%; /* Green for active/pass */
@@ -58,7 +59,7 @@
 
     /* Custom Design Tokens */
     --gradient-primary: linear-gradient(135deg, hsl(25 95% 53%), hsl(25 95% 45%));
-    --gradient-sidebar: linear-gradient(180deg, hsl(220 91% 15%), hsl(220 91% 12%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 0%), hsl(0 0% 5%));
     --shadow-soft: 0 1px 3px 0 hsl(215 25% 27% / 0.1), 0 1px 2px -1px hsl(215 25% 27% / 0.1);
     --shadow-medium: 0 4px 6px -1px hsl(215 25% 27% / 0.1), 0 2px 4px -2px hsl(215 25% 27% / 0.1);
     --shadow-large: 0 20px 25px -5px hsl(215 25% 27% / 0.1), 0 8px 10px -6px hsl(215 25% 27% / 0.1);
