@@ -39,6 +39,27 @@ type ApplicantData = {
   updated_at: string;
 };
 
+// Function to map current stage based on applicant data
+const getCurrentStage = (applicant: ApplicantData): string => {
+  // Check if onboarded (Final Decisions)
+  if (applicant.joining_status === 'Joined' || applicant.joining_status === 'joined') {
+    return 'Final Decisions';
+  }
+  
+  // Check if in interview stage (Interview Rounds)
+  if (applicant.lr_status || applicant.cfr_status) {
+    return 'Interview Rounds';
+  }
+  
+  // Check if screening test completed (Screening Tests)
+  if (applicant.final_marks !== null || applicant.qualifying_school) {
+    return 'Screening Tests';
+  }
+  
+  // Default to initial stage (Sourcing & Outreach)
+  return 'Sourcing & Outreach';
+};
+
 export function ApplicantTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantData | null>(null);
@@ -287,7 +308,7 @@ export function ApplicantTable() {
                     </div>
                   </td>
                   <td className="p-4 text-sm font-mono text-foreground">{applicant.unique_number || 'N/A'}</td>
-                  <td className="p-4 text-sm text-foreground">{applicant.lr_status || applicant.cfr_status || 'Pending'}</td>
+                  <td className="p-4 text-sm text-foreground">{getCurrentStage(applicant)}</td>
                   <td className="p-4">
                     <StatusBadge status={(applicant.offer_letter_status || applicant.joining_status || 'pending') as any} />
                   </td>

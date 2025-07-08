@@ -7,7 +7,7 @@
 @layer base {
   :root {
     /* Core Background & Text */
-    --background: 248 250 252; /* Clean light gray background */
+    --background: 0 0% 100%; /* White background */
     --foreground: 215 25% 27%; /* Dark blue-gray text */
 
     /* Cards & Surfaces */
@@ -17,24 +17,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 27%;
 
-    /* Brand Colors - Emerald Green System */
-    --primary: 158 64% 52%; /* Emerald green for CTAs */
+    /* Brand Colors - Orange System */
+    --primary: 25 95% 53%; /* Orange for CTAs */
     --primary-foreground: 0 0% 100%;
-    --primary-light: 158 64% 85%; /* Light emerald for hover states */
+    --primary-light: 25 95% 85%; /* Light orange for hover states */
     
-    /* Navy Sidebar System */
-    --sidebar-dark: 222 47% 11%; /* Deep navy for sidebar */
-    --sidebar-medium: 222 47% 15%; /* Medium navy for hover */
-    --sidebar-light: 222 47% 18%; /* Light navy for active */
+    /* Blue Sidebar System */
+    --sidebar-dark: 220 91% 15%; /* Blue for sidebar */
+    --sidebar-medium: 220 91% 20%; /* Medium blue for hover */
+    --sidebar-light: 220 91% 25%; /* Light blue for active */
     --sidebar-text: 210 40% 85%; /* Light text on dark */
     --sidebar-text-muted: 210 40% 65%; /* Muted sidebar text */
 
     /* Status Color System */
     --status-active: 142 71% 45%; /* Green for active/pass */
-    --status-pending: 38 92% 50%; /* Amber for pending */
+    --status-pending: 25 95% 53%; /* Orange for pending */
     --status-inactive: 215 16% 47%; /* Gray for inactive */
     --status-fail: 0 84% 60%; /* Red for fail/declined */
-    --status-prospect: 217 91% 60%; /* Blue for prospects */
+    --status-prospect: 220 91% 60%; /* Blue for prospects */
 
     /* Neutral System */
     --secondary: 215 25% 97%; /* Very light gray */
@@ -43,8 +43,8 @@
     --muted: 215 25% 96%; /* Light gray backgrounds */
     --muted-foreground: 215 16% 47%; /* Muted text */
 
-    --accent: 158 64% 96%; /* Very light emerald */
-    --accent-foreground: 158 64% 30%; /* Dark emerald text */
+    --accent: 25 95% 96%; /* Very light orange */
+    --accent-foreground: 25 95% 30%; /* Dark orange text */
 
     /* System Colors */
     --destructive: 0 84% 60%;
@@ -52,13 +52,13 @@
 
     --border: 215 25% 92%; /* Subtle borders */
     --input: 215 25% 92%;
-    --ring: 158 64% 52%; /* Emerald focus rings */
+    --ring: 25 95% 53%; /* Orange focus rings */
 
     --radius: 0.75rem; /* Slightly more rounded */
 
     /* Custom Design Tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(158 64% 52%), hsl(158 64% 45%));
-    --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 11%), hsl(222 47% 9%));
+    --gradient-primary: linear-gradient(135deg, hsl(25 95% 53%), hsl(25 95% 45%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(220 91% 15%), hsl(220 91% 12%));
     --shadow-soft: 0 1px 3px 0 hsl(215 25% 27% / 0.1), 0 1px 2px -1px hsl(215 25% 27% / 0.1);
     --shadow-medium: 0 4px 6px -1px hsl(215 25% 27% / 0.1), 0 2px 4px -2px hsl(215 25% 27% / 0.1);
     --shadow-large: 0 20px 25px -5px hsl(215 25% 27% / 0.1), 0 8px 10px -6px hsl(215 25% 27% / 0.1);
@@ -67,7 +67,7 @@
 
   .dark {
     /* Dark mode not implemented yet - keeping light theme focus */
-    --background: 248 250 252;
+    --background: 0 0% 100%;
     --foreground: 215 25% 27%;
     /* ... rest stays same as light theme for now */
   }
