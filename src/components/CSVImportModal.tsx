@@ -1,0 +1,317 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Upload, FileText, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+interface CSVImportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [preview, setPreview] = useState<string[][]>([]);
+  const { toast } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile && selectedFile.type === "text/csv") {
+      setFile(selectedFile);
+      
+      // Read file for preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const rows = text.split('\n').slice(0, 5); // Show first 5 rows
+        const parsedRows = rows.map(row => row.split(',').map(cell => cell.trim()));
+        setPreview(parsedRows);
+      };
+      reader.readAsText(selectedFile);
+    } else {
+      toast({
+        title: "Invalid file",
+        description: "Please select a CSV file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const parseCSV = (text: string) => {
+    const rows = text.split('\n').filter(row => row.trim() !== '');
+    const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    
+    return rows.slice(1).map(row => {
+      const values = row.split(',').map(v => v.trim().replace(/"/g, ''));
+      const obj: any = {};
+      
+      headers.forEach((header, index) => {
+        const value = values[index] || '';
+        
+        // Map CSV headers to database columns
+        switch (header.toLowerCase()) {
+          case 'unique number':
+          case 'unique_number':
+            obj.unique_number = value;
+            break;
+          case 'set':
+          case 'set_name':
+            obj.set_name = value;
+            break;
+          case 'exam centre':
+          case 'exam_centre':
+            obj.exam_centre = value;
+            break;
+          case 'date of testing':
+          case 'date_of_testing':
+            obj.date_of_testing = value ? new Date(value).toISOString().split('T')[0] : null;
+            break;
+          case 'name':
+            obj.name = value;
+            break;
+          case 'mobile no':
+          case 'mobile_no':
+            obj.mobile_no = value;
+            break;
+          case 'whatsapp number':
+          case 'whatsapp_number':
+            obj.whatsapp_number = value;
+            break;
+          case 'block':
+            obj.block = value;
+            break;
+          case 'city':
+            obj.city = value;
+            break;
+          case 'caste':
+            obj.caste = value;
+            break;
+          case 'gender':
+            obj.gender = value;
+            break;
+          case 'qualification':
+            obj.qualification = value;
+            break;
+          case 'current work':
+          case 'current_work':
+            obj.current_work = value;
+            break;
+          case 'final marks':
+          case 'final_marks':
+            obj.final_marks = value ? parseFloat(value) : null;
+            break;
+          case 'qualifying school':
+          case 'qualifying_school':
+            obj.qualifying_school = value;
+            break;
+          case 'lr status':
+          case 'lr_status':
+            obj.lr_status = value;
+            break;
+          case 'lr comments':
+          case 'lr_comments':
+            obj.lr_comments = value;
+            break;
+          case 'cfr status':
+          case 'cfr_status':
+            obj.cfr_status = value;
+            break;
+          case 'cfr comments':
+          case 'cfr_comments':
+            obj.cfr_comments = value;
+            break;
+          case 'offer letter status':
+          case 'offer_letter_status':
+            obj.offer_letter_status = value;
+            break;
+          case 'allotted school':
+          case 'allotted_school':
+            obj.allotted_school = value;
+            break;
+          case 'joining status':
+          case 'joining_status':
+            obj.joining_status = value;
+            break;
+          case 'final notes':
+          case 'final_notes':
+            obj.final_notes = value;
+            break;
+          case "tripti's notes":
+          case 'triptis_notes':
+            obj.triptis_notes = value;
+            break;
+          default:
+            break;
+        }
+      });
+      
+      return obj;
+    });
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const text = event.target?.result as string;
+        const data = parseCSV(text);
+        
+        // Filter out rows without mobile number (required field)
+        const validData = data.filter(row => row.mobile_no && row.mobile_no.trim() !== '');
+        
+        if (validData.length === 0) {
+          toast({
+            title: "No valid data",
+            description: "No rows with valid mobile numbers found",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        const { error } = await supabase
+          .from('admission_dashboard')
+          .insert(validData);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `${validData.length} applicants imported successfully`,
+        });
+        
+        onSuccess();
+        onClose();
+        setFile(null);
+        setPreview([]);
+      };
+      reader.readAsText(file);
+    } catch (error) {
+      console.error('Error importing CSV:', error);
+      toast({
+        title: "Error",
+        description: "Failed to import CSV file",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const headers = [
+      'unique_number',
+      'set_name',
+      'exam_centre',
+      'date_of_testing',
+      'name',
+      'mobile_no',
+      'whatsapp_number',
+      'block',
+      'city',
+      'caste',
+      'gender',
+      'qualification',
+      'current_work',
+      'final_marks',
+      'qualifying_school',
+      'lr_status',
+      'lr_comments',
+      'cfr_status',
+      'cfr_comments',
+      'offer_letter_status',
+      'allotted_school',
+      'joining_status',
+      'final_notes',
+      'triptis_notes'
+    ];
+    
+    const csvContent = headers.join(',') + '\n' + 
+      'SAMPLE123,Set A,Centre 1,2024-01-15,John Doe,9876543210,9876543210,Block A,City A,General,Male,Graduate,Software Engineer,85,School A,Pass,Good performance,Pass,Good fit,Sent,School B,Joined,Final decision made,Initial contact notes';
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'admission_dashboard_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Import CSV Data</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <Alert>
+            <FileText className="h-4 w-4" />
+            <AlertDescription>
+              Upload a CSV file with applicant data. The mobile number field is required.
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-2">
+            <Label htmlFor="csv-file">Select CSV File</Label>
+            <Input
+              id="csv-file"
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+            />
+          </div>
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={downloadTemplate}>
+              <Download className="w-4 h-4 mr-2" />
+              Download Template
+            </Button>
+          </div>
+
+          {preview.length > 0 && (
+            <div className="space-y-2">
+              <Label>Preview (First 5 rows)</Label>
+              <div className="border rounded-md p-3 bg-muted/30 max-h-40 overflow-auto">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {preview.map((row, index) => (
+                      <tr key={index} className={index === 0 ? 'font-semibold' : ''}>
+                        {row.slice(0, 5).map((cell, cellIndex) => (
+                          <td key={cellIndex} className="pr-4 truncate max-w-[100px]">
+                            {cell}
+                          </td>
+                        ))}
+                        {row.length > 5 && <td className="text-muted-foreground">...</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleImport} disabled={!file || loading}>
+              <Upload className="w-4 h-4 mr-2" />
+              {loading ? "Importing..." : "Import Data"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

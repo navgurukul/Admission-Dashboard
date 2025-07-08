@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Plus, MoreHorizontal, Eye } from "lucide-react";
+import { Search, Filter, Plus, Eye, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
 import { ApplicantModal } from "./ApplicantModal";
+import { AddApplicantModal } from "./AddApplicantModal";
+import { CSVImportModal } from "./CSVImportModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -41,6 +43,8 @@ export function ApplicantTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [applicants, setApplicants] = useState<ApplicantData[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -87,6 +91,70 @@ export function ApplicantTable() {
     setIsModalOpen(true);
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admission_dashboard')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const headers = [
+        'unique_number',
+        'set_name', 
+        'exam_centre',
+        'date_of_testing',
+        'name',
+        'mobile_no',
+        'whatsapp_number',
+        'block',
+        'city',
+        'caste',
+        'gender',
+        'qualification',
+        'current_work',
+        'final_marks',
+        'qualifying_school',
+        'lr_status',
+        'lr_comments',
+        'cfr_status',
+        'cfr_comments',
+        'offer_letter_status',
+        'allotted_school',
+        'joining_status',
+        'final_notes',
+        'triptis_notes'
+      ];
+
+      const csvContent = headers.join(',') + '\n' + 
+        data.map(row => headers.map(header => {
+          const value = row[header as keyof typeof row];
+          return value ? `"${value}"` : '';
+        }).join(',')).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `admission_dashboard_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "CSV file downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      toast({
+        title: "Error",
+        description: "Failed to export CSV file",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="bg-card rounded-xl shadow-soft border border-border">
       {/* Header */}
@@ -96,10 +164,23 @@ export function ApplicantTable() {
             <h2 className="text-xl font-semibold text-foreground">All Applicants</h2>
             <p className="text-muted-foreground text-sm">Manage and track applicant progress</p>
           </div>
-          <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Applicant
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button variant="outline" onClick={handleExportCSV}>
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button 
+              className="bg-gradient-primary hover:bg-primary/90 text-white"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Applicant
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -199,11 +280,23 @@ export function ApplicantTable() {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* Modals */}
       <ApplicantModal
         applicant={selectedApplicant}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+      />
+      
+      <AddApplicantModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={fetchApplicants}
+      />
+      
+      <CSVImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={fetchApplicants}
       />
     </div>
   );
