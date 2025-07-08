@@ -42,7 +42,7 @@ export function AdmissionsSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-1 min-h-0">
+      <nav className="px-4 py-6 space-y-1">
         {navigation.map((item) => (
           <NavLink
             key={item.name}
