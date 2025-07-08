@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
