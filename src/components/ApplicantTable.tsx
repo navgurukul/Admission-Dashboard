@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Plus, Eye, Upload, Download } from "lucide-react";
+import { Search, Filter, Plus, MoreHorizontal, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
@@ -268,7 +268,7 @@ export function ApplicantTable() {
               <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage</th>
               <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Status</th>
               <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Location</th>
-              <th className="text-right py-4 px-6 font-medium text-muted-foreground text-sm">Actions</th>
+              <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -294,8 +294,7 @@ export function ApplicantTable() {
               filteredApplicants.map((applicant, index) => (
                 <tr 
                   key={applicant.id} 
-                  className="border-b border-border/30 hover:bg-muted/30 transition-colors cursor-pointer group"
-                  onClick={() => handleViewApplicant(applicant)}
+                  className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
                 >
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-4">
@@ -327,18 +326,18 @@ export function ApplicantTable() {
                       {applicant.city ? `${applicant.city}${applicant.block ? `, ${applicant.block}` : ''}` : 'Not specified'}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-4 px-6 text-center">
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 p-0 hover:bg-muted"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewApplicant(applicant);
                       }}
                     >
-                      <Eye className="w-4 h-4" />
-                      <span className="sr-only">View details</span>
+                      <MoreHorizontal className="w-4 h-4" />
+                      <span className="sr-only">More options</span>
                     </Button>
                   </td>
                 </tr>
