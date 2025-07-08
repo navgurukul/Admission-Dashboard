@@ -156,19 +156,31 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
   };
 
   const handleImport = async () => {
-    if (!file) return;
+    console.log('Import button clicked!');
+    console.log('File exists:', !!file);
+    console.log('Loading state:', loading);
+    
+    if (!file) {
+      console.log('No file selected, returning early');
+      return;
+    }
 
     setLoading(true);
     try {
+      console.log('Starting CSV import process...');
       const reader = new FileReader();
       reader.onload = async (event) => {
+        console.log('File read successfully');
         const text = event.target?.result as string;
         const data = parseCSV(text);
+        console.log('Parsed CSV data:', data);
         
         // Filter out rows without mobile number (required field)
         const validData = data.filter(row => row.mobile_no && row.mobile_no.trim() !== '');
+        console.log('Valid data after filtering:', validData);
         
         if (validData.length === 0) {
+          console.log('No valid data found');
           toast({
             title: "No valid data",
             description: "No rows with valid mobile numbers found",
@@ -178,12 +190,17 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
           return;
         }
 
+        console.log('Attempting to insert data into Supabase...');
         const { error } = await supabase
           .from('admission_dashboard')
           .insert(validData);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
 
+        console.log('Data imported successfully!');
         toast({
           title: "Success",
           description: `${validData.length} applicants imported successfully`,
