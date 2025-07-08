@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { Button } from "@/components/ui/button";
@@ -168,11 +169,11 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
 
       console.log('Sending to Supabase:', processedData.slice(0, 2)); // Log first 2 rows
 
+      // Since we removed the unique constraint on mobile_no, we can use regular insert
+      // instead of upsert to allow duplicates
       const { error } = await supabase
         .from('admission_dashboard')
-        .upsert(processedData, {
-          onConflict: 'mobile_no'
-        });
+        .insert(processedData);
 
       if (error) {
         console.error('Supabase error:', error);
@@ -196,7 +197,7 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
         <DialogHeader>
           <DialogTitle>Import Applicants from CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple applicants at once.
+            Upload a CSV file to add multiple applicants at once. Duplicate mobile numbers are now allowed.
           </DialogDescription>
         </DialogHeader>
 

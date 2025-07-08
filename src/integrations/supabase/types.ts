@@ -29,6 +29,7 @@ export type Database = {
           final_marks: number | null
           final_notes: string | null
           gender: string | null
+          id: string
           joining_status: string | null
           lr_comments: string | null
           lr_status: string | null
@@ -57,6 +58,7 @@ export type Database = {
           final_marks?: number | null
           final_notes?: string | null
           gender?: string | null
+          id?: string
           joining_status?: string | null
           lr_comments?: string | null
           lr_status?: string | null
@@ -85,6 +87,7 @@ export type Database = {
           final_marks?: number | null
           final_notes?: string | null
           gender?: string | null
+          id?: string
           joining_status?: string | null
           lr_comments?: string | null
           lr_status?: string | null

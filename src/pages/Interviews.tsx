@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { Calendar, Clock, User, MessageSquare } from "lucide-react";
@@ -8,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 type ApplicantData = {
+  id: string;
   mobile_no: string;
   unique_number: string | null;
   name: string | null;
@@ -40,7 +40,7 @@ const Interviews = () => {
       // Fetch applicants who are in interview stages (have lr_status or cfr_status)
       const { data, error } = await supabase
         .from('admission_dashboard')
-        .select('mobile_no, unique_number, name, lr_status, cfr_status, lr_comments, cfr_comments, date_of_testing')
+        .select('id, mobile_no, unique_number, name, lr_status, cfr_status, lr_comments, cfr_comments, date_of_testing')
         .or('lr_status.not.is.null,cfr_status.not.is.null')
         .order('date_of_testing', { ascending: false });
 
@@ -129,7 +129,7 @@ const Interviews = () => {
                     </tr>
                   ) : (
                     applicants.map((applicant) => (
-                      <tr key={applicant.mobile_no} className="border-b border-border hover:bg-muted/20 transition-colors">
+                      <tr key={applicant.id} className="border-b border-border hover:bg-muted/20 transition-colors">
                         <td className="p-4">
                           <div>
                             <p className="font-medium text-foreground">{applicant.name || 'N/A'}</p>

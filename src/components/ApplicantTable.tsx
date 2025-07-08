@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 // Define the type for our applicant data
 type ApplicantData = {
+  id: string;
   mobile_no: string;
   unique_number: string | null;
   name: string | null;
@@ -290,7 +291,7 @@ export function ApplicantTable() {
             ) : (
               filteredApplicants.map((applicant, index) => (
                 <tr 
-                  key={applicant.mobile_no} 
+                  key={applicant.id} 
                   className="border-b border-border hover:bg-muted/20 transition-colors cursor-pointer"
                   onClick={() => handleViewApplicant(applicant)}
                 >

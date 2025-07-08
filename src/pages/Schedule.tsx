@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { Calendar, Clock, Plus, Users } from "lucide-react";
@@ -7,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 type ScheduleData = {
+  id: string;
   name: string | null;
   unique_number: string | null;
   date_of_testing: string | null;
@@ -36,7 +36,7 @@ const Schedule = () => {
       // Fetch scheduled interviews (applicants with testing dates)
       const { data, error } = await supabase
         .from('admission_dashboard')
-        .select('name, unique_number, date_of_testing, lr_status, cfr_status')
+        .select('id, name, unique_number, date_of_testing, lr_status, cfr_status')
         .not('date_of_testing', 'is', null)
         .order('date_of_testing', { ascending: true });
 
@@ -145,8 +145,8 @@ const Schedule = () => {
                 <div className="text-center text-muted-foreground">No interviews scheduled for today</div>
               ) : (
                 <div className="space-y-4">
-                  {todaySchedule.map((item, index) => (
-                    <div key={index} className="border border-border rounded-lg p-4">
+                  {todaySchedule.map((item) => (
+                    <div key={item.id} className="border border-border rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
