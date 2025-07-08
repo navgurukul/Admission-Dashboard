@@ -45,6 +45,36 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
     }
   };
 
+  const parseDate = (dateString: string): string | null => {
+    if (!dateString || dateString.trim() === '') return null;
+    
+    // Try different date formats
+    const formats = [
+      // ISO format
+      /^\d{4}-\d{2}-\d{2}$/,
+      // MM/DD/YYYY or DD/MM/YYYY  
+      /^\d{1,2}\/\d{1,2}\/\d{4}$/,
+      // MM-DD-YYYY or DD-MM-YYYY
+      /^\d{1,2}-\d{1,2}-\d{4}$/,
+      // YYYY/MM/DD
+      /^\d{4}\/\d{1,2}\/\d{1,2}$/
+    ];
+
+    const cleanValue = dateString.trim();
+    
+    try {
+      const date = new Date(cleanValue);
+      if (isNaN(date.getTime())) {
+        console.warn(`Invalid date format: ${cleanValue}`);
+        return null;
+      }
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      console.warn(`Date parsing error for "${cleanValue}":`, error);
+      return null;
+    }
+  };
+
   const parseCSV = (text: string) => {
     const rows = text.split('\n').filter(row => row.trim() !== '');
     const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
@@ -72,7 +102,7 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
             break;
           case 'date of testing':
           case 'date_of_testing':
-            obj.date_of_testing = value ? new Date(value).toISOString().split('T')[0] : null;
+            obj.date_of_testing = value ? parseDate(value) : null;
             break;
           case 'name':
             obj.name = value;
@@ -207,6 +237,8 @@ export function CSVImportModal({ isOpen, onClose, onSuccess }: CSVImportModalPro
           title: "Success",
           description: `${validData.length} applicants imported successfully`,
         });
+        
+        console.log('Import completed, refreshing applicant list...');
         
         // Close modal and reset state
         onClose();
