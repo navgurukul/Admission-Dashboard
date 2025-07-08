@@ -108,6 +108,19 @@ const statusConfig: Record<StatusType, { label: string; className: string }> = {
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const config = statusConfig[status];
   
+  // Handle undefined or invalid status values
+  if (!config) {
+    return (
+      <span className={cn(
+        "inline-flex items-center px-2.5 py-1 text-xs font-medium border rounded-full",
+        "bg-status-pending/10 text-status-pending border-status-pending/20",
+        className
+      )}>
+        {status || 'Unknown'}
+      </span>
+    );
+  }
+  
   return (
     <span className={cn(
       "inline-flex items-center px-2.5 py-1 text-xs font-medium border rounded-full",
