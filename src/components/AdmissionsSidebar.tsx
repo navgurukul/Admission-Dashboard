@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Admin", href: "/admin", icon: Users }, // Added Admin tab
+  { name: "Partner", href: "/partners", icon: Users },
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
 ];
