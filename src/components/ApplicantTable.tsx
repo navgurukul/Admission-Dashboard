@@ -153,7 +153,12 @@ export function ApplicantTable() {
       }
 
       console.log(`Successfully fetched ${data?.length || 0} applicants`);
-      setApplicants(data || []);
+      // Map the data to ensure campus field exists, even if null
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        campus: item.campus || null
+      }));
+      setApplicants(mappedData);
     } catch (error) {
       console.error('Error fetching applicants:', error);
       toast({
