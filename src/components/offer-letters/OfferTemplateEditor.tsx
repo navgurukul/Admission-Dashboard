@@ -30,6 +30,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
     name: '',
     template_type: 'offer_letter',
     language: 'en',
+    program_type: '',
     html_content: ''
   });
 
@@ -55,6 +56,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
         name: template.name,
         template_type: template.template_type,
         language: template.language,
+        program_type: template.program_type || '',
         html_content: template.html_content
       });
     }
@@ -202,6 +204,21 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                       <SelectContent>
                         <SelectItem value="en">English</SelectItem>
                         <SelectItem value="hi">Hindi</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="program_type">Program Type</Label>
+                    <Select
+                      value={formData.program_type}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, program_type: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select program" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SOP">School of Programming</SelectItem>
+                        <SelectItem value="SOB">School of Business</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
