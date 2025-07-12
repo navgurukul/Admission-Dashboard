@@ -30,7 +30,7 @@ export function QuestionEditor({ question, onSave, onCancel }: QuestionEditorPro
     language: 'EN',
     time_limit_seconds: null,
     points: 1,
-    tags: []
+    tags: [] as string[]
   });
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function QuestionEditor({ question, onSave, onCancel }: QuestionEditorPro
         language: question.language || 'EN',
         time_limit_seconds: question.time_limit_seconds || null,
         points: question.points || 1,
-        tags: question.tags || []
+        tags: Array.isArray(question.tags) ? question.tags : []
       });
     }
   }, [question]);

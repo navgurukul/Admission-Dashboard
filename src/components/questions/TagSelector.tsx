@@ -1,145 +1,163 @@
 
 import React, { useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
-import { Check, Plus, X } from 'lucide-react';
+import { X, Plus, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { cn } from '@/lib/utils';
 
 interface TagSelectorProps {
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
 }
 
-export function TagSelector({ selectedTags, onTagsChange }: TagSelectorProps) {
-  const [availableTags, setAvailableTags] = useState([]);
+export function TagSelector({ selectedTags = [], onTagsChange }: TagSelectorProps) {
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [newTagName, setNewTagName] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Ensure selectedTags is always an array
+  const safeTags = Array.isArray(selectedTags) ? selectedTags : [];
 
   useEffect(() => {
     fetchTags();
   }, []);
 
   const fetchTags = async () => {
-    const { data } = await supabase
-      .from('question_tags')
-      .select('*')
-      .order('display_name');
-    
-    setAvailableTags(data || []);
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('question_tags')
+        .select('slug, display_name')
+        .order('display_name');
+
+      if (error) throw error;
+
+      const tagSlugs = data?.map(tag => tag.slug) || [];
+      setAvailableTags(tagSlugs);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      setAvailableTags([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const createNewTag = async () => {
+  const handleTagSelect = (tagSlug: string) => {
+    if (!safeTags.includes(tagSlug)) {
+      onTagsChange([...safeTags, tagSlug]);
+    }
+    setOpen(false);
+  };
+
+  const handleTagRemove = (tagSlug: string) => {
+    onTagsChange(safeTags.filter(tag => tag !== tagSlug));
+  };
+
+  const handleCreateTag = async () => {
     if (!newTagName.trim()) return;
-    
-    const slug = newTagName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    
-    const { data, error } = await supabase
-      .from('question_tags')
-      .insert([{
-        slug,
-        display_name: newTagName.trim()
-      }])
-      .select()
-      .single();
 
-    if (!error && data) {
-      setAvailableTags([...availableTags, data]);
-      onTagsChange([...selectedTags, data.slug]);
+    try {
+      const slug = newTagName.toLowerCase().replace(/\s+/g, '-');
+      
+      const { error } = await supabase
+        .from('question_tags')
+        .insert([{
+          slug,
+          display_name: newTagName.trim()
+        }]);
+
+      if (error) throw error;
+
+      setAvailableTags(prev => [...prev, slug]);
+      handleTagSelect(slug);
       setNewTagName('');
-      setOpen(false);
+    } catch (error) {
+      console.error('Error creating tag:', error);
     }
   };
 
-  const toggleTag = (tagSlug: string) => {
-    if (selectedTags.includes(tagSlug)) {
-      onTagsChange(selectedTags.filter(t => t !== tagSlug));
-    } else {
-      onTagsChange([...selectedTags, tagSlug]);
-    }
-  };
-
-  const removeTag = (tagSlug: string) => {
-    onTagsChange(selectedTags.filter(t => t !== tagSlug));
-  };
-
-  const getTagDisplayName = (slug: string) => {
-    const tag = availableTags.find(t => t.slug === slug);
-    return tag?.display_name || slug;
-  };
+  const filteredTags = availableTags.filter(tag => 
+    !safeTags.includes(tag)
+  );
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        {selectedTags.map(tagSlug => (
-          <Badge key={tagSlug} variant="secondary" className="flex items-center gap-1">
-            {getTagDisplayName(tagSlug)}
-            <button
+        {safeTags.map((tag) => (
+          <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+            <Tag className="w-3 h-3" />
+            {tag}
+            <Button
               type="button"
-              onClick={() => removeTag(tagSlug)}
-              className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
+              variant="ghost"
+              size="sm"
+              className="h-auto p-0 w-4 h-4 hover:bg-transparent"
+              onClick={() => handleTagRemove(tag)}
             >
               <X className="w-3 h-3" />
-            </button>
+            </Button>
           </Badge>
         ))}
       </div>
 
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8">
-            <Plus className="w-4 h-4 mr-1" />
-            Add Tag
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Search tags..." />
-            <CommandEmpty>
-              <div className="p-2">
+      <div className="flex gap-2">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Tag
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search tags..." />
+              <CommandList>
+                <CommandEmpty>No tags found.</CommandEmpty>
+                <CommandGroup>
+                  {filteredTags.map((tag) => (
+                    <CommandItem
+                      key={tag}
+                      value={tag}
+                      onSelect={() => handleTagSelect(tag)}
+                    >
+                      <Tag className="w-4 h-4 mr-2" />
+                      {tag}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+            
+            <div className="p-3 border-t">
+              <div className="flex gap-2">
                 <Input
-                  placeholder="Create new tag..."
+                  placeholder="New tag name"
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      createNewTag();
+                      handleCreateTag();
                     }
                   }}
                 />
                 <Button
+                  type="button"
                   size="sm"
-                  onClick={createNewTag}
-                  className="w-full mt-2"
+                  onClick={handleCreateTag}
                   disabled={!newTagName.trim()}
                 >
-                  Create "{newTagName}"
+                  Create
                 </Button>
               </div>
-            </CommandEmpty>
-            <CommandGroup>
-              {availableTags.map((tag) => (
-                <CommandItem
-                  key={tag.slug}
-                  onSelect={() => toggleTag(tag.slug)}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedTags.includes(tag.slug) ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {tag.display_name}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </Command>
-        </PopoverContent>
-      </Popover>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 }

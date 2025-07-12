@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface QuestionOptionsEditorProps {
   questionType: string;
@@ -24,204 +24,180 @@ export function QuestionOptionsEditor({
   onOptionsChange,
   onCorrectAnswerChange
 }: QuestionOptionsEditorProps) {
-  const [localOptions, setLocalOptions] = useState([]);
-  const [localCorrectAnswer, setLocalCorrectAnswer] = useState(null);
+  const [multipleChoiceOptions, setMultipleChoiceOptions] = useState<string[]>(['', '', '', '']);
+  const [selectedCorrectOption, setSelectedCorrectOption] = useState<number>(0);
 
   useEffect(() => {
-    if (questionType === 'multiple_choice') {
-      setLocalOptions(options || [{ text: '', id: '1' }, { text: '', id: '2' }]);
-      setLocalCorrectAnswer(correctAnswer || '');
-    } else if (questionType === 'true_false') {
-      setLocalOptions([
-        { text: 'True', id: 'true' },
-        { text: 'False', id: 'false' }
-      ]);
-      setLocalCorrectAnswer(correctAnswer || 'true');
-    } else {
-      setLocalCorrectAnswer(correctAnswer || '');
+    if (options && Array.isArray(options)) {
+      setMultipleChoiceOptions(options);
     }
-  }, [questionType, options, correctAnswer]);
+    if (typeof correctAnswer === 'number') {
+      setSelectedCorrectOption(correctAnswer);
+    }
+  }, [options, correctAnswer]);
 
-  useEffect(() => {
-    if (questionType === 'multiple_choice' || questionType === 'true_false') {
-      onOptionsChange(localOptions);
-    }
-    onCorrectAnswerChange(localCorrectAnswer);
-  }, [localOptions, localCorrectAnswer]);
+  const handleMultipleChoiceChange = (index: number, value: string) => {
+    const newOptions = [...multipleChoiceOptions];
+    newOptions[index] = value;
+    setMultipleChoiceOptions(newOptions);
+    onOptionsChange(newOptions);
+  };
 
   const addOption = () => {
-    const newOption = {
-      text: '',
-      id: Date.now().toString()
-    };
-    setLocalOptions([...localOptions, newOption]);
+    const newOptions = [...multipleChoiceOptions, ''];
+    setMultipleChoiceOptions(newOptions);
+    onOptionsChange(newOptions);
   };
 
-  const removeOption = (id: string) => {
-    setLocalOptions(localOptions.filter(opt => opt.id !== id));
-    if (localCorrectAnswer === id) {
-      setLocalCorrectAnswer('');
+  const removeOption = (index: number) => {
+    if (multipleChoiceOptions.length <= 2) return;
+    const newOptions = multipleChoiceOptions.filter((_, i) => i !== index);
+    setMultipleChoiceOptions(newOptions);
+    onOptionsChange(newOptions);
+    
+    if (selectedCorrectOption >= newOptions.length) {
+      const newCorrect = 0;
+      setSelectedCorrectOption(newCorrect);
+      onCorrectAnswerChange(newCorrect);
     }
   };
 
-  const updateOption = (id: string, text: string) => {
-    setLocalOptions(localOptions.map(opt => 
-      opt.id === id ? { ...opt, text } : opt
-    ));
+  const handleCorrectAnswerChange = (index: number) => {
+    setSelectedCorrectOption(index);
+    onCorrectAnswerChange(index);
   };
 
-  const renderMultipleChoice = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Answer Options</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <RadioGroup value={localCorrectAnswer} onValueChange={setLocalCorrectAnswer}>
-          {localOptions.map((option, index) => (
-            <div key={option.id} className="flex items-center gap-2">
-              <RadioGroupItem value={option.id} id={option.id} />
-              <Input
-                value={option.text}
-                onChange={(e) => updateOption(option.id, e.target.value)}
-                placeholder={`Option ${index + 1}`}
-                className="flex-1"
-              />
-              {localOptions.length > 2 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeOption(option.id)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </RadioGroup>
-        
-        <Button type="button" variant="outline" onClick={addOption}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Option
-        </Button>
-        
-        {!localCorrectAnswer && (
-          <p className="text-red-500 text-sm">Please select the correct answer</p>
-        )}
-      </CardContent>
-    </Card>
-  );
+  const handleTrueFalseChange = (value: string) => {
+    onCorrectAnswerChange(value === 'true');
+  };
 
-  const renderTrueFalse = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Correct Answer</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <RadioGroup value={localCorrectAnswer} onValueChange={setLocalCorrectAnswer}>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="true" id="true" />
-            <Label htmlFor="true">True</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="false" id="false" />
-            <Label htmlFor="false">False</Label>
-          </div>
-        </RadioGroup>
-      </CardContent>
-    </Card>
-  );
+  const handleTextAnswerChange = (value: string) => {
+    onCorrectAnswerChange(value);
+  };
 
-  const renderShortAnswer = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Expected Answer</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Input
-          value={localCorrectAnswer || ''}
-          onChange={(e) => setLocalCorrectAnswer(e.target.value)}
-          placeholder="Enter the expected answer..."
-        />
-        <p className="text-sm text-muted-foreground mt-2">
-          Student answers will be compared against this expected answer
-        </p>
-      </CardContent>
-    </Card>
-  );
-
-  const renderLongAnswer = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Sample Answer / Rubric</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Textarea
-          value={localCorrectAnswer || ''}
-          onChange={(e) => setLocalCorrectAnswer(e.target.value)}
-          placeholder="Provide a sample answer or grading rubric..."
-          rows={4}
-        />
-        <p className="text-sm text-muted-foreground mt-2">
-          This will be used as reference for manual grading
-        </p>
-      </CardContent>
-    </Card>
-  );
-
-  const renderCoding = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Expected Solution</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Textarea
-          value={localCorrectAnswer || ''}
-          onChange={(e) => setLocalCorrectAnswer(e.target.value)}
-          placeholder="Provide the expected code solution..."
-          rows={6}
-          className="font-mono"
-        />
-        <p className="text-sm text-muted-foreground mt-2">
-          Include test cases and expected output if applicable
-        </p>
-      </CardContent>
-    </Card>
-  );
-
-  const renderFillInBlank = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Correct Answers</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Textarea
-          value={localCorrectAnswer || ''}
-          onChange={(e) => setLocalCorrectAnswer(e.target.value)}
-          placeholder="Enter acceptable answers, one per line..."
-          rows={3}
-        />
-        <p className="text-sm text-muted-foreground mt-2">
-          Each line represents an acceptable answer. Use _____ in the question text to indicate blanks.
-        </p>
-      </CardContent>
-    </Card>
-  );
-
-  switch (questionType) {
-    case 'multiple_choice':
-      return renderMultipleChoice();
-    case 'true_false':
-      return renderTrueFalse();
-    case 'short_answer':
-      return renderShortAnswer();
-    case 'long_answer':
-      return renderLongAnswer();
-    case 'coding':
-      return renderCoding();
-    case 'fill_in_blank':
-      return renderFillInBlank();
-    default:
-      return null;
+  if (questionType === 'multiple_choice') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Multiple Choice Options</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RadioGroup
+            value={selectedCorrectOption.toString()}
+            onValueChange={(value) => handleCorrectAnswerChange(parseInt(value))}
+          >
+            {multipleChoiceOptions.map((option, index) => (
+              <div key={index} className="flex items-center space-x-3">
+                <RadioGroupItem value={index.toString()} />
+                <div className="flex-1 flex items-center space-x-2">
+                  <Input
+                    value={option}
+                    onChange={(e) => handleMultipleChoiceChange(index, e.target.value)}
+                    placeholder={`Option ${index + 1}`}
+                    className="flex-1"
+                  />
+                  {multipleChoiceOptions.length > 2 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOption(index)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </RadioGroup>
+          
+          <Button type="button" variant="outline" onClick={addOption}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Option
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
+
+  if (questionType === 'true_false') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>True/False Answer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={correctAnswer?.toString() || 'true'}
+            onValueChange={handleTrueFalseChange}
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="true" />
+              <Label>True</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="false" />
+              <Label>False</Label>
+            </div>
+          </RadioGroup>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (questionType === 'short_answer' || questionType === 'fill_in_blank') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Expected Answer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Input
+            value={correctAnswer || ''}
+            onChange={(e) => handleTextAnswerChange(e.target.value)}
+            placeholder="Enter the expected answer"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (questionType === 'long_answer') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Sample Answer / Grading Criteria</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={correctAnswer || ''}
+            onChange={(e) => handleTextAnswerChange(e.target.value)}
+            placeholder="Provide a sample answer or grading criteria"
+            rows={4}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (questionType === 'coding') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Expected Solution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            value={correctAnswer || ''}
+            onChange={(e) => handleTextAnswerChange(e.target.value)}
+            placeholder="Provide the expected code solution"
+            rows={6}
+            className="font-mono"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
 }
