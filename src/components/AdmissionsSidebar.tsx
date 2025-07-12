@@ -8,7 +8,8 @@ import {
   Settings,
   HelpCircle,
   Bell,
-  LogOut
+  LogOut,
+  Mail
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const navigation = [
   { name: "All Applicants", href: "/all-applicants", icon: Users },
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
+  { name: "Offer Letters", href: "/offer-letters", icon: Mail },
 ];
 
 export function AdmissionsSidebar() {

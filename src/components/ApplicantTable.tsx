@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Filter, Search, Edit, Trash2, Eye, Mail } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Filter, Search, Edit, Trash2, Mail, MoreHorizontal } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
@@ -212,7 +213,7 @@ const ApplicantTable = () => {
   };
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -267,7 +268,7 @@ const ApplicantTable = () => {
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col">
         <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -281,129 +282,125 @@ const ApplicantTable = () => {
           </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={
-                    filteredApplicants?.length > 0 &&
-                    selectedRows.length === filteredApplicants?.length
-                  }
-                  onCheckedChange={handleSelectAllRows}
-                  aria-label="Select all applicants"
-                />
-              </TableHead>
-              <TableHead className="w-[200px]">Name</TableHead>
-              <TableHead className="w-[150px]">Mobile No</TableHead>
-              <TableHead className="w-[120px]">Campus</TableHead>
-              <TableHead className="w-[120px]">Stage</TableHead>
-              <TableHead className="w-[120px]">Status</TableHead>
-              <TableHead className="w-[150px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center">
-                  Loading applicants...
-                </TableCell>
-              </TableRow>
-            ) : filteredApplicants?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center">
-                  No applicants found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredApplicants?.map((applicant) => (
-                <TableRow key={applicant.id}>
-                  <TableCell>
+        <div className="flex-1 border rounded-md overflow-hidden">
+          <div className="h-full overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+                <TableRow>
+                  <TableHead className="w-[50px] font-bold">
                     <Checkbox
-                      checked={selectedRows.includes(applicant.id)}
-                      onCheckedChange={() => handleCheckboxChange(applicant.id)}
-                      aria-label={`Select ${applicant.name}`}
+                      checked={
+                        filteredApplicants?.length > 0 &&
+                        selectedRows.length === filteredApplicants?.length
+                      }
+                      onCheckedChange={handleSelectAllRows}
+                      aria-label="Select all applicants"
                     />
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="link"
-                      onClick={() => setApplicantToView(applicant)}
-                      className="p-0 h-auto font-normal"
-                    >
-                      {applicant.name || "No name"}
-                    </Button>
-                  </TableCell>
-                  <TableCell>{applicant.mobile_no}</TableCell>
-                  <TableCell>{applicant.campus || "Not assigned"}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={applicant.stage || "contact"}
-                      onValueChange={async (value) => {
-                        const { error } = await supabase
-                          .from("admission_dashboard")
-                          .update({ stage: value })
-                          .eq("id", applicant.id);
-
-                        if (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to update stage",
-                            variant: "destructive",
-                          });
-                        } else {
-                          toast({
-                            title: "Stage Updated",
-                            description: "Successfully updated stage",
-                          });
-                          refetch();
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a stage" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="contact">Contact</SelectItem>
-                        <SelectItem value="screening">Screening</SelectItem>
-                        <SelectItem value="interviews">Interviews</SelectItem>
-                        <SelectItem value="decision">Decision</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={(applicant.status || "pending") as StatusType} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setApplicantToView(applicant)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(applicant.id);
-                          toast({
-                            title: "Applicant ID Copied",
-                            description: "Applicant ID copied to clipboard",
-                          });
-                        }}
-                      >
-                        Copy ID
-                      </Button>
-                    </div>
-                  </TableCell>
+                  </TableHead>
+                  <TableHead className="w-[200px] font-bold">Name</TableHead>
+                  <TableHead className="w-[150px] font-bold">Mobile No</TableHead>
+                  <TableHead className="w-[120px] font-bold">Campus</TableHead>
+                  <TableHead className="w-[120px] font-bold">Stage</TableHead>
+                  <TableHead className="w-[120px] font-bold">Status</TableHead>
+                  <TableHead className="w-[80px] font-bold">Actions</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      Loading applicants...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredApplicants?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      No applicants found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredApplicants?.map((applicant) => (
+                    <TableRow key={applicant.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedRows.includes(applicant.id)}
+                          onCheckedChange={() => handleCheckboxChange(applicant.id)}
+                          aria-label={`Select ${applicant.name}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="link"
+                          onClick={() => setApplicantToView(applicant)}
+                          className="p-0 h-auto font-normal"
+                        >
+                          {applicant.name || "No name"}
+                        </Button>
+                      </TableCell>
+                      <TableCell>{applicant.mobile_no}</TableCell>
+                      <TableCell>{applicant.campus || "Not assigned"}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={applicant.stage || "contact"}
+                          onValueChange={async (value) => {
+                            const { error } = await supabase
+                              .from("admission_dashboard")
+                              .update({ stage: value })
+                              .eq("id", applicant.id);
+
+                            if (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to update stage",
+                                variant: "destructive",
+                              });
+                            } else {
+                              toast({
+                                title: "Stage Updated",
+                                description: "Successfully updated stage",
+                              });
+                              refetch();
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a stage" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="contact">Contact</SelectItem>
+                            <SelectItem value="screening">Screening</SelectItem>
+                            <SelectItem value="interviews">Interviews</SelectItem>
+                            <SelectItem value="decision">Decision</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={(applicant.status || "pending") as StatusType} />
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setApplicantToView(applicant)}>
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setApplicantToEditInline(applicant)}>
+                              Edit
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </CardContent>
 
       <AddApplicantModal
@@ -427,7 +424,7 @@ const ApplicantTable = () => {
       />
 
       <ApplicantModal
-        applicant={applicantToView?.id || null}
+        applicant={applicantToView}
         isOpen={!!applicantToView}
         onClose={() => setApplicantToView(null)}
       />
