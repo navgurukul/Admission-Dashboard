@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -133,14 +132,6 @@ export default function QuestionRepository() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setActiveTab('tags')}
-                className="flex items-center gap-2"
-              >
-                <Archive className="w-4 h-4" />
-                Manage Tags
-              </Button>
               <Button
                 variant="outline"
                 onClick={() => setActiveTab('import')}
