@@ -145,10 +145,10 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
 
   const resetFilters = () => {
     setFilters({
-      stage: '',
-      status: '',
-      examMode: '',
-      interviewMode: '',
+      stage: 'all',
+      status: 'all',
+      examMode: 'all',
+      interviewMode: 'all',
       partner: [],
       district: [],
       market: [],
@@ -156,7 +156,7 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
     });
   };
 
-  const availableStatuses = filters.stage ? STAGE_STATUS_MAP[filters.stage as keyof typeof STAGE_STATUS_MAP] || [] : [];
+  const availableStatuses = filters.stage && filters.stage !== 'all' ? STAGE_STATUS_MAP[filters.stage as keyof typeof STAGE_STATUS_MAP] || [] : [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -175,12 +175,12 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
             
             <div>
               <Label>Stage</Label>
-              <Select value={filters.stage} onValueChange={(value) => setFilters(prev => ({ ...prev, stage: value, status: '' }))}>
+              <Select value={filters.stage} onValueChange={(value) => setFilters(prev => ({ ...prev, stage: value, status: 'all' }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select stage" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Stages</SelectItem>
+                  <SelectItem value="all">All Stages</SelectItem>
                   <SelectItem value="contact">Contact</SelectItem>
                   <SelectItem value="screening">Screening</SelectItem>
                   <SelectItem value="interviews">Interviews</SelectItem>
@@ -197,7 +197,7 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Statuses</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
                     {availableStatuses.map(status => (
                       <SelectItem key={status} value={status}>
                         {status.replace('_', ' ').toUpperCase()}
@@ -220,7 +220,7 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
                   <SelectValue placeholder="Select exam mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Modes</SelectItem>
+                  <SelectItem value="all">All Modes</SelectItem>
                   <SelectItem value="online">Online</SelectItem>
                   <SelectItem value="offline">Offline</SelectItem>
                 </SelectContent>
@@ -234,7 +234,7 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
                   <SelectValue placeholder="Select interview mode" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Modes</SelectItem>
+                  <SelectItem value="all">All Modes</SelectItem>
                   <SelectItem value="online">Online</SelectItem>
                   <SelectItem value="offline">Offline</SelectItem>
                 </SelectContent>
