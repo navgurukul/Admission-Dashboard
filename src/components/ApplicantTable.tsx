@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Search, Filter, Plus, MoreHorizontal, Upload, Download } from "lucide-react";
+import { Search, Filter, Plus, MoreHorizontal, Upload, Download, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
@@ -8,6 +7,8 @@ import { ApplicantModal } from "./ApplicantModal";
 import { AddApplicantModal } from "./AddApplicantModal";
 import CSVImportModal from "./CSVImportModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
+import { InlineEditModal } from "./InlineEditModal";
+import { BulkUpdateModal } from "./BulkUpdateModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -86,13 +87,16 @@ export function ApplicantTable() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
+  const [isInlineEditOpen, setIsInlineEditOpen] = useState(false);
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [applicants, setApplicants] = useState<ApplicantData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedApplicants, setSelectedApplicants] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
-    stage: '',
-    status: '',
-    examMode: '',
-    interviewMode: '',
+    stage: 'all',
+    status: 'all',
+    examMode: 'all',
+    interviewMode: 'all',
     partner: [],
     district: [],
     market: [],
@@ -177,17 +181,17 @@ export function ApplicantTable() {
 
       if (!matchesSearch) return false;
 
-      // Stage filter
-      if (filters.stage && applicant.stage !== filters.stage) return false;
+      // Stage filter - updated to handle 'all'
+      if (filters.stage && filters.stage !== 'all' && applicant.stage !== filters.stage) return false;
 
-      // Status filter
-      if (filters.status && applicant.status !== filters.status) return false;
+      // Status filter - updated to handle 'all'
+      if (filters.status && filters.status !== 'all' && applicant.status !== filters.status) return false;
 
-      // Exam mode filter
-      if (filters.examMode && applicant.exam_mode !== filters.examMode) return false;
+      // Exam mode filter - updated to handle 'all'
+      if (filters.examMode && filters.examMode !== 'all' && applicant.exam_mode !== filters.examMode) return false;
 
-      // Interview mode filter
-      if (filters.interviewMode && applicant.interview_mode !== filters.interviewMode) return false;
+      // Interview mode filter - updated to handle 'all'
+      if (filters.interviewMode && filters.interviewMode !== 'all' && applicant.interview_mode !== filters.interviewMode) return false;
 
       // Partner filter
       if (filters.partner.length > 0 && (!applicant.partner || !filters.partner.includes(applicant.partner))) return false;
@@ -215,7 +219,6 @@ export function ApplicantTable() {
         }
 
         if (!dateToCheck) return false;
-
         if (filters.dateRange.from && dateToCheck < filters.dateRange.from) return false;
         if (filters.dateRange.to && dateToCheck > filters.dateRange.to) return false;
       }
@@ -229,6 +232,27 @@ export function ApplicantTable() {
   const handleViewApplicant = (applicant: ApplicantData) => {
     setSelectedApplicant(applicant);
     setIsModalOpen(true);
+  };
+
+  const handleInlineEdit = (applicant: ApplicantData) => {
+    setSelectedApplicant(applicant);
+    setIsInlineEditOpen(true);
+  };
+
+  const handleSelectApplicant = (applicantId: string) => {
+    setSelectedApplicants(prev => 
+      prev.includes(applicantId) 
+        ? prev.filter(id => id !== applicantId)
+        : [...prev, applicantId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedApplicants.length === filteredApplicants.length) {
+      setSelectedApplicants([]);
+    } else {
+      setSelectedApplicants(filteredApplicants.map(a => a.id));
+    }
   };
 
   const handleExportCSV = async () => {
@@ -286,6 +310,15 @@ export function ApplicantTable() {
             <p className="text-muted-foreground text-sm mt-1">Manage and track applicant progress</p>
           </div>
           <div className="flex items-center space-x-3">
+            {selectedApplicants.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={() => setIsBulkUpdateOpen(true)} 
+                className="h-9"
+              >
+                Bulk Update ({selectedApplicants.length})
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="h-9">
               <Upload className="w-4 h-4 mr-2" />
               Import CSV
@@ -333,6 +366,14 @@ export function ApplicantTable() {
           <table className="w-full">
             <thead className="bg-muted/30 sticky top-0">
               <tr>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm w-12">
+                  <input
+                    type="checkbox"
+                    checked={selectedApplicants.length === filteredApplicants.length && filteredApplicants.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300"
+                  />
+                </th>
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Applicant</th>
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage</th>
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Status</th>
@@ -343,7 +384,7 @@ export function ApplicantTable() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center space-y-2">
                       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       <span>Loading applicants...</span>
@@ -352,7 +393,7 @@ export function ApplicantTable() {
                 </tr>
               ) : filteredApplicants.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center space-y-2">
                       <Search className="w-8 h-8 opacity-50" />
                       <span>No applicants found</span>
@@ -365,6 +406,14 @@ export function ApplicantTable() {
                     key={applicant.id} 
                     className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
                   >
+                    <td className="py-4 px-6">
+                      <input
+                        type="checkbox"
+                        checked={selectedApplicants.includes(applicant.id)}
+                        onChange={() => handleSelectApplicant(applicant.id)}
+                        className="rounded border-gray-300"
+                      />
+                    </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -396,18 +445,32 @@ export function ApplicantTable() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-muted"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewApplicant(applicant);
-                        }}
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                        <span className="sr-only">More options</span>
-                      </Button>
+                      <div className="flex items-center justify-center space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-muted"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleInlineEdit(applicant);
+                          }}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          <span className="sr-only">Quick edit</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-muted"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewApplicant(applicant);
+                          }}
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                          <span className="sr-only">More options</span>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -420,6 +483,7 @@ export function ApplicantTable() {
         <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
           <p className="text-sm text-muted-foreground">
             Showing {filteredApplicants.length} of {applicants.length} applicants
+            {selectedApplicants.length > 0 && ` • ${selectedApplicants.length} selected`}
           </p>
         </div>
       </div>
@@ -448,6 +512,23 @@ export function ApplicantTable() {
         onClose={() => setIsAdvancedFilterOpen(false)}
         onApplyFilters={setFilters}
         currentFilters={filters}
+      />
+
+      <InlineEditModal
+        applicant={selectedApplicant}
+        isOpen={isInlineEditOpen}
+        onClose={() => setIsInlineEditOpen(false)}
+        onSuccess={fetchApplicants}
+      />
+
+      <BulkUpdateModal
+        selectedApplicants={selectedApplicants}
+        isOpen={isBulkUpdateOpen}
+        onClose={() => setIsBulkUpdateOpen(false)}
+        onSuccess={() => {
+          fetchApplicants();
+          setSelectedApplicants([]);
+        }}
       />
     </div>
   );

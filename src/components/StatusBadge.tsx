@@ -37,7 +37,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       case "offer_accepted":
       case "Qualified for SOP":
       case "Qualified for SOB":
-        return "bg-status-active/10 text-status-active border-status-active/20";
+        return "bg-green-500/10 text-green-700 border-green-500/20";
       
       case "fail":
       case "disqualified":
@@ -45,17 +45,17 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       case "lr_failed":
       case "cfr_failed":
       case "offer_rejected":
-        return "bg-status-fail/10 text-status-fail border-status-fail/20";
+        return "bg-red-500/10 text-red-700 border-red-500/20";
       
       case "pending":
       case "booked":
       case "rescheduled":
       case "offer_pending":
       case "offer_sent":
-        return "bg-status-pending/10 text-status-pending border-status-pending/20";
+        return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
       
       default:
-        return "bg-muted/10 text-muted-foreground border-muted/20";
+        return "bg-gray-500/10 text-gray-700 border-gray-500/20";
     }
   };
 
