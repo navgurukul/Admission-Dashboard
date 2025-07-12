@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RichTextEditor } from "@/components/offer-letters/RichTextEditor";
 import { PlaceholderPanel } from "@/components/offer-letters/PlaceholderPanel";
-import { ArrowLeft, Save, Eye } from "lucide-react";
+import { DocumentUploadModal } from "@/components/offer-letters/DocumentUploadModal";
+import { ArrowLeft, Save, Eye, Upload, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OfferTemplateEditorProps {
@@ -22,6 +23,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showPreview, setShowPreview] = useState(false);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -114,6 +116,10 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
     saveMutation.mutate(formData);
   };
 
+  const handleDocumentUploaded = (content: string) => {
+    setFormData(prev => ({ ...prev, html_content: content }));
+  };
+
   if (isLoading && !isNew) {
     return <div>Loading template...</div>;
   }
@@ -129,6 +135,10 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
             </Button>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowDocumentUpload(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Doc
+            </Button>
             <Button variant="outline" onClick={() => setShowPreview(true)}>
               <Eye className="h-4 w-4 mr-2" />
               Preview
@@ -167,10 +177,10 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="offer_letter">Offer Letter</SelectItem>
-                        <SelectItem value="consent_form">Consent Form</SelectItem>
-                        <SelectItem value="checklist">Checklist</SelectItem>
-                        <SelectItem value="complete_package">Complete Package (Letter + Forms)</SelectItem>
+                        <SelectItem value="offer_letter">Offer Letter Only</SelectItem>
+                        <SelectItem value="consent_form">Consent Form Only</SelectItem>
+                        <SelectItem value="checklist">Checklist Only</SelectItem>
+                        <SelectItem value="complete_package">Complete Package (Letter + Consent + Checklist)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -210,9 +220,17 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                   <div className="p-4 bg-blue-50 rounded-lg">
                     <h4 className="font-medium text-blue-900 mb-2">Complete Package Template</h4>
                     <p className="text-sm text-blue-700">
-                      This template type will include the offer letter, consent form, and checklist in a single email.
-                      Structure your content to include all three sections clearly separated.
+                      This template will send the offer letter, consent form, and checklist together in a single email.
+                      Structure your content with clear sections for each document type.
                     </p>
+                    <div className="mt-3 p-3 bg-white rounded border text-sm">
+                      <strong>Suggested Structure:</strong>
+                      <ul className="mt-2 space-y-1 text-blue-600">
+                        <li>• <strong>Section 1:</strong> Offer Letter with admission details</li>
+                        <li>• <strong>Section 2:</strong> Consent Form for enrollment confirmation</li>
+                        <li>• <strong>Section 3:</strong> Checklist of required documents and next steps</li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -220,7 +238,13 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
 
             <Card>
               <CardHeader>
-                <CardTitle>Template Content</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Template Content</CardTitle>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span>Upload .doc files or edit directly</span>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <RichTextEditor
@@ -255,6 +279,12 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
           />
         </DialogContent>
       </Dialog>
+
+      <DocumentUploadModal
+        isOpen={showDocumentUpload}
+        onClose={() => setShowDocumentUpload(false)}
+        onDocumentUploaded={handleDocumentUploaded}
+      />
     </>
   );
 };

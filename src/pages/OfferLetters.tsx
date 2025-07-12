@@ -4,6 +4,7 @@ import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { OfferTemplateEditor } from "@/components/offer-letters/OfferTemplateEditor";
 import { OfferTemplateList } from "@/components/offer-letters/OfferTemplateList";
 import { OfferHistoryPanel } from "@/components/offer-letters/OfferHistoryPanel";
+import { PlaceholderManagement } from "@/components/offer-letters/PlaceholderManagement";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, FileText, History, Settings } from "lucide-react";
@@ -76,11 +77,13 @@ const OfferLetters = () => {
 
             <TabsContent value="settings">
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold">Template Settings</h2>
-                <p className="text-muted-foreground">
-                  Configure placeholder fields and email settings
-                </p>
-                {/* Placeholder settings will be added here */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Template Settings</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Manage placeholder fields and template configurations
+                  </p>
+                </div>
+                <PlaceholderManagement />
               </div>
             </TabsContent>
           </Tabs>
