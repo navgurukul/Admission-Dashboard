@@ -4,7 +4,8 @@ import {
   MessageSquare, 
   Calendar,
   LogOut,
-  Mail
+  Mail,
+  FileText
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
+  { name: "Question Repository", href: "/questions", icon: FileText },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
 ];
 

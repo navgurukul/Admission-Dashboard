@@ -14,6 +14,7 @@ import Screening from "./pages/Screening";
 import InterviewRounds from "./pages/InterviewRounds";
 import FinalDecisions from "./pages/FinalDecisions";
 import OfferLetters from "./pages/OfferLetters";
+import QuestionRepository from "./pages/QuestionRepository";
 import Auth from "./pages/Auth";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/applicants" element={<ProtectedRoute><AllApplicants /></ProtectedRoute>} />
             <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+            <Route path="/questions" element={<ProtectedRoute><QuestionRepository /></ProtectedRoute>} />
             <Route path="/sourcing" element={<ProtectedRoute><Sourcing /></ProtectedRoute>} />
             <Route path="/screening" element={<ProtectedRoute><Screening /></ProtectedRoute>} />
             <Route path="/interview-rounds" element={<ProtectedRoute><InterviewRounds /></ProtectedRoute>} />
