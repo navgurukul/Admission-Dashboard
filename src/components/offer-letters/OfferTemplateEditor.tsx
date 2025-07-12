@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,21 +206,23 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="program_type">Program Type</Label>
-                    <Select
-                      value={formData.program_type}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, program_type: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select program" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SOP">School of Programming</SelectItem>
-                        <SelectItem value="SOB">School of Business</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {formData.template_type === 'offer_letter' && (
+                    <div>
+                      <Label htmlFor="program_type">Program Type</Label>
+                      <Select
+                        value={formData.program_type}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, program_type: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select program" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SOP">School of Programming</SelectItem>
+                          <SelectItem value="SOB">School of Business</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 {formData.template_type === 'complete_package' && (
