@@ -3,7 +3,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export function useQuestions(filters = {}, searchTerm = '') {
+interface QuestionFilters {
+  status?: string;
+  difficulty?: string;
+  language?: string;
+  question_type?: string;
+  tags?: string[];
+}
+
+export function useQuestions(filters: QuestionFilters = {}, searchTerm = '') {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();

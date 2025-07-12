@@ -80,7 +80,6 @@ export function QuestionEditor({ question, onSave, onCancel }: QuestionEditorPro
             <RichTextEditor
               content={formData.question_text}
               onChange={(content) => updateField('question_text', content)}
-              placeholder="Enter your question here..."
             />
           </div>
 

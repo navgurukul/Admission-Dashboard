@@ -15,6 +15,19 @@ interface QuestionBulkImportProps {
   onImportComplete: () => void;
 }
 
+interface CSVRow {
+  question_text?: string;
+  question_type?: string;
+  options_json?: string;
+  correct_answer_json?: string;
+  explanation?: string;
+  difficulty_level?: string;
+  language?: string;
+  points?: string;
+  tags?: string;
+  time_limit_seconds?: string;
+}
+
 export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps) {
   const [csvData, setCsvData] = useState('');
   const [parsedData, setParsedData] = useState([]);
@@ -66,7 +79,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
         const validQuestions = [];
         const parseErrors = [];
 
-        results.data.forEach((row, index) => {
+        (results.data as CSVRow[]).forEach((row, index) => {
           try {
             // Validate required fields
             if (!row.question_text || !row.question_type || !row.correct_answer_json) {
@@ -78,7 +91,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             let options = null;
             let correctAnswer = null;
 
-            if (row.options_json) {
+            if (row.options_json && row.options_json.trim()) {
               options = JSON.parse(row.options_json);
             }
             
@@ -92,7 +105,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
               explanation: row.explanation || '',
               difficulty_level: row.difficulty_level || 'medium',
               language: row.language || 'EN',
-              points: parseInt(row.points) || 1,
+              points: parseInt(row.points || '1') || 1,
               tags: row.tags ? row.tags.split(',').map(t => t.trim()) : [],
               time_limit_seconds: row.time_limit_seconds ? parseInt(row.time_limit_seconds) : null
             };
@@ -187,8 +200,8 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
     }
   };
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
@@ -202,7 +215,10 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      setCsvData(e.target.result);
+      const result = e.target?.result;
+      if (typeof result === 'string') {
+        setCsvData(result);
+      }
     };
     reader.readAsText(file);
   };
@@ -230,7 +246,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             className="hidden"
             id="csv-upload"
           />
-          <Button variant="outline" onClick={() => document.getElementById('csv-upload').click()}>
+          <Button variant="outline" onClick={() => document.getElementById('csv-upload')?.click()}>
             <Upload className="w-4 h-4 mr-2" />
             Upload CSV File
           </Button>
