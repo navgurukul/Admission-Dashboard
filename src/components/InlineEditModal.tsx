@@ -65,8 +65,8 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
     whatsapp_number: '',
     city: '',
     stage: 'contact',
-    status: '',
-    campus: ''
+    status: 'none',
+    campus: 'none'
   });
   const [originalData, setOriginalData] = useState(formData);
   const [campusOptions, setCampusOptions] = useState<CampusOption[]>([]);
@@ -83,8 +83,8 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
         whatsapp_number: applicant.whatsapp_number || '',
         city: applicant.city || '',
         stage: applicant.stage || 'contact',
-        status: applicant.status || '',
-        campus: applicant.campus || ''
+        status: applicant.status || 'none',
+        campus: applicant.campus || 'none'
       };
       setFormData(data);
       setOriginalData(data);
@@ -125,7 +125,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
     setFormData(prev => ({ 
       ...prev, 
       stage, 
-      status: stage === 'contact' ? '' : 'pending'
+      status: stage === 'contact' ? 'none' : 'pending'
     }));
   };
 
@@ -142,8 +142,8 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
           whatsapp_number: formData.whatsapp_number || null,
           city: formData.city || null,
           stage: formData.stage,
-          status: formData.status || null,
-          campus: formData.campus || null,
+          status: formData.status === 'none' ? null : formData.status,
+          campus: formData.campus === 'none' ? null : formData.campus,
           last_updated: new Date().toISOString()
         })
         .eq('id', applicant.id);
@@ -189,8 +189,8 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
           whatsapp_number: originalData.whatsapp_number || null,
           city: originalData.city || null,
           stage: originalData.stage,
-          status: originalData.status || null,
-          campus: originalData.campus || null,
+          status: originalData.status === 'none' ? null : originalData.status,
+          campus: originalData.campus === 'none' ? null : originalData.campus,
           last_updated: new Date().toISOString()
         })
         .eq('id', applicant.id);
@@ -306,12 +306,12 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
 
             <div>
               <Label>Campus</Label>
-              <Select value={formData.campus} onValueChange={(value) => handleInputChange('campus', value === 'unassigned' ? '' : value)}>
+              <Select value={formData.campus} onValueChange={(value) => handleInputChange('campus', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select campus" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unassigned">Not assigned</SelectItem>
+                  <SelectItem value="none">Not assigned</SelectItem>
                   {campusOptions.map((campus) => (
                     <SelectItem key={campus.id} value={campus.name}>
                       {campus.name}
