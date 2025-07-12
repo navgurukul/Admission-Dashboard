@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,11 +41,11 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
   const downloadTemplate = () => {
     const template = [
       'question_text,question_type,options_json,correct_answer_json,explanation,difficulty_level,language,points,tags,time_limit_seconds',
-      '"What is 2+2?",multiple_choice,"[{""id"":""1"",""text"":""3""},{""id"":""2"",""text"":""4""},{""id"":""3"",""text"":""5""},{""id"":""4"",""text"":""6""}]","2","Basic arithmetic operation","easy","EN",1,"mathematics,arithmetic",30',
-      '"HTML stands for HyperText Markup Language",true_false,"[{""id"":""true"",""text"":""True""},{""id"":""false"",""text"":""False""}]","true","HTML is indeed HyperText Markup Language","easy","EN",1,"html,web-development",45',
+      '"What is 2+2?",multiple_choice,"[{\\"id\\":\\"1\\",\\"text\\":\\"3\\"},{\\"id\\":\\"2\\",\\"text\\":\\"4\\"},{\\"id\\":\\"3\\",\\"text\\":\\"5\\"},{\\"id\\":\\"4\\",\\"text\\":\\"6\\"}]","2","Basic arithmetic operation","easy","EN",1,"mathematics,arithmetic",30',
+      '"HTML stands for HyperText Markup Language",true_false,"[{\\"id\\":\\"true\\",\\"text\\":\\"True\\"},{\\"id\\":\\"false\\",\\"text\\":\\"False\\"}]","true","HTML is indeed HyperText Markup Language","easy","EN",1,"html,web-development",45',
       '"What is the capital of France?",short_answer,"","Paris","The capital city of France is Paris","medium","EN",2,"geography,capitals",60',
       '"Explain the concept of Object-Oriented Programming and its main principles.",long_answer,"","Object-Oriented Programming (OOP) is a programming paradigm based on the concept of objects. The main principles are: 1) Encapsulation - bundling data and methods together, 2) Inheritance - creating new classes based on existing ones, 3) Polymorphism - ability to take multiple forms, 4) Abstraction - hiding complex implementation details.","This tests understanding of fundamental programming concepts","hard","EN",5,"programming,oop,computer-science",300',
-      '"Write a function to reverse a string in Python",coding,"","def reverse_string(s):\n    return s[::-1]\n\n# Alternative solution:\n# def reverse_string(s):\n#     return \'\'.join(reversed(s))","Tests basic Python string manipulation skills","medium","EN",3,"python,coding,strings",600',
+      '"Write a function to reverse a string in Python",coding,"","def reverse_string(s):\\n    return s[::-1]\\n\\n# Alternative solution:\\n# def reverse_string(s):\\n#     return \'\'.join(reversed(s))","Tests basic Python string manipulation skills","medium","EN",3,"python,coding,strings",600',
       '"The ____ of a circle is the distance from its center to any point on its circumference.",fill_in_blank,"","radius","The radius is the distance from center to circumference","easy","EN",1,"mathematics,geometry",45'
     ].join('\n');
 
@@ -354,7 +355,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             </Button>
             
             {importStatus === 'parsed' && (
-              <Button onClick={importQuestions} disabled={importStatus === 'importing'}>
+              <Button onClick={importQuestions}>
                 Import {parsedData.length} Questions
               </Button>
             )}
