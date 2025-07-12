@@ -51,6 +51,7 @@ export const DocumentUploadModal = ({
       const options = {
         convertImage: async (image: any) => {
           try {
+            console.log('Processing embedded image...');
             const imageBuffer = await image.read();
             const blob = new Blob([imageBuffer], { type: image.contentType || 'image/png' });
             
@@ -71,9 +72,10 @@ export const DocumentUploadModal = ({
               .from('offer-pdfs')
               .getPublicUrl(filePath);
             
+            console.log('Image uploaded successfully:', data.publicUrl);
             return { src: data.publicUrl };
           } catch (error) {
-            console.error('Error processing image:', error);
+            console.error('Error processing embedded image:', error);
             return { src: '' };
           }
         },
@@ -86,26 +88,20 @@ export const DocumentUploadModal = ({
           "r[style-name='Strong'] => strong",
           "r[style-name='Emphasis'] => em",
         ],
-        transformDocument: (document: any) => {
-          // Clean up empty elements that cause conversion issues
-          const cleanElement = (element: any): any => {
-            if (!element || !element.children) return element;
-            
-            element.children = element.children
-              .map(cleanElement)
-              .filter((child: any) => child !== null);
-              
-            return element;
-          };
-          
-          return cleanElement(document);
-        }
+        ignoreEmptyParagraphs: false,
+        includeDefaultStyleMap: true
       };
       
+      console.log('Starting document conversion...');
       const result = await mammoth.convertToHtml({ arrayBuffer }, options);
       
       if (result.messages && result.messages.length > 0) {
         console.log('Conversion messages:', result.messages);
+        // Filter out only errors, not warnings
+        const errors = result.messages.filter((msg: any) => msg.type === 'error');
+        if (errors.length > 0) {
+          console.error('Conversion errors:', errors);
+        }
       }
       
       const styledHtml = `
@@ -114,10 +110,38 @@ export const DocumentUploadModal = ({
         </div>
       `;
       
+      console.log('Document converted successfully');
       return styledHtml;
     } catch (error) {
       console.error('Document conversion error:', error);
-      throw new Error(`Document conversion failed. Please try with a simpler document or contact support.`);
+      // Try a simpler conversion approach
+      try {
+        console.log('Attempting simplified conversion...');
+        const mammoth = await loadMammoth();
+        const arrayBuffer = await file.arrayBuffer();
+        
+        const simpleOptions = {
+          convertImage: () => ({ src: '' }), // Skip images for now
+          ignoreEmptyParagraphs: true
+        };
+        
+        const result = await mammoth.convertToHtml({ arrayBuffer }, simpleOptions);
+        
+        const basicHtml = `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; padding: 20px;">
+            ${result.value}
+            <p style="color: #666; font-style: italic; margin-top: 20px;">
+              Note: Images from the original document were not included in this conversion. 
+              You can add images manually using the editor tools.
+            </p>
+          </div>
+        `;
+        
+        return basicHtml;
+      } catch (fallbackError) {
+        console.error('Fallback conversion also failed:', fallbackError);
+        throw new Error(`Document conversion failed. This document may be too complex or corrupted. Please try with a simpler document.`);
+      }
     }
   };
 
@@ -223,6 +247,9 @@ export const DocumentUploadModal = ({
             <div className="text-blue-800">
               <div className="font-medium">Supported format:</div>
               <div>• .docx files only</div>
+              <div className="text-xs mt-1 text-blue-600">
+                Note: Complex documents with many images may take longer to process.
+              </div>
             </div>
           </div>
         </div>

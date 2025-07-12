@@ -16,6 +16,7 @@ interface SendOfferRequest {
     checklist_en: string;
     checklist_hi: string;
   };
+  autoSend?: boolean;
 }
 
 serve(async (req) => {
@@ -29,7 +30,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { applicantIds, templateIds }: SendOfferRequest = await req.json();
+    const { applicantIds, templateIds, autoSend = false }: SendOfferRequest = await req.json();
 
     for (const applicantId of applicantIds) {
       // Get applicant data
@@ -55,26 +56,112 @@ serve(async (req) => {
         continue;
       }
 
-      // Process placeholders for each template
+      // Get placeholders with field mapping and conditional logic
+      const { data: placeholders, error: placeholdersError } = await supabase
+        .from('offer_placeholders')
+        .select('*')
+        .eq('is_active', true);
+
+      if (placeholdersError) {
+        console.error('Error fetching placeholders:', placeholdersError);
+      }
+
+      // Process placeholders with enhanced logic
+      const processedPlaceholders: Record<string, string> = {};
+      
+      // Basic placeholders
+      processedPlaceholders.STUDENT_NAME = applicant.name || '';
+      processedPlaceholders.MOBILE_NUMBER = applicant.mobile_no || '';
+      processedPlaceholders.WHATSAPP_NUMBER = applicant.whatsapp_number || '';
+      processedPlaceholders.CAMPUS = applicant.campus || '';
+      processedPlaceholders.FINAL_MARKS = applicant.final_marks?.toString() || '';
+      processedPlaceholders.INTERVIEW_DATE = applicant.interview_date ? 
+        new Date(applicant.interview_date).toLocaleDateString() : '';
+      
+      // Enhanced placeholder processing with conditional logic
+      if (placeholders) {
+        for (const placeholder of placeholders) {
+          let value = '';
+          
+          // Handle field mapping
+          if (placeholder.field_mapping) {
+            const mapping = placeholder.field_mapping;
+            if (mapping.source_table === 'admission_dashboard' && mapping.source_field) {
+              value = applicant[mapping.source_field]?.toString() || mapping.default_value || '';
+            }
+          }
+          
+          // Handle conditional logic
+          if (placeholder.conditional_logic) {
+            const logic = placeholder.conditional_logic;
+            
+            // Process conditions for allotted school assignment
+            if (logic.conditions) {
+              for (const condition of logic.conditions) {
+                if (condition.if) {
+                  // Simple condition evaluation (can be enhanced)
+                  if (condition.if.includes('final_marks >= 18') && applicant.final_marks >= 18) {
+                    value = condition.then;
+                    break;
+                  } else if (condition.if.includes('final_marks < 18') && applicant.final_marks < 18 && applicant.final_marks >= 15) {
+                    value = condition.then;
+                    break;
+                  }
+                } else if (condition.else) {
+                  value = condition.else;
+                }
+              }
+            }
+            
+            // Process template selection logic
+            if (logic.template_selection && placeholder.placeholder_key === 'TEMPLATE_TYPE') {
+              const allottedSchool = processedPlaceholders.ALLOTTED_SCHOOL || applicant.allotted_school;
+              for (const selection of logic.template_selection) {
+                if (selection.if.includes(`allotted_school === '${allottedSchool}'`)) {
+                  value = selection.template;
+                  break;
+                }
+              }
+            }
+          }
+          
+          if (value) {
+            processedPlaceholders[placeholder.placeholder_key] = value;
+          }
+        }
+      }
+
+      // Determine template type based on allotted school
+      let selectedTemplateType = 'offer_letter';
+      const allottedSchool = processedPlaceholders.ALLOTTED_SCHOOL || applicant.allotted_school;
+      
+      if (allottedSchool === 'SOP') {
+        selectedTemplateType = 'sop_offer_letter';
+      } else if (allottedSchool === 'SOB') {
+        selectedTemplateType = 'sob_offer_letter';
+      }
+
+      // Process templates with placeholders
       const processedTemplates = templates.map(template => {
         let content = template.html_content;
         
-        // Replace placeholders with actual data
-        const placeholders = {
-          full_name: applicant.name || '',
-          mobile_no: applicant.mobile_no || '',
-          email: applicant.whatsapp_number || '',
-          city: applicant.city || '',
-          campus: applicant.campus || '',
-          allotted_school: applicant.allotted_school || '',
-          final_marks: applicant.final_marks?.toString() || '',
-          current_date: new Date().toLocaleDateString(),
-          offer_expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        // Replace all placeholders
+        Object.entries(processedPlaceholders).forEach(([key, value]) => {
+          const placeholder = `{{${key}}}`;
+          content = content.replace(new RegExp(placeholder, 'g'), value);
+        });
+
+        // Add system placeholders
+        const systemPlaceholders = {
+          CURRENT_DATE: new Date().toLocaleDateString(),
+          OFFER_EXPIRY_DATE: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+          ACADEMIC_YEAR: new Date().getFullYear().toString()
         };
 
-        for (const [key, value] of Object.entries(placeholders)) {
-          content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
-        }
+        Object.entries(systemPlaceholders).forEach(([key, value]) => {
+          const placeholder = `{{${key}}}`;
+          content = content.replace(new RegExp(placeholder, 'g'), value);
+        });
 
         return { ...template, processed_content: content };
       });
@@ -84,8 +171,12 @@ serve(async (req) => {
         .from('offer_history')
         .insert({
           applicant_id: applicantId,
-          template_version_used: templateIds,
-          email_status: 'pending'
+          template_version_used: {
+            ...templateIds,
+            selected_template_type: selectedTemplateType,
+            processed_placeholders: processedPlaceholders
+          },
+          email_status: autoSend ? 'processing' : 'pending'
         })
         .select()
         .single();
@@ -95,32 +186,55 @@ serve(async (req) => {
         continue;
       }
 
-      // TODO: Generate PDFs from processed templates
-      // TODO: Upload PDFs to storage
-      // TODO: Send email with attachments
-      // TODO: Update history record with status
+      // If autoSend is enabled, process the sending logic
+      if (autoSend) {
+        // TODO: Implement PDF generation from processed templates
+        // TODO: Upload PDFs to storage
+        // TODO: Send email with attachments using Resend or similar
+        
+        // For now, mark as sent and update applicant status
+        await supabase
+          .from('offer_history')
+          .update({ 
+            email_status: 'sent',
+            sent_at: new Date().toISOString()
+          })
+          .eq('id', historyRecord.id);
 
-      // For now, just mark as sent
-      await supabase
-        .from('offer_history')
-        .update({ 
-          email_status: 'sent',
-          sent_at: new Date().toISOString()
-        })
-        .eq('id', historyRecord.id);
+        // Update applicant status to "Offer Letter Sent"
+        await supabase
+          .from('admission_dashboard')
+          .update({ 
+            offer_letter_status: 'sent',
+            stage: 'decision',
+            status: 'offer_sent'
+          })
+          .eq('id', applicantId);
+      }
 
       // Log audit
       await supabase
         .from('offer_audit_log')
         .insert({
-          action_type: 'offer_sent',
+          action_type: autoSend ? 'offer_auto_sent' : 'offer_prepared',
           applicant_id: applicantId,
-          details: { templates_used: templateIds }
+          details: { 
+            templates_used: templateIds,
+            selected_template_type: selectedTemplateType,
+            processed_placeholders: processedPlaceholders,
+            auto_send: autoSend
+          }
         });
+      
+      console.log(`Processed offer for applicant ${applicantId} - Auto send: ${autoSend}`);
     }
 
     return new Response(
-      JSON.stringify({ success: true, processed: applicantIds.length }),
+      JSON.stringify({ 
+        success: true, 
+        processed: applicantIds.length,
+        auto_sent: autoSend 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 

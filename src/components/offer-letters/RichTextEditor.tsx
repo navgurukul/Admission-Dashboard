@@ -24,14 +24,15 @@ interface RichTextEditorProps {
 export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== content) {
       editorRef.current.innerHTML = content;
-      attachImageHandlers();
+      setTimeout(() => {
+        attachImageHandlers();
+      }, 100);
     }
   }, [content]);
 
@@ -40,60 +41,63 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     
     const images = editorRef.current.querySelectorAll('img');
     images.forEach(img => {
-      // Make images selectable and styled
-      img.style.cursor = 'pointer';
-      img.style.maxWidth = '100%';
-      img.style.height = 'auto';
-      img.style.display = 'block';
-      img.style.border = '2px solid transparent';
-      img.style.transition = 'border-color 0.2s ease';
+      // Remove existing event listeners first
+      const newImg = img.cloneNode(true) as HTMLImageElement;
+      img.parentNode?.replaceChild(newImg, img);
       
-      // Remove any existing event listeners to prevent duplicates
-      img.removeEventListener('click', handleImageClick);
-      img.removeEventListener('mouseenter', handleImageMouseEnter);
-      img.removeEventListener('mouseleave', handleImageMouseLeave);
+      // Style the image
+      newImg.style.cursor = 'pointer';
+      newImg.style.maxWidth = '100%';
+      newImg.style.height = 'auto';
+      newImg.style.display = 'block';
+      newImg.style.border = '2px solid transparent';
+      newImg.style.transition = 'all 0.2s ease';
+      newImg.style.userSelect = 'none';
       
-      // Add event listeners
-      img.addEventListener('click', handleImageClick);
-      img.addEventListener('mouseenter', handleImageMouseEnter);
-      img.addEventListener('mouseleave', handleImageMouseLeave);
+      // Add click handler
+      newImg.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectImage(newImg);
+      });
+      
+      // Add hover effects
+      newImg.addEventListener('mouseenter', () => {
+        if (selectedImage !== newImg) {
+          newImg.style.border = '2px solid #3b82f6';
+          newImg.style.transform = 'scale(1.02)';
+        }
+      });
+      
+      newImg.addEventListener('mouseleave', () => {
+        if (selectedImage !== newImg) {
+          newImg.style.border = '2px solid transparent';
+          newImg.style.transform = 'scale(1)';
+        }
+      });
     });
   };
 
-  const handleImageClick = (e: Event) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const img = e.target as HTMLImageElement;
-    selectImage(img);
-  };
-
-  const handleImageMouseEnter = (e: Event) => {
-    const img = e.target as HTMLImageElement;
-    if (selectedImage !== img) {
-      img.style.border = '2px solid #3b82f6';
-    }
-  };
-
-  const handleImageMouseLeave = (e: Event) => {
-    const img = e.target as HTMLImageElement;
-    if (selectedImage !== img) {
-      img.style.border = '2px solid transparent';
-    }
-  };
-
   const selectImage = (img: HTMLImageElement) => {
-    // Remove selection from previous image
+    // Clear previous selection
     if (selectedImage && selectedImage !== img) {
       selectedImage.style.border = '2px solid transparent';
       selectedImage.style.boxShadow = 'none';
+      selectedImage.style.transform = 'scale(1)';
     }
     
     // Select new image
     setSelectedImage(img);
     img.style.border = '2px solid #3b82f6';
-    img.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.3)';
+    img.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.4)';
+    img.style.transform = 'scale(1.05)';
     
     console.log('Image selected:', img.src);
+    
+    toast({
+      title: "Image Selected",
+      description: "Use the controls below to adjust the image.",
+    });
   };
 
   const alignImage = (alignment: 'left' | 'center' | 'right') => {
@@ -108,34 +112,45 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
     console.log('Aligning image to:', alignment);
 
-    // Clear any existing alignment styles
-    selectedImage.style.float = '';
-    selectedImage.style.display = '';
-    selectedImage.style.marginLeft = '';
-    selectedImage.style.marginRight = '';
-    selectedImage.style.textAlign = '';
-
-    // Apply new alignment
+    // Create a wrapper div for better control
+    const wrapper = document.createElement('div');
+    wrapper.style.width = '100%';
+    wrapper.style.margin = '10px 0';
+    wrapper.style.clear = 'both';
+    
+    // Clone the image
+    const clonedImg = selectedImage.cloneNode(true) as HTMLImageElement;
+    
+    // Apply alignment styles
     switch (alignment) {
       case 'left':
-        selectedImage.style.float = 'left';
-        selectedImage.style.marginRight = '15px';
-        selectedImage.style.marginBottom = '10px';
+        wrapper.style.textAlign = 'left';
+        clonedImg.style.float = 'left';
+        clonedImg.style.marginRight = '15px';
+        clonedImg.style.marginBottom = '10px';
         break;
       case 'center':
-        selectedImage.style.display = 'block';
-        selectedImage.style.marginLeft = 'auto';
-        selectedImage.style.marginRight = 'auto';
-        selectedImage.style.marginBottom = '10px';
+        wrapper.style.textAlign = 'center';
+        clonedImg.style.float = 'none';
+        clonedImg.style.margin = '0 auto 10px auto';
+        clonedImg.style.display = 'block';
         break;
       case 'right':
-        selectedImage.style.float = 'right';
-        selectedImage.style.marginLeft = '15px';
-        selectedImage.style.marginBottom = '10px';
+        wrapper.style.textAlign = 'right';
+        clonedImg.style.float = 'right';
+        clonedImg.style.marginLeft = '15px';
+        clonedImg.style.marginBottom = '10px';
         break;
     }
     
-    // Trigger content update
+    // Replace the original image with the wrapped version
+    wrapper.appendChild(clonedImg);
+    selectedImage.parentNode?.replaceChild(wrapper, selectedImage);
+    
+    // Update selection
+    setSelectedImage(clonedImg);
+    
+    // Trigger content update and reattach handlers
     handleInput();
     
     toast({
@@ -157,19 +172,25 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     console.log('Resizing image to:', size);
 
     let width = '';
+    let maxWidth = '';
+    
     switch (size) {
       case 'small':
         width = '200px';
+        maxWidth = '200px';
         break;
       case 'medium':
         width = '400px';
+        maxWidth = '400px';
         break;
       case 'large':
         width = '600px';
+        maxWidth = '600px';
         break;
     }
     
     selectedImage.style.width = width;
+    selectedImage.style.maxWidth = maxWidth;
     selectedImage.style.height = 'auto';
     
     // Trigger content update
@@ -211,7 +232,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          console.log('Pasting image file:', file.name || 'clipboard-image');
+          console.log('Pasting image from clipboard');
           await handleImageUpload(file);
           return;
         }
@@ -226,7 +247,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
   const handleImageUpload = async (file: File) => {
     try {
-      console.log('Starting image upload:', file.name || 'unnamed-file');
+      console.log('Starting image upload:', file.name || 'clipboard-image');
       
       // Validate file type
       if (!file.type.startsWith('image/')) {
@@ -237,6 +258,12 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         });
         return;
       }
+
+      // Show uploading toast
+      toast({
+        title: "Uploading Image",
+        description: "Please wait while your image is being uploaded...",
+      });
 
       const fileExt = file.name?.split('.').pop() || file.type.split('/')[1] || 'png';
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
@@ -265,27 +292,42 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
           editorRef.current.focus();
         }
         
-        // Insert image at cursor position or end of content
-        const imageHtml = `<img src="${data.publicUrl}" style="max-width: 100%; height: auto; display: block; margin: 10px 0; border: 2px solid transparent;" alt="Uploaded image" />`;
+        // Create image HTML with proper styling and wrapper
+        const imageWrapper = `
+          <div style="text-align: center; margin: 15px 0; clear: both;">
+            <img src="${data.publicUrl}" 
+                 style="max-width: 100%; height: auto; display: block; margin: 0 auto; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" 
+                 alt="Uploaded image" />
+          </div>
+        `;
         
+        // Insert image at cursor position or end of content
         if (document.getSelection()?.rangeCount) {
-          // Insert at cursor position
-          execCommand('insertHTML', imageHtml);
+          const range = document.getSelection()?.getRangeAt(0);
+          if (range && editorRef.current?.contains(range.commonAncestorContainer)) {
+            range.deleteContents();
+            const div = document.createElement('div');
+            div.innerHTML = imageWrapper;
+            range.insertNode(div);
+          } else {
+            // Fallback to append
+            if (editorRef.current) {
+              editorRef.current.innerHTML += imageWrapper;
+            }
+          }
         } else {
           // Append to end if no cursor position
           if (editorRef.current) {
-            editorRef.current.innerHTML += imageHtml;
+            editorRef.current.innerHTML += imageWrapper;
           }
         }
         
-        // Attach handlers to the new image
-        setTimeout(() => {
-          attachImageHandlers();
-        }, 200);
+        // Trigger content update and attach handlers
+        handleInput();
         
         toast({
-          title: "Image Uploaded",
-          description: "Image has been successfully uploaded and inserted. Click on it to select and modify alignment/size."
+          title: "Image Uploaded Successfully",
+          description: "Click on the image to select and modify its alignment or size."
         });
       }
     } catch (error) {
@@ -316,6 +358,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       // Clicked outside of image, deselect
       selectedImage.style.border = '2px solid transparent';
       selectedImage.style.boxShadow = 'none';
+      selectedImage.style.transform = 'scale(1)';
       setSelectedImage(null);
     }
   };
@@ -419,7 +462,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
       {selectedImage && (
         <div className="border-b bg-blue-50 p-3">
-          <div className="text-sm font-medium text-blue-900 mb-3">Image Controls</div>
+          <div className="text-sm font-medium text-blue-900 mb-3">Image Controls - Click to Apply</div>
           <div className="flex gap-3 flex-wrap">
             <div className="flex gap-1">
               <Button 
@@ -427,27 +470,27 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
                 variant="outline" 
                 onClick={() => alignImage('left')} 
                 type="button"
-                className="text-xs px-3"
+                className="text-xs px-3 bg-white hover:bg-blue-100"
               >
-                Left
+                ← Left
               </Button>
               <Button 
                 size="sm" 
                 variant="outline" 
                 onClick={() => alignImage('center')} 
                 type="button"
-                className="text-xs px-3"
+                className="text-xs px-3 bg-white hover:bg-blue-100"
               >
-                Center
+                ⬄ Center
               </Button>
               <Button 
                 size="sm" 
                 variant="outline" 
                 onClick={() => alignImage('right')} 
                 type="button"
-                className="text-xs px-3"
+                className="text-xs px-3 bg-white hover:bg-blue-100"
               >
-                Right
+                Right →
               </Button>
             </div>
             <div className="w-px bg-border mx-1" />
@@ -457,7 +500,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
                 variant="outline" 
                 onClick={() => resizeImage('small')} 
                 type="button"
-                className="text-xs px-3"
+                className="text-xs px-3 bg-white hover:bg-blue-100"
               >
                 Small
               </Button>
@@ -466,7 +509,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
                 variant="outline" 
                 onClick={() => resizeImage('medium')} 
                 type="button"
-                className="text-xs px-3"
+                className="text-xs px-3 bg-white hover:bg-blue-100"
               >
                 Medium
               </Button>
@@ -475,11 +518,14 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
                 variant="outline" 
                 onClick={() => resizeImage('large')} 
                 type="button"
-                className="text-xs px-3"
+                className="text-xs px-3 bg-white hover:bg-blue-100"
               >
                 Large
               </Button>
             </div>
+          </div>
+          <div className="text-xs text-blue-600 mt-2">
+            Selected image: {selectedImage.alt || 'Unnamed image'}
           </div>
         </div>
       )}
@@ -489,8 +535,6 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         contentEditable
         className="min-h-[400px] p-4 focus:outline-none prose max-w-none"
         onInput={handleInput}
-        onFocus={() => setIsEditorFocused(true)}
-        onBlur={() => setIsEditorFocused(false)}
         onPaste={handlePaste}
         onClick={handleClick}
         suppressContentEditableWarning={true}
