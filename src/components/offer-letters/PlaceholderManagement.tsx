@@ -19,6 +19,7 @@ interface Placeholder {
   description: string | null;
   data_source: string;
   is_active: boolean;
+  created_at: string;
   field_mapping: any;
   conditional_logic: any;
 }

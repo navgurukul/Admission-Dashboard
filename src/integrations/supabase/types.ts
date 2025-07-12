@@ -332,28 +332,34 @@ export type Database = {
       }
       offer_placeholders: {
         Row: {
+          conditional_logic: Json | null
           created_at: string
           data_source: string
           description: string | null
           display_name: string
+          field_mapping: Json | null
           id: string
           is_active: boolean
           placeholder_key: string
         }
         Insert: {
+          conditional_logic?: Json | null
           created_at?: string
           data_source: string
           description?: string | null
           display_name: string
+          field_mapping?: Json | null
           id?: string
           is_active?: boolean
           placeholder_key: string
         }
         Update: {
+          conditional_logic?: Json | null
           created_at?: string
           data_source?: string
           description?: string | null
           display_name?: string
+          field_mapping?: Json | null
           id?: string
           is_active?: boolean
           placeholder_key?: string
