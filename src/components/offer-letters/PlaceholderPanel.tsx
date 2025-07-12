@@ -40,11 +40,63 @@ const getDataSourceColor = (dataSource: string) => {
   }
 };
 
+// Default placeholders that map to admission_dashboard fields
+const defaultPlaceholders = [
+  {
+    id: 'default-1',
+    placeholder_key: 'STUDENT_NAME',
+    display_name: 'Student Name',
+    description: 'Name of the student from admission dashboard',
+    data_source: 'admission_dashboard',
+    is_active: true
+  },
+  {
+    id: 'default-2',
+    placeholder_key: 'MOBILE_NUMBER',
+    display_name: 'Mobile Number',
+    description: 'Student mobile number',
+    data_source: 'admission_dashboard',
+    is_active: true
+  },
+  {
+    id: 'default-3',
+    placeholder_key: 'CAMPUS',
+    display_name: 'Campus',
+    description: 'Assigned campus',
+    data_source: 'admission_dashboard',
+    is_active: true
+  },
+  {
+    id: 'default-4',
+    placeholder_key: 'ALLOTTED_SCHOOL',
+    display_name: 'Allotted School',
+    description: 'School allotted to the student',
+    data_source: 'admission_dashboard',
+    is_active: true
+  },
+  {
+    id: 'default-5',
+    placeholder_key: 'FINAL_MARKS',
+    display_name: 'Final Marks',
+    description: 'Final examination marks',
+    data_source: 'admission_dashboard',
+    is_active: true
+  },
+  {
+    id: 'default-6',
+    placeholder_key: 'INTERVIEW_DATE',
+    display_name: 'Interview Date',
+    description: 'Scheduled interview date',
+    data_source: 'admission_dashboard',
+    is_active: true
+  }
+];
+
 export const PlaceholderPanel = ({ onInsertPlaceholder }: PlaceholderPanelProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
-  const { data: placeholders, isLoading } = useQuery({
+  const { data: customPlaceholders, isLoading } = useQuery({
     queryKey: ['offer-placeholders'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -54,11 +106,14 @@ export const PlaceholderPanel = ({ onInsertPlaceholder }: PlaceholderPanelProps)
         .order('display_name');
       
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
-  const filteredPlaceholders = placeholders?.filter(placeholder =>
+  // Combine default and custom placeholders
+  const allPlaceholders = [...defaultPlaceholders, ...(customPlaceholders || [])];
+
+  const filteredPlaceholders = allPlaceholders.filter(placeholder =>
     placeholder.display_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     placeholder.placeholder_key.toLowerCase().includes(searchTerm.toLowerCase()) ||
     placeholder.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -73,14 +128,14 @@ export const PlaceholderPanel = ({ onInsertPlaceholder }: PlaceholderPanelProps)
   };
 
   // Group placeholders by data source
-  const groupedPlaceholders = filteredPlaceholders?.reduce((acc, placeholder) => {
+  const groupedPlaceholders = filteredPlaceholders.reduce((acc, placeholder) => {
     const source = placeholder.data_source;
     if (!acc[source]) {
       acc[source] = [];
     }
     acc[source].push(placeholder);
     return acc;
-  }, {} as Record<string, typeof placeholders>);
+  }, {} as Record<string, typeof allPlaceholders>);
 
   if (isLoading) {
     return (
@@ -120,7 +175,7 @@ export const PlaceholderPanel = ({ onInsertPlaceholder }: PlaceholderPanelProps)
 
         <ScrollArea className="h-[400px]">
           <div className="space-y-3">
-            {groupedPlaceholders && Object.entries(groupedPlaceholders).map(([dataSource, sourcePlaceholders]) => (
+            {Object.entries(groupedPlaceholders).map(([dataSource, sourcePlaceholders]) => (
               <div key={dataSource} className="space-y-2">
                 <div className="flex items-center gap-2">
                   {getDataSourceIcon(dataSource)}
@@ -128,12 +183,12 @@ export const PlaceholderPanel = ({ onInsertPlaceholder }: PlaceholderPanelProps)
                     {dataSource.replace('_', ' ')}
                   </span>
                   <Badge variant="secondary" className="text-xs">
-                    {sourcePlaceholders?.length}
+                    {sourcePlaceholders.length}
                   </Badge>
                 </div>
                 
                 <div className="space-y-1 pl-4">
-                  {sourcePlaceholders?.map((placeholder) => (
+                  {sourcePlaceholders.map((placeholder) => (
                     <div key={placeholder.id} className="group">
                       <Button
                         variant="ghost"
@@ -173,10 +228,10 @@ export const PlaceholderPanel = ({ onInsertPlaceholder }: PlaceholderPanelProps)
 
         <div className="pt-2 border-t">
           <div className="text-xs text-muted-foreground space-y-1">
-            <div className="font-medium">Tip:</div>
-            <div>• Placeholders appear as {"{{PLACEHOLDER_NAME}}"}</div>
-            <div>• They'll be replaced with real data when sending</div>
-            <div>• You can also type placeholders manually</div>
+            <div className="font-medium">Available Data Sources:</div>
+            <div>• <strong>Admission Dashboard:</strong> Student data from All Applicants</div>
+            <div>• <strong>User Input:</strong> Custom values entered during send</div>
+            <div>• <strong>System Generated:</strong> Auto-generated values</div>
           </div>
         </div>
       </CardContent>

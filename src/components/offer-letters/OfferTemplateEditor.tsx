@@ -120,6 +120,13 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
     setFormData(prev => ({ ...prev, html_content: content }));
   };
 
+  const handlePlaceholderInsert = (placeholder: string) => {
+    setFormData(prev => ({
+      ...prev,
+      html_content: prev.html_content + `{{${placeholder}}}`
+    }));
+  };
+
   if (isLoading && !isNew) {
     return <div>Loading template...</div>;
   }
@@ -242,11 +249,19 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                   <CardTitle>Template Content</CardTitle>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileText className="h-4 w-4" />
-                    <span>Upload .doc files or edit directly</span>
+                    <span>Upload .docx files or edit directly</span>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="text-sm text-amber-800">
+                    <div className="font-medium mb-1">Data Integration:</div>
+                    <div>• Use placeholders like <code>{"{{STUDENT_NAME}}"}</code> to insert data from All Applicants table</div>
+                    <div>• Placeholders will be automatically replaced with actual student data when sending offers</div>
+                    <div>• You can copy/paste images directly into the editor</div>
+                  </div>
+                </div>
                 <RichTextEditor
                   content={formData.html_content}
                   onChange={(content) => setFormData(prev => ({ ...prev, html_content: content }))}
@@ -256,14 +271,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
           </div>
 
           <div className="lg:col-span-1">
-            <PlaceholderPanel
-              onInsertPlaceholder={(placeholder) => {
-                setFormData(prev => ({
-                  ...prev,
-                  html_content: prev.html_content + `{{${placeholder}}}`
-                }));
-              }}
-            />
+            <PlaceholderPanel onInsertPlaceholder={handlePlaceholderInsert} />
           </div>
         </div>
       </div>

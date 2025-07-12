@@ -36,9 +36,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const execCommand = (command: string, value?: string) => {
     try {
       document.execCommand(command, false, value);
-      if (editorRef.current) {
-        onChange(editorRef.current.innerHTML);
-      }
+      handleInput();
     } catch (error) {
       console.error('Error executing command:', command, error);
     }
@@ -50,8 +48,24 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    // Allow default paste behavior for better compatibility
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    // Check for images in clipboard
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          await handleImageUpload(file);
+          return;
+        }
+      }
+    }
+
+    // Allow default paste for text
     setTimeout(() => {
       handleInput();
     }, 0);
@@ -61,7 +75,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     try {
       console.log('Starting image upload:', file.name);
       
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name?.split('.').pop() || 'png';
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = `template-images/${fileName}`;
 
@@ -79,27 +93,19 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         .getPublicUrl(filePath);
 
       if (data?.publicUrl) {
-        // Insert image at cursor position
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const img = document.createElement('img');
-          img.src = data.publicUrl;
-          img.style.maxWidth = '100%';
-          img.style.height = 'auto';
-          range.insertNode(img);
-          
-          // Move cursor after the image
-          range.setStartAfter(img);
-          range.setEndAfter(img);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        } else {
-          // Fallback: append to end of content
-          execCommand('insertHTML', `<img src="${data.publicUrl}" style="max-width: 100%; height: auto;" />`);
-        }
+        // Create image with better styling and make it draggable/resizable
+        const imageHtml = `
+          <div style="position: relative; display: inline-block; margin: 10px; max-width: 100%;">
+            <img src="${data.publicUrl}" 
+                 style="max-width: 100%; height: auto; cursor: move; border: 2px solid transparent;" 
+                 draggable="true"
+                 onmouseover="this.style.border='2px solid #3b82f6'"
+                 onmouseout="this.style.border='2px solid transparent'"
+                 alt="Uploaded image" />
+          </div>
+        `;
         
-        handleInput();
+        execCommand('insertHTML', imageHtml);
         
         toast({
           title: "Image Uploaded",
@@ -132,6 +138,14 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     // Reset the input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle image selection and movement
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      target.style.cursor = 'move';
     }
   };
 
@@ -240,7 +254,11 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         onFocus={() => setIsEditorFocused(true)}
         onBlur={() => setIsEditorFocused(false)}
         onPaste={handlePaste}
+        onMouseDown={handleMouseDown}
         suppressContentEditableWarning={true}
+        style={{
+          lineHeight: '1.6',
+        }}
       />
       
       <input
