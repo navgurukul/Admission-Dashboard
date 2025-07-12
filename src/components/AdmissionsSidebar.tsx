@@ -1,13 +1,8 @@
 
 import { 
   LayoutDashboard, 
-  Users, 
-  GraduationCap, 
   MessageSquare, 
   Calendar,
-  Settings,
-  HelpCircle,
-  Bell,
   LogOut,
   Mail
 } from "lucide-react";
@@ -17,7 +12,6 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "All Applicants", href: "/all-applicants", icon: Users },
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
@@ -40,7 +34,7 @@ export function AdmissionsSidebar() {
       <div className="p-6 border-b border-sidebar-medium">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-white" />
+            <Mail className="w-5 h-5 text-white" />
           </div>
           <div>
             <h2 className="text-sidebar-text font-semibold">Navgurukul</h2>
@@ -72,18 +66,6 @@ export function AdmissionsSidebar() {
 
       {/* Bottom Section */}
       <div className="p-4 border-t border-sidebar-medium space-y-2">
-        <button className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:text-white hover:bg-sidebar-medium rounded-lg transition-all duration-200">
-          <Bell className="mr-3 h-5 w-5" />
-          Notifications
-        </button>
-        <button className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:text-white hover:bg-sidebar-medium rounded-lg transition-all duration-200">
-          <HelpCircle className="mr-3 h-5 w-5" />
-          Help & Support
-        </button>
-        <button className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:text-white hover:bg-sidebar-medium rounded-lg transition-all duration-200">
-          <Settings className="mr-3 h-5 w-5" />
-          Settings
-        </button>
         <button 
           onClick={handleLogout}
           className="w-full flex items-center px-3 py-2.5 text-sm font-medium text-sidebar-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"

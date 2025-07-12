@@ -23,19 +23,29 @@ export const DocumentUploadModal = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  const loadMammoth = async () => {
+    if ((window as any).mammoth) {
+      return (window as any).mammoth;
+    }
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+      script.onload = () => {
+        if ((window as any).mammoth) {
+          resolve((window as any).mammoth);
+        } else {
+          reject(new Error('Mammoth library not loaded properly'));
+        }
+      };
+      script.onerror = () => reject(new Error('Failed to load mammoth library'));
+      document.head.appendChild(script);
+    });
+  };
+
   const convertDocxToHtml = async (file: File): Promise<string> => {
     try {
-      // Load mammoth library dynamically
-      if (!(window as any).mammoth) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load mammoth library'));
-          document.head.appendChild(script);
-        });
-      }
-      
+      const mammoth = await loadMammoth();
       const arrayBuffer = await file.arrayBuffer();
       
       const options = {
@@ -69,16 +79,30 @@ export const DocumentUploadModal = ({
         },
         styleMap: [
           "p[style-name='Heading 1'] => h1:fresh",
-          "p[style-name='Heading 2'] => h2:fresh",
+          "p[style-name='Heading 2'] => h2:fresh", 
           "p[style-name='Heading 3'] => h3:fresh",
           "p[style-name='Title'] => h1.title:fresh",
           "p[style-name='Subtitle'] => h2.subtitle:fresh",
           "r[style-name='Strong'] => strong",
           "r[style-name='Emphasis'] => em",
-        ]
+        ],
+        transformDocument: (document: any) => {
+          // Clean up empty elements that cause conversion issues
+          const cleanElement = (element: any): any => {
+            if (!element || !element.children) return element;
+            
+            element.children = element.children
+              .map(cleanElement)
+              .filter((child: any) => child !== null);
+              
+            return element;
+          };
+          
+          return cleanElement(document);
+        }
       };
       
-      const result = await (window as any).mammoth.convertToHtml({ arrayBuffer }, options);
+      const result = await mammoth.convertToHtml({ arrayBuffer }, options);
       
       if (result.messages && result.messages.length > 0) {
         console.log('Conversion messages:', result.messages);
@@ -93,7 +117,7 @@ export const DocumentUploadModal = ({
       return styledHtml;
     } catch (error) {
       console.error('Document conversion error:', error);
-      throw new Error(`Document conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Document conversion failed. Please try with a simpler document or contact support.`);
     }
   };
 
