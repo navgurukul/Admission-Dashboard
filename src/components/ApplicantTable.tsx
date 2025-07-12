@@ -92,40 +92,17 @@ const getStatusDisplay = (applicant: ApplicantData): string => {
   return applicant.status || 'pending';
 };
 
-const getCombinedStageStatus = (applicant: ApplicantData): string => {
-  const stage = applicant.stage || 'contact';
-  const status = getStatusDisplay(applicant);
-  
-  if (stage === 'contact') return 'Contact';
+const getStageDisplay = (stage: string | null): string => {
+  if (!stage) return 'Contact';
   
   const stageLabels = {
+    contact: 'Contact',
     screening: 'Screening',
     interviews: 'Interviews',
     decision: 'Decision'
   };
   
-  const statusLabels = {
-    pending: 'Pending',
-    pass: 'Pass',
-    fail: 'Fail',
-    booked: 'Booked',
-    rescheduled: 'Rescheduled',
-    lr_qualified: 'LR Qualified',
-    lr_failed: 'LR Failed',
-    cfr_qualified: 'CFR Qualified',
-    cfr_failed: 'CFR Failed',
-    offer_pending: 'Offer Pending',
-    offer_sent: 'Offer Sent',
-    offer_rejected: 'Offer Rejected',
-    offer_accepted: 'Offer Accepted',
-    'Qualified for SOP': 'Qualified for SOP',
-    'Qualified for SOB': 'Qualified for SOB'
-  };
-  
-  const stageLabel = stageLabels[stage as keyof typeof stageLabels] || stage;
-  const statusLabel = statusLabels[status as keyof typeof statusLabels] || status;
-  
-  return `${stageLabel} - ${statusLabel}`;
+  return stageLabels[stage as keyof typeof stageLabels] || stage;
 };
 
 export function ApplicantTable() {
@@ -496,16 +473,17 @@ export function ApplicantTable() {
                     className="rounded border-gray-300"
                   />
                 </th>
-                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Applicant</th>
-                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage & Status</th>
-                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Campus</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm min-w-[200px]">Applicant</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm w-[120px]">Stage</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm w-[140px]">Status</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm w-[120px]">Campus</th>
                 <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center space-y-2">
                       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       <span>Loading applicants...</span>
@@ -514,7 +492,7 @@ export function ApplicantTable() {
                 </tr>
               ) : filteredApplicants.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center space-y-2">
                       <Search className="w-8 h-8 opacity-50" />
                       <span>No applicants found</span>
@@ -553,7 +531,12 @@ export function ApplicantTable() {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <StatusBadge status={getCombinedStageStatus(applicant) as any} />
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-700 border border-blue-500/20">
+                        {getStageDisplay(applicant.stage)}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <StatusBadge status={getStatusDisplay(applicant) as any} />
                     </td>
                     <td className="py-4 px-6">
                       <CampusSelector
