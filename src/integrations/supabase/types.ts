@@ -175,6 +175,41 @@ export type Database = {
           },
         ]
       }
+      assessment_questions: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          custom_points: number | null
+          order_index: number
+          question_id: string
+          question_version: number
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          custom_points?: number | null
+          order_index: number
+          question_id: string
+          question_version: number
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          custom_points?: number | null
+          order_index?: number
+          question_id?: string
+          question_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campus_options: {
         Row: {
           created_at: string
@@ -435,6 +470,155 @@ export type Database = {
         }
         Relationships: []
       }
+      question_tags: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      question_versions: {
+        Row: {
+          change_summary: string | null
+          correct_answer: Json
+          difficulty_level: Database["public"]["Enums"]["difficulty_level"]
+          edited_at: string
+          edited_by: string | null
+          explanation: string | null
+          id: string
+          language: string
+          options: Json | null
+          points: number
+          question_id: string
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          tags: string[] | null
+          time_limit_seconds: number | null
+          version_number: number
+        }
+        Insert: {
+          change_summary?: string | null
+          correct_answer: Json
+          difficulty_level: Database["public"]["Enums"]["difficulty_level"]
+          edited_at?: string
+          edited_by?: string | null
+          explanation?: string | null
+          id?: string
+          language: string
+          options?: Json | null
+          points: number
+          question_id: string
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          tags?: string[] | null
+          time_limit_seconds?: number | null
+          version_number: number
+        }
+        Update: {
+          change_summary?: string | null
+          correct_answer?: Json
+          difficulty_level?: Database["public"]["Enums"]["difficulty_level"]
+          edited_at?: string
+          edited_by?: string | null
+          explanation?: string | null
+          id?: string
+          language?: string
+          options?: Json | null
+          points?: number
+          question_id?: string
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          tags?: string[] | null
+          time_limit_seconds?: number | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_versions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          correct_answer: Json
+          created_at: string
+          created_by: string | null
+          difficulty_level: Database["public"]["Enums"]["difficulty_level"]
+          explanation: string | null
+          id: string
+          language: string
+          options: Json | null
+          points: number
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          status: Database["public"]["Enums"]["question_status"]
+          tags: string[] | null
+          time_limit_seconds: number | null
+          updated_at: string
+          version_number: number
+        }
+        Insert: {
+          correct_answer: Json
+          created_at?: string
+          created_by?: string | null
+          difficulty_level?: Database["public"]["Enums"]["difficulty_level"]
+          explanation?: string | null
+          id?: string
+          language?: string
+          options?: Json | null
+          points?: number
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          status?: Database["public"]["Enums"]["question_status"]
+          tags?: string[] | null
+          time_limit_seconds?: number | null
+          updated_at?: string
+          version_number?: number
+        }
+        Update: {
+          correct_answer?: Json
+          created_at?: string
+          created_by?: string | null
+          difficulty_level?: Database["public"]["Enums"]["difficulty_level"]
+          explanation?: string | null
+          id?: string
+          language?: string
+          options?: Json | null
+          points?: number
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          status?: Database["public"]["Enums"]["question_status"]
+          tags?: string[] | null
+          time_limit_seconds?: number | null
+          updated_at?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
       system_logs: {
         Row: {
           action_type: string
@@ -479,7 +663,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      difficulty_level: "easy" | "medium" | "hard"
+      question_status: "active" | "archived" | "draft"
+      question_type:
+        | "multiple_choice"
+        | "true_false"
+        | "short_answer"
+        | "long_answer"
+        | "coding"
+        | "fill_in_blank"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -606,6 +798,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      difficulty_level: ["easy", "medium", "hard"],
+      question_status: ["active", "archived", "draft"],
+      question_type: [
+        "multiple_choice",
+        "true_false",
+        "short_answer",
+        "long_answer",
+        "coding",
+        "fill_in_blank",
+      ],
+    },
   },
 } as const
