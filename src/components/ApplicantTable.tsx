@@ -156,7 +156,7 @@ export function ApplicantTable() {
       // Map the data to ensure campus field exists, even if null
       const mappedData = (data || []).map(item => ({
         ...item,
-        campus: item.campus || null
+        campus: (item as any).campus || null
       }));
       setApplicants(mappedData);
     } catch (error) {
