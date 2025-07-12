@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Search, Filter, Plus, MoreHorizontal, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { StatusBadge } from "./StatusBadge";
 import { ApplicantModal } from "./ApplicantModal";
 import { AddApplicantModal } from "./AddApplicantModal";
 import CSVImportModal from "./CSVImportModal";
+import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -36,29 +38,45 @@ type ApplicantData = {
   current_work: string | null;
   set_name: string | null;
   exam_centre: string | null;
+  stage: string | null;
+  status: string | null;
+  interview_mode: string | null;
+  exam_mode: string | null;
+  partner: string | null;
+  district: string | null;
+  market: string | null;
+  interview_date: string | null;
+  last_updated: string | null;
   created_at: string;
   updated_at: string;
 };
 
-// Function to map current stage based on applicant data
-const getCurrentStage = (applicant: ApplicantData): string => {
-  // Check if onboarded (Final Decisions)
-  if (applicant.joining_status === 'Joined' || applicant.joining_status === 'joined') {
-    return 'Final Decisions';
+interface FilterState {
+  stage: string;
+  status: string;
+  examMode: string;
+  interviewMode: string;
+  partner: string[];
+  district: string[];
+  market: string[];
+  dateRange: {
+    type: 'application' | 'lastUpdate' | 'interview';
+    from?: Date;
+    to?: Date;
+  };
+}
+
+const getStatusDisplay = (applicant: ApplicantData): string => {
+  if (applicant.stage === 'screening' && applicant.status === 'pass') {
+    if (applicant.qualifying_school?.toLowerCase().includes('programming')) {
+      return 'Qualified for SOP';
+    } else if (applicant.qualifying_school?.toLowerCase().includes('business')) {
+      return 'Qualified for SOB';
+    }
+    return 'Pass';
   }
   
-  // Check if in interview stage (Interview Rounds)
-  if (applicant.lr_status || applicant.cfr_status) {
-    return 'Interview Rounds';
-  }
-  
-  // Check if screening test completed (Screening Tests)
-  if (applicant.final_marks !== null || applicant.qualifying_school) {
-    return 'Screening Tests';
-  }
-  
-  // Default to initial stage (Sourcing & Outreach)
-  return 'Sourcing & Outreach';
+  return applicant.status || 'pending';
 };
 
 export function ApplicantTable() {
@@ -67,8 +85,19 @@ export function ApplicantTable() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
   const [applicants, setApplicants] = useState<ApplicantData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterState>({
+    stage: '',
+    status: '',
+    examMode: '',
+    interviewMode: '',
+    partner: [],
+    district: [],
+    market: [],
+    dateRange: { type: 'application' }
+  });
   const { toast } = useToast();
 
   // Fetch applicants from Supabase and set up real-time subscription
@@ -137,12 +166,65 @@ export function ApplicantTable() {
     }
   };
 
-  const filteredApplicants = applicants.filter(applicant =>
-    (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
-  );
+  const applyFilters = (data: ApplicantData[]) => {
+    return data.filter(applicant => {
+      // Text search
+      const matchesSearch = !searchQuery || 
+        (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      if (!matchesSearch) return false;
+
+      // Stage filter
+      if (filters.stage && applicant.stage !== filters.stage) return false;
+
+      // Status filter
+      if (filters.status && applicant.status !== filters.status) return false;
+
+      // Exam mode filter
+      if (filters.examMode && applicant.exam_mode !== filters.examMode) return false;
+
+      // Interview mode filter
+      if (filters.interviewMode && applicant.interview_mode !== filters.interviewMode) return false;
+
+      // Partner filter
+      if (filters.partner.length > 0 && (!applicant.partner || !filters.partner.includes(applicant.partner))) return false;
+
+      // District filter
+      if (filters.district.length > 0 && (!applicant.district || !filters.district.includes(applicant.district))) return false;
+
+      // Market filter
+      if (filters.market.length > 0 && (!applicant.market || !filters.market.includes(applicant.market))) return false;
+
+      // Date range filter
+      if (filters.dateRange.from || filters.dateRange.to) {
+        let dateToCheck: Date | null = null;
+        
+        switch (filters.dateRange.type) {
+          case 'application':
+            dateToCheck = applicant.created_at ? new Date(applicant.created_at) : null;
+            break;
+          case 'lastUpdate':
+            dateToCheck = applicant.last_updated ? new Date(applicant.last_updated) : null;
+            break;
+          case 'interview':
+            dateToCheck = applicant.interview_date ? new Date(applicant.interview_date) : null;
+            break;
+        }
+
+        if (!dateToCheck) return false;
+
+        if (filters.dateRange.from && dateToCheck < filters.dateRange.from) return false;
+        if (filters.dateRange.to && dateToCheck > filters.dateRange.to) return false;
+      }
+
+      return true;
+    });
+  };
+
+  const filteredApplicants = applyFilters(applicants);
 
   const handleViewApplicant = (applicant: ApplicantData) => {
     setSelectedApplicant(applicant);
@@ -159,30 +241,11 @@ export function ApplicantTable() {
       if (error) throw error;
 
       const headers = [
-        'unique_number',
-        'set_name', 
-        'exam_centre',
-        'date_of_testing',
-        'name',
-        'mobile_no',
-        'whatsapp_number',
-        'block',
-        'city',
-        'caste',
-        'gender',
-        'qualification',
-        'current_work',
-        'final_marks',
-        'qualifying_school',
-        'lr_status',
-        'lr_comments',
-        'cfr_status',
-        'cfr_comments',
-        'offer_letter_status',
-        'allotted_school',
-        'joining_status',
-        'final_notes',
-        'triptis_notes'
+        'unique_number', 'set_name', 'exam_centre', 'date_of_testing', 'name', 'mobile_no', 'whatsapp_number',
+        'block', 'city', 'district', 'market', 'caste', 'gender', 'qualification', 'current_work', 'partner',
+        'final_marks', 'qualifying_school', 'lr_status', 'lr_comments', 'cfr_status', 'cfr_comments',
+        'offer_letter_status', 'allotted_school', 'joining_status', 'final_notes', 'triptis_notes',
+        'stage', 'status', 'exam_mode', 'interview_mode', 'interview_date', 'last_updated'
       ];
 
       const csvContent = headers.join(',') + '\n' + 
@@ -252,106 +315,113 @@ export function ApplicantTable() {
               className="pl-10 h-9"
             />
           </div>
-          <Button variant="outline" size="sm" className="h-9">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-9"
+            onClick={() => setIsAdvancedFilterOpen(true)}
+          >
             <Filter className="w-4 h-4 mr-2" />
-            Filter
+            Advanced Filter
           </Button>
         </div>
       </div>
 
-      {/* Clean Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border/50">
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Applicant</th>
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage</th>
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Status</th>
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Location</th>
-              <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      {/* Table */}
+      <div className="overflow-hidden">
+        <div className="max-h-96 overflow-y-auto">
+          <table className="w-full">
+            <thead className="bg-muted/30 sticky top-0">
               <tr>
-                <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <span>Loading applicants...</span>
-                  </div>
-                </td>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Applicant</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Status</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Location</th>
+                <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
               </tr>
-            ) : filteredApplicants.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center space-y-2">
-                    <Search className="w-8 h-8 opacity-50" />
-                    <span>No applicants found</span>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredApplicants.map((applicant, index) => (
-                <tr 
-                  key={applicant.id} 
-                  className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
-                >
-                  <td className="py-4 px-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary text-sm font-medium">
-                          {applicant.name ? applicant.name.split(' ').map(n => n[0]).join('') : '?'}
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground truncate">
-                          {applicant.name || 'No Name'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {applicant.mobile_no}
-                        </p>
-                      </div>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      <span>Loading applicants...</span>
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm text-foreground font-medium">
-                      {getCurrentStage(applicant)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <StatusBadge status={(applicant.offer_letter_status || applicant.joining_status || 'pending') as any} />
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm text-foreground">
-                      {applicant.city ? `${applicant.city}${applicant.block ? `, ${applicant.block}` : ''}` : 'Not specified'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-muted"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewApplicant(applicant);
-                      }}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                      <span className="sr-only">More options</span>
-                    </Button>
+                </tr>
+              ) : filteredApplicants.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center space-y-2">
+                      <Search className="w-8 h-8 opacity-50" />
+                      <span>No applicants found</span>
+                    </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredApplicants.map((applicant) => (
+                  <tr 
+                    key={applicant.id} 
+                    className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
+                  >
+                    <td className="py-4 px-6">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-primary text-sm font-medium">
+                            {applicant.name ? applicant.name.split(' ').map(n => n[0]).join('') : '?'}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground truncate">
+                            {applicant.name || 'No Name'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {applicant.mobile_no}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="text-sm text-foreground font-medium capitalize">
+                        {applicant.stage || 'contact'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <StatusBadge status={getStatusDisplay(applicant) as any} />
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="text-sm text-foreground">
+                        {applicant.city ? `${applicant.city}${applicant.block ? `, ${applicant.block}` : ''}` : 'Not specified'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewApplicant(applicant);
+                        }}
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                        <span className="sr-only">More options</span>
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Show total count */}
-      <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredApplicants.length} of {applicants.length} applicants
-        </p>
+        {/* Show total count */}
+        <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredApplicants.length} of {applicants.length} applicants
+          </p>
+        </div>
       </div>
 
       {/* Modals */}
@@ -371,6 +441,13 @@ export function ApplicantTable() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={fetchApplicants}
+      />
+
+      <AdvancedFilterModal
+        isOpen={isAdvancedFilterOpen}
+        onClose={() => setIsAdvancedFilterOpen(false)}
+        onApplyFilters={setFilters}
+        currentFilters={filters}
       />
     </div>
   );

@@ -25,20 +25,29 @@ export type Database = {
           created_at: string | null
           current_work: string | null
           date_of_testing: string | null
+          district: string | null
           exam_centre: string | null
+          exam_mode: string | null
           final_marks: number | null
           final_notes: string | null
           gender: string | null
           id: string
+          interview_date: string | null
+          interview_mode: string | null
           joining_status: string | null
+          last_updated: string | null
           lr_comments: string | null
           lr_status: string | null
+          market: string | null
           mobile_no: string
           name: string | null
           offer_letter_status: string | null
+          partner: string | null
           qualification: string | null
           qualifying_school: string | null
           set_name: string | null
+          stage: string | null
+          status: string | null
           triptis_notes: string | null
           unique_number: string | null
           updated_at: string | null
@@ -54,20 +63,29 @@ export type Database = {
           created_at?: string | null
           current_work?: string | null
           date_of_testing?: string | null
+          district?: string | null
           exam_centre?: string | null
+          exam_mode?: string | null
           final_marks?: number | null
           final_notes?: string | null
           gender?: string | null
           id?: string
+          interview_date?: string | null
+          interview_mode?: string | null
           joining_status?: string | null
+          last_updated?: string | null
           lr_comments?: string | null
           lr_status?: string | null
+          market?: string | null
           mobile_no: string
           name?: string | null
           offer_letter_status?: string | null
+          partner?: string | null
           qualification?: string | null
           qualifying_school?: string | null
           set_name?: string | null
+          stage?: string | null
+          status?: string | null
           triptis_notes?: string | null
           unique_number?: string | null
           updated_at?: string | null
@@ -83,24 +101,63 @@ export type Database = {
           created_at?: string | null
           current_work?: string | null
           date_of_testing?: string | null
+          district?: string | null
           exam_centre?: string | null
+          exam_mode?: string | null
           final_marks?: number | null
           final_notes?: string | null
           gender?: string | null
           id?: string
+          interview_date?: string | null
+          interview_mode?: string | null
           joining_status?: string | null
+          last_updated?: string | null
           lr_comments?: string | null
           lr_status?: string | null
+          market?: string | null
           mobile_no?: string
           name?: string | null
           offer_letter_status?: string | null
+          partner?: string | null
           qualification?: string | null
           qualifying_school?: string | null
           set_name?: string | null
+          stage?: string | null
+          status?: string | null
           triptis_notes?: string | null
           unique_number?: string | null
           updated_at?: string | null
           whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      filter_presets: {
+        Row: {
+          created_at: string | null
+          filters: Json
+          id: string
+          is_shared: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          filters: Json
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          filters?: Json
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

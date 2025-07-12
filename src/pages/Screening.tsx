@@ -35,6 +35,8 @@ type ApplicantData = {
   exam_centre: string | null;
   created_at: string;
   updated_at: string;
+  stage: string | null;
+  status: string | null;
 };
 
 const Screening = () => {
@@ -43,25 +45,10 @@ const Screening = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // Filter for Screening Tests stage
+  // Filter for Screening Tests stage using new stage field
   const getScreeningApplicants = (data: ApplicantData[]) => {
     return data.filter(applicant => {
-      // Not in Final Decisions (haven't joined)
-      if (applicant.joining_status === 'Joined' || applicant.joining_status === 'joined') {
-        return false;
-      }
-      
-      // Not in Interview Rounds (no lr_status or cfr_status)
-      if (applicant.lr_status || applicant.cfr_status) {
-        return false;
-      }
-      
-      // In Screening Tests (has final_marks or qualifying_school)
-      if (applicant.final_marks !== null || applicant.qualifying_school) {
-        return true;
-      }
-      
-      return false;
+      return applicant.stage === 'screening';
     });
   };
 
@@ -140,6 +127,18 @@ const Screening = () => {
   const averageScore = filteredApplicants.length > 0 ? 
     (filteredApplicants.reduce((sum, a) => sum + (a.final_marks || 0), 0) / filteredApplicants.length).toFixed(1) : 0;
 
+  const getStatusDisplay = (applicant: ApplicantData): string => {
+    if (applicant.status === 'pass') {
+      if (applicant.qualifying_school?.toLowerCase().includes('programming')) {
+        return 'Qualified for SOP';
+      } else if (applicant.qualifying_school?.toLowerCase().includes('business')) {
+        return 'Qualified for SOB';
+      }
+      return 'Pass';
+    }
+    return applicant.status || 'pending';
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
@@ -205,10 +204,10 @@ const Screening = () => {
             </div>
           </div>
 
-          <div className="bg-card rounded-xl shadow-soft border border-border">
+          <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
             <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-foreground">Recent Test Results</h2>
+                <h2 className="text-xl font-semibold text-foreground">Test Results</h2>
                 <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
                   Export Results
                 </Button>
@@ -232,7 +231,7 @@ const Screening = () => {
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Test Score</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Qualified Program</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Test Date</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Actions</th>
                   </tr>
@@ -273,7 +272,7 @@ const Screening = () => {
                           </div>
                         </td>
                         <td className="p-4">
-                          <span className={`text-2xl font-bold ${
+                          <span className={`text-lg font-bold ${
                             (applicant.final_marks || 0) >= 27 ? 'text-status-active' : 
                             (applicant.final_marks || 0) >= 18 ? 'text-status-prospect' : 
                             'text-status-fail'
@@ -282,8 +281,8 @@ const Screening = () => {
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className="text-sm text-foreground">
-                            {applicant.qualifying_school || "Not Qualified"}
+                          <span className="text-sm text-foreground font-medium">
+                            {getStatusDisplay(applicant)}
                           </span>
                         </td>
                         <td className="p-4 text-sm text-muted-foreground">

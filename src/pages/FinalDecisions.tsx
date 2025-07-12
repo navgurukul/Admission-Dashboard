@@ -33,6 +33,15 @@ type ApplicantData = {
   current_work: string | null;
   set_name: string | null;
   exam_centre: string | null;
+  stage: string | null;
+  status: string | null;
+  interview_mode: string | null;
+  exam_mode: string | null;
+  partner: string | null;
+  district: string | null;
+  market: string | null;
+  interview_date: string | null;
+  last_updated: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -43,15 +52,10 @@ const FinalDecisions = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // Filter for Final Decisions stage
+  // Filter for Final Decisions stage using new stage field
   const getFinalDecisionApplicants = (data: ApplicantData[]) => {
     return data.filter(applicant => {
-      // In Final Decisions (have joined or have offer letter status)
-      if (applicant.joining_status === 'Joined' || applicant.joining_status === 'joined' || applicant.offer_letter_status) {
-        return true;
-      }
-      
-      return false;
+      return applicant.stage === 'decision';
     });
   };
 
@@ -124,17 +128,15 @@ const FinalDecisions = () => {
      applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
   );
 
-  const offersSent = filteredApplicants.filter(a => a.offer_letter_status).length;
-  const offersAccepted = filteredApplicants.filter(a => 
-    a.offer_letter_status?.toLowerCase().includes('accept') || 
-    a.joining_status?.toLowerCase().includes('join')
-  ).length;
-  const onboarded = filteredApplicants.filter(a => 
-    a.joining_status === 'Joined' || a.joining_status === 'joined'
-  ).length;
-  const pendingResponses = filteredApplicants.filter(a => 
-    a.offer_letter_status && !a.joining_status
-  ).length;
+  const getStatusDisplay = (status: string | null): string => {
+    switch (status) {
+      case 'offer_pending': return 'Offer Letter Pending';
+      case 'offer_sent': return 'Offer Letter Sent';
+      case 'offer_rejected': return 'Offer Rejected';
+      case 'offer_accepted': return 'Offer Accepted';
+      default: return 'Pending';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,7 +158,7 @@ const FinalDecisions = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Offers Sent</p>
-                  <p className="text-2xl font-bold text-foreground">{offersSent}</p>
+                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.status === 'offer_sent').length}</p>
                 </div>
                 <div className="w-12 h-12 bg-status-pending/10 rounded-lg flex items-center justify-center">
                   <Mail className="w-6 h-6 text-status-pending" />
@@ -168,7 +170,7 @@ const FinalDecisions = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Offers Accepted</p>
-                  <p className="text-2xl font-bold text-foreground">{offersAccepted}</p>
+                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.status === 'offer_accepted').length}</p>
                 </div>
                 <div className="w-12 h-12 bg-status-active/10 rounded-lg flex items-center justify-center">
                   <UserCheck className="w-6 h-6 text-status-active" />
@@ -180,7 +182,7 @@ const FinalDecisions = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Successfully Onboarded</p>
-                  <p className="text-2xl font-bold text-foreground">{onboarded}</p>
+                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.joining_status === 'Joined' || a.joining_status === 'joined').length}</p>
                 </div>
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                   <UserCheck className="w-6 h-6 text-primary" />
@@ -192,7 +194,7 @@ const FinalDecisions = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Pending Responses</p>
-                  <p className="text-2xl font-bold text-foreground">{pendingResponses}</p>
+                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.status === 'offer_sent' && (!a.joining_status || a.joining_status === 'pending')).length}</p>
                 </div>
                 <div className="w-12 h-12 bg-status-pending/10 rounded-lg flex items-center justify-center">
                   <Clock className="w-6 h-6 text-status-pending" />
@@ -227,8 +229,8 @@ const FinalDecisions = () => {
                 <thead className="bg-muted/30 sticky top-0">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Allotted School</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Offer Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Joining Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Actions</th>
                   </tr>
@@ -268,13 +270,13 @@ const FinalDecisions = () => {
                             </div>
                           </div>
                         </td>
+                        <td className="p-4">
+                          <span className="text-sm text-foreground font-medium">
+                            {getStatusDisplay(applicant.status)}
+                          </span>
+                        </td>
                         <td className="p-4 text-sm text-foreground">
                           {applicant.allotted_school || 'Not Assigned'}
-                        </td>
-                        <td className="p-4">
-                          <span className="text-sm text-foreground">
-                            {applicant.offer_letter_status || 'No Offer'}
-                          </span>
                         </td>
                         <td className="p-4">
                           <span className="text-sm text-foreground">
@@ -283,7 +285,7 @@ const FinalDecisions = () => {
                         </td>
                         <td className="p-4">
                           <Button variant="outline" size="sm">
-                            {applicant.offer_letter_status && !applicant.joining_status ? "Send Reminder" : "View Details"}
+                            {applicant.status === 'offer_sent' && !applicant.joining_status ? "Send Reminder" : "View Details"}
                           </Button>
                         </td>
                       </tr>
