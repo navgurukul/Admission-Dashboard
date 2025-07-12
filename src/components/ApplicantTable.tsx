@@ -18,17 +18,60 @@ import { ApplicantModal } from "./ApplicantModal";
 import { InlineEditModal } from "./InlineEditModal";
 import { useToast } from "@/hooks/use-toast";
 
+type StatusType = 
+  | "pending" 
+  | "active" 
+  | "inactive" 
+  | "qualified" 
+  | "disqualified"
+  | "pass"
+  | "fail"
+  | "booked"
+  | "rescheduled"
+  | "lr_qualified"
+  | "lr_failed"
+  | "cfr_qualified"
+  | "cfr_failed"
+  | "offer_pending"
+  | "offer_sent"
+  | "offer_rejected"
+  | "offer_accepted"
+  | "Qualified for SOP"
+  | "Qualified for SOB";
+
+interface FilterState {
+  stage: string;
+  status: string;
+  examMode: string;
+  interviewMode: string;
+  partner: string[];
+  district: string[];
+  market: string[];
+  dateRange: {
+    type: 'application' | 'lastUpdate' | 'interview';
+    from?: Date;
+    to?: Date;
+  };
+}
+
 const ApplicantTable = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
-  const [applicantToView, setApplicantToView] = useState<string | null>(null);
-  const [applicantToEditInline, setApplicantToEditInline] = useState<{
-    id: string;
-    column: string;
-  } | null>(null);
+  const [applicantToView, setApplicantToView] = useState<any | null>(null);
+  const [applicantToEditInline, setApplicantToEditInline] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [filters, setFilters] = useState<FilterState>({
+    stage: 'all',
+    status: 'all',
+    examMode: 'all',
+    interviewMode: 'all',
+    partner: [],
+    district: [],
+    market: [],
+    dateRange: { type: 'application' }
+  });
   const { toast } = useToast();
 
   const { data: applicants, isLoading, refetch } = useQuery({
@@ -164,6 +207,10 @@ const ApplicantTable = () => {
     }
   };
 
+  const handleApplyFilters = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -237,7 +284,7 @@ const ApplicantTable = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[2rem]">
+              <TableHead className="w-[50px]">
                 <Checkbox
                   checked={
                     filteredApplicants?.length > 0 &&
@@ -247,12 +294,12 @@ const ApplicantTable = () => {
                   aria-label="Select all applicants"
                 />
               </TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Mobile No</TableHead>
-              <TableHead>Campus</TableHead>
-              <TableHead className="w-[150px]">Stage</TableHead>
+              <TableHead className="w-[200px]">Name</TableHead>
+              <TableHead className="w-[150px]">Mobile No</TableHead>
+              <TableHead className="w-[120px]">Campus</TableHead>
+              <TableHead className="w-[120px]">Stage</TableHead>
               <TableHead className="w-[120px]">Status</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="w-[150px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -271,7 +318,7 @@ const ApplicantTable = () => {
             ) : (
               filteredApplicants?.map((applicant) => (
                 <TableRow key={applicant.id}>
-                  <TableCell className="w-[2rem]">
+                  <TableCell>
                     <Checkbox
                       checked={selectedRows.includes(applicant.id)}
                       onCheckedChange={() => handleCheckboxChange(applicant.id)}
@@ -279,50 +326,19 @@ const ApplicantTable = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    {applicantToEditInline?.id === applicant.id &&
-                      applicantToEditInline.column === "name" ? (
-                      <InlineEditModal
-                        applicantId={applicant.id}
-                        field="name"
-                        initialValue={applicant.name || ""}
-                        onSave={refetch}
-                        onCancel={() => setApplicantToEditInline(null)}
-                      />
-                    ) : (
-                      <Button
-                        variant="link"
-                        onClick={() => setApplicantToView(applicant.id)}
-                      >
-                        {applicant.name}
-                      </Button>
-                    )}
+                    <Button
+                      variant="link"
+                      onClick={() => setApplicantToView(applicant)}
+                      className="p-0 h-auto font-normal"
+                    >
+                      {applicant.name || "No name"}
+                    </Button>
                   </TableCell>
+                  <TableCell>{applicant.mobile_no}</TableCell>
+                  <TableCell>{applicant.campus || "Not assigned"}</TableCell>
                   <TableCell>
-                    {applicantToEditInline?.id === applicant.id &&
-                      applicantToEditInline.column === "mobile_no" ? (
-                      <InlineEditModal
-                        applicantId={applicant.id}
-                        field="mobile_no"
-                        initialValue={applicant.mobile_no}
-                        onSave={refetch}
-                        onCancel={() => setApplicantToEditInline(null)}
-                      />
-                    ) : (
-                      <Button
-                        variant="link"
-                        onClick={() => setApplicantToEditInline({
-                          id: applicant.id,
-                          column: "mobile_no",
-                        })}
-                      >
-                        {applicant.mobile_no}
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell>{applicant.campus}</TableCell>
-                  <TableCell className="w-[150px]">
                     <Select
-                      value={applicant.stage || "sourcing"}
+                      value={applicant.stage || "contact"}
                       onValueChange={async (value) => {
                         const { error } = await supabase
                           .from("admission_dashboard")
@@ -348,22 +364,22 @@ const ApplicantTable = () => {
                         <SelectValue placeholder="Select a stage" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sourcing">Sourcing</SelectItem>
+                        <SelectItem value="contact">Contact</SelectItem>
                         <SelectItem value="screening">Screening</SelectItem>
-                        <SelectItem value="interview">Interview</SelectItem>
-                        <SelectItem value="decision">Final Decision</SelectItem>
+                        <SelectItem value="interviews">Interviews</SelectItem>
+                        <SelectItem value="decision">Decision</SelectItem>
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="w-[120px]">
-                    <StatusBadge status={applicant.status || "pending"} />
+                  <TableCell>
+                    <StatusBadge status={(applicant.status || "pending") as StatusType} />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setApplicantToView(applicant.id)}
+                        onClick={() => setApplicantToView(applicant)}
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View
@@ -399,20 +415,31 @@ const ApplicantTable = () => {
       <AdvancedFilterModal
         isOpen={showAdvancedFilters}
         onClose={() => setShowAdvancedFilters(false)}
+        onApplyFilters={handleApplyFilters}
+        currentFilters={filters}
       />
 
       <BulkUpdateModal
         isOpen={showBulkUpdate}
         onClose={() => setShowBulkUpdate(false)}
-        selectedRows={selectedRows}
+        selectedApplicants={selectedRows}
         onSuccess={refetch}
       />
 
       <ApplicantModal
-        applicant={applicantToView}
+        applicant={applicantToView?.id || null}
         isOpen={!!applicantToView}
         onClose={() => setApplicantToView(null)}
       />
+
+      {applicantToEditInline && (
+        <InlineEditModal
+          applicant={applicantToEditInline}
+          isOpen={!!applicantToEditInline}
+          onClose={() => setApplicantToEditInline(null)}
+          onSuccess={refetch}
+        />
+      )}
     </Card>
   );
 };
