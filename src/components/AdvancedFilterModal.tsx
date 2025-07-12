@@ -107,7 +107,7 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
         .from('filter_presets')
         .insert({
           name: presetName,
-          filters: filters,
+          filters: filters as any, // Cast to any to satisfy Json type
           user_id: (await supabase.auth.getUser()).data.user?.id
         });
 

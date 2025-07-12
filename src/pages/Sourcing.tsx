@@ -1,5 +1,6 @@
+
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { ClipboardCheck, UserPlus, MapPin, Search } from "lucide-react";
+import { ClipboardCheck, UserPlus, MapPin, Search, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
