@@ -48,6 +48,7 @@ type ApplicantData = {
   market: string | null;
   interview_date: string | null;
   last_updated: string | null;
+  campus: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -104,11 +105,9 @@ export function ApplicantTable() {
   });
   const { toast } = useToast();
 
-  // Fetch applicants from Supabase and set up real-time subscription
   useEffect(() => {
     fetchApplicants();
 
-    // Set up real-time subscription for automatic updates
     const channel = supabase
       .channel('admission_dashboard_changes')
       .on(
@@ -120,7 +119,6 @@ export function ApplicantTable() {
         },
         (payload) => {
           console.log('Real-time update received:', payload);
-          // Refetch data when changes occur
           fetchApplicants();
         }
       )
@@ -136,7 +134,6 @@ export function ApplicantTable() {
     try {
       setLoading(true);
       
-      // Check authentication state
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.warn('No active session, skipping data fetch');
@@ -172,7 +169,6 @@ export function ApplicantTable() {
 
   const applyFilters = (data: ApplicantData[]) => {
     return data.filter(applicant => {
-      // Text search
       const matchesSearch = !searchQuery || 
         (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
          applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -181,28 +177,14 @@ export function ApplicantTable() {
 
       if (!matchesSearch) return false;
 
-      // Stage filter - updated to handle 'all'
       if (filters.stage && filters.stage !== 'all' && applicant.stage !== filters.stage) return false;
-
-      // Status filter - updated to handle 'all'
       if (filters.status && filters.status !== 'all' && applicant.status !== filters.status) return false;
-
-      // Exam mode filter - updated to handle 'all'
       if (filters.examMode && filters.examMode !== 'all' && applicant.exam_mode !== filters.examMode) return false;
-
-      // Interview mode filter - updated to handle 'all'
       if (filters.interviewMode && filters.interviewMode !== 'all' && applicant.interview_mode !== filters.interviewMode) return false;
-
-      // Partner filter
       if (filters.partner.length > 0 && (!applicant.partner || !filters.partner.includes(applicant.partner))) return false;
-
-      // District filter
       if (filters.district.length > 0 && (!applicant.district || !filters.district.includes(applicant.district))) return false;
-
-      // Market filter
       if (filters.market.length > 0 && (!applicant.market || !filters.market.includes(applicant.market))) return false;
 
-      // Date range filter
       if (filters.dateRange.from || filters.dateRange.to) {
         let dateToCheck: Date | null = null;
         
@@ -269,7 +251,7 @@ export function ApplicantTable() {
         'block', 'city', 'district', 'market', 'caste', 'gender', 'qualification', 'current_work', 'partner',
         'final_marks', 'qualifying_school', 'lr_status', 'lr_comments', 'cfr_status', 'cfr_comments',
         'offer_letter_status', 'allotted_school', 'joining_status', 'final_notes', 'triptis_notes',
-        'stage', 'status', 'exam_mode', 'interview_mode', 'interview_date', 'last_updated'
+        'stage', 'status', 'exam_mode', 'interview_mode', 'interview_date', 'campus', 'last_updated'
       ];
 
       const csvContent = headers.join(',') + '\n' + 
@@ -377,7 +359,7 @@ export function ApplicantTable() {
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Applicant</th>
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage</th>
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Status</th>
-                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Location</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Campus</th>
                 <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
               </tr>
             </thead>
@@ -441,7 +423,7 @@ export function ApplicantTable() {
                     </td>
                     <td className="py-4 px-6">
                       <span className="text-sm text-foreground">
-                        {applicant.city ? `${applicant.city}${applicant.block ? `, ${applicant.block}` : ''}` : 'Not specified'}
+                        {applicant.campus || 'Not assigned'}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
