@@ -96,10 +96,10 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
       
       // Handle specific database constraint errors
       if (error?.code === '23505') {
-        if (error.message.includes('offer_templates_template_type_language_program_type_version_key')) {
+        if (error.message.includes('offer_templates_name_unique')) {
           toast({
-            title: "Duplicate Template",
-            description: `A template with this combination of Template Type (${formData.template_type}), Language (${formData.language})${formData.program_type ? `, and Program Type (${formData.program_type})` : ''} already exists. Please modify one of these values to create a unique template.`,
+            title: "Duplicate Template Name",
+            description: `A template with the name "${formData.name}" already exists. Please choose a different name.`,
             variant: "destructive"
           });
           return;
@@ -277,20 +277,6 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                         <li>• <strong>Section 1:</strong> Offer Letter with admission details</li>
                         <li>• <strong>Section 2:</strong> Consent Form for enrollment confirmation</li>
                         <li>• <strong>Section 3:</strong> Checklist of required documents and next steps</li>
-                      </ul>
-                    </div>
-                  </div>
-                )}
-
-                {formData.template_type === 'offer_letter' && (
-                  <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                    <div className="text-sm text-amber-800">
-                      <div className="font-medium mb-2">Note about duplicate templates:</div>
-                      <div>Each combination of Template Type, Language, and Program Type must be unique. If you're getting a "duplicate template" error, try:</div>
-                      <ul className="mt-2 ml-4 space-y-1">
-                        <li>• Choose a different Program Type</li>
-                        <li>• Use a different Language</li>
-                        <li>• Edit the existing template instead of creating a new one</li>
                       </ul>
                     </div>
                   </div>
