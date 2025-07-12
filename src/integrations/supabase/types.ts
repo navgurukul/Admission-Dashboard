@@ -134,6 +134,47 @@ export type Database = {
         }
         Relationships: []
       }
+      applicant_comments: {
+        Row: {
+          applicant_id: string
+          comment_text: string
+          created_at: string
+          id: string
+          stage: string | null
+          updated_at: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          applicant_id: string
+          comment_text: string
+          created_at?: string
+          id?: string
+          stage?: string | null
+          updated_at?: string
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          applicant_id?: string
+          comment_text?: string
+          created_at?: string
+          id?: string
+          stage?: string | null
+          updated_at?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applicant_comments_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "admission_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campus_options: {
         Row: {
           created_at: string
@@ -385,6 +426,42 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+          user_name?: string | null
         }
         Relationships: []
       }

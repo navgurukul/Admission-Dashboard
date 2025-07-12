@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +16,8 @@ import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
 import { ApplicantModal } from "./ApplicantModal";
 import { InlineEditModal } from "./InlineEditModal";
+import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+import { ApplicantLogsModal } from "./ApplicantLogsModal";
 import { useToast } from "@/hooks/use-toast";
 
 type StatusType = 
@@ -61,6 +62,8 @@ const ApplicantTable = () => {
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
   const [applicantToEditInline, setApplicantToEditInline] = useState<any | null>(null);
+  const [applicantForComments, setApplicantForComments] = useState<any | null>(null);
+  const [applicantForLogs, setApplicantForLogs] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
@@ -302,7 +305,7 @@ const ApplicantTable = () => {
                   <TableHead className="w-[120px] font-bold">Campus</TableHead>
                   <TableHead className="w-[120px] font-bold">Stage</TableHead>
                   <TableHead className="w-[120px] font-bold">Status</TableHead>
-                  <TableHead className="w-[80px] font-bold">Actions</TableHead>
+                  <TableHead className="w-[120px] font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -391,6 +394,12 @@ const ApplicantTable = () => {
                             <DropdownMenuItem onClick={() => setApplicantToEditInline(applicant)}>
                               Edit
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setApplicantForComments(applicant)}>
+                              Comments
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setApplicantForLogs(applicant)}>
+                              View Logs
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -437,6 +446,20 @@ const ApplicantTable = () => {
           onSuccess={refetch}
         />
       )}
+
+      <ApplicantCommentsModal
+        applicantId={applicantForComments?.id || ""}
+        applicantName={applicantForComments?.name || ""}
+        isOpen={!!applicantForComments}
+        onClose={() => setApplicantForComments(null)}
+      />
+
+      <ApplicantLogsModal
+        applicantId={applicantForLogs?.id || ""}
+        applicantName={applicantForLogs?.name || ""}
+        isOpen={!!applicantForLogs}
+        onClose={() => setApplicantForLogs(null)}
+      />
     </Card>
   );
 };
