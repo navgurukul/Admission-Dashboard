@@ -188,6 +188,179 @@ export type Database = {
         }
         Relationships: []
       }
+      offer_audit_log: {
+        Row: {
+          action_type: string
+          applicant_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          template_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          applicant_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          template_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          applicant_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          template_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_audit_log_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "admission_dashboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_audit_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "offer_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_history: {
+        Row: {
+          applicant_id: string
+          bounced_at: string | null
+          created_at: string
+          delivered_at: string | null
+          email_status: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          opened_at: string | null
+          pdf_urls: Json | null
+          sent_at: string | null
+          template_version_used: Json
+          updated_at: string
+        }
+        Insert: {
+          applicant_id: string
+          bounced_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          email_status?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          opened_at?: string | null
+          pdf_urls?: Json | null
+          sent_at?: string | null
+          template_version_used: Json
+          updated_at?: string
+        }
+        Update: {
+          applicant_id?: string
+          bounced_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          email_status?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          opened_at?: string | null
+          pdf_urls?: Json | null
+          sent_at?: string | null
+          template_version_used?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_history_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "admission_dashboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_placeholders: {
+        Row: {
+          created_at: string
+          data_source: string
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          placeholder_key: string
+        }
+        Insert: {
+          created_at?: string
+          data_source: string
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          placeholder_key: string
+        }
+        Update: {
+          created_at?: string
+          data_source?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          placeholder_key?: string
+        }
+        Relationships: []
+      }
+      offer_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          html_content: string
+          id: string
+          is_active: boolean
+          language: string
+          name: string
+          program_type: string | null
+          template_type: string
+          updated_at: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean
+          language: string
+          name: string
+          program_type?: string | null
+          template_type: string
+          updated_at?: string
+          version_number?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          name?: string
+          program_type?: string | null
+          template_type?: string
+          updated_at?: string
+          version_number?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
