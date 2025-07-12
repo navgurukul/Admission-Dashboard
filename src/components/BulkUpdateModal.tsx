@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+
+interface CampusOption {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
 
 interface BulkUpdateModalProps {
   selectedApplicants: string[];
@@ -43,23 +49,47 @@ const STAGE_STATUS_OPTIONS = {
 export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess }: BulkUpdateModalProps) {
   const [updateData, setUpdateData] = useState({
     stage: '',
-    status: ''
+    status: '',
+    campus: ''
   });
+  const [campusOptions, setCampusOptions] = useState<CampusOption[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (isOpen) {
+      fetchCampusOptions();
+    }
+  }, [isOpen]);
+
+  const fetchCampusOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campus_options')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setCampusOptions(data || []);
+    } catch (error) {
+      console.error('Error fetching campus options:', error);
+    }
+  };
+
   const handleStageChange = (stage: string) => {
     setUpdateData(prev => ({ 
+      ...prev,
       stage, 
       status: stage === 'contact' ? '' : 'pending'
     }));
   };
 
   const handleBulkUpdate = async () => {
-    if (!updateData.stage) {
+    if (!updateData.stage && !updateData.campus) {
       toast({
         title: "Error",
-        description: "Please select a stage",
+        description: "Please select at least a stage or campus to update",
         variant: "destructive",
       });
       return;
@@ -68,15 +98,22 @@ export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess
     setLoading(true);
     try {
       const updates: any = {
-        stage: updateData.stage,
         last_updated: new Date().toISOString()
       };
 
-      // Only add status if it's not empty and stage is not contact
-      if (updateData.status && updateData.stage !== 'contact') {
-        updates.status = updateData.status;
-      } else if (updateData.stage === 'contact') {
-        updates.status = null;
+      // Only add stage/status if stage is selected
+      if (updateData.stage) {
+        updates.stage = updateData.stage;
+        if (updateData.status && updateData.stage !== 'contact') {
+          updates.status = updateData.status;
+        } else if (updateData.stage === 'contact') {
+          updates.status = null;
+        }
+      }
+
+      // Only add campus if selected
+      if (updateData.campus) {
+        updates.campus = updateData.campus === 'unassigned' ? null : updateData.campus;
       }
 
       const { error } = await supabase
@@ -95,7 +132,7 @@ export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess
       onClose();
       
       // Reset form
-      setUpdateData({ stage: '', status: '' });
+      setUpdateData({ stage: '', status: '', campus: '' });
     } catch (error) {
       console.error('Error bulk updating applicants:', error);
       toast({
@@ -123,17 +160,18 @@ export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess
         <div className="space-y-4">
           <div className="bg-muted/50 p-3 rounded-lg">
             <p className="text-sm text-muted-foreground">
-              This will update the stage and status for {selectedApplicants.length} selected applicant(s).
+              This will update the selected fields for {selectedApplicants.length} selected applicant(s). Leave fields empty to keep them unchanged.
             </p>
           </div>
 
           <div>
-            <Label>New Stage</Label>
+            <Label>Stage (Optional)</Label>
             <Select value={updateData.stage} onValueChange={handleStageChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select new stage" />
+                <SelectValue placeholder="Select new stage (optional)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="">No change</SelectItem>
                 <SelectItem value="contact">Contact</SelectItem>
                 <SelectItem value="screening">Screening</SelectItem>
                 <SelectItem value="interviews">Interviews</SelectItem>
@@ -142,9 +180,9 @@ export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess
             </Select>
           </div>
 
-          {availableStatuses.length > 0 && (
+          {availableStatuses.length > 0 && updateData.stage && (
             <div>
-              <Label>New Status</Label>
+              <Label>Status</Label>
               <Select value={updateData.status} onValueChange={(value) => setUpdateData(prev => ({ ...prev, status: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select new status" />
@@ -160,6 +198,24 @@ export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess
             </div>
           )}
 
+          <div>
+            <Label>Campus (Optional)</Label>
+            <Select value={updateData.campus} onValueChange={(value) => setUpdateData(prev => ({ ...prev, campus: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select new campus (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No change</SelectItem>
+                <SelectItem value="unassigned">Not assigned</SelectItem>
+                {campusOptions.map((campus) => (
+                  <SelectItem key={campus.id} value={campus.name}>
+                    {campus.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {updateData.stage === 'contact' && (
             <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
               <p className="text-sm text-blue-700">
@@ -170,12 +226,12 @@ export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess
 
           <div className="flex items-center justify-center py-2">
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <span>Current Stage/Status</span>
+              <span>Bulk Update</span>
               <ArrowRight className="w-4 h-4" />
               <span className="font-medium">
-                {updateData.stage ? 
-                  `${updateData.stage.charAt(0).toUpperCase() + updateData.stage.slice(1)}${updateData.status ? ` (${availableStatuses.find(s => s.value === updateData.status)?.label || updateData.status})` : ''}` 
-                  : 'Select stage'
+                {updateData.stage || updateData.campus ? 
+                  `${updateData.stage ? `Stage: ${updateData.stage.charAt(0).toUpperCase() + updateData.stage.slice(1)}` : ''}${updateData.stage && updateData.campus ? ', ' : ''}${updateData.campus ? `Campus: ${updateData.campus === 'unassigned' ? 'Not assigned' : updateData.campus}` : ''}` 
+                  : 'Select fields to update'
                 }
               </span>
             </div>
@@ -186,7 +242,7 @@ export function BulkUpdateModal({ selectedApplicants, isOpen, onClose, onSuccess
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleBulkUpdate} disabled={loading || !updateData.stage}>
+          <Button onClick={handleBulkUpdate} disabled={loading || (!updateData.stage && !updateData.campus)}>
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />

@@ -17,7 +17,14 @@ type ApplicantData = {
   stage: string | null;
   status: string | null;
   whatsapp_number: string | null;
+  campus: string | null;
 };
+
+interface CampusOption {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
 
 interface InlineEditModalProps {
   applicant: ApplicantData | null;
@@ -58,9 +65,11 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
     whatsapp_number: '',
     city: '',
     stage: 'contact',
-    status: ''
+    status: '',
+    campus: ''
   });
   const [originalData, setOriginalData] = useState(formData);
+  const [campusOptions, setCampusOptions] = useState<CampusOption[]>([]);
   const [loading, setSaving] = useState(false);
   const [showUndo, setShowUndo] = useState(false);
   const [undoTimer, setUndoTimer] = useState<NodeJS.Timeout | null>(null);
@@ -74,7 +83,8 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
         whatsapp_number: applicant.whatsapp_number || '',
         city: applicant.city || '',
         stage: applicant.stage || 'contact',
-        status: applicant.status || ''
+        status: applicant.status || '',
+        campus: applicant.campus || ''
       };
       setFormData(data);
       setOriginalData(data);
@@ -85,6 +95,27 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
       }
     }
   }, [applicant, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCampusOptions();
+    }
+  }, [isOpen]);
+
+  const fetchCampusOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campus_options')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setCampusOptions(data || []);
+    } catch (error) {
+      console.error('Error fetching campus options:', error);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -112,6 +143,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
           city: formData.city || null,
           stage: formData.stage,
           status: formData.status || null,
+          campus: formData.campus || null,
           last_updated: new Date().toISOString()
         })
         .eq('id', applicant.id);
@@ -158,6 +190,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
           city: originalData.city || null,
           stage: originalData.stage,
           status: originalData.status || null,
+          campus: originalData.campus || null,
           last_updated: new Date().toISOString()
         })
         .eq('id', applicant.id);
@@ -270,6 +303,23 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
                 </Select>
               </div>
             )}
+
+            <div>
+              <Label>Campus</Label>
+              <Select value={formData.campus} onValueChange={(value) => handleInputChange('campus', value === 'unassigned' ? '' : value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select campus" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Not assigned</SelectItem>
+                  {campusOptions.map((campus) => (
+                    <SelectItem key={campus.id} value={campus.name}>
+                      {campus.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">

@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           allotted_school: string | null
           block: string | null
+          campus: string | null
           caste: string | null
           cfr_comments: string | null
           cfr_status: string | null
@@ -56,6 +57,7 @@ export type Database = {
         Insert: {
           allotted_school?: string | null
           block?: string | null
+          campus?: string | null
           caste?: string | null
           cfr_comments?: string | null
           cfr_status?: string | null
@@ -94,6 +96,7 @@ export type Database = {
         Update: {
           allotted_school?: string | null
           block?: string | null
+          campus?: string | null
           caste?: string | null
           cfr_comments?: string | null
           cfr_status?: string | null
@@ -128,6 +131,30 @@ export type Database = {
           unique_number?: string | null
           updated_at?: string | null
           whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
+      campus_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

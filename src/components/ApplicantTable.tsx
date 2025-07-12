@@ -9,6 +9,7 @@ import CSVImportModal from "./CSVImportModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { InlineEditModal } from "./InlineEditModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
+import { CampusSelector } from "./CampusSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -108,7 +109,8 @@ export function ApplicantTable() {
   useEffect(() => {
     fetchApplicants();
 
-    const channel = supabase
+    // Set up real-time subscription for admission_dashboard
+    const admissionChannel = supabase
       .channel('admission_dashboard_changes')
       .on(
         'postgres_changes',
@@ -124,9 +126,27 @@ export function ApplicantTable() {
       )
       .subscribe();
 
+    // Set up real-time subscription for campus_options
+    const campusChannel = supabase
+      .channel('campus_options_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'campus_options'
+        },
+        (payload) => {
+          console.log('Campus options update received:', payload);
+          // Campus options changed, components will refetch automatically
+        }
+      )
+      .subscribe();
+
     return () => {
-      console.log('Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
+      console.log('Cleaning up real-time subscriptions');
+      supabase.removeChannel(admissionChannel);
+      supabase.removeChannel(campusChannel);
     };
   }, []);
 
@@ -153,12 +173,7 @@ export function ApplicantTable() {
       }
 
       console.log(`Successfully fetched ${data?.length || 0} applicants`);
-      // Map the data to ensure campus field exists, even if null
-      const mappedData = (data || []).map(item => ({
-        ...item,
-        campus: (item as any).campus || null
-      }));
-      setApplicants(mappedData);
+      setApplicants(data || []);
     } catch (error) {
       console.error('Error fetching applicants:', error);
       toast({
@@ -285,6 +300,16 @@ export function ApplicantTable() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleCampusChange = (applicantId: string, newCampus: string | null) => {
+    setApplicants(prev => 
+      prev.map(applicant => 
+        applicant.id === applicantId 
+          ? { ...applicant, campus: newCampus }
+          : applicant
+      )
+    );
   };
 
   return (
@@ -427,9 +452,11 @@ export function ApplicantTable() {
                       <StatusBadge status={getStatusDisplay(applicant) as any} />
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-sm text-foreground">
-                        {applicant.campus || 'Not assigned'}
-                      </span>
+                      <CampusSelector
+                        currentCampus={applicant.campus}
+                        applicantId={applicant.id}
+                        onCampusChange={(newCampus) => handleCampusChange(applicant.id, newCampus)}
+                      />
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center space-x-1">
