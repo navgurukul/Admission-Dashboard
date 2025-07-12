@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,15 +64,21 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Clean up program_type - set to null if not needed
+      const cleanedData = {
+        ...data,
+        program_type: data.template_type === 'offer_letter' ? data.program_type : null
+      };
+
       if (isNew) {
         const { error } = await supabase
           .from('offer_templates')
-          .insert([data]);
+          .insert([cleanedData]);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('offer_templates')
-          .update(data)
+          .update(cleanedData)
           .eq('id', templateId);
         if (error) throw error;
       }
@@ -112,8 +119,27 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
       });
       return;
     }
+
+    // Validate program_type for offer letters
+    if (formData.template_type === 'offer_letter' && !formData.program_type.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Program type is required for offer letter templates",
+        variant: "destructive"
+      });
+      return;
+    }
     
     saveMutation.mutate(formData);
+  };
+
+  // Handle template type changes - reset program_type when not needed
+  const handleTemplateTypeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      template_type: value,
+      program_type: value === 'offer_letter' ? prev.program_type : ''
+    }));
   };
 
   const handleDocumentUploaded = (content: string) => {
@@ -166,7 +192,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Template Name</Label>
+                    <Label htmlFor="name">Template Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
@@ -175,10 +201,10 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                     />
                   </div>
                   <div>
-                    <Label htmlFor="template_type">Template Type</Label>
+                    <Label htmlFor="template_type">Template Type *</Label>
                     <Select
                       value={formData.template_type}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, template_type: value }))}
+                      onValueChange={handleTemplateTypeChange}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -192,7 +218,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="language">Language</Label>
+                    <Label htmlFor="language">Language *</Label>
                     <Select
                       value={formData.language}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, language: value }))}
@@ -208,7 +234,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
                   </div>
                   {formData.template_type === 'offer_letter' && (
                     <div>
-                      <Label htmlFor="program_type">Program Type</Label>
+                      <Label htmlFor="program_type">Program Type *</Label>
                       <Select
                         value={formData.program_type}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, program_type: value }))}
@@ -248,7 +274,7 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Template Content</CardTitle>
+                  <CardTitle>Template Content *</CardTitle>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileText className="h-4 w-4" />
                     <span>Upload .docx files or edit directly</span>
