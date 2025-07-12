@@ -174,7 +174,7 @@ export const PlaceholderPanel = ({ onInsertPlaceholder }: PlaceholderPanelProps)
         <div className="pt-2 border-t">
           <div className="text-xs text-muted-foreground space-y-1">
             <div className="font-medium">Tip:</div>
-            <div>• Placeholders appear as {{PLACEHOLDER_NAME}}</div>
+            <div>• Placeholders appear as {"{{PLACEHOLDER_NAME}}"}</div>
             <div>• They'll be replaced with real data when sending</div>
             <div>• You can also type placeholders manually</div>
           </div>
