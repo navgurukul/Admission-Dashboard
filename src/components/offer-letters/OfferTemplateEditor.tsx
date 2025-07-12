@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,8 +119,8 @@ export const OfferTemplateEditor = ({ templateId, isNew, onClose }: OfferTemplat
       return;
     }
 
-    // Validate program_type for offer letters
-    if (formData.template_type === 'offer_letter' && !formData.program_type.trim()) {
+    // Validate program_type for offer letters - check for undefined, null, or empty string
+    if (formData.template_type === 'offer_letter' && (!formData.program_type || !formData.program_type.trim())) {
       toast({
         title: "Validation Error",
         description: "Program type is required for offer letter templates",
