@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -242,19 +243,15 @@ const ApplicantTable = () => {
                     filteredApplicants?.length > 0 &&
                     selectedRows.length === filteredApplicants?.length
                   }
-                  indeterminate={
-                    selectedRows.length > 0 &&
-                    selectedRows.length < (filteredApplicants?.length || 0)
-                  }
-                  onChange={handleSelectAllRows}
+                  onCheckedChange={handleSelectAllRows}
                   aria-label="Select all applicants"
                 />
               </TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Mobile No</TableHead>
               <TableHead>Campus</TableHead>
-              <TableHead>Stage</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="w-[150px]">Stage</TableHead>
+              <TableHead className="w-[120px]">Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -285,8 +282,8 @@ const ApplicantTable = () => {
                     {applicantToEditInline?.id === applicant.id &&
                       applicantToEditInline.column === "name" ? (
                       <InlineEditModal
-                        id={applicant.id}
-                        column="name"
+                        applicantId={applicant.id}
+                        field="name"
                         initialValue={applicant.name || ""}
                         onSave={refetch}
                         onCancel={() => setApplicantToEditInline(null)}
@@ -304,8 +301,8 @@ const ApplicantTable = () => {
                     {applicantToEditInline?.id === applicant.id &&
                       applicantToEditInline.column === "mobile_no" ? (
                       <InlineEditModal
-                        id={applicant.id}
-                        column="mobile_no"
+                        applicantId={applicant.id}
+                        field="mobile_no"
                         initialValue={applicant.mobile_no}
                         onSave={refetch}
                         onCancel={() => setApplicantToEditInline(null)}
@@ -323,9 +320,9 @@ const ApplicantTable = () => {
                     )}
                   </TableCell>
                   <TableCell>{applicant.campus}</TableCell>
-                  <TableCell>
+                  <TableCell className="w-[150px]">
                     <Select
-                      value={applicant.stage}
+                      value={applicant.stage || "sourcing"}
                       onValueChange={async (value) => {
                         const { error } = await supabase
                           .from("admission_dashboard")
@@ -347,7 +344,7 @@ const ApplicantTable = () => {
                         }
                       }}
                     >
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a stage" />
                       </SelectTrigger>
                       <SelectContent>
@@ -358,7 +355,7 @@ const ApplicantTable = () => {
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="w-[120px]">
                     <StatusBadge status={applicant.status || "pending"} />
                   </TableCell>
                   <TableCell>
@@ -394,27 +391,27 @@ const ApplicantTable = () => {
       </CardContent>
 
       <AddApplicantModal
-        open={showAddModal}
-        onOpenChange={setShowAddModal}
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
         onSuccess={refetch}
       />
 
       <AdvancedFilterModal
-        open={showAdvancedFilters}
-        onOpenChange={setShowAdvancedFilters}
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
       />
 
       <BulkUpdateModal
-        open={showBulkUpdate}
-        onOpenChange={setShowBulkUpdate}
+        isOpen={showBulkUpdate}
+        onClose={() => setShowBulkUpdate(false)}
         selectedRows={selectedRows}
         onSuccess={refetch}
       />
 
       <ApplicantModal
-        applicantId={applicantToView}
-        open={!!applicantToView}
-        onOpenChange={() => setApplicantToView(null)}
+        applicant={applicantToView}
+        isOpen={!!applicantToView}
+        onClose={() => setApplicantToView(null)}
       />
     </Card>
   );
