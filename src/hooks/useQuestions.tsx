@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
 interface QuestionFilters {
   status?: string;
@@ -10,6 +11,10 @@ interface QuestionFilters {
   question_type?: string;
   tags?: string[];
 }
+
+type QuestionStatus = Database['public']['Enums']['question_status'];
+type DifficultyLevel = Database['public']['Enums']['difficulty_level'];
+type QuestionType = Database['public']['Enums']['question_type'];
 
 export function useQuestions(filters: QuestionFilters = {}, searchTerm = '') {
   const [questions, setQuestions] = useState([]);
@@ -26,16 +31,16 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = '') {
 
       // Apply filters
       if (filters.status) {
-        query = query.eq('status', filters.status);
+        query = query.eq('status', filters.status as QuestionStatus);
       }
       if (filters.difficulty) {
-        query = query.eq('difficulty_level', filters.difficulty);
+        query = query.eq('difficulty_level', filters.difficulty as DifficultyLevel);
       }
       if (filters.language) {
         query = query.eq('language', filters.language);
       }
       if (filters.question_type) {
-        query = query.eq('question_type', filters.question_type);
+        query = query.eq('question_type', filters.question_type as QuestionType);
       }
       if (filters.tags && filters.tags.length > 0) {
         query = query.overlaps('tags', filters.tags);
