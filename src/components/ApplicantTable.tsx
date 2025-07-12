@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Plus, MoreHorizontal, Upload, Download, Edit2 } from "lucide-react";
+import { Search, Filter, Plus, MoreHorizontal, Upload, Download, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "./StatusBadge";
@@ -12,6 +12,16 @@ import { BulkUpdateModal } from "./BulkUpdateModal";
 import { CampusSelector } from "./CampusSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Define the type for our applicant data
 type ApplicantData = {
@@ -82,6 +92,42 @@ const getStatusDisplay = (applicant: ApplicantData): string => {
   return applicant.status || 'pending';
 };
 
+const getCombinedStageStatus = (applicant: ApplicantData): string => {
+  const stage = applicant.stage || 'contact';
+  const status = getStatusDisplay(applicant);
+  
+  if (stage === 'contact') return 'Contact';
+  
+  const stageLabels = {
+    screening: 'Screening',
+    interviews: 'Interviews',
+    decision: 'Decision'
+  };
+  
+  const statusLabels = {
+    pending: 'Pending',
+    pass: 'Pass',
+    fail: 'Fail',
+    booked: 'Booked',
+    rescheduled: 'Rescheduled',
+    lr_qualified: 'LR Qualified',
+    lr_failed: 'LR Failed',
+    cfr_qualified: 'CFR Qualified',
+    cfr_failed: 'CFR Failed',
+    offer_pending: 'Offer Pending',
+    offer_sent: 'Offer Sent',
+    offer_rejected: 'Offer Rejected',
+    offer_accepted: 'Offer Accepted',
+    'Qualified for SOP': 'Qualified for SOP',
+    'Qualified for SOB': 'Qualified for SOB'
+  };
+  
+  const stageLabel = stageLabels[stage as keyof typeof stageLabels] || stage;
+  const statusLabel = statusLabels[status as keyof typeof statusLabels] || status;
+  
+  return `${stageLabel} - ${statusLabel}`;
+};
+
 export function ApplicantTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantData | null>(null);
@@ -104,6 +150,9 @@ export function ApplicantTable() {
     market: [],
     dateRange: { type: 'application' }
   });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [applicantToDelete, setApplicantToDelete] = useState<ApplicantData | null>(null);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -184,6 +233,57 @@ export function ApplicantTable() {
       setApplicants([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteApplicant = async (applicantId: string) => {
+    try {
+      const { error } = await supabase
+        .from('admission_dashboard')
+        .delete()
+        .eq('id', applicantId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Applicant deleted successfully",
+      });
+
+      fetchApplicants();
+    } catch (error) {
+      console.error('Error deleting applicant:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete applicant",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('admission_dashboard')
+        .delete()
+        .in('id', selectedApplicants);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedApplicants.length} applicants deleted successfully`,
+      });
+
+      setSelectedApplicants([]);
+      fetchApplicants();
+    } catch (error) {
+      console.error('Error deleting applicants:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete applicants",
+        variant: "destructive",
+      });
     }
   };
 
@@ -323,13 +423,23 @@ export function ApplicantTable() {
           </div>
           <div className="flex items-center space-x-3">
             {selectedApplicants.length > 0 && (
-              <Button 
-                variant="outline" 
-                onClick={() => setIsBulkUpdateOpen(true)} 
-                className="h-9"
-              >
-                Bulk Update ({selectedApplicants.length})
-              </Button>
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsBulkUpdateOpen(true)} 
+                  className="h-9"
+                >
+                  Bulk Update ({selectedApplicants.length})
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setBulkDeleteConfirmOpen(true)} 
+                  className="h-9 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete ({selectedApplicants.length})
+                </Button>
+              </>
             )}
             <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="h-9">
               <Upload className="w-4 h-4 mr-2" />
@@ -387,8 +497,7 @@ export function ApplicantTable() {
                   />
                 </th>
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Applicant</th>
-                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage</th>
-                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Status</th>
+                <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage & Status</th>
                 <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Campus</th>
                 <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
               </tr>
@@ -396,7 +505,7 @@ export function ApplicantTable() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center space-y-2">
                       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       <span>Loading applicants...</span>
@@ -405,7 +514,7 @@ export function ApplicantTable() {
                 </tr>
               ) : filteredApplicants.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center space-y-2">
                       <Search className="w-8 h-8 opacity-50" />
                       <span>No applicants found</span>
@@ -444,12 +553,7 @@ export function ApplicantTable() {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-sm text-foreground font-medium capitalize">
-                        {applicant.stage || 'contact'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <StatusBadge status={getStatusDisplay(applicant) as any} />
+                      <StatusBadge status={getCombinedStageStatus(applicant) as any} />
                     </td>
                     <td className="py-4 px-6">
                       <CampusSelector
@@ -483,6 +587,19 @@ export function ApplicantTable() {
                         >
                           <MoreHorizontal className="w-4 h-4" />
                           <span className="sr-only">More options</span>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setApplicantToDelete(applicant);
+                            setDeleteConfirmOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="sr-only">Delete</span>
                         </Button>
                       </div>
                     </td>
@@ -544,6 +661,59 @@ export function ApplicantTable() {
           setSelectedApplicants([]);
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Applicant</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {applicantToDelete?.name || 'this applicant'}? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (applicantToDelete) {
+                  handleDeleteApplicant(applicantToDelete.id);
+                  setDeleteConfirmOpen(false);
+                  setApplicantToDelete(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Applicants</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedApplicants.length} applicant(s)? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                handleBulkDelete();
+                setBulkDeleteConfirmOpen(false);
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

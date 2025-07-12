@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,7 @@ const STAGE_STATUS_OPTIONS = {
     { value: 'rescheduled', label: 'Rescheduled' },
     { value: 'lr_qualified', label: 'LR Qualified' },
     { value: 'lr_failed', label: 'LR Failed' },
-    { value: 'cfr_qualified', label: 'CFR Qualified' },
+    { value: 'offer_pending', label: 'Offer Pending' },
     { value: 'cfr_failed', label: 'CFR Failed' }
   ],
   decision: [
