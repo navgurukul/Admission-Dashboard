@@ -41,8 +41,12 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
   const downloadTemplate = () => {
     const template = [
       'question_text,question_type,options_json,correct_answer_json,explanation,difficulty_level,language,points,tags,time_limit_seconds',
-      '"What is 2+2?",multiple_choice,"[{""id"":""1"",""text"":""3""},{""id"":""2"",""text"":""4""},{""id"":""3"",""text"":""5""}]","2","Basic arithmetic","easy","EN",1,"mathematics",30',
-      '"HTML stands for HyperText Markup Language",true_false,"[{""id"":""true"",""text"":""True""},{""id"":""false"",""text"":""False""}]","true","HTML is indeed HyperText Markup Language","easy","EN",1,"html-basics",45'
+      '"What is 2+2?",multiple_choice,"[{""id"":""1"",""text"":""3""},{""id"":""2"",""text"":""4""},{""id"":""3"",""text"":""5""},{""id"":""4"",""text"":""6""}]","2","Basic arithmetic operation","easy","EN",1,"mathematics,arithmetic",30',
+      '"HTML stands for HyperText Markup Language",true_false,"[{""id"":""true"",""text"":""True""},{""id"":""false"",""text"":""False""}]","true","HTML is indeed HyperText Markup Language","easy","EN",1,"html,web-development",45',
+      '"What is the capital of France?",short_answer,"","Paris","The capital city of France is Paris","medium","EN",2,"geography,capitals",60',
+      '"Explain the concept of Object-Oriented Programming and its main principles.",long_answer,"","Object-Oriented Programming (OOP) is a programming paradigm based on the concept of objects. The main principles are: 1) Encapsulation - bundling data and methods together, 2) Inheritance - creating new classes based on existing ones, 3) Polymorphism - ability to take multiple forms, 4) Abstraction - hiding complex implementation details.","This tests understanding of fundamental programming concepts","hard","EN",5,"programming,oop,computer-science",300',
+      '"Write a function to reverse a string in Python",coding,"","def reverse_string(s):\n    return s[::-1]\n\n# Alternative solution:\n# def reverse_string(s):\n#     return ''''.join(reversed(s))","Tests basic Python string manipulation skills","medium","EN",3,"python,coding,strings",600',
+      '"The ____ of a circle is the distance from its center to any point on its circumference.",fill_in_blank,"","radius","The radius is the distance from center to circumference","easy","EN",1,"mathematics,geometry",45'
     ].join('\n');
 
     const blob = new Blob([template], { type: 'text/csv' });
@@ -83,7 +87,14 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
           try {
             // Validate required fields
             if (!row.question_text || !row.question_type || !row.correct_answer_json) {
-              parseErrors.push(`Row ${index + 1}: Missing required fields`);
+              parseErrors.push(`Row ${index + 1}: Missing required fields (question_text, question_type, correct_answer_json)`);
+              return;
+            }
+
+            // Validate question type
+            const validTypes = ['multiple_choice', 'true_false', 'short_answer', 'long_answer', 'coding', 'fill_in_blank'];
+            if (!validTypes.includes(row.question_type)) {
+              parseErrors.push(`Row ${index + 1}: Invalid question_type. Must be one of: ${validTypes.join(', ')}`);
               return;
             }
 
@@ -92,10 +103,28 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             let correctAnswer = null;
 
             if (row.options_json && row.options_json.trim()) {
-              options = JSON.parse(row.options_json);
+              try {
+                options = JSON.parse(row.options_json);
+              } catch (e) {
+                parseErrors.push(`Row ${index + 1}: Invalid JSON in options_json`);
+                return;
+              }
             }
             
-            correctAnswer = JSON.parse(row.correct_answer_json);
+            try {
+              correctAnswer = JSON.parse(row.correct_answer_json);
+            } catch (e) {
+              // If JSON parsing fails, treat as string
+              correctAnswer = row.correct_answer_json;
+            }
+
+            // Validate difficulty level
+            const validDifficulties = ['easy', 'medium', 'hard'];
+            const difficulty = row.difficulty_level || 'medium';
+            if (!validDifficulties.includes(difficulty)) {
+              parseErrors.push(`Row ${index + 1}: Invalid difficulty_level. Must be one of: ${validDifficulties.join(', ')}`);
+              return;
+            }
 
             const question = {
               question_text: row.question_text,
@@ -103,7 +132,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
               options,
               correct_answer: correctAnswer,
               explanation: row.explanation || '',
-              difficulty_level: row.difficulty_level || 'medium',
+              difficulty_level: difficulty,
               language: row.language || 'EN',
               points: parseInt(row.points || '1') || 1,
               tags: row.tags ? row.tags.split(',').map(t => t.trim()) : [],
@@ -147,6 +176,19 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
     const user = await supabase.auth.getUser();
     const userId = user.data.user?.id;
 
+    if (!userId) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to import questions",
+        variant: "destructive"
+      });
+      setImportStatus('error');
+      return;
+    }
+
+    // Generate a batch ID for this import
+    const batchId = crypto.randomUUID();
+
     for (let i = 0; i < parsedData.length; i++) {
       try {
         const questionData = {
@@ -154,25 +196,48 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
           created_by: userId
         };
 
-        // Check for duplicates by question text
-        const { data: existing } = await supabase
+        // Check for duplicates by question text in main questions table
+        const { data: existingQuestion } = await supabase
           .from('questions')
           .select('id')
           .eq('question_text', questionData.question_text)
           .single();
 
-        if (existing) {
+        if (existingQuestion) {
           results.duplicates++;
         } else {
-          const { error } = await supabase
-            .from('questions')
-            .insert([questionData]);
+          // Insert into imported_questions table first
+          const { error: importError } = await supabase
+            .from('imported_questions')
+            .insert([{
+              ...questionData,
+              import_batch_id: batchId,
+              imported_by: userId,
+              is_processed: false
+            }]);
 
-          if (error) {
+          if (importError) {
             results.errors++;
-            importErrors.push(`Question ${i + 1}: ${error.message}`);
+            importErrors.push(`Question ${i + 1}: Failed to record import - ${importError.message}`);
           } else {
-            results.success++;
+            // Insert into main questions table
+            const { error: questionError } = await supabase
+              .from('questions')
+              .insert([questionData]);
+
+            if (questionError) {
+              results.errors++;
+              importErrors.push(`Question ${i + 1}: Failed to create question - ${questionError.message}`);
+            } else {
+              results.success++;
+              
+              // Mark as processed in imported_questions
+              await supabase
+                .from('imported_questions')
+                .update({ is_processed: true })
+                .eq('import_batch_id', batchId)
+                .eq('question_text', questionData.question_text);
+            }
           }
         }
       } catch (error) {
@@ -223,12 +288,21 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
     reader.readAsText(file);
   };
 
+  const resetImport = () => {
+    setCsvData('');
+    setParsedData([]);
+    setImportStatus('idle');
+    setImportProgress(0);
+    setImportResults({ success: 0, errors: 0, duplicates: 0 });
+    setErrors([]);
+  };
+
   return (
     <div className="space-y-6">
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Import questions in bulk using CSV format. Make sure to follow the template structure for successful import.
+          Import questions in bulk using CSV format. Questions will be added to both the main Question Library and tracked in the import history. Make sure to follow the template structure for successful import.
         </AlertDescription>
       </Alert>
 
@@ -251,6 +325,12 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             Upload CSV File
           </Button>
         </div>
+
+        {importStatus !== 'idle' && (
+          <Button variant="outline" onClick={resetImport}>
+            Reset
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -271,15 +351,23 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
               onClick={parseCsvData}
               disabled={!csvData.trim() || importStatus === 'parsing'}
             >
-              Parse CSV Data
+              {importStatus === 'parsing' ? 'Parsing...' : 'Parse CSV Data'}
             </Button>
             
             {importStatus === 'parsed' && (
-              <Button onClick={importQuestions}>
+              <Button onClick={importQuestions} disabled={importStatus === 'importing'}>
                 Import {parsedData.length} Questions
               </Button>
             )}
           </div>
+
+          {importStatus === 'parsed' && (
+            <div className="mt-4">
+              <Badge variant="secondary">
+                {parsedData.length} questions ready for import
+              </Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -337,7 +425,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             <CardTitle className="text-red-600">Import Errors</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-60 overflow-y-auto">
               {errors.map((error, index) => (
                 <div key={index} className="text-sm text-red-600 bg-red-50 p-2 rounded">
                   {error}

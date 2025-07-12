@@ -264,6 +264,66 @@ export type Database = {
         }
         Relationships: []
       }
+      imported_questions: {
+        Row: {
+          correct_answer: Json
+          created_at: string
+          difficulty_level: Database["public"]["Enums"]["difficulty_level"]
+          explanation: string | null
+          id: string
+          import_batch_id: string | null
+          imported_at: string
+          imported_by: string | null
+          is_processed: boolean
+          language: string
+          options: Json | null
+          points: number
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          tags: string[] | null
+          time_limit_seconds: number | null
+          updated_at: string
+        }
+        Insert: {
+          correct_answer: Json
+          created_at?: string
+          difficulty_level?: Database["public"]["Enums"]["difficulty_level"]
+          explanation?: string | null
+          id?: string
+          import_batch_id?: string | null
+          imported_at?: string
+          imported_by?: string | null
+          is_processed?: boolean
+          language?: string
+          options?: Json | null
+          points?: number
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          tags?: string[] | null
+          time_limit_seconds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          correct_answer?: Json
+          created_at?: string
+          difficulty_level?: Database["public"]["Enums"]["difficulty_level"]
+          explanation?: string | null
+          id?: string
+          import_batch_id?: string | null
+          imported_at?: string
+          imported_by?: string | null
+          is_processed?: boolean
+          language?: string
+          options?: Json | null
+          points?: number
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          tags?: string[] | null
+          time_limit_seconds?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       offer_audit_log: {
         Row: {
           action_type: string
