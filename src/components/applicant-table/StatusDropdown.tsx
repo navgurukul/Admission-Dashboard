@@ -91,8 +91,31 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     }
   };
 
-  const currentStatus = applicant.status || "";
+  // Map database status values to display values
+  const normalizeStatus = (status: string) => {
+    if (!status) return "";
+    
+    // Handle common database status formats
+    const statusMap: { [key: string]: string } = {
+      "offer_pending": "Offer Pending",
+      "offer_sent": "Offer Sent",
+      "offer_accepted": "Offer Accepted",
+      "offer_declined": "Offer Declined",
+      "lr_qualified": "Learner Round Pass",
+      "lr_failed": "Learner Round Fail",
+      "cfr_qualified": "Cultural Fit Interview Pass",
+      "cfr_failed": "Cultural Fit Interview Fail",
+      "pass": "Screening Test Pass",
+      "fail": "Screening Test Fail",
+      "pending": "Pending"
+    };
+    
+    return statusMap[status.toLowerCase()] || status;
+  };
+
+  const currentStatus = normalizeStatus(applicant.status || "");
   console.log('Current status:', currentStatus);
+  console.log('Raw applicant status:', applicant.status);
   console.log('Current applicant:', applicant);
 
   return (
