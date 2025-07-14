@@ -5,7 +5,8 @@ import {
   Calendar,
   LogOut,
   Mail,
-  FileText
+  FileText,
+  Users
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
