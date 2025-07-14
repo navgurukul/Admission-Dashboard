@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,12 +55,14 @@ const STAGE_DEFAULT_STATUS = {
 const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const { toast } = useToast();
   
+  const currentStage = applicant.stage || "sourcing";
+  
   const availableStatuses = useMemo(() => {
-    const currentStage = applicant.stage || "sourcing";
     console.log('Current stage:', currentStage);
-    console.log('Available statuses:', STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP]);
-    return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || STAGE_STATUS_MAP.sourcing;
-  }, [applicant.stage]);
+    const stageStatuses = STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || STAGE_STATUS_MAP.sourcing;
+    console.log('Available statuses for stage:', stageStatuses);
+    return stageStatuses;
+  }, [currentStage]);
 
   const handleStatusChange = async (newStatus: string) => {
     console.log('Changing status to:', newStatus);
@@ -150,21 +151,36 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     return status;
   };
 
-  // Get the current stage and provide default if no status
-  const currentStage = applicant.stage || "sourcing";
   const rawStatus = applicant.status;
   const normalizedStatus = normalizeStatus(rawStatus || "");
   
-  // If no status exists, use the default for the current stage
-  const displayStatus = normalizedStatus || STAGE_DEFAULT_STATUS[currentStage as keyof typeof STAGE_DEFAULT_STATUS] || "";
+  // Check if the current status belongs to the current stage
+  const statusBelongsToStage = availableStatuses.includes(normalizedStatus);
+  
+  // If status doesn't belong to current stage, use stage default or show the mismatched status
+  let displayStatus = normalizedStatus;
+  if (!statusBelongsToStage && normalizedStatus) {
+    // Keep the current status even if it doesn't match the stage, but add it to available options
+    console.log('Status does not belong to current stage, keeping current status:', normalizedStatus);
+  } else if (!normalizedStatus) {
+    // If no status, use stage default
+    displayStatus = STAGE_DEFAULT_STATUS[currentStage as keyof typeof STAGE_DEFAULT_STATUS] || "";
+  }
+  
+  // Create final list of available statuses including current status if it's from another stage
+  const finalAvailableStatuses = [...availableStatuses];
+  if (normalizedStatus && !availableStatuses.includes(normalizedStatus)) {
+    finalAvailableStatuses.unshift(normalizedStatus + " (Current)");
+  }
   
   console.log('=== STATUS DROPDOWN DEBUG ===');
   console.log('Applicant ID:', applicant.id);
   console.log('Current stage:', currentStage);
   console.log('Raw status from DB:', rawStatus);
   console.log('Normalized status:', normalizedStatus);
+  console.log('Status belongs to stage:', statusBelongsToStage);
   console.log('Final display status:', displayStatus);
-  console.log('Available statuses for stage:', availableStatuses);
+  console.log('Final available statuses:', finalAvailableStatuses);
   console.log('===============================');
 
   return (
@@ -173,15 +189,19 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
         <SelectValue placeholder="Select status" />
       </SelectTrigger>
       <SelectContent className="bg-white border border-gray-300 shadow-lg z-[9999] max-h-[200px] overflow-y-auto">
-        {availableStatuses.map((status) => (
-          <SelectItem 
-            key={status} 
-            value={status} 
-            className="text-xs cursor-pointer hover:bg-gray-100 focus:bg-gray-100"
-          >
-            {status}
-          </SelectItem>
-        ))}
+        {finalAvailableStatuses.map((status) => {
+          const cleanStatus = status.replace(" (Current)", "");
+          const isCurrent = status.includes("(Current)");
+          return (
+            <SelectItem 
+              key={status} 
+              value={cleanStatus} 
+              className={`text-xs cursor-pointer hover:bg-gray-100 focus:bg-gray-100 ${isCurrent ? 'bg-blue-50 text-blue-700' : ''}`}
+            >
+              {status}
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
