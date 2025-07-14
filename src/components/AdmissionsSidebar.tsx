@@ -1,7 +1,6 @@
 
 import { 
   LayoutDashboard, 
-  MessageSquare, 
   Calendar,
   LogOut,
   Mail,
@@ -14,9 +13,9 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Admin", href: "/admin", icon: Users }, // Added Admin tab
-  { name: "Partner", href: "/partners", icon: Users },
-  { name: "Interviews", href: "/interviews", icon: MessageSquare },
+  { name: "Admin", href: "/admin", icon: Users }, // From master
+  { name: "Partner", href: "/partners", icon: Users }, // From master
+  { name: "Interviews", href: "/interviews", icon: MessageSquare }, // From master
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Question Repository", href: "/questions", icon: FileText },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
