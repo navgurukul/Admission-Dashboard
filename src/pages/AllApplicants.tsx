@@ -1,5 +1,6 @@
+
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { ApplicantTable } from "@/components/ApplicantTable";
+import ApplicantTable from "@/components/ApplicantTable";
 
 const AllApplicants = () => {
   return (

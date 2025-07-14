@@ -1,5 +1,6 @@
+
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Upload, Plus, Phone, Users, FileText, Search } from "lucide-react";
+import { ClipboardCheck, UserPlus, MapPin, Search, Clock, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -19,7 +20,7 @@ type ApplicantData = {
   qualifying_school: string | null;
   lr_status: string | null;
   lr_comments: string | null;
-  cfr_status: string | null;
+  cfr_status: string | null;  
   cfr_comments: string | null;
   offer_letter_status: string | null;
   allotted_school: string | null;
@@ -33,6 +34,15 @@ type ApplicantData = {
   current_work: string | null;
   set_name: string | null;
   exam_centre: string | null;
+  stage: string | null;
+  status: string | null;
+  interview_mode: string | null;
+  exam_mode: string | null;
+  partner: string | null;
+  district: string | null;
+  market: string | null;
+  interview_date: string | null;
+  last_updated: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -43,26 +53,10 @@ const Sourcing = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // Filter for Sourcing & Outreach stage
+  // Filter for Sourcing & Outreach stage using new stage field
   const getSourcingApplicants = (data: ApplicantData[]) => {
     return data.filter(applicant => {
-      // Not in Final Decisions (haven't joined)
-      if (applicant.joining_status === 'Joined' || applicant.joining_status === 'joined') {
-        return false;
-      }
-      
-      // Not in Interview Rounds (no lr_status or cfr_status)
-      if (applicant.lr_status || applicant.cfr_status) {
-        return false;
-      }
-      
-      // Not in Screening Tests (no final_marks or qualifying_school)
-      if (applicant.final_marks !== null || applicant.qualifying_school) {
-        return false;
-      }
-      
-      // This is Sourcing & Outreach stage
-      return true;
+      return applicant.stage === 'contact' || !applicant.stage;
     });
   };
 
@@ -135,9 +129,10 @@ const Sourcing = () => {
      applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
   );
 
-  const totalApplicants = filteredApplicants.length;
-  const contacted = filteredApplicants.filter(a => a.mobile_no && a.name).length;
-  const detailsCompleted = filteredApplicants.filter(a => a.name && a.city && a.mobile_no).length;
+  const totalContacts = filteredApplicants.length;
+  const reachedOut = filteredApplicants.filter(a => a.whatsapp_number).length;
+  const pendingFollowUps = filteredApplicants.filter(a => !a.date_of_testing).length;
+  const convertedToScreening = filteredApplicants.filter(a => a.final_marks !== null).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,43 +145,55 @@ const Sourcing = () => {
               Sourcing & Outreach
             </h1>
             <p className="text-muted-foreground">
-              Manage initial applicant outreach and data collection
+              Manage initial contact and outreach activities
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">New Leads</p>
-                  <p className="text-2xl font-bold text-foreground">{totalApplicants}</p>
-                </div>
-                <div className="w-12 h-12 bg-status-pending/10 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6 text-status-pending" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Contacted</p>
-                  <p className="text-2xl font-bold text-foreground">{contacted}</p>
-                </div>
-                <div className="w-12 h-12 bg-status-active/10 rounded-lg flex items-center justify-center">
-                  <Phone className="w-6 h-6 text-status-active" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Details Completed</p>
-                  <p className="text-2xl font-bold text-foreground">{detailsCompleted}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Total Contacts</p>
+                  <p className="text-2xl font-bold text-foreground">{totalContacts}</p>
                 </div>
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-primary" />
+                  <UserPlus className="w-6 h-6 text-primary" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Reached Out</p>
+                  <p className="text-2xl font-bold text-foreground">{reachedOut}</p>
+                </div>
+                <div className="w-12 h-12 bg-status-active/10 rounded-lg flex items-center justify-center">
+                  <ClipboardCheck className="w-6 h-6 text-status-active" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Pending Follow-ups</p>
+                  <p className="text-2xl font-bold text-foreground">{pendingFollowUps}</p>
+                </div>
+                <div className="w-12 h-12 bg-status-pending/10 rounded-lg flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-status-pending" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Converted to Screening</p>
+                  <p className="text-2xl font-bold text-foreground">{convertedToScreening}</p>
+                </div>
+                <div className="w-12 h-12 bg-status-prospect/10 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-status-prospect" />
                 </div>
               </div>
             </div>
@@ -195,17 +202,10 @@ const Sourcing = () => {
           <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
             <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-foreground">Sourcing Pipeline</h2>
-                <div className="flex space-x-3">
-                  <Button variant="outline">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload CSV
-                  </Button>
-                  <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Applicant
-                  </Button>
-                </div>
+                <h2 className="text-xl font-semibold text-foreground">Contact Pipeline</h2>
+                <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
+                  Add New Contact
+                </Button>
               </div>
 
               {/* Search Bar */}
@@ -225,9 +225,9 @@ const Sourcing = () => {
                 <thead className="bg-muted/30 sticky top-0">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Contact</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Contact Info</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Location</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Gender</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Actions</th>
                   </tr>
                 </thead>
@@ -245,7 +245,7 @@ const Sourcing = () => {
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-muted-foreground">
                         <div className="flex flex-col items-center space-y-2">
-                          <Users className="w-8 h-8 opacity-50" />
+                          <UserPlus className="w-8 h-8 opacity-50" />
                           <span>{searchQuery ? 'No applicants found matching your search' : 'No applicants in sourcing stage'}</span>
                         </div>
                       </td>
@@ -267,18 +267,25 @@ const Sourcing = () => {
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <Phone className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm text-foreground">{applicant.mobile_no}</span>
+                          <div className="text-sm text-muted-foreground">
+                            <p>{applicant.whatsapp_number ? `WhatsApp: ${applicant.whatsapp_number}` : 'No WhatsApp'}</p>
+                            <p>{applicant.mobile_no ? `Mobile: ${applicant.mobile_no}` : 'No Mobile'}</p>
                           </div>
                         </td>
-                        <td className="p-4 text-sm text-foreground">
-                          {applicant.city ? `${applicant.city}${applicant.block ? `, ${applicant.block}` : ''}` : 'Not specified'}
+                        <td className="p-4">
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-foreground">
+                              {applicant.city ? `${applicant.city}${applicant.block ? `, ${applicant.block}` : ''}` : 'Not specified'}
+                            </span>
+                          </div>
                         </td>
-                        <td className="p-4 text-sm text-foreground">{applicant.gender || 'Not specified'}</td>
+                        <td className="p-4">
+                          <StatusBadge status="pending" />
+                        </td>
                         <td className="p-4">
                           <Button variant="outline" size="sm">
-                            Contact
+                            View Details
                           </Button>
                         </td>
                       </tr>

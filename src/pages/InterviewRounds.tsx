@@ -35,6 +35,15 @@ type ApplicantData = {
   exam_centre: string | null;
   created_at: string;
   updated_at: string;
+  stage: string | null;
+  status: string | null;
+  interview_mode: string | null;
+  exam_mode: string | null;
+  partner: string | null;
+  district: string | null;
+  market: string | null;
+  interview_date: string | null;
+  last_updated: string | null;
 };
 
 const InterviewRounds = () => {
@@ -43,20 +52,10 @@ const InterviewRounds = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  // Filter for Interview Rounds stage
+  // Filter for Interview Rounds stage using new stage field
   const getInterviewApplicants = (data: ApplicantData[]) => {
     return data.filter(applicant => {
-      // Not in Final Decisions (haven't joined)
-      if (applicant.joining_status === 'Joined' || applicant.joining_status === 'joined') {
-        return false;
-      }
-      
-      // In Interview Rounds (has lr_status or cfr_status)
-      if (applicant.lr_status || applicant.cfr_status) {
-        return true;
-      }
-      
-      return false;
+      return applicant.stage === 'interviews';
     });
   };
 
@@ -135,6 +134,19 @@ const InterviewRounds = () => {
   const interviewFailures = filteredApplicants.filter(a => 
     a.lr_status?.toLowerCase().includes('fail') || a.cfr_status?.toLowerCase().includes('fail')
   ).length;
+
+  const getStatusDisplay = (status: string | null): string => {
+    switch (status) {
+      case 'booked': return 'Booked';
+      case 'pending': return 'Pending';
+      case 'rescheduled': return 'Rescheduled';
+      case 'lr_qualified': return 'LR Qualified';
+      case 'lr_failed': return 'LR Failed';
+      case 'cfr_qualified': return 'CFR Qualified';
+      case 'cfr_failed': return 'CFR Failed';
+      default: return 'Pending';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -227,9 +239,9 @@ const InterviewRounds = () => {
                 <thead className="bg-muted/30 sticky top-0">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Status</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Learning Round</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Cultural Fit Round</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">LR Comments</th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">Actions</th>
                   </tr>
                 </thead>
@@ -269,6 +281,11 @@ const InterviewRounds = () => {
                           </div>
                         </td>
                         <td className="p-4">
+                          <span className="text-sm text-foreground font-medium">
+                            {getStatusDisplay(applicant.status)}
+                          </span>
+                        </td>
+                        <td className="p-4">
                           <span className="text-sm text-foreground">
                             {applicant.lr_status || 'Pending'}
                           </span>
@@ -276,11 +293,6 @@ const InterviewRounds = () => {
                         <td className="p-4">
                           <span className="text-sm text-foreground">
                             {applicant.cfr_status || 'Pending'}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-sm text-muted-foreground">
-                            {applicant.lr_comments || 'No comments'}
                           </span>
                         </td>
                         <td className="p-4">

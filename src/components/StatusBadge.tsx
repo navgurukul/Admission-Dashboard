@@ -1,133 +1,94 @@
+
 import { cn } from "@/lib/utils";
 
 type StatusType = 
-  | 'enrollment-key-generated'
-  | 'basic-details-entered' 
-  | 'unreachable'
-  | 'became-disinterested'
-  | 'screening-test-pass'
-  | 'screening-test-fail'
-  | 'created-without-exam'
-  | 'learner-round-pass'
-  | 'learner-round-fail'
-  | 'cultural-fit-pass'
-  | 'cultural-fit-fail'
-  | 'no-show'
-  | 'offer-pending'
-  | 'offer-sent'
-  | 'offer-accepted'
-  | 'offer-declined'
-  | 'waitlisted'
-  | 'onboarded'
-  | 'selected-not-joined';
+  | "pending" 
+  | "active" 
+  | "inactive" 
+  | "qualified" 
+  | "disqualified"
+  | "pass"
+  | "fail"
+  | "booked"
+  | "rescheduled"
+  | "lr_qualified"
+  | "lr_failed"
+  | "cfr_qualified"
+  | "cfr_failed"
+  | "offer_pending"
+  | "offer_sent"
+  | "offer_rejected"
+  | "offer_accepted"
+  | "Qualified for SOP"
+  | "Qualified for SOB";
 
 interface StatusBadgeProps {
   status: StatusType;
-  className?: string;
 }
 
-const statusConfig: Record<StatusType, { label: string; className: string }> = {
-  'enrollment-key-generated': { 
-    label: 'Enrollment Key Generated', 
-    className: 'bg-status-prospect/10 text-status-prospect border-status-prospect/20' 
-  },
-  'basic-details-entered': { 
-    label: 'Basic Details Entered', 
-    className: 'bg-status-pending/10 text-status-pending border-status-pending/20' 
-  },
-  'unreachable': { 
-    label: 'Unreachable', 
-    className: 'bg-status-inactive/10 text-status-inactive border-status-inactive/20' 
-  },
-  'became-disinterested': { 
-    label: 'Became Disinterested', 
-    className: 'bg-status-fail/10 text-status-fail border-status-fail/20' 
-  },
-  'screening-test-pass': { 
-    label: 'Screening Test Pass', 
-    className: 'bg-status-active/10 text-status-active border-status-active/20' 
-  },
-  'screening-test-fail': { 
-    label: 'Screening Test Fail', 
-    className: 'bg-status-fail/10 text-status-fail border-status-fail/20' 
-  },
-  'created-without-exam': { 
-    label: 'Created Without Exam', 
-    className: 'bg-status-pending/10 text-status-pending border-status-pending/20' 
-  },
-  'learner-round-pass': { 
-    label: 'Learner Round Pass', 
-    className: 'bg-status-active/10 text-status-active border-status-active/20' 
-  },
-  'learner-round-fail': { 
-    label: 'Learner Round Fail', 
-    className: 'bg-status-fail/10 text-status-fail border-status-fail/20' 
-  },
-  'cultural-fit-pass': { 
-    label: 'Cultural Fit Pass', 
-    className: 'bg-status-active/10 text-status-active border-status-active/20' 
-  },
-  'cultural-fit-fail': { 
-    label: 'Cultural Fit Fail', 
-    className: 'bg-status-fail/10 text-status-fail border-status-fail/20' 
-  },
-  'no-show': { 
-    label: 'No Show', 
-    className: 'bg-status-inactive/10 text-status-inactive border-status-inactive/20' 
-  },
-  'offer-pending': { 
-    label: 'Offer Pending', 
-    className: 'bg-status-pending/10 text-status-pending border-status-pending/20' 
-  },
-  'offer-sent': { 
-    label: 'Offer Sent', 
-    className: 'bg-status-prospect/10 text-status-prospect border-status-prospect/20' 
-  },
-  'offer-accepted': { 
-    label: 'Offer Accepted', 
-    className: 'bg-status-active/10 text-status-active border-status-active/20' 
-  },
-  'offer-declined': { 
-    label: 'Offer Declined', 
-    className: 'bg-status-fail/10 text-status-fail border-status-fail/20' 
-  },
-  'waitlisted': { 
-    label: 'Waitlisted', 
-    className: 'bg-status-pending/10 text-status-pending border-status-pending/20' 
-  },
-  'onboarded': { 
-    label: 'Onboarded', 
-    className: 'bg-status-active/10 text-status-active border-status-active/20' 
-  },
-  'selected-not-joined': { 
-    label: 'Selected but not joined', 
-    className: 'bg-status-inactive/10 text-status-inactive border-status-inactive/20' 
-  },
-};
+export function StatusBadge({ status }: StatusBadgeProps) {
+  const getStatusStyle = (status: StatusType) => {
+    switch (status) {
+      case "pass":
+      case "qualified":
+      case "active":
+      case "lr_qualified":
+      case "offer_accepted":
+      case "Qualified for SOP":
+      case "Qualified for SOB":
+        return "bg-green-500/10 text-green-700 border-green-500/20";
+      
+      case "fail":
+      case "disqualified":
+      case "inactive":
+      case "lr_failed":
+      case "cfr_failed":
+      case "offer_rejected":
+        return "bg-red-500/10 text-red-700 border-red-500/20";
+      
+      case "pending":
+      case "booked":
+      case "rescheduled":
+      case "offer_pending":
+      case "offer_sent":
+        return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
+      
+      default:
+        return "bg-gray-500/10 text-gray-700 border-gray-500/20";
+    }
+  };
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status];
-  
-  // Handle undefined or invalid status values
-  if (!config) {
-    return (
-      <span className={cn(
-        "inline-flex items-center px-2.5 py-1 text-xs font-medium border rounded-full",
-        "bg-status-pending/10 text-status-pending border-status-pending/20",
-        className
-      )}>
-        {status || 'Unknown'}
-      </span>
-    );
-  }
-  
+  const getStatusText = (status: StatusType) => {
+    switch (status) {
+      case "lr_qualified":
+        return "LR Qualified";
+      case "lr_failed":
+        return "LR Failed";
+      case "cfr_qualified":
+        return "CFR Qualified";
+      case "cfr_failed":
+        return "CFR Failed";
+      case "offer_pending":
+        return "Offer Pending";
+      case "offer_sent":
+        return "Offer Sent";
+      case "offer_rejected":
+        return "Offer Rejected";
+      case "offer_accepted":
+        return "Offer Accepted";
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
   return (
-    <span className={cn(
-      "inline-flex items-center px-2.5 py-1 text-xs font-medium border rounded-full",
-      config.className,
-      className
-    )}>
-      {config.label}
+    <span
+      className={cn(
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
+        getStatusStyle(status)
+      )}
+    >
+      {getStatusText(status)}
     </span>
   );
 }

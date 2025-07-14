@@ -1,6 +1,7 @@
+
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { DashboardStats } from "@/components/DashboardStats";
-import { ApplicantTable } from "@/components/ApplicantTable";
+import ApplicantTable from "@/components/ApplicantTable";
 
 const Index = () => {
   return (

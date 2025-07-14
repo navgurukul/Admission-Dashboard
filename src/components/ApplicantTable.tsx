@@ -1,377 +1,467 @@
-import { useState, useEffect } from "react";
-import { Search, Filter, Plus, MoreHorizontal, Upload, Download } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Filter, Search, Edit, Trash2, Mail, MoreHorizontal } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
-import { ApplicantModal } from "./ApplicantModal";
 import { AddApplicantModal } from "./AddApplicantModal";
-import CSVImportModal from "./CSVImportModal";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { AdvancedFilterModal } from "./AdvancedFilterModal";
+import { BulkUpdateModal } from "./BulkUpdateModal";
+import { ApplicantModal } from "./ApplicantModal";
+import { InlineEditModal } from "./InlineEditModal";
+import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+import { ApplicantLogsModal } from "./ApplicantLogsModal";
+import { useToast } from "@/hooks/use-toast";
 
-// Define the type for our applicant data
-type ApplicantData = {
-  id: string;
-  mobile_no: string;
-  unique_number: string | null;
-  name: string | null;
-  city: string | null;
-  block: string | null;
-  date_of_testing: string | null;
-  final_marks: number | null;
-  qualifying_school: string | null;
-  lr_status: string | null;
-  lr_comments: string | null;
-  cfr_status: string | null;
-  cfr_comments: string | null;
-  offer_letter_status: string | null;
-  allotted_school: string | null;
-  joining_status: string | null;
-  final_notes: string | null;
-  triptis_notes: string | null;
-  whatsapp_number: string | null;
-  caste: string | null;
-  gender: string | null;
-  qualification: string | null;
-  current_work: string | null;
-  set_name: string | null;
-  exam_centre: string | null;
-  created_at: string;
-  updated_at: string;
-};
+type StatusType = 
+  | "pending" 
+  | "active" 
+  | "inactive" 
+  | "qualified" 
+  | "disqualified"
+  | "pass"
+  | "fail"
+  | "booked"
+  | "rescheduled"
+  | "lr_qualified"
+  | "lr_failed"
+  | "cfr_qualified"
+  | "cfr_failed"
+  | "offer_pending"
+  | "offer_sent"
+  | "offer_rejected"
+  | "offer_accepted"
+  | "Qualified for SOP"
+  | "Qualified for SOB";
 
-// Function to map current stage based on applicant data
-const getCurrentStage = (applicant: ApplicantData): string => {
-  // Check if onboarded (Final Decisions)
-  if (applicant.joining_status === 'Joined' || applicant.joining_status === 'joined') {
-    return 'Final Decisions';
-  }
-  
-  // Check if in interview stage (Interview Rounds)
-  if (applicant.lr_status || applicant.cfr_status) {
-    return 'Interview Rounds';
-  }
-  
-  // Check if screening test completed (Screening Tests)
-  if (applicant.final_marks !== null || applicant.qualifying_school) {
-    return 'Screening Tests';
-  }
-  
-  // Default to initial stage (Sourcing & Outreach)
-  return 'Sourcing & Outreach';
-};
+interface FilterState {
+  stage: string;
+  status: string;
+  examMode: string;
+  interviewMode: string;
+  partner: string[];
+  district: string[];
+  market: string[];
+  dateRange: {
+    type: 'application' | 'lastUpdate' | 'interview';
+    from?: Date;
+    to?: Date;
+  };
+}
 
-export function ApplicantTable() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedApplicant, setSelectedApplicant] = useState<ApplicantData | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [applicants, setApplicants] = useState<ApplicantData[]>([]);
-  const [loading, setLoading] = useState(true);
+const ApplicantTable = () => {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showBulkUpdate, setShowBulkUpdate] = useState(false);
+  const [applicantToView, setApplicantToView] = useState<any | null>(null);
+  const [applicantToEditInline, setApplicantToEditInline] = useState<any | null>(null);
+  const [applicantForComments, setApplicantForComments] = useState<any | null>(null);
+  const [applicantForLogs, setApplicantForLogs] = useState<any | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [filters, setFilters] = useState<FilterState>({
+    stage: 'all',
+    status: 'all',
+    examMode: 'all',
+    interviewMode: 'all',
+    partner: [],
+    district: [],
+    market: [],
+    dateRange: { type: 'application' }
+  });
   const { toast } = useToast();
 
-  // Fetch applicants from Supabase and set up real-time subscription
-  useEffect(() => {
-    fetchApplicants();
-
-    // Set up real-time subscription for automatic updates
-    const channel = supabase
-      .channel('admission_dashboard_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'admission_dashboard'
-        },
-        (payload) => {
-          console.log('Real-time update received:', payload);
-          // Refetch data when changes occur
-          fetchApplicants();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  const fetchApplicants = async () => {
-    try {
-      setLoading(true);
-      
-      // Check authentication state
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('No active session, skipping data fetch');
-        setApplicants([]);
-        return;
-      }
-
-      console.log('Fetching applicants with authenticated session');
+  const { data: applicants, isLoading, refetch } = useQuery({
+    queryKey: ["applicants"],
+    queryFn: async () => {
       const { data, error } = await supabase
-        .from('admission_dashboard')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("admission_dashboard")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+        console.error("Error fetching applicants:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch applicants",
+          variant: "destructive",
+        });
       }
+      return data;
+    },
+  });
 
-      console.log(`Successfully fetched ${data?.length || 0} applicants`);
-      setApplicants(data || []);
-    } catch (error) {
-      console.error('Error fetching applicants:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load applicants data",
-        variant: "destructive",
-      });
-      setApplicants([]);
-    } finally {
-      setLoading(false);
+  const filteredApplicants = useMemo(() => {
+    if (!applicants) return [];
+
+    return applicants.filter((applicant) => {
+      const searchRegex = new RegExp(searchTerm, "i");
+      return (
+        searchRegex.test(applicant.name || "") ||
+        searchRegex.test(applicant.mobile_no) ||
+        searchRegex.test(applicant.unique_number || "")
+      );
+    });
+  }, [applicants, searchTerm]);
+
+  const handleCheckboxChange = (id: string) => {
+    setSelectedRows((prevSelected) =>
+      prevSelected.includes(id)
+        ? prevSelected.filter((rowId) => rowId !== id)
+        : [...prevSelected, id]
+    );
+  };
+
+  const handleSelectAllRows = () => {
+    if (filteredApplicants?.length === selectedRows.length) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(filteredApplicants?.map((applicant) => applicant.id) || []);
     }
   };
 
-  const filteredApplicants = applicants.filter(applicant =>
-    (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
-  );
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select applicants to delete",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleViewApplicant = (applicant: ApplicantData) => {
-    setSelectedApplicant(applicant);
-    setIsModalOpen(true);
+    try {
+      const { error } = await supabase
+        .from("admission_dashboard")
+        .delete()
+        .in("id", selectedRows);
+
+      if (error) {
+        console.error("Error deleting applicants:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete applicants",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Applicants Deleted",
+          description: "Successfully deleted selected applicants",
+        });
+        setSelectedRows([]);
+        refetch();
+      }
+    } catch (error) {
+      console.error("Error deleting applicants:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete applicants",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleExportCSV = async () => {
+  const handleSendOfferLetters = async () => {
+    if (selectedRows.length === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select applicants to send offer letters to",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
-        .from('admission_dashboard')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke('send-offer-letters', {
+        body: {
+          applicantIds: selectedRows,
+          templateIds: {
+            offer_letter: 'default-offer-letter-id',
+            consent_en: 'default-consent-en-id',
+            consent_hi: 'default-consent-hi-id',
+            checklist_en: 'default-checklist-en-id',
+            checklist_hi: 'default-checklist-hi-id'
+          }
+        }
+      });
 
       if (error) throw error;
 
-      const headers = [
-        'unique_number',
-        'set_name', 
-        'exam_centre',
-        'date_of_testing',
-        'name',
-        'mobile_no',
-        'whatsapp_number',
-        'block',
-        'city',
-        'caste',
-        'gender',
-        'qualification',
-        'current_work',
-        'final_marks',
-        'qualifying_school',
-        'lr_status',
-        'lr_comments',
-        'cfr_status',
-        'cfr_comments',
-        'offer_letter_status',
-        'allotted_school',
-        'joining_status',
-        'final_notes',
-        'triptis_notes'
-      ];
-
-      const csvContent = headers.join(',') + '\n' + 
-        data.map(row => headers.map(header => {
-          const value = row[header as keyof typeof row];
-          return value ? `"${value}"` : '';
-        }).join(',')).join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `admission_dashboard_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-
       toast({
-        title: "Success",
-        description: "CSV file downloaded successfully",
+        title: "Offer Letters Sent",
+        description: `Successfully sent offer letters to ${selectedRows.length} applicants`
       });
+
+      setSelectedRows([]);
+      refetch();
     } catch (error) {
-      console.error('Error exporting CSV:', error);
+      console.error('Error sending offer letters:', error);
       toast({
         title: "Error",
-        description: "Failed to export CSV file",
-        variant: "destructive",
+        description: "Failed to send offer letters",
+        variant: "destructive"
       });
     }
   };
 
+  const handleApplyFilters = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
   return (
-    <div className="bg-card rounded-xl shadow-soft border border-border">
-      {/* Header */}
-      <div className="p-6 border-b border-border">
-        <div className="flex items-center justify-between mb-6">
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">All Applicants</h2>
-            <p className="text-muted-foreground text-sm mt-1">Manage and track applicant progress</p>
+            <CardTitle>Applicants</CardTitle>
+            <CardDescription>
+              {filteredApplicants?.length || 0} applicants found
+            </CardDescription>
           </div>
-          <div className="flex items-center space-x-3">
-            <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="h-9">
-              <Upload className="w-4 h-4 mr-2" />
-              Import CSV
-            </Button>
-            <Button variant="outline" onClick={handleExportCSV} className="h-9">
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
-            <Button 
-              className="bg-gradient-primary hover:bg-primary/90 text-white h-9"
-              onClick={() => setIsAddModalOpen(true)}
+          <div className="flex items-center gap-2">
+            {selectedRows.length > 0 && (
+              <div className="flex items-center gap-2 mr-4">
+                <Badge variant="secondary">{selectedRows.length} selected</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBulkUpdate(true)}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Bulk Update
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSendOfferLetters}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Offer Letters
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+            )}
+            <Button
+              onClick={() => setShowAdvancedFilters(true)}
+              variant="outline"
+              size="sm"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+            </Button>
+            <Button onClick={() => setShowAddModal(true)} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
               Add Applicant
             </Button>
           </div>
         </div>
+      </CardHeader>
 
-        {/* Search and Filter */}
-        <div className="flex items-center space-x-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+      <CardContent className="flex-1 flex flex-col">
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, phone, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-9"
+              type="search"
+              placeholder="Search applicants..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="sm" className="h-9">
-            <Filter className="w-4 h-4 mr-2" />
-            Filter
-          </Button>
         </div>
-      </div>
 
-      {/* Clean Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border/50">
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Applicant</th>
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Stage</th>
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Status</th>
-              <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Location</th>
-              <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <span>Loading applicants...</span>
-                  </div>
-                </td>
-              </tr>
-            ) : filteredApplicants.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-12 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center space-y-2">
-                    <Search className="w-8 h-8 opacity-50" />
-                    <span>No applicants found</span>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredApplicants.map((applicant, index) => (
-                <tr 
-                  key={applicant.id} 
-                  className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
-                >
-                  <td className="py-4 px-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary text-sm font-medium">
-                          {applicant.name ? applicant.name.split(' ').map(n => n[0]).join('') : '?'}
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground truncate">
-                          {applicant.name || 'No Name'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {applicant.mobile_no}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm text-foreground font-medium">
-                      {getCurrentStage(applicant)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <StatusBadge status={(applicant.offer_letter_status || applicant.joining_status || 'pending') as any} />
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm text-foreground">
-                      {applicant.city ? `${applicant.city}${applicant.block ? `, ${applicant.block}` : ''}` : 'Not specified'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-muted"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewApplicant(applicant);
-                      }}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                      <span className="sr-only">More options</span>
-                    </Button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+        <div className="flex-1 border rounded-md overflow-hidden">
+          <div className="h-full overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+                <TableRow>
+                  <TableHead className="w-[50px] font-bold">
+                    <Checkbox
+                      checked={
+                        filteredApplicants?.length > 0 &&
+                        selectedRows.length === filteredApplicants?.length
+                      }
+                      onCheckedChange={handleSelectAllRows}
+                      aria-label="Select all applicants"
+                    />
+                  </TableHead>
+                  <TableHead className="w-[200px] font-bold">Name</TableHead>
+                  <TableHead className="w-[150px] font-bold">Mobile No</TableHead>
+                  <TableHead className="w-[120px] font-bold">Campus</TableHead>
+                  <TableHead className="w-[120px] font-bold">Stage</TableHead>
+                  <TableHead className="w-[120px] font-bold">Status</TableHead>
+                  <TableHead className="w-[120px] font-bold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      Loading applicants...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredApplicants?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      No applicants found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredApplicants?.map((applicant) => (
+                    <TableRow key={applicant.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedRows.includes(applicant.id)}
+                          onCheckedChange={() => handleCheckboxChange(applicant.id)}
+                          aria-label={`Select ${applicant.name}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="link"
+                          onClick={() => setApplicantToView(applicant)}
+                          className="p-0 h-auto font-normal"
+                        >
+                          {applicant.name || "No name"}
+                        </Button>
+                      </TableCell>
+                      <TableCell>{applicant.mobile_no}</TableCell>
+                      <TableCell>{applicant.campus || "Not assigned"}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={applicant.stage || "contact"}
+                          onValueChange={async (value) => {
+                            const { error } = await supabase
+                              .from("admission_dashboard")
+                              .update({ stage: value })
+                              .eq("id", applicant.id);
 
-      {/* Show total count */}
-      <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredApplicants.length} of {applicants.length} applicants
-        </p>
-      </div>
+                            if (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to update stage",
+                                variant: "destructive",
+                              });
+                            } else {
+                              toast({
+                                title: "Stage Updated",
+                                description: "Successfully updated stage",
+                              });
+                              refetch();
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a stage" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="contact">Contact</SelectItem>
+                            <SelectItem value="screening">Screening</SelectItem>
+                            <SelectItem value="interviews">Interviews</SelectItem>
+                            <SelectItem value="decision">Decision</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={(applicant.status || "pending") as StatusType} />
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setApplicantToView(applicant)}>
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setApplicantToEditInline(applicant)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setApplicantForComments(applicant)}>
+                              Comments
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setApplicantForLogs(applicant)}>
+                              View Logs
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </CardContent>
 
-      {/* Modals */}
-      <ApplicantModal
-        applicant={selectedApplicant}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-      
       <AddApplicantModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={fetchApplicants}
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={refetch}
       />
-      
-      <CSVImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onSuccess={fetchApplicants}
+
+      <AdvancedFilterModal
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        onApplyFilters={handleApplyFilters}
+        currentFilters={filters}
       />
-    </div>
+
+      <BulkUpdateModal
+        isOpen={showBulkUpdate}
+        onClose={() => setShowBulkUpdate(false)}
+        selectedApplicants={selectedRows}
+        onSuccess={refetch}
+      />
+
+      <ApplicantModal
+        applicant={applicantToView}
+        isOpen={!!applicantToView}
+        onClose={() => setApplicantToView(null)}
+      />
+
+      {applicantToEditInline && (
+        <InlineEditModal
+          applicant={applicantToEditInline}
+          isOpen={!!applicantToEditInline}
+          onClose={() => setApplicantToEditInline(null)}
+          onSuccess={refetch}
+        />
+      )}
+
+      <ApplicantCommentsModal
+        applicantId={applicantForComments?.id || ""}
+        applicantName={applicantForComments?.name || ""}
+        isOpen={!!applicantForComments}
+        onClose={() => setApplicantForComments(null)}
+      />
+
+      <ApplicantLogsModal
+        applicantId={applicantForLogs?.id || ""}
+        applicantName={applicantForLogs?.name || ""}
+        isOpen={!!applicantForLogs}
+        onClose={() => setApplicantForLogs(null)}
+      />
+    </Card>
   );
-}
+};
+
+export default ApplicantTable;
