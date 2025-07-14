@@ -88,17 +88,12 @@ export const EditableCell = ({ applicant, field, displayValue, onUpdate, showPen
 
   return (
     <div
-      className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
+      className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group truncate"
       onClick={() => startCellEdit(applicant.id, field, displayValue)}
       title="Click to edit"
     >
-      <span className="flex-1">{displayValue || "Click to add"}</span>
-      {showPencil && (
-        <Pencil className="h-3 w-3 text-muted-foreground opacity-100 transition-opacity" />
-      )}
-      {!showPencil && (
-        <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      )}
+      <span className="flex-1 truncate">{displayValue || "Click to add"}</span>
+      <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
     </div>
   );
 };

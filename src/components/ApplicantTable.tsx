@@ -288,7 +288,7 @@ const ApplicantTable = () => {
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10 border-b">
                 <TableRow>
-                  <TableHead className="w-[50px] font-bold">
+                  <TableHead className="w-12 font-bold">
                     <Checkbox
                       checked={
                         filteredApplicants?.length > 0 &&
@@ -298,12 +298,12 @@ const ApplicantTable = () => {
                       aria-label="Select all applicants"
                     />
                   </TableHead>
-                  <TableHead className="w-[250px] font-bold">Name</TableHead>
-                  <TableHead className="w-[200px] font-bold">Mobile No</TableHead>
-                  <TableHead className="w-[200px] font-bold">Campus</TableHead>
-                  <TableHead className="w-[200px] font-bold">Stage</TableHead>
-                  <TableHead className="w-[250px] font-bold">Status</TableHead>
-                  <TableHead className="w-[150px] font-bold">Actions</TableHead>
+                  <TableHead className="font-bold flex-1 min-w-0">Name</TableHead>
+                  <TableHead className="font-bold flex-1 min-w-0">Mobile No</TableHead>
+                  <TableHead className="font-bold flex-1 min-w-0">Campus</TableHead>
+                  <TableHead className="font-bold flex-1 min-w-0">Stage</TableHead>
+                  <TableHead className="font-bold flex-1 min-w-0">Status</TableHead>
+                  <TableHead className="font-bold w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

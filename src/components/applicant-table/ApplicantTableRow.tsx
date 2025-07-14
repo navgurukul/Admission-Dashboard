@@ -30,14 +30,14 @@ export const ApplicantTableRow = ({
 }: ApplicantTableRowProps) => {
   return (
     <TableRow key={applicant.id}>
-      <TableCell className="w-[50px]">
+      <TableCell className="w-12">
         <Checkbox
           checked={isSelected}
           onCheckedChange={() => onSelect(applicant.id)}
           aria-label={`Select ${applicant.name}`}
         />
       </TableCell>
-      <TableCell className="w-[250px]">
+      <TableCell className="flex-1 min-w-0">
         <EditableCell 
           applicant={applicant} 
           field="name" 
@@ -46,7 +46,7 @@ export const ApplicantTableRow = ({
           showPencil={true}
         />
       </TableCell>
-      <TableCell className="w-[200px]">
+      <TableCell className="flex-1 min-w-0">
         <EditableCell 
           applicant={applicant} 
           field="mobile_no" 
@@ -55,20 +55,26 @@ export const ApplicantTableRow = ({
           showPencil={true}
         />
       </TableCell>
-      <TableCell className="w-[200px]">
-        <CampusSelector
-          currentCampus={applicant.campus}
-          applicantId={applicant.id}
-          onCampusChange={onCampusChange}
-        />
+      <TableCell className="flex-1 min-w-0">
+        <div className="truncate">
+          <CampusSelector
+            currentCampus={applicant.campus}
+            applicantId={applicant.id}
+            onCampusChange={onCampusChange}
+          />
+        </div>
       </TableCell>
-      <TableCell className="w-[200px]">
-        <StageDropdown applicant={applicant} onUpdate={onUpdate} />
+      <TableCell className="flex-1 min-w-0">
+        <div className="truncate">
+          <StageDropdown applicant={applicant} onUpdate={onUpdate} />
+        </div>
       </TableCell>
-      <TableCell className="w-[250px]">
-        <StatusDropdown applicant={applicant} onUpdate={onUpdate} />
+      <TableCell className="flex-1 min-w-0">
+        <div className="truncate">
+          <StatusDropdown applicant={applicant} onUpdate={onUpdate} />
+        </div>
       </TableCell>
-      <TableCell className="w-[150px]">
+      <TableCell className="w-24">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm">

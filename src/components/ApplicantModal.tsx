@@ -3,9 +3,10 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit } from "lucide-react";
+import { Edit, MessageSquare } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
+import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -15,11 +16,16 @@ interface ApplicantModalProps {
 
 export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalProps) {
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
 
   if (!applicant) return null;
 
   const handleEditClick = () => {
     setShowEditModal(true);
+  };
+
+  const handleCommentsClick = () => {
+    setShowCommentsModal(true);
   };
 
   const handleEditSuccess = () => {
@@ -33,15 +39,26 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>Applicant Details</DialogTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEditClick}
-              className="flex items-center gap-2"
-            >
-              <Edit className="h-4 w-4" />
-              Edit Details
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCommentsClick}
+                className="flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Comments
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEditClick}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Edit Details
+              </Button>
+            </div>
           </DialogHeader>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -256,6 +273,15 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {showCommentsModal && (
+        <ApplicantCommentsModal
+          applicantId={applicant.id || ""}
+          applicantName={applicant.name || ""}
+          isOpen={showCommentsModal}
+          onClose={() => setShowCommentsModal(false)}
         />
       )}
     </>
