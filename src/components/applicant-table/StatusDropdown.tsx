@@ -91,44 +91,93 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     }
   };
 
-  // Map database status values to display values
+  // Comprehensive status mapping from database to display values
   const normalizeStatus = (status: string) => {
-    if (!status) return "";
+    if (!status) {
+      console.log('No status found, returning empty string');
+      return "";
+    }
     
-    // Handle common database status formats
-    const statusMap: { [key: string]: string } = {
+    console.log('Raw status from database:', status);
+    
+    // Direct mapping for exact matches first
+    const exactMatches: { [key: string]: string } = {
+      // Decision stage statuses
       "offer_pending": "Offer Pending",
-      "offer_sent": "Offer Sent",
+      "offer_sent": "Offer Sent", 
       "offer_accepted": "Offer Accepted",
       "offer_declined": "Offer Declined",
+      
+      // Interview stage statuses
       "lr_qualified": "Learner Round Pass",
       "lr_failed": "Learner Round Fail",
-      "cfr_qualified": "Cultural Fit Interview Pass",
+      "cfr_qualified": "Cultural Fit Interview Pass", 
       "cfr_failed": "Cultural Fit Interview Fail",
+      "pending_booking": "Pending Booking",
+      
+      // Screening stage statuses
       "pass": "Screening Test Pass",
       "fail": "Screening Test Fail",
-      "pending": "Pending"
+      "pending": "Pending",
+      
+      // Sourcing stage statuses
+      "enrollment_key_generated": "Enrollment Key Generated",
+      "basic_details_entered": "Basic Details Entered",
+      "duplicate": "Duplicate",
+      "unreachable": "Unreachable", 
+      "became_disinterested": "Became Disinterested",
+      
+      // Onboarded
+      "onboarded": "Onboarded"
     };
     
-    return statusMap[status.toLowerCase()] || status;
+    // Check exact match first
+    const lowerStatus = status.toLowerCase().trim();
+    if (exactMatches[lowerStatus]) {
+      console.log('Found exact match:', exactMatches[lowerStatus]);
+      return exactMatches[lowerStatus];
+    }
+    
+    // If no exact match, check if the status is already in display format
+    const allDisplayStatuses = Object.values(STAGE_STATUS_MAP).flat();
+    if (allDisplayStatuses.includes(status)) {
+      console.log('Status already in display format:', status);
+      return status;
+    }
+    
+    // Fallback: return the original status
+    console.log('No mapping found, returning original:', status);
+    return status;
   };
 
-  const currentStatus = normalizeStatus(applicant.status || "");
-  console.log('Current status:', currentStatus);
-  console.log('Raw applicant status:', applicant.status);
-  console.log('Current applicant:', applicant);
+  // Get the current stage and provide default if no status
+  const currentStage = applicant.stage || "sourcing";
+  const rawStatus = applicant.status;
+  const normalizedStatus = normalizeStatus(rawStatus || "");
+  
+  // If no status exists, use the default for the current stage
+  const displayStatus = normalizedStatus || STAGE_DEFAULT_STATUS[currentStage as keyof typeof STAGE_DEFAULT_STATUS] || "";
+  
+  console.log('=== STATUS DROPDOWN DEBUG ===');
+  console.log('Applicant ID:', applicant.id);
+  console.log('Current stage:', currentStage);
+  console.log('Raw status from DB:', rawStatus);
+  console.log('Normalized status:', normalizedStatus);
+  console.log('Final display status:', displayStatus);
+  console.log('Available statuses for stage:', availableStatuses);
+  console.log('===============================');
 
   return (
-    <Select value={currentStatus} onValueChange={handleStatusChange}>
-      <SelectTrigger className="w-full h-8 text-xs bg-background border border-border">
+    <Select value={displayStatus} onValueChange={handleStatusChange}>
+      <SelectTrigger className="w-full h-8 text-xs bg-white border border-gray-300 hover:bg-gray-50">
         <SelectValue placeholder="Select status" />
       </SelectTrigger>
-      <SelectContent className="bg-background border border-border shadow-lg z-50 max-h-[200px] overflow-y-auto">
+      <SelectContent className="bg-white border border-gray-300 shadow-lg z-[9999] max-h-[200px] overflow-y-auto">
         {availableStatuses.map((status) => (
           <SelectItem 
             key={status} 
             value={status} 
-            className="text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground"
+            className="text-xs cursor-pointer hover:bg-gray-100 focus:bg-gray-100"
           >
             {status}
           </SelectItem>
