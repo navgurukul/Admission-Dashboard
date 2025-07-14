@@ -1,46 +1,22 @@
+
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Filter, Search, Edit, Trash2, Mail, MoreHorizontal, Upload, Download, Pencil } from "lucide-react";
-import { StatusBadge } from "./StatusBadge";
+import { Search } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
 import { ApplicantModal } from "./ApplicantModal";
-import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 import CSVImportModal from "./CSVImportModal";
-import { CampusSelector } from "./CampusSelector";
 import { useToast } from "@/hooks/use-toast";
-
-type StatusType = 
-  | "pending" 
-  | "active" 
-  | "inactive" 
-  | "qualified" 
-  | "disqualified"
-  | "pass"
-  | "fail"
-  | "booked"
-  | "rescheduled"
-  | "lr_qualified"
-  | "lr_failed"
-  | "cfr_qualified"
-  | "cfr_failed"
-  | "offer_pending"
-  | "offer_sent"
-  | "offer_rejected"
-  | "offer_accepted"
-  | "Qualified for SOP"
-  | "Qualified for SOB";
+import { BulkActions } from "./applicant-table/BulkActions";
+import { TableActions } from "./applicant-table/TableActions";
+import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
 
 interface FilterState {
   stage: string;
@@ -57,52 +33,15 @@ interface FilterState {
   };
 }
 
-const STAGE_STATUS_MAP = {
-  "sourcing": [
-    "Enrollment Key Generated",
-    "Basic Details Entered", 
-    "Duplicate",
-    "Unreachable",
-    "Became Disinterested"
-  ],
-  "screening": [
-    "Screening Test Pass",
-    "Screening Test Fail",
-    "Created Student Without Exam"
-  ],
-  "interviews": [
-    "Learner Round Pass",
-    "Learner Round Fail", 
-    "Cultural Fit Interview Pass",
-    "Cultural Fit Interview Fail",
-    "Reschedule",
-    "No Show"
-  ],
-  "decision": [
-    "Offer Pending",
-    "Offer Sent",
-    "Offer Accepted", 
-    "Offer Declined",
-    "Waitlisted",
-    "Selected but not joined"
-  ],
-  "onboarded": [
-    "Onboarded"
-  ]
-};
-
 const ApplicantTable = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
-  const [applicantToEditInline, setApplicantToEditInline] = useState<any | null>(null);
   const [applicantForComments, setApplicantForComments] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
-  const [cellValue, setCellValue] = useState("");
   const [filters, setFilters] = useState<FilterState>({
     stage: 'all',
     status: 'all',
@@ -299,135 +238,8 @@ const ApplicantTable = () => {
     });
   };
 
-  const handleCampusChange = (campus: string | null) => {
+  const handleCampusChange = () => {
     refetch();
-  };
-
-  const startCellEdit = (id: string, field: string, currentValue: any) => {
-    setEditingCell({ id, field });
-    setCellValue(currentValue || "");
-  };
-
-  const saveCellEdit = async () => {
-    if (!editingCell) return;
-
-    try {
-      const { error } = await supabase
-        .from("admission_dashboard")
-        .update({ 
-          [editingCell.field]: cellValue,
-          last_updated: new Date().toISOString()
-        })
-        .eq("id", editingCell.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Field updated successfully",
-      });
-
-      setEditingCell(null);
-      setCellValue("");
-      refetch();
-    } catch (error) {
-      console.error('Error updating field:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update field",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const cancelCellEdit = () => {
-    setEditingCell(null);
-    setCellValue("");
-  };
-
-  const EditableCell = ({ applicant, field, displayValue }: { applicant: any, field: string, displayValue: any }) => {
-    const isEditing = editingCell?.id === applicant.id && editingCell?.field === field;
-    
-    if (isEditing) {
-      return (
-        <div className="flex items-center gap-2">
-          <Input
-            value={cellValue}
-            onChange={(e) => setCellValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') saveCellEdit();
-              if (e.key === 'Escape') cancelCellEdit();
-            }}
-            className="h-8 text-xs"
-            autoFocus
-          />
-          <Button size="sm" onClick={saveCellEdit} className="h-6 px-2">
-            ✓
-          </Button>
-          <Button size="sm" variant="outline" onClick={cancelCellEdit} className="h-6 px-2">
-            ✕
-          </Button>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
-        onClick={() => startCellEdit(applicant.id, field, displayValue)}
-        title="Click to edit"
-      >
-        <span className="flex-1">{displayValue || "Click to add"}</span>
-        <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
-    );
-  };
-
-  const StatusDropdown = ({ applicant }: { applicant: any }) => {
-    const currentStage = applicant.stage || "sourcing";
-    const availableStatuses = STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
-
-    const handleStatusChange = async (newStatus: string) => {
-      try {
-        const { error } = await supabase
-          .from("admission_dashboard")
-          .update({ 
-            status: newStatus,
-            last_updated: new Date().toISOString()
-          })
-          .eq("id", applicant.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Status Updated",
-          description: "Successfully updated status",
-        });
-        refetch();
-      } catch (error) {
-        console.error('Error updating status:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update status",
-          variant: "destructive",
-        });
-      }
-    };
-
-    return (
-      <Select value={applicant.status || ""} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-full h-8 text-xs">
-          <SelectValue placeholder="Select status" />
-        </SelectTrigger>
-        <SelectContent className="bg-background border border-border shadow-lg z-50">
-          {availableStatuses.map((status) => (
-            <SelectItem key={status} value={status} className="text-xs">
-              {status}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
   };
 
   return (
@@ -441,63 +253,18 @@ const ApplicantTable = () => {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {selectedRows.length > 0 && (
-              <div className="flex items-center gap-2 mr-4">
-                <Badge variant="secondary">{selectedRows.length} selected</Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowBulkUpdate(true)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Bulk Update
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSendOfferLetters}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Offer Letters
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-            )}
-            <Button
-              onClick={() => setShowCSVImport(true)}
-              variant="outline"
-              size="sm"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
-            <Button
-              onClick={exportToCSV}
-              variant="outline"
-              size="sm"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            <Button
-              onClick={() => setShowAdvancedFilters(true)}
-              variant="outline"
-              size="sm"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-            <Button onClick={() => setShowAddModal(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Applicant
-            </Button>
+            <BulkActions
+              selectedRowsCount={selectedRows.length}
+              onBulkUpdate={() => setShowBulkUpdate(true)}
+              onSendOfferLetters={handleSendOfferLetters}
+              onBulkDelete={handleBulkDelete}
+            />
+            <TableActions
+              onCSVImport={() => setShowCSVImport(true)}
+              onExportCSV={exportToCSV}
+              onShowFilters={() => setShowAdvancedFilters(true)}
+              onAddApplicant={() => setShowAddModal(true)}
+            />
           </div>
         </div>
       </CardHeader>
@@ -531,12 +298,12 @@ const ApplicantTable = () => {
                       aria-label="Select all applicants"
                     />
                   </TableHead>
-                  <TableHead className="w-[200px] font-bold">Name</TableHead>
-                  <TableHead className="w-[150px] font-bold">Mobile No</TableHead>
-                  <TableHead className="w-[120px] font-bold">Campus</TableHead>
-                  <TableHead className="w-[120px] font-bold">Stage</TableHead>
-                  <TableHead className="w-[180px] font-bold">Status</TableHead>
-                  <TableHead className="w-[100px] font-bold">Actions</TableHead>
+                  <TableHead className="w-[250px] font-bold">Name</TableHead>
+                  <TableHead className="w-[200px] font-bold">Mobile No</TableHead>
+                  <TableHead className="w-[200px] font-bold">Campus</TableHead>
+                  <TableHead className="w-[200px] font-bold">Stage</TableHead>
+                  <TableHead className="w-[250px] font-bold">Status</TableHead>
+                  <TableHead className="w-[150px] font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -554,96 +321,16 @@ const ApplicantTable = () => {
                   </TableRow>
                 ) : (
                   filteredApplicants?.map((applicant) => (
-                    <TableRow key={applicant.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedRows.includes(applicant.id)}
-                          onCheckedChange={() => handleCheckboxChange(applicant.id)}
-                          aria-label={`Select ${applicant.name}`}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <EditableCell 
-                          applicant={applicant} 
-                          field="name" 
-                          displayValue={applicant.name || "No name"} 
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <EditableCell 
-                          applicant={applicant} 
-                          field="mobile_no" 
-                          displayValue={applicant.mobile_no} 
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <CampusSelector
-                          currentCampus={applicant.campus}
-                          applicantId={applicant.id}
-                          onCampusChange={handleCampusChange}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={applicant.stage || "sourcing"}
-                          onValueChange={async (value) => {
-                            const { error } = await supabase
-                              .from("admission_dashboard")
-                              .update({ 
-                                stage: value,
-                                status: null,
-                                last_updated: new Date().toISOString()
-                              })
-                              .eq("id", applicant.id);
-
-                            if (error) {
-                              toast({
-                                title: "Error",
-                                description: "Failed to update stage",
-                                variant: "destructive",
-                              });
-                            } else {
-                              toast({
-                                title: "Stage Updated",
-                                description: "Successfully updated stage",
-                              });
-                              refetch();
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="w-full h-8 text-xs">
-                            <SelectValue placeholder="Select a stage" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border border-border shadow-lg z-50">
-                            <SelectItem value="sourcing">Sourcing</SelectItem>
-                            <SelectItem value="screening">Screening</SelectItem>
-                            <SelectItem value="interviews">Interviews</SelectItem>
-                            <SelectItem value="decision">Final Decision</SelectItem>
-                            <SelectItem value="onboarded">Onboarded</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <StatusDropdown applicant={applicant} />
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-background border border-border shadow-lg z-50">
-                            <DropdownMenuItem onClick={() => setApplicantToView(applicant)}>
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setApplicantForComments(applicant)}>
-                              Comments
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                    <ApplicantTableRow
+                      key={applicant.id}
+                      applicant={applicant}
+                      isSelected={selectedRows.includes(applicant.id)}
+                      onSelect={handleCheckboxChange}
+                      onUpdate={refetch}
+                      onViewDetails={setApplicantToView}
+                      onViewComments={setApplicantForComments}
+                      onCampusChange={handleCampusChange}
+                    />
                   ))
                 )}
               </TableBody>
