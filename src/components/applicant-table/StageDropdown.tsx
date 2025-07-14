@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,31 +9,42 @@ interface StageDropdownProps {
   onUpdate: () => void;
 }
 
-export const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
+const STAGE_OPTIONS = [
+  { value: "sourcing", label: "Sourcing" },
+  { value: "screening", label: "Screening" },
+  { value: "interviews", label: "Interviews" },
+  { value: "decision", label: "Final Decision" },
+  { value: "onboarded", label: "Onboarded" }
+];
+
+export const StageDropdown = React.memo(({ applicant, onUpdate }: StageDropdownProps) => {
   const { toast } = useToast();
 
   const handleStageChange = async (value: string) => {
-    const { error } = await supabase
-      .from("admission_dashboard")
-      .update({ 
-        stage: value,
-        status: null,
-        last_updated: new Date().toISOString()
-      })
-      .eq("id", applicant.id);
+    try {
+      const { error } = await supabase
+        .from("admission_dashboard")
+        .update({ 
+          stage: value,
+          status: null,
+          last_updated: new Date().toISOString()
+        })
+        .eq("id", applicant.id);
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update stage",
-        variant: "destructive",
-      });
-    } else {
+      if (error) throw error;
+
       toast({
         title: "Stage Updated",
         description: "Successfully updated stage",
       });
       onUpdate();
+    } catch (error) {
+      console.error('Error updating stage:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update stage",
+        variant: "destructive",
+      });
     }
   };
 
@@ -45,12 +57,14 @@ export const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
         <SelectValue placeholder="Select a stage" />
       </SelectTrigger>
       <SelectContent className="bg-background border border-border shadow-lg z-50">
-        <SelectItem value="sourcing">Sourcing</SelectItem>
-        <SelectItem value="screening">Screening</SelectItem>
-        <SelectItem value="interviews">Interviews</SelectItem>
-        <SelectItem value="decision">Final Decision</SelectItem>
-        <SelectItem value="onboarded">Onboarded</SelectItem>
+        {STAGE_OPTIONS.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
-};
+});
+
+StageDropdown.displayName = "StageDropdown";

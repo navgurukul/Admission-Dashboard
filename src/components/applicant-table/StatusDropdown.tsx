@@ -1,4 +1,5 @@
 
+import React, { useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -42,10 +43,13 @@ const STAGE_STATUS_MAP = {
   ]
 };
 
-export const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
+export const StatusDropdown = React.memo(({ applicant, onUpdate }: StatusDropdownProps) => {
   const { toast } = useToast();
-  const currentStage = applicant.stage || "sourcing";
-  const availableStatuses = STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
+  
+  const availableStatuses = useMemo(() => {
+    const currentStage = applicant.stage || "sourcing";
+    return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
+  }, [applicant.stage]);
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -88,4 +92,6 @@ export const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => 
       </SelectContent>
     </Select>
   );
-};
+});
+
+StatusDropdown.displayName = "StatusDropdown";

@@ -3,10 +3,13 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare } from "lucide-react";
+import { Edit, MessageSquare, Pencil } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+import { StageDropdown } from "./applicant-table/StageDropdown";
+import { StatusDropdown } from "./applicant-table/StatusDropdown";
+import { EditableCell } from "./applicant-table/EditableCell";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -17,6 +20,7 @@ interface ApplicantModalProps {
 export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (!applicant) return null;
 
@@ -30,7 +34,11 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
 
   const handleEditSuccess = () => {
     setShowEditModal(false);
-    // The parent component will refetch data
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleUpdate = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   return (
@@ -68,35 +76,75 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Name</label>
-                  <p className="text-sm">{applicant.name || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="name" 
+                    displayValue={applicant.name || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Mobile Number</label>
-                  <p className="text-sm">{applicant.mobile_no}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="mobile_no" 
+                    displayValue={applicant.mobile_no} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">WhatsApp Number</label>
-                  <p className="text-sm">{applicant.whatsapp_number || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="whatsapp_number" 
+                    displayValue={applicant.whatsapp_number || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Gender</label>
-                  <p className="text-sm">{applicant.gender || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="gender" 
+                    displayValue={applicant.gender || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Caste</label>
-                  <p className="text-sm">{applicant.caste || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="caste" 
+                    displayValue={applicant.caste || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">City</label>
-                  <p className="text-sm">{applicant.city || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="city" 
+                    displayValue={applicant.city || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Block</label>
-                  <p className="text-sm">{applicant.block || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="block" 
+                    displayValue={applicant.block || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">District</label>
-                  <p className="text-sm">{applicant.district || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="district" 
+                    displayValue={applicant.district || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
             </div>
@@ -107,19 +155,39 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Qualification</label>
-                  <p className="text-sm">{applicant.qualification || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="qualification" 
+                    displayValue={applicant.qualification || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Current Work</label>
-                  <p className="text-sm">{applicant.current_work || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="current_work" 
+                    displayValue={applicant.current_work || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Qualifying School</label>
-                  <p className="text-sm">{applicant.qualifying_school || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="qualifying_school" 
+                    displayValue={applicant.qualifying_school || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Final Marks</label>
-                  <p className="text-sm">{applicant.final_marks || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="final_marks" 
+                    displayValue={applicant.final_marks || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
             </div>
@@ -130,23 +198,29 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Stage</label>
-                  <Badge variant="outline" className="mt-1">
-                    {applicant.stage || "contact"}
-                  </Badge>
+                  <StageDropdown applicant={applicant} onUpdate={handleUpdate} />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <div className="mt-1">
-                    <StatusBadge status={applicant.status || "pending"} />
-                  </div>
+                  <StatusDropdown applicant={applicant} onUpdate={handleUpdate} />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Campus</label>
-                  <p className="text-sm">{applicant.campus || "Not assigned"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="campus" 
+                    displayValue={applicant.campus || "Not assigned"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Unique Number</label>
-                  <p className="text-sm">{applicant.unique_number || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="unique_number" 
+                    displayValue={applicant.unique_number || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
             </div>
@@ -157,19 +231,39 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Set Name</label>
-                  <p className="text-sm">{applicant.set_name || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="set_name" 
+                    displayValue={applicant.set_name || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Exam Centre</label>
-                  <p className="text-sm">{applicant.exam_centre || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="exam_centre" 
+                    displayValue={applicant.exam_centre || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Date of Testing</label>
-                  <p className="text-sm">{applicant.date_of_testing || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="date_of_testing" 
+                    displayValue={applicant.date_of_testing || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Exam Mode</label>
-                  <p className="text-sm">{applicant.exam_mode || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="exam_mode" 
+                    displayValue={applicant.exam_mode || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
             </div>
@@ -180,29 +274,50 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">LR Status</label>
-                  <p className="text-sm">{applicant.lr_status || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="lr_status" 
+                    displayValue={applicant.lr_status || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">CFR Status</label>
-                  <p className="text-sm">{applicant.cfr_status || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="cfr_status" 
+                    displayValue={applicant.cfr_status || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Interview Mode</label>
-                  <p className="text-sm">{applicant.interview_mode || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="interview_mode" 
+                    displayValue={applicant.interview_mode || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">LR Comments</label>
-                  <p className="text-sm bg-muted p-2 rounded min-h-[60px]">
-                    {applicant.lr_comments || "No comments"}
-                  </p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="lr_comments" 
+                    displayValue={applicant.lr_comments || "No comments"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">CFR Comments</label>
-                  <p className="text-sm bg-muted p-2 rounded min-h-[60px]">
-                    {applicant.cfr_comments || "No comments"}
-                  </p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="cfr_comments" 
+                    displayValue={applicant.cfr_comments || "No comments"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
             </div>
@@ -213,15 +328,30 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Offer Letter Status</label>
-                  <p className="text-sm">{applicant.offer_letter_status || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="offer_letter_status" 
+                    displayValue={applicant.offer_letter_status || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Allotted School</label>
-                  <p className="text-sm">{applicant.allotted_school || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="allotted_school" 
+                    displayValue={applicant.allotted_school || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Joining Status</label>
-                  <p className="text-sm">{applicant.joining_status || "Not provided"}</p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="joining_status" 
+                    displayValue={applicant.joining_status || "Not provided"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
             </div>
@@ -232,15 +362,21 @@ export function ApplicantModal({ applicant, isOpen, onClose }: ApplicantModalPro
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Final Notes</label>
-                  <p className="text-sm bg-muted p-3 rounded min-h-[80px]">
-                    {applicant.final_notes || "No final notes"}
-                  </p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="final_notes" 
+                    displayValue={applicant.final_notes || "No final notes"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Triptis Notes</label>
-                  <p className="text-sm bg-muted p-3 rounded min-h-[80px]">
-                    {applicant.triptis_notes || "No triptis notes"}
-                  </p>
+                  <EditableCell 
+                    applicant={applicant} 
+                    field="triptis_notes" 
+                    displayValue={applicant.triptis_notes || "No triptis notes"} 
+                    onUpdate={handleUpdate}
+                  />
                 </div>
               </div>
             </div>
