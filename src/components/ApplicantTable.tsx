@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -266,6 +265,10 @@ const ApplicantTable = () => {
     });
   };
 
+  const handleCampusChange = (campus: string | null) => {
+    refetch();
+  };
+
   const startCellEdit = (id: string, field: string, currentValue: any) => {
     setEditingCell({ id, field });
     setCellValue(currentValue || "");
@@ -495,7 +498,7 @@ const ApplicantTable = () => {
                         <CampusSelector
                           currentCampus={applicant.campus}
                           applicantId={applicant.id}
-                          onCampusChange={refetch}
+                          onCampusChange={handleCampusChange}
                         />
                       </TableCell>
                       <TableCell>
