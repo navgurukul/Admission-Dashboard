@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Filter, Search, Edit, Trash2, Mail, MoreHorizontal, Upload, Download } from "lucide-react";
+import { Plus, Filter, Search, Edit, Trash2, Mail, MoreHorizontal, Upload, Download, Pencil } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
@@ -56,6 +56,40 @@ interface FilterState {
     to?: Date;
   };
 }
+
+const STAGE_STATUS_MAP = {
+  "sourcing": [
+    "Enrollment Key Generated",
+    "Basic Details Entered", 
+    "Duplicate",
+    "Unreachable",
+    "Became Disinterested"
+  ],
+  "screening": [
+    "Screening Test Pass",
+    "Screening Test Fail",
+    "Created Student Without Exam"
+  ],
+  "interviews": [
+    "Learner Round Pass",
+    "Learner Round Fail", 
+    "Cultural Fit Interview Pass",
+    "Cultural Fit Interview Fail",
+    "Reschedule",
+    "No Show"
+  ],
+  "decision": [
+    "Offer Pending",
+    "Offer Sent",
+    "Offer Accepted", 
+    "Offer Declined",
+    "Waitlisted",
+    "Selected but not joined"
+  ],
+  "onboarded": [
+    "Onboarded"
+  ]
+};
 
 const ApplicantTable = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -339,12 +373,60 @@ const ApplicantTable = () => {
 
     return (
       <div
-        className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px]"
+        className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
         onClick={() => startCellEdit(applicant.id, field, displayValue)}
         title="Click to edit"
       >
-        {displayValue || "Click to add"}
+        <span className="flex-1">{displayValue || "Click to add"}</span>
+        <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
+    );
+  };
+
+  const StatusDropdown = ({ applicant }: { applicant: any }) => {
+    const currentStage = applicant.stage || "sourcing";
+    const availableStatuses = STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
+
+    const handleStatusChange = async (newStatus: string) => {
+      try {
+        const { error } = await supabase
+          .from("admission_dashboard")
+          .update({ 
+            status: newStatus,
+            last_updated: new Date().toISOString()
+          })
+          .eq("id", applicant.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Status Updated",
+          description: "Successfully updated status",
+        });
+        refetch();
+      } catch (error) {
+        console.error('Error updating status:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update status",
+          variant: "destructive",
+        });
+      }
+    };
+
+    return (
+      <Select value={applicant.status || ""} onValueChange={handleStatusChange}>
+        <SelectTrigger className="w-full h-8 text-xs">
+          <SelectValue placeholder="Select status" />
+        </SelectTrigger>
+        <SelectContent className="bg-background border border-border shadow-lg z-50">
+          {availableStatuses.map((status) => (
+            <SelectItem key={status} value={status} className="text-xs">
+              {status}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   };
 
@@ -453,8 +535,8 @@ const ApplicantTable = () => {
                   <TableHead className="w-[150px] font-bold">Mobile No</TableHead>
                   <TableHead className="w-[120px] font-bold">Campus</TableHead>
                   <TableHead className="w-[120px] font-bold">Stage</TableHead>
-                  <TableHead className="w-[120px] font-bold">Status</TableHead>
-                  <TableHead className="w-[120px] font-bold">Actions</TableHead>
+                  <TableHead className="w-[180px] font-bold">Status</TableHead>
+                  <TableHead className="w-[100px] font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -503,11 +585,15 @@ const ApplicantTable = () => {
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={applicant.stage || "contact"}
+                          value={applicant.stage || "sourcing"}
                           onValueChange={async (value) => {
                             const { error } = await supabase
                               .from("admission_dashboard")
-                              .update({ stage: value })
+                              .update({ 
+                                stage: value,
+                                status: null,
+                                last_updated: new Date().toISOString()
+                              })
                               .eq("id", applicant.id);
 
                             if (error) {
@@ -525,19 +611,20 @@ const ApplicantTable = () => {
                             }
                           }}
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full h-8 text-xs">
                             <SelectValue placeholder="Select a stage" />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="contact">Contact</SelectItem>
+                          <SelectContent className="bg-background border border-border shadow-lg z-50">
+                            <SelectItem value="sourcing">Sourcing</SelectItem>
                             <SelectItem value="screening">Screening</SelectItem>
                             <SelectItem value="interviews">Interviews</SelectItem>
-                            <SelectItem value="decision">Decision</SelectItem>
+                            <SelectItem value="decision">Final Decision</SelectItem>
+                            <SelectItem value="onboarded">Onboarded</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={(applicant.status || "pending") as StatusType} />
+                        <StatusDropdown applicant={applicant} />
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -546,7 +633,7 @@ const ApplicantTable = () => {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="bg-background border border-border shadow-lg z-50">
                             <DropdownMenuItem onClick={() => setApplicantToView(applicant)}>
                               View Details
                             </DropdownMenuItem>
