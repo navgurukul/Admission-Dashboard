@@ -5,8 +5,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { EditableCell } from "./EditableCell";
-import { StatusDropdown } from "./StatusDropdown";
-import { StageDropdown } from "./StageDropdown";
+import StatusDropdown from "./StatusDropdown";
+import StageDropdown from "./StageDropdown";
 import { CampusSelector } from "../CampusSelector";
 
 interface ApplicantTableRowProps {

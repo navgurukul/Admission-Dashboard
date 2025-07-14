@@ -7,8 +7,8 @@ import { Edit, MessageSquare, Pencil } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import { StageDropdown } from "./applicant-table/StageDropdown";
-import { StatusDropdown } from "./applicant-table/StatusDropdown";
+import StageDropdown from "./applicant-table/StageDropdown";
+import StatusDropdown from "./applicant-table/StatusDropdown";
 import { EditableCell } from "./applicant-table/EditableCell";
 
 interface ApplicantModalProps {
