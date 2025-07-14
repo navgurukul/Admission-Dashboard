@@ -3,6 +3,7 @@ import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { STAGE_DEFAULT_STATUS } from "./StatusDropdown";
 
 interface StageDropdownProps {
   applicant: any;
@@ -22,11 +23,13 @@ const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
 
   const handleStageChange = async (value: string) => {
     try {
+      const defaultStatus = STAGE_DEFAULT_STATUS[value as keyof typeof STAGE_DEFAULT_STATUS];
+      
       const { error } = await supabase
         .from("admission_dashboard")
         .update({ 
           stage: value,
-          status: null,
+          status: defaultStatus,
           last_updated: new Date().toISOString()
         })
         .eq("id", applicant.id);
@@ -35,7 +38,7 @@ const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
 
       toast({
         title: "Stage Updated",
-        description: "Successfully updated stage",
+        description: "Successfully updated stage and set default status",
       });
       onUpdate();
     } catch (error) {

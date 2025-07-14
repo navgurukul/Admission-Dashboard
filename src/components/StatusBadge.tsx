@@ -34,7 +34,8 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         status === 'Reschedule' ||
         status === 'Waitlisted' ||
         status === 'Enrollment Key Generated' ||
-        status === 'Basic Details Entered') {
+        status === 'Basic Details Entered' ||
+        status === 'Pending Booking') {
       return "bg-yellow-500/10 text-yellow-700 border-yellow-500/20";
     }
     

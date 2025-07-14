@@ -18,11 +18,13 @@ const STAGE_STATUS_MAP = {
     "Became Disinterested"
   ],
   "screening": [
+    "Pending",
     "Screening Test Pass",
     "Screening Test Fail",
     "Created Student Without Exam"
   ],
   "interviews": [
+    "Pending Booking",
     "Learner Round Pass",
     "Learner Round Fail", 
     "Cultural Fit Interview Pass",
@@ -41,6 +43,14 @@ const STAGE_STATUS_MAP = {
   "onboarded": [
     "Onboarded"
   ]
+};
+
+const STAGE_DEFAULT_STATUS = {
+  "sourcing": "Enrollment Key Generated",
+  "screening": "Pending",
+  "interviews": "Pending Booking",
+  "decision": "Offer Pending",
+  "onboarded": "Onboarded"
 };
 
 const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
@@ -95,3 +105,4 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
 };
 
 export default React.memo(StatusDropdown);
+export { STAGE_DEFAULT_STATUS };
