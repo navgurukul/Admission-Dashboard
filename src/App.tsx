@@ -18,6 +18,8 @@ import QuestionRepository from "./pages/QuestionRepository";
 import Auth from "./pages/Auth";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import PartnerPage from "./pages/Partner";
+import AdminPage from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,8 @@ const App = () => (
             <Route path="/screening" element={<ProtectedRoute><Screening /></ProtectedRoute>} />
             <Route path="/interview-rounds" element={<ProtectedRoute><InterviewRounds /></ProtectedRoute>} />
             <Route path="/decisions" element={<ProtectedRoute><FinalDecisions /></ProtectedRoute>} />
+            <Route path="/partners" element={<ProtectedRoute><PartnerPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/offer-letters" element={<ProtectedRoute><OfferLetters /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

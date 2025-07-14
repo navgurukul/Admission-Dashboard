@@ -62,6 +62,27 @@ export default function Auth() {
         return;
       }
 
+      // After successful login, fetch role-based access and privileges
+      try {
+        // Fetch role-based access for the user's email
+        const roleAccessResponse = await fetch(`https://dev-join.navgurukul.org/api/rolebaseaccess/mail/${loginData.email}`);
+        const roleAccessData = await roleAccessResponse.json();
+        console.log('Role-based access data:', roleAccessData);
+
+        // Fetch privileges
+        const privilegesResponse = await fetch('https://dev-join.navgurukul.org/api/role/getPrivilege');
+        const privilegesData = await privilegesResponse.json();
+        console.log('Privileges data:', privilegesData);
+
+        // Store the data in localStorage or state management for later use
+        localStorage.setItem('roleAccess', JSON.stringify(roleAccessData));
+        localStorage.setItem('privileges', JSON.stringify(privilegesData));
+
+      } catch (apiError) {
+        console.error('Error fetching role data:', apiError);
+        // Don't block login if API calls fail
+      }
+
       toast({
         title: "Success",
         description: "Successfully signed in!",

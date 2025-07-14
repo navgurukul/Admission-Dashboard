@@ -4,7 +4,8 @@ import {
   Calendar,
   LogOut,
   Mail,
-  FileText
+  FileText,
+  Users
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,9 @@ import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Admin", href: "/admin", icon: Users }, // From master
+  { name: "Partner", href: "/partners", icon: Users }, // From master
+  { name: "Interviews", href: "/interviews", icon: MessageSquare }, // From master
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Question Repository", href: "/questions", icon: FileText },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
