@@ -1,5 +1,4 @@
-
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,7 +41,7 @@ const ApplicantTable = () => {
   const [applicantForComments, setApplicantForComments] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters, setFilters] = useState({
     stage: 'all',
     status: 'all',
     examMode: 'all',
@@ -50,7 +49,7 @@ const ApplicantTable = () => {
     partner: [],
     district: [],
     market: [],
-    dateRange: { type: 'application' }
+    dateRange: { type: 'application' as const }
   });
   const { toast } = useToast();
 
@@ -87,21 +86,21 @@ const ApplicantTable = () => {
     });
   }, [applicants, searchTerm]);
 
-  const handleCheckboxChange = (id: string) => {
+  const handleCheckboxChange = useCallback((id: string) => {
     setSelectedRows((prevSelected) =>
       prevSelected.includes(id)
         ? prevSelected.filter((rowId) => rowId !== id)
         : [...prevSelected, id]
     );
-  };
+  }, []);
 
-  const handleSelectAllRows = () => {
+  const handleSelectAllRows = useCallback(() => {
     if (filteredApplicants?.length === selectedRows.length) {
       setSelectedRows([]);
     } else {
       setSelectedRows(filteredApplicants?.map((applicant) => applicant.id) || []);
     }
-  };
+  }, [filteredApplicants, selectedRows.length]);
 
   const handleBulkDelete = async () => {
     if (selectedRows.length === 0) {
@@ -187,7 +186,7 @@ const ApplicantTable = () => {
     }
   };
 
-  const handleApplyFilters = (newFilters: FilterState) => {
+  const handleApplyFilters = (newFilters: any) => {
     setFilters(newFilters);
   };
 
@@ -298,11 +297,11 @@ const ApplicantTable = () => {
                       aria-label="Select all applicants"
                     />
                   </TableHead>
-                  <TableHead className="font-bold flex-1 min-w-0">Name</TableHead>
-                  <TableHead className="font-bold flex-1 min-w-0">Mobile No</TableHead>
-                  <TableHead className="font-bold flex-1 min-w-0">Campus</TableHead>
-                  <TableHead className="font-bold flex-1 min-w-0">Stage</TableHead>
-                  <TableHead className="font-bold flex-1 min-w-0">Status</TableHead>
+                  <TableHead className="font-bold min-w-[200px] max-w-[250px]">Name</TableHead>
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">Mobile No</TableHead>
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">Campus</TableHead>
+                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">Stage</TableHead>
+                  <TableHead className="font-bold min-w-[180px] max-w-[220px]">Status</TableHead>
                   <TableHead className="font-bold w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>

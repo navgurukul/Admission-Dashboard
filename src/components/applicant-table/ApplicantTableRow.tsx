@@ -37,7 +37,7 @@ export const ApplicantTableRow = ({
           aria-label={`Select ${applicant.name}`}
         />
       </TableCell>
-      <TableCell className="flex-1 min-w-0">
+      <TableCell className="min-w-[200px] max-w-[250px]">
         <EditableCell 
           applicant={applicant} 
           field="name" 
@@ -46,16 +46,18 @@ export const ApplicantTableRow = ({
           showPencil={true}
         />
       </TableCell>
-      <TableCell className="flex-1 min-w-0">
-        <EditableCell 
-          applicant={applicant} 
-          field="mobile_no" 
-          displayValue={applicant.mobile_no} 
-          onUpdate={onUpdate}
-          showPencil={true}
-        />
+      <TableCell className="min-w-[140px] max-w-[180px]">
+        <div className="truncate">
+          <EditableCell 
+            applicant={applicant} 
+            field="mobile_no" 
+            displayValue={applicant.mobile_no} 
+            onUpdate={onUpdate}
+            showPencil={true}
+          />
+        </div>
       </TableCell>
-      <TableCell className="flex-1 min-w-0">
+      <TableCell className="min-w-[140px] max-w-[180px]">
         <div className="truncate">
           <CampusSelector
             currentCampus={applicant.campus}
@@ -64,15 +66,11 @@ export const ApplicantTableRow = ({
           />
         </div>
       </TableCell>
-      <TableCell className="flex-1 min-w-0">
-        <div className="truncate">
-          <StageDropdown applicant={applicant} onUpdate={onUpdate} />
-        </div>
+      <TableCell className="min-w-[120px] max-w-[160px]">
+        <StageDropdown applicant={applicant} onUpdate={onUpdate} />
       </TableCell>
-      <TableCell className="flex-1 min-w-0">
-        <div className="truncate">
-          <StatusDropdown applicant={applicant} onUpdate={onUpdate} />
-        </div>
+      <TableCell className="min-w-[180px] max-w-[220px]">
+        <StatusDropdown applicant={applicant} onUpdate={onUpdate} />
       </TableCell>
       <TableCell className="w-24">
         <DropdownMenu>
