@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Pencil, Plus, X, Download, Eye, File } from "lucide-react";
+import { Pencil, Plus, X, Download, Eye, File, Search, Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 
 const columns = [
   "Edit",
@@ -31,6 +34,8 @@ const PartnerPage = () => {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [page, setPage] = useState(1);
   const [editDialog, setEditDialog] = useState({ open: false, idx: null, form: defaultPartnerForm });
+  const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     fetch("https://dev-join.navgurukul.org/api/partners")
@@ -44,6 +49,13 @@ const PartnerPage = () => {
 
   const totalPages = Math.ceil(partners.length / ROWS_PER_PAGE);
   const paginatedPartners = partners.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+
+  // Filter partners based on search query
+  const filteredPartners = paginatedPartners.filter(partner =>
+    partner.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    partner.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    partner.slug?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // CSV Download
   const handleDownloadCSV = () => {
@@ -72,6 +84,11 @@ const PartnerPage = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "CSV file downloaded successfully",
+    });
   };
 
   // Create Meraki Link (client-side dummy)
@@ -168,134 +185,186 @@ const PartnerPage = () => {
       <AdmissionsSidebar />
       <main className="ml-64 overflow-auto h-screen flex flex-col items-center">
         <div className="p-4 w-full">
-          {/* Table Header Section */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Partners</h1>
-              <p className="text-muted-foreground text-sm">Manage and track partner details</p>
+          <div className="bg-card rounded-xl shadow-soft border border-border">
+            {/* Header */}
+            <div className="p-6 border-b border-border">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">Partners</h2>
+                  <p className="text-muted-foreground text-sm mt-1">Manage and track partner details</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Button variant="outline" onClick={handleDownloadCSV} className="h-9">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export CSV
+                  </Button>
+                  <Button 
+                    className="bg-gradient-primary hover:bg-primary/90 text-white h-9"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Partner
+                  </Button>
+                </div>
+              </div>
+
+              {/* Search and Filter */}
+              <div className="flex items-center space-x-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search by name, email, or slug..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-9"
+                  />
+                </div>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filter
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 items-center justify-end">
-              <button
-                className="flex items-center bg-orange-500 text-white rounded px-4 py-2 text-sm font-semibold hover:bg-orange-600"
-                onClick={handleDownloadCSV}
-              >
-                <Download size={18} className="mr-1" />Download CSV
-              </button>
-              <button className="flex items-center bg-orange-500 text-white rounded px-4 py-2 text-sm font-semibold hover:bg-orange-600">
-                <Plus size={18} className="mr-1" />Add Partner
-              </button>
-            </div>
-          </div>
-          {/* Table Section */}
-          {loading ? (
-            <div>Loading...</div>
-          ) : (
-            <div className="overflow-x-auto rounded-lg shadow bg-white border border-gray-200 w-full">
-              <table className="min-w-full w-full text-sm">
+
+            {/* Clean Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-100 text-gray-700 text-sm font-medium">
-                    {columns.map((col, idx) => (
-                      <th key={col} className="px-3 py-2 text-left whitespace-nowrap">
-                        {col === "Edit" ? "Edit Partner Details" : col}
-                      </th>
-                    ))}
+                  <tr className="border-b border-border/50">
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Partner</th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Email</th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Slug</th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">Districts</th>
+                    <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedPartners.map((partner, idx) => (
-                    <tr key={partner.id} className="border-b hover:bg-gray-50 text-[15px]">
-                      {/* Edit */}
-                      <td className="px-3 py-2">
-                        <button
-                          className="text-orange-600 hover:text-orange-800 flex items-center"
-                          onClick={() => openEditDialog((page - 1) * ROWS_PER_PAGE + idx)}
-                        >
-                          <Pencil size={16} className="mr-1" />Edit
-                        </button>
-                      </td>
-                      {/* Name */}
-                      <td className="px-3 py-2 font-medium text-red-600">{partner.name}</td>
-                      {/* View Assessments */}
-                      <td className="px-3 py-2">
-                        <button
-                          className="text-gray-700 hover:text-blue-600 flex items-center justify-center"
-                          onClick={() => handleViewAssessments(partner)}
-                          title="View Assessments"
-                        >
-                          <Eye size={18} className="mr-1" />
-                          <span className="ml-1">View Assessment</span>
-                        </button>
-                      </td>
-                      {/* Create Assessment */}
-                      <td className="px-3 py-2">
-                        <button
-                          className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 flex items-center"
-                          onClick={() => handleCreateAssessment(partner)}
-                        >
-                          <Plus size={16} className="mr-1" />Create
-                        </button>
-                      </td>
-                      {/* Joined Students Progress */}
-                      <td className="px-3 py-2">
-                        <button className="text-blue-600 hover:underline">Get Information</button>
-                      </td>
-                      {/* Online Test */}
-                      <td className="px-3 py-2">
-                        <button className="text-orange-600 hover:underline">Go for test</button>
-                      </td>
-                      {/* Meraki Link */}
-                      <td className="px-3 py-2">
-                        {partner.meraki_link ? (
-                          <a
-                            href={partner.meraki_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="bg-orange-100 text-orange-700 px-2 py-1 rounded flex items-center hover:bg-orange-200"
-                          >
-                            <File size={16} className="mr-1" />Get Link
-                          </a>
-                        ) : (
-                          <button
-                            className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 flex items-center"
-                            onClick={() => handleCreateMerakiLink((page - 1) * ROWS_PER_PAGE + idx)}
-                          >
-                            <Plus size={16} className="mr-1" />Create
-                          </button>
-                        )}
-                      </td>
-                      {/* Send Report */}
-                      <td className="px-3 py-2">
-                        <button className="text-gray-700 hover:text-blue-600 flex items-center">
-                          <span className="material-icons mr-1">mail</span>
-                        </button>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          <span>Loading partners...</span>
+                        </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : filteredPartners.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center space-y-2">
+                          <Search className="w-8 h-8 opacity-50" />
+                          <span>No partners found</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredPartners.map((partner, idx) => (
+                      <tr 
+                        key={partner.id} 
+                        className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-primary text-sm font-medium">
+                                {partner.name ? partner.name.split(' ').map(n => n[0]).join('') : '?'}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground truncate">
+                                {partner.name || 'No Name'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {partner.notes || 'No notes'}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-sm text-foreground">
+                            {partner.email || 'No email'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-sm text-foreground">
+                            {partner.slug || 'No slug'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-sm text-foreground">
+                            {partner.districts && partner.districts.length > 0 
+                              ? partner.districts.join(', ') 
+                              : 'No districts'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              onClick={() => openEditDialog((page - 1) * ROWS_PER_PAGE + idx)}
+                              title="Edit Partner"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              onClick={() => handleViewAssessments(partner)}
+                              title="View Assessments"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              onClick={() => handleCreateAssessment(partner)}
+                              title="Create Assessment"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
-              {/* Pagination Controls */}
-              <div className="flex items-center justify-end gap-4 p-4 bg-white border-t border-gray-200">
-                <span className="text-sm text-gray-500">Rows per page: {ROWS_PER_PAGE}</span>
-                <span className="text-sm text-gray-500">
-                  {ROWS_PER_PAGE * (page - 1) + 1}-{Math.min(page * ROWS_PER_PAGE, partners.length)} of {partners.length}
-                </span>
-                <button
-                  className="px-2 py-1 rounded disabled:opacity-50"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  &lt;
-                </button>
-                <button
-                  className="px-2 py-1 rounded disabled:opacity-50"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  &gt;
-                </button>
+            </div>
+
+            {/* Show total count and pagination */}
+            <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing {filteredPartners.length} of {partners.length} partners
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+
           {/* Edit Partner Dialog */}
           {editDialog.open && (
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
@@ -445,4 +514,4 @@ const PartnerPage = () => {
   );
 };
 
-export default PartnerPage; 
+export default PartnerPage;  
