@@ -22,8 +22,10 @@ const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
   const { toast } = useToast();
 
   const handleStageChange = async (value: string) => {
+    console.log('Changing stage to:', value);
     try {
       const defaultStatus = STAGE_DEFAULT_STATUS[value as keyof typeof STAGE_DEFAULT_STATUS];
+      console.log('Setting default status to:', defaultStatus);
       
       const { error } = await supabase
         .from("admission_dashboard")
@@ -51,17 +53,24 @@ const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
     }
   };
 
+  const currentStage = applicant.stage || "sourcing";
+  console.log('Current stage:', currentStage);
+
   return (
     <Select
-      value={applicant.stage || "sourcing"}
+      value={currentStage}
       onValueChange={handleStageChange}
     >
-      <SelectTrigger className="w-full h-8 text-xs">
+      <SelectTrigger className="w-full h-8 text-xs bg-background border border-border">
         <SelectValue placeholder="Select a stage" />
       </SelectTrigger>
       <SelectContent className="bg-background border border-border shadow-lg z-50">
         {STAGE_OPTIONS.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem 
+            key={option.value} 
+            value={option.value}
+            className="text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground"
+          >
             {option.label}
           </SelectItem>
         ))}

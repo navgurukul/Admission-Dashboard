@@ -58,10 +58,13 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   
   const availableStatuses = useMemo(() => {
     const currentStage = applicant.stage || "sourcing";
-    return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
+    console.log('Current stage:', currentStage);
+    console.log('Available statuses:', STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP]);
+    return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || STAGE_STATUS_MAP.sourcing;
   }, [applicant.stage]);
 
   const handleStatusChange = async (newStatus: string) => {
+    console.log('Changing status to:', newStatus);
     try {
       const { error } = await supabase
         .from("admission_dashboard")
@@ -88,14 +91,22 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     }
   };
 
+  const currentStatus = applicant.status || "";
+  console.log('Current status:', currentStatus);
+  console.log('Current applicant:', applicant);
+
   return (
-    <Select value={applicant.status || ""} onValueChange={handleStatusChange}>
-      <SelectTrigger className="w-full h-8 text-xs">
+    <Select value={currentStatus} onValueChange={handleStatusChange}>
+      <SelectTrigger className="w-full h-8 text-xs bg-background border border-border">
         <SelectValue placeholder="Select status" />
       </SelectTrigger>
-      <SelectContent className="bg-background border border-border shadow-lg z-50">
+      <SelectContent className="bg-background border border-border shadow-lg z-50 max-h-[200px] overflow-y-auto">
         {availableStatuses.map((status) => (
-          <SelectItem key={status} value={status} className="text-xs">
+          <SelectItem 
+            key={status} 
+            value={status} 
+            className="text-xs cursor-pointer hover:bg-accent hover:text-accent-foreground"
+          >
             {status}
           </SelectItem>
         ))}
