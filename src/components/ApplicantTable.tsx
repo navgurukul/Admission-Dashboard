@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Filter, Search, Edit, Trash2, Mail, MoreHorizontal } from "lucide-react";
+import { Plus, Filter, Search, Edit, Trash2, Mail, MoreHorizontal, Upload, Download } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
@@ -17,7 +18,8 @@ import { BulkUpdateModal } from "./BulkUpdateModal";
 import { ApplicantModal } from "./ApplicantModal";
 import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import { ApplicantLogsModal } from "./ApplicantLogsModal";
+import CSVImportModal from "./CSVImportModal";
+import { CampusSelector } from "./CampusSelector";
 import { useToast } from "@/hooks/use-toast";
 
 type StatusType = 
@@ -60,12 +62,14 @@ const ApplicantTable = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
+  const [showCSVImport, setShowCSVImport] = useState(false);
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
   const [applicantToEditInline, setApplicantToEditInline] = useState<any | null>(null);
   const [applicantForComments, setApplicantForComments] = useState<any | null>(null);
-  const [applicantForLogs, setApplicantForLogs] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
+  const [cellValue, setCellValue] = useState("");
   const [filters, setFilters] = useState<FilterState>({
     stage: 'all',
     status: 'all',
@@ -215,6 +219,132 @@ const ApplicantTable = () => {
     setFilters(newFilters);
   };
 
+  const exportToCSV = () => {
+    if (!filteredApplicants || filteredApplicants.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No applicants to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = [
+      'mobile_no', 'unique_number', 'name', 'city', 'block', 'caste', 'gender',
+      'qualification', 'current_work', 'qualifying_school', 'whatsapp_number',
+      'set_name', 'exam_centre', 'date_of_testing', 'lr_status', 'lr_comments',
+      'cfr_status', 'cfr_comments', 'final_marks', 'offer_letter_status',
+      'allotted_school', 'joining_status', 'final_notes', 'triptis_notes',
+      'campus', 'stage', 'status'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...filteredApplicants.map(applicant => 
+        headers.map(header => {
+          const value = applicant[header];
+          if (value === null || value === undefined) return '';
+          const stringValue = String(value);
+          return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `applicants_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Complete",
+      description: `Exported ${filteredApplicants.length} applicants to CSV`,
+    });
+  };
+
+  const startCellEdit = (id: string, field: string, currentValue: any) => {
+    setEditingCell({ id, field });
+    setCellValue(currentValue || "");
+  };
+
+  const saveCellEdit = async () => {
+    if (!editingCell) return;
+
+    try {
+      const { error } = await supabase
+        .from("admission_dashboard")
+        .update({ 
+          [editingCell.field]: cellValue,
+          last_updated: new Date().toISOString()
+        })
+        .eq("id", editingCell.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Field updated successfully",
+      });
+
+      setEditingCell(null);
+      setCellValue("");
+      refetch();
+    } catch (error) {
+      console.error('Error updating field:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update field",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelCellEdit = () => {
+    setEditingCell(null);
+    setCellValue("");
+  };
+
+  const EditableCell = ({ applicant, field, displayValue }: { applicant: any, field: string, displayValue: any }) => {
+    const isEditing = editingCell?.id === applicant.id && editingCell?.field === field;
+    
+    if (isEditing) {
+      return (
+        <div className="flex items-center gap-2">
+          <Input
+            value={cellValue}
+            onChange={(e) => setCellValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveCellEdit();
+              if (e.key === 'Escape') cancelCellEdit();
+            }}
+            className="h-8 text-xs"
+            autoFocus
+          />
+          <Button size="sm" onClick={saveCellEdit} className="h-6 px-2">
+            ✓
+          </Button>
+          <Button size="sm" variant="outline" onClick={cancelCellEdit} className="h-6 px-2">
+            ✕
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px]"
+        onClick={() => startCellEdit(applicant.id, field, displayValue)}
+        title="Click to edit"
+      >
+        {displayValue || "Click to add"}
+      </div>
+    );
+  };
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -255,6 +385,22 @@ const ApplicantTable = () => {
                 </Button>
               </div>
             )}
+            <Button
+              onClick={() => setShowCSVImport(true)}
+              variant="outline"
+              size="sm"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button
+              onClick={exportToCSV}
+              variant="outline"
+              size="sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
             <Button
               onClick={() => setShowAdvancedFilters(true)}
               variant="outline"
@@ -332,16 +478,26 @@ const ApplicantTable = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="link"
-                          onClick={() => setApplicantToView(applicant)}
-                          className="p-0 h-auto font-normal"
-                        >
-                          {applicant.name || "No name"}
-                        </Button>
+                        <EditableCell 
+                          applicant={applicant} 
+                          field="name" 
+                          displayValue={applicant.name || "No name"} 
+                        />
                       </TableCell>
-                      <TableCell>{applicant.mobile_no}</TableCell>
-                      <TableCell>{applicant.campus || "Not assigned"}</TableCell>
+                      <TableCell>
+                        <EditableCell 
+                          applicant={applicant} 
+                          field="mobile_no" 
+                          displayValue={applicant.mobile_no} 
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <CampusSelector
+                          currentCampus={applicant.campus}
+                          applicantId={applicant.id}
+                          onCampusChange={refetch}
+                        />
+                      </TableCell>
                       <TableCell>
                         <Select
                           value={applicant.stage || "contact"}
@@ -391,14 +547,8 @@ const ApplicantTable = () => {
                             <DropdownMenuItem onClick={() => setApplicantToView(applicant)}>
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setApplicantToEditInline(applicant)}>
-                              Edit
-                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setApplicantForComments(applicant)}>
                               Comments
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setApplicantForLogs(applicant)}>
-                              View Logs
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -415,6 +565,12 @@ const ApplicantTable = () => {
       <AddApplicantModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
+        onSuccess={refetch}
+      />
+
+      <CSVImportModal
+        isOpen={showCSVImport}
+        onClose={() => setShowCSVImport(false)}
         onSuccess={refetch}
       />
 
@@ -438,27 +594,11 @@ const ApplicantTable = () => {
         onClose={() => setApplicantToView(null)}
       />
 
-      {applicantToEditInline && (
-        <InlineEditModal
-          applicant={applicantToEditInline}
-          isOpen={!!applicantToEditInline}
-          onClose={() => setApplicantToEditInline(null)}
-          onSuccess={refetch}
-        />
-      )}
-
       <ApplicantCommentsModal
         applicantId={applicantForComments?.id || ""}
         applicantName={applicantForComments?.name || ""}
         isOpen={!!applicantForComments}
         onClose={() => setApplicantForComments(null)}
-      />
-
-      <ApplicantLogsModal
-        applicantId={applicantForLogs?.id || ""}
-        applicantName={applicantForLogs?.name || ""}
-        isOpen={!!applicantForLogs}
-        onClose={() => setApplicantForLogs(null)}
       />
     </Card>
   );
