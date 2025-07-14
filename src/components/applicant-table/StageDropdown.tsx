@@ -17,7 +17,7 @@ const STAGE_OPTIONS = [
   { value: "onboarded", label: "Onboarded" }
 ];
 
-export const StageDropdown = React.memo(({ applicant, onUpdate }: StageDropdownProps) => {
+const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
   const { toast } = useToast();
 
   const handleStageChange = async (value: string) => {
@@ -65,6 +65,6 @@ export const StageDropdown = React.memo(({ applicant, onUpdate }: StageDropdownP
       </SelectContent>
     </Select>
   );
-});
+};
 
-StageDropdown.displayName = "StageDropdown";
+export default React.memo(StageDropdown);

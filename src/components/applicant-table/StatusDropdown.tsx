@@ -43,7 +43,7 @@ const STAGE_STATUS_MAP = {
   ]
 };
 
-export const StatusDropdown = React.memo(({ applicant, onUpdate }: StatusDropdownProps) => {
+const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const { toast } = useToast();
   
   const availableStatuses = useMemo(() => {
@@ -92,6 +92,6 @@ export const StatusDropdown = React.memo(({ applicant, onUpdate }: StatusDropdow
       </SelectContent>
     </Select>
   );
-});
+};
 
-StatusDropdown.displayName = "StatusDropdown";
+export default React.memo(StatusDropdown);
