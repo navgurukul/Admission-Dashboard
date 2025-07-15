@@ -28,27 +28,25 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/applicants" element={<ProtectedRoute><AllApplicants /></ProtectedRoute>} />
-            <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
-            <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-            <Route path="/questions" element={<ProtectedRoute><QuestionRepository /></ProtectedRoute>} />
-            <Route path="/sourcing" element={<ProtectedRoute><Sourcing /></ProtectedRoute>} />
-            <Route path="/screening" element={<ProtectedRoute><Screening /></ProtectedRoute>} />
-            <Route path="/interview-rounds" element={<ProtectedRoute><InterviewRounds /></ProtectedRoute>} />
-            <Route path="/decisions" element={<ProtectedRoute><FinalDecisions /></ProtectedRoute>} />
-            <Route path="/partners" element={<ProtectedRoute><PartnerPage /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-            <Route path="/offer-letters" element={<ProtectedRoute><OfferLetters /></ProtectedRoute>} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/applicants" element={<ProtectedRoute><AllApplicants /></ProtectedRoute>} />
+          <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
+          <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+          <Route path="/questions" element={<ProtectedRoute><QuestionRepository /></ProtectedRoute>} />
+          <Route path="/sourcing" element={<ProtectedRoute><Sourcing /></ProtectedRoute>} />
+          <Route path="/screening" element={<ProtectedRoute><Screening /></ProtectedRoute>} />
+          <Route path="/interview-rounds" element={<ProtectedRoute><InterviewRounds /></ProtectedRoute>} />
+          <Route path="/decisions" element={<ProtectedRoute><FinalDecisions /></ProtectedRoute>} />
+          <Route path="/partners" element={<ProtectedRoute><PartnerPage /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+          <Route path="/offer-letters" element={<ProtectedRoute><OfferLetters /></ProtectedRoute>} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
