@@ -1,47 +1,47 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+
+interface AdminUser {
+  id: number;
+  email: string;
+  password: string;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
+  user: AdminUser | null;
+  signIn: (email: string) => void;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AdminUser | null>(null);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
+    const email = localStorage.getItem("currentUserEmail");
+    const adminUsers: AdminUser[] = JSON.parse(localStorage.getItem("adminUser") || "[]");
+    const foundUser = adminUsers.find(
+      (u) => u.email.toLowerCase() === (email || "").toLowerCase()
     );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    setUser(foundUser || null);
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signIn = (email: string) => {
+    localStorage.setItem("currentUserEmail", email);
+    const adminUsers: AdminUser[] = JSON.parse(localStorage.getItem("adminUser") || "[]");
+    const foundUser = adminUsers.find(
+      (u) => u.email.toLowerCase() === (email || "").toLowerCase()
+    );
+    setUser(foundUser || null);
+  };
+
+  const signOut = () => {
+    localStorage.removeItem("currentUserEmail");
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -49,8 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 }

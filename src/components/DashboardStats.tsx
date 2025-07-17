@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardMetrics {
   totalApplicants: number;
@@ -10,7 +10,13 @@ interface DashboardMetrics {
   successfullyOnboarded: number;
 }
 
+let supabase: any = undefined;
+try {
+  supabase = require("@/integrations/supabase/client").supabase;
+} catch {}
+
 export function DashboardStats() {
+  const { user } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalApplicants: 0,
     activeApplications: 0,
@@ -20,48 +26,37 @@ export function DashboardStats() {
   const [loading, setLoading] = useState(true);
 
   const fetchMetrics = async () => {
+    if (!supabase || !user) return;
     try {
       setLoading(true);
-      
-      // Check authentication state
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('No active session, skipping metrics fetch');
+      if (!supabase.from) {
+        setLoading(false);
         return;
       }
-
-      // Fetch all data to calculate metrics
+      
       const { data, error } = await supabase
         .from('admission_dashboard')
         .select('*');
-
+        
       if (error) {
-        console.error('Error fetching metrics:', error);
+        console.error('Error fetching dashboard data:', error);
         return;
       }
-
+      
       if (data) {
-        // Calculate metrics from the data
         const totalApplicants = data.length;
-        
-        // Active Applications: those with lr_status or cfr_status set (not null/empty)
         const activeApplications = data.filter(applicant => 
           (applicant.lr_status && applicant.lr_status.trim() !== '') ||
           (applicant.cfr_status && applicant.cfr_status.trim() !== '')
         ).length;
-        
-        // Interviews Scheduled: those with offer_letter_status set
         const interviewsScheduled = data.filter(applicant => 
           applicant.offer_letter_status && applicant.offer_letter_status.trim() !== ''
         ).length;
-        
-        // Successfully Onboarded: those with joining_status = 'Joined' or similar
         const successfullyOnboarded = data.filter(applicant => 
           applicant.joining_status && 
           (applicant.joining_status.toLowerCase().includes('joined') || 
            applicant.joining_status.toLowerCase().includes('onboarded'))
         ).length;
-
         setMetrics({
           totalApplicants,
           activeApplications,
@@ -70,38 +65,22 @@ export function DashboardStats() {
         });
       }
     } catch (error) {
-      console.error('Error calculating metrics:', error);
+      console.error('Error in fetchMetrics:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMetrics();
-
-    // Set up real-time subscription for automatic updates
-    const channel = supabase
-      .channel('dashboard_metrics_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'admission_dashboard'
-        },
-        (payload) => {
-          console.log('Real-time metrics update received:', payload);
-          // Refetch metrics when changes occur
-          fetchMetrics();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up dashboard metrics subscription');
-      supabase.removeChannel(channel);
+    if (!supabase || !user) return;
+    let isMounted = true;
+    const checkAndFetch = async () => {
+      if (!supabase || !user) return;
+      if (isMounted) fetchMetrics();
     };
-  }, []);
+    checkAndFetch();
+    return () => { isMounted = false; };
+  }, [user]);
 
   const stats = [
     {

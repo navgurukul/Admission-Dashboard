@@ -1,15 +1,45 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Trash2, Plus, X, Download } from "lucide-react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 
 const ROWS_PER_PAGE = 10;
 
+// Hardcoded initial data
+const initialUsers = [
+  {
+    id: 1,
+    email: "urmilaparte23@navgurukul.org",
+    password: "123456"
+  }
+];
+
+const hardcodedRoles = [
+  { id: 1, roles: "admin", description: "Full system administrator" },
+  { id: 2, roles: "manager", description: "Department manager" },
+  { id: 3, roles: "coordinator", description: "Program coordinator" },
+  { id: 4, roles: "teacher", description: "Teaching staff" },
+  { id: 5, roles: "student", description: "Student access" },
+  { id: 6, roles: "fullDashboardAccess", description: "Full dashboard access" },
+  { id: 7, roles: "limitedAccess", description: "Limited system access" }
+];
+
+const hardcodedPrivileges = [
+  { id: 1, privilege: "read", description: "Read access to data" },
+  { id: 2, privilege: "write", description: "Write access to data" },
+  { id: 3, privilege: "delete", description: "Delete access to data" },
+  { id: 4, privilege: "export", description: "Export data access" },
+  { id: 5, privilege: "import", description: "Import data access" },
+  { id: 6, privilege: "approve", description: "Approval permissions" },
+  { id: 7, privilege: "view_reports", description: "View reports access" }
+];
+
 const AdminPage = () => {
-  const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [privileges, setPrivileges] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [users, setUsers] = useState(() => {
+    const stored = localStorage.getItem("adminUser");
+    return stored ? JSON.parse(stored) : initialUsers;
+  });
+  const [roles] = useState(hardcodedRoles);
+  const [privileges] = useState(hardcodedPrivileges);
   const [page, setPage] = useState(1);
   // Snackbar state
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
@@ -18,55 +48,7 @@ const AdminPage = () => {
   // Add Privilege Dialog state
   const [addPrivilegeDialog, setAddPrivilegeDialog] = useState({ open: false, userIdx: null, selectedPrivilege: "" });
   // Add User Dialog state
-  const [addUserDialog, setAddUserDialog] = useState({ open: false, email: "" });
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      
-      try {
-        console.log("Fetching admin data...");
-        
-        const [userResponse, roleResponse, privilegeResponse] = await Promise.all([
-          fetch("https://dev-join.navgurukul.org/api/rolebaseaccess/email"),
-          fetch("https://dev-join.navgurukul.org/api/role/getRole"),
-          fetch("https://dev-join.navgurukul.org/api/role/getPrivilege")
-        ]);
-
-        if (!userResponse.ok) {
-          throw new Error(`User API failed: ${userResponse.status}`);
-        }
-        if (!roleResponse.ok) {
-          throw new Error(`Role API failed: ${roleResponse.status}`);
-        }
-        if (!privilegeResponse.ok) {
-          throw new Error(`Privilege API failed: ${privilegeResponse.status}`);
-        }
-
-        const [userData, roleData, privilegeData] = await Promise.all([
-          userResponse.json(),
-          roleResponse.json(),
-          privilegeResponse.json()
-        ]);
-
-        console.log("User data:", userData);
-        console.log("Role data:", roleData);
-        console.log("Privilege data:", privilegeData);
-
-        setUsers(userData || []);
-        setRoles(roleData || []);
-        setPrivileges(privilegeData || []);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching admin data:", err);
-        setError(`Failed to fetch admin data: ${err.message}`);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const [addUserDialog, setAddUserDialog] = useState({ open: false, email: "", password: "" });
 
   // Pagination logic
   const reversedUsers = [...users].reverse();
@@ -122,6 +104,7 @@ const AdminPage = () => {
     setUsers((prev) => {
       const newUsers = [...prev];
       newUsers.splice(userIdx, 1);
+      localStorage.setItem("adminUser", JSON.stringify(newUsers));
       return newUsers;
     });
     showSnackbar("User deleted successfully");
@@ -178,27 +161,29 @@ const AdminPage = () => {
   };
 
   // Open/close Add User Dialog
-  const openAddUserDialog = () => setAddUserDialog({ open: true, email: "" });
-  const closeAddUserDialog = () => setAddUserDialog({ open: false, email: "" });
+  const openAddUserDialog = () => setAddUserDialog({ open: true, email: "", password: "" });
+  const closeAddUserDialog = () => setAddUserDialog({ open: false, email: "", password: "" });
 
   // Handle Add User form changes
-  const handleAddUserChange = (value) => {
-    setAddUserDialog((d) => ({ ...d, email: value }));
+  const handleAddUserChange = (field, value) => {
+    setAddUserDialog((d) => ({ ...d, [field]: value }));
   };
 
-  // Add User submit (email only)
+  // Add User submit (email and password)
   const handleAddUserSubmit = (e) => {
     e.preventDefault();
-    if (!addUserDialog.email) return;
-    setUsers((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        email: addUserDialog.email,
-        userrole: [{ role: [], privileges: [] }],
-      },
-    ]);
-    showSnackbar("User email created successfully");
+    if (!addUserDialog.email || !addUserDialog.password) return;
+    const existingUsers = JSON.parse(localStorage.getItem("adminUser")) || [];
+    const newUser = { 
+      id: Date.now(), 
+      email: addUserDialog.email.trim().toLowerCase(), 
+      password: addUserDialog.password,
+      userrole: [{ role: [], privileges: [] }]
+    };
+    const updatedUsers = [...existingUsers, newUser];
+    localStorage.setItem("adminUser", JSON.stringify(updatedUsers));
+    setUsers(updatedUsers);
+    showSnackbar("User created successfully");
     closeAddUserDialog();
   };
 
@@ -260,23 +245,9 @@ const AdminPage = () => {
             </div>
           </div>
           
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="text-lg">Loading admin data...</div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-10">
-              <div className="text-red-500 text-lg mb-2">{error}</div>
-              <button 
-                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                onClick={() => window.location.reload()}
-              >
-                Retry
-              </button>
-            </div>
-          ) : users.length === 0 ? (
+          {users.length === 0 ? (
             <div className="text-center py-10 text-gray-500">
-              No users found. The API might be empty or there was an issue fetching data.
+              No users found.
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg shadow bg-white">
@@ -477,7 +448,18 @@ const AdminPage = () => {
                     className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="Enter Email"
                     value={addUserDialog.email}
-                    onChange={e => handleAddUserChange(e.target.value)}
+                    onChange={e => handleAddUserChange("email", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-1 text-orange-600">Enter Password</label>
+                  <input
+                    type="password"
+                    className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Enter Password"
+                    value={addUserDialog.password}
+                    onChange={e => handleAddUserChange("password", e.target.value)}
                     required
                   />
                 </div>
