@@ -70,7 +70,7 @@ const getCurrentStage = (applicant: ApplicantData): string => {
   return 'Sourcing & Outreach';
 };
 
-export function ApplicantTable() {
+export default function ApplicantTable() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantData | null>(null);
