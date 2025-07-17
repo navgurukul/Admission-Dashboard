@@ -75,8 +75,10 @@ export function AdmissionsSidebar() {
   const handleLogout = async () => {
     if (googleUser) {
       googleSignOut();
+      window.location.href = "/Admission-Dashboard/auth";
     } else {
       await signOut();
+      window.location.href = "/Admission-Dashboard/auth";
     }
   };
 
