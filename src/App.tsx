@@ -20,6 +20,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PartnerPage from "./pages/Partner";
 import AdminPage from "./pages/Admin";
+import Student from "./pages/Student";
 import Donor from "./pages/Donor";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,8 @@ const App = () => (
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           <Route path="/donor" element={<ProtectedRoute><Donor /></ProtectedRoute>} />
           <Route path="/offer-letters" element={<ProtectedRoute><OfferLetters /></ProtectedRoute>} />
+          {/* Custom student redirect route */}
+          <Route path="/students" element={<Student />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

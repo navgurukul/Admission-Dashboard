@@ -1,61 +1,52 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-// const roleToRoute = {
-//   admin: "/admin",
-//   donor: "/donor",
-//   campus: "/campus",
-//   fullDashboardAccess: "/dashboard",
-// };
-
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
+  const { user: googleUser, isAuthenticated, loading: googleLoading } = useGoogleAuth();
   const navigate = useNavigate();
-  // const location = useLocation();
-  // const [roleLoading, setRoleLoading] = useState(true);
-  // const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Hardcoded allowed values
+  const ALLOWED_EMAIL = "urmilaparte@navgurukul.org";
+  const ALLOWED_ROLE = "admin";
+
+  // Helper to get current user's email and role
+  const getCurrentUserInfo = () => {
+    if (user) {
+      // Supabase user
+      return { email: user.email, role: "admin" }; // TODO: Replace with real role if available
+    } else if (googleUser) {
+      // Google user
+      return { email: googleUser.email, role: "admin" }; // TODO: Replace with real role if available
+    }
+    return { email: null, role: null };
+  };
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-      return;
+    if (!loading && !googleLoading) {
+      // Check if user is authenticated via either method
+      const isUserAuthenticated = user || (googleUser && isAuthenticated);
+      if (!isUserAuthenticated) {
+        navigate("/students", { replace: true });
+        return;
+      }
+      // Role/email check
+      const { email, role } = getCurrentUserInfo();
+      if (email !== ALLOWED_EMAIL || role !== ALLOWED_ROLE) {
+        navigate("/students", { replace: true });
+        return;
+      }
     }
-    // if (!loading && user) {
-    //   const email = user.email || "";
-    //   if (!email.endsWith("@navgurukul.com")) {
-    //     navigate("/auth");
-    //     return;
-    //   }
-    //   // Fetch user role from API
-    //   setRoleLoading(true);
-    //   fetch("https://dev-join.navgurukul.org/api/rolebaseaccess/email")
-    //     .then((res) => res.json())
-    //     .then((data) => {
-    //       const found = data.find((u) => u.email === email);
-    //       if (!found || !found.userrole || found.userrole.length === 0) {
-    //         setUserRole(null);
-    //         setRoleLoading(false);
-    //         navigate("/auth");
-    //         return;
-    //       }
-    //       const roleObj = found.userrole.find((ur) => ur.role && ur.role.length > 0);
-    //       const role = roleObj && roleObj.role[0]?.roles;
-    //       setUserRole(role);
-    //       setRoleLoading(false);
-    //       const expectedRoute = roleToRoute[role] || "/auth";
-    //       if (location.pathname !== expectedRoute) {
-    //         navigate(expectedRoute, { replace: true });
-    //       }
-    //     });
-    // }
-  }, [user, loading, navigate]);
+  }, [user, loading, googleUser, isAuthenticated, googleLoading, navigate]);
 
-  if (loading) {
+  // Show loading while checking authentication
+  if (loading || googleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -66,11 +57,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // // Only render children if user is on the correct route for their role
-  // const expectedRoute = userRole ? roleToRoute[userRole] : "/auth";
-  // if (location.pathname !== expectedRoute) {
-  //   return null;
-  // }
+  // Check if user is authenticated via either method
+  const isUserAuthenticated = user || (googleUser && isAuthenticated);
+  if (!isUserAuthenticated) {
+    return null; // Will redirect to auth page
+  }
+
+  // Role/email check (for SSR safety)
+  const { email, role } = getCurrentUserInfo();
+  if (email !== ALLOWED_EMAIL || role !== ALLOWED_ROLE) {
+    return null; // Will redirect to /notfound
+  }
 
   return <>{children}</>;
 }
