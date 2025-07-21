@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
+import { log } from 'node:console';
 
 interface GoogleUser {
   id: string;
@@ -92,7 +93,7 @@ export const useGoogleAuth = () => {
 
       // Decode the JWT token
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
-      
+
       const user: GoogleUser = {
         id: payload.sub,
         email: payload.email,
@@ -101,44 +102,68 @@ export const useGoogleAuth = () => {
         provider: 'google',
       };
 
-      // Store user info
-      localStorage.setItem('googleUser', JSON.stringify(user));
-      
-      // Fetch role-based access and privileges
+      // Try to fetch role/privilege
       try {
         const roleAccessResponse = await fetch(`https://dev-join.navgurukul.org/api/rolebaseaccess/mail/${user.email}`);
         const roleAccessData = await roleAccessResponse.json();
-        console.log('Role-based access data:', roleAccessData);
 
         const privilegesResponse = await fetch('https://dev-join.navgurukul.org/api/role/getPrivilege');
         const privilegesData = await privilegesResponse.json();
-        console.log('Privileges data:', privilegesData);
 
-        localStorage.setItem('roleAccess', JSON.stringify(roleAccessData));
-        localStorage.setItem('privileges', JSON.stringify(privilegesData));
+        // Only store if both fetches are successful and data is valid
+        if (roleAccessData && privilegesData) {
+          localStorage.setItem('googleUser', JSON.stringify(user));
+          localStorage.setItem('roleAccess', JSON.stringify(roleAccessData));
+          localStorage.setItem('privileges', JSON.stringify(privilegesData));
+
+          setAuthState({
+            user,
+            loading: false,
+            isAuthenticated: true,
+          });
+
+          toast({
+            title: "Welcome!",
+            description: `Successfully signed in with Google as ${user.name}`,
+          });
+        } else {
+          // If data is not valid, clear everything and set unauthenticated
+          localStorage.removeItem('googleUser');
+          localStorage.removeItem('roleAccess');
+          localStorage.removeItem('privileges');
+          setAuthState({
+            user: null,
+            loading: false,
+            isAuthenticated: false,
+          });
+          toast({
+            title: "Error",
+            description: "Failed to fetch user role or privileges. Please try again.",
+            variant: "destructive",
+          });
+        }
       } catch (apiError) {
-        console.error('Error fetching role data:', apiError);
+        // On fetch error, clear everything and set unauthenticated
+        localStorage.removeItem('googleUser');
+        localStorage.removeItem('roleAccess');
+        localStorage.removeItem('privileges');
+        setAuthState({
+          user: null,
+          loading: false,
+          isAuthenticated: false,
+        });
+        toast({
+          title: "Error",
+          description: "Failed to fetch user role or privileges. Please try again.",
+          variant: "destructive",
+        });
       }
-
-      setAuthState({
-        user,
-        loading: false,
-        isAuthenticated: true,
-      });
-
-      toast({
-        title: "Welcome!",
-        description: `Successfully signed in with Google as ${user.name}`,
-      });
-
     } catch (error) {
-      console.error('Google sign-in error:', error);
       setAuthState({
         user: null,
         loading: false,
         isAuthenticated: false,
       });
-      
       toast({
         title: "Error",
         description: "Failed to sign in with Google. Please try again.",
@@ -179,7 +204,7 @@ export const useGoogleAuth = () => {
           size: 'large',
           text: 'continue_with',
           shape: 'rectangular',
-          width: '100%',
+          width: 250,
         }
       );
     }

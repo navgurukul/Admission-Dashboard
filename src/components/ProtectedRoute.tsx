@@ -12,13 +12,34 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user: googleUser, isAuthenticated, loading: googleLoading } = useGoogleAuth();
   const navigate = useNavigate();
 
+  // Hardcoded allowed values
+  const ALLOWED_EMAIL = "urmilaparte@navgurukul.org";
+  const ALLOWED_ROLE = "admin";
+
+  // Helper to get current user's email and role
+  const getCurrentUserInfo = () => {
+    if (user) {
+      // Supabase user
+      return { email: user.email, role: "admin" }; // TODO: Replace with real role if available
+    } else if (googleUser) {
+      // Google user
+      return { email: googleUser.email, role: "admin" }; // TODO: Replace with real role if available
+    }
+    return { email: null, role: null };
+  };
+
   useEffect(() => {
     if (!loading && !googleLoading) {
       // Check if user is authenticated via either method
       const isUserAuthenticated = user || (googleUser && isAuthenticated);
-      
       if (!isUserAuthenticated) {
-        navigate("/auth");
+        navigate("/students", { replace: true });
+        return;
+      }
+      // Role/email check
+      const { email, role } = getCurrentUserInfo();
+      if (email !== ALLOWED_EMAIL || role !== ALLOWED_ROLE) {
+        navigate("/students", { replace: true });
         return;
       }
     }
@@ -38,9 +59,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Check if user is authenticated via either method
   const isUserAuthenticated = user || (googleUser && isAuthenticated);
-  
   if (!isUserAuthenticated) {
     return null; // Will redirect to auth page
+  }
+
+  // Role/email check (for SSR safety)
+  const { email, role } = getCurrentUserInfo();
+  if (email !== ALLOWED_EMAIL || role !== ALLOWED_ROLE) {
+    return null; // Will redirect to /notfound
   }
 
   return <>{children}</>;
