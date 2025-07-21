@@ -6,7 +6,8 @@ import {
   Mail,
   FileText,
   Users,
-  MessageSquare
+  MessageSquare,
+  Handshake // Added Handshake icon
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Admin", href: "/admin", icon: Users }, // From master
   { name: "Partner", href: "/partners", icon: Users }, // From master
+  { name: "Donor", href: "/donor", icon: Handshake }, // Changed to Handshake icon
   { name: "Interviews", href: "/interviews", icon: MessageSquare }, // From master
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Question Repository", href: "/questions", icon: FileText },
