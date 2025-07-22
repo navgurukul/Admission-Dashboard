@@ -27,8 +27,8 @@ const Index = () => {
             <DashboardStats />
           </div>
 
-          {/* Applicants Table */}
-          {/* <ApplicantTable /> */}
+          Applicants Table
+          <ApplicantTable />
         </div>
       </main>
     </div>

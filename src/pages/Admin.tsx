@@ -22,10 +22,9 @@ const AdminPage = () => {
   const [addPrivilegeDialog, setAddPrivilegeDialog] = useState({ open: false, userIdx: null, selectedPrivilege: "" });
   // Add User Dialog state
   const [addUserDialog, setAddUserDialog] = useState({ open: false, email: "" });
+  const navigate = useNavigate()
 
-  const navigate = useNavigate();
-
-  // Hardcoded user info for now
+   // Hardcoded user info for now
   const currentUser = {
     email: "urmilaparte@navgurukul.org", // TODO: Replace with real user email
     role: "admin" // TODO: Replace with real user role
