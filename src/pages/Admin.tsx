@@ -22,27 +22,10 @@ const AdminPage = () => {
   const [addPrivilegeDialog, setAddPrivilegeDialog] = useState({ open: false, userIdx: null, selectedPrivilege: "" });
   // Add User Dialog state
   const [addUserDialog, setAddUserDialog] = useState({ open: false, email: "" });
-  const navigate = useNavigate()
 
-   // Hardcoded user info for now
-  const currentUser = {
-    email: "urmilaparte@navgurukul.org", // TODO: Replace with real user email
-    role: "admin" // TODO: Replace with real user role
-  };
-  const ALLOWED_EMAIL = "urmilaparte@navgurukul.org";
-  const ALLOWED_ROLE = "admin";
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Access control logic
-    if (
-      currentUser.email !== ALLOWED_EMAIL ||
-      currentUser.role !== ALLOWED_ROLE
-    ) {
-      // Redirect to notfound route if not allowed
-      navigate("/students", { replace: true });
-      return;
-    }
-
     const fetchData = async () => {
       setLoading(true);
       setError("");
@@ -79,7 +62,7 @@ const AdminPage = () => {
       }
     };
     fetchData();
-  }, [navigate]);
+  }, []);
 
   // Pagination logic
   const reversedUsers = [...users].reverse();
