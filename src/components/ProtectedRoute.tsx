@@ -12,20 +12,17 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user: googleUser, isAuthenticated, loading: googleLoading } = useGoogleAuth();
   const navigate = useNavigate();
 
-  // Hardcoded allowed values
-  const ALLOWED_EMAIL = "urmilaparte@navgurukul.org";
-  const ALLOWED_ROLE = "admin";
+  // Allowed admin emails
+  const ALLOWED_EMAILS = ["nasir@navgurukul.org", "urmilaparte23@navgurukul.org", "saksham.c@navgurukul.org", "mukul@navgurukul.org"];
 
-  // Helper to get current user's email and role
-  const getCurrentUserInfo = () => {
+  // Helper to get current user's email
+  const getCurrentUserEmail = () => {
     if (user) {
-      // Supabase user
-      return { email: user.email, role: "admin" }; // TODO: Replace with real role if available
+      return user.email;
     } else if (googleUser) {
-      // Google user
-      return { email: googleUser.email, role: "admin" }; // TODO: Replace with real role if available
+      return googleUser.email;
     }
-    return { email: null, role: null };
+    return null;
   };
 
   useEffect(() => {
@@ -36,9 +33,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         navigate("/students", { replace: true });
         return;
       }
-      // Role/email check
-      const { email, role } = getCurrentUserInfo();
-      if (email !== ALLOWED_EMAIL || role !== ALLOWED_ROLE) {
+      // Email check
+      const email = getCurrentUserEmail();
+      if (!ALLOWED_EMAILS.includes(email)) {
         navigate("/students", { replace: true });
         return;
       }
@@ -63,10 +60,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return null; // Will redirect to auth page
   }
 
-  // Role/email check (for SSR safety)
-  const { email, role } = getCurrentUserInfo();
-  if (email !== ALLOWED_EMAIL || role !== ALLOWED_ROLE) {
-    return null; // Will redirect to /notfound
+  // Email check (for SSR safety)
+  const email = getCurrentUserEmail();
+  if (!ALLOWED_EMAILS.includes(email)) {
+    return null; // Will redirect to /students
   }
 
   return <>{children}</>;
