@@ -22,6 +22,10 @@ import PartnerPage from "./pages/Partner";
 import AdminPage from "./pages/Admin";
 import Student from "./pages/Student";
 import Donor from "./pages/Donor";
+import Campus from "./pages/Campus";
+import CampusDetail from "./pages/CampusDetail";
+import School from "./pages/School";
+import SchoolStages from "./pages/SchoolStages";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +50,10 @@ const App = () => (
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
           <Route path="/donor" element={<ProtectedRoute><Donor /></ProtectedRoute>} />
           <Route path="/offer-letters" element={<ProtectedRoute><OfferLetters /></ProtectedRoute>} />
+          <Route path="/campus" element={<ProtectedRoute><Campus /></ProtectedRoute>} />
+          <Route path="/campus/:id" element={<ProtectedRoute><CampusDetail /></ProtectedRoute>} />
+          <Route path="/school" element={<ProtectedRoute><School /></ProtectedRoute>} />
+          <Route path="/school/:id" element={<ProtectedRoute><SchoolStages /></ProtectedRoute>} />
           {/* Custom student redirect route */}
           <Route path="/students" element={<Student />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
