@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "/", // <-- Bas yeh line change karein!
+  base: "/Admission-Dashboard/", // <-- Yeh line ab sahi hai!
   server: {
     host: "::",
     port: 8080,
