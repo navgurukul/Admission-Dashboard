@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { User, LogIn, UserPlus, Mail, Lock, User as UserIcon } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+  const { user: googleUser, isAuthenticated, loading: googleLoading, renderGoogleSignInButton } = useGoogleAuth();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -31,14 +37,17 @@ export default function Auth() {
 
   // Check if user is already authenticated
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        navigate("/");
-      }
-    };
-    checkUser();
-  }, [navigate]);
+    if ((user && !authLoading) || (googleUser && isAuthenticated)) {
+      navigate("/");
+    }
+  }, [user, authLoading, googleUser, isAuthenticated, navigate]);
+
+  // Render Google button when component mounts
+  useEffect(() => {
+    if (googleButtonRef.current) {
+      renderGoogleSignInButton('google-signin-button');
+    }
+  }, [renderGoogleSignInButton]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +151,22 @@ export default function Auth() {
     }
   };
 
+  // Show loading state while checking authentication
+  if (authLoading || googleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center p-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -164,6 +189,24 @@ export default function Auth() {
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
+              {/* Google Sign In Button */}
+              <div 
+                id="google-signin-button" 
+                ref={googleButtonRef}
+                className="w-full"
+              ></div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with email
+                  </span>
+                </div>
+              </div>
+
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>

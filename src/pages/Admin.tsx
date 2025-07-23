@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Trash2, Plus, X, Download } from "lucide-react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useNavigate } from "react-router-dom";
 
 const ROWS_PER_PAGE = 10;
 
@@ -20,43 +23,37 @@ const AdminPage = () => {
   // Add User Dialog state
   const [addUserDialog, setAddUserDialog] = useState({ open: false, email: "" });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError("");
-      
       try {
         console.log("Fetching admin data...");
-        
-        const [userResponse, roleResponse, privilegeResponse] = await Promise.all([
-          fetch("https://dev-join.navgurukul.org/api/rolebaseaccess/email"),
-          fetch("https://dev-join.navgurukul.org/api/role/getRole"),
-          fetch("https://dev-join.navgurukul.org/api/role/getPrivilege")
-        ]);
+        // --- API call for user role is commented out until backend is ready ---
+        // const [userResponse, roleResponse, privilegeResponse] = await Promise.all([
+        //   fetch("https://dev-join.navgurukul.org/api/rolebaseaccess/email"),
+        //   fetch("https://dev-join.navgurukul.org/api/role/getRole"),
+        //   fetch("https://dev-join.navgurukul.org/api/role/getPrivilege")
+        // ]);
+        // if (!userResponse.ok) {
+        //   throw new Error(`User API failed: ${userResponse.status}`);
+        // }
+        // const [userData, roleData, privilegeData] = await Promise.all([
+        //   userResponse.json(),
+        //   roleResponse.json(),
+        //   privilegeResponse.json()
+        // ]);
+        // setUsers(userData || []);
+        // setRoles(roleData || []);
+        // setPrivileges(privilegeData || []);
+        // --- END API call block ---
 
-        if (!userResponse.ok) {
-          throw new Error(`User API failed: ${userResponse.status}`);
-        }
-        if (!roleResponse.ok) {
-          throw new Error(`Role API failed: ${roleResponse.status}`);
-        }
-        if (!privilegeResponse.ok) {
-          throw new Error(`Privilege API failed: ${privilegeResponse.status}`);
-        }
-
-        const [userData, roleData, privilegeData] = await Promise.all([
-          userResponse.json(),
-          roleResponse.json(),
-          privilegeResponse.json()
-        ]);
-
-        console.log("User data:", userData);
-        console.log("Role data:", roleData);
-        console.log("Privilege data:", privilegeData);
-
-        setUsers(userData || []);
-        setRoles(roleData || []);
-        setPrivileges(privilegeData || []);
+        // TEMP: Use empty/mock data for now
+        setUsers([]);
+        setRoles([]);
+        setPrivileges([]);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching admin data:", err);
@@ -64,7 +61,6 @@ const AdminPage = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -241,22 +237,31 @@ const AdminPage = () => {
       <AdmissionsSidebar />
       <main className="ml-64 overflow-auto h-screen">
         <div className="p-8">
-          {/* Header Section with Download and Add User */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <h1 className="text-3xl font-bold mb-4">Role Based Access</h1>
-            <div className="flex flex-wrap gap-2 items-center justify-end">
-              <button
-                className="flex items-center bg-orange-500 text-white rounded px-4 py-2 text-sm font-semibold hover:bg-orange-600"
-                onClick={handleDownloadCSV}
-              >
-                <Download size={18} className="mr-1" />Download CSV
-              </button>
-              <button
-                className="flex items-center bg-orange-500 text-white rounded px-4 py-2 text-sm font-semibold hover:bg-orange-600"
-                onClick={openAddUserDialog}
-              >
-                <Plus size={18} className="mr-1" />Add User
-              </button>
+          {/* Header Card */}
+          <div className="bg-card rounded-xl p-6 shadow-soft border border-border mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">Role Based Access</h1>
+                <p className="text-muted-foreground">
+                  Manage user roles and privileges for the admissions portal
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Button
+                  onClick={handleDownloadCSV}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                </Button>
+                <button
+                  className="flex items-center bg-primary text-primary-foreground rounded font-semibold px-4 py-2 text-sm hover:bg-primary/90 transition-colors"
+                  onClick={openAddUserDialog}
+                >
+                  <Plus size={18} className="mr-1" />Add User
+                </button>
+              </div>
             </div>
           </div>
           
@@ -279,29 +284,29 @@ const AdminPage = () => {
               No users found. The API might be empty or there was an issue fetching data.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg shadow bg-white">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gray-100 text-gray-700">
-                    <th className="px-4 py-2 text-left whitespace-nowrap">Email</th>
-                    <th className="px-4 py-2 text-left whitespace-nowrap">Roles</th>
-                    <th className="px-4 py-2 text-left whitespace-nowrap">Privileges</th>
-                    <th className="px-4 py-2 text-left whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background z-10 border-b">
+                  <TableRow>
+                    <TableHead className="font-bold text-foreground">Email</TableHead>
+                    <TableHead className="font-bold text-foreground">Roles</TableHead>
+                    <TableHead className="font-bold text-foreground">Privileges</TableHead>
+                    <TableHead className="font-bold text-foreground">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {paginatedUsers.map((user, userIdx) => (
-                    <tr key={user.id} className="border-b hover:bg-gray-50">
+                    <TableRow key={user.id} className="border-b transition-colors hover:bg-muted/50">
                       {/* Email */}
-                      <td className="px-4 py-2 whitespace-nowrap font-medium text-red-600">{user.email}</td>
+                      <TableCell className="font-medium">{user.email}</TableCell>
                       {/* Roles */}
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      <TableCell>
                         <div className="flex flex-wrap gap-2 items-center">
                           {getUserRoles(user).map((role, roleIdx) => (
-                            <span key={roleIdx} className="inline-flex items-center bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm font-medium">
+                            <span key={roleIdx} className="inline-flex items-center bg-muted text-foreground rounded-full px-3 py-1 text-sm font-medium">
                               {role}
                               <button
-                                className="ml-1 text-gray-500 hover:text-red-500"
+                                className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
                                 onClick={() => handleRemoveRole((page - 1) * ROWS_PER_PAGE + userIdx, roleIdx)}
                               >
                                 <X size={16} />
@@ -309,21 +314,21 @@ const AdminPage = () => {
                             </span>
                           ))}
                           <button
-                            className="inline-flex items-center bg-orange-500 text-white rounded px-3 py-1 text-sm font-medium hover:bg-orange-600"
+                            className="inline-flex items-center bg-background text-foreground border border-input rounded px-3 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
                             onClick={() => openAddRoleDialog((page - 1) * ROWS_PER_PAGE + userIdx)}
                           >
                             <Plus size={16} className="mr-1" />Add
                           </button>
                         </div>
-                      </td>
+                      </TableCell>
                       {/* Privileges */}
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      <TableCell>
                         <div className="flex flex-wrap gap-2 items-center">
                           {getUserPrivileges(user).map((priv, privIdx) => (
-                            <span key={privIdx} className="inline-flex items-center bg-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm font-medium">
+                            <span key={privIdx} className="inline-flex items-center bg-muted text-foreground rounded-full px-3 py-1 text-sm font-medium">
                               {priv}
                               <button
-                                className="ml-1 text-gray-500 hover:text-red-500"
+                                className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
                                 onClick={() => handleRemovePrivilege((page - 1) * ROWS_PER_PAGE + userIdx, privIdx)}
                               >
                                 <X size={16} />
@@ -331,41 +336,41 @@ const AdminPage = () => {
                             </span>
                           ))}
                           <button
-                            className="inline-flex items-center bg-orange-500 text-white rounded px-3 py-1 text-sm font-medium hover:bg-orange-600"
+                            className="inline-flex items-center bg-background text-foreground border border-input rounded px-3 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
                             onClick={() => openAddPrivilegeDialog((page - 1) * ROWS_PER_PAGE + userIdx)}
                           >
                             <Plus size={16} className="mr-1" />Add
                           </button>
                         </div>
-                      </td>
+                      </TableCell>
                       {/* Actions */}
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      <TableCell>
                         <button
-                          className="text-red-600 hover:text-red-800"
+                          className="text-muted-foreground hover:text-destructive transition-colors"
                           onClick={() => handleDeleteUser((page - 1) * ROWS_PER_PAGE + userIdx)}
                         >
                           <Trash2 size={22} />
                         </button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
               {/* Pagination Controls */}
-              <div className="flex items-center justify-end gap-4 p-4 bg-white border-t border-gray-200">
-                <span className="text-sm text-gray-500">Rows per page: {ROWS_PER_PAGE}</span>
-                <span className="text-sm text-gray-500">
+              <div className="flex items-center justify-end gap-4 p-4 bg-background border-t border-border">
+                <span className="text-sm text-muted-foreground">Rows per page: {ROWS_PER_PAGE}</span>
+                <span className="text-sm text-muted-foreground">
                   {ROWS_PER_PAGE * (page - 1) + 1}-{Math.min(page * ROWS_PER_PAGE, users.length)} of {users.length}
                 </span>
                 <button
-                  className="px-2 py-1 rounded disabled:opacity-50"
+                  className="px-2 py-1 rounded font-semibold bg-muted text-foreground hover:bg-muted/80 transition-colors disabled:opacity-50"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                 >
                   &lt;
                 </button>
                 <button
-                  className="px-2 py-1 rounded disabled:opacity-50"
+                  className="px-2 py-1 rounded font-semibold bg-muted text-foreground hover:bg-muted/80 transition-colors disabled:opacity-50"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                 >
