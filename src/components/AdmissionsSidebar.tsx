@@ -22,6 +22,7 @@ const navigation = [
   { name: "Donor", href: "/donor", icon: Handshake },
   { name: "Partner", href: "/partners", icon: Users },
   { name: "Campus", href: "/campus", icon: School },
+  { name: "School", href: "/school", icon: School }, // Added School tab
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Question Repository", href: "/questions", icon: FileText },
