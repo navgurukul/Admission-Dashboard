@@ -12,5 +12,6 @@
       "source": "/Admission-Dashboard/:path((?!assets/|favicon\\.ico|robots\\.txt|placeholder\\.svg).*)",
       "destination": "/Admission-Dashboard/index.html"
     }
-  ]
+  ],
+  "outputDirectory": "dist"
 } 
