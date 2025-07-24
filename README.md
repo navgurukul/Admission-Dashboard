@@ -71,3 +71,10 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+# Troubleshooting Vercel Asset 404/Blank Page
+
+If you see 404 errors for CSS/JS after deployment (or a blank page), it is likely due to Vercel serving a cached/stale build. To fix:
+- Make a small code change (even a comment) and push to GitHub to trigger a fresh build.
+- Ensure your vercel.json rewrite rules are correct (see below).
+- Make sure Output Directory is set to `dist` in Vercel settings.
