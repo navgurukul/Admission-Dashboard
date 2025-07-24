@@ -1,17 +1,5 @@
 {
   "rewrites": [
-    {
-      "source": "/Admission-Dashboard",
-      "destination": "/Admission-Dashboard/index.html"
-    },
-    {
-      "source": "/Admission-Dashboard/",
-      "destination": "/Admission-Dashboard/index.html"
-    },
-    {
-      "source": "/Admission-Dashboard/:path((?!assets/|favicon\\.ico|robots\\.txt|placeholder\\.svg).*)",
-      "destination": "/Admission-Dashboard/index.html"
-    }
-  ],
-  "outputDirectory": "dist"
+    { "source": "/:path*", "destination": "/index.html" }
+  ]
 } 
