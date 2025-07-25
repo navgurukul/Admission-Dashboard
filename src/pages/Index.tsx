@@ -2,6 +2,7 @@
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { DashboardStats } from "@/components/DashboardStats";
 import ApplicantTable from "@/components/ApplicantTable";
+import OwnerPage from "./Owner";
 
 const Index = () => {
   return (

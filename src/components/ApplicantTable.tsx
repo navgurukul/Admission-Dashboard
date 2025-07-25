@@ -1,9 +1,23 @@
-import { useState, useMemo, useCallback } from "react";
+
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
@@ -17,39 +31,26 @@ import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
 import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
 
-interface FilterState {
-  stage: string;
-  status: string;
-  examMode: string;
-  interviewMode: string;
-  partner: string[];
-  district: string[];
-  market: string[];
-  dateRange: {
-    type: 'application' | 'lastUpdate' | 'interview';
-    from?: Date;
-    to?: Date;
-  };
-}
-
 const ApplicantTable = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
-  const [applicantForComments, setApplicantForComments] = useState<any | null>(null);
+  const [applicantForComments, setApplicantForComments] = useState<any | null>(
+    null
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [filters, setFilters] = useState({
-    stage: 'all',
-    status: 'all',
-    examMode: 'all',
-    interviewMode: 'all',
+    stage: "all",
+    status: "all",
+    examMode: "all",
+    interviewMode: "all",
     partner: [],
     district: [],
     market: [],
-    dateRange: { type: 'application' as const }
+    dateRange: { type: "application" as const },
   });
   const { toast } = useToast();
 
@@ -76,8 +77,8 @@ const ApplicantTable = () => {
   const filteredApplicants = useMemo(() => {
     if (!applicants) return [];
 
+    const searchRegex = new RegExp(searchTerm, "i");
     return applicants.filter((applicant) => {
-      const searchRegex = new RegExp(searchTerm, "i");
       return (
         searchRegex.test(applicant.name || "") ||
         searchRegex.test(applicant.mobile_no) ||
@@ -85,6 +86,29 @@ const ApplicantTable = () => {
       );
     });
   }, [applicants, searchTerm]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const paginatedApplicants = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredApplicants.slice(startIndex, endIndex);
+  }, [filteredApplicants, currentPage]);
+
+  const totalPages = Math.ceil(filteredApplicants.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredApplicants]);
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
 
   const handleCheckboxChange = useCallback((id: string) => {
     setSelectedRows((prevSelected) =>
@@ -95,12 +119,12 @@ const ApplicantTable = () => {
   }, []);
 
   const handleSelectAllRows = useCallback(() => {
-    if (filteredApplicants?.length === selectedRows.length) {
+    if (paginatedApplicants.length === selectedRows.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(filteredApplicants?.map((applicant) => applicant.id) || []);
+      setSelectedRows(paginatedApplicants.map((applicant) => applicant.id));
     }
-  }, [filteredApplicants, selectedRows.length]);
+  }, [paginatedApplicants, selectedRows.length]);
 
   const handleBulkDelete = async () => {
     if (selectedRows.length === 0) {
@@ -148,40 +172,43 @@ const ApplicantTable = () => {
       toast({
         title: "No Selection",
         description: "Please select applicants to send offer letters to",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-offer-letters', {
-        body: {
-          applicantIds: selectedRows,
-          templateIds: {
-            offer_letter: 'default-offer-letter-id',
-            consent_en: 'default-consent-en-id',
-            consent_hi: 'default-consent-hi-id',
-            checklist_en: 'default-checklist-en-id',
-            checklist_hi: 'default-checklist-hi-id'
-          }
+      const { data, error } = await supabase.functions.invoke(
+        "send-offer-letters",
+        {
+          body: {
+            applicantIds: selectedRows,
+            templateIds: {
+              offer_letter: "default-offer-letter-id",
+              consent_en: "default-consent-en-id",
+              consent_hi: "default-consent-hi-id",
+              checklist_en: "default-checklist-en-id",
+              checklist_hi: "default-checklist-hi-id",
+            },
+          },
         }
-      });
+      );
 
       if (error) throw error;
 
       toast({
         title: "Offer Letters Sent",
-        description: `Successfully sent offer letters to ${selectedRows.length} applicants`
+        description: `Successfully sent offer letters to ${selectedRows.length} applicants`,
       });
 
       setSelectedRows([]);
       refetch();
     } catch (error) {
-      console.error('Error sending offer letters:', error);
+      console.error("Error sending offer letters:", error);
       toast({
         title: "Error",
         description: "Failed to send offer letters",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -201,32 +228,60 @@ const ApplicantTable = () => {
     }
 
     const headers = [
-      'mobile_no', 'unique_number', 'name', 'city', 'block', 'caste', 'gender',
-      'qualification', 'current_work', 'qualifying_school', 'whatsapp_number',
-      'set_name', 'exam_centre', 'date_of_testing', 'lr_status', 'lr_comments',
-      'cfr_status', 'cfr_comments', 'final_marks', 'offer_letter_status',
-      'allotted_school', 'joining_status', 'final_notes', 'triptis_notes',
-      'campus', 'stage', 'status'
+      "mobile_no",
+      "unique_number",
+      "name",
+      "city",
+      "block",
+      "caste",
+      "gender",
+      "qualification",
+      "current_work",
+      "qualifying_school",
+      "whatsapp_number",
+      "set_name",
+      "exam_centre",
+      "date_of_testing",
+      "lr_status",
+      "lr_comments",
+      "cfr_status",
+      "cfr_comments",
+      "final_marks",
+      "offer_letter_status",
+      "allotted_school",
+      "joining_status",
+      "final_notes",
+      "triptis_notes",
+      "campus",
+      "stage",
+      "status",
     ];
 
     const csvContent = [
-      headers.join(','),
-      ...filteredApplicants.map(applicant => 
-        headers.map(header => {
-          const value = applicant[header];
-          if (value === null || value === undefined) return '';
-          const stringValue = String(value);
-          return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
-        }).join(',')
-      )
-    ].join('\n');
+      headers.join(","),
+      ...filteredApplicants.map((applicant) =>
+        headers
+          .map((header) => {
+            const value = applicant[header];
+            if (value === null || value === undefined) return "";
+            const stringValue = String(value);
+            return stringValue.includes(",")
+              ? `"${stringValue}"`
+              : stringValue;
+          })
+          .join(",")
+      ),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `applicants_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `applicants_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -235,10 +290,6 @@ const ApplicantTable = () => {
       title: "Export Complete",
       description: `Exported ${filteredApplicants.length} applicants to CSV`,
     });
-  };
-
-  const handleCampusChange = () => {
-    refetch();
   };
 
   return (
@@ -290,18 +341,28 @@ const ApplicantTable = () => {
                   <TableHead className="w-12 font-bold">
                     <Checkbox
                       checked={
-                        filteredApplicants?.length > 0 &&
-                        selectedRows.length === filteredApplicants?.length
+                        paginatedApplicants.length > 0 &&
+                        selectedRows.length === paginatedApplicants.length
                       }
                       onCheckedChange={handleSelectAllRows}
                       aria-label="Select all applicants"
                     />
                   </TableHead>
-                  <TableHead className="font-bold min-w-[200px] max-w-[250px]">Name</TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">Mobile No</TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">Campus</TableHead>
-                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">Stage</TableHead>
-                  <TableHead className="font-bold min-w-[180px] max-w-[220px]">Status</TableHead>
+                  <TableHead className="font-bold min-w-[200px] max-w-[250px]">
+                    Name
+                  </TableHead>
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+                    Mobile No
+                  </TableHead>
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+                    Campus
+                  </TableHead>
+                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">
+                    Stage
+                  </TableHead>
+                  <TableHead className="font-bold min-w-[180px] max-w-[220px]">
+                    Status
+                  </TableHead>
                   <TableHead className="font-bold w-24">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -312,14 +373,14 @@ const ApplicantTable = () => {
                       Loading applicants...
                     </TableCell>
                   </TableRow>
-                ) : filteredApplicants?.length === 0 ? (
+                ) : paginatedApplicants.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center">
                       No applicants found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredApplicants?.map((applicant) => (
+                  paginatedApplicants.map((applicant) => (
                     <ApplicantTableRow
                       key={applicant.id}
                       applicant={applicant}
@@ -328,12 +389,33 @@ const ApplicantTable = () => {
                       onUpdate={refetch}
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
-                      onCampusChange={handleCampusChange}
                     />
                   ))
                 )}
               </TableBody>
             </Table>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mt-4">
+          <p className="text-sm text-muted-foreground">
+            Page {currentPage} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+            >
+              Next
+            </button>
           </div>
         </div>
       </CardContent>
