@@ -26,6 +26,7 @@ import Campus from "./pages/Campus";
 import CampusDetail from "./pages/CampusDetail";
 import School from "./pages/School";
 import SchoolStages from "./pages/SchoolStages";
+import OwnerPage from "./pages/Owner";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/decisions" element={<ProtectedRoute><FinalDecisions /></ProtectedRoute>} />
           <Route path="/partners" element={<ProtectedRoute><PartnerPage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+          <Route path="/owner" element={<ProtectedRoute><OwnerPage /></ProtectedRoute>} />
           <Route path="/donor" element={<ProtectedRoute><Donor /></ProtectedRoute>} />
           <Route path="/offer-letters" element={<ProtectedRoute><OfferLetters /></ProtectedRoute>} />
           <Route path="/campus" element={<ProtectedRoute><Campus /></ProtectedRoute>} />

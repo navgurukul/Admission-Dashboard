@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +9,8 @@ const School = () => {
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +27,24 @@ const School = () => {
   const filteredSchools = schools.filter(school =>
     school.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSchools.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredSchools.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,7 +67,10 @@ const School = () => {
                   <input
                     placeholder="Search by school name..."
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1); // reset pagination on search
+                    }}
                     className="pl-10 h-9 border rounded w-full"
                   />
                 </div>
@@ -71,7 +95,7 @@ const School = () => {
                         </div>
                       </td>
                     </tr>
-                  ) : filteredSchools.length === 0 ? (
+                  ) : currentItems.length === 0 ? (
                     <tr>
                       <td colSpan={2} className="py-12 text-center text-muted-foreground">
                         <div className="flex flex-col items-center space-y-2">
@@ -81,13 +105,13 @@ const School = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredSchools.map((school, idx) => (
+                    currentItems.map((school, idx) => (
                       <tr
                         key={school.id}
                         className="border-b border-border/30 hover:bg-muted/30 transition-colors group cursor-pointer"
                         onClick={() => navigate(`/school/${school.id}`)}
                       >
-                        <td className="py-4 px-6">{idx + 1}</td>
+                        <td className="py-4 px-6">{indexOfFirstItem + idx + 1}</td>
                         <td className="py-4 px-6 text-orange-600 font-medium">{school.name}</td>
                       </tr>
                     ))
@@ -95,10 +119,32 @@ const School = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-between items-center px-6 py-4 border-t border-border/50 bg-muted/20">
+              <Button
+                variant="outline"
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+              <Button
+                variant="outline"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+
             {/* Show total count */}
             <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
               <p className="text-sm text-muted-foreground">
-                Showing {filteredSchools.length} of {schools.length} schools
+                Showing {currentItems.length} of {filteredSchools.length} filtered schools
               </p>
             </div>
           </div>
@@ -108,4 +154,4 @@ const School = () => {
   );
 };
 
-export default School; 
+export default School;
