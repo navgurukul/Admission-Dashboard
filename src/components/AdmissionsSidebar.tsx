@@ -7,8 +7,10 @@ import {
   FileText,
   Users,
   MessageSquare,
-  Handshake, // Added Handshake icon
-  School // Added School icon for Campus
+  Handshake, 
+  School ,
+  Shield,
+  UserCheck
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -17,12 +19,13 @@ import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useState, useEffect } from "react";
 
 const navigation = [
-  { name: "Admin", href: "/admin", icon: Users },
+  { name: "Admin", href: "/admin", icon: Shield },
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Donor", href: "/donor", icon: Handshake },
   { name: "Partner", href: "/partners", icon: Users },
   { name: "Campus", href: "/campus", icon: School },
-  { name: "School", href: "/school", icon: School }, // Added School tab
+  { name: "School", href: "/school", icon: School }, 
+  { name: "Owner", href: "/owner", icon: UserCheck },
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Question Repository", href: "/questions", icon: FileText },
