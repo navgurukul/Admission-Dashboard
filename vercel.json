@@ -1,5 +1,14 @@
 {
   "rewrites": [
     { "source": "/:path*", "destination": "/index.html" }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "dev": true,
+      "master": true
+    }
+  },
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install"
 } 
