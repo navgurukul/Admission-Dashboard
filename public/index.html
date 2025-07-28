@@ -39,9 +39,18 @@
           var decoded = l.search.slice(1).split('&').map(function(s) { 
             return s.replace(/~and~/g, '&')
           }).join('?');
-          window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
-          );
+          
+          var pathname = l.pathname;
+          var newPath;
+          
+          // Check if we're on the dev path
+          if (pathname.includes('/dev/')) {
+            newPath = pathname.slice(0, -1) + decoded + l.hash;
+          } else {
+            newPath = pathname.slice(0, -1) + decoded + l.hash;
+          }
+          
+          window.history.replaceState(null, null, newPath);
         }
       }(window.location))
     </script>
