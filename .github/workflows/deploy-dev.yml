@@ -32,5 +32,5 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
-        publish_branch: gh-pages-dev
+        publish_branch: gh-pages
         destination_dir: dev 
