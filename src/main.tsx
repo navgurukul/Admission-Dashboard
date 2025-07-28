@@ -6,7 +6,7 @@ import './index.css';
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter basename="/Admission-Dashboard">
+    <BrowserRouter basename={window.location.pathname.includes('/dev/') ? "/Admission-Dashboard/dev" : "/Admission-Dashboard"}>
       <App />
     </BrowserRouter>
   </React.StrictMode>
