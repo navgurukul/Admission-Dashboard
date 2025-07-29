@@ -17,18 +17,23 @@
         
         // For GitHub Pages with repository name
         var repoName = 'Admission-Dashboard';
-        var pathSegmentsToKeep = 1; // Keep the first segment (empty string)
+        var devRepoName = 'dev-Admission-Dashboard';
+        var pathSegmentsToKeep = 1; // Default: keep the first segment (empty string)
         
-        // Check if we're on the dev path
-        if (pathname.includes('/' + repoName + '/dev/')) {
-            pathSegmentsToKeep = 3; // Keep /Admission-Dashboard/dev/
-        } else if (pathname.includes('/' + repoName + '/')) {
+        // Check if we're on the dev path with new URL structure
+        if (pathname.startsWith('/' + devRepoName + '/')) {
+            pathSegmentsToKeep = 2; // Keep /dev-Admission-Dashboard/
+        } else if (pathname.startsWith('/' + repoName + '/')) {
             pathSegmentsToKeep = 2; // Keep /Admission-Dashboard/
         }
         
         // Handle the redirect
         var basePath = l.pathname.split('/').slice(0, pathSegmentsToKeep).join('/');
         var remainingPath = l.pathname.split('/').slice(pathSegmentsToKeep).join('/');
+        
+        console.log('404 redirect - Original pathname:', pathname);
+        console.log('404 redirect - Base path:', basePath);
+        console.log('404 redirect - Remaining path:', remainingPath);
         
         l.replace(
             l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
