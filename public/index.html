@@ -44,11 +44,15 @@
           var newPath;
           
           // Check if we're on the dev path
-          if (pathname.includes('/dev/')) {
+          if (pathname.startsWith('/Admission-Dashboard/dev/')) {
             newPath = pathname + decoded + l.hash;
           } else {
             newPath = pathname + decoded + l.hash;
           }
+          
+          console.log('Index redirect - Original pathname:', pathname);
+          console.log('Index redirect - Decoded path:', decoded);
+          console.log('Index redirect - New path:', newPath);
           
           window.history.replaceState(null, null, newPath);
         }

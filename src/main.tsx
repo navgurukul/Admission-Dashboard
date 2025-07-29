@@ -11,10 +11,14 @@ const getBasename = () => {
   
   // For GitHub Pages
   if (hostname.includes('github.io')) {
-    if (pathname.includes('/dev/')) {
+    // Check for dev branch first
+    if (pathname.startsWith('/Admission-Dashboard/dev')) {
       return "/Admission-Dashboard/dev";
     }
-    return "/Admission-Dashboard";
+    // Check for master branch
+    if (pathname.startsWith('/Admission-Dashboard')) {
+      return "/Admission-Dashboard";
+    }
   }
   
   // For local development or other deployments
@@ -24,6 +28,7 @@ const getBasename = () => {
 // Debug logging to help troubleshoot
 console.log('Current pathname:', window.location.pathname);
 console.log('Calculated basename:', getBasename());
+console.log('Current hostname:', window.location.hostname);
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
