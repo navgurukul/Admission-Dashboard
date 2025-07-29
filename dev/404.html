@@ -29,20 +29,29 @@
         }
         
         // Handle the redirect
-        var basePath = l.pathname.split('/').slice(0, pathSegmentsToKeep).join('/');
-        var remainingPath = l.pathname.split('/').slice(pathSegmentsToKeep).join('/');
+        var pathSegments = pathname.split('/').filter(function(segment) {
+            return segment.length > 0;
+        });
         
+        var basePath = '/' + pathSegments.slice(0, pathSegmentsToKeep - 1).join('/');
+        var remainingPath = pathSegments.slice(pathSegmentsToKeep - 1).join('/');
+        
+        console.log('404.html - Path segments:', pathSegments);
         console.log('404.html - Base path:', basePath);
         console.log('404.html - Remaining path:', remainingPath);
         
-        var redirectUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-            basePath + '/?/' + remainingPath.replace(/&/g, '~and~') +
-            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-            l.hash;
-            
-        console.log('404.html - Redirecting to:', redirectUrl);
-        
-        l.replace(redirectUrl);
+        // Only redirect if there's a remaining path and no existing query params
+        if (remainingPath && remainingPath.length > 0 && !l.search) {
+            var redirectUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+                basePath + '/?/' + remainingPath.replace(/&/g, '~and~') +
+                (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+                l.hash;
+                
+            console.log('404.html - Redirecting to:', redirectUrl);
+            l.replace(redirectUrl);
+        } else {
+            console.log('404.html - No redirect needed');
+        }
     </script>
 </body>
 </html> 
