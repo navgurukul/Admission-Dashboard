@@ -17,11 +17,12 @@
         
         // For GitHub Pages with repository name
         var repoName = 'Admission-Dashboard';
+        var devRepoName = 'dev-Admission-Dashboard';
         var pathSegmentsToKeep = 1; // Default: keep the first segment (empty string)
         
-        // Check if we're on the dev path
-        if (pathname.startsWith('/' + repoName + '/dev/')) {
-            pathSegmentsToKeep = 3; // Keep /Admission-Dashboard/dev/
+        // Check if we're on the dev path with new URL structure
+        if (pathname.startsWith('/' + devRepoName + '/')) {
+            pathSegmentsToKeep = 2; // Keep /dev-Admission-Dashboard/
         } else if (pathname.startsWith('/' + repoName + '/')) {
             pathSegmentsToKeep = 2; // Keep /Admission-Dashboard/
         }

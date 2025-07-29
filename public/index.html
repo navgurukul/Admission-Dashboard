@@ -43,8 +43,8 @@
           var pathname = l.pathname;
           var newPath;
           
-          // Check if we're on the dev path
-          if (pathname.startsWith('/Admission-Dashboard/dev/')) {
+          // Check if we're on the dev path with new URL structure
+          if (pathname.startsWith('/dev-Admission-Dashboard/')) {
             newPath = pathname + decoded + l.hash;
           } else {
             newPath = pathname + decoded + l.hash;
