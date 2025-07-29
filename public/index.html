@@ -45,9 +45,9 @@
           
           // Check if we're on the dev path
           if (pathname.includes('/dev/')) {
-            newPath = pathname.slice(0, -1) + decoded + l.hash;
+            newPath = pathname + decoded + l.hash;
           } else {
-            newPath = pathname.slice(0, -1) + decoded + l.hash;
+            newPath = pathname + decoded + l.hash;
           }
           
           window.history.replaceState(null, null, newPath);

@@ -12,20 +12,19 @@
         // This script takes the current url and converts the path and query
         // string into just a query string, and then redirects the browser
         // to the new url with only a query string and hash fragment.
-        var pathSegmentsToKeep = 2;
-
         var l = window.location;
         var pathname = l.pathname;
         
         // Check if we're on the dev path
+        var pathSegmentsToKeep;
         if (pathname.includes('/dev/')) {
-            pathSegmentsToKeep = 2; // Keep /Admission-Dashboard/dev/
+            pathSegmentsToKeep = 3; // Keep /Admission-Dashboard/dev/
         } else {
-            pathSegmentsToKeep = 1; // Keep /Admission-Dashboard/
+            pathSegmentsToKeep = 2; // Keep /Admission-Dashboard/
         }
         
         // Handle the redirect
-        var basePath = l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/');
+        var basePath = l.pathname.split('/').slice(0, pathSegmentsToKeep).join('/');
         var remainingPath = l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/');
         
         l.replace(
