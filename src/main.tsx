@@ -11,9 +11,9 @@ const getBasename = () => {
   
   // For GitHub Pages
   if (hostname.includes('github.io')) {
-    // Check for dev branch with new URL structure
-    if (pathname.startsWith('/dev-Admission-Dashboard')) {
-      return "/dev-Admission-Dashboard";
+    // Check for dev branch first
+    if (pathname.startsWith('/Admission-Dashboard/dev')) {
+      return "/Admission-Dashboard/dev";
     }
     // Check for master branch
     if (pathname.startsWith('/Admission-Dashboard')) {
