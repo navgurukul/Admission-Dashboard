@@ -15,6 +15,8 @@
         var l = window.location;
         var pathname = l.pathname;
         
+        console.log('404.html - Original pathname:', pathname);
+        
         // For GitHub Pages with repository name
         var repoName = 'Admission-Dashboard';
         var pathSegmentsToKeep = 1; // Default: keep the first segment (empty string)
@@ -30,16 +32,17 @@
         var basePath = l.pathname.split('/').slice(0, pathSegmentsToKeep).join('/');
         var remainingPath = l.pathname.split('/').slice(pathSegmentsToKeep).join('/');
         
-        console.log('404 redirect - Original pathname:', pathname);
-        console.log('404 redirect - Base path:', basePath);
-        console.log('404 redirect - Remaining path:', remainingPath);
+        console.log('404.html - Base path:', basePath);
+        console.log('404.html - Remaining path:', remainingPath);
         
-        l.replace(
-            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        var redirectUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
             basePath + '/?/' + remainingPath.replace(/&/g, '~and~') +
             (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-            l.hash
-        );
+            l.hash;
+            
+        console.log('404.html - Redirecting to:', redirectUrl);
+        
+        l.replace(redirectUrl);
     </script>
 </body>
 </html> 
