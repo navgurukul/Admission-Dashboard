@@ -21,6 +21,10 @@ const getBasename = () => {
   return "";
 };
 
+// Debug logging to help troubleshoot
+console.log('Current pathname:', window.location.pathname);
+console.log('Calculated basename:', getBasename());
+
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter basename={getBasename()}>
