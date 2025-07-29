@@ -122,8 +122,8 @@ export default function QuestionRepository() {
     <div className="flex h-screen bg-background">
       <AdmissionsSidebar />
       
-      <main className="flex-1 ml-64 overflow-auto">
-        <div className="p-6 space-y-6">
+      <main className="flex-1 md:ml-64 overflow-auto">
+        <div className="p-4 md:p-6 pt-16 md:pt-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Question Repository</h1>
