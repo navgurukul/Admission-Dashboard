@@ -128,7 +128,7 @@ const Donor = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      <main className="ml-64 p-8">
+      <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         {/* Dashboard-style summary section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
           <div className="bg-card rounded-xl p-6 shadow-soft border border-border flex items-center justify-between">

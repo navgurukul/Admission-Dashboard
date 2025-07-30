@@ -14,7 +14,7 @@ const School = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://dev-join.navgurukul.org/api/school")
+    fetch(import.meta.env.VITE_API_GET_SCHOOLS_URL)
       .then(res => res.json())
       .then(data => {
         setSchools(data);
@@ -49,8 +49,8 @@ const School = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      <main className="ml-64 overflow-auto h-screen flex flex-col items-center">
-        <div className="p-4 w-full">
+      <main className="md:ml-64 overflow-auto h-screen flex flex-col items-center">
+        <div className="p-4 md:p-4 w-full pt-16 md:pt-4">
           <div className="bg-card rounded-xl shadow-soft border border-border">
             {/* Header */}
             <div className="p-6 border-b border-border">

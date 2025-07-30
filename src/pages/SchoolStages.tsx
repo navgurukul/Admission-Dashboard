@@ -76,8 +76,8 @@ const SchoolStages = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      <main className="ml-64 flex flex-col items-center justify-center min-h-screen">
-        <div className="w-full max-w-4xl mt-8">
+      <main className="md:ml-64 flex flex-col items-center justify-center min-h-screen pt-16 md:pt-0">
+        <div className="w-full max-w-4xl p-4 md:p-8">
           <div className="bg-card rounded-xl shadow-soft border border-border p-6">
             <h2 className="text-xl font-semibold text-center mb-6">{schoolName}</h2>
             <div className="overflow-x-auto">

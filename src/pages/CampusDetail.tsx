@@ -8,6 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Search, Filter } from "lucide-react";
 import { AdvancedFilterModal } from "@/components/AdvancedFilterModal";
 
+interface FilterState {
+  stage: string;
+  status: string;
+  examMode: string;
+  interviewMode: string;
+  partner: string[];
+  district: string[];
+  market: string[];
+  dateRange: {
+    type: 'application' | 'lastUpdate' | 'interview';
+    from?: Date;
+    to?: Date;
+  };
+}
+
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "student", label: "Student Data" },
@@ -68,7 +83,7 @@ const CampusDetail = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterState>({
     stage: "all",
     status: "all",
     examMode: "all",
@@ -133,7 +148,7 @@ const CampusDetail = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <AdmissionsSidebar />
-      <main className="flex-1 p-8 ml-64">
+      <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 md:ml-64">
         <h2 className="text-3xl font-bold text-center mb-6">{campusName} Campus</h2>
         <div className="flex justify-center mb-6 gap-2">
           {TABS.map(tab => (
