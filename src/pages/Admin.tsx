@@ -235,8 +235,8 @@ const AdminPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      <main className="ml-64 overflow-auto h-screen">
-        <div className="p-8">
+      <main className="md:ml-64 overflow-auto h-screen">
+        <div className="p-4 md:p-8 pt-16 md:pt-8">
           {/* Header Card */}
           <div className="bg-card rounded-xl p-6 shadow-soft border border-border mb-8">
             <div className="flex items-center justify-between">

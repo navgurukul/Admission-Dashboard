@@ -253,8 +253,8 @@ const PartnerPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      <main className="ml-64 overflow-auto h-screen flex flex-col items-center">
-        <div className="p-4 w-full">
+      <main className="md:ml-64 overflow-auto h-screen flex flex-col items-center">
+        <div className="p-4 md:p-8 w-full pt-16 md:pt-8">
           <div className="bg-card rounded-xl shadow-soft border border-border">
             {/* Header */}
             <div className="p-6 border-b border-border">

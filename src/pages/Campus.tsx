@@ -91,7 +91,7 @@ const CampusPage = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <AdmissionsSidebar />
-      <main className="flex-1 p-8 ml-64">
+      <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 md:ml-64">
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">

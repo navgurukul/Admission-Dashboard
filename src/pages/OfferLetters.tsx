@@ -18,7 +18,7 @@ const OfferLetters = () => {
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
       
-      <main className="ml-64 p-8">
+      <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Offer Letter Module
