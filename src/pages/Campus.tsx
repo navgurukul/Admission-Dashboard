@@ -39,7 +39,7 @@ const CampusPage = () => {
   useEffect(() => {
     const fetchCampuses = async () => {
       try {
-        const response = await fetch("https://dev-join.navgurukul.org/api/campus");
+        const response = await fetch(import.meta.env.VITE_API_CAMPUS_BASE_URL);
         if (!response.ok) {
           throw new Error("Failed to fetch data");
         }
