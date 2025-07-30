@@ -1,57 +1,26 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Redirecting...</title>
-</head>
-<body>
-    <script>
-        // Single Page Apps for GitHub Pages
-        // MIT License
-        // https://github.com/rafgraph/spa-github-pages
-        // This script takes the current url and converts the path and query
-        // string into just a query string, and then redirects the browser
-        // to the new url with only a query string and hash fragment.
-        var l = window.location;
-        var pathname = l.pathname;
-        
-        console.log('404.html - Original pathname:', pathname);
-        
-        // For GitHub Pages with repository name
-        var repoName = 'Admission-Dashboard';
-        var pathSegmentsToKeep = 1; // Default: keep the first segment (empty string)
-        
-        // Check if we're on the dev path
-        if (pathname.startsWith('/' + repoName + '/dev/')) {
-            pathSegmentsToKeep = 3; // Keep /Admission-Dashboard/dev/
-        } else if (pathname.startsWith('/' + repoName + '/')) {
-            pathSegmentsToKeep = 2; // Keep /Admission-Dashboard/
-        }
-        
-        // Handle the redirect
-        var pathSegments = pathname.split('/').filter(function(segment) {
-            return segment.length > 0;
-        });
-        
-        var basePath = '/' + pathSegments.slice(0, pathSegmentsToKeep - 1).join('/');
-        var remainingPath = pathSegments.slice(pathSegmentsToKeep - 1).join('/');
-        
-        console.log('404.html - Path segments:', pathSegments);
-        console.log('404.html - Base path:', basePath);
-        console.log('404.html - Remaining path:', remainingPath);
-        
-        // Only redirect if there's a remaining path and no existing query params
-        if (remainingPath && remainingPath.length > 0 && !l.search) {
-            var redirectUrl = l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                basePath + '/?/' + remainingPath.replace(/&/g, '~and~') +
-                (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-                l.hash;
-                
-            console.log('404.html - Redirecting to:', redirectUrl);
-            l.replace(redirectUrl);
-        } else {
-            console.log('404.html - No redirect needed');
-        }
-    </script>
-</body>
-</html> 
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="/Admission-Dashboard/assets/favicon-BeknhdFx.ico" />
+    <title>admissions.navgurukul.org</title>
+    <meta name="description" content="Lovable Generated Project" />
+    <meta name="author" content="Lovable" />
+
+    <meta property="og:title" content="application-pipeline-hub" />
+    <meta property="og:description" content="Lovable Generated Project" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@lovable_dev" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <script type="module" crossorigin src="/Admission-Dashboard/assets/main-CxZteJTl.js"></script>
+    <link rel="stylesheet" crossorigin href="/Admission-Dashboard/assets/main-JznReT8B.css">
+  </head>
+
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
