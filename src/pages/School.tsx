@@ -14,7 +14,7 @@ const School = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://dev-join.navgurukul.org/api/school")
+    fetch(import.meta.env.VITE_API_GET_SCHOOLS_URL)
       .then(res => res.json())
       .then(data => {
         setSchools(data);
