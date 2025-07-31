@@ -1,31 +1,83 @@
-
 import React, { useEffect, useState } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+
+interface School {
+  id: number;
+  school_name: string;
+  status: boolean;
+  created_at: string;
+}
 
 const School = () => {
-  const [schools, setSchools] = useState([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const navigate = useNavigate();
 
+  // Dialog states
+  const [addDialog, setAddDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+
+  // Form states
+  const [newSchool, setNewSchool] = useState("");
+  const [updatedSchoolName, setUpdatedSchoolName] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
+
   useEffect(() => {
-    fetch(import.meta.env.VITE_API_GET_SCHOOLS_URL)
-      .then(res => res.json())
-      .then(data => {
-        setSchools(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    fetchSchools();
   }, []);
 
+  const fetchSchools = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(import.meta.env.VITE_API_GET_SCHOOLS_URL);
+      if (!response.ok) throw new Error("Failed to fetch schools");
+      const data = await response.json();
+
+      // Handle different response structures
+      let schoolsData = [];
+      if (Array.isArray(data)) {
+        schoolsData = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        schoolsData = data.data;
+      } else if (data.schools && Array.isArray(data.schools)) {
+        schoolsData = data.schools;
+      }
+
+      //  all schools have the correct structure
+      schoolsData = schoolsData.map((school) => ({
+        id: school.id,
+        school_name: school.school_name || school.name || "",
+        status: school.status || true,
+        created_at: school.created_at || new Date().toISOString(),
+      }));
+
+      // console.log("Processed schools data:", schoolsData);
+      setSchools(schoolsData);
+      setHasFetchedOnce(true);
+    } catch (error) {
+      console.error("Error fetching schools:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch schools",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter schools based on search query
-  const filteredSchools = schools.filter(school =>
-    school.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSchools = schools.filter((school) =>
+    school.school_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Pagination logic
@@ -36,13 +88,121 @@ const School = () => {
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
+  const handleAddSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(import.meta.env.VITE_API_CREATE_SCHOOL_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ school_name: newSchool }),
+      });
+
+      if (!response.ok) throw new Error("Failed to create school");
+
+      const result = await response.json();
+      console.log("Create response:", result);
+
+      // Add the new school to the state immediately
+      const newSchoolData = {
+        id: result.id || result.data?.id || Date.now(),
+        school_name: newSchool,
+        status: true,
+        created_at: new Date().toISOString(),
+      };
+
+      setSchools((prev) => [...prev, newSchoolData]);
+      setNewSchool("");
+      setAddDialog(false);
+
+      // Fallback: refresh data after a short delay to ensure consistency
+      setTimeout(() => {
+        fetchSchools();
+      }, 1000);
+
+      toast({
+        title: "School Added",
+        description: "School has been successfully added.",
+      });
+    } catch (error) {
+      console.error("Error creating school:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create school.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateSchool = async (id: number, updatedName: string) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_UPDATE_SCHOOL_URL}/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ school_name: updatedName }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to update school");
+
+      setSchools((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, name: updatedName } : s))
+      );
+
+      toast({
+        title: "School Updated",
+        description: `School "${updatedName}" updated successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error updating school",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteSchool = async (id: number) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_DELETE_SCHOOL_URL}/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to delete school");
+
+      setSchools((prev) => prev.filter((s) => s.id !== id));
+
+      toast({
+        title: "School deleted",
+        description: `School has been deleted successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error deleting school",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -54,11 +214,18 @@ const School = () => {
           <div className="bg-card rounded-xl shadow-soft border border-border">
             {/* Header */}
             <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground">Schools</h2>
-                  <p className="text-muted-foreground text-sm mt-1">Manage and view all schools</p>
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Schools
+                  </h2>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Manage and view all schools
+                  </p>
                 </div>
+                <Button onClick={() => setAddDialog(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Add School
+                </Button>
               </div>
               {/* Search */}
               <div className="flex items-center space-x-4">
@@ -67,7 +234,7 @@ const School = () => {
                   <input
                     placeholder="Search by school name..."
                     value={searchQuery}
-                    onChange={e => {
+                    onChange={(e) => {
                       setSearchQuery(e.target.value);
                       setCurrentPage(1); // reset pagination on search
                     }}
@@ -81,14 +248,24 @@ const School = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/50">
-                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">S.No</th>
-                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">School Name</th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
+                      S.No
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
+                      School Name
+                    </th>
+                    <th className="text-right py-4 px-6 font-medium text-muted-foreground text-sm">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
+                  {loading && !hasFetchedOnce ? (
                     <tr>
-                      <td colSpan={2} className="py-12 text-center text-muted-foreground">
+                      <td
+                        colSpan={3}
+                        className="py-12 text-center text-muted-foreground"
+                      >
                         <div className="flex flex-col items-center space-y-2">
                           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                           <span>Loading schools...</span>
@@ -97,7 +274,10 @@ const School = () => {
                     </tr>
                   ) : currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan={2} className="py-12 text-center text-muted-foreground">
+                      <td
+                        colSpan={3}
+                        className="py-12 text-center text-muted-foreground"
+                      >
                         <div className="flex flex-col items-center space-y-2">
                           <Search className="w-8 h-8 opacity-50" />
                           <span>No schools found</span>
@@ -108,11 +288,42 @@ const School = () => {
                     currentItems.map((school, idx) => (
                       <tr
                         key={school.id}
-                        className="border-b border-border/30 hover:bg-muted/30 transition-colors group cursor-pointer"
-                        onClick={() => navigate(`/school/${school.id}`)}
+                        className="border-b border-border/30 hover:bg-muted/30 transition-colors"
                       >
-                        <td className="py-4 px-6">{indexOfFirstItem + idx + 1}</td>
-                        <td className="py-4 px-6 text-orange-600 font-medium">{school.name}</td>
+                        <td className="py-4 px-6">
+                          {indexOfFirstItem + idx + 1}
+                        </td>
+                        <td
+                          className="py-4 px-6 text-orange-600 font-medium cursor-pointer hover:underline"
+                          onClick={() => navigate(`/school/${school.id}`)}
+                        >
+                          {school.school_name}
+                        </td>
+                        <td className="py-4 px-6 text-right space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-blue-600"
+                            onClick={() => {
+                              setSelectedSchool(school);
+                              setUpdatedSchoolName(school.school_name);
+                              setEditDialog(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600"
+                            onClick={() => {
+                              setSelectedSchool(school);
+                              setDeleteDialog(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -121,7 +332,7 @@ const School = () => {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex justify-between items-center px-6 py-4 border-t border-border/50 bg-muted/20">
+            <div className="flex flex-col md:flex-row justify-between items-center px-6 py-4 border-t border-border/50 bg-muted/20 gap-2">
               <Button
                 variant="outline"
                 onClick={handlePrevPage}
@@ -144,12 +355,128 @@ const School = () => {
             {/* Show total count */}
             <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
               <p className="text-sm text-muted-foreground">
-                Showing {currentItems.length} of {filteredSchools.length} filtered schools
+                Showing {currentItems.length} of {filteredSchools.length}{" "}
+                filtered schools
               </p>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Add Dialog */}
+      {addDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
+          <form
+            onSubmit={handleAddSchool}
+            className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-blue-200"
+          >
+            <h2 className="text-lg font-semibold mb-4 text-blue-700">
+              Add School
+            </h2>
+            <input
+              type="text"
+              placeholder="Enter school name"
+              className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={newSchool}
+              onChange={(e) => setNewSchool(e.target.value)}
+              required
+            />
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                onClick={() => setAddDialog(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      {editDialog && selectedSchool && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-blue-200">
+            <h2 className="text-lg font-semibold mb-4 text-blue-700">
+              Update School
+            </h2>
+            <input
+              type="text"
+              placeholder="Enter school name"
+              className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              value={updatedSchoolName}
+              onChange={(e) => setUpdatedSchoolName(e.target.value)}
+              required
+            />
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                onClick={() => {
+                  setEditDialog(false);
+                  setSelectedSchool(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                onClick={() => {
+                  if (selectedSchool) {
+                    handleUpdateSchool(selectedSchool.id, updatedSchoolName);
+                    setEditDialog(false);
+                    setSelectedSchool(null);
+                  }
+                }}
+              >
+                Update
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Dialog */}
+      {deleteDialog && selectedSchool && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-red-200">
+            <h2 className="text-lg font-semibold text-red-600 mb-4">
+              Confirm Deletion
+            </h2>
+            <p>
+              Are you sure you want to delete{" "}
+              <strong>{selectedSchool.school_name}</strong>?
+            </p>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                onClick={() => {
+                  setDeleteDialog(false);
+                  setSelectedSchool(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                onClick={() => {
+                  handleDeleteSchool(selectedSchool.id);
+                  setDeleteDialog(false);
+                  setSelectedSchool(null);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
