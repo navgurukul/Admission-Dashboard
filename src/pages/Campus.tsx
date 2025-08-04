@@ -41,27 +41,30 @@ const CampusPage = () => {
   const [newCampus, setNewCampus] = useState("");
   const [updatedCampusName, setUpdatedCampusName] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<Campus | null>(null);
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     const fetchCampuses = async () => {
-      try {
-        const response = await fetch(import.meta.env.VITE_API_CAMPUS_BASE_URL);
-        if (!response.ok) throw new Error("Failed to fetch data");
-        const data = await response.json();
-        setCampuses(
-          data.data.map((item: any) => ({
-            id: item.id,
-            campus: item.campus_name,
-          }))
-        );
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unknown error occurred"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  try {
+    const response = await fetch(
+      `${BASE_URL}/campuses/getCampuses`
+    );
+    if (!response.ok) throw new Error("Failed to fetch data");
+    const data = await response.json();
+    setCampuses(
+      data.data.map((item: any) => ({
+        id: item.id,
+        campus: item.campus_name,
+      }))
+    );
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : "An unknown error occurred"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchCampuses();
   }, []);
@@ -93,7 +96,7 @@ const CampusPage = () => {
   const handleAddCampus = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(import.meta.env.VITE_API_CAMPUS_CREATE_URL, {
+      const response = await fetch(`${BASE_URL}/campuses/createCampus`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -129,64 +132,65 @@ const CampusPage = () => {
   };
 
   const handleUpdateCampus = async (id: number, updatedName: string) => {
-    try {
-      const response = await fetch(
-        `https://new-admission-dashboard.up.railway.app/api/v1/campuses/updateCampus/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ campus_name: updatedName }),
-        }
-      );
+    
+  try {
+    const response = await fetch(
+      `${BASE_URL}/campuses/updateCampus/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ campus_name: updatedName }),
+      }
+    );
 
-      if (!response.ok) throw new Error("Failed to update campus");
+    if (!response.ok) throw new Error("Failed to update campus");
 
-      setCampuses((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, campus: updatedName } : c))
-      );
+    setCampuses((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, campus: updatedName } : c))
+    );
 
-      toast({
-        title: "Campus Updated",
-        description: `Campus "${updatedName}" updated successfully.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error updating campus",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  };
+    toast({
+      title: "Campus Updated",
+      description: `Campus "${updatedName}" updated successfully.`,
+    });
+  } catch (error) {
+    toast({
+      title: "Error updating campus",
+      description: (error as Error).message,
+      variant: "destructive",
+    });
+  }
+};
 
-  const handleDeleteCampus = async (id: number) => {
-    try {
-      const response = await fetch(
-        `https://new-admission-dashboard.up.railway.app/api/v1/campuses/deleteCampus/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+const handleDeleteCampus = async (id: number) => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/campuses/deleteCampus/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-      if (!response.ok) throw new Error("Failed to delete");
+    if (!response.ok) throw new Error("Failed to delete");
 
-      setCampuses((prev) => prev.filter((c) => c.id !== id));
-      toast({
-        title: "Campus deleted",
-        description: `Campus ID ${id} has been deleted.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error deleting campus",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  };
+    setCampuses((prev) => prev.filter((c) => c.id !== id));
+    toast({
+      title: "Campus deleted",
+      description: `Campus ID ${id} has been deleted.`,
+    });
+  } catch (error) {
+    toast({
+      title: "Error deleting campus",
+      description: (error as Error).message,
+      variant: "destructive",
+    });
+  }
+};
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
