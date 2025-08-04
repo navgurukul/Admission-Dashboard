@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { User, LogIn, UserPlus, Mail, Lock, User as UserIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { loginUser, registerUser } from "@/utils/api";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -42,12 +42,17 @@ export default function Auth() {
     }
   }, [user, authLoading, googleUser, isAuthenticated, navigate]);
 
-  // Render Google button when component mounts
+  // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
-    if (googleButtonRef.current) {
-      renderGoogleSignInButton('google-signin-button');
+    if (googleButtonRef.current && !googleLoading) {
+      // Small delay to ensure Google script is fully loaded
+      const timer = setTimeout(() => {
+        renderGoogleSignInButton('google-signin-button');
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [renderGoogleSignInButton]);
+  }, [renderGoogleSignInButton, googleLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,41 +60,48 @@ export default function Auth() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
-        password: loginData.password,
-      });
+      // Call the login API using utility function
+      const data = await loginUser(loginData.email, loginData.password);
 
-      if (error) {
-        if (error.message.includes("Email not confirmed")) {
-          setError("Please check your email and click the confirmation link before signing in.");
-        } else if (error.message.includes("Invalid login credentials")) {
-          setError("Invalid email or password. Please try again.");
-        } else {
-          setError(error.message);
-        }
-        return;
+      // Store user data and token
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+      }
+      
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
       }
 
       // After successful login, fetch role-based access and privileges
       try {
         // Fetch role-based access for the user's email
-        const roleAccessResponse = await fetch(`https://dev-join.navgurukul.org/api/rolebaseaccess/mail/${loginData.email}`);
-        const roleAccessData = await roleAccessResponse.json();
-        console.log('Role-based access data:', roleAccessData);
+        const roleAccessResponse = await fetch(`https://new-admission-dashboard.up.railway.app/api/v1/roles/getRoles`);
+        if (roleAccessResponse.ok) {
+          const roleAccessData = await roleAccessResponse.json();
+          console.log('Role-based access data:', roleAccessData);
+          localStorage.setItem('roleAccess', JSON.stringify(roleAccessData));
+        }
 
-        // Fetch privileges
-        const privilegesResponse = await fetch('https://dev-join.navgurukul.org/api/role/getPrivilege');
-        const privilegesData = await privilegesResponse.json();
-        console.log('Privileges data:', privilegesData);
-
-        // Store the data in localStorage or state management for later use
-        localStorage.setItem('roleAccess', JSON.stringify(roleAccessData));
-        localStorage.setItem('privileges', JSON.stringify(privilegesData));
+        // Fetch privileges (if available)
+        try {
+          const privilegesResponse = await fetch('https://new-admission-dashboard.up.railway.app/api/v1/privileges/getPrivileges');
+          if (privilegesResponse.ok) {
+            const privilegesData = await privilegesResponse.json();
+            console.log('Privileges data:', privilegesData);
+            localStorage.setItem('privileges', JSON.stringify(privilegesData));
+          }
+        } catch (privilegeError) {
+          console.warn('Privileges API not available');
+        }
 
       } catch (apiError) {
         console.error('Error fetching role data:', apiError);
-        // Don't block login if API calls fail
+        // Don't block login if API calls fail, but show a warning
+        toast({
+          title: "Warning",
+          description: "Logged in successfully, but there was an issue fetching your role information.",
+          variant: "default",
+        });
       }
 
       toast({
@@ -98,8 +110,9 @@ export default function Auth() {
       });
       
       navigate("/");
-    } catch (error) {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -111,31 +124,18 @@ export default function Auth() {
     setError(null);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
+      // Call the register API using utility function
+      await registerUser({
         email: signupData.email,
         password: signupData.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            display_name: signupData.displayName,
-          },
-        },
+        name: signupData.displayName,
+        phone: "", // You might want to add phone field to the form
+        role: "student" // Default role for new users
       });
-
-      if (error) {
-        if (error.message.includes("User already registered")) {
-          setError("This email is already registered. Please try signing in instead.");
-        } else {
-          setError(error.message);
-        }
-        return;
-      }
 
       toast({
         title: "Success",
-        description: "Account created successfully! Please check your email for verification.",
+        description: "Account created successfully! You can now sign in.",
       });
       
       // Reset form
@@ -144,8 +144,9 @@ export default function Auth() {
         password: "",
         displayName: "",
       });
-    } catch (error) {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      setError(error.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -193,7 +194,7 @@ export default function Auth() {
               <div 
                 id="google-signin-button" 
                 ref={googleButtonRef}
-                className="w-full"
+                className="w-full flex justify-center"
               ></div>
 
               <div className="relative">
@@ -220,6 +221,7 @@ export default function Auth() {
                       onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                       className="pl-10"
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -235,6 +237,7 @@ export default function Auth() {
                       onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                       className="pl-10"
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -266,6 +269,7 @@ export default function Auth() {
                       onChange={(e) => setSignupData(prev => ({ ...prev, displayName: e.target.value }))}
                       className="pl-10"
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -281,6 +285,7 @@ export default function Auth() {
                       onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
                       className="pl-10"
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -297,6 +302,7 @@ export default function Auth() {
                       className="pl-10"
                       required
                       minLength={6}
+                      disabled={loading}
                     />
                   </div>
                 </div>
