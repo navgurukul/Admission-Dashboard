@@ -35,47 +35,46 @@ const School = () => {
     fetchSchools();
   }, []);
 
-  const fetchSchools = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(import.meta.env.VITE_API_GET_SCHOOLS_URL);
-      if (!response.ok) throw new Error("Failed to fetch schools");
-      const data = await response.json();
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-      // Handle different response structures
-      let schoolsData = [];
-      if (Array.isArray(data)) {
-        schoolsData = data;
-      } else if (data.data && Array.isArray(data.data)) {
-        schoolsData = data.data;
-      } else if (data.schools && Array.isArray(data.schools)) {
-        schoolsData = data.schools;
-      }
+const fetchSchools = async () => {
+  setLoading(true);
+  try {
+    const response = await fetch(`${BASE_URL}/schools/getSchools`);
+    if (!response.ok) throw new Error("Failed to fetch schools");
+    const data = await response.json();
 
-      //  all schools have the correct structure
-      schoolsData = schoolsData.map((school) => ({
-        id: school.id,
-        school_name: school.school_name || school.name || "",
-        status: school.status || true,
-        created_at: school.created_at || new Date().toISOString(),
-      }));
-
-      // console.log("Processed schools data:", schoolsData);
-      setSchools(schoolsData);
-      setHasFetchedOnce(true);
-    } catch (error) {
-      console.error("Error fetching schools:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch schools",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    let schoolsData = [];
+    if (Array.isArray(data)) {
+      schoolsData = data;
+    } else if (data.data && Array.isArray(data.data)) {
+      schoolsData = data.data;
+    } else if (data.schools && Array.isArray(data.schools)) {
+      schoolsData = data.schools;
     }
-  };
 
-  // Filter schools based on search query
+    schoolsData = schoolsData.map((school) => ({
+      id: school.id,
+      school_name: school.school_name || school.name || "",
+      status: school.status || true,
+      created_at: school.created_at || new Date().toISOString(),
+    }));
+
+    setSchools(schoolsData);
+    setHasFetchedOnce(true);
+  } catch (error) {
+    console.error("Error fetching schools:", error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch schools",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Filter schools based on search query
   const filteredSchools = schools.filter((school) =>
     school.school_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -101,13 +100,13 @@ const School = () => {
   const handleAddSchool = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(import.meta.env.VITE_API_CREATE_SCHOOL_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ school_name: newSchool }),
-      });
+    const response = await fetch(`${BASE_URL}/schools/createSchool`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ school_name: newSchool }),
+    });
 
       if (!response.ok) throw new Error("Failed to create school");
 
@@ -146,17 +145,15 @@ const School = () => {
   };
 
   const handleUpdateSchool = async (id: number, updatedName: string) => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_UPDATE_SCHOOL_URL}/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ school_name: updatedName }),
-        }
-      );
+   try {
+    const response = await fetch(`${BASE_URL}/schools/updateSchool/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ school_name: updatedName }),
+    });
+
 
       if (!response.ok) throw new Error("Failed to update school");
 
@@ -177,35 +174,31 @@ const School = () => {
     }
   };
 
-  const handleDeleteSchool = async (id: number) => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_DELETE_SCHOOL_URL}/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+ const handleDeleteSchool = async (id: number) => {
+  try {
+    const response = await fetch(`${BASE_URL}/schools/deleteSchool/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
-      if (!response.ok) throw new Error("Failed to delete school");
+    if (!response.ok) throw new Error("Failed to delete school");
 
-      setSchools((prev) => prev.filter((s) => s.id !== id));
+    setSchools((prev) => prev.filter((s) => s.id !== id));
 
-      toast({
-        title: "School deleted",
-        description: `School has been deleted successfully.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error deleting school",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  };
-
+    toast({
+      title: "School deleted",
+      description: `School has been deleted successfully.`,
+    });
+  } catch (error) {
+    toast({
+      title: "Error deleting school",
+      description: (error as Error).message,
+      variant: "destructive",
+    });
+  }
+};
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
