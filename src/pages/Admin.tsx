@@ -4,6 +4,7 @@ import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
+import { apiRequest, getAuthHeaders } from "@/utils/api";
 
 const ROWS_PER_PAGE = 10;
 
@@ -15,112 +16,371 @@ const AdminPage = () => {
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   // Snackbar state
-  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "success" });
   // Add Role Dialog state
   const [addRoleDialog, setAddRoleDialog] = useState({ open: false, userIdx: null, selectedRole: "" });
   // Add Privilege Dialog state
   const [addPrivilegeDialog, setAddPrivilegeDialog] = useState({ open: false, userIdx: null, selectedPrivilege: "" });
   // Add User Dialog state
-  const [addUserDialog, setAddUserDialog] = useState({ open: false, email: "" });
+  const [addUserDialog, setAddUserDialog] = useState<{
+    open: boolean;
+    email: string;
+    password: string;
+    name: string;
+    phone: string;
+    selectedRole: string;
+  }>({ 
+    open: false, 
+    email: "", 
+    password: "",
+    name: "",
+    phone: "",
+    selectedRole: "" 
+  });
+  // Add Role to System Dialog state
+  const [addSystemRoleDialog, setAddSystemRoleDialog] = useState({ open: false, roleName: "", description: "" });
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        console.log("Fetching admin data...");
-        // --- API call for user role is commented out until backend is ready ---
-        // const [userResponse, roleResponse, privilegeResponse] = await Promise.all([
-        //   fetch("https://dev-join.navgurukul.org/api/rolebaseaccess/email"),
-        //   fetch("https://dev-join.navgurukul.org/api/role/getRole"),
-        //   fetch("https://dev-join.navgurukul.org/api/role/getPrivilege")
-        // ]);
-        // if (!userResponse.ok) {
-        //   throw new Error(`User API failed: ${userResponse.status}`);
-        // }
-        // const [userData, roleData, privilegeData] = await Promise.all([
-        //   userResponse.json(),
-        //   roleResponse.json(),
-        //   privilegeResponse.json()
-        // ]);
-        // setUsers(userData || []);
-        // setRoles(roleData || []);
-        // setPrivileges(privilegeData || []);
-        // --- END API call block ---
-
-        // TEMP: Use empty/mock data for now
-        setUsers([]);
-        setRoles([]);
-        setPrivileges([]);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching admin data:", err);
-        setError(`Failed to fetch admin data: ${err.message}`);
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
-  // Pagination logic
-  const reversedUsers = [...users].reverse();
-  const totalPages = Math.ceil(reversedUsers.length / ROWS_PER_PAGE);
-  const paginatedUsers = reversedUsers.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+  const fetchData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      console.log("Fetching admin data...");
+      
+      // Fetch roles from the API with authentication
+      const roleResponse = await apiRequest('/roles/getRoles');
+      if (!roleResponse.ok) {
+        const errorData = await roleResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `Roles API failed: ${roleResponse.status}`);
+      }
+      const roleData = await roleResponse.json();
+      console.log('Available roles from API:', roleData.data);
+      setRoles(roleData.data || []);
+
+      // Set mock users data since getUsers API doesn't exist
+      setUsers([
+        {
+          id: 1,
+          email: "urmilaparte@navgurukul.org",
+          userrole: [{ role: [{ roles: "admin" }], privileges: [{ privilege: "READ" }, { privilege: "WRITE" }] }]
+        },
+        {
+          id: 2,
+          email: "user@example.com", 
+          userrole: [{ role: [{ roles: "student" }], privileges: [{ privilege: "READ" }] }]
+        }
+      ]);
+
+      // Set default privileges since privileges API doesn't exist
+      setPrivileges([
+        { id: 1, privilege: "READ", description: "Read access" },
+        { id: 2, privilege: "WRITE", description: "Write access" },
+        { id: 3, privilege: "DELETE", description: "Delete access" }
+      ]);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching admin data:", err);
+      setError(`Failed to fetch admin data: ${err.message}`);
+      setLoading(false);
+    }
+  };
+
+  // Pagination logic - fixed to use actual users array
+  const totalPages = Math.ceil(users.length / ROWS_PER_PAGE);
+  const paginatedUsers = users.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
 
   // Snackbar helpers
-  const showSnackbar = (message) => {
-    setSnackbar({ open: true, message });
-    setTimeout(() => setSnackbar({ open: false, message: "" }), 3000);
+  const showSnackbar = (message, type = "success") => {
+    setSnackbar({ open: true, message, type });
+    setTimeout(() => setSnackbar({ open: false, message: "", type: "success" }), 3000);
   };
 
-  // Remove role from user (client-side)
-  const handleRemoveRole = (userIdx, roleIdx) => {
-    setUsers((prev) => {
-      const newUsers = [...prev];
-      const user = { ...newUsers[userIdx] };
-      const userrole = user.userrole ? [...user.userrole] : [];
-      for (let ur of userrole) {
-        if (ur.role && ur.role.length > 0) {
-          ur.role = ur.role.filter((_, idx) => idx !== roleIdx);
-          break;
-        }
+  // Create new role in system
+  const handleCreateRole = async (roleName, description) => {
+    try {
+      const response = await apiRequest('/roles/createRoles', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: roleName,
+          description: description,
+          status: true
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to create role: ${response.status}`);
       }
-      user.userrole = userrole;
-      newUsers[userIdx] = user;
-      return newUsers;
-    });
-    showSnackbar("Role removed successfully");
+
+      const result = await response.json();
+      showSnackbar("Role created successfully");
+      
+      // Refresh roles data
+      await fetchData();
+      
+      return result;
+    } catch (error) {
+      console.error("Error creating role:", error);
+      showSnackbar(`Failed to create role: ${error.message}`, "error");
+      throw error;
+    }
   };
 
-  // Remove privilege from user (client-side)
-  const handleRemovePrivilege = (userIdx, privilegeIdx) => {
-    setUsers((prev) => {
-      const newUsers = [...prev];
-      const user = { ...newUsers[userIdx] };
-      const userrole = user.userrole ? [...user.userrole] : [];
-      for (let ur of userrole) {
-        if (ur.privileges && ur.privileges.length > 0) {
-          ur.privileges = ur.privileges.filter((_, idx) => idx !== privilegeIdx);
-          break;
-        }
+  // Delete role from system
+  const handleDeleteRole = async (roleId) => {
+    try {
+      const response = await apiRequest(`/roles/deleteRole/${roleId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to delete role: ${response.status}`);
       }
-      user.userrole = userrole;
-      newUsers[userIdx] = user;
-      return newUsers;
-    });
-    showSnackbar("Privilege removed successfully");
+
+      showSnackbar("Role deleted successfully");
+      
+      // Refresh roles data
+      await fetchData();
+      
+    } catch (error) {
+      console.error("Error deleting role:", error);
+      showSnackbar(`Failed to delete role: ${error.message}`, "error");
+    }
   };
 
-  // Delete user (client-side)
-  const handleDeleteUser = (userIdx) => {
-    setUsers((prev) => {
-      const newUsers = [...prev];
-      newUsers.splice(userIdx, 1);
-      return newUsers;
-    });
-    showSnackbar("User deleted successfully");
+  // Register new user
+  const handleRegisterUser = async (email, password, name, phone, role) => {
+    try {
+      // Log the request body for debugging
+      const requestBody = {
+        email, 
+        password, 
+        name, 
+        phone, 
+        role 
+      };
+      console.log("Register request body:", requestBody);
+      
+      const response = await apiRequest('/users/register', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Register API error:", errorData);
+        
+        // Provide more helpful error message for role validation
+        if (errorData.message && errorData.message.includes('role must be equal to one of the allowed values')) {
+          throw new Error(`Invalid role. Please select a valid role from the dropdown. Available roles: ${roles.map(r => r.name).join(', ')}`);
+        }
+        
+        throw new Error(errorData.message || `Failed to register user: ${response.status}`);
+      }
+
+      const result = await response.json();
+      showSnackbar("User registered successfully");
+      
+      // Add the new user to the local state so it shows up in the table
+      const newUser = {
+        id: Date.now(), // Generate a temporary ID
+        email: email,
+        userrole: [{ 
+          role: [{ roles: role }], 
+          privileges: [] 
+        }]
+      };
+      
+      setUsers(prevUsers => [...prevUsers, newUser]);
+      
+      return result;
+    } catch (error) {
+      console.error("Error registering user:", error);
+      showSnackbar(`Failed to register user: ${error.message}`, "error");
+      throw error;
+    }
+  };
+
+  // Delete user from system
+  const handleDeleteUser = async (userId) => {
+    try {
+      const response = await apiRequest(`/users/deleteUser/${userId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to delete user: ${response.status}`);
+      }
+
+      showSnackbar("User deleted successfully");
+      
+      // Remove user from local state
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      showSnackbar(`Failed to delete user: ${error.message}`, "error");
+    }
+  };
+
+  // Remove role from user
+  const handleRemoveRole = async (userId, roleName) => {
+    try {
+      const response = await apiRequest('/users/removeRole', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          userId,
+          roleName
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to remove role: ${response.status}`);
+      }
+
+      showSnackbar("Role removed successfully");
+      
+      // Update user in local state
+      setUsers(prevUsers => prevUsers.map(user => {
+        if (user.id === userId) {
+          return {
+            ...user,
+            userrole: user.userrole.map(ur => ({
+              ...ur,
+              role: ur.role.filter(r => r.roles !== roleName)
+            }))
+          };
+        }
+        return user;
+      }));
+      
+    } catch (error) {
+      console.error("Error removing role:", error);
+      showSnackbar(`Failed to remove role: ${error.message}`, "error");
+    }
+  };
+
+  // Remove privilege from user
+  const handleRemovePrivilege = async (userId, privilegeName) => {
+    try {
+      const response = await apiRequest('/users/removePrivilege', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          userId,
+          privilegeName
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to remove privilege: ${response.status}`);
+      }
+
+      showSnackbar("Privilege removed successfully");
+      
+      // Update user in local state
+      setUsers(prevUsers => prevUsers.map(user => {
+        if (user.id === userId) {
+          return {
+            ...user,
+            userrole: user.userrole.map(ur => ({
+              ...ur,
+              privileges: ur.privileges.filter(p => p.privilege !== privilegeName)
+            }))
+          };
+        }
+        return user;
+      }));
+      
+    } catch (error) {
+      console.error("Error removing privilege:", error);
+      showSnackbar(`Failed to remove privilege: ${error.message}`, "error");
+    }
+  };
+
+  // Add role to user
+  const handleAddRoleToUser = async (userId, roleName) => {
+    try {
+      const response = await apiRequest('/users/addRole', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId,
+          roleName
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to add role: ${response.status}`);
+      }
+
+      showSnackbar("Role added successfully");
+      
+      // Update user in local state
+      setUsers(prevUsers => prevUsers.map(user => {
+        if (user.id === userId) {
+          return {
+            ...user,
+            userrole: user.userrole.map(ur => ({
+              ...ur,
+              role: [...ur.role, { roles: roleName }]
+            }))
+          };
+        }
+        return user;
+      }));
+      
+    } catch (error) {
+      console.error("Error adding role:", error);
+      showSnackbar(`Failed to add role: ${error.message}`, "error");
+    }
+  };
+
+  // Add privilege to user
+  const handleAddPrivilegeToUser = async (userId, privilegeName) => {
+    try {
+      const response = await apiRequest('/users/addPrivilege', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId,
+          privilegeName
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to add privilege: ${response.status}`);
+      }
+
+      showSnackbar("Privilege added successfully");
+      
+      // Update user in local state
+      setUsers(prevUsers => prevUsers.map(user => {
+        if (user.id === userId) {
+          return {
+            ...user,
+            userrole: user.userrole.map(ur => ({
+              ...ur,
+              privileges: [...ur.privileges, { privilege: privilegeName }]
+            }))
+          };
+        }
+        return user;
+      }));
+      
+    } catch (error) {
+      console.error("Error adding privilege:", error);
+      showSnackbar(`Failed to add privilege: ${error.message}`, "error");
+    }
   };
 
   // Add Role Dialog
@@ -130,22 +390,25 @@ const AdminPage = () => {
   const closeAddRoleDialog = () => {
     setAddRoleDialog({ open: false, userIdx: null, selectedRole: "" });
   };
-  const handleAddRoleSubmit = (e) => {
+  const handleAddRoleSubmit = async (e) => {
     e.preventDefault();
-    if (!addRoleDialog.selectedRole) return;
-    setUsers((prev) => {
-      const newUsers = [...prev];
-      const user = { ...newUsers[addRoleDialog.userIdx] };
-      let userrole = user.userrole ? [...user.userrole] : [];
-      if (userrole.length === 0) userrole = [{ role: [], privileges: [] }];
-      if (!userrole[0].role) userrole[0].role = [];
-      userrole[0].role.push({ roles: addRoleDialog.selectedRole });
-      user.userrole = userrole;
-      newUsers[addRoleDialog.userIdx] = user;
-      return newUsers;
-    });
-    showSnackbar("Role added successfully");
-    closeAddRoleDialog();
+    if (!addRoleDialog.selectedRole) {
+      showSnackbar("Please select a role", "error");
+      return;
+    }
+    
+    const user = paginatedUsers[addRoleDialog.userIdx];
+    if (!user) {
+      showSnackbar("User not found", "error");
+      return;
+    }
+    
+    try {
+      await handleAddRoleToUser(user.id, addRoleDialog.selectedRole);
+      closeAddRoleDialog();
+    } catch (error) {
+      // Error is already handled in handleAddRoleToUser
+    }
   };
 
   // Add Privilege Dialog
@@ -155,47 +418,80 @@ const AdminPage = () => {
   const closeAddPrivilegeDialog = () => {
     setAddPrivilegeDialog({ open: false, userIdx: null, selectedPrivilege: "" });
   };
-  const handleAddPrivilegeSubmit = (e) => {
+  const handleAddPrivilegeSubmit = async (e) => {
     e.preventDefault();
     if (!addPrivilegeDialog.selectedPrivilege) return;
-    setUsers((prev) => {
-      const newUsers = [...prev];
-      const user = { ...newUsers[addPrivilegeDialog.userIdx] };
-      let userrole = user.userrole ? [...user.userrole] : [];
-      if (userrole.length === 0) userrole = [{ role: [], privileges: [] }];
-      if (!userrole[0].privileges) userrole[0].privileges = [];
-      userrole[0].privileges.push({ privilege: addPrivilegeDialog.selectedPrivilege });
-      user.userrole = userrole;
-      newUsers[addPrivilegeDialog.userIdx] = user;
-      return newUsers;
-    });
-    showSnackbar("Privilege added successfully");
-    closeAddPrivilegeDialog();
+    
+    const user = paginatedUsers[addPrivilegeDialog.userIdx];
+    if (!user) return;
+    
+    try {
+      await handleAddPrivilegeToUser(user.id, addPrivilegeDialog.selectedPrivilege);
+      closeAddPrivilegeDialog();
+    } catch (error) {
+      // Error is already handled in handleAddPrivilegeToUser
+    }
   };
 
   // Open/close Add User Dialog
-  const openAddUserDialog = () => setAddUserDialog({ open: true, email: "" });
-  const closeAddUserDialog = () => setAddUserDialog({ open: false, email: "" });
+  const openAddUserDialog = () => setAddUserDialog({ 
+    open: true, 
+    email: "", 
+    password: "",
+    name: "",
+    phone: "",
+    selectedRole: "" 
+  });
+  const closeAddUserDialog = () => setAddUserDialog({ 
+    open: false, 
+    email: "", 
+    password: "",
+    name: "",
+    phone: "",
+    selectedRole: "" 
+  });
 
-  // Handle Add User form changes
-  const handleAddUserChange = (value) => {
-    setAddUserDialog((d) => ({ ...d, email: value }));
+  // Add User submit with API integration
+  const handleAddUserSubmit = async (e) => {
+    e.preventDefault();
+    if (!addUserDialog.email || !addUserDialog.password || !addUserDialog.name || !addUserDialog.phone) {
+      showSnackbar("Please fill in all required fields", "error");
+      return;
+    }
+    
+    try {
+      // Convert role to lowercase to match API expectations
+      const role = addUserDialog.selectedRole ? addUserDialog.selectedRole.toLowerCase() : "student";
+      
+      await handleRegisterUser(
+        addUserDialog.email,
+        addUserDialog.password,
+        addUserDialog.name,
+        addUserDialog.phone,
+        role
+      );
+      
+      closeAddUserDialog();
+    } catch (error) {
+      // Error is already handled in handleRegisterUser
+    }
   };
 
-  // Add User submit (email only)
-  const handleAddUserSubmit = (e) => {
+  // Open/close Add System Role Dialog
+  const openAddSystemRoleDialog = () => setAddSystemRoleDialog({ open: true, roleName: "", description: "" });
+  const closeAddSystemRoleDialog = () => setAddSystemRoleDialog({ open: false, roleName: "", description: "" });
+
+  // Add System Role submit
+  const handleAddSystemRoleSubmit = async (e) => {
     e.preventDefault();
-    if (!addUserDialog.email) return;
-    setUsers((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        email: addUserDialog.email,
-        userrole: [{ role: [], privileges: [] }],
-      },
-    ]);
-    showSnackbar("User email created successfully");
-    closeAddUserDialog();
+    if (!addSystemRoleDialog.roleName) return;
+    
+    try {
+      await handleCreateRole(addSystemRoleDialog.roleName, addSystemRoleDialog.description);
+      closeAddSystemRoleDialog();
+    } catch (error) {
+      // Error is already handled in handleCreateRole
+    }
   };
 
   const getUserRoles = (user) => {
@@ -248,6 +544,14 @@ const AdminPage = () => {
               </div>
               <div className="flex flex-wrap gap-2 items-center">
                 <Button
+                  onClick={openAddSystemRoleDialog}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Role
+                </Button>
+                <Button
                   onClick={handleDownloadCSV}
                   variant="outline"
                   size="sm"
@@ -274,7 +578,7 @@ const AdminPage = () => {
               <div className="text-red-500 text-lg mb-2">{error}</div>
               <button 
                 className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                onClick={() => window.location.reload()}
+                onClick={() => fetchData()}
               >
                 Retry
               </button>
@@ -307,7 +611,7 @@ const AdminPage = () => {
                               {role}
                               <button
                                 className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                                onClick={() => handleRemoveRole((page - 1) * ROWS_PER_PAGE + userIdx, roleIdx)}
+                                onClick={() => handleRemoveRole(user.id, role)}
                               >
                                 <X size={16} />
                               </button>
@@ -315,7 +619,7 @@ const AdminPage = () => {
                           ))}
                           <button
                             className="inline-flex items-center bg-background text-foreground border border-input rounded px-3 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => openAddRoleDialog((page - 1) * ROWS_PER_PAGE + userIdx)}
+                            onClick={() => openAddRoleDialog(userIdx)}
                           >
                             <Plus size={16} className="mr-1" />Add
                           </button>
@@ -329,7 +633,7 @@ const AdminPage = () => {
                               {priv}
                               <button
                                 className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                                onClick={() => handleRemovePrivilege((page - 1) * ROWS_PER_PAGE + userIdx, privIdx)}
+                                onClick={() => handleRemovePrivilege(user.id, priv)}
                               >
                                 <X size={16} />
                               </button>
@@ -337,7 +641,7 @@ const AdminPage = () => {
                           ))}
                           <button
                             className="inline-flex items-center bg-background text-foreground border border-input rounded px-3 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-                            onClick={() => openAddPrivilegeDialog((page - 1) * ROWS_PER_PAGE + userIdx)}
+                            onClick={() => openAddPrivilegeDialog(userIdx)}
                           >
                             <Plus size={16} className="mr-1" />Add
                           </button>
@@ -347,7 +651,7 @@ const AdminPage = () => {
                       <TableCell>
                         <button
                           className="text-muted-foreground hover:text-destructive transition-colors"
-                          onClick={() => handleDeleteUser((page - 1) * ROWS_PER_PAGE + userIdx)}
+                          onClick={() => handleDeleteUser(user.id)}
                         >
                           <Trash2 size={22} />
                         </button>
@@ -382,7 +686,11 @@ const AdminPage = () => {
           
           {/* Snackbar */}
           {snackbar.open && (
-            <div className="fixed bottom-6 left-6 z-50 bg-gray-900 text-white px-6 py-3 rounded shadow-lg animate-fade-in">
+            <div className={`fixed bottom-6 left-6 z-50 px-6 py-3 rounded shadow-lg ${
+              snackbar.type === "error" ? "bg-red-600 text-white" : "bg-green-600 text-white"
+            }`} style={{
+              animation: 'fadeIn 0.3s ease-in-out'
+            }}>
               {snackbar.message}
             </div>
           )}
@@ -403,8 +711,8 @@ const AdminPage = () => {
                 >
                   <option value="" disabled>Select Role</option>
                   {roles.map((role) => (
-                    <option key={role.id} value={role.roles}>
-                      {role.roles} - {role.description}
+                    <option key={role.id} value={role.name}>
+                      {role.name}
                     </option>
                   ))}
                 </select>
@@ -469,21 +777,133 @@ const AdminPage = () => {
           
           {/* Add User Dialog */}
           {addUserDialog.open && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+    <form
+      className="bg-white rounded-lg p-8 w-full max-w-md shadow-lg"
+      onSubmit={handleAddUserSubmit}
+    >
+      <h2 className="text-xl font-bold mb-4">Add New User</h2>
+
+      {/* Name */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1 text-orange-600">Name *</label>
+        <input
+          type="text"
+          className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          placeholder="Enter Name"
+          value={addUserDialog.name}
+          onChange={(e) => setAddUserDialog((d) => ({ ...d, name: e.target.value }))}
+          required
+        />
+      </div>
+
+      {/* Phone */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1 text-orange-600">Phone *</label>
+        <input
+          type="tel"
+          className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          placeholder="Enter Phone Number"
+          value={addUserDialog.phone}
+          onChange={(e) => setAddUserDialog((d) => ({ ...d, phone: e.target.value }))}
+          required
+        />
+      </div>
+
+      {/* Email */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1 text-orange-600">Email *</label>
+        <input
+          type="email"
+          className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          placeholder="Enter Email"
+          value={addUserDialog.email}
+          onChange={(e) => setAddUserDialog((d) => ({ ...d, email: e.target.value }))}
+          required
+        />
+      </div>
+
+      {/* Password */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1 text-orange-600">Password *</label>
+        <input
+          type="password"
+          className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          placeholder="Enter Password"
+          value={addUserDialog.password}
+          onChange={(e) => setAddUserDialog((d) => ({ ...d, password: e.target.value }))}
+          required
+        />
+      </div>
+
+      {/* Role */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-1 text-orange-600">Role</label>
+        <select
+                    className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    value={addUserDialog.selectedRole}
+                    onChange={(e) => setAddUserDialog((d) => ({ ...d, selectedRole: e.target.value }))}
+                  >
+                    <option value="">Select Role (Optional)</option>
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="coordinator">Coordinator</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.name.toLowerCase()}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+      </div>
+
+      <div className="flex justify-center gap-4 mt-4">
+        <button
+          type="submit"
+          className="px-6 py-2 bg-orange-500 text-white rounded shadow font-semibold text-base hover:bg-orange-600"
+        >
+          CREATE USER
+        </button>
+        <button
+          type="button"
+          className="px-6 py-2 border border-orange-400 text-orange-600 rounded font-semibold text-base bg-white hover:bg-orange-50"
+          onClick={closeAddUserDialog}
+        >
+          CANCEL
+        </button>
+      </div>
+    </form>
+  </div>
+)}
+
+
+          {/* Add System Role Dialog */}
+          {addSystemRoleDialog.open && (
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
               <form
                 className="bg-white rounded-lg p-8 w-full max-w-md shadow-lg"
-                onSubmit={handleAddUserSubmit}
+                onSubmit={handleAddSystemRoleSubmit}
               >
-                <h2 className="text-xl font-bold mb-4">Enter New Email</h2>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium mb-1 text-orange-600">Enter Email</label>
+                <h2 className="text-xl font-bold mb-4">Create New Role</h2>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1 text-orange-600">Role Name</label>
                   <input
-                    type="email"
+                    type="text"
                     className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder="Enter Email"
-                    value={addUserDialog.email}
-                    onChange={e => handleAddUserChange(e.target.value)}
+                    placeholder="Enter Role Name"
+                    value={addSystemRoleDialog.roleName}
+                    onChange={e => setAddSystemRoleDialog(d => ({ ...d, roleName: e.target.value }))}
                     required
+                  />
+                </div>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-1 text-orange-600">Description</label>
+                  <textarea
+                    className="border-2 border-orange-400 px-3 py-3 rounded w-full text-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    placeholder="Enter Role Description"
+                    value={addSystemRoleDialog.description}
+                    onChange={e => setAddSystemRoleDialog(d => ({ ...d, description: e.target.value }))}
+                    rows={3}
                   />
                 </div>
                 <div className="flex justify-center gap-4 mt-4">
@@ -491,12 +911,12 @@ const AdminPage = () => {
                     type="submit"
                     className="px-6 py-2 bg-orange-500 text-white rounded shadow font-semibold text-base hover:bg-orange-600"
                   >
-                    CREATE USER EMAIL
+                    CREATE ROLE
                   </button>
                   <button
                     type="button"
                     className="px-6 py-2 border border-orange-400 text-orange-600 rounded font-semibold text-base bg-white hover:bg-orange-50"
-                    onClick={closeAddUserDialog}
+                    onClick={closeAddSystemRoleDialog}
                   >
                     CANCEL
                   </button>
