@@ -12,7 +12,8 @@ import {
   Shield,
   UserCheck,
   Menu,
-  X
+  X,
+  Settings
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -30,8 +31,8 @@ const navigation = [
   { name: "Owner", href: "/owner", icon: UserCheck },
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
-  { name: "Question Repository", href: "/questions", icon: FileText },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function AdmissionsSidebar() {
