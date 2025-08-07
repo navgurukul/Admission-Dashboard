@@ -27,6 +27,12 @@ import CampusDetail from "./pages/CampusDetail";
 import School from "./pages/School";
 import SchoolStages from "./pages/SchoolStages";
 import OwnerPage from "./pages/Owner";
+import Settings from "./pages/Settings";
+import UserRole from "./pages/settings/UserRole";
+import Caste from "./pages/settings/Caste";
+import Religion from "./pages/settings/Religion";
+import Qualification from "./pages/settings/Qualification";
+import Questions from "./pages/settings/Questions";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +48,6 @@ const App = () => (
           <Route path="/applicants" element={<ProtectedRoute><AllApplicants /></ProtectedRoute>} />
           <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
           <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-          <Route path="/questions" element={<ProtectedRoute><QuestionRepository /></ProtectedRoute>} />
           <Route path="/sourcing" element={<ProtectedRoute><Sourcing /></ProtectedRoute>} />
           <Route path="/screening" element={<ProtectedRoute><Screening /></ProtectedRoute>} />
           <Route path="/interview-rounds" element={<ProtectedRoute><InterviewRounds /></ProtectedRoute>} />
@@ -56,6 +61,15 @@ const App = () => (
           <Route path="/campus/:id" element={<ProtectedRoute><CampusDetail /></ProtectedRoute>} />
           <Route path="/school" element={<ProtectedRoute><School /></ProtectedRoute>} />
           <Route path="/school/:id" element={<ProtectedRoute><SchoolStages /></ProtectedRoute>} />
+          {/* Settings Routes */}
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>}>
+            <Route path="user-role" element={<UserRole />} />
+            <Route path="caste" element={<Caste />} />
+            <Route path="religion" element={<Religion />} />
+            <Route path="qualification" element={<Qualification />} />
+            <Route path="questions" element={<Questions />} />
+            <Route index element={<UserRole />} />
+          </Route>
           {/* Custom student redirect route */}
           <Route path="/students" element={<Student />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
