@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { supabase } from '@/integrations/supabase/client';
 import Papa from 'papaparse';
 
@@ -37,6 +38,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
   const [errors, setErrors] = useState([]);
   
   const { toast } = useToast();
+  const { user: googleUser } = useGoogleAuth();
 
   const downloadTemplate = () => {
     const template = [
@@ -173,10 +175,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
     const results = { success: 0, errors: 0, duplicates: 0 };
     const importErrors = [];
 
-    const user = await supabase.auth.getUser();
-    const userId = user.data.user?.id;
-
-    if (!userId) {
+    if (!googleUser?.id) {
       toast({
         title: "Authentication Error",
         description: "You must be logged in to import questions",
@@ -193,7 +192,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
       try {
         const questionData = {
           ...parsedData[i],
-          created_by: userId
+          created_by: googleUser.id
         };
 
         // Check for duplicates by question text in main questions table
@@ -212,7 +211,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             .insert([{
               ...questionData,
               import_batch_id: batchId,
-              imported_by: userId,
+              imported_by: googleUser.id,
               is_processed: false
             }]);
 

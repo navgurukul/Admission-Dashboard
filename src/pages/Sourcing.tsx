@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/components/ui/use-toast";
 
 type ApplicantData = {
@@ -52,6 +53,7 @@ const Sourcing = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+  const { user: googleUser } = useGoogleAuth();
 
   // Filter for Sourcing & Outreach stage using new stage field
   const getSourcingApplicants = (data: ApplicantData[]) => {
@@ -64,8 +66,7 @@ const Sourcing = () => {
     try {
       setLoading(true);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!googleUser) {
         console.warn('No active session, skipping data fetch');
         setApplicants([]);
         return;

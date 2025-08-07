@@ -25,14 +25,14 @@ const AdminPage = () => {
   const [addUserDialog, setAddUserDialog] = useState<{
     open: boolean;
     email: string;
-    password: string;
+    // password: string;
     name: string;
     phone: string;
     selectedRole: string;
   }>({ 
     open: false, 
     email: "", 
-    password: "",
+    // password: "",
     name: "",
     phone: "",
     selectedRole: "" 
@@ -87,9 +87,7 @@ const AdminPage = () => {
         // console.log("Using fallback users data:", fallbackUsers);
       } else {
         const usersData = await usersResponse.json();
-        // console.log('Users data from API:', usersData);
         
-        // Handle different possible response structures
         let usersArray = [];
         if (Array.isArray(usersData)) {
           usersArray = usersData;
@@ -197,19 +195,25 @@ const AdminPage = () => {
   };
 
   // Register new user
-  const handleRegisterUser = async (email, password, name, phone, role) => {
+  const handleRegisterUser = async (email,  name, phone, role) => {
     try {
       const requestBody = {
         email, 
-        password, 
+        // password, 
         name, 
         phone, 
         role 
       };
       console.log("Register request body:", requestBody);
-      
-      const response = await apiRequest('/users/register', {
+
+      // const token = localStorage.getItem('authToken')
+      // console.log('Sending token:-',token)
+      const response = await apiRequest('/users/onboard', {
         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': `Bearer ${token}` 
+      },
         body: JSON.stringify(requestBody)
       });
 
@@ -217,7 +221,6 @@ const AdminPage = () => {
         const errorData = await response.json().catch(() => ({}));
         console.error("Register API error:", errorData);
         
-        // Provide more helpful error message for role validation
         if (errorData.message && errorData.message.includes('role must be equal to one of the allowed values')) {
           throw new Error(`Invalid role. Please select a valid role from the dropdown. Available roles: ${roles.map(r => r.name).join(', ')}`);
         }
@@ -477,7 +480,6 @@ const AdminPage = () => {
   const openAddUserDialog = () => setAddUserDialog({ 
     open: true, 
     email: "", 
-    password: "",
     name: "",
     phone: "",
     selectedRole: "" 
@@ -485,7 +487,7 @@ const AdminPage = () => {
   const closeAddUserDialog = () => setAddUserDialog({ 
     open: false, 
     email: "", 
-    password: "",
+
     name: "",
     phone: "",
     selectedRole: "" 
@@ -494,7 +496,7 @@ const AdminPage = () => {
   // Add User submit with API integration
   const handleAddUserSubmit = async (e) => {
     e.preventDefault();
-    if (!addUserDialog.email || !addUserDialog.password || !addUserDialog.name || !addUserDialog.phone) {
+    if (!addUserDialog.email  || !addUserDialog.name || !addUserDialog.phone) {
       showSnackbar("Please fill in all required fields", "error");
       return;
     }
@@ -505,7 +507,6 @@ const AdminPage = () => {
       
       await handleRegisterUser(
         addUserDialog.email,
-        addUserDialog.password,
         addUserDialog.name,
         addUserDialog.phone,
         role
@@ -890,7 +891,7 @@ const AdminPage = () => {
       </div>
 
       {/* Password */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <label className="block text-sm font-medium mb-1 text-orange-600">Password *</label>
         <input
           type="password"
@@ -900,7 +901,7 @@ const AdminPage = () => {
           onChange={(e) => setAddUserDialog((d) => ({ ...d, password: e.target.value }))}
           required
         />
-      </div>
+      </div> */}
 
       {/* Role */}
       <div className="mb-6">

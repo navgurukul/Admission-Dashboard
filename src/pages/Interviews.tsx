@@ -4,6 +4,7 @@ import { Calendar, Clock, User, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/components/ui/use-toast";
 
 type ApplicantData = {
@@ -22,6 +23,7 @@ const Interviews = () => {
   const [applicants, setApplicants] = useState<ApplicantData[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user: googleUser } = useGoogleAuth();
 
   useEffect(() => {
     fetchInterviewData();
@@ -31,8 +33,7 @@ const Interviews = () => {
     try {
       setLoading(true);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!googleUser) {
         setApplicants([]);
         return;
       }

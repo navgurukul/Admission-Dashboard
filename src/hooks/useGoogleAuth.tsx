@@ -120,7 +120,12 @@ export const useGoogleAuth = () => {
       setAuthState(prev => ({ ...prev, loading: true }));
 
       // Decode the JWT token
+      // console.log(response.credential)
+
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      const credentialToken = response.credential;
+        localStorage.setItem('authToken', credentialToken);
+
 
       const user: GoogleUser = {
         id: payload.sub,
