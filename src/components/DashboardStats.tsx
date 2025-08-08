@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 interface DashboardMetrics {
   totalApplicants: number;
@@ -18,14 +19,14 @@ export function DashboardStats() {
     successfullyOnboarded: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { user: googleUser } = useGoogleAuth();
 
   const fetchMetrics = async () => {
     try {
       setLoading(true);
       
       // Check authentication state
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!googleUser) {
         console.warn('No active session, skipping metrics fetch');
         return;
       }

@@ -1,13 +1,20 @@
-const API_BASE_URL = "https://new-admission-dashboard.up.railway.app/api/v1";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 // Get auth token from localStorage
 export const getAuthToken = (): string | null => {
-  return localStorage.getItem('authToken');
+  const token =  localStorage.getItem('authToken');
+  console.log('authToken from localStorage:', token);
+  return token;
+  
 };
+
+
 
 // Create headers with authentication
 export const getAuthHeaders = (): HeadersInit => {
   const token = getAuthToken();
+  console.log(token,"token checking") 
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -19,7 +26,7 @@ export const apiRequest = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> => {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${BASE_URL}${endpoint}`;
   const headers = getAuthHeaders();
   
   const config: RequestInit = {
@@ -31,50 +38,6 @@ export const apiRequest = async (
   };
 
   return fetch(url, config);
-};
-
-// Login function
-export const loginUser = async (email: string, password: string) => {
-  const response = await fetch(`${API_BASE_URL}/users/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Login failed');
-  }
-
-  return data;
-};
-
-// Register function
-export const registerUser = async (userData: {
-  email: string;
-  password: string;
-  name: string;
-  phone: string;
-  role: string;
-}) => {
-  const response = await fetch(`${API_BASE_URL}/users/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(userData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Registration failed');
-  }
-
-  return data;
 };
 
 // Logout function

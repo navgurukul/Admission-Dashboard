@@ -5,6 +5,7 @@ import { Calendar, Clock, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddSlotsModal } from "@/components/AddSlotsModal";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/components/ui/use-toast";
 
 type ScheduleData = {
@@ -22,6 +23,7 @@ const Schedule = () => {
   const [loading, setLoading] = useState(true);
   const [isAddSlotsModalOpen, setIsAddSlotsModalOpen] = useState(false);
   const { toast } = useToast();
+  const { user: googleUser } = useGoogleAuth();
 
   useEffect(() => {
     fetchScheduleData();
@@ -31,8 +33,7 @@ const Schedule = () => {
     try {
       setLoading(true);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!googleUser) {
         setScheduleData([]);
         return;
       }

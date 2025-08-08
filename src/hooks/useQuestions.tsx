@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import type { Database } from '@/integrations/supabase/types';
 
 interface QuestionFilters {
@@ -20,6 +21,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = '') {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user: googleUser } = useGoogleAuth();
 
   const fetchQuestions = async () => {
     try {
@@ -73,7 +75,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = '') {
       .from('questions')
       .insert([{
         ...questionData,
-        created_by: (await supabase.auth.getUser()).data.user?.id
+        created_by: googleUser?.id
       }])
       .select()
       .single();

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 interface ProtectedRouteProps {
@@ -8,7 +7,6 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
   const { user: googleUser, isAuthenticated, loading: googleLoading } = useGoogleAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,20 +16,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Helper to get current user's email
   const getCurrentUserEmail = () => {
-    if (user) {
-      return user.email;
-    } else if (googleUser) {
+    if (googleUser) {
       return googleUser.email;
     }
     return null;
   };
 
   useEffect(() => {
-    if (!loading && !googleLoading) {
-      // Check if user is authenticated via either method
-      const isUserAuthenticated = user || (googleUser && isAuthenticated);
-      
-      if (!isUserAuthenticated) {
+    if (!googleLoading) {
+      // Check if user is authenticated via Google
+      if (!googleUser || !isAuthenticated) {
         // Redirect to auth page if not authenticated
         navigate("/auth", { replace: true });
         return;
@@ -45,10 +39,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         return;
       }
     }
-  }, [user, loading, googleUser, isAuthenticated, googleLoading, navigate]);
+  }, [googleUser, isAuthenticated, googleLoading, navigate]);
 
   // Show loading while checking authentication
-  if (loading || googleLoading) {
+  if (googleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -59,9 +53,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Check if user is authenticated via either method
-  const isUserAuthenticated = user || (googleUser && isAuthenticated);
-  if (!isUserAuthenticated) {
+  // Check if user is authenticated via Google
+  if (!googleUser || !isAuthenticated) {
     return null; // Will redirect to auth page
   }
 

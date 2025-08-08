@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from './use-toast';
-import { getCurrentUser, isAuthenticated, logoutUser } from '@/utils/api';
+import { useGoogleAuth } from './useGoogleAuth';
 
 interface User {
   id: string;
@@ -25,28 +25,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user: googleUser, isAuthenticated, loading: googleLoading } = useGoogleAuth();
 
   useEffect(() => {
-    // Check for existing authentication on app load
+    // Check for existing Google authentication on app load
     const checkAuth = () => {
-      if (isAuthenticated()) {
-        const userData = getCurrentUser();
-        const token = localStorage.getItem('authToken');
-        
-        if (userData && token) {
-          setUser(userData);
-          setSession({ token });
-        }
+      if (googleUser && isAuthenticated) {
+        setUser(googleUser);
+        setSession({ provider: 'google' });
       }
       setLoading(false);
     };
 
-    checkAuth();
-  }, []);
+    if (!googleLoading) {
+      checkAuth();
+    }
+  }, [googleUser, isAuthenticated, googleLoading]);
 
   const signOut = async () => {
-    // Clear all auth data using utility function
-    logoutUser();
+    // Clear all auth data
+    localStorage.removeItem('googleUser');
+    localStorage.removeItem('roleAccess');
+    localStorage.removeItem('privileges');
     setUser(null);
     setSession(null);
     
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const getUserInfo = () => {
-    return getCurrentUser();
+    return user;
   };
 
   return (
