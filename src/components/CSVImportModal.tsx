@@ -16,7 +16,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { UploadCloud } from 'lucide-react';
 import { Progress } from "@/components/ui/progress"
 import { CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from "@/integrations/supabase/client";
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -25,30 +24,13 @@ interface CSVImportModalProps {
 }
 
 interface ApplicantData {
-  mobile_no: string;
-  unique_number: string | null;
-  name: string | null;
-  city: string | null;
-  block: string | null;
-  caste: string | null;
-  gender: string | null;
-  qualification: string | null;
-  current_work: string | null;
-  qualifying_school: string | null;
-  whatsapp_number: string | null;
-  set_name: string | null;
-  exam_centre: string | null;
-  date_of_testing: string | null;
-  lr_status: string | null;
-  lr_comments: string | null;
-  cfr_status: string | null;
-  cfr_comments: string | null;
-  final_marks: number | null;
-  offer_letter_status: string | null;
-  allotted_school: string | null;
-  joining_status: string | null;
-  final_notes: string | null;
-  triptis_notes: string | null;
+  id: string;
+  name: string;
+  mobileNo: string;
+  campus: string;
+  stage: string;
+  status: string;
+  createdAt: string;
 }
 
 const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => {
@@ -98,36 +80,7 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
     });
   };
 
-  const parseNumericValue = (value: string | undefined): number | null => {
-    if (!value || value.trim() === '') return null;
-    
-    const trimmedValue = value.trim();
-    console.log('Parsing numeric value:', trimmedValue);
-    
-    // Handle fractional format like "18/25"
-    if (trimmedValue.includes('/')) {
-      const parts = trimmedValue.split('/');
-      if (parts.length === 2) {
-        const numerator = parseFloat(parts[0]);
-        const denominator = parseFloat(parts[1]);
-        if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
-          const result = numerator / denominator;
-          console.log(`Converted ${trimmedValue} to ${result}`);
-          return result;
-        }
-      }
-    }
-    
-    // Handle regular numeric values
-    const numericValue = parseFloat(trimmedValue);
-    if (!isNaN(numericValue)) {
-      console.log(`Parsed ${trimmedValue} as ${numericValue}`);
-      return numericValue;
-    }
-    
-    console.log(`Could not parse ${trimmedValue} as number, returning null`);
-    return null;
-  };
+
 
   const processCSVData = async (data: any[]) => {
     try {
@@ -137,55 +90,52 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
         console.log(`Processing row ${index + 1}:`, row);
         
         const processedRow = {
-          mobile_no: row.mobile_no?.toString() || '',
-          unique_number: row.unique_number?.toString() || null,
-          name: row.name || null,
-          city: row.city || null,
-          block: row.block || null,
-          caste: row.caste || null,
-          gender: row.gender || null,
-          qualification: row.qualification || null,
-          current_work: row.current_work || null,
-          qualifying_school: row.qualifying_school || null,
-          whatsapp_number: row.whatsapp_number?.toString() || null,
-          set_name: row.set_name || null,
-          exam_centre: row.exam_centre || null,
-          date_of_testing: row.date_of_testing || null,
-          lr_status: row.lr_status || null,
-          lr_comments: row.lr_comments || null,
-          cfr_status: row.cfr_status || null,
-          cfr_comments: row.cfr_comments || null,
-          final_marks: parseNumericValue(row.final_marks?.toString()),
-          offer_letter_status: row.offer_letter_status || null,
-          allotted_school: row.allotted_school || null,
-          joining_status: row.joining_status || null,
-          final_notes: row.final_notes || null,
-          triptis_notes: row.triptis_notes || null,
+          id: `applicant_${Date.now()}_${index}`,
+          name: row.Name || row.name || '',
+          mobileNo: row["Mobile No"] || row["Mobile No."] || row.mobileNo || row.mobile_no || '',
+          campus: row.Campus || row.campus || row.allotted_school || '',
+          stage: row.Stage || row.stage || row.lr_status || '',
+          status: row.Status || row.status || row.joining_status || 'Active',
+          createdAt: new Date().toISOString(),
         };
 
-        console.log(`Processed row ${index + 1} final_marks:`, processedRow.final_marks);
+        console.log(`Processed row ${index + 1}:`, processedRow);
         return processedRow;
       });
 
-      console.log('Sending to Supabase:', processedData.slice(0, 2)); // Log first 2 rows
+      console.log('Saving to localStorage:', processedData.slice(0, 2)); // Log first 2 rows
 
-      // Since we removed the unique constraint on mobile_no, we can use regular insert
-      // instead of upsert to allow duplicates
-      const { error } = await supabase
-        .from('admission_dashboard')
-        .insert(processedData);
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      // Get existing data from localStorage
+      const existingData = localStorage.getItem("applicants");
+      let allData = [];
+      
+      if (existingData) {
+        allData = JSON.parse(existingData);
       }
+      
+      // Add new data to existing data
+      const updatedData = [...allData, ...processedData];
+      
+      // Save to localStorage
+      localStorage.setItem("applicants", JSON.stringify(updatedData));
 
       setSuccessCount(processedData.length);
       setShowSuccess(true);
       onSuccess();
+      
+      toast({
+        title: "Import Successful",
+        description: `${processedData.length} applicants imported successfully to localStorage`,
+      });
     } catch (error) {
       console.error('Import error:', error);
       setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      
+      toast({
+        title: "Import Failed",
+        description: "Failed to import applicants to localStorage",
+        variant: "destructive",
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -196,9 +146,9 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Import Applicants from CSV</DialogTitle>
-          <DialogDescription>
-            Upload a CSV file to add multiple applicants at once. Duplicate mobile numbers are now allowed.
-          </DialogDescription>
+                  <DialogDescription>
+          Upload a CSV file with columns: Name, Mobile No, Campus, Stage, Status. Data will be stored locally in your browser.
+        </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">

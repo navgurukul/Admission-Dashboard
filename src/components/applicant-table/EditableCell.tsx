@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
@@ -28,15 +27,28 @@ export const EditableCell = ({ applicant, field, displayValue, onUpdate, showPen
     if (!editingCell) return;
 
     try {
-      const { error } = await supabase
-        .from("admission_dashboard")
-        .update({ 
-          [editingCell.field]: cellValue,
-          last_updated: new Date().toISOString()
-        })
-        .eq("id", editingCell.id);
-
-      if (error) throw error;
+      // Get current data from localStorage
+      const storedData = localStorage.getItem("applicants");
+      let allData = [];
+      
+      if (storedData) {
+        allData = JSON.parse(storedData);
+      }
+      
+      // Find and update the specific applicant
+      const updatedData = allData.map((applicant: any) => {
+        if (applicant.id === editingCell.id) {
+          return {
+            ...applicant,
+            [editingCell.field]: cellValue,
+            last_updated: new Date().toISOString()
+          };
+        }
+        return applicant;
+      });
+      
+      // Save back to localStorage
+      localStorage.setItem("applicants", JSON.stringify(updatedData));
 
       toast({
         title: "Success",

@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { STAGE_DEFAULT_STATUS } from "./StatusDropdown";
 
@@ -27,16 +26,29 @@ const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
       const defaultStatus = STAGE_DEFAULT_STATUS[value as keyof typeof STAGE_DEFAULT_STATUS];
       console.log('Setting default status to:', defaultStatus);
       
-      const { error } = await supabase
-        .from("admission_dashboard")
-        .update({ 
-          stage: value,
-          status: defaultStatus,
-          last_updated: new Date().toISOString()
-        })
-        .eq("id", applicant.id);
-
-      if (error) throw error;
+      // Get current data from localStorage
+      const storedData = localStorage.getItem("applicants");
+      let allData = [];
+      
+      if (storedData) {
+        allData = JSON.parse(storedData);
+      }
+      
+      // Find and update the specific applicant
+      const updatedData = allData.map((applicantData: any) => {
+        if (applicantData.id === applicant.id) {
+          return {
+            ...applicantData,
+            stage: value,
+            status: defaultStatus,
+            last_updated: new Date().toISOString()
+          };
+        }
+        return applicantData;
+      });
+      
+      // Save back to localStorage
+      localStorage.setItem("applicants", JSON.stringify(updatedData));
 
       toast({
         title: "Stage Updated",

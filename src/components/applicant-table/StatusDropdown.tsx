@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface StatusDropdownProps {
@@ -67,15 +66,28 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const handleStatusChange = async (newStatus: string) => {
     console.log('Changing status to:', newStatus);
     try {
-      const { error } = await supabase
-        .from("admission_dashboard")
-        .update({ 
-          status: newStatus,
-          last_updated: new Date().toISOString()
-        })
-        .eq("id", applicant.id);
-
-      if (error) throw error;
+      // Get current data from localStorage
+      const storedData = localStorage.getItem("applicants");
+      let allData = [];
+      
+      if (storedData) {
+        allData = JSON.parse(storedData);
+      }
+      
+      // Find and update the specific applicant
+      const updatedData = allData.map((applicantData: any) => {
+        if (applicantData.id === applicant.id) {
+          return {
+            ...applicantData,
+            status: newStatus,
+            last_updated: new Date().toISOString()
+          };
+        }
+        return applicantData;
+      });
+      
+      // Save back to localStorage
+      localStorage.setItem("applicants", JSON.stringify(updatedData));
 
       toast({
         title: "Status Updated",

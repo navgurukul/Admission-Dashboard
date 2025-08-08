@@ -28,6 +28,17 @@ export const ApplicantTableRow = ({
   onViewComments,
   onCampusChange 
 }: ApplicantTableRowProps) => {
+  // Debug logging
+  console.log("ApplicantTableRow received applicant:", applicant);
+  console.log("Applicant fields:", {
+    id: applicant.id,
+    name: applicant.name,
+    mobileNo: applicant.mobileNo,
+    campus: applicant.campus,
+    stage: applicant.stage,
+    status: applicant.status
+  });
+  
   return (
     <TableRow key={applicant.id}>
       <TableCell className="w-12">
@@ -50,8 +61,8 @@ export const ApplicantTableRow = ({
         <div className="truncate">
           <EditableCell 
             applicant={applicant} 
-            field="mobile_no" 
-            displayValue={applicant.mobile_no} 
+            field="mobileNo" 
+            displayValue={applicant.mobileNo || "Click to add"} 
             onUpdate={onUpdate}
             showPencil={true}
           />

@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 interface CampusOption {
@@ -26,18 +25,15 @@ export function CampusSelector({ currentCampus, applicantId, onCampusChange }: C
   }, []);
 
   const fetchCampusOptions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('campus_options')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      setCampusOptions(data || []);
-    } catch (error) {
-      console.error('Error fetching campus options:', error);
-    }
+    // For now, use some default campus options since we're in localStorage mode
+    const defaultCampusOptions = [
+      { id: '1', name: 'Delhi', is_active: true },
+      { id: '2', name: 'Mumbai', is_active: true },
+      { id: '3', name: 'Bangalore', is_active: true },
+      { id: '4', name: 'Chennai', is_active: true },
+      { id: '5', name: 'Kolkata', is_active: true },
+    ];
+    setCampusOptions(defaultCampusOptions);
   };
 
   const handleCampusChange = async (campusName: string) => {
@@ -47,15 +43,28 @@ export function CampusSelector({ currentCampus, applicantId, onCampusChange }: C
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('admission_dashboard')
-        .update({ 
-          campus: campusName,
-          last_updated: new Date().toISOString()
-        })
-        .eq('id', applicantId);
-
-      if (error) throw error;
+      // Get current data from localStorage
+      const storedData = localStorage.getItem("applicants");
+      let allData = [];
+      
+      if (storedData) {
+        allData = JSON.parse(storedData);
+      }
+      
+      // Find and update the specific applicant
+      const updatedData = allData.map((applicant: any) => {
+        if (applicant.id === applicantId) {
+          return {
+            ...applicant,
+            campus: campusName,
+            last_updated: new Date().toISOString()
+          };
+        }
+        return applicant;
+      });
+      
+      // Save back to localStorage
+      localStorage.setItem("applicants", JSON.stringify(updatedData));
 
       toast({
         title: "Success",

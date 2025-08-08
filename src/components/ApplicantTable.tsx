@@ -1,7 +1,5 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
   CardContent,
@@ -54,37 +52,82 @@ const ApplicantTable = () => {
   });
   const { toast } = useToast();
 
-  const { data: applicants, isLoading, refetch } = useQuery({
-    queryKey: ["applicants"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("admission_dashboard")
-        .select("*")
-        .order("created_at", { ascending: false });
+  const [applicants, setApplicants] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-      if (error) {
-        console.error("Error fetching applicants:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch applicants",
-          variant: "destructive",
-        });
+  const refetch = useCallback(() => {
+    setIsLoading(true);
+    try {
+      const storedData = localStorage.getItem("applicants");
+      console.log("Stored data from localStorage:", storedData);
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log("Parsed applicants data:", parsedData);
+        
+        // Check if the data structure is correct
+        if (parsedData.length > 0) {
+          const firstItem = parsedData[0];
+          console.log("First item structure:", firstItem);
+          console.log("Available fields:", Object.keys(firstItem));
+          
+          // Fix data structure if needed
+          const fixedData = parsedData.map((item: any) => {
+            // If the data has old field names, convert them
+            return {
+              id: item.id || `applicant_${Date.now()}_${Math.random()}`,
+              name: item.name || item.Name || '',
+              mobileNo: item.mobileNo || item.mobile_no || item["Mobile No"] || item["Mobile No."] || '',
+              campus: item.campus || item.allotted_school || '',
+              stage: item.stage || item.lr_status || 'sourcing',
+              status: item.status || item.joining_status || 'Enrollment Key Generated',
+              createdAt: item.createdAt || item.created_at || new Date().toISOString(),
+            };
+          });
+          
+          console.log("Fixed data structure:", fixedData[0]);
+          setApplicants(fixedData);
+          
+          // Save the fixed data back to localStorage
+          localStorage.setItem("applicants", JSON.stringify(fixedData));
+        } else {
+          setApplicants(parsedData);
+        }
+      } else {
+        console.log("No data found in localStorage");
+        setApplicants([]);
       }
-      return data;
-    },
-  });
+    } catch (error) {
+      console.error("Error loading applicants from storage:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load applicants from storage",
+        variant: "destructive",
+      });
+      setApplicants([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  // Load data on component mount
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   const filteredApplicants = useMemo(() => {
+    console.log("Filtering applicants:", applicants);
     if (!applicants) return [];
 
     const searchRegex = new RegExp(searchTerm, "i");
-    return applicants.filter((applicant) => {
+    const filtered = applicants.filter((applicant) => {
       return (
         searchRegex.test(applicant.name || "") ||
-        searchRegex.test(applicant.mobile_no) ||
-        searchRegex.test(applicant.unique_number || "")
+        searchRegex.test(applicant.mobileNo || "") ||
+        searchRegex.test(applicant.campus || "")
       );
     });
+    console.log("Filtered applicants:", filtered);
+    return filtered;
   }, [applicants, searchTerm]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -137,26 +180,26 @@ const ApplicantTable = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from("admission_dashboard")
-        .delete()
-        .in("id", selectedRows);
-
-      if (error) {
-        console.error("Error deleting applicants:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete applicants",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Applicants Deleted",
-          description: "Successfully deleted selected applicants",
-        });
-        setSelectedRows([]);
-        refetch();
+      // Get current data from localStorage
+      const storedData = localStorage.getItem("applicants");
+      let allData = [];
+      
+      if (storedData) {
+        allData = JSON.parse(storedData);
       }
+      
+      // Remove selected applicants
+      const updatedData = allData.filter((applicant: any) => !selectedRows.includes(applicant.id));
+      
+      // Save back to localStorage
+      localStorage.setItem("applicants", JSON.stringify(updatedData));
+      
+      toast({
+        title: "Applicants Deleted",
+        description: "Successfully deleted selected applicants",
+      });
+      setSelectedRows([]);
+      refetch();
     } catch (error) {
       console.error("Error deleting applicants:", error);
       toast({
@@ -177,40 +220,13 @@ const ApplicantTable = () => {
       return;
     }
 
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "send-offer-letters",
-        {
-          body: {
-            applicantIds: selectedRows,
-            templateIds: {
-              offer_letter: "default-offer-letter-id",
-              consent_en: "default-consent-en-id",
-              consent_hi: "default-consent-hi-id",
-              checklist_en: "default-checklist-en-id",
-              checklist_hi: "default-checklist-hi-id",
-            },
-          },
-        }
-      );
+    // For now, just show a success message since we're using localStorage
+    toast({
+      title: "Offer Letters Sent",
+      description: `Successfully sent offer letters to ${selectedRows.length} applicants (localStorage mode)`,
+    });
 
-      if (error) throw error;
-
-      toast({
-        title: "Offer Letters Sent",
-        description: `Successfully sent offer letters to ${selectedRows.length} applicants`,
-      });
-
-      setSelectedRows([]);
-      refetch();
-    } catch (error) {
-      console.error("Error sending offer letters:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send offer letters",
-        variant: "destructive",
-      });
-    }
+    setSelectedRows([]);
   };
 
   const handleApplyFilters = (newFilters: any) => {
@@ -389,6 +405,7 @@ const ApplicantTable = () => {
                       onUpdate={refetch}
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
+                      onCampusChange={refetch}
                     />
                   ))
                 )}

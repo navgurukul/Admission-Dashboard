@@ -2,18 +2,22 @@ import React, { useEffect, useState } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Upload, Download } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import Papa from "papaparse";
 
-interface School {
-  id: number;
-  school_name: string;
-  status: boolean;
-  created_at: string;
+interface Applicant {
+  id: string;
+  name: string;
+  mobileNo: string;
+  campus: string;
+  stage: string;
+  status: string;
+  createdAt: string;
 }
 
 const School = () => {
-  const [schools, setSchools] = useState<School[]>([]);
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,64 +30,173 @@ const School = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
 
   // Form states
-  const [newSchool, setNewSchool] = useState("");
-  const [updatedSchoolName, setUpdatedSchoolName] = useState("");
-  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [newApplicant, setNewApplicant] = useState({
+    name: "",
+    mobileNo: "",
+    campus: "",
+    stage: "",
+    status: ""
+  });
+  const [updatedApplicant, setUpdatedApplicant] = useState({
+    name: "",
+    mobileNo: "",
+    campus: "",
+    stage: "",
+    status: ""
+  });
+  const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
 
+  // Load data from localStorage on component mount
   useEffect(() => {
-    fetchSchools();
+    loadApplicantsFromStorage();
   }, []);
 
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const loadApplicantsFromStorage = () => {
+    setLoading(true);
+    try {
+      const storedData = localStorage.getItem("applicants");
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        setApplicants(parsedData);
+      } else {
+        setApplicants([]);
+      }
+      setHasFetchedOnce(true);
+    } catch (error) {
+      console.error("Error loading applicants from storage:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load applicants from storage",
+        variant: "destructive",
+      });
+      setApplicants([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const fetchSchools = async () => {
-  setLoading(true);
-  try {
-    const response = await fetch(`${BASE_URL}/schools/getSchools`);
-    if (!response.ok) throw new Error("Failed to fetch schools");
-    const data = await response.json();
+  const saveApplicantsToStorage = (data: Applicant[]) => {
+    try {
+      localStorage.setItem("applicants", JSON.stringify(data));
+    } catch (error) {
+      console.error("Error saving applicants to storage:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save applicants to storage",
+        variant: "destructive",
+      });
+    }
+  };
 
-    let schoolsData = [];
-    if (Array.isArray(data)) {
-      schoolsData = data;
-    } else if (data.data && Array.isArray(data.data)) {
-      schoolsData = data.data;
-    } else if (data.schools && Array.isArray(data.schools)) {
-      schoolsData = data.schools;
+  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "text/csv" && !file.name.endsWith('.csv')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a CSV file",
+        variant: "destructive",
+      });
+      return;
     }
 
-    schoolsData = schoolsData.map((school) => ({
-      id: school.id,
-      school_name: school.school_name || school.name || "",
-      status: school.status || true,
-      created_at: school.created_at || new Date().toISOString(),
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const parsedData = results.data as any[];
+        const formattedData: Applicant[] = parsedData.map((row, index) => ({
+          id: `applicant_${Date.now()}_${index}`,
+          name: row.Name || row.name || "",
+          mobileNo: row["Mobile No"] || row["Mobile No."] || row.mobileNo || row.mobile || "",
+          campus: row.Campus || row.campus || "",
+          stage: row.Stage || row.stage || "",
+          status: row.Status || row.status || "",
+          createdAt: new Date().toISOString(),
+        }));
+
+        // Merge with existing data or replace
+        const existingData = localStorage.getItem("applicants");
+        let finalData: Applicant[];
+        
+        if (existingData) {
+          const existing = JSON.parse(existingData);
+          finalData = [...existing, ...formattedData];
+        } else {
+          finalData = formattedData;
+        }
+
+        setApplicants(finalData);
+        saveApplicantsToStorage(finalData);
+
+        toast({
+          title: "CSV Uploaded",
+          description: `${formattedData.length} applicants imported successfully`,
+        });
+      },
+      error: (error) => {
+        console.error("CSV parsing error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to parse CSV file",
+          variant: "destructive",
+        });
+      }
+    });
+
+    // Reset file input
+    event.target.value = "";
+  };
+
+  const handleExportCSV = () => {
+    if (applicants.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no applicants to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const csvData = applicants.map(applicant => ({
+      Name: applicant.name,
+      "Mobile No": applicant.mobileNo,
+      Campus: applicant.campus,
+      Stage: applicant.stage,
+      Status: applicant.status,
     }));
 
-    setSchools(schoolsData);
-    setHasFetchedOnce(true);
-  } catch (error) {
-    console.error("Error fetching schools:", error);
-    toast({
-      title: "Error",
-      description: "Failed to fetch schools",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `applicants_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-// Filter schools based on search query
-  const filteredSchools = schools.filter((school) =>
-    school.school_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    toast({
+      title: "CSV Exported",
+      description: "Applicants data exported successfully",
+    });
+  };
+
+  // Filter applicants based on search query
+  const filteredApplicants = applicants.filter((applicant) =>
+    applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    applicant.mobileNo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    applicant.campus?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredSchools.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredApplicants.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredSchools.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredApplicants.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -97,108 +210,58 @@ const fetchSchools = async () => {
     }
   };
 
-  const handleAddSchool = async (e: React.FormEvent) => {
+  const handleAddApplicant = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-    const response = await fetch(`${BASE_URL}/schools/createSchool`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ school_name: newSchool }),
+    const newApplicantData: Applicant = {
+      id: `applicant_${Date.now()}`,
+      ...newApplicant,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedApplicants = [...applicants, newApplicantData];
+    setApplicants(updatedApplicants);
+    saveApplicantsToStorage(updatedApplicants);
+    
+    setNewApplicant({
+      name: "",
+      mobileNo: "",
+      campus: "",
+      stage: "",
+      status: ""
     });
-
-      if (!response.ok) throw new Error("Failed to create school");
-
-      const result = await response.json();
-      console.log("Create response:", result);
-
-      // Add the new school to the state immediately
-      const newSchoolData = {
-        id: result.id || result.data?.id || Date.now(),
-        school_name: newSchool,
-        status: true,
-        created_at: new Date().toISOString(),
-      };
-
-      setSchools((prev) => [...prev, newSchoolData]);
-      setNewSchool("");
-      setAddDialog(false);
-
-      // Fallback: refresh data after a short delay to ensure consistency
-      setTimeout(() => {
-        fetchSchools();
-      }, 1000);
-
-      toast({
-        title: "School Added",
-        description: "School has been successfully added.",
-      });
-    } catch (error) {
-      console.error("Error creating school:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create school.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdateSchool = async (id: number, updatedName: string) => {
-   try {
-    const response = await fetch(`${BASE_URL}/schools/updateSchool/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ school_name: updatedName }),
-    });
-
-
-      if (!response.ok) throw new Error("Failed to update school");
-
-      setSchools((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, name: updatedName } : s))
-      );
-
-      toast({
-        title: "School Updated",
-        description: `School "${updatedName}" updated successfully.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error updating school",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    }
-  };
-
- const handleDeleteSchool = async (id: number) => {
-  try {
-    const response = await fetch(`${BASE_URL}/schools/deleteSchool/${id}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) throw new Error("Failed to delete school");
-
-    setSchools((prev) => prev.filter((s) => s.id !== id));
+    setAddDialog(false);
 
     toast({
-      title: "School deleted",
-      description: `School has been deleted successfully.`,
+      title: "Applicant Added",
+      description: "Applicant has been successfully added.",
     });
-  } catch (error) {
+  };
+
+  const handleUpdateApplicant = (id: string) => {
+    const updatedApplicants = applicants.map((applicant) =>
+      applicant.id === id ? { ...applicant, ...updatedApplicant } : applicant
+    );
+    
+    setApplicants(updatedApplicants);
+    saveApplicantsToStorage(updatedApplicants);
+
     toast({
-      title: "Error deleting school",
-      description: (error as Error).message,
-      variant: "destructive",
+      title: "Applicant Updated",
+      description: `Applicant "${updatedApplicant.name}" updated successfully.`,
     });
-  }
-};
+  };
+
+  const handleDeleteApplicant = (id: string) => {
+    const updatedApplicants = applicants.filter((applicant) => applicant.id !== id);
+    setApplicants(updatedApplicants);
+    saveApplicantsToStorage(updatedApplicants);
+
+    toast({
+      title: "Applicant deleted",
+      description: `Applicant has been deleted successfully.`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
@@ -210,22 +273,39 @@ const fetchSchools = async () => {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">
-                    Schools
+                    Applicants
                   </h2>
                   <p className="text-muted-foreground text-sm mt-1">
-                    Manage and view all schools
+                    Manage and view all applicants
                   </p>
                 </div>
-                <Button onClick={() => setAddDialog(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Add School
-                </Button>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCSVUpload}
+                    className="hidden"
+                    id="csv-upload"
+                  />
+                  <label htmlFor="csv-upload">
+                    <Button variant="outline" className="cursor-pointer">
+                      <Upload className="mr-2 h-4 w-4" /> Import CSV
+                    </Button>
+                  </label>
+                  <Button variant="outline" onClick={handleExportCSV}>
+                    <Download className="mr-2 h-4 w-4" /> Export CSV
+                  </Button>
+                  <Button onClick={() => setAddDialog(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Applicant
+                  </Button>
+                </div>
               </div>
               {/* Search */}
               <div className="flex items-center space-x-4">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <input
-                    placeholder="Search by school name..."
+                    placeholder="Search applicants..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -245,7 +325,19 @@ const fetchSchools = async () => {
                       S.No
                     </th>
                     <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
-                      School Name
+                      Name
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
+                      Mobile No
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
+                      Campus
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
+                      Stage
+                    </th>
+                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
+                      Status
                     </th>
                     <th className="text-right py-4 px-6 font-medium text-muted-foreground text-sm">
                       Actions
@@ -256,41 +348,56 @@ const fetchSchools = async () => {
                   {loading && !hasFetchedOnce ? (
                     <tr>
                       <td
-                        colSpan={3}
+                        colSpan={7}
                         className="py-12 text-center text-muted-foreground"
                       >
                         <div className="flex flex-col items-center space-y-2">
                           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                          <span>Loading schools...</span>
+                          <span>Loading applicants...</span>
                         </div>
                       </td>
                     </tr>
                   ) : currentItems.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={3}
+                        colSpan={7}
                         className="py-12 text-center text-muted-foreground"
                       >
                         <div className="flex flex-col items-center space-y-2">
                           <Search className="w-8 h-8 opacity-50" />
-                          <span>No schools found</span>
+                          <span>No applicants found</span>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    currentItems.map((school, idx) => (
+                    currentItems.map((applicant, idx) => (
                       <tr
-                        key={school.id}
+                        key={applicant.id}
                         className="border-b border-border/30 hover:bg-muted/30 transition-colors"
                       >
                         <td className="py-4 px-6">
                           {indexOfFirstItem + idx + 1}
                         </td>
-                        <td
-                          className="py-4 px-6 text-orange-600 font-medium cursor-pointer hover:underline"
-                          onClick={() => navigate(`/school/${school.id}`)}
-                        >
-                          {school.school_name}
+                        <td className="py-4 px-6 text-orange-600 font-medium">
+                          {applicant.name}
+                        </td>
+                        <td className="py-4 px-6">
+                          {applicant.mobileNo}
+                        </td>
+                        <td className="py-4 px-6">
+                          {applicant.campus}
+                        </td>
+                        <td className="py-4 px-6">
+                          {applicant.stage}
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            applicant.status === 'Active' ? 'bg-green-100 text-green-800' :
+                            applicant.status === 'Inactive' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {applicant.status}
+                          </span>
                         </td>
                         <td className="py-4 px-6 text-right space-x-2">
                           <Button
@@ -298,8 +405,14 @@ const fetchSchools = async () => {
                             size="icon"
                             className="text-blue-600"
                             onClick={() => {
-                              setSelectedSchool(school);
-                              setUpdatedSchoolName(school.school_name);
+                              setSelectedApplicant(applicant);
+                              setUpdatedApplicant({
+                                name: applicant.name,
+                                mobileNo: applicant.mobileNo,
+                                campus: applicant.campus,
+                                stage: applicant.stage,
+                                status: applicant.status
+                              });
                               setEditDialog(true);
                             }}
                           >
@@ -310,7 +423,7 @@ const fetchSchools = async () => {
                             size="icon"
                             className="text-red-600"
                             onClick={() => {
-                              setSelectedSchool(school);
+                              setSelectedApplicant(applicant);
                               setDeleteDialog(true);
                             }}
                           >
@@ -348,8 +461,8 @@ const fetchSchools = async () => {
             {/* Show total count */}
             <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
               <p className="text-sm text-muted-foreground">
-                Showing {currentItems.length} of {filteredSchools.length}{" "}
-                filtered schools
+                Showing {currentItems.length} of {filteredApplicants.length}{" "}
+                filtered applicants
               </p>
             </div>
           </div>
@@ -360,20 +473,57 @@ const fetchSchools = async () => {
       {addDialog && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <form
-            onSubmit={handleAddSchool}
+            onSubmit={handleAddApplicant}
             className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-blue-200"
           >
             <h2 className="text-lg font-semibold mb-4 text-blue-700">
-              Add School
+              Add Applicant
             </h2>
-            <input
-              type="text"
-              placeholder="Enter school name"
-              className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={newSchool}
-              onChange={(e) => setNewSchool(e.target.value)}
-              required
-            />
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Enter name"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={newApplicant.name}
+                onChange={(e) => setNewApplicant({...newApplicant, name: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Enter mobile number"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={newApplicant.mobileNo}
+                onChange={(e) => setNewApplicant({...newApplicant, mobileNo: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Enter campus"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={newApplicant.campus}
+                onChange={(e) => setNewApplicant({...newApplicant, campus: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Enter stage"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={newApplicant.stage}
+                onChange={(e) => setNewApplicant({...newApplicant, stage: e.target.value})}
+                required
+              />
+              <select
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={newApplicant.status}
+                onChange={(e) => setNewApplicant({...newApplicant, status: e.target.value})}
+                required
+              >
+                <option value="">Select status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
                 type="button"
@@ -394,26 +544,63 @@ const fetchSchools = async () => {
       )}
 
       {/* Edit Dialog */}
-      {editDialog && selectedSchool && (
+      {editDialog && selectedApplicant && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-blue-200">
             <h2 className="text-lg font-semibold mb-4 text-blue-700">
-              Update School
+              Update Applicant
             </h2>
-            <input
-              type="text"
-              placeholder="Enter school name"
-              className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={updatedSchoolName}
-              onChange={(e) => setUpdatedSchoolName(e.target.value)}
-              required
-            />
+            <div className="space-y-4">
+              <input
+                type="text"
+                placeholder="Enter name"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={updatedApplicant.name}
+                onChange={(e) => setUpdatedApplicant({...updatedApplicant, name: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Enter mobile number"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={updatedApplicant.mobileNo}
+                onChange={(e) => setUpdatedApplicant({...updatedApplicant, mobileNo: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Enter campus"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={updatedApplicant.campus}
+                onChange={(e) => setUpdatedApplicant({...updatedApplicant, campus: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Enter stage"
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={updatedApplicant.stage}
+                onChange={(e) => setUpdatedApplicant({...updatedApplicant, stage: e.target.value})}
+                required
+              />
+              <select
+                className="border border-blue-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={updatedApplicant.status}
+                onChange={(e) => setUpdatedApplicant({...updatedApplicant, status: e.target.value})}
+                required
+              >
+                <option value="">Select status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
                 onClick={() => {
                   setEditDialog(false);
-                  setSelectedSchool(null);
+                  setSelectedApplicant(null);
                 }}
               >
                 Cancel
@@ -421,10 +608,10 @@ const fetchSchools = async () => {
               <button
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 onClick={() => {
-                  if (selectedSchool) {
-                    handleUpdateSchool(selectedSchool.id, updatedSchoolName);
+                  if (selectedApplicant) {
+                    handleUpdateApplicant(selectedApplicant.id);
                     setEditDialog(false);
-                    setSelectedSchool(null);
+                    setSelectedApplicant(null);
                   }
                 }}
               >
@@ -436,7 +623,7 @@ const fetchSchools = async () => {
       )}
 
       {/* Delete Dialog */}
-      {deleteDialog && selectedSchool && (
+      {deleteDialog && selectedApplicant && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-red-200">
             <h2 className="text-lg font-semibold text-red-600 mb-4">
@@ -444,14 +631,14 @@ const fetchSchools = async () => {
             </h2>
             <p>
               Are you sure you want to delete{" "}
-              <strong>{selectedSchool.school_name}</strong>?
+              <strong>{selectedApplicant.name}</strong>?
             </p>
             <div className="flex justify-end gap-2 mt-6">
               <button
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
                 onClick={() => {
                   setDeleteDialog(false);
-                  setSelectedSchool(null);
+                  setSelectedApplicant(null);
                 }}
               >
                 Cancel
@@ -459,9 +646,9 @@ const fetchSchools = async () => {
               <button
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                 onClick={() => {
-                  handleDeleteSchool(selectedSchool.id);
+                  handleDeleteApplicant(selectedApplicant.id);
                   setDeleteDialog(false);
-                  setSelectedSchool(null);
+                  setSelectedApplicant(null);
                 }}
               >
                 Delete
