@@ -72,7 +72,7 @@ export interface Cast {
 
 // Create Cast
 export const createCast = async (castData: { cast_name: string }): Promise<Cast> => {
-  const response = await fetch(`${API_BASE_URL}/casts/createCast`, {
+  const response = await fetch(`${BASE_URL}/casts/createCast`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(castData),
@@ -89,7 +89,7 @@ export const createCast = async (castData: { cast_name: string }): Promise<Cast>
 
 // Get All Casts
 export const getAllCasts = async (): Promise<Cast[]> => {
-  const response = await fetch(`${API_BASE_URL}/casts/getCasts`, {
+  const response = await fetch(`${BASE_URL}/casts/getCasts`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -126,7 +126,7 @@ export const getAllCasts = async (): Promise<Cast[]> => {
 
 // Get Cast By ID
 export const getCastById = async (id: string): Promise<Cast> => {
-  const response = await fetch(`${API_BASE_URL}/casts/getCastById/${id}`, {
+  const response = await fetch(`${BASE_URL}/casts/getCastById/${id}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -142,7 +142,7 @@ export const getCastById = async (id: string): Promise<Cast> => {
 
 // Update Cast
 export const updateCast = async (id: string, castData: { cast_name: string }): Promise<Cast> => {
-  const response = await fetch(`${API_BASE_URL}/casts/updateCast/${id}`, {
+  const response = await fetch(`${BASE_URL}/casts/updateCast/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(castData),
@@ -159,7 +159,7 @@ export const updateCast = async (id: string, castData: { cast_name: string }): P
 
 // Delete Cast
 export const deleteCast = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/casts/deleteCast/${id}`, {
+  const response = await fetch(`${BASE_URL}/casts/deleteCast/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
@@ -181,7 +181,7 @@ export interface Religion {
 
 // Create Religion
 export const createReligion = async (religionData: { religion_name: string }): Promise<Religion> => {
-  const response = await fetch(`${API_BASE_URL}/religions/createReligion`, {
+  const response = await fetch(`${BASE_URL}/religions/createReligion`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify(religionData),
@@ -198,7 +198,7 @@ export const createReligion = async (religionData: { religion_name: string }): P
 
 // Get All Religions
 export const getAllReligions = async (): Promise<Religion[]> => {
-  const response = await fetch(`${API_BASE_URL}/religions/getReligions`, {
+  const response = await fetch(`${BASE_URL}/religions/getReligions`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -235,7 +235,7 @@ export const getAllReligions = async (): Promise<Religion[]> => {
 
 // Get Religion By ID
 export const getReligionById = async (id: string): Promise<Religion> => {
-  const response = await fetch(`${API_BASE_URL}/religions/getReligionById/${id}`, {
+  const response = await fetch(`${BASE_URL}/religions/getReligionById/${id}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -251,7 +251,7 @@ export const getReligionById = async (id: string): Promise<Religion> => {
 
 // Update Religion
 export const updateReligion = async (id: string, religionData: { religion_name: string }): Promise<Religion> => {
-  const response = await fetch(`${API_BASE_URL}/religions/updateReligion/${id}`, {
+  const response = await fetch(`${BASE_URL}/religions/updateReligion/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
     body: JSON.stringify(religionData),
@@ -268,7 +268,7 @@ export const updateReligion = async (id: string, religionData: { religion_name: 
 
 // Delete Religion
 export const deleteReligion = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/religions/deleteReligion/${id}`, {
+  const response = await fetch(`${BASE_URL}/religions/deleteReligion/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
