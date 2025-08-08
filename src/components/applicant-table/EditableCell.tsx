@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { updateApplicant } from "@/utils/localStorage";
 
 interface EditableCellProps {
   applicant: any;
@@ -28,6 +29,10 @@ export const EditableCell = ({ applicant, field, displayValue, onUpdate, showPen
     if (!editingCell) return;
 
     try {
+      // Save to localStorage first
+      updateApplicant(editingCell.id, { [editingCell.field]: cellValue });
+
+      // Also save to Supabase for persistence
       const { error } = await supabase
         .from("admission_dashboard")
         .update({ 
@@ -36,15 +41,18 @@ export const EditableCell = ({ applicant, field, displayValue, onUpdate, showPen
         })
         .eq("id", editingCell.id);
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Supabase update failed, but data saved to localStorage:', error);
+      }
 
       toast({
         title: "Success",
-        description: "Field updated successfully",
+        description: "Field updated and saved to localStorage",
       });
 
       setEditingCell(null);
       setCellValue("");
+      // Immediately update the UI by calling onUpdate
       onUpdate();
     } catch (error) {
       console.error('Error updating field:', error);
