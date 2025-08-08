@@ -41,7 +41,12 @@ const fetchSchools = async () => {
   setLoading(true);
   try {
     const response = await fetch(`${BASE_URL}/schools/getSchools`);
-    if (!response.ok) throw new Error("Failed to fetch schools");
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch schools: ${response.status} ${response.statusText}`);
+    }
+    
     const data = await response.json();
 
     let schoolsData = [];
@@ -49,24 +54,41 @@ const fetchSchools = async () => {
       schoolsData = data;
     } else if (data.data && Array.isArray(data.data)) {
       schoolsData = data.data;
+    } else if (data.data && typeof data.data === 'object' && data.data.data && Array.isArray(data.data.data)) {
+      // Handle nested structure: {success: true, data: {data: [...]}}
+      schoolsData = data.data.data;
+    } else if (data.data && typeof data.data === 'object' && data.data.schools && Array.isArray(data.data.schools)) {
+      // Handle nested structure: {success: true, data: {schools: [...]}}
+      schoolsData = data.data.schools;
+    } else if (data.data && typeof data.data === 'object' && data.data.result && Array.isArray(data.data.result)) {
+      // Handle nested structure: {success: true, data: {result: [...]}}
+      schoolsData = data.data.result;
     } else if (data.schools && Array.isArray(data.schools)) {
       schoolsData = data.schools;
+    } else if (data.result && Array.isArray(data.result)) {
+      schoolsData = data.result;
+    } else {
+      console.log("Available keys in data:", Object.keys(data));
+      if (data.data && typeof data.data === 'object') {
+        console.log("Available keys in data.data:", Object.keys(data.data));
+      }
+      schoolsData = [];
     }
 
-    schoolsData = schoolsData.map((school) => ({
-      id: school.id,
-      school_name: school.school_name || school.name || "",
-      status: school.status || true,
-      created_at: school.created_at || new Date().toISOString(),
+
+    const mappedSchools = schoolsData.map((school: any) => ({
+      id: school.id || school.school_id,
+      school_name: school.school_name || school.name || school.schoolName || "",
+      status: school.status !== undefined ? school.status : true,
+      created_at: school.created_at || school.createdAt || school.created_date || new Date().toISOString(),
     }));
 
-    setSchools(schoolsData);
+    setSchools(mappedSchools);
     setHasFetchedOnce(true);
   } catch (error) {
-    console.error("Error fetching schools:", error);
     toast({
       title: "Error",
-      description: "Failed to fetch schools",
+      description: `Failed to fetch schools: ${error instanceof Error ? error.message : 'Unknown error'}`,
       variant: "destructive",
     });
   } finally {
@@ -111,7 +133,6 @@ const fetchSchools = async () => {
       if (!response.ok) throw new Error("Failed to create school");
 
       const result = await response.json();
-      console.log("Create response:", result);
 
       // Add the new school to the state immediately
       const newSchoolData = {

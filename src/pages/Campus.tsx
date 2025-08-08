@@ -45,26 +45,57 @@ const CampusPage = () => {
 
   useEffect(() => {
     const fetchCampuses = async () => {
-  try {
-    const response = await fetch(
-      `${BASE_URL}/campuses/getCampuses`
-    );
-    if (!response.ok) throw new Error("Failed to fetch data");
-    const data = await response.json();
-    setCampuses(
-      data.data.map((item: any) => ({
-        id: item.id,
-        campus: item.campus_name,
-      }))
-    );
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "An unknown error occurred"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${BASE_URL}/campuses/getCampuses`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch campuses: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+
+        let campusesData = [];
+        if (Array.isArray(data)) {
+          campusesData = data;
+        } else if (data.data && Array.isArray(data.data)) {
+          campusesData = data.data;
+        } else if (data.data && typeof data.data === 'object' && data.data.data && Array.isArray(data.data.data)) {
+          // Handle nested structure: {success: true, data: {data: [...]}}
+          campusesData = data.data.data;
+        } else if (data.data && typeof data.data === 'object' && data.data.campuses && Array.isArray(data.data.campuses)) {
+          campusesData = data.data.campuses;
+        } else if (data.data && typeof data.data === 'object' && data.data.result && Array.isArray(data.data.result)) {
+          // Handle nested structure: {success: true, data: {result: [...]}}
+          campusesData = data.data.result;
+        } else if (data.campuses && Array.isArray(data.campuses)) {
+          campusesData = data.campuses;
+        } else if (data.result && Array.isArray(data.result)) {
+          campusesData = data.result;
+        } else {
+          console.warn("Unexpected campuses API response structure:", data);
+          console.log("Available keys in data:", Object.keys(data));
+          if (data.data && typeof data.data === 'object') {
+            console.log("Available keys in data.data:", Object.keys(data.data));
+          }
+          campusesData = [];
+        }
+
+
+        const mappedCampuses = campusesData.map((item: any) => ({
+          id: item.id || item.campus_id,
+          campus: item.campus_name || item.name || item.campusName || item.campus || "",
+        }));
+
+        setCampuses(mappedCampuses);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchCampuses();
   }, []);
@@ -96,6 +127,7 @@ const CampusPage = () => {
   const handleAddCampus = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log("Creating campus:", newCampus);
       const response = await fetch(`${BASE_URL}/campuses/createCampus`, {
         method: "POST",
         headers: {
@@ -104,28 +136,32 @@ const CampusPage = () => {
         body: JSON.stringify({ campus_name: newCampus }),
       });
 
-      if (!response.ok) throw new Error("Failed to create campus");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create campus: ${response.status} ${response.statusText}`);
+      }
 
+      const result = await response.json();
+
+      // Add the new campus to the state immediately
+      const newCampusData = {
+        id: result.id || result.data?.id || Date.now(),
+        campus: newCampus,
+      };
+
+      setCampuses((prev) => [...prev, newCampusData]);
       setNewCampus("");
       setAddDialog(false);
-
-      const updated = await fetch(import.meta.env.VITE_API_CAMPUS_BASE_URL);
-      const updatedData = await updated.json();
-      setCampuses(
-        updatedData.data.map((item: any) => ({
-          id: item.id,
-          campus: item.campus_name,
-        }))
-      );
 
       toast({
         title: "Campus Added",
         description: "Campus has been successfully added.",
       });
     } catch (err) {
+      console.error("Error creating campus:", err);
       toast({
         title: "Error",
-        description: "Failed to create campus.",
+        description: `Failed to create campus: ${err instanceof Error ? err.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }

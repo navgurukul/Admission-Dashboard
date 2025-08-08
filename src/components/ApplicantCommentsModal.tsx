@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,25 +28,19 @@ export const ApplicantCommentsModal = ({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: googleUser } = useGoogleAuth();
 
   useEffect(() => {
     const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name')
-          .eq('user_id', user.id)
-          .single();
-        
+      if (googleUser) {
         setCurrentUser({
-          id: user.id,
-          name: profile?.display_name || user.email || 'Unknown User'
+          id: googleUser.id,
+          name: googleUser.name || googleUser.email || 'Unknown User'
         });
       }
     };
     getCurrentUser();
-  }, []);
+  }, [googleUser]);
 
   const { data: comments, refetch } = useQuery({
     queryKey: ['applicant-comments', applicantId],

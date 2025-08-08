@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Save, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/components/ui/use-toast";
 
 interface FilterState {
@@ -53,6 +54,7 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
     markets: [] as string[]
   });
   const { toast } = useToast();
+  const { user: googleUser } = useGoogleAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -110,7 +112,7 @@ export function AdvancedFilterModal({ isOpen, onClose, onApplyFilters, currentFi
         .insert({
           name: presetName,
           filters: filters as any,
-          user_id: (await supabase.auth.getUser()).data.user?.id
+          user_id: googleUser?.id
         });
 
       if (error) throw error;

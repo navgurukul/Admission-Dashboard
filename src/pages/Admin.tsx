@@ -25,14 +25,14 @@ const AdminPage = () => {
   const [addUserDialog, setAddUserDialog] = useState<{
     open: boolean;
     email: string;
-    password: string;
+    // password: string;
     name: string;
     phone: string;
     selectedRole: string;
   }>({ 
     open: false, 
     email: "", 
-    password: "",
+    // password: "",
     name: "",
     phone: "",
     selectedRole: "" 
@@ -49,32 +49,72 @@ const AdminPage = () => {
   const fetchData = async () => {
     setLoading(true);
     setError("");
-    try {
-      console.log("Fetching admin data...");
-      
+    try {      
       // Fetch roles from the API with authentication
       const roleResponse = await apiRequest('/roles/getRoles');
       if (!roleResponse.ok) {
         const errorData = await roleResponse.json().catch(() => ({}));
-        throw new Error(errorData.message || `Roles API failed: ${roleResponse.status}`);
+        const errorMsg = errorData.message || `Roles API failed: ${roleResponse.status}`;
+        throw new Error(errorMsg);
       }
       const roleData = await roleResponse.json();
       console.log('Available roles from API:', roleData.data);
       setRoles(roleData.data || []);
 
-      // Set mock users data since getUsers API doesn't exist
-      setUsers([
-        {
-          id: 1,
-          email: "urmilaparte@navgurukul.org",
-          userrole: [{ role: [{ roles: "admin" }], privileges: [{ privilege: "READ" }, { privilege: "WRITE" }] }]
-        },
-        {
-          id: 2,
-          email: "user@example.com", 
-          userrole: [{ role: [{ roles: "student" }], privileges: [{ privilege: "READ" }] }]
+      // Fetch users from the API
+      const usersResponse = await apiRequest('/users/getUsers');
+      if (!usersResponse.ok) {
+        const errorData = await usersResponse.json().catch(() => ({}));
+        
+        // Fallback: Use mock data if users API doesn't exist
+        const fallbackUsers = [
+          {
+            id: 1,
+            email: "urmilaparte@navgurukul.org",
+            name: "Urmila Parte",
+            phone: "+91-1234567890",
+            userrole: [{ role: [{ roles: "admin" }], privileges: [{ privilege: "READ" }, { privilege: "WRITE" }] }]
+          },
+          {
+            id: 2,
+            email: "user@example.com", 
+            name: "Example User",
+            phone: "+91-9876543210",
+            userrole: [{ role: [{ roles: "student" }], privileges: [{ privilege: "READ" }] }]
+          }
+        ];
+        setUsers(fallbackUsers);
+        // console.log("Using fallback users data:", fallbackUsers);
+      } else {
+        const usersData = await usersResponse.json();
+        
+        let usersArray = [];
+        if (Array.isArray(usersData)) {
+          usersArray = usersData;
+        } else if (usersData.data && Array.isArray(usersData.data)) {
+          usersArray = usersData.data;
+        } else if (usersData.users && Array.isArray(usersData.users)) {
+          usersArray = usersData.users;
+        } else {
+          // console.warn('Unexpected users API response structure:', usersData);
+          usersArray = [];
         }
-      ]);
+
+        // Map the users data to the expected format
+        const mappedUsers = usersArray.map((user: any) => ({
+          id: user.id || user.user_id,
+          email: user.email || user.user_email,
+          name: user.name || user.user_name,
+          phone: user.phone || user.user_phone,
+          userrole: user.userrole || user.roles || [{
+            role: user.role ? [{ roles: user.role }] : [],
+            privileges: user.privileges || []
+          }]
+        }));
+
+        // console.log('Mapped users:', mappedUsers);
+        setUsers(mappedUsers);
+      }
 
       // Set default privileges since privileges API doesn't exist
       setPrivileges([
@@ -85,7 +125,7 @@ const AdminPage = () => {
       
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching admin data:", err);
+      // console.error("Error fetching admin data:", err);
       setError(`Failed to fetch admin data: ${err.message}`);
       setLoading(false);
     }
@@ -126,7 +166,6 @@ const AdminPage = () => {
       
       return result;
     } catch (error) {
-      console.error("Error creating role:", error);
       showSnackbar(`Failed to create role: ${error.message}`, "error");
       throw error;
     }
@@ -156,20 +195,25 @@ const AdminPage = () => {
   };
 
   // Register new user
-  const handleRegisterUser = async (email, password, name, phone, role) => {
+  const handleRegisterUser = async (email,  name, phone, role) => {
     try {
-      // Log the request body for debugging
       const requestBody = {
         email, 
-        password, 
+        // password, 
         name, 
         phone, 
         role 
       };
       console.log("Register request body:", requestBody);
-      
-      const response = await apiRequest('/users/register', {
+
+      // const token = localStorage.getItem('authToken')
+      // console.log('Sending token:-',token)
+      const response = await apiRequest('/users/onboard', {
         method: 'POST',
+         headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': `Bearer ${token}` 
+      },
         body: JSON.stringify(requestBody)
       });
 
@@ -177,7 +221,6 @@ const AdminPage = () => {
         const errorData = await response.json().catch(() => ({}));
         console.error("Register API error:", errorData);
         
-        // Provide more helpful error message for role validation
         if (errorData.message && errorData.message.includes('role must be equal to one of the allowed values')) {
           throw new Error(`Invalid role. Please select a valid role from the dropdown. Available roles: ${roles.map(r => r.name).join(', ')}`);
         }
@@ -437,7 +480,6 @@ const AdminPage = () => {
   const openAddUserDialog = () => setAddUserDialog({ 
     open: true, 
     email: "", 
-    password: "",
     name: "",
     phone: "",
     selectedRole: "" 
@@ -445,7 +487,7 @@ const AdminPage = () => {
   const closeAddUserDialog = () => setAddUserDialog({ 
     open: false, 
     email: "", 
-    password: "",
+
     name: "",
     phone: "",
     selectedRole: "" 
@@ -454,7 +496,7 @@ const AdminPage = () => {
   // Add User submit with API integration
   const handleAddUserSubmit = async (e) => {
     e.preventDefault();
-    if (!addUserDialog.email || !addUserDialog.password || !addUserDialog.name || !addUserDialog.phone) {
+    if (!addUserDialog.email  || !addUserDialog.name || !addUserDialog.phone) {
       showSnackbar("Please fill in all required fields", "error");
       return;
     }
@@ -465,7 +507,6 @@ const AdminPage = () => {
       
       await handleRegisterUser(
         addUserDialog.email,
-        addUserDialog.password,
         addUserDialog.name,
         addUserDialog.phone,
         role
@@ -542,33 +583,35 @@ const AdminPage = () => {
                   Manage user roles and privileges for the admissions portal
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 items-center">
-                <Button
-                  onClick={openAddSystemRoleDialog}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Role
-                </Button>
-                <Button
-                  onClick={handleDownloadCSV}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export CSV
-                </Button>
-                <button
-                  className="flex items-center bg-primary text-primary-foreground rounded font-semibold px-4 py-2 text-sm hover:bg-primary/90 transition-colors"
-                  onClick={openAddUserDialog}
-                >
-                  <Plus size={18} className="mr-1" />Add User
-                </button>
-              </div>
+                             <div className="flex flex-wrap gap-2 items-center">
+                 <Button
+                   onClick={openAddSystemRoleDialog}
+                   variant="outline"
+                   size="sm"
+                 >
+                   <Plus className="h-4 w-4 mr-2" />
+                   Add Role
+                 </Button>
+                 <Button
+                   onClick={handleDownloadCSV}
+                   variant="outline"
+                   size="sm"
+                 >
+                   <Download className="h-4 w-4 mr-2" />
+                   Export CSV
+                 </Button>
+                 <button
+                   className="flex items-center bg-primary text-primary-foreground rounded font-semibold px-4 py-2 text-sm hover:bg-primary/90 transition-colors"
+                   onClick={openAddUserDialog}
+                 >
+                   <Plus size={18} className="mr-1" />Add User
+                 </button>
+               </div>
             </div>
           </div>
           
+
+
           {loading ? (
             <div className="flex items-center justify-center py-10">
               <div className="text-lg">Loading admin data...</div>
@@ -584,8 +627,32 @@ const AdminPage = () => {
               </button>
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">
-              No users found. The API might be empty or there was an issue fetching data.
+            <div className="text-center py-10">
+              <div className="text-gray-500 text-lg mb-4">
+                No users found in the system.
+              </div>
+              <div className="text-gray-400 text-sm mb-4">
+                This could mean:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>The API endpoint is not available or returning empty data</li>
+                  <li>There are no users registered in the system yet</li>
+                  <li>There was an issue with the data mapping</li>
+                </ul>
+              </div>
+              <div className="flex justify-center gap-4">
+                <button 
+                  className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+                  onClick={() => fetchData()}
+                >
+                  Refresh Data
+                </button>
+                <button 
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  onClick={openAddUserDialog}
+                >
+                  Add First User
+                </button>
+              </div>
             </div>
           ) : (
             <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
@@ -824,7 +891,7 @@ const AdminPage = () => {
       </div>
 
       {/* Password */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <label className="block text-sm font-medium mb-1 text-orange-600">Password *</label>
         <input
           type="password"
@@ -834,7 +901,7 @@ const AdminPage = () => {
           onChange={(e) => setAddUserDialog((d) => ({ ...d, password: e.target.value }))}
           required
         />
-      </div>
+      </div> */}
 
       {/* Role */}
       <div className="mb-6">
@@ -845,15 +912,15 @@ const AdminPage = () => {
                     onChange={(e) => setAddUserDialog((d) => ({ ...d, selectedRole: e.target.value }))}
                   >
                     <option value="">Select Role (Optional)</option>
-                    <option value="student">Student</option>
-                    <option value="admin">Admin</option>
-                    <option value="teacher">Teacher</option>
-                    <option value="coordinator">Coordinator</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.name.toLowerCase()}>
-                        {role.name}
-                      </option>
-                    ))}
+                
+                    <option value="admin">ADMIN</option>
+                    <option value="user">USER</option>
+                    
+                    {Array.isArray(roles) && roles.map((role) => (
+  <option key={role.id} value={role.name.toLowerCase()}>
+    {role.name}
+  </option>
+))}
                   </select>
       </div>
 
