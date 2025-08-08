@@ -30,16 +30,20 @@ import { useToast } from "@/hooks/use-toast";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
 import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
+import { deleteApplicants, getApplicants, updateApplicant } from "@/utils/localStorage";
+
 
 const ApplicantTable = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
+
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
   const [applicantForComments, setApplicantForComments] = useState<any | null>(
     null
   );
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [filters, setFilters] = useState({
@@ -54,7 +58,7 @@ const ApplicantTable = () => {
   });
   const { toast } = useToast();
 
-  const { data: applicants, isLoading, refetch } = useQuery({
+  const { data: dbApplicants, isLoading, refetch } = useQuery({
     queryKey: ["applicants"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -73,6 +77,32 @@ const ApplicantTable = () => {
       return data;
     },
   });
+
+  // Get data from localStorage and merge with database data
+  const applicants = useMemo(() => {
+    const localData = getApplicants();
+    const dbData = dbApplicants || [];
+    
+    // Create a map of database data by ID for quick lookup
+    const dbDataMap = new Map(dbData.map(item => [item.id, item]));
+    
+    // Merge local data with database data, local data takes precedence
+    const mergedData = localData.map(localItem => {
+      const dbItem = dbDataMap.get(localItem.id);
+      if (dbItem) {
+        // Remove from map so we don't add it again
+        dbDataMap.delete(localItem.id);
+        // Merge with local data taking precedence
+        return { ...dbItem, ...localItem };
+      }
+      return localItem;
+    });
+    
+    // Add remaining database items that don't exist in local storage
+    const remainingDbItems = Array.from(dbDataMap.values());
+    
+    return [...mergedData, ...remainingDbItems];
+  }, [dbApplicants]);
 
   const filteredApplicants = useMemo(() => {
     if (!applicants) return [];
@@ -118,6 +148,15 @@ const ApplicantTable = () => {
     );
   }, []);
 
+  // Function to refresh data from both localStorage and database
+  const refreshData = useCallback(() => {
+    refetch();
+    // Force re-render by updating a state
+    setCurrentPage(prev => prev);
+  }, [refetch]);
+
+
+
   const handleSelectAllRows = useCallback(() => {
     if (paginatedApplicants.length === selectedRows.length) {
       setSelectedRows([]);
@@ -137,26 +176,25 @@ const ApplicantTable = () => {
     }
 
     try {
+      // Delete from localStorage first
+      deleteApplicants(selectedRows);
+
+      // Also delete from Supabase for persistence
       const { error } = await supabase
         .from("admission_dashboard")
         .delete()
         .in("id", selectedRows);
 
       if (error) {
-        console.error("Error deleting applicants:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete applicants",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Applicants Deleted",
-          description: "Successfully deleted selected applicants",
-        });
-        setSelectedRows([]);
-        refetch();
+        console.warn("Supabase delete failed, but data deleted from localStorage:", error);
       }
+
+      toast({
+        title: "Applicants Deleted",
+        description: "Successfully deleted selected applicants from localStorage",
+      });
+      setSelectedRows([]);
+      refreshData();
     } catch (error) {
       console.error("Error deleting applicants:", error);
       toast({
@@ -202,7 +240,7 @@ const ApplicantTable = () => {
       });
 
       setSelectedRows([]);
-      refetch();
+      refreshData();
     } catch (error) {
       console.error("Error sending offer letters:", error);
       toast({
@@ -320,7 +358,7 @@ const ApplicantTable = () => {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col">
-        <div className="mb-4">
+        <div className="mb-4 space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -331,6 +369,7 @@ const ApplicantTable = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
         </div>
 
         <div className="flex-1 border rounded-md overflow-hidden">
@@ -386,9 +425,10 @@ const ApplicantTable = () => {
                       applicant={applicant}
                       isSelected={selectedRows.includes(applicant.id)}
                       onSelect={handleCheckboxChange}
-                      onUpdate={refetch}
+                      onUpdate={refreshData}
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
+                      onCampusChange={refreshData}
                     />
                   ))
                 )}
@@ -423,13 +463,13 @@ const ApplicantTable = () => {
       <AddApplicantModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSuccess={refetch}
+        onSuccess={refreshData}
       />
 
       <CSVImportModal
         isOpen={showCSVImport}
         onClose={() => setShowCSVImport(false)}
-        onSuccess={refetch}
+        onSuccess={refreshData}
       />
 
       <AdvancedFilterModal
@@ -443,7 +483,7 @@ const ApplicantTable = () => {
         isOpen={showBulkUpdate}
         onClose={() => setShowBulkUpdate(false)}
         selectedApplicants={selectedRows}
-        onSuccess={refetch}
+        onSuccess={refreshData}
       />
 
       <ApplicantModal

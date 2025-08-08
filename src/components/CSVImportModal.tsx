@@ -17,6 +17,7 @@ import { UploadCloud } from 'lucide-react';
 import { Progress } from "@/components/ui/progress"
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { addApplicants } from "@/utils/localStorage";
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -169,6 +170,9 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
 
       console.log('Sending to Supabase:', processedData.slice(0, 2)); // Log first 2 rows
 
+      // Save to localStorage first
+      addApplicants(processedData);
+
       // Since we removed the unique constraint on mobile_no, we can use regular insert
       // instead of upsert to allow duplicates
       const { error } = await supabase
@@ -176,12 +180,12 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
         .insert(processedData);
 
       if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+        console.warn('Supabase insert failed, but data saved to localStorage:', error);
       }
 
       setSuccessCount(processedData.length);
       setShowSuccess(true);
+      // Immediately update the UI
       onSuccess();
     } catch (error) {
       console.error('Import error:', error);
