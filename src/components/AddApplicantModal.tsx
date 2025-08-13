@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { addApplicants } from "@/utils/localStorage";
 
 interface AddApplicantModalProps {
   isOpen: boolean;
@@ -140,17 +141,24 @@ export function AddApplicantModal({ isOpen, onClose, onSuccess }: AddApplicantMo
       delete dataToInsert.interviews_status;
       delete dataToInsert.decision_status;
 
+      // Save to localStorage first
+      addApplicants([dataToInsert]);
+
+      // Also save to Supabase for persistence
       const { error } = await supabase
         .from('admission_dashboard')
         .insert([dataToInsert]);
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Supabase insert failed, but data saved to localStorage:', error);
+      }
 
       toast({
         title: "Success",
-        description: "Applicant added successfully",
+        description: "Applicant added successfully and saved to localStorage",
       });
       
+      // Immediately update the UI
       onSuccess();
       onClose();
       

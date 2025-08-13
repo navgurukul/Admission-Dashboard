@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { STAGE_DEFAULT_STATUS } from "./StatusDropdown";
+import { updateApplicant } from "@/utils/localStorage";
 
 interface StageDropdownProps {
   applicant: any;
@@ -27,6 +28,13 @@ const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
       const defaultStatus = STAGE_DEFAULT_STATUS[value as keyof typeof STAGE_DEFAULT_STATUS];
       console.log('Setting default status to:', defaultStatus);
       
+      // Save to localStorage first
+      updateApplicant(applicant.id, { 
+        stage: value,
+        status: defaultStatus 
+      });
+
+      // Also save to Supabase for persistence
       const { error } = await supabase
         .from("admission_dashboard")
         .update({ 
@@ -36,12 +44,15 @@ const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
         })
         .eq("id", applicant.id);
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Supabase update failed, but data saved to localStorage:', error);
+      }
 
       toast({
         title: "Stage Updated",
-        description: "Successfully updated stage and set default status",
+        description: "Stage updated and saved to localStorage",
       });
+      // Immediately update the UI
       onUpdate();
     } catch (error) {
       console.error('Error updating stage:', error);

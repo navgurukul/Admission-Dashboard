@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { updateApplicant } from "@/utils/localStorage";
 
 interface CampusOption {
   id: string;
@@ -47,6 +48,10 @@ export function CampusSelector({ currentCampus, applicantId, onCampusChange }: C
 
     setLoading(true);
     try {
+      // Save to localStorage first
+      updateApplicant(applicantId, { campus: campusName });
+
+      // Also save to Supabase for persistence
       const { error } = await supabase
         .from('admission_dashboard')
         .update({ 
@@ -55,13 +60,16 @@ export function CampusSelector({ currentCampus, applicantId, onCampusChange }: C
         })
         .eq('id', applicantId);
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Supabase update failed, but data saved to localStorage:', error);
+      }
 
       toast({
         title: "Success",
-        description: `Campus ${campusName ? `updated to ${campusName}` : 'cleared'}`,
+        description: `Campus ${campusName ? `updated to ${campusName}` : 'cleared'} and saved to localStorage`,
       });
 
+      // Immediately update the UI
       onCampusChange?.(campusName);
     } catch (error) {
       console.error('Error updating campus:', error);

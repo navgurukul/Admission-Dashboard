@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { updateApplicant } from "@/utils/localStorage";
 
 interface StatusDropdownProps {
   applicant: any;
@@ -67,6 +68,10 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const handleStatusChange = async (newStatus: string) => {
     console.log('Changing status to:', newStatus);
     try {
+      // Save to localStorage first
+      updateApplicant(applicant.id, { status: newStatus });
+
+      // Also save to Supabase for persistence
       const { error } = await supabase
         .from("admission_dashboard")
         .update({ 
@@ -75,12 +80,15 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
         })
         .eq("id", applicant.id);
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Supabase update failed, but data saved to localStorage:', error);
+      }
 
       toast({
         title: "Status Updated",
-        description: "Successfully updated status",
+        description: "Status updated and saved to localStorage",
       });
+      // Immediately update the UI
       onUpdate();
     } catch (error) {
       console.error('Error updating status:', error);
