@@ -12,7 +12,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
 
   // Allowed admin emails
-  const ALLOWED_EMAILS = ["nasir@navgurukul.org", "urmilaparte23@navgurukul.org", "saksham.c@navgurukul.org", "mukul@navgurukul.org","santosh@navgurukul.org","geetashriyadav@navgurukul.org"];
+  const ALLOWED_EMAILS = ["nasir@navgurukul.org", "urmilaparte23@navgurukul.org", "saksham.c@navgurukul.org", "mukul@navgurukul.org","santosh@navgurukul.org","geetashriyadav@navgurukul.org" , "aadarsh@navgurukul.org"];
 
   // Helper to get current user's email
   const getCurrentUserEmail = () => {
