@@ -1,5 +1,5 @@
   const StudentForm = ({
-     content,
+    content,
   formData,
   handleInputChange,
   handleImageChange,
@@ -12,30 +12,31 @@
       <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">{content.signUp}</h1>
-          
-          {/* Progress Indicator */}
-          <div className="flex items-center justify-center space-x-4 mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</div>
-              <span className="text-sm font-semibold text-orange-500">{content.basicDetails}</span>
-            </div>
-            <div className="w-8 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center text-xs font-bold">2</div>
-              <span className="text-sm text-gray-500">{content.contactDetails}</span>
-            </div>
-            <div className="w-8 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center text-xs font-bold">3</div>
-              <span className="text-sm text-gray-500">{content.verification}</span>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2 ">{content.signUp}</h1>    
+        </div>
+
+        {/* Profile Image Upload */}
+          <div className="text-center">
+            <div className="w-24 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center bg-gray-50 relative cursor-pointer hover:border-orange-400 transition-colors">
+              {!imagePreview ? (
+                <>
+                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mb-1">
+                    <span className="text-white text-sm">📷</span>
+                  </div>
+                  <span className="text-xs text-gray-500">{content.addPhoto}</span>
+                </>
+              ) : (
+                <img src={imagePreview} alt="Profile" className="w-full h-full object-cover rounded-xl" />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
             </div>
           </div>
 
-          <div className="absolute top-6 right-6 text-sm text-gray-600">
-            {content.alreadyMember} <span className="text-orange-500 cursor-pointer">{content.signIn}</span>
-          </div>
-        </div>
 
         {/* Section Title */}
         <h2 className="text-xl font-semibold text-gray-800 mb-4">{content.basicDetails}</h2>
@@ -79,28 +80,7 @@
             </div>
           </div>
 
-          {/* Profile Image Upload */}
-          <div className="text-center">
-            <div className="w-24 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center bg-gray-50 relative cursor-pointer hover:border-orange-400 transition-colors">
-              {!imagePreview ? (
-                <>
-                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mb-1">
-                    <span className="text-white text-sm">📷</span>
-                  </div>
-                  <span className="text-xs text-gray-500">{content.addPhoto}</span>
-                </>
-              ) : (
-                <img src={imagePreview} alt="Profile" className="w-full h-full object-cover rounded-xl" />
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
             </div>
-          </div>
-        </div>
 
         {/* Date of Birth and Gender */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
