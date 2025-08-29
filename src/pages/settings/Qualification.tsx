@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit, Trash2 } from "lucide-react";
+import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 
 interface Qualification {
   id: string;
@@ -58,7 +59,9 @@ export default function Qualification() {
   };
 
   return (
-    <div className="space-y-6">
+     <div style={{ display: "flex", gap: "2rem" }}>
+          <AdmissionsSidebar />
+    <div className="space-y-6" style={{ flex: 1 }}>
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Qualification Management</h2>
         <p className="text-gray-600">Manage educational qualifications and levels</p>
@@ -147,6 +150,7 @@ export default function Qualification() {
           </div>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 } 
