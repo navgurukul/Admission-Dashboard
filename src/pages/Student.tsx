@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StudentForm from "../components/StudentForm"
+import StudentLandingPage from "../pages/StudentLandingPage";
+import { useLanguage } from "../context/LanguageContext";
 
 const Student = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const { language,setLanguage } = useLanguage();
   const [formData, setFormData] = useState({
     profileImage: null,
     firstName: "",
@@ -95,7 +97,7 @@ const Student = () => {
 
   // Language-specific content
   const getLanguageContent = () => {
-    switch (selectedLanguage) {
+    switch (language) {
       case "Hindi":
         return {
           title: "NavGurukul Entrance Test",
@@ -279,71 +281,71 @@ const Student = () => {
   const content = getLanguageContent();
 
   // Step 1: Language Selection
-  const LanguageSelection = () => (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">{content.title}</h1>
-        <p className="text-gray-600 mb-8">{content.subtitle}</p>
+  // const LanguageSelection = () => (
+  //   <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
+  //     <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+  //       <h1 className="text-3xl font-bold text-gray-800 mb-2">{content.title}</h1>
+  //       <p className="text-gray-600 mb-8">{content.subtitle}</p>
         
-        <div className="mb-8">
-          <label className="block text-left text-gray-700 font-medium mb-2">{content.chooseLanguage}</label>
-          <div className="relative">
-            <select
-              value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="English">English</option>
-              <option value="Hindi">हिंदी</option>
-              <option value="Marathi">मराठी</option>
-              <option value="Gujarati">ગુજરાતી</option>
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </div>
+  //       <div className="mb-8">
+  //         <label className="block text-left text-gray-700 font-medium mb-2">{content.chooseLanguage}</label>
+  //         <div className="relative">
+  //           <select
+  //             value={selectedLanguage}
+  //             onChange={(e) => setSelectedLanguage(e.target.value)}
+  //             className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+  //           >
+  //             <option value="English">English</option>
+  //             <option value="Hindi">हिंदी</option>
+  //             <option value="Marathi">मराठी</option>
+  //             <option value="Gujarati">ગુજરાતી</option>
+  //           </select>
+  //           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+  //             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  //             </svg>
+  //           </div>
+  //         </div>
+  //       </div>
 
-        <button
-          onClick={nextStep}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200"
-        >
-          {content.letsGoAhead}
-        </button>
+  //       <button
+  //         onClick={nextStep}
+  //         className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200"
+  //       >
+  //         {content.letsGoAhead}
+  //       </button>
 
-        {/* Progress Dots */}
-        <div className="flex justify-center space-x-2 mt-8">
-          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-        </div>
+  //       {/* Progress Dots */}
+  //       <div className="flex justify-center space-x-2 mt-8">
+  //         <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+  //         <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+  //         <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+  //       </div>
 
-        {/* Navigation */}
-        <div className="flex justify-between mt-6">
-          <button
-            onClick={handleBackToHome}
-            className="text-gray-600 hover:text-gray-800 flex items-center"
-          >
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            {content.back}
-          </button>
-          <button
-            onClick={nextStep}
-            className="text-orange-500 hover:text-orange-600 flex items-center"
-          >
-            {content.next}
-            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  //       {/* Navigation */}
+  //       <div className="flex justify-between mt-6">
+  //         <button
+  //           onClick={handleBackToHome}
+  //           className="text-gray-600 hover:text-gray-800 flex items-center"
+  //         >
+  //           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+  //           </svg>
+  //           {content.back}
+  //         </button>
+  //         <button
+  //           onClick={nextStep}
+  //           className="text-orange-500 hover:text-orange-600 flex items-center"
+  //         >
+  //           {content.next}
+  //           <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  //           </svg>
+  //         </button>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
 
   // Step 2: Instructions
   const Instructions = () => (
@@ -411,23 +413,26 @@ const Student = () => {
   // Render current step
   switch (currentStep) {
     case 1:
-      return <LanguageSelection />;
+      return <StudentLandingPage onNext={nextStep} />;
     case 2:
       return <Instructions />;
     case 3:
       return <StudentForm
-  content={content}
-  formData={formData}
-  handleInputChange={handleInputChange}
-  handleImageChange={handleImageChange}
-  imagePreview={imagePreview}
-  prevStep={prevStep}
-  handleSubmit={handleSubmit}
-  isFormValid={isFormValid}
+      content={content}
+      formData={formData}
+      handleInputChange={handleInputChange}
+      handleImageChange={handleImageChange}
+      imagePreview={imagePreview}
+      prevStep={prevStep}
+      handleSubmit={handleSubmit}
+      isFormValid={isFormValid}
 />;
     default:
-      return <LanguageSelection />;
+      return <StudentLandingPage onNext={nextStep} />;
   }
 };
 
-export default Student; 
+export default Student;
+// components/routes
+
+

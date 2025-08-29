@@ -9,7 +9,7 @@
   isFormValid,
   }) => (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-5xl  max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">{content.signUp}</h1>    
@@ -40,11 +40,9 @@
 
         {/* Section Title */}
         <h2 className="text-xl font-semibold text-gray-800 mb-4">{content.basicDetails}</h2>
-
-        {/* Profile Image and Name Fields */}
+    
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Name Fields */}
-          <div className="lg:col-span-2 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{content.firstName}</label>
               <input
@@ -78,8 +76,6 @@
                 placeholder={content.enterLastName}
               />
             </div>
-          </div>
-
             </div>
 
         {/* Date of Birth and Gender */}
