@@ -85,7 +85,7 @@ const StudentLandingPage = ({ onNext }) => {
   //   setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   useEffect(() => {
-    const interval = setInterval(nextSlide, 5000); 
+    const interval = setInterval(nextSlide, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -103,10 +103,10 @@ const StudentLandingPage = ({ onNext }) => {
 
         <div className="flex items-center space-x-4">
           <select
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          className="border rounded px-3 py-1 text-gray-700"
-        >
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="border rounded px-3 py-1 text-gray-700"
+          >
             <option value="english">English</option>
             <option value="marathi">Marathi</option>
             <option value="hindi">Hindi</option>
@@ -121,8 +121,8 @@ const StudentLandingPage = ({ onNext }) => {
         </h1>
 
         <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-12 w-2/4 max-w-xl">
-          <div className="flex justify-center px-8 md:px-8">
-            <div className="relative w-full md:w-1/2 overflow-hidden rounded-2xl shadow-lg">
+          <div className="flex justify-center px-8 md:px-10">
+            <div className="relative w-full overflow-hidden rounded-lg shadow-2xl">
               <a
                 href={slides[currentSlide].link}
                 target="_blank"
@@ -131,12 +131,12 @@ const StudentLandingPage = ({ onNext }) => {
                 <img
                   src={slides[currentSlide].image}
                   alt={slides[currentSlide].caption}
-                  className="w-full h-80 object-cover"
+                  className="w-full h-60 object-cover"
                 />
               </a>
 
               {/* Caption */}
-              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-center py-3 text-base">
+              <div className="absolute bottom-0 left-0 right-0  bg-opacity-50 text-white text-center py-3 text-base">
                 {language === "english"
                   ? slides[currentSlide].englishCaption
                   : language === "hindi"
@@ -147,12 +147,10 @@ const StudentLandingPage = ({ onNext }) => {
           </div>
 
           {/* ---- Right Section ---- */}
-          <div className="mt-10 md:mt-0 ml-10 flex flex-col justify-center text-left bg-white p-6">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+          <div className="mt-10 md:mt-0 ml-10 flex flex-col justify-center text-center bg-white p-6">
+            <h1 className="text-3xl md:text-3xl font-bold text-gray-900 mb-6 leading-tight">
               {content[language].subtitle}{" "}
-              <span className="text-orange-500">
-                {content[language].title}
-              </span>
+              <span className="text-orange-500">{content[language].title}</span>
             </h1>
 
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
@@ -160,9 +158,14 @@ const StudentLandingPage = ({ onNext }) => {
                 "Learn coding, problem-solving, and critical thinking in a thriving community of learners. Take the scholarship test today and begin your journey towards becoming a software engineer."}
             </p>
 
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg shadow-md self-start" onClick={onNext}>
-              {content[language].buttonText} 
-            </button>
+            <div>
+              <button
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg shadow-md"
+                onClick={onNext}
+              >
+                {content[language].buttonText}
+              </button>
+            </div>
           </div>
         </div>
         {/* </div> */}

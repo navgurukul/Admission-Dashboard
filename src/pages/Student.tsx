@@ -3,6 +3,15 @@ import { useNavigate } from "react-router-dom";
 import StudentForm from "../components/StudentForm"
 import StudentLandingPage from "../pages/StudentLandingPage";
 import { useLanguage } from "../context/LanguageContext";
+import InterviewSlotBooking from "../pages/Student/InterviewSlotBooking";
+import ScreeningRoundStartPage from "../pages/Student/ScreeningRoundStartPage";
+import ScreeningResultPage from "../pages/Student/ScreeningResultPage";
+import InterviewSlotPage from "../pages/Student/InterviewSlotPage";
+import StudentResult from "../pages/Student/StudentResult";
+
+
+// import StudentL
+
 
 const Student = () => {
   const navigate = useNavigate();
@@ -410,10 +419,14 @@ const Student = () => {
       </div>
     </div>
   );
+
   // Render current step
   switch (currentStep) {
     case 1:
       return <StudentLandingPage onNext={nextStep} />;
+      // return <ScreeningResultPage />;
+      // return <InterviewSlotPage />
+      // return <StudentResult />;
     case 2:
       return <Instructions />;
     case 3:
