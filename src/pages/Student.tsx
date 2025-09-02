@@ -7,6 +7,7 @@ import InterviewSlotBooking from "../pages/Student/InterviewSlotBooking";
 import ScreeningRoundStartPage from "../pages/Student/ScreeningRoundStartPage";
 import ScreeningResultPage from "../pages/Student/ScreeningResultPage";
 import InterviewSlotPage from "../pages/Student/InterviewSlotPage";
+import TestPage from "../pages/Student/TestPage";
 import StudentResult from "../pages/Student/StudentResult";
 
 
@@ -423,10 +424,12 @@ const Student = () => {
   // Render current step
   switch (currentStep) {
     case 1:
-      return <StudentLandingPage onNext={nextStep} />;
+      // return <StudentLandingPage onNext={nextStep} />;
       // return <ScreeningResultPage />;
       // return <InterviewSlotPage />
-      // return <StudentResult />;
+      // return <TestPage />;
+      // return<StudentResult />
+      return <ScreeningRoundStartPage/>
     case 2:
       return <Instructions />;
     case 3:

@@ -3,13 +3,13 @@ import React from 'react'
 const ScreeningResultPage = () => {
   return (
    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center ">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl flex flex-col items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg  md:w-full max-w-2xl flex flex-col items-center justify-center">
         <h1 className="text-3xl font-semibold text-gray-800 mb-4">Oh Sorry!</h1>
 
-      <p className="text-gray-700 mb-4">
+      <p className="text-gray-700 mb-4 text-lg">
         You could not clear the Navgurukul Preliminary Test this time. You have
         scored <span className="font-bold">6</span> marks in the test. Don't
-        worry, you can give the test again after some preparation
+        worry, you can give the test again after some preparation.
       </p>
 
       <p className="text-gray-700 mb-6">
