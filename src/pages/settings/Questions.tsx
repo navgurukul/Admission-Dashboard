@@ -1,5 +1,13 @@
-import QuestionRepository from "../QuestionRepository";
+import QuestionRepository from "@/pages/QuestionRepository";
+import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 
-export default function Questions() {
-  return <QuestionRepository />;
-} 
+const Questions = () => (
+  <div className="settings-layout">
+    <AdmissionsSidebar/>
+    <main className="settings-content">
+      <QuestionRepository/>
+    </main>
+  </div>
+);
+
+export default Questions;

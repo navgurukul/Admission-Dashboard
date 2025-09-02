@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plus, Edit, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { Religion, createReligion, getAllReligions, updateReligion, deleteReligion } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 
 export default function Religion() {
   const [religions, setReligions] = useState<Religion[]>([]);
@@ -177,7 +178,9 @@ export default function Religion() {
   };
 
   return (
-    <div className="space-y-6">
+     <div style={{ display: "flex", gap: "2rem" }}>
+          <AdmissionsSidebar />
+    <div className="space-y-6" style={{ flex: 1 }}>
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Religion Management</h2>
         <p className="text-gray-600">Manage religious categories and classifications</p>
@@ -326,6 +329,7 @@ export default function Religion() {
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 } 
