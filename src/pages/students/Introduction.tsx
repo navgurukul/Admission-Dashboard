@@ -62,7 +62,7 @@ const Instructions: React.FC = () => {
   };
 
   const handlePrevious = () => {
-    navigate('/students/language-selection');
+    navigate('/students');
   };
 
   return (

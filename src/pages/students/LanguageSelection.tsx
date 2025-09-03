@@ -21,7 +21,7 @@ const LanguageSelection: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           NavGurukul Entrance Test

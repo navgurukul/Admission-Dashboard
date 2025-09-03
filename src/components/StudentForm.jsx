@@ -1,163 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
-const StudentForm: React.FC = () => {
-  const navigate = useNavigate();
+const StudentForm = ({
+  content,
+  formData,
+  handleInputChange,
+  handleImageChange,
+  imagePreview,
+  prevStep,
+  handleSubmit,
+  isFormValid,
+}) => {
+  const navigate = useNavigate(); 
 
-  const selectedLanguage = localStorage.getItem('selectedLanguage') || 'English';
+  const onSubmit = (e) => {
+    e.preventDefault();
 
-  const [formData, setFormData] = useState({
-    profileImage: null,
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    dateOfBirth: "",
-    whatsappNumber: "",
-    alternateNumber: "",
-    email: "",
-    gender: "",
-    state: "",
-    district: "",
-    city: "",
-    pinCode: "",
-    currentStatus: "",
-    maximumQualification: "",
-    schoolMedium: "",
-    casteTribe: "",
-    religion: ""
-  });
+    // Call your parent-provided handler
+    handleSubmit();
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-  useEffect(() => {
-    const savedFormData = localStorage.getItem('studentFormData');
-    if (savedFormData) {
-      setFormData(JSON.parse(savedFormData));
-    }
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    const newFormData = {
-      ...formData,
-      [name]: value
-    };
-    setFormData(newFormData);
-    localStorage.setItem('studentFormData', JSON.stringify(newFormData));
+    // Redirect to next page
+    navigate("/students/test-start");
   };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const newFormData = {
-        ...formData,
-        profileImage: file
-      };
-      setFormData(newFormData);
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const isFormValid = () => {
-    return formData.firstName &&
-      formData.lastName &&
-      formData.dateOfBirth &&
-      formData.whatsappNumber &&
-      formData.email &&
-      formData.gender &&
-      formData.state &&
-      formData.district &&
-      formData.city &&
-      formData.pinCode &&
-      formData.currentStatus &&
-      formData.maximumQualification &&
-      formData.schoolMedium &&
-      formData.casteTribe &&
-      formData.religion;
-  };
-
-  const handleSubmit = () => {
-    if (isFormValid()) {
-      console.log("Form data:", formData);
-      localStorage.setItem('studentFormData', JSON.stringify(formData));
-      navigate('/students/test-start');
-    } else {
-      alert("Please fill all required fields");
-    }
-  };
-
-  const handlePrevious = () => {
-    navigate('/students/instructions');
-  };
-
-  // --- Language Strings (shortened here for brevity, keep your existing Hindi/Marathi/English block) ---
-  const content = {
-          title: "NavGurukul Entrance Test",
-          subtitle: "Select Your Language",
-          chooseLanguage: "Choose your language",
-          letsGoAhead: "LET'S GO AHEAD",
-          instructionsIntro: "Please read the following important instructions before starting the test. These instruction will come in handy while giving the test.",
-          instructions: [
-            "The complete test will be of 1 hour. Please give the test in a quiet place, where you can answer the questions without any disruptions.",
-            "While giving the test, keep a notebook and a pen with you. You can use any rough notebook.",
-            "While giving the test, answer each question on your phone itself.",
-            "You may get the chance of cheating exam, but we believe that you will not cheat."
-          ],
-          imReady: "I'M READY",
-          back: "BACK",
-          next: "NEXT",
-          signUp: "Sign up",
-          basicDetails: "Basic Details",
-          contactDetails: "Contact Details",
-          verification: "Verification",
-          signIn: "Sign In",
-          firstName: "First Name *",
-          middleName: "Middle Name",
-          lastName: "Last Name *",
-          dateOfBirth: "Date of Birth *",
-          gender: "Gender *",
-          male: "Male",
-          female: "Female",
-          whatsappNumber: "WhatsApp Number *",
-          alternateNumber: "Alternate Number",
-          email: "Email Address *",
-          contactInfo: "Contact Information",
-          addPhoto: "Add Photo",
-          enterFirstName: "Enter first name",
-          enterMiddleName: "Enter middle name",
-          enterLastName: "Enter last name",
-          enterWhatsapp: "Enter WhatsApp number",
-          enterAlternate: "Enter alternate number",
-          enterEmail: "Enter email address",
-          saveContinue: "Save & Continue",
-          // Additional fields
-          state: "Select State *",
-          district: "Select District *",
-          city: "City *",
-          pinCode: "Pin Code *",
-          currentStatus: "Current Status *",
-          maximumQualification: "Maximum Qualification *",
-          schoolMedium: "School Medium *",
-          casteTribe: "Caste/Tribe *",
-          religion: "Religion *",
-          selectState: "Select State",
-          selectDistrict: "Select District",
-          selectOption: "Select Option",
-          selectQualification: "Maximum Qualification",
-          selectMedium: "School Medium",
-          selectReligion: "Religion",
-          cityExample: "Ex. Bangalore",
-          pinCodeExample: "Ex. 4402xx"
-        };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">{content.signUp}</h1>    
@@ -517,14 +385,14 @@ const StudentForm: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">
           <button
-           onClick={handlePrevious}
+            onClick={prevStep}
             className="px-6 py-2 bg-gray-300 text-gray-500 rounded-lg hover:bg-gray-600 transition duration-200"
           >
             {content.back}
-           
+            {console.log(content.back)}
           </button>
           <button
-            onClick={handleSubmit}  
+            onClick={onSubmit}
             disabled={!isFormValid()}
             className={`px-6 py-2 rounded-lg transition duration-200 ${
               isFormValid() 
