@@ -40,7 +40,7 @@ const TestPage = () => {
     questions.forEach((q, idx) => {
       if (answers[idx] === q.answer) score += 1;
     });
-    navigate("/students/result", { state: { score, total: questions.length } });
+    navigate("/students/test-result", { state: { score, total: questions.length } });
   };
 
   if (timeLeft === null || questions.length === 0) {

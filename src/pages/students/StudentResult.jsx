@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const StudentResult = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex flex-col items-center p-6">
       {/* Heading */}
@@ -10,7 +13,7 @@ const StudentResult = () => {
       <div className="w-full max-w-4xl bg-white shadow-lg rounded-2xl p-6 mb-8">
         <p className="text-gray-700 text-lg leading-relaxed">
           <span className="font-bold text-gray-900">Shilpi Gupta</span>, your{" "}
-          <span className="text-red-600 font-semibold">Screening Test Pass</span>{" "}
+          <span className="text-orange-600 font-semibold">Screening Test Pass</span>{" "}
           is still pending. You are not required to give the online test now. We
           will soon complete your admission process.
         </p>
@@ -39,7 +42,7 @@ const StudentResult = () => {
               </td>
               <td className="py-3 px-4 font-medium">Screening Test Pass</td>
               <td className="py-3 px-4">
-                <button className="bg-red-500 text-white px-4 py-2 rounded-lg shadow hover:bg-red-600 transition">
+                <button className="bg-orange-500 text-white px-4 py-2 rounded-lg shadow hover:bg-red-600 transition" onClick={() => navigate("/students/slot-booking")}>
                   BOOK SLOT
                 </button>
               </td>

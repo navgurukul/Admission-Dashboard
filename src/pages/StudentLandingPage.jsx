@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { useNavigate } from "react-router-dom";
 
 const slides = [
   {
@@ -75,9 +76,10 @@ const content = {
   },
 };
 
-const StudentLandingPage = ({ onNext }) => {
+const StudentLandingPage = ( ) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const { language, setLanguage } = useLanguage();
+  const navigate = useNavigate();
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
 
@@ -161,7 +163,7 @@ const StudentLandingPage = ({ onNext }) => {
             <div>
               <button
                 className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg shadow-md"
-                onClick={onNext}
+                onClick={() => navigate("/students/instructions")}
               >
                 {content[language].buttonText}
               </button>

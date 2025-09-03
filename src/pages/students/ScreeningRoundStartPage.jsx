@@ -5,7 +5,7 @@ const ScreeningRoundStartPage = () => {
   const navigate = useNavigate();
 
   const handleStartTest = () => {
-    navigate("/student/test");
+    navigate("/students/test-section");
   };
 
   return (
@@ -25,7 +25,7 @@ const ScreeningRoundStartPage = () => {
           onClick={handleStartTest}
           className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg"
         >
-          START THE TEST
+          START TEST
         </button>
     </div>
     </div>
