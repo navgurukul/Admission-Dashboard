@@ -76,7 +76,7 @@ const content = {
   },
 };
 
-const StudentLandingPage = ( ) => {
+const StudentLandingPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const { language, setLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -90,6 +90,20 @@ const StudentLandingPage = ( ) => {
     const interval = setInterval(nextSlide, 5000);
     return () => clearInterval(interval);
   }, []);
+
+    useEffect(() => {
+    const savedLang = localStorage.getItem("selectedLanguage");
+    if (savedLang) {
+      setLanguage(savedLang);
+    }
+  }, [setLanguage]);
+
+  // Save to localStorage on change
+  useEffect(() => {
+    if (language) {
+      localStorage.setItem("selectedLanguage", language);
+    }
+  }, [language]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -122,17 +136,23 @@ const StudentLandingPage = ( ) => {
           Software Engineering Scholarship
         </h1>
 
-        <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-12 w-2/4 max-w-xl">
+        <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-12 w-full max-w-6xl">
           <div className="flex justify-center px-8 md:px-10">
             <div className="relative w-full overflow-hidden rounded-lg shadow-2xl">
               <a
-                href={slides[currentSlide].link}
+                href={slides[currentSlide].videoUrl}
                 target="_blank"
                 rel="noreferrer"
               >
                 <img
                   src={slides[currentSlide].image}
-                  alt={slides[currentSlide].caption}
+                  alt={
+                    language === "english"
+                      ? slides[currentSlide].englishCaption
+                      : language === "hindi"
+                      ? slides[currentSlide].hindiCaption
+                      : slides[currentSlide].marathiCaption
+                  }
                   className="w-full h-60 object-cover"
                 />
               </a>
@@ -149,7 +169,7 @@ const StudentLandingPage = ( ) => {
           </div>
 
           {/* ---- Right Section ---- */}
-          <div className="mt-10 md:mt-0 ml-10 flex flex-col justify-center text-center bg-white p-6">
+          <div className="mt-10 md:mt-0 md:ml-10 flex flex-col justify-center text-center bg-white p-6">
             <h1 className="text-3xl md:text-3xl font-bold text-gray-900 mb-6 leading-tight">
               {content[language].subtitle}{" "}
               <span className="text-orange-500">{content[language].title}</span>

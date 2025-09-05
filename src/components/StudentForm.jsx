@@ -15,6 +15,7 @@ const StudentForm = ({
   const onSubmit = (e) => {
     e.preventDefault();
 
+    console.log("Form Data Submitted:", formData);
     // Call your parent-provided handler
     handleSubmit();
 
@@ -406,7 +407,6 @@ const StudentForm = ({
 
         {/* Progress Dots */}
         <div className="flex justify-center space-x-2 mt-6">
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
           <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
           <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
         </div>

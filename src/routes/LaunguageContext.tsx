@@ -22,11 +22,11 @@ interface LanguageProviderProps {
 }
 
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>('English');
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('english');
 
   const getLanguageContent = (): LanguageContent => {
     switch (selectedLanguage) {
-      case "Hindi":
+      case "hindi":
         return {
           title: "NavGurukul Entrance Test",
           subtitle: "अपनी भाषा चुनें",
@@ -85,7 +85,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
           cityExample: "उदा. मुंबई",
           pinCodeExample: "उदा. 400001"
         };
-      case "Marathi":
+      case "marathi":
         return {
           title: "NavGurukul Entrance Test",
           subtitle: "तुमची भाषा निवडा",

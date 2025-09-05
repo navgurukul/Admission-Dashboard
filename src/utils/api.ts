@@ -278,3 +278,6 @@ export const deleteReligion = async (id: string): Promise<void> => {
     throw new Error(data.message || 'Failed to delete religion');
   }
 }; 
+
+
+
