@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../routes/LaunguageContext";
 import { useNavigate } from "react-router-dom";
 
+
+
+
+
+console.log("LanguageContext:", useLanguage); // Debugging line
 const slides = [
   {
     id: 1,
@@ -75,35 +80,32 @@ const content = {
     imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
   },
 };
-
 const StudentLandingPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const { language, setLanguage } = useLanguage();
+  const { selectedLanguage, setSelectedLanguage } = useLanguage(); 
   const navigate = useNavigate();
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
-
-  // const prevSlide = () =>
-  //   setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   useEffect(() => {
     const interval = setInterval(nextSlide, 5000);
     return () => clearInterval(interval);
   }, []);
 
-    useEffect(() => {
+  // Load saved language
+  useEffect(() => {
     const savedLang = localStorage.getItem("selectedLanguage");
     if (savedLang) {
-      setLanguage(savedLang);
-    }
-  }, [setLanguage]);
+  setSelectedLanguage(savedLang);
+}
+  }, [setSelectedLanguage]);
 
-  // Save to localStorage on change
+  // Save language on change
   useEffect(() => {
-    if (language) {
-      localStorage.setItem("selectedLanguage", language);
+    if (selectedLanguage) {
+      localStorage.setItem("selectedLanguage", selectedLanguage);
     }
-  }, [language]);
+  }, [selectedLanguage]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -111,29 +113,30 @@ const StudentLandingPage = () => {
       <header className="flex justify-between items-center px-6 py-4 shadow">
         <div className="flex items-center space-x-2">
           <img
-            src={content[language].imageUrl}
+            src={content[selectedLanguage].imageUrl}
             alt="NavGurukul Logo"
             className="h-10"
           />
         </div>
 
         <div className="flex items-center space-x-4">
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="border rounded px-3 py-1 text-gray-700"
-          >
-            <option value="english">English</option>
-            <option value="marathi">Marathi</option>
-            <option value="hindi">Hindi</option>
-          </select>
+         <select
+  value={selectedLanguage}
+  onChange={(e) => setSelectedLanguage(e.target.value)} // no `as any`
+  className="border rounded px-3 py-1 text-gray-700"
+>
+  <option value="english">English</option>
+  <option value="marathi">Marathi</option>
+  <option value="hindi">Hindi</option>
+</select>
+
         </div>
       </header>
 
       {/* ---- Main Content ---- */}
       <main className="flex flex-col items-center flex-1 px-6 py-12">
         <h1 className="text-2xl md:text-3xl font-semibold mb-8 text-center">
-          Software Engineering Scholarship
+          {content[selectedLanguage].heading}
         </h1>
 
         <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-12 w-full max-w-6xl">
@@ -147,9 +150,9 @@ const StudentLandingPage = () => {
                 <img
                   src={slides[currentSlide].image}
                   alt={
-                    language === "english"
+                    selectedLanguage === "english"
                       ? slides[currentSlide].englishCaption
-                      : language === "hindi"
+                      : selectedLanguage === "hindi"
                       ? slides[currentSlide].hindiCaption
                       : slides[currentSlide].marathiCaption
                   }
@@ -159,9 +162,9 @@ const StudentLandingPage = () => {
 
               {/* Caption */}
               <div className="absolute bottom-0 left-0 right-0  bg-opacity-50 text-white text-center py-3 text-base">
-                {language === "english"
+                {selectedLanguage === "english"
                   ? slides[currentSlide].englishCaption
-                  : language === "hindi"
+                  : selectedLanguage === "hindi"
                   ? slides[currentSlide].hindiCaption
                   : slides[currentSlide].marathiCaption}
               </div>
@@ -171,40 +174,37 @@ const StudentLandingPage = () => {
           {/* ---- Right Section ---- */}
           <div className="mt-10 md:mt-0 md:ml-10 flex flex-col justify-center text-center bg-white p-6">
             <h1 className="text-3xl md:text-3xl font-bold text-gray-900 mb-6 leading-tight">
-              {content[language].subtitle}{" "}
-              <span className="text-orange-500">{content[language].title}</span>
+              {content[selectedLanguage].subtitle}{" "}
+              <span className="text-orange-500">{content[selectedLanguage].title}</span>
             </h1>
 
             <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-              {content[language].description ||
-                "Learn coding, problem-solving, and critical thinking in a thriving community of learners. Take the scholarship test today and begin your journey towards becoming a software engineer."}
+              {content[selectedLanguage].description}
             </p>
 
             <div>
               <button
                 className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg shadow-md"
-                onClick={() => navigate("/students/instructions")}
+                onClick={() => navigate("/students/login")}
               >
-                {content[language].buttonText}
+                {content[selectedLanguage].buttonText}
               </button>
             </div>
           </div>
         </div>
-        {/* </div> */}
       </main>
 
       {/* ---- Footer ---- */}
       <footer className="bg-gray-100 text-center text-sm py-4">
-        {content[language].footerText}{" "}
+        {content[selectedLanguage].footerText}{" "}
         <a
-          href={`mailto:${content[language].footerContact}`}
+          href={`mailto:${content[selectedLanguage].footerContact}`}
           className="text-blue-600"
         >
-          {content[language].footerContact}
+          {content[selectedLanguage].footerContact}
         </a>
       </footer>
     </div>
   );
 };
-
 export default StudentLandingPage;

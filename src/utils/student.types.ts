@@ -1,4 +1,4 @@
-export type Language = "English" | "Hindi" | "Marathi";
+export type Language = "english" | "hindi" | "marathi";
 
 export interface LanguageContent {
   title: string;

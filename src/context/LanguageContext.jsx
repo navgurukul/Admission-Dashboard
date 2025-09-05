@@ -1,18 +1,18 @@
-import React, { createContext, useContext, useState } from "react";
+// import React, { createContext, useContext, useState } from "react";
 
-// Create Context
-const LanguageContext = createContext();
+// // Create Context
+// const LanguageContext = createContext();
 
-// Provider Component
-export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState("english");
+// // Provider Component
+// export const LanguageProvider = ({ children }) => {
+//   const [language, setLanguage] = useState("english");
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage }}>
-      {children}
-    </LanguageContext.Provider>
-  );
-};
+//   return (
+//     <LanguageContext.Provider value={{ language, setLanguage }}>
+//       {children}
+//     </LanguageContext.Provider>
+//   );
+// };
 
-// Custom Hook
-export const useLanguage = () => useContext(LanguageContext);
+// // Custom Hook
+// export const useLanguage = () => useContext(LanguageContext);

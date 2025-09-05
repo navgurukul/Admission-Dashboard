@@ -21,6 +21,8 @@ export const getAuthHeaders = (): HeadersInit => {
   };
 };
 
+
+
 // Make authenticated API request
 export const apiRequest = async (
   endpoint: string,
@@ -281,3 +283,108 @@ export const deleteReligion = async (id: string): Promise<void> => {
 
 
 
+// Qualification Management API functions
+export interface Qualification {
+  id: number;
+  qualification_name: string;
+  status: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+
+export const getAllQualification = async (): Promise<Qualification[]> => {
+  const response = await fetch(`${BASE_URL}/qualifications/getQualifications`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch religions');
+  }
+  
+  // Return the data array from the response
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    console.log('Found data.data.data array:', data.data.data);
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+    console.log('Found data.data array:', data.data);
+    return data.data;
+  } else if (data && data.religions && Array.isArray(data.religions)) {
+    console.log('Found data.religions array:', data.religions);
+    return data.religions;
+  } else if (Array.isArray(data)) {
+    console.log('Data is directly an array:', data);
+    return data;
+  } else {
+    console.error('Unexpected API response format:', data);
+    console.error('Data structure:', JSON.stringify(data, null, 2));
+    return [];
+  }
+};
+
+
+// get All Status(ep working,student...)
+export interface CurrentStatus {
+  id: number;
+  current_status_name: string;
+  status: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getAllStatus = async (): Promise<CurrentStatus[]> => {
+  const response = await fetch(`${BASE_URL}/current-statuses/currentallstatuses`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch statuses');
+  }
+
+  console.log('API Response for getAllStatus:', data);
+  console.log('Data type:', typeof data);
+  console.log('Data keys:', Object.keys(data));
+  
+  // Return the data array from the response
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    console.log('Found data.data.data array:', data.data.data);
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+    console.log('Found data.data array:', data.data);
+    return data.data;
+  } else if (data && data.statuses && Array.isArray(data.statuses)) {
+    console.log('Found data.statuses array:', data.statuses);
+    return data.statuses;
+  } else if (Array.isArray(data)) {
+    console.log('Data is directly an array:', data);
+    return data;
+  } else {
+    console.error('Unexpected API response format:', data);
+    console.error('Data structure:', JSON.stringify(data, null, 2));
+    return [];
+  }
+}
+
+
+
+// create Student
+export const createStudent = async (studentData: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/createStudent`, {
+    method: 'POST',
+    body: JSON.stringify(studentData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create student');
+  }
+
+  return data;
+  };
