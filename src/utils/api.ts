@@ -18,6 +18,8 @@ export const getAuthHeaders = (): HeadersInit => {
   };
 };
 
+
+
 // Make authenticated API request
 export const apiRequest = async (
   endpoint: string,
@@ -495,23 +497,17 @@ export const getAllReligions = async (): Promise<Religion[]> => {
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch religions');
   }
-
-  console.log('API Response for getAllReligions:', data);
-  console.log('Data type:', typeof data);
-  console.log('Data keys:', Object.keys(data));
-  
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    console.log('Found data.data.data array:', data.data.data);
+  
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-    console.log('Found data.data array:', data.data);
+
     return data.data;
   } else if (data && data.religions && Array.isArray(data.religions)) {
-    console.log('Found data.religions array:', data.religions);
+  
     return data.religions;
   } else if (Array.isArray(data)) {
-    console.log('Data is directly an array:', data);
     return data;
   } else {
     console.error('Unexpected API response format:', data);
@@ -566,49 +562,6 @@ export const deleteReligion = async (id: string): Promise<void> => {
   }
 };
 
-
-export interface StudentData {
-  // id?: string; // default insert hota hai, optional rakha
-  first_name: string;
-  middle_name: string;
-  last_name: string;
-  gender: string;
-  dob: string | null;
-  email: string;
-  state: string;
-  city: string;
-  district: string;
-  pin_code: string;
-  qualification_id: string;
-  current_status_id: string;
-  school_medium: string;
-  cast_id: string;
-  religion_id: string;
-  phone_number: string;
-  whatsapp_number: string;
-  image: string;
-  status: boolean; // aapne last me bola isko add karna
-}
-
-export const createStudent = async (studentData: StudentData) => {
-  const response = await apiRequest("/students/createStudent", {
-    method: "POST",
-    headers:{
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(studentData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to create student");
-  }
-
-  return data;
-};
-
-
 // Get All Students
 export const getStudents = async (page = 1, limit = 10) => {
   const response = await apiRequest(`/students/getStudents?page=${page}&limit=${limit}`, {
@@ -633,4 +586,115 @@ export const getStudents = async (page = 1, limit = 10) => {
     console.error("Unexpected API response format:", dataParsed);
     return [];
   }
+};
+
+
+
+
+// Qualification Management API functions
+export interface Qualification {
+  id: number;
+  qualification_name: string;
+  status: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+
+export const getAllQualification = async (): Promise<Qualification[]> => {
+  const response = await fetch(`${BASE_URL}/qualifications/getQualifications`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch religions');
+  }
+  
+  // Return the data array from the response
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+   
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+   
+    return data.data;
+  } else if (data && data.religions && Array.isArray(data.religions)) {
+  
+    return data.religions;
+  } else if (Array.isArray(data)) {
+   
+    return data;
+  } else {
+    console.error('Unexpected API response format:', data);
+    console.error('Data structure:', JSON.stringify(data, null, 2));
+    return [];
+  }
+};
+
+
+// get All Status(ep working,student...)
+export interface CurrentStatus {
+  id: number;
+  current_status_name: string;
+  status: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getAllStatus = async (): Promise<CurrentStatus[]> => {
+  const response = await fetch(`${BASE_URL}/current-statuses/currentallstatuses`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch statuses');
+  }
+
+  console.log('API Response for getAllStatus:', data);
+  console.log('Data type:', typeof data);
+  console.log('Data keys:', Object.keys(data));
+  
+  // Return the data array from the response
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+
+    return data.data;
+  } else if (data && data.statuses && Array.isArray(data.statuses)) {
+   
+    return data.statuses;
+  } else if (Array.isArray(data)) {
+  
+    return data;
+  } else {
+    console.error('Unexpected API response format:', data);
+    console.error('Data structure:', JSON.stringify(data, null, 2));
+    return [];
+  }
+}
+
+
+
+// create Student
+export const createStudent = async (studentData: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/createStudent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(studentData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create student');
+  }
+
+  return data;
 };

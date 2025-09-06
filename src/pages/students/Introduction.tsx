@@ -5,12 +5,12 @@ const Instructions: React.FC = () => {
   const navigate = useNavigate();
   
   // Get selected language from localStorage
-  const selectedLanguage = localStorage.getItem('selectedLanguage') || 'English';
+  const selectedLanguage = localStorage.getItem('selectedLanguage') || 'english';
 
   // Language-specific content
   const getLanguageContent = () => {
     switch (selectedLanguage) {
-      case "Hindi":
+      case "hindi":
         return {
           title: "NavGurukul Entrance Test",
           instructionsIntro: "परीक्षा शुरू करने से पहले कृपया निम्नलिखित महत्वपूर्ण निर्देश पढ़ें। परीक्षा देते समय ये निर्देश काम आएंगे",
@@ -24,7 +24,7 @@ const Instructions: React.FC = () => {
           back: "वापस",
           next: "आगे",
         };
-      case "Marathi":
+      case "marathi":
         return {
           title: "NavGurukul Entrance Test",
           instructionsIntro: "परीक्षा सुरू करण्यापूर्वी कृपया खालील महत्वाचे निर्देश वाचा. परीक्षा देताना हे निर्देश उपयोगी पडतील",
@@ -58,6 +58,7 @@ const Instructions: React.FC = () => {
   const content = getLanguageContent();
 
   const handleNext = () => {
+    localStorage.setItem("instructionsAccepted", "true");
     navigate('/students/registration');
   };
 
@@ -98,7 +99,7 @@ const Instructions: React.FC = () => {
 
         {/* Progress Dots */}
         <div className="flex justify-center space-x-2 mt-8">
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+
           <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
           <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
         </div>
