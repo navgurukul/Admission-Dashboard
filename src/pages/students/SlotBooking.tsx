@@ -194,7 +194,7 @@ const SlotBooking: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <Loader2 className="w-12 h-12 text-orange-600 animate-spin" />
           <p className="text-gray-600 text-lg">Loading...</p>
         </div>
       </div>
@@ -214,12 +214,12 @@ const SlotBooking: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-r from-orange-500 to-red-500 px-8 py-8 px-4">
       {/* Notification */}
       {showNotification && (
         <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
           notificationType === 'success' ? 'bg-green-500' : 
-          notificationType === 'error' ? 'bg-red-500' : 'bg-blue-500'
+          notificationType === 'error' ? 'bg-red-500' : 'bg-orange-500'
         } text-white`}>
           <div className="flex items-center space-x-2">
             {notificationType === 'success' && <CheckCircle className="w-5 h-5" />}
@@ -233,9 +233,9 @@ const SlotBooking: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         {slot.is_cancelled ? (
           /* Booking Interface */
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-orange-600 to-orange-600 px-8 py-6 text-white">
+         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+  {/* Header */}
+  <div className="bg-orange-400 px-8 py-6 text-white">
               <h1 className="text-3xl font-bold mb-2">Book Interview Slot</h1>
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5" />
@@ -247,7 +247,7 @@ const SlotBooking: React.FC = () => {
               {/* Date Selection */}
               <div className="mb-8">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Calendar className="w-6 h-6 mr-2 text-blue-600" />
+                  <Calendar className="w-6 h-6 mr-2 text-orange-600" />
                   Select Date
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -257,11 +257,11 @@ const SlotBooking: React.FC = () => {
                     onChange={(e) => handleDateChange(new Date(e.target.value))}
                     min={formatDate(new Date())}
                     max={formatDate(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-700"
                   />
-                  <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="bg-orange-50 p-3 rounded-lg">
                     <p className="text-sm text-gray-600">Selected Date:</p>
-                    <p className="text-lg font-semibold text-blue-600">{formatDisplayDate(selectedDate)}</p>
+                    <p className="text-lg font-semibold text-orange-600">{formatDisplayDate(selectedDate)}</p>
                   </div>
                 </div>
               </div>
@@ -269,7 +269,7 @@ const SlotBooking: React.FC = () => {
               {/* Time Slots */}
               <div className="mb-8">
                 <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Clock className="w-6 h-6 mr-2 text-blue-600" />
+                  <Clock className="w-6 h-6 mr-2 text-orange-600" />
                   Available Time Slots
                 </h3>
                 
@@ -281,8 +281,8 @@ const SlotBooking: React.FC = () => {
                         onClick={() => setSlot({ id, from, to, is_cancelled: true })}
                         className={`p-4 rounded-lg border-2 transition-all duration-200 hover:shadow-md ${
                           slot.id === id
-                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'
+                            ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-md'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300'
                         }`}
                       >
                         <div className="flex items-center justify-center space-x-2">
@@ -310,7 +310,7 @@ const SlotBooking: React.FC = () => {
                 className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all duration-200 ${
                   !slot.id || timings.length === 0
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:shadow-lg transform hover:scale-105'
+                    : 'bg-gradient-to-r from-orange-600 to-orange-400 text-white hover:from-orange-600 hover:to-red-500 hover:shadow-lg transform hover:scale-105'
                 }`}
               >
                 {slot.id ? 'Book Selected Slot' : 'Select a Time Slot'}
@@ -321,7 +321,7 @@ const SlotBooking: React.FC = () => {
           /* Booked Slot Display */
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-blue-600 px-8 py-6 text-white">
+            <div className="bg-orange-400 px-8 py-6 text-white">
               <div className="flex items-center justify-center space-x-3 mb-2">
                 <CheckCircle className="w-8 h-8" />
                 <h1 className="text-3xl font-bold">Interview Slot Booked</h1>
@@ -334,7 +334,7 @@ const SlotBooking: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
-                    <User className="w-5 h-5 text-blue-600" />
+                    <User className="w-5 h-5 text-orange-600" />
                     <div>
                       <p className="text-sm text-gray-500">Student Name</p>
                       <p className="text-lg font-semibold text-gray-800">{slot.student_name}</p>
@@ -342,7 +342,7 @@ const SlotBooking: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <Video className="w-5 h-5 text-blue-600" />
+                    <Video className="w-5 h-5 text-orange-600" />
                     <div>
                       <p className="text-sm text-gray-500">Topic</p>
                       <p className="text-lg font-semibold text-gray-800">{slot.topic_name}</p>
@@ -352,7 +352,7 @@ const SlotBooking: React.FC = () => {
                 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
-                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <Calendar className="w-5 h-5 text-orange-600" />
                     <div>
                       <p className="text-sm text-gray-500">Date</p>
                       <p className="text-lg font-semibold text-gray-800">
@@ -362,7 +362,7 @@ const SlotBooking: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center space-x-3">
-                    <Clock className="w-5 h-5 text-blue-600" />
+                    <Clock className="w-5 h-5 text-orange-600" />
                     <div>
                       <p className="text-sm text-gray-500">Time</p>
                       <p className="text-lg font-semibold text-gray-800">
