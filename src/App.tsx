@@ -33,6 +33,7 @@ import Caste from "./pages/settings/Caste";
 import Religion from "./pages/settings/Religion";
 import Qualification from "./pages/settings/Qualification";
 import Questions from "./pages/settings/Questions";
+import StudentRoutes  from "./routes/StudentRoutes";
 
 const queryClient = new QueryClient();
 
@@ -71,7 +72,7 @@ const App = () => (
             <Route index element={<UserRole />} />
           </Route>
           {/* Custom student redirect route */}
-          <Route path="/students" element={<Student />} />
+          <Route path="/students/*" element={<StudentRoutes />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
-import { log } from 'console';
+import { loginWithGoogle, User, Role, GoogleAuthPayload, SUPER_ADMIN_EMAILS } from '@/utils/api';
 
 interface GoogleUser {
   id: string;
@@ -8,6 +9,8 @@ interface GoogleUser {
   name: string;
   avatar: string;
   provider: 'google';
+  role_id?: number;
+  role?: Role;
 }
 
 interface GoogleAuthState {
@@ -86,20 +89,39 @@ export const useGoogleAuth = () => {
     initializeGoogleAuth();
   }, []);
 
-  // Check for existing session
+  // Check for existing session (Updated for Railway API)
   const checkExistingSession = () => {
-    const storedUser = localStorage.getItem('googleUser');
-    if (storedUser) {
+    const storedUser = localStorage.getItem('user'); // Changed from 'googleUser' to 'user'
+    const authToken = localStorage.getItem('authToken');
+    const userRole = localStorage.getItem('userRole');
+    
+    if (storedUser && authToken) {
       try {
         const user = JSON.parse(storedUser);
+        const role = userRole ? JSON.parse(userRole) : null;
+        
+        // Create GoogleUser format for backward compatibility
+        const googleUser: GoogleUser = {
+          id: user.id?.toString() || user.sub,
+          email: user.email,
+          name: user.name,
+          avatar: user.picture || '', // Handle if avatar not present in Railway user
+          provider: 'google',
+          role_id: user.role_id,
+          role: role,
+        };
+
         setAuthState({
-          user,
+          user: googleUser,
           loading: false,
           isAuthenticated: true,
         });
       } catch (error) {
         console.error('Error parsing stored user:', error);
-        localStorage.removeItem('googleUser');
+        // Clear corrupted data
+        localStorage.removeItem('user');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
         setAuthState({
           user: null,
           loading: false,
@@ -115,98 +137,117 @@ export const useGoogleAuth = () => {
     }
   };
 
-  // Handle Google Sign In
+  // Handle Google Sign In (Updated for Railway API)
   const handleGoogleSignIn = async (response: any) => {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
 
-      // Decode the JWT token
-      // console.log(response.credential)
-
+      // Decode the JWT token from Google
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
-      const credentialToken = response.credential;
-        localStorage.setItem('authToken', credentialToken);
+      console.log('Google JWT payload:', payload);
 
-
-      const user: GoogleUser = {
-        id: payload.sub,
+      // Prepare payload for API
+      const googleAuthPayload: GoogleAuthPayload = {
+        iss: payload.iss,
+        aud: payload.aud,
+        sub: payload.sub,
         email: payload.email,
+        email_verified: payload.email_verified || true,
         name: payload.name,
-        avatar: payload.picture,
-        provider: 'google',
+        iat: payload.iat,
+        exp: payload.exp,
+        picture: payload.picture,
+        
       };
 
-      // Try to fetch role/privilege
-      try {
-        const roleAccessResponse = await fetch(`https://dev-join.navgurukul.org/api/rolebaseaccess/mail/${user.email}`);
-        const roleAccessData = await roleAccessResponse.json();
+      console.log('this is checking payload:=>',googleAuthPayload)
+      // Call Railway login API
+      const loginResponse = await loginWithGoogle(googleAuthPayload);
+      console.log('Railway login response:', loginResponse);
 
-        const privilegesResponse = await fetch('https://dev-join.navgurukul.org/api/role/getPrivilege');
-        const privilegesData = await privilegesResponse.json();
+      if (loginResponse.success && loginResponse.data) {
+        const { user: railwayUser, token } = loginResponse.data;
 
-        // Only store if both fetches are successful and data is valid
-        if (roleAccessData && privilegesData) {
-          localStorage.setItem('googleUser', JSON.stringify(user));
-          localStorage.setItem('roleAccess', JSON.stringify(roleAccessData));
-          localStorage.setItem('privileges', JSON.stringify(privilegesData));
-
-          setAuthState({
-            user,
-            loading: false,
-            isAuthenticated: true,
-          });
-
-          toast({
-            title: "Welcome!",
-            description: `Successfully signed in with Google as ${user.name}`,
-          });
-        } else {
-          // If data is not valid, clear everything and set unauthenticated
-          localStorage.removeItem('googleUser');
-          localStorage.removeItem('roleAccess');
-          localStorage.removeItem('privileges');
-          setAuthState({
-            user: null,
-            loading: false,
-            isAuthenticated: false,
-          });
-          toast({
-            title: "Error",
-            description: "Failed to fetch user role or privileges. Please try again.",
-            variant: "destructive",
-          });
+        // Store Railway data in localStorage
+        localStorage.setItem('authToken', token); // Railway JWT token
+        localStorage.setItem('user', JSON.stringify(railwayUser)); 
+        
+        // Store role information if available
+        if (railwayUser.role) {
+          localStorage.setItem('userRole', JSON.stringify(railwayUser.role));
         }
-      } catch (apiError) {
-        // On fetch error, clear everything and set unauthenticated
+
+        // Create GoogleUser format for component compatibility
+        const googleUser: GoogleUser = {
+          id: railwayUser.id.toString(),
+          email: railwayUser.email,
+          name: railwayUser.name,
+          avatar: payload.picture || '', 
+          provider: 'google',
+          role_id: railwayUser.role_id,
+          role: railwayUser.role,
+        };
+
+        setAuthState({
+          user: googleUser,
+          loading: false,
+          isAuthenticated: true,
+        });
+
+        // Clean up old NavGurukul data if exists
         localStorage.removeItem('googleUser');
         localStorage.removeItem('roleAccess');
         localStorage.removeItem('privileges');
-        setAuthState({
-          user: null,
-          loading: false,
-          isAuthenticated: false,
-        });
+
         toast({
-          title: "Error",
-          description: "Failed to fetch user role or privileges. Please try again.",
-          variant: "destructive",
+          title: "Welcome!",
+          description: `Successfully signed in as ${railwayUser.name}`,
         });
+
+      } else {
+        throw new Error(loginResponse.message || 'Login failed');
       }
+
     } catch (error) {
+      console.error('Login error:', error);
+      
+      // Clear any stored data on error
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
+      
       setAuthState({
         user: null,
         loading: false,
         isAuthenticated: false,
       });
+
+      // Show different error messages based on error type
+      let errorMessage = "Failed to sign in. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('unauthorized') || error.message.includes('not found')) {
+          // Check if user is super admin
+          const payload = JSON.parse(atob(response.credential.split('.')[1]));
+          if (SUPER_ADMIN_EMAILS.includes(payload.email)) {
+            errorMessage = "Super admin detected but user not found in system. Please contact system administrator.";
+          } else {
+            errorMessage = "You are not authorized to access this system. Please contact administrator.";
+          }
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to sign in with Google. Please try again.",
+        title: "Sign In Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
 
-  // Sign Out
+  // Sign Out (Updated)
   const signOut = () => {
     if (window.google) {
       try {
@@ -216,6 +257,12 @@ export const useGoogleAuth = () => {
       }
     }
     
+    // Clear all stored data
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userRole');
+    
+    // Clean up old NavGurukul data if exists
     localStorage.removeItem('googleUser');
     localStorage.removeItem('roleAccess');
     localStorage.removeItem('privileges');
@@ -232,7 +279,7 @@ export const useGoogleAuth = () => {
     });
   };
 
-  // Render Google Sign In Button
+  // Render Google Sign In Button (Unchanged)
   const renderGoogleSignInButton = (elementId: string) => {
     if (window.google) {
       try {
@@ -252,14 +299,31 @@ export const useGoogleAuth = () => {
     }
   };
 
+  // Helper functions for role checking
+  const isSuperAdmin = () => {
+    return authState.user ? SUPER_ADMIN_EMAILS.includes(authState.user.email) : false;
+  };
+
+  const getUserRole = () => {
+    return authState.user?.role?.name || null;
+  };
+
+  const hasRole = (roleName: string) => {
+    const userRole = getUserRole();
+    return userRole ? userRole.toLowerCase() === roleName.toLowerCase() : false;
+  };
+
   return {
     ...authState,
     signOut,
     renderGoogleSignInButton,
+    isSuperAdmin,
+    getUserRole,
+    hasRole,
   };
 };
 
-// TypeScript declarations
+// TypeScript declarations (Unchanged)
 declare global {
   interface Window {
     google: {
@@ -272,4 +336,4 @@ declare global {
       };
     };
   }
-} 
+}
