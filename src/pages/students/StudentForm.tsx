@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/routes/LaunguageContext.tsx";
+import { useToast } from "@/hooks/use-toast";
 import {
   getAllCasts,
   Cast,
@@ -14,13 +15,16 @@ import {
 
 } from "@/utils/api";
 
+
 const StudentForm: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
   const [casts, setCasts] = useState<Cast[]>([]);
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   const [religions, setReligions] = useState<Religion[]>([]);
+  
 
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
@@ -48,7 +52,7 @@ const StudentForm: React.FC = () => {
   // Convert camelCase → snake_case before API call
 const mapFormDataToApi = (data: typeof formData) => {
   return {
-    image_url: data.profileImage ? URL.createObjectURL(data.profileImage) : null,
+    image_url: data.profileImage  || null,
     first_name: data.firstName,
     middle_name: data.middleName,
     last_name: data.lastName,
@@ -61,9 +65,9 @@ const mapFormDataToApi = (data: typeof formData) => {
     district: data.district,
     city: data.city,
     pin_code: data.pinCode,
+    school_medium: data.schoolMedium,
     current_status_id: Number(data.currentStatus) || null,
     qualification_id: Number(data.maximumQualification) || null,
-    school_medium: data.schoolMedium,
     cast_id: Number(data.casteTribe) || null,
     religion_id: Number(data.religion) || null,
   };
@@ -122,6 +126,7 @@ const mapFormDataToApi = (data: typeof formData) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    console.log(name,value)
     const newFormData = {
       ...formData,
       [name]: value,
@@ -166,17 +171,26 @@ const mapFormDataToApi = (data: typeof formData) => {
   };
 
   const handleSubmit = async () => {
-    const apiPayload = mapFormDataToApi(formData);
-    const response = await createStudent(apiPayload);
+  if (!isFormValid()) {
+    alert("Please fill all required fields");
+    return;
+  }
 
-    if (isFormValid()) {
-      console.log("Form data:", formData);
-      localStorage.setItem("studentFormData", JSON.stringify(formData));
-      navigate("/students/test-start");
-    } else {
-      alert("Please fill all required fields");
-    }
-  };
+  try {
+    const apiPayload = mapFormDataToApi(formData);
+    console.log("API Payload:", apiPayload);
+
+    const response = await createStudent(apiPayload);
+    console.log("Create Student Response:", response);
+
+    localStorage.setItem("studentFormData", JSON.stringify(formData));
+    navigate("/students/test-start");
+  } catch (error: any) {
+    console.error("Error creating student:", error);
+    alert(error.message || "Failed to create student");
+  }
+};
+
 
   const handlePrevious = () => {
     navigate("/students/instructions");
@@ -698,17 +712,15 @@ const mapFormDataToApi = (data: typeof formData) => {
               </label>
               <div className="relative">
                 <select
-                  name="religion"
-                  value={formData.religion}
+                  name="schoolMedium"
+                  value={formData.schoolMedium}
                   onChange={handleInputChange}
                   className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
-                  <option value="">{content.selectReligion}</option>
-                  {religions.map((religion) => (
-                    <option key={religion.id} value={religion.id}>
-                      {religion.religion_name}
-                    </option>
-                  ))}
+                  <option value="English">English</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="Marathi">Marathi</option>
+                  <option value="Other">Other</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
@@ -768,6 +780,7 @@ const mapFormDataToApi = (data: typeof formData) => {
                 {content.religion}
               </label>
               <div className="relative">
+              
                 <select
                   name="religion"
                   value={formData.religion}
@@ -775,12 +788,11 @@ const mapFormDataToApi = (data: typeof formData) => {
                   className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">{content.selectReligion}</option>
-                  <option value="Hinduism">Hinduism</option>
-                  <option value="Islam">Islam</option>
-                  <option value="Christianity">Christianity</option>
-                  <option value="Sikhism">Sikhism</option>
-                  <option value="Buddhism">Buddhism</option>
-                  <option value="Other">Other</option>
+                  {religions.map((religion) => (
+                    <option key={religion.id} value={religion.id}>
+                      {religion.religion_name}
+                    </option>
+                  ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg

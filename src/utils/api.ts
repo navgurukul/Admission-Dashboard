@@ -210,23 +210,17 @@ export const getAllReligions = async (): Promise<Religion[]> => {
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch religions');
   }
-
-  console.log('API Response for getAllReligions:', data);
-  console.log('Data type:', typeof data);
-  console.log('Data keys:', Object.keys(data));
-  
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    console.log('Found data.data.data array:', data.data.data);
+  
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-    console.log('Found data.data array:', data.data);
+
     return data.data;
   } else if (data && data.religions && Array.isArray(data.religions)) {
-    console.log('Found data.religions array:', data.religions);
+  
     return data.religions;
   } else if (Array.isArray(data)) {
-    console.log('Data is directly an array:', data);
     return data;
   } else {
     console.error('Unexpected API response format:', data);
@@ -307,16 +301,16 @@ export const getAllQualification = async (): Promise<Qualification[]> => {
   
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    console.log('Found data.data.data array:', data.data.data);
+   
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-    console.log('Found data.data array:', data.data);
+   
     return data.data;
   } else if (data && data.religions && Array.isArray(data.religions)) {
-    console.log('Found data.religions array:', data.religions);
+  
     return data.religions;
   } else if (Array.isArray(data)) {
-    console.log('Data is directly an array:', data);
+   
     return data;
   } else {
     console.error('Unexpected API response format:', data);
@@ -353,16 +347,15 @@ export const getAllStatus = async (): Promise<CurrentStatus[]> => {
   
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    console.log('Found data.data.data array:', data.data.data);
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-    console.log('Found data.data array:', data.data);
+
     return data.data;
   } else if (data && data.statuses && Array.isArray(data.statuses)) {
-    console.log('Found data.statuses array:', data.statuses);
+   
     return data.statuses;
   } else if (Array.isArray(data)) {
-    console.log('Data is directly an array:', data);
+  
     return data;
   } else {
     console.error('Unexpected API response format:', data);
@@ -377,6 +370,9 @@ export const getAllStatus = async (): Promise<CurrentStatus[]> => {
 export const createStudent = async (studentData: any): Promise<any> => {
   const response = await fetch(`${BASE_URL}/students/createStudent`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(studentData),
   });
 
@@ -387,4 +383,4 @@ export const createStudent = async (studentData: any): Promise<any> => {
   }
 
   return data;
-  };
+};
