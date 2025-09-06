@@ -121,7 +121,9 @@ export default function QuestionRepository() {
 
   return (
     
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className='min-h-screen bg-background' >
+          <AdmissionsSidebar />
+          <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Question Repository</h1>
@@ -144,15 +146,14 @@ export default function QuestionRepository() {
               </Button>
             </div>
           </div>
-
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-4 my-6">
               <TabsTrigger value="list">Questions</TabsTrigger>
               <TabsTrigger value="editor">Editor</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
               <TabsTrigger value="import">Import</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
+              {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
+               {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
+              {/* <TabsTrigger value="history">History</TabsTrigger> */}
               <TabsTrigger value='difficulty-levels'>Difficulty Levels</TabsTrigger>
             </TabsList>
 
@@ -278,7 +279,7 @@ export default function QuestionRepository() {
             <TabsContent value="difficulty-levels">
               <Card>
                 <CardHeader>
-                  <CardTitle>Difficulty Levels Management</CardTitle>
+                  {/* <CardTitle className='mb-1'>Difficulty Levels Management</CardTitle> */}
                 </CardHeader>
                 <CardContent>
                   <DifficultyLevelManager />
@@ -287,7 +288,8 @@ export default function QuestionRepository() {
             </TabsContent>
           </Tabs>
         {/* </div>
-      </main> */}
+       */}
+       </main>
     </div>
   );
 }

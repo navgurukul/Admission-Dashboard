@@ -32,6 +32,7 @@ const navigation = [
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
   { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
+  { name: "Question Repository", href: "/questions", icon: Mail },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

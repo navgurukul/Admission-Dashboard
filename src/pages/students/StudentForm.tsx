@@ -154,6 +154,7 @@ const mapFormDataToApi = (data: typeof formData) => {
 
   const isFormValid = () => {
     return (
+      formData.profileImage &&
       formData.firstName &&
       formData.dateOfBirth &&
       formData.whatsappNumber &&
@@ -178,11 +179,7 @@ const mapFormDataToApi = (data: typeof formData) => {
 
   try {
     const apiPayload = mapFormDataToApi(formData);
-    console.log("API Payload:", apiPayload);
-
     const response = await createStudent(apiPayload);
-    console.log("Create Student Response:", response);
-
     localStorage.setItem("studentFormData", JSON.stringify(formData));
     navigate("/students/test-start");
   } catch (error: any) {
@@ -433,9 +430,9 @@ const mapFormDataToApi = (data: typeof formData) => {
                 onChange={handleInputChange}
                 className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              {/* <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                 📅
-              </span>
+              </span> */}
             </div>
           </div>
           <div>
@@ -483,7 +480,6 @@ const mapFormDataToApi = (data: typeof formData) => {
                 type="tel"
                 name="whatsappNumber"
                 maxLength={10}
-                pattern="[0-9]{10}"
                 value={formData.whatsappNumber}
                 onChange={handleInputChange}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -498,7 +494,6 @@ const mapFormDataToApi = (data: typeof formData) => {
                 type="tel"
                 name="alternateNumber"
                 maxLength={10}
-                pattern="[0-9]{10}"
                 value={formData.alternateNumber}
                 onChange={handleInputChange}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"

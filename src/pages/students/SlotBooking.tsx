@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { Calendar, Clock, User, CheckCircle, XCircle, Video, Loader2 } from 'lucide-react';
 
@@ -214,7 +213,7 @@ const SlotBooking: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-orange-500 to-red-500 px-8 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-r from-orange-500 to-red-500 py-8 px-4">
       {/* Notification */}
       {showNotification && (
         <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
