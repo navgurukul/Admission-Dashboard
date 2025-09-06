@@ -1,20 +1,17 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Get auth token from localStorage
 export const getAuthToken = (): string | null => {
-  const token =  localStorage.getItem('authToken');
+  const token = localStorage.getItem('authToken');
   console.log('authToken from localStorage:', token);
   return token;
-  
 };
-
-
 
 // Create headers with authentication
 export const getAuthHeaders = (): HeadersInit => {
   const token = getAuthToken();
-  console.log(token,"token checking") 
+  console.log(token, "token checking");
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -40,10 +37,268 @@ export const apiRequest = async (
   return fetch(url, config);
 };
 
-// Logout function
+// AUTHENTICATION FUNCTIONS (NEW) 
+
+// User interfaces
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  mobile?: string;
+  user_name: string;
+  role_id: number;
+  status: boolean;
+  created_at: string;
+  updated_at: string;
+  role?: Role;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  status: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoogleAuthPayload {
+  iss: string;
+  aud: string;
+  sub: string;
+  email: string;
+  email_verified: boolean;
+  name: string;
+  iat: number;
+  exp: number;
+  picture: string;
+  
+}
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  data: {
+    user: User;
+    token: string;
+  };
+}
+
+// Login API - Google OAuth token exchange
+export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise<LoginResponse> => {
+  const response = await fetch(`${BASE_URL}/users/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(googlePayload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Login failed');
+  }
+
+  console.log('Login Response:', data);
+  return data;
+};
+
+
+// Get all users (with pagination)
+export const getAllUsers = async (page: number = 1, limit: number = 10): Promise<{users: User[], total: number}> => {
+  const response = await fetch(`${BASE_URL}/users?page=${page}&limit=${limit}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+    console.log("Fetching users:", response, response.status);
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch users');
+  }
+
+  console.log('Get Users Response:', data);
+  return data;
+};
+
+// Get user by ID
+export const getUserById = async (id: string): Promise<User> => {
+  const response = await fetch(`${BASE_URL}/users/${id}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch user');
+  }
+
+  return data;
+};
+
+// Onboard new user (Super Admin function)
+export interface OnboardUserData {
+  name: string;
+  email: string;
+  mobile: string;
+  user_name: string;
+  role_id: number;
+}
+
+export const onboardUser = async (userData: OnboardUserData): Promise<User> => {
+  const response = await fetch(`${BASE_URL}/users/onboard`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(userData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to onboard user');
+  }
+
+  return data;
+};
+
+// Update user
+export interface UpdateUserData {
+  name?: string;
+  mobile?: string;
+  user_name?: string;
+  status?: boolean;
+  user_role_id?: number;
+}
+
+export const updateUser = async (id: string, userData: UpdateUserData): Promise<User> => {
+  const response = await fetch(`${BASE_URL}/users/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(userData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update user');
+  }
+
+  return data;
+};
+
+// Delete user
+export const deleteUser = async (id: string): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/users/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete user');
+  }
+};
+
+
+// Create role
+export const createRole = async (roleData: { name: string }): Promise<Role> => {
+  const response = await fetch(`${BASE_URL}/roles/createRoles`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(roleData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create role');
+  }
+
+  return data;
+};
+
+// Get all roles
+export const getAllRolesNew = async (): Promise<Role[]> => {
+  const response = await fetch(`${BASE_URL}/roles/getRoles`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch roles');
+  }
+
+  console.log('Get Roles Response:', data);
+  
+  // Handle different response formats
+  if (data && data.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else {
+    console.error('Unexpected roles API response format:', data);
+    return [];
+  }
+};
+
+// Get role by ID
+export const getRoleById = async (id: string): Promise<Role> => {
+  const response = await fetch(`${BASE_URL}/roles/getRoleById/${id}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch role');
+  }
+
+  return data;
+};
+
+// Update role
+export const updateRole = async (id: string, roleData: { name: string }): Promise<Role> => {
+  const response = await fetch(`${BASE_URL}/roles/updateRole/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(roleData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update role');
+  }
+
+  return data;
+};
+
+// Delete role
+export const deleteRole = async (id: string): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/roles/deleteRole/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete role');
+  }
+};
+
+
+// Updated logout function
 export const logoutUser = () => {
   localStorage.removeItem('authToken');
   localStorage.removeItem('user');
+  localStorage.removeItem('userRole');
+  // Remove old NavGurukul data if exists
+  localStorage.removeItem('googleUser');
   localStorage.removeItem('roleAccess');
   localStorage.removeItem('privileges');
 };
@@ -55,13 +310,45 @@ export const isAuthenticated = (): boolean => {
   return !!(token && user);
 };
 
-// Get current user
-export const getCurrentUser = () => {
+// Get current user (updated for Railway API structure)
+export const getCurrentUser = (): User | null => {
   const userData = localStorage.getItem('user');
   return userData ? JSON.parse(userData) : null;
 };
 
-// Cast Management API functions
+// Get current user role
+export const getCurrentUserRole = (): Role | null => {
+  const roleData = localStorage.getItem('userRole');
+  return roleData ? JSON.parse(roleData) : null;
+};
+
+// Check if user is super admin (hardcoded emails)
+export const SUPER_ADMIN_EMAILS = [
+  "nasir@navgurukul.org", 
+  "urmilaparte23@navgurukul.org", 
+  "saksham.c@navgurukul.org", 
+  "mukul@navgurukul.org"
+];
+
+export const isSuperAdmin = (email?: string): boolean => {
+  if (!email) {
+    const user = getCurrentUser();
+    email = user?.email;
+  }
+  return email ? SUPER_ADMIN_EMAILS.includes(email) : false;
+};
+
+// Check user role by role_id or role name
+export const hasRole = (roleName: string): boolean => {
+  const user = getCurrentUser();
+  const role = getCurrentUserRole();
+  
+  if (!user || !role) return false;
+  
+  return role.name.toLowerCase() === roleName.toLowerCase();
+};
+
+
 export interface Cast {
   id: number;
   cast_name: string;
@@ -170,7 +457,7 @@ export const deleteCast = async (id: string): Promise<void> => {
   }
 };
 
-// Religion Management API functions
+
 export interface Religion {
   id: number;
   religion_name: string;
@@ -277,4 +564,73 @@ export const deleteReligion = async (id: string): Promise<void> => {
     const data = await response.json();
     throw new Error(data.message || 'Failed to delete religion');
   }
-}; 
+};
+
+
+export interface StudentData {
+  // id?: string; // default insert hota hai, optional rakha
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  gender: string;
+  dob: string | null;
+  email: string;
+  state: string;
+  city: string;
+  district: string;
+  pin_code: string;
+  qualification_id: string;
+  current_status_id: string;
+  school_medium: string;
+  cast_id: string;
+  religion_id: string;
+  phone_number: string;
+  whatsapp_number: string;
+  image: string;
+  status: boolean; // aapne last me bola isko add karna
+}
+
+export const createStudent = async (studentData: StudentData) => {
+  const response = await apiRequest("/students/createStudent", {
+    method: "POST",
+    headers:{
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(studentData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create student");
+  }
+
+  return data;
+};
+
+
+// Get All Students
+export const getStudents = async (page = 1, limit = 10) => {
+  const response = await apiRequest(`/students/getStudents?page=${page}&limit=${limit}`, {
+    method: "GET",
+     headers: getAuthHeaders()
+  });
+
+  const dataParsed = await response.json();
+
+  if (!response.ok) {
+    throw new Error(dataParsed.message || "Failed to fetch students");
+  }
+
+  // Handle different response formats if backend wraps data
+  if (dataParsed && dataParsed.data && Array.isArray(dataParsed.data)) {
+    return dataParsed.data;
+  } else if (dataParsed && Array.isArray(dataParsed.data.data)) {
+    return dataParsed.data.data;
+  } else if (Array.isArray(dataParsed)) {
+    return dataParsed;
+  } else {
+    console.error("Unexpected API response format:", dataParsed);
+    return [];
+  }
+};
