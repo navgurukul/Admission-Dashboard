@@ -1,6 +1,9 @@
+
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useGoogleAuth } from './useGoogleAuth';
+import { getCurrentUser, getCurrentUserRole, isSuperAdmin } from '@/utils/api';
 
 interface User {
   id: string;
@@ -8,6 +11,9 @@ interface User {
   name?: string;
   role?: string;
   phone?: string;
+  avatar?: string;
+  role_id?: number;
+  role_name?: string;
 }
 
 interface AuthContextType {
@@ -15,7 +21,11 @@ interface AuthContextType {
   session: any | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  getUserInfo: () => any;
+  getUserInfo: () => User | null;
+  isAuthenticated: boolean;
+  userRole: string | null;
+  hasRole: (role: string) => boolean;
+  // isSuperAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,43 +35,111 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { user: googleUser, isAuthenticated, loading: googleLoading } = useGoogleAuth();
+  
+  // Use Railway-integrated GoogleAuth hook
+  const { 
+    user: googleUser, 
+    isAuthenticated: googleAuthenticated, 
+    loading: googleLoading,
+    getUserRole,
+    hasRole: googleHasRole,
+    logout: googleLogout 
+  } = useGoogleAuth();
 
   useEffect(() => {
-    // Check for existing Google authentication on app load
-    const checkAuth = () => {
-      if (googleUser && isAuthenticated) {
-        setUser(googleUser);
-        setSession({ provider: 'google' });
+    // Sync with Railway Google Auth state
+    const syncAuthState = () => {
+      if (googleUser && googleAuthenticated) {
+        // Convert Railway user to local user format
+        const localUser: User = {
+          id: googleUser.id,
+          email: googleUser.email,
+          name: googleUser.name,
+          avatar: googleUser.avatar,
+          role: getUserRole(), // Get role from Railway
+          role_id: googleUser.role_id,
+          role_name: googleUser.role_name
+        };
+
+        setUser(localUser);
+        setSession({ 
+          provider: 'google',
+          railway_token: localStorage.getItem('authToken'),
+          user_role: getUserRole()
+        });
+
+        // console.log('Auth synced with Railway:', {
+        //   user: localUser.email,
+        //   role: getUserRole(),
+        //   isSuper: googleUser ? googleUser.email in ['nasir@navgurukul.org', 'urmilaparte23@navgurukul.org', 'saksham.c@navgurukul.org', 'mukul@navgurukul.org'] : false
+        // });
+      } else {
+        setUser(null);
+        setSession(null);
       }
       setLoading(false);
     };
 
-    if (!googleLoading) {
-      checkAuth();
-    }
-  }, [googleUser, isAuthenticated, googleLoading]);
+    // if (!googleLoading) {
+    //   syncAuthState();
+    // }
+  }, [googleUser, googleAuthenticated, googleLoading, getUserRole]);
 
   const signOut = async () => {
-    // Clear all auth data
-    localStorage.removeItem('googleUser');
-    localStorage.removeItem('roleAccess');
-    localStorage.removeItem('privileges');
-    setUser(null);
-    setSession(null);
-    
-    toast({
-      title: "Signed out",
-      description: "You have been successfully signed out.",
-    });
+    try {
+      // Use Railway logout function
+      await googleLogout();
+      
+      // Clear local state
+      setUser(null);
+      setSession(null);
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out from all systems.",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout Error",
+        description: "There was an issue signing you out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const getUserInfo = () => {
+  const getUserInfo = (): User | null => {
     return user;
   };
 
+  const userRole = getUserRole();
+  const isAuthenticated = googleAuthenticated;
+  const hasRole = (role: string): boolean => {
+    return googleHasRole(role);
+  };
+
+  // Check if current user is super admin using your API utils
+  // const isSuperAdmin = googleUser ? [
+  //   "nasir@navgurukul.org", 
+  //   "urmilaparte23@navgurukul.org", 
+  //   "saksham.c@navgurukul.org", 
+  //   "mukul@navgurukul.org"
+  // ].includes(googleUser.email) : false;
+
+  const contextValue: AuthContextType = {
+    user,
+    session,
+    loading: loading || googleLoading,
+    signOut,
+    getUserInfo,
+    isAuthenticated,
+    userRole,
+    hasRole,
+    // isSuperAdmin
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, getUserInfo }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -74,3 +152,6 @@ export function useAuth() {
   }
   return context;
 }
+
+// Backward compatibility exports
+export type { User, AuthContextType };
