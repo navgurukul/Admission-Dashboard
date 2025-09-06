@@ -11,28 +11,85 @@ import ScreeningStartPage from "@/pages/students/ScreeningRoundStartPage";
 import ScreeningTestPage from "@/pages/students/TestPage";
 import ScreeningResultPage from "@/pages/students/ScreeningResultPage";
 import FinalResultPage from "@/pages/students/StudentResult";
+import StudentLogin from '@/pages/students/Login';
+import StudentProtectedRoute from "./StudentProtectedRoute";
 
 const StudentRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Default = Landing page */}
+      {/* Public pages */}
+      <Route path="login" element={<StudentLogin />} />
       <Route index element={<StudentLandingPage />} />
 
-      {/* Student flow */}
-      <Route path="language-selection" element={<LanguageSelection />} />
-      <Route path="instructions" element={<TestInstructionsPage />} />
-      <Route path="registration" element={<StudentRegistrationForm />} />
-      {/* -- Test Flow -- */}
-      <Route path="test-start" element={<ScreeningStartPage />} />
-      <Route path="test-section" element={<ScreeningTestPage />} />
-      <Route path="test-result" element={<ScreeningResultPage />} />
-      <Route path="result" element={<FinalResultPage />} />
-
-      {/* -- */}
-      {/* <Route path="final-instructions" element={<FinalInstruction />} /> */}
-      <Route path="slot-booking" element={<SlotBooking />} />
-      <Route path="whatsapp-redirect" element={<WhatsAppRedirect />} />
-
+      {/* Protected student flow */}
+      <Route
+        path="language-selection"
+        element={
+          <StudentProtectedRoute>
+            <LanguageSelection />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route
+        path="instructions"
+        element={
+          <StudentProtectedRoute>
+            <TestInstructionsPage />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route
+        path="registration"
+        element={
+          <StudentProtectedRoute>
+            <StudentRegistrationForm />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route
+        path="test-start"
+        element={
+          <StudentProtectedRoute>
+            <ScreeningStartPage />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route
+        path="test-section"
+        element={
+          <StudentProtectedRoute>
+            <ScreeningTestPage />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route
+        path="test-result"
+        element={
+          <StudentProtectedRoute>
+            <ScreeningResultPage />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route
+        path="result"
+        element={
+          <StudentProtectedRoute>
+            <FinalResultPage />
+          </StudentProtectedRoute>
+        }
+      />
+      <Route path="slot-booking" element={
+        <StudentProtectedRoute>
+          <SlotBooking />
+        </StudentProtectedRoute>
+      }
+      />
+      <Route path="whatsapp-redirect" element={
+        <StudentProtectedRoute>
+          <WhatsAppRedirect />
+        </StudentProtectedRoute>
+      }
+      />
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="." replace />} />
     </Routes>
@@ -40,3 +97,5 @@ const StudentRoutes: React.FC = () => {
 };
 
 export default StudentRoutes;
+
+
