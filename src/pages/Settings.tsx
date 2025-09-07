@@ -2,19 +2,21 @@ import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Settings as SettingsIcon, Users, BookOpen, GraduationCap, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {AdmissionsSidebar} from "@/components/AdmissionsSidebar"
 
 const settingsNavigation = [
   { name: "User Role", href: "/settings/user-role", icon: UserCheck },
   { name: "Caste", href: "/settings/caste", icon: Users },
   { name: "Religion", href: "/settings/religion", icon: BookOpen },
   { name: "Qualification", href: "/settings/qualification", icon: GraduationCap },
-  { name: "Question Repository", href: "/settings/questions", icon: SettingsIcon },
+  
 ];
 
 export default function Settings() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-background">
+    <main className="md:ml-56  md:px-8 py-3 ">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
           <p className="mt-2 text-gray-600">Manage your application settings and configurations</p>
@@ -52,6 +54,7 @@ export default function Settings() {
           </div>
         </div>
       </div>
+      </main>
     </div>
   );
 } 

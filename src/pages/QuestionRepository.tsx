@@ -9,10 +9,10 @@ import { QuestionEditor } from '@/components/questions/QuestionEditor';
 import { QuestionList } from '@/components/questions/QuestionList';
 import { QuestionBulkImport } from '@/components/questions/QuestionBulkImport';
 import { QuestionFilters } from '@/components/questions/QuestionFilters';
-import { QuestionPreview } from '@/components/questions/QuestionPreview';
-import { QuestionVersionHistory } from '@/components/questions/QuestionVersionHistory';
+// import { QuestionPreview } from '@/components/questions/QuestionPreview';
+// import { QuestionVersionHistory } from '@/components/questions/QuestionVersionHistory';
 import { DifficultyLevelManager } from '@/components/difficulty-levels/DifficultyLevelManager';
-import { TagManagement } from '@/components/questions/TagManagement';
+// import { TagManagement } from '@/components/questions/TagManagement';
 import { useQuestions } from '@/hooks/useQuestions';
 import { useToast } from '@/hooks/use-toast';
 import { AdmissionsSidebar } from '@/components/AdmissionsSidebar';
@@ -121,8 +121,10 @@ export default function QuestionRepository() {
 
   return (
     
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="min-h-screen bg-background">
+          <AdmissionsSidebar/>
+          <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 ">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Question Repository</h1>
               <p className="text-muted-foreground">
@@ -146,13 +148,13 @@ export default function QuestionRepository() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-4 my-6">
               <TabsTrigger value="list">Questions</TabsTrigger>
               <TabsTrigger value="editor">Editor</TabsTrigger>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
+              {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
+              {/* <TabsTrigger value="history">History</TabsTrigger> */}
               <TabsTrigger value="import">Import</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
+              {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
               <TabsTrigger value='difficulty-levels'>Difficulty Levels</TabsTrigger>
             </TabsList>
 
@@ -223,7 +225,7 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="preview">
+    {/* <TabsContent value="preview">
               <Card>
                 <CardHeader>
                   <CardTitle>Question Preview</CardTitle>
@@ -236,9 +238,9 @@ export default function QuestionRepository() {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
 
-            <TabsContent value="history">
+            {/* <TabsContent value="history">
               <Card>
                 <CardHeader>
                   <CardTitle>Version History</CardTitle>
@@ -251,7 +253,7 @@ export default function QuestionRepository() {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
 
             <TabsContent value="import">
               <Card>
@@ -264,7 +266,7 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="tags">
+            {/* <TabsContent value="tags">
               <Card>
                 <CardHeader>
                   <CardTitle>Tag Management</CardTitle>
@@ -273,12 +275,12 @@ export default function QuestionRepository() {
                   <TagManagement />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
 
             <TabsContent value="difficulty-levels">
               <Card>
                 <CardHeader>
-                  <CardTitle>Difficulty Levels Management</CardTitle>
+                  {/* <CardTitle>Difficulty Levels Management</CardTitle> */}
                 </CardHeader>
                 <CardContent>
                   <DifficultyLevelManager />
@@ -287,7 +289,8 @@ export default function QuestionRepository() {
             </TabsContent>
           </Tabs>
         {/* </div>
-      </main> */}
+       */}
+       </main>
     </div>
   );
 }

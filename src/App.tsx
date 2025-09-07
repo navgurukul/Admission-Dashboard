@@ -32,7 +32,7 @@ import UserRole from "./pages/settings/UserRole";
 import Caste from "./pages/settings/Caste";
 import Religion from "./pages/settings/Religion";
 import Qualification from "./pages/settings/Qualification";
-import Questions from "./pages/settings/Questions";
+// import Questions from "./pages/settings/Questions";
 import StudentRoutes  from "./routes/StudentRoutes";
 
 const queryClient = new QueryClient();
@@ -62,13 +62,13 @@ const App = () => (
           <Route path="/campus/:id" element={<ProtectedRoute><CampusDetail /></ProtectedRoute>} />
           <Route path="/school" element={<ProtectedRoute><School /></ProtectedRoute>} />
           <Route path="/school/:id" element={<ProtectedRoute><SchoolStages /></ProtectedRoute>} />
+            <Route path="questions" element={<ProtectedRoute><QuestionRepository /></ProtectedRoute>} />
           {/* Settings Routes */}
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>}>
             <Route path="user-role" element={<UserRole />} />
             <Route path="caste" element={<Caste />} />
             <Route path="religion" element={<Religion />} />
             <Route path="qualification" element={<Qualification />} />
-            <Route path="questions" element={<Questions />} />
             <Route index element={<UserRole />} />
           </Route>
           {/* Custom student redirect route */}
