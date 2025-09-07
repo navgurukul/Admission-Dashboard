@@ -37,7 +37,7 @@ export const apiRequest = async (
   return fetch(url, config);
 };
 
-// AUTHENTICATION FUNCTIONS (NEW) 
+// AUTHENTICATION 
 
 // User interfaces
 export interface User {
@@ -50,7 +50,8 @@ export interface User {
   status: boolean;
   created_at: string;
   updated_at: string;
-  role?: Role;
+  role_name?: string;
+  profile_pic?: string;
 }
 
 export interface Role {
@@ -320,22 +321,6 @@ export const getCurrentUser = (): User | null => {
 export const getCurrentUserRole = (): Role | null => {
   const roleData = localStorage.getItem('userRole');
   return roleData ? JSON.parse(roleData) : null;
-};
-
-// Check if user is super admin (hardcoded emails)
-export const SUPER_ADMIN_EMAILS = [
-  "nasir@navgurukul.org", 
-  "urmilaparte23@navgurukul.org", 
-  "saksham.c@navgurukul.org", 
-  "mukul@navgurukul.org"
-];
-
-export const isSuperAdmin = (email?: string): boolean => {
-  if (!email) {
-    const user = getCurrentUser();
-    email = user?.email;
-  }
-  return email ? SUPER_ADMIN_EMAILS.includes(email) : false;
 };
 
 // Check user role by role_id or role name

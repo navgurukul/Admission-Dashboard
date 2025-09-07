@@ -3,9 +3,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useGoogleAuth } from './useGoogleAuth';
-import { getCurrentUser, getCurrentUserRole, isSuperAdmin } from '@/utils/api';
 
-interface User {
+ interface AuthUser {
   id: string;
   email: string;
   name?: string;
@@ -14,65 +13,53 @@ interface User {
   avatar?: string;
   role_id?: number;
   role_name?: string;
+  profile_pic?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   session: any | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  getUserInfo: () => User | null;
+  getUserInfo: () => AuthUser | null;
   isAuthenticated: boolean;
   userRole: string | null;
   hasRole: (role: string) => boolean;
-  // isSuperAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser| null>(null);
   const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
-  // Use Railway-integrated GoogleAuth hook
   const { 
     user: googleUser, 
     isAuthenticated: googleAuthenticated, 
     loading: googleLoading,
     getUserRole,
     hasRole: googleHasRole,
-    logout: googleLogout 
+    signOut: googleLogout 
   } = useGoogleAuth();
 
   useEffect(() => {
-    // Sync with Railway Google Auth state
+    
     const syncAuthState = () => {
       if (googleUser && googleAuthenticated) {
-        // Convert Railway user to local user format
-        const localUser: User = {
+        const localUser: AuthUser = {
           id: googleUser.id,
           email: googleUser.email,
           name: googleUser.name,
           avatar: googleUser.avatar,
-          role: getUserRole(), // Get role from Railway
+          role: getUserRole(), 
           role_id: googleUser.role_id,
-          role_name: googleUser.role_name
+          role_name: googleUser.role_name,
+          
         };
 
-        setUser(localUser);
-        setSession({ 
-          provider: 'google',
-          railway_token: localStorage.getItem('authToken'),
-          user_role: getUserRole()
-        });
-
-        // console.log('Auth synced with Railway:', {
-        //   user: localUser.email,
-        //   role: getUserRole(),
-        //   isSuper: googleUser ? googleUser.email in ['nasir@navgurukul.org', 'urmilaparte23@navgurukul.org', 'saksham.c@navgurukul.org', 'mukul@navgurukul.org'] : false
-        // });
+    
       } else {
         setUser(null);
         setSession(null);
@@ -80,14 +67,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     };
 
-    // if (!googleLoading) {
-    //   syncAuthState();
-    // }
+    if (!googleLoading) {
+      syncAuthState();
+    }
   }, [googleUser, googleAuthenticated, googleLoading, getUserRole]);
 
   const signOut = async () => {
     try {
-      // Use Railway logout function
+      // Use  logout function
       await googleLogout();
       
       // Clear local state
@@ -108,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getUserInfo = (): User | null => {
+  const getUserInfo = ():AuthUser | null => {
     return user;
   };
 
@@ -118,13 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return googleHasRole(role);
   };
 
-  // Check if current user is super admin using your API utils
-  // const isSuperAdmin = googleUser ? [
-  //   "nasir@navgurukul.org", 
-  //   "urmilaparte23@navgurukul.org", 
-  //   "saksham.c@navgurukul.org", 
-  //   "mukul@navgurukul.org"
-  // ].includes(googleUser.email) : false;
+  
 
   const contextValue: AuthContextType = {
     user,
@@ -135,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userRole,
     hasRole,
-    // isSuperAdmin
+    
   };
 
   return (
@@ -154,4 +135,4 @@ export function useAuth() {
 }
 
 // Backward compatibility exports
-export type { User, AuthContextType };
+export type { AuthUser, AuthContextType };

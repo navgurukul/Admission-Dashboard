@@ -48,11 +48,28 @@ export function AdmissionsSidebar() {
     }
   }, [user, googleUser]);
 
-  const getInitials = (email: string) => email.split("@")[0].slice(0, 2).toUpperCase();
-  const getUserDisplayName = () => googleUser?.name || userInfo?.name || user?.user_metadata?.display_name || user?.user_metadata?.full_name || "User";
-  const getUserEmail = () => googleUser?.email || user?.email || userInfo?.email || "No email";
-  const getUserAvatar = () => googleUser?.avatar || userInfo?.avatar || user?.user_metadata?.avatar_url;
-  const getAuthProvider = () => googleUser ? "google" : userInfo?.provider || "email";
+ const getInitials = (email: string) => email.split("@")[0].slice(0, 2).toUpperCase();
+
+const getUserDisplayName = () =>
+  googleUser?.name ||
+  userInfo?.name ||
+  user?.name || 
+  "User";
+
+const getUserEmail = () =>
+  googleUser?.email ||
+  user?.email ||
+  userInfo?.email ||
+  "No email";
+
+const getUserAvatar = () =>
+  googleUser?.profile_pic || //  "profile_pic" mil raha hai
+  userInfo?.profile_pic ||
+  user?.profile_pic || null; //  direct avatar/profile_pic
+
+  const getUserRole = () => {
+  return googleUser?.role_name || userInfo?.role_name || user?.role_name || null;
+};
 
   const handleLogout = async () => {
     if (googleUser) {
@@ -127,26 +144,34 @@ export function AdmissionsSidebar() {
         </div>
 
         {/* Navigation Menu (Original Style) */}
-        <nav className="px-4 py-6 space-y-1 flex-1">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              onClick={() => setIsOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-white",
-                  isActive
-                    ? "bg-sidebar-light font-bold text-white border border-primary/20"
-                    : "text-sidebar-text-muted hover:text-white hover:bg-sidebar-medium"
-                )
-              }
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              {item.name}
-            </NavLink>
-          ))}
-        </nav>
+       <nav className="px-4 py-6 space-y-1 flex-1">
+  {navigation
+    .filter((item) => {
+      if (item.name === "Admin" && getUserRole() !== "ADMIN") {
+        return false; // hide admin menu for non-admins
+      }
+      return true;
+    })
+    .map((item) => (
+      <NavLink
+        key={item.name}
+        to={item.href}
+        onClick={() => setIsOpen(false)}
+        className={({ isActive }) =>
+          cn(
+            "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-white",
+            isActive
+              ? "bg-sidebar-light font-bold text-white border border-primary/20"
+              : "text-sidebar-text-muted hover:text-white hover:bg-sidebar-medium"
+          )
+        }
+      >
+        <item.icon className="mr-3 h-5 w-5" />
+        {item.name}
+      </NavLink>
+    ))}
+</nav>
+
 
         {/* Logout Button - Bottom (Original Style) */}
         <div className="p-4 border-t border-sidebar-medium space-y-2">

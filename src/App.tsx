@@ -20,7 +20,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PartnerPage from "./pages/Partner";
 import AdminPage from "./pages/Admin";
-import Student from "./pages/Student";
+import Students from "./pages/Students";
 import Donor from "./pages/Donor";
 import Campus from "./pages/Campus";
 import CampusDetail from "./pages/CampusDetail";
