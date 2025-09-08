@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 
 interface UserRole {
@@ -36,7 +36,14 @@ export default function UserRole() {
   };
 
   const handleDeleteRole = (id: string) => {
-    setRoles(roles.filter(role => role.id !== id));
+    setRoles(roles.filter(role => role.id !== id))};
+    
+  // Save edited role
+  const handleEditRole = (updatedRole: UserRole) => {
+    setRoles((prevRoles) =>
+      prevRoles.map((role) => (role.id === updatedRole.id ? updatedRole : role))
+    );
+    setEditingRole(null);
   };
 
   return (
@@ -89,26 +96,60 @@ export default function UserRole() {
           <CardContent>
             <div className="space-y-4">
               {roles.map((role) => (
-                <div key={role.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{role.name}</h3>
-                    <p className="text-sm text-gray-600">{role.description}</p>
-                    <div className="flex gap-2 mt-2">
-                      {role.permissions.map((permission) => (
-                        <span key={permission} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                          {permission}
-                        </span>
-                      ))}
+                <div key={role.id} className="p-4 border rounded-lg space-y-2">
+                  {editingRole?.id === role.id ? (
+                    // Edit Mode
+                    <div className="space-y-2">
+                      <Input
+                        value={editingRole.name}
+                        onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
+                        placeholder="Role Name"
+                      />
+                      <Input
+                        value={editingRole.description}
+                        onChange={(e) =>
+                          setEditingRole({ ...editingRole, description: e.target.value })
+                        }
+                        placeholder="Role Description"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleEditRole(editingRole)}>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingRole(null)}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDeleteRole(role.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  ) : (
+                    // View Mode
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{role.name}</h3>
+                        <p className="text-sm text-gray-600">{role.description}</p>
+                        <div className="flex gap-2 mt-2">
+                          {role.permissions.map((permission) => (
+                            <span key={permission} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                              {permission}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setEditingRole({ ...role })}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteRole(role.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                  </div>)}
                 </div>
               ))}
             </div>

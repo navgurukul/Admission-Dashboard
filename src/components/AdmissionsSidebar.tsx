@@ -13,7 +13,8 @@ import {
   UserCheck,
   Menu,
   X,
-  Settings
+  Settings,
+  FileQuestion
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -30,8 +31,9 @@ const navigation = [
   { name: "School", href: "/school", icon: School },
   { name: "Owner", href: "/owner", icon: UserCheck },
   { name: "Interviews", href: "/interviews", icon: MessageSquare },
-  { name: "Schedule", href: "/schedule", icon: Calendar },
+  // { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
+  { name: "Question Repository", href: "/questions", icon: FileQuestion },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
