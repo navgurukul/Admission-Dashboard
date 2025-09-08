@@ -11,20 +11,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Allowed admin emails
-  const ALLOWED_EMAILS = ["nasir@navgurukul.org", "urmilaparte23@navgurukul.org", "saksham.c@navgurukul.org", "mukul@navgurukul.org","santosh@navgurukul.org","geetashriyadav@navgurukul.org" , "aadarsh@navgurukul.org","goldy@navgurukul.org"];
-
-  // Helper to get current user's email
-  const getCurrentUserEmail = () => {
-    if (googleUser) {
-      return googleUser.email;
-    }
-    return null;
-  };
-
+console.log("From protected routes line no. 16",googleUser);
+ 
   useEffect(() => {
     if (!googleLoading) {
       // Check if user is authenticated via Google
+
       if (!googleUser || !isAuthenticated) {
         // Redirect to auth page if not authenticated
         navigate("/auth", { replace: true });
@@ -32,12 +24,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       }
 
       // Email check - only for authenticated users
-      const email = getCurrentUserEmail();
-      if (email && !ALLOWED_EMAILS.includes(email)) {
+      if (!(googleUser.role_id === 1 || googleUser.role_id === 2)) {
         // Redirect to students page if email not in allowed list
         navigate("/students", { replace: true });
+        console.log("From protected routes line no. 40",googleUser);
         return;
       }
+
     }
   }, [googleUser, isAuthenticated, googleLoading, navigate]);
 
@@ -51,17 +44,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         </div>
       </div>
     );
-  }
-
-  // Check if user is authenticated via Google
-  if (!googleUser || !isAuthenticated) {
-    return null; // Will redirect to auth page
-  }
-
-  // Email check (for SSR safety) - only for authenticated users
-  const email = getCurrentUserEmail();
-  if (email && !ALLOWED_EMAILS.includes(email)) {
-    return null; // Will redirect to /students
   }
 
   return <>{children}</>;
