@@ -11,7 +11,7 @@ export const getAuthToken = (): string | null => {
 // Create headers with authentication
 export const getAuthHeaders = (): HeadersInit => {
   const token = getAuthToken();
-  console.log(token, "token checking");
+  // console.log(token, "token checking");
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -194,6 +194,7 @@ export const deleteUser = async (id: string): Promise<void> => {
   const response = await fetch(`${BASE_URL}/users/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
+    body: JSON.stringify({})
   });
 
   if (!response.ok) {
@@ -203,8 +204,12 @@ export const deleteUser = async (id: string): Promise<void> => {
 };
 
 
+export interface CreateRoleData {
+  name: string;
+  status: boolean;
+}
 // Create role
-export const createRole = async (roleData: { name: string }): Promise<Role> => {
+export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/createRoles`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -301,7 +306,7 @@ export const logoutUser = () => {
   // Remove old NavGurukul data if exists
   localStorage.removeItem('googleUser');
   localStorage.removeItem('roleAccess');
-  localStorage.removeItem('privileges');
+  // localStorage.removeItem('privileges');
 };
 
 // Check if user is authenticated
@@ -312,26 +317,26 @@ export const isAuthenticated = (): boolean => {
 };
 
 // Get current user (updated for Railway API structure)
-export const getCurrentUser = (): User | null => {
-  const userData = localStorage.getItem('user');
-  return userData ? JSON.parse(userData) : null;
-};
+// export const getCurrentUser = (): User | null => {
+//   const userData = localStorage.getItem('user');
+//   return userData ? JSON.parse(userData) : null;
+// };
 
-// Get current user role
-export const getCurrentUserRole = (): Role | null => {
-  const roleData = localStorage.getItem('userRole');
-  return roleData ? JSON.parse(roleData) : null;
-};
+// // Get current user role
+// export const getCurrentUserRole = (): Role | null => {
+//   const roleData = localStorage.getItem('userRole');
+//   return roleData ? JSON.parse(roleData) : null;
+// };
 
-// Check user role by role_id or role name
-export const hasRole = (roleName: string): boolean => {
-  const user = getCurrentUser();
-  const role = getCurrentUserRole();
+// // Check user role by role_id or role name
+// export const hasRole = (roleName: string): boolean => {
+//   const user = getCurrentUser();
+//   const role = getCurrentUserRole();
   
-  if (!user || !role) return false;
+//   if (!user || !role) return false;
   
-  return role.name.toLowerCase() === roleName.toLowerCase();
-};
+//   return role.name.toLowerCase() === roleName.toLowerCase();
+// };
 
 
 export interface Cast {
@@ -618,4 +623,52 @@ export const getStudents = async (page = 1, limit = 10) => {
     console.error("Unexpected API response format:", dataParsed);
     return [];
   }
+};
+
+
+
+export const getSchoolById = async (id: string | number): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/schools/getSchoolById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch school");
+  }
+
+  return data;
+}
+
+export const getCampusById = async (id: string | number): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/campuses/getCampusById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch campus");
+  }
+
+  return data;
+};
+
+
+export const getQualificationById = async (id: string | number): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/qualifications/getQualificationById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch qualification");
+  }
+
+  return data;
 };

@@ -35,6 +35,7 @@ export const useGoogleAuth = () => {
 
   // Initialize Google OAuth
   useEffect(() => {
+     checkExistingSession();
     const initializeGoogleAuth = () => {
       if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
         if (window.google) {
@@ -294,3 +295,5 @@ declare global {
     };
   }
 }
+
+
