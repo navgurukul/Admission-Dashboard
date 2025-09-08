@@ -293,18 +293,6 @@ export const updateRole = async (
   return data.data ?? data; // normalize response
 };
 
-// Delete role
-// export const deleteRole = async (id: string): Promise<void> => {
-//   const response = await fetch(`${BASE_URL}/roles/deleteRole/${id}`, {
-//     method: 'DELETE',
-//     headers: getAuthHeaders(),
-//   });
-
-//   if (!response.ok) {
-//     const data = await response.json();
-//     throw new Error(data.message || 'Failed to delete role');
-//   }
-// };
 
 
 export const deleteRole = async (id: string | number): Promise<void> => {
@@ -481,9 +469,18 @@ export const updateCast = async (id: string, castData: { cast_name: string }): P
 
 // Delete Cast
 export const deleteCast = async (id: string): Promise<void> => {
+  
+  const headers = getAuthHeaders();
+
+  // Remove content-type if no body
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+
   const response = await fetch(`${BASE_URL}/casts/deleteCast/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers 
   });
 
   if (!response.ok) {
