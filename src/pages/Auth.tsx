@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,12 +13,8 @@ export default function Auth() {
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   // Check if user is already authenticated
-  useEffect(() => {
-    if (googleUser && isAuthenticated) {
-      navigate("/");
-    }
-  }, [googleUser, isAuthenticated, navigate]);
 
+console.log("AUTH.TSX")
   // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
     if (googleButtonRef.current && !googleLoading) {
@@ -26,9 +23,21 @@ export default function Auth() {
         renderGoogleSignInButton('google-signin-button');
       }, 100);
       
-      return () => clearTimeout(timer);
+      // return () => clearTimeout(timer);
     }
-  }, [renderGoogleSignInButton, googleLoading]);
+  },[ googleLoading]);
+
+  useEffect(() => {
+  if (!isAuthenticated) return;
+  if (!googleUser || googleUser.role_id === undefined) return;
+
+  if (googleUser.role_id === 1 || googleUser.role_id === 2 ) {
+    console.log("FROM AUTH.TSX 17", googleUser.role_id);
+    navigate("/");
+    return;
+  }
+}, [googleUser, isAuthenticated, navigate]);
+
 
   // Show loading state while checking authentication
   if (googleLoading) {

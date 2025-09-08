@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Save, Filter, X } from "lucide-react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/components/ui/use-toast";
 

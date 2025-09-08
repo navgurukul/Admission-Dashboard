@@ -11,7 +11,7 @@ export const getAuthToken = (): string | null => {
 // Create headers with authentication
 export const getAuthHeaders = (): HeadersInit => {
   const token = getAuthToken();
-  console.log(token, "token checking");
+  // console.log(token, "token checking");
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -43,7 +43,7 @@ export const apiRequest = async (
 
 // User interfaces
 export interface User {
-  id: number;
+   id: number;
   name: string;
   email: string;
   mobile?: string;
@@ -52,7 +52,8 @@ export interface User {
   status: boolean;
   created_at: string;
   updated_at: string;
-  role?: Role;
+  role_name?: string;
+  profile_pic?: string;
 }
 
 export interface Role {
@@ -89,9 +90,7 @@ export interface LoginResponse {
 export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise<LoginResponse> => {
   const response = await fetch(`${BASE_URL}/users/login`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(googlePayload),
   });
 
@@ -203,9 +202,13 @@ export const deleteUser = async (id: string): Promise<void> => {
   }
 };
 
+export interface CreateRoleData {
+  name: string;
+  status: boolean;
+}
 
 // Create role
-export const createRole = async (roleData: { name: string }): Promise<Role> => {
+export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/createRoles`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -313,42 +316,42 @@ export const isAuthenticated = (): boolean => {
 };
 
 // Get current user (updated for Railway API structure)
-export const getCurrentUser = (): User | null => {
-  const userData = localStorage.getItem('user');
-  return userData ? JSON.parse(userData) : null;
-};
+// export const getCurrentUser = (): User | null => {
+//   const userData = localStorage.getItem('user');
+//   return userData ? JSON.parse(userData) : null;
+// };
 
-// Get current user role
-export const getCurrentUserRole = (): Role | null => {
-  const roleData = localStorage.getItem('userRole');
-  return roleData ? JSON.parse(roleData) : null;
-};
+// // Get current user role
+// export const getCurrentUserRole = (): Role | null => {
+//   const roleData = localStorage.getItem('userRole');
+//   return roleData ? JSON.parse(roleData) : null;
+// };
 
-// Check if user is super admin (hardcoded emails)
-export const SUPER_ADMIN_EMAILS = [
-  "nasir@navgurukul.org", 
-  "urmilaparte23@navgurukul.org", 
-  "saksham.c@navgurukul.org", 
-  "mukul@navgurukul.org"
-];
+// // Check if user is super admin (hardcoded emails)
+// export const SUPER_ADMIN_EMAILS = [
+//   "nasir@navgurukul.org", 
+//   "urmilaparte23@navgurukul.org", 
+//   "saksham.c@navgurukul.org", 
+//   "mukul@navgurukul.org"
+// ];
 
-export const isSuperAdmin = (email?: string): boolean => {
-  if (!email) {
-    const user = getCurrentUser();
-    email = user?.email;
-  }
-  return email ? SUPER_ADMIN_EMAILS.includes(email) : false;
-};
+// export const isSuperAdmin = (email?: string): boolean => {
+//   if (!email) {
+//     const user = getCurrentUser();
+//     email = user?.email;
+//   }
+//   return email ? SUPER_ADMIN_EMAILS.includes(email) : false;
+// };
 
-// Check user role by role_id or role name
-export const hasRole = (roleName: string): boolean => {
-  const user = getCurrentUser();
-  const role = getCurrentUserRole();
+// // Check user role by role_id or role name
+// export const hasRole = (roleName: string): boolean => {
+//   const user = getCurrentUser();
+//   const role = getCurrentUserRole();
   
-  if (!user || !role) return false;
+//   if (!user || !role) return false;
   
-  return role.name.toLowerCase() === roleName.toLowerCase();
-};
+//   return role.name.toLowerCase() === roleName.toLowerCase();
+// };
 
 
 export interface Cast {
