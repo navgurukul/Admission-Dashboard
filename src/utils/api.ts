@@ -218,7 +218,7 @@ export const createRole = async (roleData: { name: string }): Promise<Role> => {
     throw new Error(data.message || 'Failed to create role');
   }
 
-  return data;
+  return data.data as Role;
 };
 
 // Get all roles
@@ -237,12 +237,22 @@ export const getAllRolesNew = async (): Promise<Role[]> => {
   console.log('Get Roles Response:', data);
   
   // Handle different response formats
-  if (data && data.data && Array.isArray(data.data)) {
+  // Return the data array from the response
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    console.log('Found data.data.data array:', data.data.data);
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+    console.log('Found data.data array:', data.data);
     return data.data;
+  } else if (data && data.castes && Array.isArray(data.castes)) {
+    console.log('Found data.castes array:', data.castes);
+    return data.castes;
   } else if (Array.isArray(data)) {
+    console.log('Data is directly an array:', data);
     return data;
   } else {
-    console.error('Unexpected roles API response format:', data);
+    console.error('Unexpected API response format:', data);
+    console.error('Data structure:', JSON.stringify(data, null, 2));
     return [];
   }
 };
@@ -264,9 +274,12 @@ export const getRoleById = async (id: string): Promise<Role> => {
 };
 
 // Update role
-export const updateRole = async (id: string, roleData: { name: string }): Promise<Role> => {
+export const updateRole = async (
+  id: string | number,
+  roleData: { name: string; status?: boolean }
+): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/updateRole/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(roleData),
   });
@@ -274,22 +287,42 @@ export const updateRole = async (id: string, roleData: { name: string }): Promis
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update role');
+    throw new Error(data.message || "Failed to update role");
   }
 
-  return data;
+  return data.data ?? data; // normalize response
 };
 
 // Delete role
-export const deleteRole = async (id: string): Promise<void> => {
+// export const deleteRole = async (id: string): Promise<void> => {
+//   const response = await fetch(`${BASE_URL}/roles/deleteRole/${id}`, {
+//     method: 'DELETE',
+//     headers: getAuthHeaders(),
+//   });
+
+//   if (!response.ok) {
+//     const data = await response.json();
+//     throw new Error(data.message || 'Failed to delete role');
+//   }
+// };
+
+
+export const deleteRole = async (id: string | number): Promise<void> => {
+  const headers = getAuthHeaders();
+
+  // Remove content-type if no body
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
   const response = await fetch(`${BASE_URL}/roles/deleteRole/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
+    method: "DELETE",
+    headers,
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete role');
+    throw new Error(data.message || "Failed to delete role");
   }
 };
 
