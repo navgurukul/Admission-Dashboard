@@ -1,7 +1,6 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
   CardContent,
@@ -30,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
 import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
-import { deleteApplicants, getApplicants, updateApplicant } from "@/utils/localStorage";
+import {getStudents} from '@/utils/api';
 
 
 const ApplicantTable = () => {
@@ -58,51 +57,27 @@ const ApplicantTable = () => {
   });
   const { toast } = useToast();
 
-  const { data: dbApplicants, isLoading, refetch } = useQuery({
-    queryKey: ["applicants"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("admission_dashboard")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching applicants:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch applicants",
-          variant: "destructive",
-        });
-      }
-      return data;
-    },
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const { data: students = [], isLoading: isStudentsLoading, refetch: refetchStudents } = useQuery({
+    queryKey: ["students", currentPage],
+    // queryFn: async() => {    console.log("Fetching students for page:", currentPage);
+    // const res = await getStudents(currentPage, itemsPerPage);
+    // console.log("Fetched data:", res);
+    // return res;},
   });
+  
 
-  // Get data from localStorage and merge with database data
+  // Map phone to mobile_no if mobile_no is missing
   const applicants = useMemo(() => {
-    const localData = getApplicants();
-    const dbData = dbApplicants || [];
-    
-    // Create a map of database data by ID for quick lookup
-    const dbDataMap = new Map(dbData.map(item => [item.id, item]));
-    
-    // Merge local data with database data, local data takes precedence
-    const mergedData = localData.map(localItem => {
-      const dbItem = dbDataMap.get(localItem.id);
-      if (dbItem) {
-        // Remove from map so we don't add it again
-        dbDataMap.delete(localItem.id);
-        // Merge with local data taking precedence
-        return { ...dbItem, ...localItem };
-      }
-      return localItem;
-    });
-    
-    // Add remaining database items that don't exist in local storage
-    const remainingDbItems = Array.from(dbDataMap.values());
-    
-    return [...mergedData, ...remainingDbItems];
-  }, [dbApplicants]);
+    return (students || []).map((student) => ({
+      ...student,
+      mobile_no: student.mobile_no || student.phone || "",
+    }));
+  }, [students]);
+
 
   const filteredApplicants = useMemo(() => {
     if (!applicants) return [];
@@ -116,9 +91,6 @@ const ApplicantTable = () => {
       );
     });
   }, [applicants, searchTerm]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   const paginatedApplicants = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -150,10 +122,10 @@ const ApplicantTable = () => {
 
   // Function to refresh data from both localStorage and database
   const refreshData = useCallback(() => {
-    refetch();
-    // Force re-render by updating a state
+    // refetch();
+    //  refetchStudents(); // triggers getStudents again
     setCurrentPage(prev => prev);
-  }, [refetch]);
+  }, []);
 
 
 
@@ -266,33 +238,35 @@ const ApplicantTable = () => {
     }
 
     const headers = [
-      "mobile_no",
-      "unique_number",
-      "name",
-      "city",
-      "block",
-      "caste",
-      "gender",
-      "qualification",
-      "current_work",
-      "qualifying_school",
-      "whatsapp_number",
-      "set_name",
-      "exam_centre",
-      "date_of_testing",
-      "lr_status",
-      "lr_comments",
-      "cfr_status",
-      "cfr_comments",
-      "final_marks",
-      "offer_letter_status",
-      "allotted_school",
-      "joining_status",
-      "final_notes",
-      "triptis_notes",
-      "campus",
-      "stage",
-      "status",
+   "phone_number",
+  "whatsapp_number",
+  "first_name",
+  "middle_name",
+  "last_name",
+  "dob",
+  "gender",
+  "email",
+  "state",
+  "district",
+  "city",
+  "pin_code",
+  "current_status_id",
+  "qualification_id",
+  "school_medium",
+  "cast_id",
+  "religion_id",
+  "image",
+  "triptis_notes",
+  "lr_status",
+  "lr_comments",
+  "cfr_status",
+  "cfr_comments",
+  "decision_status",
+  "offer_letter_status",
+  "joining_status",
+  "allotted_school",
+  "final_notes",
+  "status"
     ];
 
     const csvContent = [
@@ -376,62 +350,87 @@ const ApplicantTable = () => {
           <div className="h-full overflow-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10 border-b">
-                <TableRow>
-                  <TableHead className="w-12 font-bold">
-                    <Checkbox
-                      checked={
-                        paginatedApplicants.length > 0 &&
-                        selectedRows.length === paginatedApplicants.length
-                      }
-                      onCheckedChange={handleSelectAllRows}
-                      aria-label="Select all applicants"
-                    />
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[200px] max-w-[250px]">
-                    Name
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
-                    Mobile No
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
-                    Campus
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">
-                    Stage
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[180px] max-w-[220px]">
-                    Status
-                  </TableHead>
-                  <TableHead className="font-bold w-24">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+  <TableRow>
+    <TableHead className="w-12 font-bold">
+      <Checkbox
+        checked={
+          paginatedApplicants.length > 0 &&
+          selectedRows.length === paginatedApplicants.length
+        }
+        // onCheckedChange={handleSelectAllRows}
+        aria-label="Select all applicants"
+      />
+    </TableHead>
+
+    {/* Profile Image */}
+    <TableHead className="font-bold w-16">Image</TableHead>
+
+    <TableHead className="font-bold min-w-[200px] max-w-[250px]">
+      Full Name
+    </TableHead>
+
+    <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+      Phone Number
+    </TableHead>
+
+    <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+      WhatsApp Number
+    </TableHead>
+
+    <TableHead className="font-bold min-w-[120px] max-w-[160px]">
+      Gender
+    </TableHead>
+
+    <TableHead className="font-bold min-w-[120px] max-w-[160px]">
+      City
+    </TableHead>
+
+    <TableHead className="font-bold min-w-[180px] max-w-[220px]">
+      State
+    </TableHead>
+
+    <TableHead className="font-bold w-24">Pin Code</TableHead>
+
+    {/* School */}
+    <TableHead className="font-bold min-w-[180px]">School</TableHead>
+
+    {/* Campus */}
+    <TableHead className="font-bold min-w-[180px]">Campus</TableHead>
+
+    <TableHead className="w-24 font-bold">Status</TableHead>
+
+    <TableHead className="w-24 font-bold">Actions</TableHead>
+  </TableRow>
+</TableHeader>
+
               <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                      Loading applicants...
-                    </TableCell>
-                  </TableRow>
-                ) : paginatedApplicants.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                      No applicants found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedApplicants.map((applicant) => (
-                    <ApplicantTableRow
-                      key={applicant.id}
-                      applicant={applicant}
-                      isSelected={selectedRows.includes(applicant.id)}
-                      onSelect={handleCheckboxChange}
-                      onUpdate={refreshData}
-                      onViewDetails={setApplicantToView}
-                      onViewComments={setApplicantForComments}
-                      onCampusChange={refreshData}
-                    />
-                  ))
-                )}
+                {isStudentsLoading ? (
+  <TableRow>
+    <TableCell colSpan={13} className="text-center">
+      Loading applicants...
+    </TableCell>
+  </TableRow>
+) : paginatedApplicants.length === 0 ? (
+  <TableRow>
+    <TableCell colSpan={13} className="text-center text-muted-foreground py-6">
+      No applicants found.
+    </TableCell>
+  </TableRow>
+) : (
+  paginatedApplicants.map((applicant) => (
+    <ApplicantTableRow
+      key={applicant.id}
+      applicant={applicant}
+      isSelected={selectedRows.includes(applicant.id)}
+      onSelect={handleCheckboxChange}
+      onUpdate={refreshData}
+      onViewDetails={setApplicantToView}
+      onViewComments={setApplicantForComments}
+      onCampusChange={refreshData}
+    />
+  ))
+)}
+
               </TableBody>
             </Table>
           </div>

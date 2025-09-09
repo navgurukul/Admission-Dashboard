@@ -141,11 +141,11 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     };
     
     // Check exact match first
-    const lowerStatus = status.toLowerCase().trim();
-    if (exactMatches[lowerStatus]) {
-      console.log('Found exact match:', exactMatches[lowerStatus]);
-      return exactMatches[lowerStatus];
-    }
+    // const lowerStatus = status.toLowerCase().trim();
+    // if (exactMatches[lowerStatus]) {
+    //   console.log('Found exact match:', exactMatches[lowerStatus]);
+    //   return exactMatches[lowerStatus];
+    // }
     
     // If no exact match, check if the status is already in display format
     const allDisplayStatuses = Object.values(STAGE_STATUS_MAP).flat();
