@@ -4,20 +4,17 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Get auth token from localStorage
 export const getAuthToken = (): string | null => {
   const token = localStorage.getItem('authToken');
-  console.log('authToken from localStorage:', token);
   return token;
 };
 
 // Create headers with authentication
 export const getAuthHeaders = (): HeadersInit => {
   const token = getAuthToken();
-  // console.log(token, "token checking");
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
   };
 };
-
 
 
 // Make authenticated API request
@@ -207,6 +204,12 @@ export interface CreateRoleData {
   status: boolean;
 }
 
+export interface ApiResponse<T> {
+  data: {
+    data: T[];
+  };
+}
+
 // Create role
 export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/createRoles`, {
@@ -240,14 +243,7 @@ export const getAllRolesNew = async (): Promise<Role[]> => {
   console.log('Get Roles Response:', data);
   
   // Handle different response formats
-  if (data && data.data && Array.isArray(data.data)) {
-    return data.data;
-  } else if (Array.isArray(data)) {
-    return data;
-  } else {
-    console.error('Unexpected roles API response format:', data);
-    return [];
-  }
+  return data.data?.data || [];
 };
 
 // Get role by ID
@@ -284,10 +280,11 @@ export const updateRole = async (id: string, roleData: { name: string }): Promis
 };
 
 // Delete role
-export const deleteRole = async (id: string): Promise<void> => {
+export const deleteRole = async (id: string, roleData:{name :string}): Promise<void> => {
   const response = await fetch(`${BASE_URL}/roles/deleteRole/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
+    body: JSON.stringify(roleData),
   });
 
   if (!response.ok) {
@@ -314,45 +311,6 @@ export const isAuthenticated = (): boolean => {
   const user = localStorage.getItem('user');
   return !!(token && user);
 };
-
-// Get current user (updated for Railway API structure)
-// export const getCurrentUser = (): User | null => {
-//   const userData = localStorage.getItem('user');
-//   return userData ? JSON.parse(userData) : null;
-// };
-
-// // Get current user role
-// export const getCurrentUserRole = (): Role | null => {
-//   const roleData = localStorage.getItem('userRole');
-//   return roleData ? JSON.parse(roleData) : null;
-// };
-
-// // Check if user is super admin (hardcoded emails)
-// export const SUPER_ADMIN_EMAILS = [
-//   "nasir@navgurukul.org", 
-//   "urmilaparte23@navgurukul.org", 
-//   "saksham.c@navgurukul.org", 
-//   "mukul@navgurukul.org"
-// ];
-
-// export const isSuperAdmin = (email?: string): boolean => {
-//   if (!email) {
-//     const user = getCurrentUser();
-//     email = user?.email;
-//   }
-//   return email ? SUPER_ADMIN_EMAILS.includes(email) : false;
-// };
-
-// // Check user role by role_id or role name
-// export const hasRole = (roleName: string): boolean => {
-//   const user = getCurrentUser();
-//   const role = getCurrentUserRole();
-  
-//   if (!user || !role) return false;
-  
-//   return role.name.toLowerCase() === roleName.toLowerCase();
-// };
-
 
 export interface Cast {
   id: number;

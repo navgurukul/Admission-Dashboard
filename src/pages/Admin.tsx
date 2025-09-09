@@ -1,120 +1,86 @@
 
 import React, { useEffect, useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
+import {getAllUsers,getAllRolesNew,onboardUser,updateUser,deleteUser,User,Role,} from "@/utils/api"
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  onboardUser,
-  getAllRolesNew,
-  getAllUsers,
-  deleteUser,
-  updateUser, //  new function in utils/api.ts
-} from "@/utils/api";
 
 const ROWS_PER_PAGE = 10;
 
 const AdminPage = () => {
-  const [users, setUsers] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  const [addUserDialog, setAddUserDialog] = useState<{
-    open: boolean;
-    email: string;
-    name: string;
-    phone: string;
-    selectedRole: string;
-    editId?: number | null;
-  }>({
+  const [addUserDialog, setAddUserDialog] = useState({
     open: false,
     email: "",
     name: "",
     phone: "",
-    selectedRole: "",
-    editId: null,
+    selectedRoleId: "",
+    editId: null as number | null,
   });
 
   useEffect(() => {
     fetchUsers();
     fetchRoles();
-  }, []);
+  }, [page]);
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const res = await getAllUsers(1, 100);
-      console.log("Users API Response:", res);
+ const fetchUsers = async () => {
+  setLoading(true);
+  try {
+    const res = await getAllUsers(page, ROWS_PER_PAGE);
+    const users = res?.data?.data || []; // unwrap nested array
+    setUsers(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    setUsers([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const normalizedUsers = (res.data?.data || []).map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        email: u.mail_id,
-        phone: u.mobile,
-        role: u.role_name || "USER",
-      }));
-
-      setUsers(normalizedUsers);
-    } catch (err) {
-      console.error(err);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchRoles = async () => {
-    try {
-      const res = await getAllRolesNew();
-      setRoles(Array.isArray(res) ? res : []);
-    } catch (err) {
-      console.error(err);
-      setRoles([]);
-    }
-  };
+  try {
+    const roles = await getAllRolesNew(); // no extra unwrap
+    setRoles(roles);
+  } catch (err) {
+    console.error("Error fetching roles:", err);
+    setRoles([]);
+  }
+};
+
+
 
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!addUserDialog.name || !addUserDialog.email || !addUserDialog.phone)
-      return;
+    if (!addUserDialog.name || !addUserDialog.email || !addUserDialog.phone || !addUserDialog.selectedRoleId) return;
 
     try {
-      const selectedRole = roles.find(
-        (r) => r.name === addUserDialog.selectedRole
-      );
-
       if (addUserDialog.editId) {
-        //  Update user
-        await updateUser(addUserDialog.editId, {
+        // Update user
+        await updateUser(addUserDialog.editId.toString(), {
           name: addUserDialog.name,
-          email: addUserDialog.email,
           mobile: addUserDialog.phone,
-          user_role_id: selectedRole?.id || 2,
+          user_name: addUserDialog.email, // if username = email
+          user_role_id: parseInt(addUserDialog.selectedRoleId),
         });
-        await fetchUsers();
       } else {
-        //  Add new user
+        // Onboard new user
         await onboardUser({
           name: addUserDialog.name,
           email: addUserDialog.email,
           mobile: addUserDialog.phone,
-          user_name: addUserDialog.email.split("@")[0],
-          role_id: selectedRole?.id || 2,
+          user_name: addUserDialog.email, // backend expects user_name
+          role_id: parseInt(addUserDialog.selectedRoleId),
         });
-        await fetchUsers();
       }
 
+      await fetchUsers();
       closeAddUserDialog();
     } catch (err) {
-      console.error(err);
+      console.error("Error saving user:", err);
     }
   };
 
@@ -124,7 +90,7 @@ const AdminPage = () => {
       email: "",
       name: "",
       phone: "",
-      selectedRole: "",
+      selectedRoleId: "",
       editId: null,
     });
 
@@ -134,9 +100,18 @@ const AdminPage = () => {
       email: "",
       name: "",
       phone: "",
-      selectedRole: "",
+      selectedRoleId: "",
       editId: null,
     });
+
+  const handleDeleteUser = async (id: number) => {
+    try {
+      await deleteUser(id.toString());
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch (err) {
+      console.error("Error deleting user:", err);
+    }
+  };
 
   const paginatedUsers = users.slice(
     (page - 1) * ROWS_PER_PAGE,
@@ -145,187 +120,221 @@ const AdminPage = () => {
   const totalPages = Math.ceil(users.length / ROWS_PER_PAGE);
 
   return (
-    <div className="min-h-screen bg-background">
-      <AdmissionsSidebar />
-      <main className="md:ml-64 overflow-auto h-screen p-4 md:p-8 pt-16">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-foreground">
-            User Management
-          </h1>
-          <Button onClick={openAddUserDialog}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add User
-          </Button>
-        </div>
-
-        {loading ? (
-          <div>Loading...</div>
-        ) : (
-          <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10 border-b">
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedUsers.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>{u.name}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>{u.phone || "-"}</TableCell>
-                    <TableCell>{u.role}</TableCell>
-                    <TableCell className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          setAddUserDialog({
-                            open: true,
-                            name: u.name,
-                            email: u.email,
-                            phone: u.phone,
-                            selectedRole: u.role,
-                            editId: u.id, // edit mode
-                          })
-                        }
-                      >
-                        <Pencil size={20} className="text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => deleteUser(u.id).then(fetchUsers)}
-                      >
-                        <Trash2 size={20} className="text-red-600" />
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <AdmissionsSidebar/>
+      {/* Main Content */}
+      <main className="flex-1 p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">
+              User Management
+            </h1>
+            <button
+              onClick={openAddUserDialog}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add User
+            </button>
           </div>
-        )}
 
-        {addUserDialog.open && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-2">
-    <form
-      className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg"
-      onSubmit={handleAddUserSubmit}
-    >
-      <h2 className="text-xl font-bold mb-4">
-        {addUserDialog.editId ? "Edit User" : "Add New User"}
-      </h2>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-lg">Loading...</div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {user.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {user.email}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {user.mobile || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {user.role_name || "-"}
+                      </td>
+                      <td className="px-6 py-4 flex gap-2">
+                        <button
+                          onClick={() =>
+                            setAddUserDialog({
+                              open: true,
+                              name: user.name,
+                              email: user.email,
+                              phone: user.mobile || "",
+                              selectedRoleId: user.role_id?.toString() || "",
+                              editId: user.id,
+                            })
+                          }
+                          className="text-orange-600 hover:text-orange-800"
+                        >
+                          <Pencil size={20} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-      {/* Name */}
-      <label className="block mb-1 text-orange-600">Name</label>
-      <input
-        type="text"
-        placeholder="Name"
-        value={addUserDialog.name}
-        onChange={(e) =>
-          setAddUserDialog((d) => ({ ...d, name: e.target.value }))
-        }
-        style={{
-          border: "1px solid #ccc",
-          padding: "8px 12px",
-          width: "100%",
-          marginBottom: "12px",
-        }}
-        required
-      />
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6 gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className={`px-3 py-2 rounded border ${
+                  page === 1
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-orange-600 text-white hover:bg-orange-700"
+                }`}
+              >
+                Prev
+              </button>
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i + 1)}
+                  className={`px-3 py-2 rounded ${
+                    page === i + 1
+                      ? "bg-orange-600 text-white"
+                      : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className={`px-3 py-2 rounded border ${
+                  page === totalPages
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-orange-600 text-white hover:bg-orange-700"
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          )}
 
-      {/* Phone */}
-      <label className="block mb-1 text-orange-600">Phone</label>
-      <input
-        type="tel"
-        placeholder="Phone"
-        value={addUserDialog.phone}
-        onChange={(e) =>
-          setAddUserDialog((d) => ({ ...d, phone: e.target.value }))
-        }
-        style={{
-          border: "1px solid #ccc",
-          padding: "8px 12px",
-          width: "100%",
-          marginBottom: "12px",
-        }}
-        required
-      />
+          {/* Add/Edit Dialog */}
+          {addUserDialog.open && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+                <h2 className="text-xl font-bold mb-4">
+                  {addUserDialog.editId ? "Edit User" : "Add New User"}
+                </h2>
 
-      {/* Email */}
-      <label className="block mb-1 text-orange-600">Email</label>
-      <input
-        type="email"
-        placeholder="Email"
-        value={addUserDialog.email}
-        onChange={(e) =>
-          setAddUserDialog((d) => ({ ...d, email: e.target.value }))
-        }
-        style={{
-          border: "1px solid #ccc",
-          padding: "8px 12px",
-          width: "100%",
-          marginBottom: "12px",
-        }}
-        required
-      />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={addUserDialog.name}
+                    onChange={(e) =>
+                      setAddUserDialog((d) => ({ ...d, name: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
 
-      {/* Role Select */}
-      <label className="block mb-1 text-orange-600">Role</label>
-      <select
-        value={addUserDialog.selectedRole}
-        onChange={(e) =>
-          setAddUserDialog((d) => ({
-            ...d,
-            selectedRole: e.target.value,
-          }))
-        }
-        style={{
-          border: "1px solid #ccc",
-          padding: "8px 12px",
-          width: "100%",
-          color: "orange",
-          backgroundColor: "white",
-          marginBottom: "16px",
-        }}
-      >
-        <option
-          style={{ fontSize: "12px", width: "100vh", color: "orange" }}
-          value=""
-        >
-          Select Role
-        </option>
-        {roles.map((r) => (
-          <option
-            key={r.id}
-            value={r.name}
-            style={{ fontSize: "12px", width: "100vh", color: "orange" }}
-          >
-            {r.name}
-          </option>
-        ))}
-      </select>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={addUserDialog.phone}
+                    onChange={(e) =>
+                      setAddUserDialog((d) => ({ ...d, phone: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
 
-      {/* Buttons */}
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={closeAddUserDialog}
-          className="px-4 py-2 border rounded"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-orange-500 text-white rounded"
-        >
-          {addUserDialog.editId ? "Update" : "Create"}
-        </button>
-      </div>
-    </form>
-  </div>
-)}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={addUserDialog.email}
+                    onChange={(e) =>
+                      setAddUserDialog((d) => ({ ...d, email: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-1">Role</label>
+                  <select
+                    value={addUserDialog.selectedRoleId}
+                    onChange={(e) =>
+                      setAddUserDialog((d) => ({
+                        ...d,
+                        selectedRoleId: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border rounded-md bg-white"
+                  >
+                    <option value="" disabled>
+                      Select Role
+                    </option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={closeAddUserDialog}
+                    className="px-4 py-2 text-gray-700 border rounded-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddUserSubmit}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+                  >
+                    {addUserDialog.editId ? "Update" : "Create"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
