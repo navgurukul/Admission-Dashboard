@@ -7,11 +7,12 @@ export const getAuthToken = (): string | null => {
   return token;
 };
 
-// Create headers with authentication
-export const getAuthHeaders = (): HeadersInit => {
+
+export const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
+  const token = getAuthToken();
   return {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(withJson ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
 };
 
@@ -108,14 +109,12 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
     headers: getAuthHeaders(),
   });
 
-    console.log("Fetching users:", response, response.status);
   const data = await response.json();
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch users');
   }
 
-  console.log('Get Users Response:', data);
   return data;
 };
 
@@ -141,7 +140,7 @@ export interface OnboardUserData {
   email: string;
   mobile: string;
   user_name: string;
-  role_id: number;
+  user_role_id: number;
 }
 
 export const onboardUser = async (userData: OnboardUserData): Promise<User> => {
@@ -160,13 +159,13 @@ export const onboardUser = async (userData: OnboardUserData): Promise<User> => {
   return data;
 };
 
-// Update user
+
 export interface UpdateUserData {
   name?: string;
   mobile?: string;
-  user_name?: string;
+  email?: string;
   status?: boolean;
-  user_role_id?: number;
+ user_role_id?: number;  
 }
 
 export const updateUser = async (id: string, userData: UpdateUserData): Promise<User> => {
@@ -187,9 +186,10 @@ export const updateUser = async (id: string, userData: UpdateUserData): Promise<
 
 // Delete user
 export const deleteUser = async (id: string): Promise<void> => {
+  
   const response = await fetch(`${BASE_URL}/users/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers:getAuthHeaders(false),
   });
 
   if (!response.ok) {
@@ -357,26 +357,19 @@ export const getAllCasts = async (): Promise<Cast[]> => {
     throw new Error(data.message || 'Failed to fetch casts');
   }
 
-  console.log('API Response for getAllCasts:', data);
-  console.log('Data type:', typeof data);
-  console.log('Data keys:', Object.keys(data));
+ 
   
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    console.log('Found data.data.data array:', data.data.data);
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-    console.log('Found data.data array:', data.data);
     return data.data;
   } else if (data && data.castes && Array.isArray(data.castes)) {
-    console.log('Found data.castes array:', data.castes);
     return data.castes;
   } else if (Array.isArray(data)) {
-    console.log('Data is directly an array:', data);
     return data;
   } else {
-    console.error('Unexpected API response format:', data);
-    console.error('Data structure:', JSON.stringify(data, null, 2));
+   
     return [];
   }
 };
@@ -560,7 +553,6 @@ export const getStudents = async (page = 1, limit = 10) => {
   } else if (Array.isArray(dataParsed)) {
     return dataParsed;
   } else {
-    console.error("Unexpected API response format:", dataParsed);
     return [];
   }
 };
@@ -604,7 +596,6 @@ export const getAllQualification = async (): Promise<Qualification[]> => {
    
     return data;
   } else {
-    console.error('Unexpected API response format:', data);
     console.error('Data structure:', JSON.stringify(data, null, 2));
     return [];
   }
@@ -649,7 +640,6 @@ export const getAllStatus = async (): Promise<CurrentStatus[]> => {
   
     return data;
   } else {
-    console.error('Unexpected API response format:', data);
     console.error('Data structure:', JSON.stringify(data, null, 2));
     return [];
   }
