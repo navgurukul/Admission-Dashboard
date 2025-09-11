@@ -9,7 +9,6 @@ export const getAuthToken = (): string | null => {
 
 // Create headers with authentication
 export const getAuthHeaders = (): HeadersInit => {
-  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -224,7 +223,7 @@ export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
     throw new Error(data.message || 'Failed to create role');
   }
 
-  return data;
+  return data.data as Role;
 };
 
 // Get all roles
@@ -263,9 +262,12 @@ export const getRoleById = async (id: string): Promise<Role> => {
 };
 
 // Update role
-export const updateRole = async (id: string, roleData: { name: string }): Promise<Role> => {
+export const updateRole = async (
+  id: string | number,
+  roleData: { name: string; status?: boolean }
+): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/updateRole/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(roleData),
   });
@@ -273,23 +275,28 @@ export const updateRole = async (id: string, roleData: { name: string }): Promis
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update role');
+    throw new Error(data.message || "Failed to update role");
   }
 
-  return data;
+  return data.data ?? data; // normalize response
 };
 
-// Delete role
-export const deleteRole = async (id: string, roleData:{name :string}): Promise<void> => {
+export const deleteRole = async (id: string | number): Promise<void> => {
+  const headers = getAuthHeaders();
+
+  // Remove content-type if no body
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
   const response = await fetch(`${BASE_URL}/roles/deleteRole/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(roleData),
+    method: "DELETE",
+    headers,
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete role');
+    throw new Error(data.message || "Failed to delete role");
   }
 };
 
@@ -409,9 +416,18 @@ export const updateCast = async (id: string, castData: { cast_name: string }): P
 
 // Delete Cast
 export const deleteCast = async (id: string): Promise<void> => {
+  
+  const headers = getAuthHeaders();
+
+  // Remove content-type if no body
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+
   const response = await fetch(`${BASE_URL}/casts/deleteCast/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers 
   });
 
   if (!response.ok) {
