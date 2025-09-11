@@ -27,6 +27,7 @@ const GOOGLE_CLIENT_ID = '654022633429-fv4rgcs654a0f9r0464tl6o8jvjk3dco.apps.goo
 
 export const useGoogleAuth = () => {
   
+  const navigate = useNavigate()
   const [authState, setAuthState] = useState<GoogleAuthState>({
     user: null,
     loading: true,
@@ -194,6 +195,8 @@ const checkExistingSession = () => {
           title: "Welcome!",
           description: `Successfully signed in as ${apiUser.name}`,
         });
+
+         navigate("/") 
 
       } else {
         throw new Error(loginResponse.message || 'Login failed');
