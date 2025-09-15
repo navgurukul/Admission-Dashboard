@@ -13,6 +13,10 @@ export default function StudentResult() {
     navigate(`/students/slot-booking/${testId}`);
   };
 
+  const handleRetestNavigation = () =>{
+    navigate(`/students/test-start`);
+  }
+
   if (!student) return <p>Loading student data…</p>;
 
   return (
@@ -31,14 +35,24 @@ export default function StudentResult() {
             <CardTitle>Student Details</CardTitle>
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-4">
-            <p><span className="font-semibold">Name:</span> {student.firstName} {student.middleName} {student.lastName}</p>
-            <p><span className="font-semibold">Email:</span> {student.email}</p>
-            <p><span className="font-semibold">Screening Score:</span> {}</p> /*screeningScore,qualifiedSchool*/
-            <p><span className="font-semibold">Qualified School:</span> </p>
+            <p>
+              <span className="font-semibold">Name:</span> {student.firstName}{" "}
+              {student.middleName} {student.lastName}
+            </p>
+            <p>
+              <span className="font-semibold">Email:</span> {student.email}
+            </p>
+            <p>
+              <span className="font-semibold">Phone Number:</span>{" "}
+              {student.whatsappNumber}
+            </p>
+            <p>
+              <span className="font-semibold">City:</span> {student.city}
+            </p>
           </CardContent>
         </Card>
 
-      {/* Test Results & Slot Booking */}
+        {/* Test Results & Slot Booking */}
         <Card>
           <CardHeader>
             <CardTitle>Test Results & Slot Booking</CardTitle>
@@ -74,20 +88,33 @@ export default function StudentResult() {
                       </td>
                       <td className="px-4 py-2 border">
                         {test.slotBooking.scheduledTime
-                          ? new Date(test.slotBooking.scheduledTime).toLocaleString()
+                          ? new Date(
+                              test.slotBooking.scheduledTime
+                            ).toLocaleString()
                           : "-"}
                       </td>
                       <td className="px-4 py-2 border">
-                        {(test.slotBooking.status === "Pending" ||
+                        {test.name === "Screening Test" && test.status === "Fail" && (
+                          <Button onClick={() => handleRetestNavigation()}>
+                            Reset
+                          </Button>
+                        )}
+                        {((test.slotBooking.status === "Pending" ||
                           test.slotBooking.status === "Booked" ||
-                          test.slotBooking.status === "Cancelled") && (
+                          test.slotBooking.status === "Cancelled")) && (
                           <Button onClick={() => handleBooking(test.id)}>
-                            {test.slotBooking.status === "Booked"
+                            {test.slotBooking.status === "Booked" || 
+                            test.slotBooking.status === "Cancelled"
                               ? "Reschedule"
                               : "Book Slot"}
                           </Button>
                         )}
+                        {test.action === "view-result" && (
+                          <span className="text-gray-600">Result Ready</span>
+                        )}
+                     
                       </td>
+
                       <td className="px-4 py-2 border">{test.score}</td>
                     </tr>
                   ))}

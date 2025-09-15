@@ -1,7 +1,9 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTests } from "../../utils/TestContext"
 
 const ScreeningResultPage: React.FC = () => {
+  const { tests, setTests } = useTests();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -11,7 +13,15 @@ const ScreeningResultPage: React.FC = () => {
   // Decide pass/fail (example: pass if score >= 50%)
   const status = score >= Math.ceil(total * 0.5) ? "pass" : "fail";
 
+  const screeningTest = tests.find(t => t.name === "Screening Test");
   const handleSubmit = ()=>{
+    setTests(prev =>
+      prev.map(t =>
+        t.name === "Screening Test"
+          ? { ...t, status: status === "pass" ? "Pass" : "Fail", score }
+          : t
+      )
+    );
       navigate("/students/result")
   }
   return (

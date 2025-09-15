@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface SlotBooking {
-  status: "Pending" | "Booked" | "Cancelled";
+  status: "Pending" | "Booked" | "Cancelled" | "Compeleted";
   scheduledTime?: string;
 }
 
@@ -10,13 +10,14 @@ export interface Test {
   id: number;
   name: string;
   status: "Pass" | "Fail" | "Pending" | "-";
+  action : string;
   score: number;
   slotBooking: SlotBooking;
 }
 
 interface TestsContextType {
   tests: Test[];
-  setTests: (t: Test[]) => void;
+  setTests:  React.Dispatch<React.SetStateAction<Test[]>>;
   updateSlot: (id: number, slot: Partial<SlotBooking>) => void;
 }
 
@@ -29,21 +30,32 @@ export const TestsProvider = ({ children }: { children: ReactNode }) => {
       name: "Screening Test",
       status: "Pass",
       score: 85,
+      action: "Compeleted",
       slotBooking: { status: null, scheduledTime: "" },
     },
     {
       id: 2,
-      name: "Technical Interview",
-      status: "Pending",
+      name: "Screening Test",
+      status: "Fail",
       score: null,
-      slotBooking: { status: "Pending" },
+      action: "",
+      slotBooking: { status: null, scheduledTime: "" },
     },
     {
       id: 3,
-      name: "Culture fit Interview",
+      name: "Technical Interview",
       status: "Pending",
       score: null,
+      action:"slot-book",
       slotBooking: { status: "Pending" },
+    },
+    {
+      id: 4,
+      name: "Culture fit Interview",
+      status: "Pending",
+      action:"slot-book",
+      score: null,
+      slotBooking: { status: "Compeleted" },
     },
   ]);
 
