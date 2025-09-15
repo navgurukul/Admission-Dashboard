@@ -24,7 +24,6 @@ const StudentForm: React.FC = () => {
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   const [religions, setReligions] = useState<Religion[]>([]);
-  
 
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
@@ -46,33 +45,32 @@ const StudentForm: React.FC = () => {
     casteTribe: "",
     religion: "",
   });
-  
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Convert camelCase → snake_case before API call
-const mapFormDataToApi = (data: typeof formData) => {
-  return {
-    image_url: data.profileImage  || null,
-    first_name: data.firstName,
-    middle_name: data.middleName,
-    last_name: data.lastName,
-    dob: data.dateOfBirth,
-    whatsapp_number: data.whatsappNumber,
-    phone_number: data.alternateNumber,
-    email: data.email,
-    gender: data.gender,
-    state: data.state,
-    district: data.district,
-    city: data.city,
-    pin_code: data.pinCode,
-    school_medium: data.schoolMedium,
-    current_status_id: Number(data.currentStatus) || null,
-    qualification_id: Number(data.maximumQualification) || null,
-    cast_id: Number(data.casteTribe) || null,
-    religion_id: Number(data.religion) || null,
+  const mapFormDataToApi = (data: typeof formData) => {
+    return {
+      image_url: data.profileImage || null,
+      first_name: data.firstName,
+      middle_name: data.middleName,
+      last_name: data.lastName,
+      dob: data.dateOfBirth,
+      whatsapp_number: data.whatsappNumber,
+      phone_number: data.alternateNumber,
+      email: data.email,
+      gender: data.gender,
+      state: data.state,
+      district: data.district,
+      city: data.city,
+      pin_code: data.pinCode,
+      school_medium: data.schoolMedium,
+      current_status_id: Number(data.currentStatus) || null,
+      qualification_id: Number(data.maximumQualification) || null,
+      cast_id: Number(data.casteTribe) || null,
+      religion_id: Number(data.religion) || null,
+    };
   };
-};
-
 
   useEffect(() => {
     const savedFormData = localStorage.getItem("studentFormData");
@@ -126,7 +124,7 @@ const mapFormDataToApi = (data: typeof formData) => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    console.log(name,value)
+    console.log(name, value);
     const newFormData = {
       ...formData,
       [name]: value,
@@ -171,26 +169,25 @@ const mapFormDataToApi = (data: typeof formData) => {
   };
 
   const handleSubmit = async () => {
-  if (!isFormValid()) {
-    alert("Please fill all required fields");
-    return;
-  }
+    if (!isFormValid()) {
+      alert("Please fill all required fields");
+      return;
+    }
 
-  try {
-    const apiPayload = mapFormDataToApi(formData);
-    console.log("API Payload:", apiPayload);
+    try {
+      const apiPayload = mapFormDataToApi(formData);
+      console.log("API Payload:", apiPayload);
 
-    const response = await createStudent(apiPayload);
-    console.log("Create Student Response:", response);
+      const response = await createStudent(apiPayload);
+      console.log("Create Student Response:", response);
 
-    localStorage.setItem("studentFormData", JSON.stringify(formData));
-    navigate("/students/test-start");
-  } catch (error: any) {
-    console.error("Error creating student:", error);
-    alert(error.message || "Failed to create student");
-  }
-};
-
+      localStorage.setItem("studentFormData", JSON.stringify(formData));
+      navigate("/students/test-start");
+    } catch (error: any) {
+      console.error("Error creating student:", error);
+      alert(error.message || "Failed to create student");
+    }
+  };
 
   const handlePrevious = () => {
     navigate("/students/instructions");
@@ -541,11 +538,46 @@ const mapFormDataToApi = (data: typeof formData) => {
                   className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">{content.selectState}</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Karnataka">Karnataka</option>
-                  <option value="Tamil Nadu">Tamil Nadu</option>
+                  <option value="Andhra Pradesh">Andhra Pradesh</option>
+                  <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                  <option value="Assam">Assam</option>
+                  <option value="Bihar">Bihar</option>
+                  <option value="Chhattisgarh">Chhattisgarh</option>
+                  <option value="Goa">Goa</option>
                   <option value="Gujarat">Gujarat</option>
+                  <option value="Haryana">Haryana</option>
+                  <option value="Himachal Pradesh">Himachal Pradesh</option>
+                  <option value="Jharkhand">Jharkhand</option>
+                  <option value="Karnataka">Karnataka</option>
+                  <option value="Kerala">Kerala</option>
+                  <option value="Madhya Pradesh">Madhya Pradesh</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Manipur">Manipur</option>
+                  <option value="Meghalaya">Meghalaya</option>
+                  <option value="Mizoram">Mizoram</option>
+                  <option value="Nagaland">Nagaland</option>
+                  <option value="Odisha">Odisha</option>
+                  <option value="Punjab">Punjab</option>
+                  <option value="Rajasthan">Rajasthan</option>
+                  <option value="Sikkim">Sikkim</option>
+                  <option value="Tamil Nadu">Tamil Nadu</option>
+                  <option value="Telangana">Telangana</option>
+                  <option value="Tripura">Tripura</option>
+                  <option value="Uttar Pradesh">Uttar Pradesh</option>
+                  <option value="Uttarakhand">Uttarakhand</option>
+                  <option value="West Bengal">West Bengal</option>
+                  <option value="Andaman and Nicobar Islands">
+                    Andaman and Nicobar Islands
+                  </option>
+                  <option value="Chandigarh">Chandigarh</option>
+                  <option value="Dadra and Nagar Haveli and Daman and Diu">
+                    Dadra and Nagar Haveli and Daman and Diu
+                  </option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Jammu and Kashmir">Jammu and Kashmir</option>
+                  <option value="Ladakh">Ladakh</option>
+                  <option value="Lakshadweep">Lakshadweep</option>
+                  <option value="Puducherry">Puducherry</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
@@ -717,6 +749,7 @@ const mapFormDataToApi = (data: typeof formData) => {
                   onChange={handleInputChange}
                   className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
+                  <option value="">{content.selectMedium}</option>
                   <option value="English">English</option>
                   <option value="Hindi">Hindi</option>
                   <option value="Marathi">Marathi</option>
@@ -780,7 +813,6 @@ const mapFormDataToApi = (data: typeof formData) => {
                 {content.religion}
               </label>
               <div className="relative">
-              
                 <select
                   name="religion"
                   value={formData.religion}

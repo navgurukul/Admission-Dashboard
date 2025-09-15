@@ -34,10 +34,14 @@ import Religion from "./pages/settings/Religion";
 import Qualification from "./pages/settings/Qualification";
 // import Questions from "./pages/settings/Questions";
 import StudentRoutes  from "./routes/StudentRoutes";
+import { StudentProvider } from "./utils/StudentContext.tsx";
+import { TestsProvider } from "./utils/TestContext.tsx";
 
 const queryClient = new QueryClient();
 
 const App = () => (
+  <StudentProvider>
+    <TestsProvider>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -79,6 +83,8 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </TestsProvider>
+  </StudentProvider>
 );
 
 export default App;
