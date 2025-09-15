@@ -201,14 +201,12 @@ const CampusPage = () => {
 };
 
 const handleDeleteCampus = async (id: number) => {
-  try {
+  try {  
     const response = await fetch(
       `${BASE_URL}/campuses/deleteCampus/${id}`,
       {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+    
       }
     );
 
