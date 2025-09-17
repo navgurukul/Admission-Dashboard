@@ -66,6 +66,7 @@ export default function QuestionRepository() {
     try {
       if (selectedQuestion) {
         await updateQuestion(selectedQuestion.id, questionData);
+        setSelectedQuestion(null)
         toast({
           title: "Question Updated",
           description: "The question has been successfully updated."
@@ -210,7 +211,7 @@ export default function QuestionRepository() {
                   }}
                   // onEdit={handleEditQuestion}
                   // onPreview={handlePreviewQuestion}
-                  // onHistory={handleViewHistory}
+                  // onHistory={handleViewHistory}               
                   onArchive={handleArchiveQuestion}
                   onDelete={handleDeleteQuestion}
                 />
@@ -229,7 +230,10 @@ export default function QuestionRepository() {
                 <QuestionEditor
                   question={selectedQuestion}
                   onSave={handleSaveQuestion}
-                  onCancel={() => setActiveTab("list")}
+                  onCancel={() => {
+                    setActiveTab("list")
+                    setSelectedQuestion(null)
+                  }}
                 />
               </CardContent>
             </Card>

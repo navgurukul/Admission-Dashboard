@@ -1,3 +1,4 @@
+import { get } from "http";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -749,5 +750,48 @@ export const getQuestions = async (): Promise<Question[]> => {
   }
 };
 
+// delete question by id
+export const deleteQuestionbyId = async (id: number)=> {
+  const response = await fetch(`${BASE_URL}/questions/deleteQuestions/${id}`, {
+    method: 'DELETE',
+   
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete question');
+  }
+};
 
 
+// delete question by id
+export const getQuestionbyId = async (id: number)=> {
+  const response = await fetch(`${BASE_URL}/questions/getQuestionsById/${id}`, {
+    method: 'GET',
+   
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete question');
+  }
+};
+
+
+// Update Question
+export const updateQuestion = async (
+  id: number,
+  questionData: Partial<CreateQuestionData>
+): Promise<Question> => {
+  const response = await fetch(`${BASE_URL}/questions/updateQuestions/${id}`, {
+    method: "PUT",              
+    headers: getAuthHeaders(),
+    body: JSON.stringify(questionData),
+  });
+
+  const data = await response.json();
+  console.log("on api",data)
+  if (!response.ok) throw new Error(data.message || "Failed to update question");
+
+  return data.data as Question;
+};

@@ -46,39 +46,51 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
   });
 
   useEffect(() => {
-    async function fetchDifficultyLevels() {
-      try {
-        const levelsRaw = await difficultyLevelAPI.getDifficultyLevels();
-        const arr = Array.isArray(levelsRaw.data?.data)
-          ? levelsRaw.data.data.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              points: item.marks ?? 0,
-            }))
-          : [];
-        setDifficultyOptions(arr);
+  async function fetchDifficultyLevels() {
+    try {
+      const levelsRaw = await difficultyLevelAPI.getDifficultyLevels();
+      const arr = Array.isArray(levelsRaw.data?.data)
+        ? levelsRaw.data.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            points: item.marks ?? 0,
+          }))
+        : [];
+      setDifficultyOptions(arr);
 
-        // Pre-select difficulty if editing
-
-        if (question?.difficulty_level) {
-          const match = arr.find(
-            (lvl) => lvl.id.toString() === question.difficulty_level?.toString()
-          );
-          if (match) {
-            setFormData((p) => ({
-              ...p,
-              difficulty_level: match.id.toString(),
-            }));
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch difficulty levels:", err);
-        setDifficultyOptions([]);
+      // If editing, map API fields into formData
+      if (question) {
+        setFormData({
+          question_type:
+            question.question_type === "MCQ"
+              ? "multiple_choice"
+              : question.question_type.toLowerCase(),
+          difficulty_level: question.difficulty_level?.toString() ?? "",
+          points:
+            arr.find((lvl) => lvl.id === question.difficulty_level)?.points ??
+            0,
+          question_text: {
+            english: question.english_text ?? "",
+            hindi: question.hindi_text ?? "",
+            marathi: question.marathi_text ?? "",
+          },
+          options: {
+            english: question.english_options ?? ["", "", "", ""],
+            hindi: question.hindi_options ?? ["", "", "", ""],
+            marathi: question.marathi_options ?? ["", "", "", ""],
+          },
+          correct_answer: question.answer_key?.[0] ?? 0,
+          explanation: question.explanation ?? "",
+        });
       }
+    } catch (err) {
+      console.error("Failed to fetch difficulty levels:", err);
+      setDifficultyOptions([]);
     }
+  }
 
-    fetchDifficultyLevels();
-  }, [question]);
+  fetchDifficultyLevels();
+}, [question]);
 
   const updateField = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -139,11 +151,11 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-              <SelectItem value="true_false">True/False</SelectItem>
+              {/* <SelectItem value="true_false">True/False</SelectItem>
               <SelectItem value="short_answer">Short Answer</SelectItem>
               <SelectItem value="long_answer">Long Answer</SelectItem>
               <SelectItem value="coding">Coding</SelectItem>
-              <SelectItem value="fill_in_blank">Fill in the Blank</SelectItem>
+              <SelectItem value="fill_in_blank">Fill in the Blank</SelectItem> */}
             </SelectContent>
           </Select>
         </div>

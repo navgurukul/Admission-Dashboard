@@ -97,7 +97,7 @@ export function QuestionList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 h-[500px] overflow-y-auto ">
       {questions.map((question) => {
         const statusLabel = getStatus(question.status);
         const difficulty = getDifficultyLabel(question.difficulty_level);
@@ -157,9 +157,17 @@ export function QuestionList({
                     <Edit className="w-4 h-4" />
                   </Button>
 
+                   <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(question.id)}
+                      title="Delete Permanently"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   
-                  
-                  {question.status ? (
+                  {/* {question.status ? (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -169,16 +177,8 @@ export function QuestionList({
                       <Archive className="w-4 h-4" />
                     </Button>
                   ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(question.id)}
-                      title="Delete Permanently"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                   
+                  )} */}
                 </div>
               </div>
             </CardContent>

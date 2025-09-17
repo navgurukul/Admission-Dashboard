@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { getQuestions ,createQuestion as apiCreateQuestion} from "@/utils/api";
+import { getQuestions ,createQuestion as apiCreateQuestion,updateQuestion as updateQuestionApi,getQuestionbyId,deleteQuestionbyId} from "@/utils/api";
 
 interface QuestionFilters {
   status?: string;
@@ -19,21 +19,26 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       const data = await getQuestions();
       setLoading(true);
 
-      const filtered = data.filter((q) => {
-        if (filters.status && q.status !== filters.status) return false;
-        if (filters.difficulty && q.difficulty_level !== filters.difficulty)
-          return false;
-        if (filters.language && q.language !== filters.language) return false;
-        if (filters.question_type && q.question_type !== filters.question_type)
-          return false;
-        if (
-          searchTerm &&
-          !q.english_text.toLowerCase().includes(searchTerm.toLowerCase())
-        ) {
-          return false;
-        }
-        return true;
-      });
+      // const filtered = data.filter((q) => {
+      //   if (filters.status && q.status !== filters.status) return false;
+      //   if (
+      //     filters.difficulty &&
+      //     q.difficulty_level?.toString() !== filters.difficulty
+      //   )
+      //     return false;
+      //   if (filters.language && q.language !== filters.language) return false;
+      //   if (filters.question_type && q.question_type !== filters.question_type)
+      //     return false;
+
+      //   if (
+      //     searchTerm &&
+      //     !q.english_text?.toLowerCase().includes(searchTerm.toLowerCase())
+      //   ) {
+      //     return false;
+      //   }
+      //   return true;
+      // });
+
 
       // console.log(data)
       setQuestions(data);
@@ -63,18 +68,38 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
     }
   };
 
-  const updateQuestion = async (id: string, data: any) => {
-    
-  return questions;
+  const updateQuestion = async (id: number, data: any) => {
+    try {
+      console.log("on_useQuestions",id,data)
+      await updateQuestionApi(id, data);
+      console.log("successfuly ",id,data)
+      await fetchQuestions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update question",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
-  const deleteQuestion = async (id: string) => {
-
-    await fetchQuestions();
+  const deleteQuestion = async (id: string | number) => {
+    try {
+      await deleteQuestionbyId(Number(id));
+      await fetchQuestions();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete question",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
 
   const archiveQuestion = async (id: string) => {
-    
+
     await fetchQuestions();
   };
 
