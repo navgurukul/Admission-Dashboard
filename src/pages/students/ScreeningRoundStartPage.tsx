@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getQuestions, getExamDuration } from "@/utils/students_api";
+import { getQuestions, getExamDuration } from "@/utils/mockApi";
 import { useLanguage } from "@/routes/LaunguageContext";
 
 const ScreeningRoundStartPage: React.FC = () => {
@@ -9,16 +9,18 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   const [questionCount, setQuestionCount] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null); 
+  const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch values when page loads
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const questions = await getQuestions();
+        const qs = await getQuestions();
         const examDuration = await getExamDuration();
 
-        setQuestionCount(questions?.length || 0);
+        setQuestions(qs || []);
+        setQuestionCount(qs?.length || 0);
         setDuration(examDuration);
       } catch (err) {
         console.error("Error fetching exam data:", err);
@@ -26,18 +28,15 @@ const ScreeningRoundStartPage: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  // Format duration into "X Hours Y Minutes"
   const formatDuration = (minutes: number) => {
     const hrs = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hrs > 0 ? `${hrs} Hour${hrs > 1 ? "s" : ""}` : ""} ${mins > 0 ? `${mins} Minute${mins > 1 ? "s" : ""}` : ""}`;
   };
 
-  // translations with dynamic values
   const getContent = () => {
     const timeText = duration ? formatDuration(duration) : "...";
     const qCount = questionCount ?? "...";
@@ -62,9 +61,9 @@ const ScreeningRoundStartPage: React.FC = () => {
       default:
         return {
           heading: "One More Thing:",
-          description1: "Now, you will be asked some questions in the test. Answer them carefully.",
-          description2: "But also keep an eye on time",
-          description3: `You have to answer ${qCount} questions in ${timeText}`,
+          description1: "You will be asked some questions in the test. Answer carefully.",
+          description2: "But also keep an eye on time.",
+          description3: `You have to answer ${qCount} questions in ${timeText}.`,
           buttonText: "START TEST",
         };
     }
@@ -72,18 +71,13 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   const content = getContent();
 
-  const handleStartTest = async () => {
-    try {
-      const questions = await getQuestions();
-      const examDuration = await getExamDuration();
+  const handleStartTest = () => {
+    if (!questions.length || !duration) return;
 
-      // localStorage.setItem("student_test_questions", JSON.stringify(questions));
-      // localStorage.setItem("student_test_duration", JSON.stringify(examDuration));
-
-      navigate("/students/test-section");
-    } catch (err) {
-      console.error("Error starting test:", err);
-    }
+    // Navigate to TestPage with state
+    navigate("/students/test-section", {
+      state: { questions, duration },
+    });
   };
 
   if (loading) {
@@ -100,7 +94,7 @@ const ScreeningRoundStartPage: React.FC = () => {
         <h1 className="text-2xl font-semibold mb-4">{content.heading}</h1>
         <p className="text-gray-600 mb-2">{content.description1}</p>
         <p className="text-gray-800 font-medium mb-2">{content.description2}</p>
-        <p className="text-gray-800 font-semibold mb-6">{content.description3}</p>
+        <p className="text-gray-800 font-semibold mb-2">{content.description3}</p>
         <button
           onClick={handleStartTest}
           className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg"

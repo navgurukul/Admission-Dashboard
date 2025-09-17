@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Language, LanguageContent } from "@/utils/student.types";
+import { Language } from "@/utils/student.types";
 
 
 
