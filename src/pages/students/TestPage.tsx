@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getQuestions, getExamDuration } from "@/utils/students_api";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const STORAGE_KEY = "student_test_progress";
 
@@ -17,19 +16,23 @@ const formatTime = (seconds: number) => {
   return `${m}:${s.toString().padStart(2, "0")}`;
 };
 
-const TestPage = () => {
-  const [questions, setQuestions] = useState<Question[]>([]);
+const TestPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { questions: stateQuestions, duration: stateDuration } = location.state || {};
+
+  const [questions, setQuestions] = useState<Question[]>(stateQuestions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const navigate = useNavigate();
+  const [timeLeft, setTimeLeft] = useState<number | null>(stateDuration || null);
 
   // Restore progress from localStorage
   useEffect(() => {
+    if (!stateQuestions || !stateDuration) return;
+
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const { answers, currentIndex, examStartTime, duration } = JSON.parse(stored);
-
       const elapsed = Math.floor((Date.now() - examStartTime) / 1000);
       const remaining = duration - elapsed;
 
@@ -40,47 +43,33 @@ const TestPage = () => {
       } else {
         localStorage.removeItem(STORAGE_KEY);
       }
+    } else {
+      // Save initial exam info
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          answers: {},
+          currentIndex: 0,
+          examStartTime: Date.now(),
+          duration: stateDuration,
+        })
+      );
     }
-  }, []);
+  }, [stateQuestions, stateDuration]);
 
-  // Instead of fetching, read from localStorage
-  useEffect(() => {
-    const qs = JSON.parse(localStorage.getItem("student_test_questions") || "[]");
-    const duration = JSON.parse(localStorage.getItem("student_test_duration") || "1800");
-    setQuestions(qs);
-    setTimeLeft(duration);
-
-    // If no stored time, start new exam
-    setTimeLeft((prev) => {
-      if (prev === null) {
-        const startTime = Date.now();
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            answers: {},
-            currentIndex: 0,
-            examStartTime: startTime,
-            duration,
-          })
-        );
-        return duration;
-      }
-      return prev;
-    });
-  }, []);
-
-  // Countdown timer
+  // Timer countdown
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft <= 0) {
       submitTest();
       return;
     }
+
     const timer = setInterval(() => setTimeLeft((t) => (t !== null ? t - 1 : 0)), 1000);
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  // Save progress on change
+  // Save progress
   useEffect(() => {
     if (timeLeft === null) return;
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -88,11 +77,7 @@ const TestPage = () => {
       const parsed = JSON.parse(stored);
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({
-          ...parsed,
-          answers,
-          currentIndex,
-        })
+        JSON.stringify({ ...parsed, answers, currentIndex })
       );
     }
   }, [answers, currentIndex, timeLeft]);
@@ -118,11 +103,7 @@ const TestPage = () => {
   };
 
   if (timeLeft === null || questions.length === 0) {
-    return (
-      <div className="text-center mt-10 text-lg font-semibold">
-        Loading test...
-      </div>
-    );
+    return <div className="text-center mt-10 text-lg font-semibold">Loading test...</div>;
   }
 
   return (
