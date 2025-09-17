@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { useStudent } from '@/pages/students/StudentContext';
+import { useStudent } from '../../utils/StudentContext';
 
 const WhatsAppRedirect: React.FC = () => {
-  const { student } = useStudent();
+  const { student,setStudent } = useStudent();
 
   useEffect(() => {
     // Auto-redirect to WhatsApp after 3 seconds
@@ -14,7 +14,7 @@ const WhatsAppRedirect: React.FC = () => {
   }, []);
 
   const handleWhatsAppRedirect = () => {
-    const message = `Hello! I am ${student?.name}. I have successfully completed the test and booked my interview slot. My phone number is ${student?.phone} and email is ${student?.email}.`;
+    const message = `Hello! I am ${student?.firstName}. I have successfully completed the test and booked my interview slot. My phone number is ${student} and email is ${student?.email}.`;
     const whatsappURL = `https://wa.me/YOUR_WHATSAPP_NUMBER?text=${encodeURIComponent(message)}`;
     
     window.open(whatsappURL, '_blank');
@@ -24,7 +24,7 @@ const WhatsAppRedirect: React.FC = () => {
     <div className="whatsapp-redirect">
       <div className="success-message">
         <h2>🎉 Slot Booked Successfully!</h2>
-        <p>Thank you {student?.name}! Your interview slot has been confirmed.</p>
+        <p>Thank you {student?.firstName}! Your interview slot has been confirmed.</p>
         <p>You will be redirected to WhatsApp to connect with our team.</p>
         
         <div className="redirect-info">
@@ -39,9 +39,9 @@ const WhatsAppRedirect: React.FC = () => {
 
         <div className="contact-details">
           <h3>Your Details:</h3>
-          <p><strong>Name:</strong> {student?.name}</p>
+          <p><strong>Name:</strong> {student?.firstName}</p>
           <p><strong>Email:</strong> {student?.email}</p>
-          <p><strong>Phone:</strong> {student?.phone}</p>
+          <p><strong>Phone:</strong> {student?.whatsappNumber}</p>
         </div>
       </div>
     </div>

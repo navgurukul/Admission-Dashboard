@@ -665,3 +665,89 @@ export const createStudent = async (studentData: any): Promise<any> => {
 
   return data;
 };
+
+
+// Questions (getQuestions, CreateQuestion)
+export interface Question {
+  id: number;
+  difficulty_level: number;
+  question_type: string; 
+  topic: number;
+  language: string;
+  english_text: string;
+  hindi_text: string;
+  marathi_text: string;
+
+  english_options: string[];
+  hindi_options: string[];
+  marathi_options: string[];
+
+  answer_key: number[]; // indexes of correct answers
+
+  status: string;
+  added_by: number;
+
+  created_at: string; // ISO date
+  updated_at: string; // ISO date
+}
+
+
+export type CreateQuestionData = Omit<
+  Question, "id" | "created_at" | "updated_at"
+>;
+
+
+export const createQuestion = async (questionData: CreateQuestionData
+): Promise<Question>  => {
+  const response = await fetch(`${BASE_URL}/questions/createQuestions`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(questionData),
+  });
+
+  const data = await response.json();
+  console.log("create data ",data)
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create questions');
+  }
+
+  return data.data as Question;
+};
+
+
+
+// Get questions
+export const getQuestions = async (): Promise<Question[]> => {
+  const response = await fetch(`${BASE_URL}/questions/getQuestions`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch Questions');
+  }
+  // Return the data array from the response
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    
+    console.log('Get Questions Response: gol', data.data.data);
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+
+    return data.data;
+  } else if (data && data.statuses && Array.isArray(data.statuses)) {
+   
+    return data.statuses;
+  } else if (Array.isArray(data)) {
+  
+    return data;
+  } else {
+    console.error('Data structure:', JSON.stringify(data, null, 2));
+    return [];
+  }
+};
+
+
+
