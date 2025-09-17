@@ -1,20 +1,18 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
 
 interface QuestionOptionsEditorProps {
   questionType: string;
-  options: any;
-  correctAnswer: any;
-  onOptionsChange: (options: any) => void;
-  onCorrectAnswerChange: (answer: any) => void;
+  options: { english: string[]; hindi: string[]; marathi: string[] };
+  correctAnswer: number | null;
+  onOptionsChange: (options: { english: string[]; hindi: string[]; marathi: string[] }) => void;
+  onCorrectAnswerChange: (answer: number) => void;
 }
 
 export function QuestionOptionsEditor({
@@ -22,43 +20,46 @@ export function QuestionOptionsEditor({
   options,
   correctAnswer,
   onOptionsChange,
-  onCorrectAnswerChange
+  onCorrectAnswerChange,
 }: QuestionOptionsEditorProps) {
-  const [multipleChoiceOptions, setMultipleChoiceOptions] = useState<string[]>(['', '', '', '']);
-  const [selectedCorrectOption, setSelectedCorrectOption] = useState<number>(0);
+  const [multipleChoiceOptions, setMultipleChoiceOptions] = useState(options || { english: ['', '', '', ''], hindi: ['', '', '', ''], marathi: ['', '', '', ''] });
+  const [selectedCorrectOption, setSelectedCorrectOption] = useState(correctAnswer || 0);
 
   useEffect(() => {
-    if (options && Array.isArray(options)) {
-      setMultipleChoiceOptions(options);
-    }
-    if (typeof correctAnswer === 'number') {
-      setSelectedCorrectOption(correctAnswer);
-    }
+    if (options) setMultipleChoiceOptions(options);
+    if (typeof correctAnswer === 'number') setSelectedCorrectOption(correctAnswer);
   }, [options, correctAnswer]);
 
-  const handleMultipleChoiceChange = (index: number, value: string) => {
-    const newOptions = [...multipleChoiceOptions];
-    newOptions[index] = value;
-    setMultipleChoiceOptions(newOptions);
-    onOptionsChange(newOptions);
+  const handleOptionChange = (lang: 'english' | 'hindi' | 'marathi', index: number, value: string) => {
+    const updated = { ...multipleChoiceOptions, [lang]: [...multipleChoiceOptions[lang]] };
+    updated[lang][index] = value;
+    setMultipleChoiceOptions(updated);
+    onOptionsChange(updated);
   };
 
   const addOption = () => {
-    const newOptions = [...multipleChoiceOptions, ''];
-    setMultipleChoiceOptions(newOptions);
-    onOptionsChange(newOptions);
+    const updated = {
+      english: [...multipleChoiceOptions.english, ''],
+      hindi: [...multipleChoiceOptions.hindi, ''],
+      marathi: [...multipleChoiceOptions.marathi, ''],
+    };
+    setMultipleChoiceOptions(updated);
+    onOptionsChange(updated);
   };
 
   const removeOption = (index: number) => {
-    if (multipleChoiceOptions.length <= 2) return;
-    const newOptions = multipleChoiceOptions.filter((_, i) => i !== index);
-    setMultipleChoiceOptions(newOptions);
-    onOptionsChange(newOptions);
-    
-    if (selectedCorrectOption >= newOptions.length) {
-      const newCorrect = 0;
-      setSelectedCorrectOption(newCorrect);
-      onCorrectAnswerChange(newCorrect);
+    if (multipleChoiceOptions.english.length <= 2) return;
+    const updated = {
+      english: multipleChoiceOptions.english.filter((_, i) => i !== index),
+      hindi: multipleChoiceOptions.hindi.filter((_, i) => i !== index),
+      marathi: multipleChoiceOptions.marathi.filter((_, i) => i !== index),
+    };
+    setMultipleChoiceOptions(updated);
+    onOptionsChange(updated);
+
+    if (selectedCorrectOption >= updated.english.length) {
+      setSelectedCorrectOption(0);
+      onCorrectAnswerChange(0);
     }
   };
 
@@ -68,11 +69,14 @@ export function QuestionOptionsEditor({
   };
 
   const handleTrueFalseChange = (value: string) => {
-    onCorrectAnswerChange(value === 'true');
+    // for true/false, correctAnswer can be stored as 0=false, 1=true
+    const ans = value === 'true' ? 1 : 0;
+    onCorrectAnswerChange(ans);
   };
 
   const handleTextAnswerChange = (value: string) => {
-    onCorrectAnswerChange(value);
+    // for short_answer, long_answer, coding
+    onCorrectAnswerChange(value as any);
   };
 
   if (questionType === 'multiple_choice') {
@@ -84,36 +88,39 @@ export function QuestionOptionsEditor({
         <CardContent className="space-y-4">
           <RadioGroup
             value={selectedCorrectOption.toString()}
-            onValueChange={(value) => handleCorrectAnswerChange(parseInt(value))}
+            onValueChange={(val) => handleCorrectAnswerChange(parseInt(val))}
           >
-            {multipleChoiceOptions.map((option, index) => (
-              <div key={index} className="flex items-center space-x-3">
+            {multipleChoiceOptions.english.map((_, index) => (
+              <div key={index} className="flex gap-2 items-center">
                 <RadioGroupItem value={index.toString()} />
-                <div className="flex-1 flex items-center space-x-2">
+                <div className="grid grid-cols-3 gap-2 flex-1">
                   <Input
-                    value={option}
-                    onChange={(e) => handleMultipleChoiceChange(index, e.target.value)}
-                    placeholder={`Option ${index + 1}`}
-                    className="flex-1"
+                    value={multipleChoiceOptions.english[index]}
+                    onChange={(e) => handleOptionChange('english', index, e.target.value)}
+                    placeholder={`EN Option ${index + 1}`}
                   />
-                  {multipleChoiceOptions.length > 2 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeOption(index)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                  <Input
+                    value={multipleChoiceOptions.hindi[index]}
+                    onChange={(e) => handleOptionChange('hindi', index, e.target.value)}
+                    placeholder={`HI Option ${index + 1}`}
+                  />
+                  <Input
+                    value={multipleChoiceOptions.marathi[index]}
+                    onChange={(e) => handleOptionChange('marathi', index, e.target.value)}
+                    placeholder={`MR Option ${index + 1}`}
+                  />
                 </div>
+                {multipleChoiceOptions.english.length > 2 && (
+                  <Button variant="ghost" size="sm" onClick={() => removeOption(index)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             ))}
           </RadioGroup>
-          
+
           <Button type="button" variant="outline" onClick={addOption}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Option
+            <Plus className="w-4 h-4 mr-2" /> Add Option
           </Button>
         </CardContent>
       </Card>
@@ -128,7 +135,7 @@ export function QuestionOptionsEditor({
         </CardHeader>
         <CardContent>
           <RadioGroup
-            value={correctAnswer?.toString() || 'true'}
+            value={correctAnswer === 1 ? 'true' : 'false'}
             onValueChange={handleTrueFalseChange}
           >
             <div className="flex items-center space-x-2">

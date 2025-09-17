@@ -129,7 +129,7 @@ const CampusPage: React.FC = () => {
       });
     }
   };
-
+ 
   // Delete campus
   const handleDeleteCampus = async (id: number) => {
     try {

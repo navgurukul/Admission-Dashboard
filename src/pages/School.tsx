@@ -140,6 +140,7 @@ const SchoolPage = () => {
     try {
       await deleteSchool(id);
 
+
       setSchools((prev) => prev.filter((s) => s.id !== id));
       toast({
         title: "School Deleted",

@@ -13,6 +13,7 @@ import ScreeningResultPage from "@/pages/students/ScreeningResultPage";
 import FinalResultPage from "@/pages/students/StudentResult";
 import StudentLogin from '@/pages/students/Login';
 import StudentProtectedRoute from "./StudentProtectedRoute";
+import OfferLetterPage from '@/pages/students/OfferLetterPage';
 
 const StudentRoutes: React.FC = () => {
   return (
@@ -78,9 +79,15 @@ const StudentRoutes: React.FC = () => {
           </StudentProtectedRoute>
         }
       />
-      <Route path="slot-booking" element={
+      <Route path="slot-booking/:id" element={
         <StudentProtectedRoute>
           <SlotBooking />
+        </StudentProtectedRoute>
+      }
+      />
+      <Route path="Offer-letter" element={
+        <StudentProtectedRoute>
+          <OfferLetterPage />
         </StudentProtectedRoute>
       }
       />

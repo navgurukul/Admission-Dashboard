@@ -7,12 +7,12 @@ export const getAuthToken = (): string | null => {
   return token;
 };
 
-// Create headers with authentication
-export const getAuthHeaders = (): HeadersInit => {
+
+export const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
   const token = getAuthToken();
   return {
-    'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(withJson ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
 };
 
@@ -139,7 +139,7 @@ export interface OnboardUserData {
   email: string;
   mobile: string;
   user_name: string;
-  role_id: number;
+  user_role_id: number;
 }
 
 export const onboardUser = async (userData: OnboardUserData): Promise<User> => {
@@ -158,13 +158,13 @@ export const onboardUser = async (userData: OnboardUserData): Promise<User> => {
   return data;
 };
 
-// Update user
+
 export interface UpdateUserData {
   name?: string;
   mobile?: string;
-  user_name?: string;
+  email?: string;
   status?: boolean;
-  user_role_id?: number;
+ user_role_id?: number;  
 }
 
 export const updateUser = async (id: string, userData: UpdateUserData): Promise<User> => {
@@ -185,10 +185,13 @@ export const updateUser = async (id: string, userData: UpdateUserData): Promise<
 
 // Delete user
 export const deleteUser = async (id: string): Promise<void> => {
+  
   const response = await fetch(`${BASE_URL}/users/${id}`, {
     method: 'DELETE',
+
     headers: getAuthHeaders(),
     body: JSON.stringify(id)
+
   });
 
   if (!response.ok) {
@@ -222,7 +225,7 @@ export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
     throw new Error(data.message || 'Failed to create role');
   }
 
-  return data;
+  return data.data as Role;
 };
 
 // Get all roles
@@ -260,9 +263,12 @@ export const getRoleById = async (id: string): Promise<Role> => {
 };
 
 // Update role
-export const updateRole = async (id: string, roleData: { name: string }): Promise<Role> => {
+export const updateRole = async (
+  id: string | number,
+  roleData: { name: string; status?: boolean }
+): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/updateRole/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(roleData),
   });
@@ -270,23 +276,28 @@ export const updateRole = async (id: string, roleData: { name: string }): Promis
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update role');
+    throw new Error(data.message || "Failed to update role");
   }
 
-  return data;
+  return data.data ?? data; // normalize response
 };
 
-// Delete role
-export const deleteRole = async (id: string, roleData:{name :string}): Promise<void> => {
+export const deleteRole = async (id: string | number): Promise<void> => {
+  const headers = getAuthHeaders();
+
+  // Remove content-type if no body
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
   const response = await fetch(`${BASE_URL}/roles/deleteRole/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(roleData),
+    method: "DELETE",
+    headers,
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete role');
+    throw new Error(data.message || "Failed to delete role");
   }
 };
 
@@ -346,7 +357,6 @@ export const getAllCasts = async (): Promise<Cast[]> => {
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch casts');
   }
-
   
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
@@ -358,8 +368,7 @@ export const getAllCasts = async (): Promise<Cast[]> => {
   } else if (Array.isArray(data)) {
     return data;
   } else {
-    console.error('Unexpected API response format:', data);
-    console.error('Data structure:', JSON.stringify(data, null, 2));
+   
     return [];
   }
 };
@@ -399,10 +408,20 @@ export const updateCast = async (id: string, castData: { cast_name: string }): P
 
 // Delete Cast
 export const deleteCast = async (id: string): Promise<void> => {
+  
+  const headers = getAuthHeaders();
+
+  // Remove content-type if no body
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+
   const response = await fetch(`${BASE_URL}/casts/deleteCast/${id}`, {
     method: 'DELETE',
     headers: getAuthHeaders(),
     body: JSON.stringify(id)
+
   });
 
   if (!response.ok) {
@@ -544,6 +563,7 @@ export const getStudents = async (page = 1, limit = 10) => {
     totalCount = students.length;
   } else {
     return { data: [], totalCount: 0 };
+
   }
 
   return {
@@ -590,6 +610,7 @@ export const getAllQualification = async (): Promise<Qualification[]> => {
    
     return data;
   } else {
+
     return [];
   }
 };
@@ -629,7 +650,6 @@ export const getAllStatus = async (): Promise<CurrentStatus[]> => {
   
     return data;
   } else {
-    console.error('Unexpected API response format:', data);
     console.error('Data structure:', JSON.stringify(data, null, 2));
     return [];
   }
@@ -766,8 +786,60 @@ export interface CurrentStatus {
 }
 
 // Get All Current Statuses
-export const getAllStatuses = async (): Promise<CurrentStatus[]> => {
-  const response = await fetch(`${BASE_URL}/current-statuses/currentallstatuses`, {
+
+// Questions (getQuestions, CreateQuestion)
+export interface Question {
+  id: number;
+  difficulty_level: number;
+  question_type: string; 
+  topic: number;
+  language: string;
+  english_text: string;
+  hindi_text: string;
+  marathi_text: string;
+
+  english_options: string[];
+  hindi_options: string[];
+  marathi_options: string[];
+
+  answer_key: number[]; // indexes of correct answers
+
+  status: string;
+  added_by: number;
+
+  created_at: string; // ISO date
+  updated_at: string; // ISO date
+}
+
+
+export type CreateQuestionData = Omit<
+  Question, "id" | "created_at" | "updated_at"
+>;
+
+
+export const createQuestion = async (questionData: CreateQuestionData
+): Promise<Question>  => {
+  const response = await fetch(`${BASE_URL}/questions/createQuestions`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(questionData),
+  });
+
+  const data = await response.json();
+  console.log("create data ",data)
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to create questions');
+  }
+
+  return data.data as Question;
+};
+
+
+
+// Get questions
+export const getQuestions = async (): Promise<Question[]> => {
+  const response = await fetch(`${BASE_URL}/questions/getQuestions`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -775,19 +847,24 @@ export const getAllStatuses = async (): Promise<CurrentStatus[]> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch statuses');
+    throw new Error(data.message || 'Failed to fetch Questions');
   }
-
-  // Handle different possible shapes of the response, like nested data etc.
+  // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    
+    console.log('Get Questions Response: gol', data.data.data);
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
+
     return data.data;
   } else if (data && data.statuses && Array.isArray(data.statuses)) {
+   
     return data.statuses;
   } else if (Array.isArray(data)) {
+  
     return data;
   } else {
+    console.error('Data structure:', JSON.stringify(data, null, 2));
     return [];
   }
 };
@@ -954,3 +1031,4 @@ export const deleteSchool = async (id: number) => {
     throw error;
   }
 };
+
