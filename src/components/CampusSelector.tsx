@@ -28,14 +28,14 @@ export function CampusSelector({ currentCampus, applicantId, onCampusChange }: C
 
   const fetchCampusOptions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('campus_options')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+      // const { data, error } = await supabase
+      //   .from('campus_options')
+      //   .select('*')
+      //   .eq('is_active', true)
+      //   .order('name');
 
-      if (error) throw error;
-      setCampusOptions(data || []);
+      // if (error) throw error;
+      // setCampusOptions(data || []);
     } catch (error) {
       console.error('Error fetching campus options:', error);
     }
@@ -84,22 +84,22 @@ export function CampusSelector({ currentCampus, applicantId, onCampusChange }: C
   };
 
   return (
-    <Select
-      value={currentCampus || 'unassigned'}
-      onValueChange={handleCampusChange}
-      disabled={loading}
-    >
-      <SelectTrigger className="w-32 h-8 text-xs">
-        <SelectValue placeholder="Select campus" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="unassigned">Not assigned</SelectItem>
-        {campusOptions.map((campus) => (
-          <SelectItem key={campus.id} value={campus.name}>
-            {campus.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+   <Select
+  value={currentCampus && currentCampus !== "" ? currentCampus : "unassigned"}
+  onValueChange={handleCampusChange}
+  disabled={loading}
+>
+  <SelectTrigger className="w-32 h-8 text-xs">
+    <SelectValue placeholder="Select campus" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="unassigned">Not assigned</SelectItem>
+    {campusOptions.map((campus) => (
+      <SelectItem key={campus.id} value={campus.name || campus.id}>
+        {campus.name || "Unnamed Campus"}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
   );
 }
