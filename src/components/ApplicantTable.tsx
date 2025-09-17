@@ -29,8 +29,14 @@ import { useToast } from "@/hooks/use-toast";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
 import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
-import {getStudents} from '@/utils/api';
-
+import {
+  getStudents,
+  getAllSchools,
+  getCampusesApi,
+  getAllStatuses,
+  getAllStages,
+  deleteUser,
+} from "@/utils/api";
 
 const ApplicantTable = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -42,6 +48,11 @@ const ApplicantTable = () => {
   const [applicantForComments, setApplicantForComments] = useState<any | null>(
     null
   );
+
+  const [campusList, setCampusList] = useState<any[]>([]);
+  const [schoolList, setSchoolsList] = useState<any[]>([]);
+  const [currentstatusList, setcurrentstatusList] = useState<any[]>([]);
+  const [stageList, setStageList] = useState<any[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -57,30 +68,91 @@ const ApplicantTable = () => {
   });
   const { toast } = useToast();
 
-
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const { data: students = [], isLoading: isStudentsLoading, refetch: refetchStudents } = useQuery({
+  const {
+    data: studentsData,
+    isLoading: isStudentsLoading,
+    refetch: refetchStudents,
+  } = useQuery({
     queryKey: ["students", currentPage],
-    // queryFn: async() => {    console.log("Fetching students for page:", currentPage);
-    // const res = await getStudents(currentPage, itemsPerPage);
-    // console.log("Fetched data:", res);
-    // return res;},
+    queryFn: async () => {
+      const res = await getStudents(currentPage, itemsPerPage);
+      console.log("Fetched data:", res);
+      return res;
+    },
   });
-  
+
+  // Extract students array and total count from the response
+  const students = studentsData?.data || [];
+  const totalCount = studentsData?.totalCount || 0;
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [campuses, schools] = await Promise.all([
+          getCampusesApi(),
+          getAllSchools(),
+        ]);
+
+        setCampusList(campuses || []);
+        setSchoolsList(schools || []);
+      } catch (error) {
+        console.error("Failed to fetch campuses/schools:", error);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [stages, statuses] = await Promise.all([
+          getAllStages(),
+          getAllStatuses(),
+        ]);
+
+        setStageList(stages || []);
+        setcurrentstatusList(statuses || []);
+      } catch (error) {
+        console.error("Failed to fetch stages/statuses:", error);
+      }
+    };
+
+    fetchOptions();
+  }, []);
 
   // Map phone to mobile_no if mobile_no is missing
   const applicants = useMemo(() => {
-    return (students || []).map((student) => ({
-      ...student,
-      mobile_no: student.mobile_no || student.phone || "",
-    }));
-  }, [students]);
+    return (students || []).map((student) => {
+      const school = schoolList.find((s) => s.id === student.school_id);
+      const campus = campusList.find((c) => c.id === student.campus_id);
+      const current_status = currentstatusList.find(
+        (s) => s.id === student.current_status_id
+      );
 
+      return {
+        ...student,
+        mobile_no: student.mobile_no || student.phone_number || "",
+        name: `${student.first_name || ""} ${student.middle_name || ""} ${
+          student.last_name || ""
+        }`.trim(),
+        school_name: school ? school.school_name : "N/A",
+        campus_name: campus ? campus.campus_name : "N/A",
+        current_status_name: current_status
+          ? current_status.current_status_name
+          : "N/A",
+      };
+    });
+  }, [students, schoolList, campusList, currentstatusList]);
 
+  // For client-side search filtering (if needed)
   const filteredApplicants = useMemo(() => {
     if (!applicants) return [];
+    
+    if (!searchTerm) return applicants;
 
     const searchRegex = new RegExp(searchTerm, "i");
     return applicants.filter((applicant) => {
@@ -92,17 +164,20 @@ const ApplicantTable = () => {
     });
   }, [applicants, searchTerm]);
 
-  const paginatedApplicants = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredApplicants.slice(startIndex, endIndex);
-  }, [filteredApplicants, currentPage]);
+  // For display - use filtered applicants if searching, otherwise use paginated data from server
+  const displayApplicants = searchTerm ? filteredApplicants : applicants;
+  
+  // Calculate total pages based on whether we're searching or not
+  const totalPages = searchTerm 
+    ? Math.ceil(filteredApplicants.length / itemsPerPage) || 1
+    : Math.ceil(totalCount / itemsPerPage) || 1;
 
-  const totalPages = Math.ceil(filteredApplicants.length / itemsPerPage);
-
+  // Reset page when search changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredApplicants]);
+    if (searchTerm) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm]);
 
   const handlePrevPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -122,20 +197,17 @@ const ApplicantTable = () => {
 
   // Function to refresh data from both localStorage and database
   const refreshData = useCallback(() => {
-    // refetch();
-    //  refetchStudents(); // triggers getStudents again
-    setCurrentPage(prev => prev);
-  }, []);
-
-
+    setCurrentPage(1);
+    refetchStudents();
+  }, [refetchStudents]);
 
   const handleSelectAllRows = useCallback(() => {
-    if (paginatedApplicants.length === selectedRows.length) {
+    if (displayApplicants.length === selectedRows.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(paginatedApplicants.map((applicant) => applicant.id));
+      setSelectedRows(displayApplicants.map((applicant) => applicant.id));
     }
-  }, [paginatedApplicants, selectedRows.length]);
+  }, [displayApplicants, selectedRows.length]);
 
   const handleBulkDelete = async () => {
     if (selectedRows.length === 0) {
@@ -148,22 +220,12 @@ const ApplicantTable = () => {
     }
 
     try {
-      // Delete from localStorage first
-      deleteApplicants(selectedRows);
-
-      // Also delete from Supabase for persistence
-      const { error } = await supabase
-        .from("admission_dashboard")
-        .delete()
-        .in("id", selectedRows);
-
-      if (error) {
-        console.warn("Supabase delete failed, but data deleted from localStorage:", error);
-      }
+          await Promise.all(selectedRows.map((id) => deleteUser(id)));
 
       toast({
         title: "Applicants Deleted",
-        description: "Successfully deleted selected applicants from localStorage",
+        description:
+          "Successfully deleted selected applicants from DB",
       });
       setSelectedRows([]);
       refreshData();
@@ -186,41 +248,6 @@ const ApplicantTable = () => {
       });
       return;
     }
-
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "send-offer-letters",
-        {
-          body: {
-            applicantIds: selectedRows,
-            templateIds: {
-              offer_letter: "default-offer-letter-id",
-              consent_en: "default-consent-en-id",
-              consent_hi: "default-consent-hi-id",
-              checklist_en: "default-checklist-en-id",
-              checklist_hi: "default-checklist-hi-id",
-            },
-          },
-        }
-      );
-
-      if (error) throw error;
-
-      toast({
-        title: "Offer Letters Sent",
-        description: `Successfully sent offer letters to ${selectedRows.length} applicants`,
-      });
-
-      setSelectedRows([]);
-      refreshData();
-    } catch (error) {
-      console.error("Error sending offer letters:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send offer letters",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleApplyFilters = (newFilters: any) => {
@@ -238,35 +265,35 @@ const ApplicantTable = () => {
     }
 
     const headers = [
-   "phone_number",
-  "whatsapp_number",
-  "first_name",
-  "middle_name",
-  "last_name",
-  "dob",
-  "gender",
-  "email",
-  "state",
-  "district",
-  "city",
-  "pin_code",
-  "current_status_id",
-  "qualification_id",
-  "school_medium",
-  "cast_id",
-  "religion_id",
-  "image",
-  "triptis_notes",
-  "lr_status",
-  "lr_comments",
-  "cfr_status",
-  "cfr_comments",
-  "decision_status",
-  "offer_letter_status",
-  "joining_status",
-  "allotted_school",
-  "final_notes",
-  "status"
+      "phone_number",
+      "whatsapp_number",
+      "first_name",
+      "middle_name",
+      "last_name",
+      "dob",
+      "gender",
+      "email",
+      "state",
+      "district",
+      "city",
+      "pin_code",
+      "current_status_id",
+      "qualification_id",
+      "school_medium",
+      "cast_id",
+      "religion_id",
+      "image",
+      "triptis_notes",
+      "lr_status",
+      "lr_comments",
+      "cfr_status",
+      "cfr_comments",
+      "decision_status",
+      "offer_letter_status",
+      "joining_status",
+      "allotted_school",
+      "final_notes",
+      "status",
     ];
 
     const csvContent = [
@@ -277,9 +304,7 @@ const ApplicantTable = () => {
             const value = applicant[header];
             if (value === null || value === undefined) return "";
             const stringValue = String(value);
-            return stringValue.includes(",")
-              ? `"${stringValue}"`
-              : stringValue;
+            return stringValue.includes(",") ? `"${stringValue}"` : stringValue;
           })
           .join(",")
       ),
@@ -311,7 +336,10 @@ const ApplicantTable = () => {
           <div>
             <CardTitle>Applicants</CardTitle>
             <CardDescription>
-              {filteredApplicants?.length || 0} applicants found
+              {searchTerm 
+                ? `${filteredApplicants?.length || 0} applicants found (filtered)`
+                : `${totalCount} total applicants`
+              }
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -343,94 +371,101 @@ const ApplicantTable = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-
         </div>
 
         <div className="flex-1 border rounded-md overflow-hidden">
           <div className="h-full overflow-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10 border-b">
-  <TableRow>
-    <TableHead className="w-12 font-bold">
-      <Checkbox
-        checked={
-          paginatedApplicants.length > 0 &&
-          selectedRows.length === paginatedApplicants.length
-        }
-        // onCheckedChange={handleSelectAllRows}
-        aria-label="Select all applicants"
-      />
-    </TableHead>
+                <TableRow>
+                  <TableHead className="w-12 font-bold">
+                    <Checkbox
+                      checked={
+                        displayApplicants.length > 0 &&
+                        selectedRows.length === displayApplicants.length
+                      }
+                      onCheckedChange={handleSelectAllRows}
+                      aria-label="Select all applicants"
+                    />
+                  </TableHead>
 
-    {/* Profile Image */}
-    <TableHead className="font-bold w-16">Image</TableHead>
+                  {/* Profile Image */}
+                  <TableHead className="font-bold w-16">Image</TableHead>
 
-    <TableHead className="font-bold min-w-[200px] max-w-[250px]">
-      Full Name
-    </TableHead>
+                  <TableHead className="font-bold min-w-[200px] max-w-[250px]">
+                    Full Name
+                  </TableHead>
 
-    <TableHead className="font-bold min-w-[140px] max-w-[180px]">
-      Phone Number
-    </TableHead>
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+                    Phone Number
+                  </TableHead>
 
-    <TableHead className="font-bold min-w-[140px] max-w-[180px]">
-      WhatsApp Number
-    </TableHead>
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+                    WhatsApp Number
+                  </TableHead>
 
-    <TableHead className="font-bold min-w-[120px] max-w-[160px]">
-      Gender
-    </TableHead>
+                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">
+                    Gender
+                  </TableHead>
 
-    <TableHead className="font-bold min-w-[120px] max-w-[160px]">
-      City
-    </TableHead>
+                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">
+                    City
+                  </TableHead>
 
-    <TableHead className="font-bold min-w-[180px] max-w-[220px]">
-      State
-    </TableHead>
+                  <TableHead className="font-bold min-w-[180px] max-w-[220px]">
+                    State
+                  </TableHead>
 
-    <TableHead className="font-bold w-24">Pin Code</TableHead>
+                  <TableHead className="font-bold w-24">Pin Code</TableHead>
 
-    {/* School */}
-    <TableHead className="font-bold min-w-[180px]">School</TableHead>
+                  {/* School */}
+                  <TableHead className="font-bold min-w-[180px]">
+                    School
+                  </TableHead>
 
-    {/* Campus */}
-    <TableHead className="font-bold min-w-[180px]">Campus</TableHead>
+                  {/* Campus */}
+                  <TableHead className="font-bold min-w-[180px]">
+                    Campus
+                  </TableHead>
 
-    <TableHead className="w-24 font-bold">Status</TableHead>
+                  <TableHead className="w-24 font-bold">
+                    Current Status
+                  </TableHead>
 
-    <TableHead className="w-24 font-bold">Actions</TableHead>
-  </TableRow>
-</TableHeader>
+                  <TableHead className="w-24 font-bold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
 
               <TableBody>
                 {isStudentsLoading ? (
-  <TableRow>
-    <TableCell colSpan={13} className="text-center">
-      Loading applicants...
-    </TableCell>
-  </TableRow>
-) : paginatedApplicants.length === 0 ? (
-  <TableRow>
-    <TableCell colSpan={13} className="text-center text-muted-foreground py-6">
-      No applicants found.
-    </TableCell>
-  </TableRow>
-) : (
-  paginatedApplicants.map((applicant) => (
-    <ApplicantTableRow
-      key={applicant.id}
-      applicant={applicant}
-      isSelected={selectedRows.includes(applicant.id)}
-      onSelect={handleCheckboxChange}
-      onUpdate={refreshData}
-      onViewDetails={setApplicantToView}
-      onViewComments={setApplicantForComments}
-      onCampusChange={refreshData}
-    />
-  ))
-)}
-
+                  <TableRow>
+                    <TableCell colSpan={13} className="text-center">
+                      Loading applicants...
+                    </TableCell>
+                  </TableRow>
+                ) : displayApplicants.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={13}
+                      className="text-center text-muted-foreground py-6"
+                    >
+                      No applicants found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  displayApplicants.map((applicant) => (
+                    <ApplicantTableRow
+                      key={applicant.id}
+                      applicant={applicant}
+                      isSelected={selectedRows.includes(applicant.id)}
+                      onSelect={handleCheckboxChange}
+                      onUpdate={refreshData}
+                      onViewDetails={setApplicantToView}
+                      onViewComments={setApplicantForComments}
+                      onCampusChange={refreshData}
+                    />
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -438,7 +473,10 @@ const ApplicantTable = () => {
 
         <div className="flex justify-between items-center mt-4">
           <p className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
+            {searchTerm 
+              ? `Showing ${Math.min((currentPage - 1) * itemsPerPage + 1, filteredApplicants.length)} - ${Math.min(currentPage * itemsPerPage, filteredApplicants.length)} of ${filteredApplicants.length} filtered results`
+              : `Page ${currentPage} of ${totalPages} (${totalCount} total applicants)`
+            }
           </p>
           <div className="flex gap-2">
             <button
@@ -463,6 +501,9 @@ const ApplicantTable = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={refreshData}
+        schoolList={schoolList}
+        campusList={campusList}
+        currentstatusList={currentstatusList}
       />
 
       <CSVImportModal
@@ -476,6 +517,7 @@ const ApplicantTable = () => {
         onClose={() => setShowAdvancedFilters(false)}
         onApplyFilters={handleApplyFilters}
         currentFilters={filters}
+        students={displayApplicants}
       />
 
       <BulkUpdateModal
