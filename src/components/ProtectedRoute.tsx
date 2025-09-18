@@ -11,7 +11,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-console.log("From protected routes line no. 16",googleUser);
+
  
   useEffect(() => {
     if (!googleLoading) {
@@ -27,7 +27,6 @@ console.log("From protected routes line no. 16",googleUser);
       if (!(googleUser.role_id === 1 || googleUser.role_id === 2)) {
         // Redirect to students page if email not in allowed list
         navigate("/students", { replace: true });
-        console.log("From protected routes line no. 40",googleUser);
         return;
       }
 

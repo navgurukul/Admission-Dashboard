@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Search, Plus, FileDown, Printer, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -98,8 +98,8 @@ const CampusPage: React.FC = () => {
     try {
       const result = await createCampusApi(newCampus);
       const newCampusData: Campus = {
-        id: result.id || result.data?.id || Date.now(),
-        campus_name: newCampus,
+        id: result.id || result.data?.id,
+         campus_name: result.campus_name || newCampus,
       };
       setCampuses((prev) => [...prev, newCampusData]);
       setNewCampus("");
@@ -119,7 +119,7 @@ const CampusPage: React.FC = () => {
   const handleUpdateCampus = async (id: number, updatedName: string) => {
     try {
       await updateCampusApi(id, updatedName);
-      setCampuses((prev) => prev.map((c) => (c.id === id ? { ...c, campus: updatedName } : c)));
+      setCampuses((prev) => prev.map((c) => (c.id === id ? { ...c, campus_name: updatedName } : c)));
       toast({ title: "Campus Updated", description: `Campus "${updatedName}" updated successfully.` });
     } catch (error) {
       toast({
@@ -170,12 +170,6 @@ const CampusPage: React.FC = () => {
                     }}
                   />
                 </div>
-                <Button variant="outline" size="icon">
-                  <FileDown className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                  <Printer className="h-4 w-4" />
-                </Button>
                 <Button onClick={() => setAddDialog(true)}>
                   <Plus className="mr-2 h-4 w-4" /> Add Campus
                 </Button>
