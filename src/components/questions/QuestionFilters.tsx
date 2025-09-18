@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 interface QuestionFiltersProps {
   filters: any;
   onFiltersChange: (filters: any) => void;
+  difficultyLevels: any;
 }
 
 export function QuestionFilters({
   filters,
   onFiltersChange,
+  difficultyLevels,
 }: QuestionFiltersProps) {
   const updateFilter = (key: string, value: any) => {
     onFiltersChange({
@@ -24,8 +26,6 @@ export function QuestionFilters({
       [key]: value,
     });
   };
-
- 
 
   const clearAllFilters = () => {
     onFiltersChange({
@@ -57,9 +57,11 @@ export function QuestionFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
-              <SelectItem value="easy">Easy</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="hard">Hard</SelectItem>
+              {difficultyLevels.map((lvl) => (
+                <SelectItem key={lvl.id} value={lvl.id.toString()}>
+                  {lvl.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

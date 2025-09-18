@@ -21,7 +21,7 @@ import { QuestionSetManager } from "@/components/questions/QuestionSetManager";
 export default function QuestionRepository() {
   const [activeTab, setActiveTab] = useState("list");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("")
    const [filters, setFilters] = useState({
     status: "All",
     difficulty_level: "All",
@@ -40,6 +40,7 @@ export default function QuestionRepository() {
     deleteQuestion,
     archiveQuestion,
     restoreQuestion,
+    difficultyLevels
   } = useQuestions(filters, searchTerm);
 
   useEffect(() => {
@@ -157,15 +158,14 @@ export default function QuestionRepository() {
           onValueChange={setActiveTab}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-5 my-6">
+          <TabsList className="grid w-full grid-cols-4 my-6">
             <TabsTrigger value="list">Questions</TabsTrigger>
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="sets">Sets</TabsTrigger>
+             <TabsTrigger value="import">Import</TabsTrigger>
             {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
             {/* <TabsTrigger value="history">History</TabsTrigger> */}
-            <TabsTrigger value="import">Import</TabsTrigger>
             {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
-              <TabsTrigger value='difficulty-levels'>Difficulty Levels</TabsTrigger>
           </TabsList>
 
           <TabsContent value="list" className="space-y-4">
@@ -199,6 +199,7 @@ export default function QuestionRepository() {
                 {showFilters && (
                   <div className="mb-6">
                     <QuestionFilters
+                      difficultyLevels={difficultyLevels}
                       filters={filters}
                       onFiltersChange={setFilters}
                     />
@@ -231,6 +232,7 @@ export default function QuestionRepository() {
               </CardHeader>
               <CardContent>
                 <QuestionEditor
+                  difficultyLevels={difficultyLevels}
                   question={selectedQuestion}
                   onSave={handleSaveQuestion}
                   onCancel={() => setActiveTab("list")}
@@ -302,17 +304,6 @@ export default function QuestionRepository() {
                 </CardContent>
               </Card>
             </TabsContent> */}
-
-          <TabsContent value="difficulty-levels">
-            <Card>
-              <CardHeader>
-                {/* <CardTitle>Difficulty Levels Management</CardTitle> */}
-              </CardHeader>
-              <CardContent>
-                <DifficultyLevelManager />
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
         {/* </div>
          */}

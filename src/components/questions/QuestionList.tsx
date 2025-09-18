@@ -99,7 +99,6 @@ export function QuestionList({
   return (
     <div className="space-y-4 h-[500px] overflow-y-auto ">
       {questions.map((question) => {
-        const statusLabel = getStatus(question.status);
         const difficulty = getDifficultyLabel(question.difficulty_level);
         return (
           <Card key={question.id}>
@@ -107,9 +106,6 @@ export function QuestionList({
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge className={getStatusColor(statusLabel)}>
-                      {statusLabel}
-                    </Badge>
                     <Badge className={difficulty.color}>
                       {difficulty.label}
                     </Badge>

@@ -1,67 +1,84 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { getQuestions ,createQuestion as apiCreateQuestion,updateQuestion as updateQuestionApi,getQuestionbyId,deleteQuestionbyId} from "@/utils/api";
+import { 
+  getQuestions, 
+  createQuestion as apiCreateQuestion, 
+  updateQuestion as updateQuestionApi, 
+  deleteQuestionbyId 
+} from "@/utils/api";
+import { difficultyLevelAPI } from "@/utils/difficultyLevelAPI";
 
 interface QuestionFilters {
   question_type?: string;
   difficulty_level?: string;
 }
 
+export interface DifficultyLevel {
+  id: number;
+  name: string;
+  points: number;
+}
+
 export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [difficultyLevels, setDifficultyLevels] = useState<DifficultyLevel[]>([]);
   const { toast } = useToast();
 
-  // need to modify the logic
-  const difficultyMap: Record<string | number, string> = {
-    1: "easy",
-    2: "medium",
-    3: "hard",
-    easy: "1",
-    medium: "2",
-    hard: "3",
-  };
+  // Fetch difficulty levels once
+  useEffect(() => {
+    const fetchLevels = async () => {
+      try {
+        const levelsRaw = await difficultyLevelAPI.getDifficultyLevels();
 
-  // const getQuestionTypeLabel = (type: string) => {
-  //   const labels: Record<string, string> = {
-  //     MCQ: "MCQ",
-  //     TrueFalse: "True/False",
-  //     ShortAnswer: "Short Answer",
-  //     LongAnswer: "Long Answer",
-  //     Coding: "Coding",
-  //     FillInBlank: "Fill in Blank",
-  //   };
-  //   return labels[type] || type;
-  // };
+        const arr = Array.isArray(levelsRaw.data?.data)
+          ? levelsRaw.data.data.map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              points: item.marks ?? 0,
+            }))
+          : [];
 
+        setDifficultyLevels(arr);
+      } catch (err) {
+        console.error("Failed to fetch difficulty levels:", err);
+        setDifficultyLevels([]); // fallback
+      }
+    };
+
+    fetchLevels();
+  }, []);
+
+  // Helper: get difficulty label by id
   const getDifficultyLabel = (level: number | string) => {
-    return difficultyMap[level] || "Unknown";
+    const lvl = difficultyLevels.find(
+      (l) => l.id === Number(level) || l.name.toLowerCase() === String(level).toLowerCase()
+    );
+    return lvl ? lvl.name.toLowerCase() : "unknown";
   };
 
   const fetchQuestions = async () => {
     try {
-      const data = await getQuestions(); 
       setLoading(true);
-      // Apply filters
+      const data = await getQuestions();
+
       const filtered = data.filter((q) => {
         const difficultyValue = getDifficultyLabel(q.difficulty_level);
-        // const questionType = getQuestionTypeLabel();
+
         if (
           filters.difficulty_level &&
           filters.difficulty_level !== "All" &&
-          difficultyValue !== filters.difficulty_level
+          String(q.difficulty_level) !== String(filters.difficulty_level)
         )
           return false;
+
         if (
           filters.question_type &&
           filters.question_type !== "All" &&
           q.question_type !== filters.question_type
-        ) {
-          
+        )
           return false;
-        }
 
-        // search
         if (
           searchTerm &&
           !q.english_text?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -72,7 +89,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       });
 
       setQuestions(filtered);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching questions:", error);
       toast({
         title: "Error",
@@ -87,8 +104,8 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   const createQuestion = async (questionData: any) => {
     try {
       await apiCreateQuestion(questionData);
-      await fetchQuestions(); // Refresh list after creation
-    } catch (error) {
+      await fetchQuestions();
+    } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to create question",
@@ -127,19 +144,19 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   };
 
   const archiveQuestion = async (id: string) => {
-
     await fetchQuestions();
   };
 
   const restoreQuestion = async (id: string) => {
-    
     await fetchQuestions();
   };
 
   useEffect(() => {
     fetchQuestions();
-  }, [filters, searchTerm]);
+  }, [filters, searchTerm]); 
 
+
+  console.log(difficultyLevels)
   return {
     questions,
     loading,
@@ -149,5 +166,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
     archiveQuestion,
     restoreQuestion,
     refetch: fetchQuestions,
+    difficultyLevels,
+    getDifficultyLabel,
   };
 }
