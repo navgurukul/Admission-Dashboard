@@ -148,7 +148,7 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+              <SelectItem value="MCQ">Multiple Choice</SelectItem>
               {/* <SelectItem value="true_false">True/False</SelectItem>
               <SelectItem value="short_answer">Short Answer</SelectItem>
               <SelectItem value="long_answer">Long Answer</SelectItem>
@@ -224,9 +224,9 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
       </div>
 
       {/* Options */}
-      {formData.question_type === "multiple_choice" && (
+      {formData.question_type === "MCQ" && (
         <QuestionOptionsEditor
-          questionType="multiple_choice"
+          questionType={formData.question_type}
           options={formData.options}
           correctAnswer={formData.correct_answer}
           onOptionsChange={(opts) => updateField("options", opts)}

@@ -47,24 +47,6 @@ export function QuestionFilters({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <Label>Status</Label>
-          <Select
-            value={filters.status || "All"}
-            onValueChange={(value) => updateFilter("status", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
           <Label>Difficulty</Label>
           <Select
             value={filters.difficulty_level || "All"}
@@ -93,8 +75,8 @@ export function QuestionFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
-              <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-              {/* Add more types as needed */}
+              <SelectItem value="MCQ">Multiple Choice</SelectItem>
+          
             </SelectContent>
           </Select>
         </div>

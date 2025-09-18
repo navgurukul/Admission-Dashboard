@@ -22,17 +22,17 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
     hard: "3",
   };
 
-  const getQuestionTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      MCQ: "multiple_choice",
-      TrueFalse: "True/False",
-      ShortAnswer: "Short Answer",
-      LongAnswer: "Long Answer",
-      Coding: "Coding",
-      FillInBlank: "Fill in Blank",
-    };
-    return labels[type] || type;
-  };
+  // const getQuestionTypeLabel = (type: string) => {
+  //   const labels: Record<string, string> = {
+  //     MCQ: "MCQ",
+  //     TrueFalse: "True/False",
+  //     ShortAnswer: "Short Answer",
+  //     LongAnswer: "Long Answer",
+  //     Coding: "Coding",
+  //     FillInBlank: "Fill in Blank",
+  //   };
+  //   return labels[type] || type;
+  // };
 
   const getDifficultyLabel = (level: number | string) => {
     return difficultyMap[level] || "Unknown";
@@ -45,7 +45,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       // Apply filters
       const filtered = data.filter((q) => {
         const difficultyValue = getDifficultyLabel(q.difficulty_level);
-        const questionType = getQuestionTypeLabel(q.question_type);
+        // const questionType = getQuestionTypeLabel();
         if (
           filters.difficulty_level &&
           filters.difficulty_level !== "All" &&
@@ -55,7 +55,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
         if (
           filters.question_type &&
           filters.question_type !== "All" &&
-          questionType !== filters.question_type
+          q.question_type !== filters.question_type
         ) {
           
           return false;
