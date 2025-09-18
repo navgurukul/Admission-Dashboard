@@ -22,12 +22,12 @@ export default function QuestionRepository() {
   const [activeTab, setActiveTab] = useState("list");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
-    status: 'active',
-    difficulty: '',
-    language: '',
-    tags: [],
-    question_type: ''
+   const [filters, setFilters] = useState({
+    status: "All",
+    difficulty_level: "All",
+    question_type: "All", 
+    topic: "",
+
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -39,8 +39,12 @@ export default function QuestionRepository() {
     updateQuestion,
     deleteQuestion,
     archiveQuestion,
-    restoreQuestion
+    restoreQuestion,
   } = useQuestions(filters, searchTerm);
+
+  useEffect(() => {
+    console.log("Updated questions:", questions);
+  }, [questions]);
 
   const handleCreateQuestion = () => {
     setSelectedQuestion(null);
@@ -66,7 +70,6 @@ export default function QuestionRepository() {
     try {
       if (selectedQuestion) {
         await updateQuestion(selectedQuestion.id, questionData);
-        setSelectedQuestion(null)
         toast({
           title: "Question Updated",
           description: "The question has been successfully updated."
@@ -211,7 +214,7 @@ export default function QuestionRepository() {
                   }}
                   // onEdit={handleEditQuestion}
                   // onPreview={handlePreviewQuestion}
-                  // onHistory={handleViewHistory}               
+                  // onHistory={handleViewHistory}
                   onArchive={handleArchiveQuestion}
                   onDelete={handleDeleteQuestion}
                 />
@@ -230,10 +233,7 @@ export default function QuestionRepository() {
                 <QuestionEditor
                   question={selectedQuestion}
                   onSave={handleSaveQuestion}
-                  onCancel={() => {
-                    setActiveTab("list")
-                    setSelectedQuestion(null)
-                  }}
+                  onCancel={() => setActiveTab("list")}
                 />
               </CardContent>
             </Card>

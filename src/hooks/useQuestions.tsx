@@ -3,45 +3,75 @@ import { useToast } from "@/hooks/use-toast";
 import { getQuestions ,createQuestion as apiCreateQuestion,updateQuestion as updateQuestionApi,getQuestionbyId,deleteQuestionbyId} from "@/utils/api";
 
 interface QuestionFilters {
-  status?: string;
-  difficulty?: string;
-  language?: string;
   question_type?: string;
-  tags?: string[];
+  difficulty_level?: string;
 }
+
 export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // need to modify the logic
+  const difficultyMap: Record<string | number, string> = {
+    1: "easy",
+    2: "medium",
+    3: "hard",
+    easy: "1",
+    medium: "2",
+    hard: "3",
+  };
+
+  const getQuestionTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      MCQ: "multiple_choice",
+      TrueFalse: "True/False",
+      ShortAnswer: "Short Answer",
+      LongAnswer: "Long Answer",
+      Coding: "Coding",
+      FillInBlank: "Fill in Blank",
+    };
+    return labels[type] || type;
+  };
+
+  const getDifficultyLabel = (level: number | string) => {
+    return difficultyMap[level] || "Unknown";
+  };
+
   const fetchQuestions = async () => {
     try {
-      const data = await getQuestions();
+      const data = await getQuestions(); 
       setLoading(true);
+      // Apply filters
+      const filtered = data.filter((q) => {
+        const difficultyValue = getDifficultyLabel(q.difficulty_level);
+        const questionType = getQuestionTypeLabel(q.question_type);
+        if (
+          filters.difficulty_level &&
+          filters.difficulty_level !== "All" &&
+          difficultyValue !== filters.difficulty_level
+        )
+          return false;
+        if (
+          filters.question_type &&
+          filters.question_type !== "All" &&
+          questionType !== filters.question_type
+        ) {
+          
+          return false;
+        }
 
-      // const filtered = data.filter((q) => {
-      //   if (filters.status && q.status !== filters.status) return false;
-      //   if (
-      //     filters.difficulty &&
-      //     q.difficulty_level?.toString() !== filters.difficulty
-      //   )
-      //     return false;
-      //   if (filters.language && q.language !== filters.language) return false;
-      //   if (filters.question_type && q.question_type !== filters.question_type)
-      //     return false;
+        // search
+        if (
+          searchTerm &&
+          !q.english_text?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+          return false;
 
-      //   if (
-      //     searchTerm &&
-      //     !q.english_text?.toLowerCase().includes(searchTerm.toLowerCase())
-      //   ) {
-      //     return false;
-      //   }
-      //   return true;
-      // });
+        return true;
+      });
 
-
-      // console.log(data)
-      setQuestions(data);
+      setQuestions(filtered);
     } catch (error) {
       console.error("Error fetching questions:", error);
       toast({
@@ -54,7 +84,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
     }
   };
 
-   const createQuestion = async (questionData: any) => {
+  const createQuestion = async (questionData: any) => {
     try {
       await apiCreateQuestion(questionData);
       await fetchQuestions(); // Refresh list after creation
@@ -70,9 +100,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
 
   const updateQuestion = async (id: number, data: any) => {
     try {
-      console.log("on_useQuestions",id,data)
       await updateQuestionApi(id, data);
-      console.log("successfuly ",id,data)
       await fetchQuestions();
     } catch (error: any) {
       toast({
@@ -104,7 +132,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   };
 
   const restoreQuestion = async (id: string) => {
- 
+    
     await fetchQuestions();
   };
 

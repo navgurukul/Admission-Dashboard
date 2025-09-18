@@ -32,8 +32,8 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
   const [difficultyOptions, setDifficultyOptions] = useState<DifficultyLevel[]>([]);
 
   const [formData, setFormData] = useState({
-    question_type: "multiple_choice",
-    difficulty_level: "",
+    question_type: "MCQ",
+    difficulty_level: null,
     points: 0,
     question_text: { english: "", hindi: "", marathi: "" },
     options: {
@@ -63,7 +63,7 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
         setFormData({
           question_type:
             question.question_type === "MCQ"
-              ? "multiple_choice"
+              ? "MCQ"
               : question.question_type.toLowerCase(),
           difficulty_level: question.difficulty_level?.toString() ?? "",
           points:
@@ -120,9 +120,7 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
     const payload = {
       difficulty_level: formData.difficulty_level,
       question_type:
-        formData.question_type === "multiple_choice"
-          ? "MCQ"
-          : formData.question_type.toUpperCase(),
+        formData.question_type === formData.question_type.toUpperCase(),
       english_text: formData.question_text.english,
       hindi_text: formData.question_text.hindi,
       marathi_text: formData.question_text.marathi,
