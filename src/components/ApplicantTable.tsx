@@ -86,7 +86,7 @@ const ApplicantTable = () => {
     },
   });
 
-  const allStudents = studentsData?.data || [];
+  const students = studentsData?.data || [];
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -128,7 +128,7 @@ const ApplicantTable = () => {
 
   // Map phone to mobile_no if mobile_no is missing
   const applicants = useMemo(() => {
-    return (allStudents || []).map((student: any) => {
+    return (students || []).map((student) => {
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
@@ -343,7 +343,7 @@ const ApplicantTable = () => {
             <CardDescription>
               {searchTerm
                 ? `${filteredApplicants.length} applicants found (filtered)`
-                : `${allStudents.length} total applicants`}
+                : `${students.length} total applicants`}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
