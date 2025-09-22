@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import Papa from 'papaparse';
+import React, { useState } from "react";
+import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,15 +8,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
-import { UploadCloud } from 'lucide-react';
-import { Progress } from "@/components/ui/progress"
-import { CheckCircle, AlertCircle } from 'lucide-react';
-import { supabase } from "@/integrations/supabase/client";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { UploadCloud } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle, AlertCircle } from "lucide-react";
 import { addApplicants } from "@/utils/localStorage";
+import { bulkUploadStudents } from "@/utils/api";
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -77,12 +76,12 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
     }
   };
 
-  const handleParse = () => {
+  const handleParse = async () => {
     if (!csvFile) {
       setError('Please select a CSV file.');
       return;
     }
-
+    await bulkUploadStudents(csvFile);
     setIsProcessing(true);
     Papa.parse(csvFile, {
       header: true,
@@ -103,8 +102,6 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
     if (!value || value.trim() === '') return null;
     
     const trimmedValue = value.trim();
-    console.log('Parsing numeric value:', trimmedValue);
-    
     // Handle fractional format like "18/25"
     if (trimmedValue.includes('/')) {
       const parts = trimmedValue.split('/');
@@ -138,55 +135,45 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
         console.log(`Processing row ${index + 1}:`, row);
         
         const processedRow = {
-          mobile_no: row.mobile_no?.toString() || '',
-          unique_number: row.unique_number?.toString() || null,
-          name: row.name || null,
-          city: row.city || null,
-          block: row.block || null,
-          caste: row.caste || null,
-          gender: row.gender || null,
-          qualification: row.qualification || null,
-          current_work: row.current_work || null,
-          qualifying_school: row.qualifying_school || null,
-          whatsapp_number: row.whatsapp_number?.toString() || null,
-          set_name: row.set_name || null,
-          exam_centre: row.exam_centre || null,
-          date_of_testing: row.date_of_testing || null,
-          lr_status: row.lr_status || null,
-          lr_comments: row.lr_comments || null,
-          cfr_status: row.cfr_status || null,
-          cfr_comments: row.cfr_comments || null,
-          final_marks: parseNumericValue(row.final_marks?.toString()),
-          offer_letter_status: row.offer_letter_status || null,
-          allotted_school: row.allotted_school || null,
-          joining_status: row.joining_status || null,
-          final_notes: row.final_notes || null,
-          triptis_notes: row.triptis_notes || null,
+          mobile_no: row["Mobile No."]?.toString() || "",
+          unique_number: row["Unique Number"]?.toString() || null, // if exists
+          name: row["Name"] || null,
+          city: row["City"] || null,
+          block: row["Block"] || null,
+          caste: row["Caste"] || null,
+          gender: row["Gender"] || null,
+          qualification: row["Qualification"] || null,
+          current_work: row["Current Work"] || null,
+          qualifying_school: row["Qualifying SOP/SOB"] || null,
+          whatsapp_number: row["WA NO."]?.toString() || null,
+          set_name: row["Set"] || null,
+          exam_centre: row["Offline Exam Centre"] || null,
+          date_of_testing: row["Date of Testing"] || null,
+          final_marks: parseNumericValue(row["Final Marks"]?.toString()),
+          // Optional fields (comment if not needed)
+          // lr_status: row["LR Status"] || null,
+          // lr_comments: row["LR Comments"] || null,
+          // cfr_status: row["CFR Status"] || null,
+          // cfr_comments: row["CFR Comments"] || null,
+          final_notes: row["Final Notes"] || null,
+          triptis_notes: row["Triptis Notes"] || null,
         };
 
-        console.log(`Processed row ${index + 1} final_marks:`, processedRow.final_marks);
+        console.log(
+          `Processed row ${index + 1} final_marks:`,
+          processedRow.final_marks
+        );
         return processedRow;
       });
-
-      console.log('Sending to Supabase:', processedData.slice(0, 2)); // Log first 2 rows
 
       // Save to localStorage first
       addApplicants(processedData);
 
-      // Since we removed the unique constraint on mobile_no, we can use regular insert
-      // instead of upsert to allow duplicates
-      const { error } = await supabase
-        .from('admission_dashboard')
-        .insert(processedData);
-
-      if (error) {
-        console.warn('Supabase insert failed, but data saved to localStorage:', error);
-      }
-
-      setSuccessCount(processedData.length);
-      setShowSuccess(true);
-      // Immediately update the UI
-      onSuccess();
+    
+       
+        setSuccessCount(processedData.length);
+        setShowSuccess(true);
+        onSuccess();
     } catch (error) {
       console.error('Import error:', error);
       setError(error instanceof Error ? error.message : 'Unknown error occurred');

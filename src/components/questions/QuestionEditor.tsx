@@ -13,13 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Save, X } from "lucide-react";
 import { QuestionOptionsEditor } from "./QuestionOptionsEditor";
-import { difficultyLevelAPI } from "@/utils/difficultyLevelAPI";
-
-interface QuestionEditorProps {
-  question?: any;
-  onSave: (questionData: any) => void;
-  onCancel: () => void;
-}
+import { useToast } from "@/hooks/use-toast";
 
 interface DifficultyLevel {
   id: number;
@@ -27,12 +21,23 @@ interface DifficultyLevel {
   points: number;
 }
 
-export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorProps) {
-  
-  const [difficultyOptions, setDifficultyOptions] = useState<DifficultyLevel[]>([]);
+interface QuestionEditorProps {
+  question?: any;
+  onSave: (questionData: any) => void;
+  onCancel: () => void;
+  difficultyLevels: DifficultyLevel[];
+}
+
+export function QuestionEditor({
+  question,
+  onSave,
+  onCancel,
+  difficultyLevels,
+}: QuestionEditorProps) {
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    question_type: "multiple_choice",
+    question_type: "MCQ",
     difficulty_level: "",
     points: 0,
     question_text: { english: "", hindi: "", marathi: "" },
@@ -46,71 +51,127 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
   });
 
   useEffect(() => {
-    async function fetchDifficultyLevels() {
-      try {
-        const levelsRaw = await difficultyLevelAPI.getDifficultyLevels();
-        const arr = Array.isArray(levelsRaw.data?.data)
-          ? levelsRaw.data.data.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              points: item.marks ?? 0,
-            }))
-          : [];
-        setDifficultyOptions(arr);
+    if (!question) return;
 
-        // Pre-select difficulty if editing
+    const level = difficultyLevels.find(
+      (lvl) => lvl.id === question.difficulty_level
+    );
 
-        if (question?.difficulty_level) {
-          const match = arr.find(
-            (lvl) => lvl.id.toString() === question.difficulty_level?.toString()
-          );
-          if (match) {
-            setFormData((p) => ({
-              ...p,
-              difficulty_level: match.id.toString(),
-            }));
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch difficulty levels:", err);
-        setDifficultyOptions([]);
-      }
-    }
+    setFormData({
+      question_type: question.question_type ?? "MCQ",
+      difficulty_level: question.difficulty_level?.toString() ?? "",
+      points: level?.points ?? 0,
+      question_text: {
+        english: question.english_text ?? "",
+        hindi: question.hindi_text ?? "",
+        marathi: question.marathi_text ?? "",
+      },
+      options: {
+        english: question.english_options ?? ["", "", "", ""],
+        hindi: question.hindi_options ?? ["", "", "", ""],
+        marathi: question.marathi_options ?? ["", "", "", ""],
+      },
+      correct_answer: question.answer_key?.[0] ?? 0,
+      explanation: question.explanation ?? "",
+    });
+  }, [question, difficultyLevels]);
 
-    fetchDifficultyLevels();
-  }, [question]);
-
-  const updateField = (field: string, value: any) => {
+  const updateField = (field: string, value: any) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
   const updateQuestionText = (
     lang: "english" | "hindi" | "marathi",
     value: string
-  ) => {
+  ) =>
     setFormData((prev) => ({
       ...prev,
       question_text: { ...prev.question_text, [lang]: value },
     }));
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Ensure at least one language has content
-    if (
-      !formData.question_text.english.trim() &&
-      !formData.question_text.hindi.trim() &&
-      !formData.question_text.marathi.trim()
-    )
+    // Validate question type & difficulty
+    if (!formData.question_type) {
+      toast({
+        title: "Validation Error",
+        description: "Select a question type",
+        variant: "destructive",
+      });
       return;
+    }
+
+    if (!formData.difficulty_level) {
+      toast({
+        title: "Validation Error",
+        description: "Select difficulty level",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate question text
+    if (!formData.question_text.english.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Enter question text in English",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.question_text.hindi.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Enter question text in Hindi",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.question_text.marathi.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Enter question text in Marathi",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate MCQ options
+    if (formData.question_type === "MCQ") {
+      const { english, hindi, marathi } = formData.options;
+      const hasEmptyOption =
+        english.some((o) => !o.trim()) ||
+        hindi.some((o) => !o.trim()) ||
+        marathi.some((o) => !o.trim());
+
+      if (hasEmptyOption) {
+        toast({
+          title: "Validation Error",
+          description: "All MCQ options must be filled in all languages",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate correct answer
+      if (
+        formData.correct_answer === null ||
+        formData.correct_answer === undefined
+      ) {
+        toast({
+          title: "Validation Error",
+          description: "Select the correct answer",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     const payload = {
       difficulty_level: formData.difficulty_level,
-      question_type:
-        formData.question_type === "multiple_choice"
-          ? "MCQ"
-          : formData.question_type.toUpperCase(),
+      question_type: formData.question_type,
       english_text: formData.question_text.english,
       hindi_text: formData.question_text.hindi,
       marathi_text: formData.question_text.marathi,
@@ -135,15 +196,10 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
             onValueChange={(v) => updateField("question_type", v)}
           >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-              <SelectItem value="true_false">True/False</SelectItem>
-              <SelectItem value="short_answer">Short Answer</SelectItem>
-              <SelectItem value="long_answer">Long Answer</SelectItem>
-              <SelectItem value="coding">Coding</SelectItem>
-              <SelectItem value="fill_in_blank">Fill in the Blank</SelectItem>
+              <SelectItem value="MCQ">Multiple Choice</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -154,18 +210,17 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
             value={formData.difficulty_level}
             onValueChange={(v) => {
               updateField("difficulty_level", v);
-
-              const level = difficultyOptions.find(
+              const level = difficultyLevels.find(
                 (lvl) => lvl.id.toString() === v
               );
-              if (level) updateField("points", level.points); //  set points
+              if (level) updateField("points", level.points);
             }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select difficulty" />
             </SelectTrigger>
             <SelectContent>
-              {difficultyOptions.map((level) => (
+              {difficultyLevels.map((level) => (
                 <SelectItem key={level.id} value={level.id.toString()}>
                   {level.name}
                 </SelectItem>
@@ -214,9 +269,9 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
       </div>
 
       {/* Options */}
-      {formData.question_type === "multiple_choice" && (
+      {formData.question_type === "MCQ" && (
         <QuestionOptionsEditor
-          questionType="multiple_choice"
+          questionType={formData.question_type}
           options={formData.options}
           correctAnswer={formData.correct_answer}
           onOptionsChange={(opts) => updateField("options", opts)}
@@ -241,7 +296,7 @@ export function QuestionEditor({ question, onSave, onCancel,}: QuestionEditorPro
           <X className="w-4 h-4 mr-2" /> Cancel
         </Button>
         <Button type="submit">
-          <Save className="w-4 h-4 mr-2" />{" "}
+          <Save className="w-4 h-4 mr-2" />
           {question ? "Update Question" : "Create Question"}
         </Button>
       </div>

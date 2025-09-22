@@ -179,12 +179,6 @@ const SchoolPage = () => {
                     }}
                   />
                 </div>
-                <Button variant="outline" size="icon">
-                  <FileDown className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="icon">
-                  <Printer className="h-4 w-4" />
-                </Button>
                 <Button onClick={() => setAddDialog(true)}>
                   <Plus className="mr-2 h-4 w-4" /> Add School
                 </Button>

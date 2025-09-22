@@ -79,7 +79,7 @@ export function QuestionOptionsEditor({
     onCorrectAnswerChange(value as any);
   };
 
-  if (questionType === 'multiple_choice') {
+  if (questionType === 'MCQ') {
     return (
       <Card>
         <CardHeader>
