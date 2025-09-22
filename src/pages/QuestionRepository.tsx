@@ -235,7 +235,10 @@ export default function QuestionRepository() {
                   difficultyLevels={difficultyLevels}
                   question={selectedQuestion}
                   onSave={handleSaveQuestion}
-                  onCancel={() => setActiveTab("list")}
+                  onCancel={() => {
+                      setActiveTab("list")
+                      setSelectedQuestion(null);
+                  }}
                 />
               </CardContent>
             </Card>

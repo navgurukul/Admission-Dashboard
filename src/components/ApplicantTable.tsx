@@ -152,10 +152,11 @@ const ApplicantTable = () => {
     if (!searchTerm) return applicants;
 
     const searchRegex = new RegExp(searchTerm, "i");
-    return applicants.filter((a) =>
-      searchRegex.test(a.name || "") ||
-      searchRegex.test(a.mobile_no || "") ||
-      searchRegex.test(a.unique_number || "")
+    return applicants.filter(
+      (a) =>
+        searchRegex.test(a.name || "") ||
+        searchRegex.test(a.mobile_no || "") ||
+        searchRegex.test(a.unique_number || "")
     );
   }, [applicants, searchTerm]);
 
@@ -175,8 +176,7 @@ const ApplicantTable = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const handlePrevPage = () =>
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
@@ -253,25 +253,34 @@ const ApplicantTable = () => {
     }
 
     const headers = [
-      "phone_number",
-      "whatsapp_number",
+      // Personal Information
       "first_name",
       "middle_name",
       "last_name",
       "dob",
       "gender",
       "email",
+      "phone_number",
+      "whatsapp_number",
+      "image",
+
+      // Address Information
       "state",
       "district",
       "city",
       "pin_code",
-      "current_status_id",
-      "qualification_id",
+
+      // Academic / School Information
       "school_medium",
+      "qualification_id",
+      "allotted_school",
+
+      // Caste / Religion
       "cast_id",
       "religion_id",
-      "image",
-      "triptis_notes",
+
+      // Status Information
+      "current_status_id",
       "lr_status",
       "lr_comments",
       "cfr_status",
@@ -279,9 +288,11 @@ const ApplicantTable = () => {
       "decision_status",
       "offer_letter_status",
       "joining_status",
-      "allotted_school",
-      "final_notes",
       "status",
+
+      // Additional Notes
+      "triptis_notes",
+      "final_notes",
     ];
 
     const csvContent = [
@@ -456,9 +467,8 @@ const ApplicantTable = () => {
             {filteredApplicants.length === 0
               ? 0
               : (currentPage - 1) * itemsPerPage + 1}
-            –
-            {Math.min(currentPage * itemsPerPage, filteredApplicants.length)} of{" "}
-            {filteredApplicants.length}
+            –{Math.min(currentPage * itemsPerPage, filteredApplicants.length)}{" "}
+            of {filteredApplicants.length}
           </p>
           <div className="flex gap-2">
             <button
