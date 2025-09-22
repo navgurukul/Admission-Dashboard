@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -71,22 +70,21 @@ const ApplicantTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Fetch all students at once
   const {
     data: studentsData,
     isLoading: isStudentsLoading,
     refetch: refetchStudents,
   } = useQuery({
-    queryKey: ["students", currentPage],
+    queryKey: ["students"],
     queryFn: async () => {
-      const res = await getStudents(currentPage, itemsPerPage);
+      const res = await getStudents(); // should return all data
       console.log("Fetched data:", res);
       return res;
     },
   });
 
-  // Extract students array and total count from the response
-  const students = studentsData?.data || [];
-  const totalCount = studentsData?.totalCount || 0;
+  const allStudents = studentsData?.data || [];
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -126,7 +124,7 @@ const ApplicantTable = () => {
 
   // Map phone to mobile_no if mobile_no is missing
   const applicants = useMemo(() => {
-    return (students || []).map((student) => {
+    return (allStudents || []).map((student: any) => {
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
@@ -146,46 +144,41 @@ const ApplicantTable = () => {
           : "N/A",
       };
     });
-  }, [students, schoolList, campusList, currentstatusList]);
+  }, [allStudents, schoolList, campusList, currentstatusList]);
 
-  // For client-side search filtering (if needed)
+  // Filter by search
   const filteredApplicants = useMemo(() => {
     if (!applicants) return [];
-    
     if (!searchTerm) return applicants;
 
     const searchRegex = new RegExp(searchTerm, "i");
-    return applicants.filter((applicant) => {
-      return (
-        searchRegex.test(applicant.name || "") ||
-        searchRegex.test(applicant.mobile_no) ||
-        searchRegex.test(applicant.unique_number || "")
-      );
-    });
+    return applicants.filter(
+      (a) =>
+        searchRegex.test(a.name || "") ||
+        searchRegex.test(a.mobile_no || "") ||
+        searchRegex.test(a.unique_number || "")
+    );
   }, [applicants, searchTerm]);
 
-  // For display - use filtered applicants if searching, otherwise use paginated data from server
-  const displayApplicants = searchTerm ? filteredApplicants : applicants;
-  
-  // Calculate total pages based on whether we're searching or not
-  const totalPages = searchTerm 
-    ? Math.ceil(filteredApplicants.length / itemsPerPage) || 1
-    : Math.ceil(totalCount / itemsPerPage) || 1;
+  // Slice data for the current page
+  const paginatedApplicants = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredApplicants.slice(start, end);
+  }, [filteredApplicants, currentPage, itemsPerPage]);
 
-  // Reset page when search changes
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredApplicants.length / itemsPerPage)
+  );
+
   useEffect(() => {
-    if (searchTerm) {
-      setCurrentPage(1);
-    }
+    setCurrentPage(1);
   }, [searchTerm]);
 
-  const handlePrevPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
-  };
-
-  const handleNextPage = () => {
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  };
 
   const handleCheckboxChange = useCallback((id: string) => {
     setSelectedRows((prevSelected) =>
@@ -195,19 +188,18 @@ const ApplicantTable = () => {
     );
   }, []);
 
-  // Function to refresh data from both localStorage and database
   const refreshData = useCallback(() => {
     setCurrentPage(1);
     refetchStudents();
   }, [refetchStudents]);
 
   const handleSelectAllRows = useCallback(() => {
-    if (displayApplicants.length === selectedRows.length) {
+    if (paginatedApplicants.length === selectedRows.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(displayApplicants.map((applicant) => applicant.id));
+      setSelectedRows(paginatedApplicants.map((a) => a.id));
     }
-  }, [displayApplicants, selectedRows.length]);
+  }, [paginatedApplicants, selectedRows.length]);
 
   const handleBulkDelete = async () => {
     if (selectedRows.length === 0) {
@@ -218,14 +210,11 @@ const ApplicantTable = () => {
       });
       return;
     }
-
     try {
-          await Promise.all(selectedRows.map((id) => deleteUser(id)));
-
+      await Promise.all(selectedRows.map((id) => deleteUser(id)));
       toast({
         title: "Applicants Deleted",
-        description:
-          "Successfully deleted selected applicants from DB",
+        description: "Successfully deleted selected applicants",
       });
       setSelectedRows([]);
       refreshData();
@@ -246,7 +235,6 @@ const ApplicantTable = () => {
         description: "Please select applicants to send offer letters to",
         variant: "destructive",
       });
-      return;
     }
   };
 
@@ -265,25 +253,34 @@ const ApplicantTable = () => {
     }
 
     const headers = [
-      "phone_number",
-      "whatsapp_number",
+      // Personal Information
       "first_name",
       "middle_name",
       "last_name",
       "dob",
       "gender",
       "email",
+      "phone_number",
+      "whatsapp_number",
+      "image",
+
+      // Address Information
       "state",
       "district",
       "city",
       "pin_code",
-      "current_status_id",
-      "qualification_id",
+
+      // Academic / School Information
       "school_medium",
+      "qualification_id",
+      "allotted_school",
+
+      // Caste / Religion
       "cast_id",
       "religion_id",
-      "image",
-      "triptis_notes",
+
+      // Status Information
+      "current_status_id",
       "lr_status",
       "lr_comments",
       "cfr_status",
@@ -291,20 +288,22 @@ const ApplicantTable = () => {
       "decision_status",
       "offer_letter_status",
       "joining_status",
-      "allotted_school",
-      "final_notes",
       "status",
+
+      // Additional Notes
+      "triptis_notes",
+      "final_notes",
     ];
 
     const csvContent = [
       headers.join(","),
-      ...filteredApplicants.map((applicant) =>
+      ...filteredApplicants.map((applicant: any) =>
         headers
           .map((header) => {
             const value = applicant[header];
             if (value === null || value === undefined) return "";
-            const stringValue = String(value);
-            return stringValue.includes(",") ? `"${stringValue}"` : stringValue;
+            const s = String(value);
+            return s.includes(",") ? `"${s}"` : s;
           })
           .join(",")
       ),
@@ -336,10 +335,9 @@ const ApplicantTable = () => {
           <div>
             <CardTitle>Applicants</CardTitle>
             <CardDescription>
-              {searchTerm 
-                ? `${filteredApplicants?.length || 0} applicants found (filtered)`
-                : `${totalCount} total applicants`
-              }
+              {searchTerm
+                ? `${filteredApplicants.length} applicants found (filtered)`
+                : `${allStudents.length} total applicants`}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -381,37 +379,29 @@ const ApplicantTable = () => {
                   <TableHead className="w-12 font-bold">
                     <Checkbox
                       checked={
-                        displayApplicants.length > 0 &&
-                        selectedRows.length === displayApplicants.length
+                        paginatedApplicants.length > 0 &&
+                        selectedRows.length === paginatedApplicants.length
                       }
                       onCheckedChange={handleSelectAllRows}
                       aria-label="Select all applicants"
                     />
                   </TableHead>
-
-                  {/* Profile Image */}
                   <TableHead className="font-bold w-16">Image</TableHead>
-
                   <TableHead className="font-bold min-w-[200px] max-w-[250px]">
                     Full Name
                   </TableHead>
-
                   <TableHead className="font-bold min-w-[140px] max-w-[180px]">
                     Phone Number
                   </TableHead>
-
                   <TableHead className="font-bold min-w-[140px] max-w-[180px]">
                     WhatsApp Number
                   </TableHead>
-
                   <TableHead className="font-bold min-w-[120px] max-w-[160px]">
                     Gender
                   </TableHead>
-
                   <TableHead className="font-bold min-w-[120px] max-w-[160px]">
                     City
                   </TableHead>
-
                   <TableHead className="font-bold min-w-[180px] max-w-[220px]">
                     State
                   </TableHead>
@@ -443,7 +433,7 @@ const ApplicantTable = () => {
                       Loading applicants...
                     </TableCell>
                   </TableRow>
-                ) : displayApplicants.length === 0 ? (
+                ) : paginatedApplicants.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={13}
@@ -453,7 +443,7 @@ const ApplicantTable = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayApplicants.map((applicant) => (
+                  paginatedApplicants.map((applicant) => (
                     <ApplicantTableRow
                       key={applicant.id}
                       applicant={applicant}
@@ -473,10 +463,12 @@ const ApplicantTable = () => {
 
         <div className="flex justify-between items-center mt-4">
           <p className="text-sm text-muted-foreground">
-            {searchTerm 
-              ? `Showing ${Math.min((currentPage - 1) * itemsPerPage + 1, filteredApplicants.length)} - ${Math.min(currentPage * itemsPerPage, filteredApplicants.length)} of ${filteredApplicants.length} filtered results`
-              : `Page ${currentPage} of ${totalPages} (${totalCount} total applicants)`
-            }
+            Showing{" "}
+            {filteredApplicants.length === 0
+              ? 0
+              : (currentPage - 1) * itemsPerPage + 1}
+            –{Math.min(currentPage * itemsPerPage, filteredApplicants.length)}{" "}
+            of {filteredApplicants.length}
           </p>
           <div className="flex gap-2">
             <button
@@ -517,7 +509,7 @@ const ApplicantTable = () => {
         onClose={() => setShowAdvancedFilters(false)}
         onApplyFilters={handleApplyFilters}
         currentFilters={filters}
-        students={displayApplicants}
+        students={paginatedApplicants}
       />
 
       <BulkUpdateModal
