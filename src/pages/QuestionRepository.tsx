@@ -4,7 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Upload, Archive, Edit, Trash2, Eye, History } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Filter,
+  Upload,
+  Archive,
+  Edit,
+  Trash2,
+  Eye,
+  History,
+} from "lucide-react";
 import { QuestionEditor } from "@/components/questions/QuestionEditor";
 import { QuestionList } from "@/components/questions/QuestionList";
 import { QuestionBulkImport } from "@/components/questions/QuestionBulkImport";
@@ -23,11 +33,10 @@ export default function QuestionRepository() {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
-    status: 'active',
-    difficulty: '',
-    language: '',
-    tags: [],
-    question_type: ''
+    status: "All",
+    difficulty_level: "All",
+    question_type: "All",
+    topic: "",
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -39,27 +48,32 @@ export default function QuestionRepository() {
     updateQuestion,
     deleteQuestion,
     archiveQuestion,
-    restoreQuestion
+    restoreQuestion,
+    difficultyLevels,
   } = useQuestions(filters, searchTerm);
+
+  useEffect(() => {
+    console.log("Updated questions:", questions);
+  }, [questions]);
 
   const handleCreateQuestion = () => {
     setSelectedQuestion(null);
-    setActiveTab('editor');
+    setActiveTab("editor");
   };
 
   const handleEditQuestion = (question) => {
     setSelectedQuestion(question);
-    setActiveTab('editor');
+    setActiveTab("editor");
   };
 
   const handlePreviewQuestion = (question) => {
     setSelectedQuestion(question);
-    setActiveTab('preview');
+    setActiveTab("preview");
   };
 
   const handleViewHistory = (question) => {
     setSelectedQuestion(question);
-    setActiveTab('history');
+    setActiveTab("history");
   };
 
   const handleSaveQuestion = async (questionData) => {
@@ -68,22 +82,22 @@ export default function QuestionRepository() {
         await updateQuestion(selectedQuestion.id, questionData);
         toast({
           title: "Question Updated",
-          description: "The question has been successfully updated."
+          description: "The question has been successfully updated.",
         });
       } else {
         await createQuestion(questionData);
         toast({
           title: "Question Created",
-          description: "The question has been successfully created."
+          description: "The question has been successfully created.",
         });
       }
-      setActiveTab('list');
+      setActiveTab("list");
       setSelectedQuestion(null);
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to save question",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -93,13 +107,13 @@ export default function QuestionRepository() {
       await archiveQuestion(questionId);
       toast({
         title: "Question Archived",
-        description: "The question has been archived successfully."
+        description: "The question has been archived successfully.",
       });
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to archive question",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -109,25 +123,26 @@ export default function QuestionRepository() {
       await deleteQuestion(questionId);
       toast({
         title: "Question Deleted",
-        description: "The question has been permanently deleted."
+        description: "The question has been permanently deleted.",
       });
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to delete question",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   return (
-    
     <div className="min-h-screen bg-background">
-          <AdmissionsSidebar/>
+      <AdmissionsSidebar />
       <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 ">
           <div>
-              <h1 className="text-3xl font-bold tracking-tight">Question Repository</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Question Repository
+            </h1>
             <p className="text-muted-foreground">
               Manage and organize assessment questions for admissions screening
             </p>
@@ -135,13 +150,16 @@ export default function QuestionRepository() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-                onClick={() => setActiveTab('import')}
+              onClick={() => setActiveTab("import")}
               className="flex items-center gap-2"
             >
               <Upload className="w-4 h-4" />
               Bulk Import
             </Button>
-              <Button onClick={handleCreateQuestion} className="flex items-center gap-2">
+            <Button
+              onClick={handleCreateQuestion}
+              className="flex items-center gap-2"
+            >
               <Plus className="w-4 h-4" />
               New Question
             </Button>
@@ -153,15 +171,14 @@ export default function QuestionRepository() {
           onValueChange={setActiveTab}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-5 my-6">
+          <TabsList className="grid w-full grid-cols-4 my-6">
             <TabsTrigger value="list">Questions</TabsTrigger>
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="sets">Sets</TabsTrigger>
+            <TabsTrigger value="import">Import</TabsTrigger>
             {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
             {/* <TabsTrigger value="history">History</TabsTrigger> */}
-            <TabsTrigger value="import">Import</TabsTrigger>
             {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
-              <TabsTrigger value='difficulty-levels'>Difficulty Levels</TabsTrigger>
           </TabsList>
 
           <TabsContent value="list" className="space-y-4">
@@ -191,29 +208,29 @@ export default function QuestionRepository() {
                   </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col h-[620px]">
                 {showFilters && (
                   <div className="mb-6">
                     <QuestionFilters
+                      difficultyLevels={difficultyLevels}
                       filters={filters}
                       onFiltersChange={setFilters}
                     />
                   </div>
                 )}
 
-                <QuestionList
-                  questions={questions}
-                  loading={loading}
-                  onEdit={(q) => {
-                    handleEditQuestion(q);
-                    setActiveTab("editor");
-                  }}
-                  // onEdit={handleEditQuestion}
-                  // onPreview={handlePreviewQuestion}
-                  // onHistory={handleViewHistory}
-                  onArchive={handleArchiveQuestion}
-                  onDelete={handleDeleteQuestion}
-                />
+                <div className="flex-1 overflow-auto">
+                  <QuestionList
+                    questions={questions}
+                    loading={loading}
+                    onEdit={(q) => {
+                      handleEditQuestion(q);
+                      setActiveTab("editor");
+                    }}
+                    onArchive={handleArchiveQuestion}
+                    onDelete={handleDeleteQuestion}
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -227,9 +244,13 @@ export default function QuestionRepository() {
               </CardHeader>
               <CardContent>
                 <QuestionEditor
+                  difficultyLevels={difficultyLevels}
                   question={selectedQuestion}
                   onSave={handleSaveQuestion}
-                  onCancel={() => setActiveTab("list")}
+                  onCancel={() => {
+                    setActiveTab("list");
+                    setSelectedQuestion(null);
+                  }}
                 />
               </CardContent>
             </Card>
@@ -252,7 +273,7 @@ export default function QuestionRepository() {
                 </CardHeader>
                 <CardContent>
                   {selectedQuestion ? (
-                    <QuestionPreview question={selectedQuestion} />
+                    <QuestionPreview question={QuestionFiltersselectedQuestion} />
                   ) : (
                     <p className="text-muted-foreground">Select a question to preview</p>
                   )}
@@ -298,17 +319,6 @@ export default function QuestionRepository() {
                 </CardContent>
               </Card>
             </TabsContent> */}
-
-          <TabsContent value="difficulty-levels">
-            <Card>
-              <CardHeader>
-                {/* <CardTitle>Difficulty Levels Management</CardTitle> */}
-              </CardHeader>
-              <CardContent>
-                <DifficultyLevelManager />
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
         {/* </div>
          */}

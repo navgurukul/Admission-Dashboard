@@ -97,9 +97,8 @@ export function QuestionList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 h-[600px] overflow-y-auto ">
       {questions.map((question) => {
-        const statusLabel = getStatus(question.status);
         const difficulty = getDifficultyLabel(question.difficulty_level);
         return (
           <Card key={question.id}>
@@ -107,9 +106,6 @@ export function QuestionList({
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge className={getStatusColor(statusLabel)}>
-                      {statusLabel}
-                    </Badge>
                     <Badge className={difficulty.color}>
                       {difficulty.label}
                     </Badge>
@@ -157,9 +153,17 @@ export function QuestionList({
                     <Edit className="w-4 h-4" />
                   </Button>
 
+                   <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(question.id)}
+                      title="Delete Permanently"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   
-                  
-                  {question.status ? (
+                  {/* {question.status ? (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -169,16 +173,8 @@ export function QuestionList({
                       <Archive className="w-4 h-4" />
                     </Button>
                   ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(question.id)}
-                      title="Delete Permanently"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                   
+                  )} */}
                 </div>
               </div>
             </CardContent>

@@ -1,3 +1,4 @@
+import { get } from "http";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -45,7 +46,7 @@ export interface User {
   email: string;
   mobile?: string;
   user_name: string;
-  role_id: number;
+  user_role_id: number;
   status: boolean;
   created_at: string;
   updated_at: string;
@@ -115,6 +116,7 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
   }
 
   return data;
+  
 };
 
 // Get user by ID
@@ -197,6 +199,26 @@ export const deleteUser = async (id: string): Promise<void> => {
     throw new Error(data.message || 'Failed to delete user');
   }
 };
+
+
+
+export const bulkUploadStudents = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file); 
+
+   const res = await fetch(
+    "https://dev-new-admissions.navgurukul.org/api/v1/students/bulkUploadStudents",
+    { method: "POST", body: formData }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Upload failed: ${res.status} ${text}`);
+  }
+
+  return res.json();
+};
+
 
 export interface CreateRoleData {
   name: string;
@@ -754,8 +776,51 @@ export const getQuestions = async (): Promise<Question[]> => {
   }
 };
 
+// delete question by id
+export const deleteQuestionbyId = async (id: number)=> {
+  const response = await fetch(`${BASE_URL}/questions/deleteQuestions/${id}`, {
+    method: 'DELETE',
+   
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete question');
+  }
+};
 
 
+// delete question by id
+export const getQuestionbyId = async (id: number)=> {
+  const response = await fetch(`${BASE_URL}/questions/getQuestionsById/${id}`, {
+    method: 'GET',
+   
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete question');
+  }
+};
+
+
+// Update Question
+export const updateQuestion = async (
+  id: number,
+  questionData: Partial<CreateQuestionData>
+): Promise<Question> => {
+  const response = await fetch(`${BASE_URL}/questions/updateQuestions/${id}`, {
+    method: "PUT",              
+    headers: getAuthHeaders(),
+    body: JSON.stringify(questionData),
+  });
+
+  const data = await response.json();
+  console.log("on api",data)
+  if (!response.ok) throw new Error(data.message || "Failed to update question");
+
+  return data.data as Question;
+};
 
 
 // Stage Management API
