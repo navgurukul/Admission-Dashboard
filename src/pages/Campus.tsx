@@ -1,4 +1,3 @@
-
 // CampusPage.tsx
 import React, { useEffect, useState } from "react";
 import { AdmissionsSidebar } from "../components/AdmissionsSidebar";
@@ -240,14 +239,35 @@ const CampusPage: React.FC = () => {
                   </Table>
                 </div>
 
+                {/* Pagination Footer */}
                 <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-2">
-                  <Button variant="outline" onClick={handlePrevPage} disabled={currentPage === 1}>
-                    Previous
-                  </Button>
-                  <p>Page {currentPage} of {Math.max(totalPages, 1)}</p>
-                  <Button variant="outline" onClick={handleNextPage} disabled={currentPage === Math.max(totalPages, 1)}>
-                    Next
-                  </Button>
+                  {/* Showing items range */}
+                  <p className="text-sm text-muted-foreground">
+                    Showing{" "}
+                    {filteredCampuses.length === 0 ? 0 : indexOfFirstItem + 1} –{" "}
+                    {Math.min(indexOfLastItem, filteredCampuses.length)} of{" "}
+                    {filteredCampuses.length}
+                  </p>
+
+                  {/* Pagination buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages || totalPages === 0}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               </>
             )}
