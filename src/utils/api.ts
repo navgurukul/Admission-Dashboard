@@ -46,7 +46,7 @@ export interface User {
   email: string;
   mobile?: string;
   user_name: string;
-  role_id: number;
+  user_role_id: number;
   status: boolean;
   created_at: string;
   updated_at: string;
@@ -116,6 +116,7 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
   }
 
   return data;
+  
 };
 
 // Get user by ID
