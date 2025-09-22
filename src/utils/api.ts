@@ -199,6 +199,26 @@ export const deleteUser = async (id: string): Promise<void> => {
   }
 };
 
+
+
+export const bulkUploadStudents = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file); 
+
+   const res = await fetch(
+    "https://dev-new-admissions.navgurukul.org/api/v1/students/bulkUploadStudents",
+    { method: "POST", body: formData }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Upload failed: ${res.status} ${text}`);
+  }
+
+  return res.json();
+};
+
+
 export interface CreateRoleData {
   name: string;
   status: boolean;
