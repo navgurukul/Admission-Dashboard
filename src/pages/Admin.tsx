@@ -1,6 +1,15 @@
-
 import React, { useEffect, useState } from "react";
-import { Plus, Trash2, Pencil, Search, X, User as UserIcon, Mail, Phone, Shield } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Pencil,
+  Search,
+  X,
+  User as UserIcon,
+  Mail,
+  Phone,
+  Shield,
+} from "lucide-react";
 import {
   getAllUsers,
   getAllRolesNew,
@@ -22,6 +31,7 @@ const AdminPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [phoneError, setPhoneError] = useState<string>("");
 
   const [addUserDialog, setAddUserDialog] = useState<{
     open: boolean;
@@ -73,8 +83,19 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  const handleAddUserSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleAddUserSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
+    
+      if (!/^\d{10}$/.test(addUserDialog.phone.trim())) {
+    console.error("Phone number must be exactly 10 digits");
+    setPhoneError("Phone number must be exactly 10 digits");
+    return;
+  } else {
+    setPhoneError("");
+  }
+
     if (
       !addUserDialog.name.trim() ||
       !addUserDialog.email.trim() ||
@@ -90,7 +111,8 @@ const AdminPage: React.FC = () => {
       mobile: addUserDialog.phone.trim(),
       email: addUserDialog.email.trim(),
       mail_id: addUserDialog.email.trim(),
-      user_name: addUserDialog.username.trim() || addUserDialog.email.split("@")[0],
+      user_name:
+        addUserDialog.username.trim() || addUserDialog.email.split("@")[0],
       user_role_id: parseInt(addUserDialog.selectedRoleId),
     };
 
@@ -141,13 +163,12 @@ const AdminPage: React.FC = () => {
     });
 
   const handleDeleteUser = async (id: number): Promise<void> => {
-      try {
-        await deleteUser(id.toString()); 
-        await fetchUsers();
-      } catch (err) {
-        console.error("Error deleting user:", err);
-      }
-    
+    try {
+      await deleteUser(id.toString());
+      await fetchUsers();
+    } catch (err) {
+      console.error("Error deleting user:", err);
+    }
   };
 
   const getRoleName = (roleId: number): string => {
@@ -155,26 +176,30 @@ const AdminPage: React.FC = () => {
     return role ? role.name : `Role ${roleId}`;
   };
 
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (user.user_name && user.user_name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.user_name &&
+        user.user_name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      
+
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div
+        className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <AdmissionsSidebar />
       </div>
 
@@ -188,8 +213,18 @@ const AdminPage: React.FC = () => {
                 onClick={() => setSidebarOpen(true)}
                 className="p-2 rounded-md bg-white shadow-sm border border-gray-200"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -204,9 +239,11 @@ const AdminPage: React.FC = () => {
                     </div>
                     User Management
                   </h1>
-                  <p className="text-gray-600 mt-1">Manage system users and their roles</p>
+                  <p className="text-gray-600 mt-1">
+                    Manage system users and their roles
+                  </p>
                 </div>
-                
+
                 <button
                   onClick={openAddUserDialog}
                   className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
@@ -248,20 +285,28 @@ const AdminPage: React.FC = () => {
                     <UserIcon className="h-5 w-5 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Users</p>
-                    <p className="text-2xl font-semibold text-gray-900">{users.length}</p>
+                    <p className="text-sm font-medium text-gray-600">
+                      Total Users
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {users.length}
+                    </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div className="flex items-center">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Shield className="h-5 w-5 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Active Roles</p>
-                    <p className="text-2xl font-semibold text-gray-900">{roles.length}</p>
+                    <p className="text-sm font-medium text-gray-600">
+                      Active Roles
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {roles.length}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -272,8 +317,12 @@ const AdminPage: React.FC = () => {
                     <Search className="h-5 w-5 text-orange-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Search Results</p>
-                    <p className="text-2xl font-semibold text-gray-900">{filteredUsers.length}</p>
+                    <p className="text-sm font-medium text-gray-600">
+                      Search Results
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {filteredUsers.length}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -284,7 +333,9 @@ const AdminPage: React.FC = () => {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
                 <div className="flex flex-col items-center justify-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
-                  <div className="text-lg text-gray-600 mt-4">Loading users...</div>
+                  <div className="text-lg text-gray-600 mt-4">
+                    Loading users...
+                  </div>
                 </div>
               </div>
             ) : (
@@ -313,7 +364,10 @@ const AdminPage: React.FC = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-150">
+                        <tr
+                          key={user.id}
+                          className="hover:bg-gray-50 transition-colors duration-150"
+                        >
                           <td className="px-6 py-4">
                             <div className="flex items-center">
                               <div className="h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center">
@@ -322,7 +376,9 @@ const AdminPage: React.FC = () => {
                                 </span>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {user.name}
+                                </div>
                                 <div className="text-sm text-gray-500 flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
                                   {user.email}
@@ -337,7 +393,9 @@ const AdminPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">{user.user_name || "-"}</div>
+                            <div className="text-sm text-gray-900">
+                              {user.user_name || "-"}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
@@ -355,7 +413,8 @@ const AdminPage: React.FC = () => {
                                     email: user.email,
                                     username: user.user_name || "",
                                     phone: user.mobile || "",
-                                    selectedRoleId: user.user_role_id?.toString() || "",
+                                    selectedRoleId:
+                                      user.user_role_id?.toString() || "",
                                     editId: user.id,
                                   })
                                 }
@@ -391,7 +450,9 @@ const AdminPage: React.FC = () => {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {user.name}
+                            </p>
                             <p className="text-sm text-gray-500 truncate flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               {user.email}
@@ -419,7 +480,8 @@ const AdminPage: React.FC = () => {
                                 email: user.email,
                                 username: user.user_name || "",
                                 phone: user.mobile || "",
-                                selectedRoleId: user.user_role_id?.toString() || "",
+                                selectedRoleId:
+                                  user.user_role_id?.toString() || "",
                                 editId: user.id,
                               })
                             }
@@ -442,9 +504,13 @@ const AdminPage: React.FC = () => {
                 {filteredUsers.length === 0 && (
                   <div className="p-12 text-center">
                     <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No users found
+                    </h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {searchQuery ? "Try adjusting your search criteria." : "Get started by adding a new user."}
+                      {searchQuery
+                        ? "Try adjusting your search criteria."
+                        : "Get started by adding a new user."}
                     </p>
                   </div>
                 )}
@@ -467,7 +533,7 @@ const AdminPage: React.FC = () => {
                     >
                       Previous
                     </button>
-                    
+
                     <div className="flex gap-1 mx-2">
                       {[...Array(totalPages)].map((_, i) => (
                         <button
@@ -483,9 +549,11 @@ const AdminPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
-                    
+
                     <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
                       disabled={page === totalPages}
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
                         page === totalPages
@@ -518,13 +586,18 @@ const AdminPage: React.FC = () => {
 
                   <form onSubmit={handleAddUserSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Name *
+                      </label>
                       <input
                         type="text"
                         required
                         value={addUserDialog.name}
                         onChange={(e) =>
-                          setAddUserDialog((d) => ({ ...d, name: e.target.value }))
+                          setAddUserDialog((d) => ({
+                            ...d,
+                            name: e.target.value,
+                          }))
                         }
                         className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200"
                         placeholder="Enter full name"
@@ -532,13 +605,18 @@ const AdminPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                      </label>
                       <input
                         type="email"
                         required
                         value={addUserDialog.email}
                         onChange={(e) =>
-                          setAddUserDialog((d) => ({ ...d, email: e.target.value }))
+                          setAddUserDialog((d) => ({
+                            ...d,
+                            email: e.target.value,
+                          }))
                         }
                         className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200"
                         placeholder="Enter email address"
@@ -546,21 +624,44 @@ const AdminPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone *
+                      </label>
                       <input
                         type="tel"
                         required
                         value={addUserDialog.phone}
-                        onChange={(e) =>
-                          setAddUserDialog((d) => ({ ...d, phone: e.target.value }))
-                        }
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200"
-                        placeholder="Enter phone number"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setAddUserDialog((d) => ({ ...d, phone: value }));
+
+                          // validation: sirf number aur max 10 digit
+                          if (!/^\d{0,10}$/.test(value)) {
+                            setPhoneError(
+                              "Only numbers allowed, 10 digits"
+                            );
+                          } else {
+                            setPhoneError("");
+                          }
+                        }}
+                        className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
+                          phoneError
+                            ? "border-red-500 focus:ring-red-500"
+                            : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                        }`}
+                        placeholder="Enter 10-digit phone number"
                       />
+                      {phoneError && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {phoneError}
+                        </p>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Username
+                      </label>
                       <input
                         type="text"
                         value={addUserDialog.username}
@@ -574,12 +675,15 @@ const AdminPage: React.FC = () => {
                         placeholder="Enter username (optional)"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Only letters, numbers, underscores allowed. Defaults to email prefix if empty.
+                        Only letters, numbers, underscores allowed. Defaults to
+                        email prefix if empty.
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Role *
+                      </label>
                       <select
                         required
                         value={addUserDialog.selectedRoleId}
