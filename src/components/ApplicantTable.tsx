@@ -36,6 +36,7 @@ import {
   getAllStatuses,
   getAllStages,
   deleteUser,
+  getAllReligions,
 } from "@/utils/api";
 
 const ApplicantTable = () => {
@@ -53,6 +54,7 @@ const ApplicantTable = () => {
   const [schoolList, setSchoolsList] = useState<any[]>([]);
   const [currentstatusList, setcurrentstatusList] = useState<any[]>([]);
   const [stageList, setStageList] = useState<any[]>([]);
+  const [religionList, setReligionList] = useState<any[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -91,13 +93,15 @@ const ApplicantTable = () => {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [campuses, schools] = await Promise.all([
+        const [campuses, schools,religions] = await Promise.all([
           getCampusesApi(),
           getAllSchools(),
+          getAllReligions(),
         ]);
 
         setCampusList(campuses || []);
         setSchoolsList(schools || []);
+        setReligionList(religions||[]);
       } catch (error) {
         console.error("Failed to fetch campuses/schools:", error);
       }
@@ -130,9 +134,10 @@ const ApplicantTable = () => {
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id
-      );
+        (s) => s.id === student.current_status_id);
+      const religion = religionList.find((r) => r.id === student.religion_id);
 
+   
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
@@ -144,9 +149,10 @@ const ApplicantTable = () => {
         current_status_name: current_status
           ? current_status.current_status_name
           : "N/A",
+          religion_name: religion ? religion.religion_name : "N/A",
       };
     });
-  }, [students, schoolList, campusList, currentstatusList]);
+  }, [students, schoolList, campusList, currentstatusList,religionList]);
 
   // For client-side search filtering (if needed)
   const filteredApplicants = useMemo(() => {
@@ -431,6 +437,9 @@ const ApplicantTable = () => {
                   <TableHead className="w-24 font-bold">
                     Current Status
                   </TableHead>
+                  <TableHead className="w-24 font-bold">
+                    Religion
+                  </TableHead>
 
                   <TableHead className="w-24 font-bold">Actions</TableHead>
                 </TableRow>
@@ -498,12 +507,13 @@ const ApplicantTable = () => {
       </CardContent>
 
       <AddApplicantModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSuccess={refreshData}
-        schoolList={schoolList}
-        campusList={campusList}
-        currentstatusList={currentstatusList}
+         isOpen={showAddModal}
+  onClose={() => setShowAddModal(false)}
+  onSuccess={refreshData}
+  schoolList={schoolList}
+  campusList={campusList}
+  currentstatusList={currentstatusList}
+  religionList={religionList} 
       />
 
       <CSVImportModal
