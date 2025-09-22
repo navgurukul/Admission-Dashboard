@@ -34,7 +34,7 @@ const navigation = [
   // { name: "Schedule", href: "/schedule", icon: Calendar },
   { name: "Offer Letters", href: "/offer-letters", icon: Mail },
   { name: "Question Repository", href: "/questions", icon: FileQuestion },
-  { name: "Settings", href: "/settings", icon: Settings },
+  // { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function AdmissionsSidebar() {
