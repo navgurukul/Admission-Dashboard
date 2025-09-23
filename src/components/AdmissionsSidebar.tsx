@@ -1,41 +1,11 @@
-
-import {
-  LayoutDashboard,
-  Calendar,
-  LogOut,
-  Mail,
-  FileText,
-  Users,
-  MessageSquare,
-  Handshake,
-  School,
-  Shield,
-  UserCheck,
-  Menu,
-  X,
-  Settings,
-  FileQuestion
-} from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { NavLink,useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { navigation } from "@/components/ui/navigation";
+import { LogOut, Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const navigation = [
-  { name: "Admin", href: "/admin", icon: Shield },
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Donor", href: "/donor", icon: Handshake },
-  { name: "Partner", href: "/partners", icon: Users },
-  { name: "Campus", href: "/campus", icon: School },
-  { name: "School", href: "/school", icon: School },
-  { name: "Owner", href: "/owner", icon: UserCheck },
-  { name: "Interviews", href: "/interviews", icon: MessageSquare },
-  // { name: "Schedule", href: "/schedule", icon: Calendar },
-  { name: "Offer Letters", href: "/offer-letters", icon: Mail },
-  { name: "Question Repository", href: "/questions", icon: FileQuestion },
-  // { name: "Settings", href: "/settings", icon: Settings },
-];
 
 export function AdmissionsSidebar() {
   const { user, signOut } = useAuth();
@@ -45,23 +15,26 @@ export function AdmissionsSidebar() {
 
   useEffect(() => {
     const storedUserInfo = localStorage.getItem("userInfo");
-    if (storedUserInfo) {
-      setUserInfo(JSON.parse(storedUserInfo));
-    }
+    if (storedUserInfo) setUserInfo(JSON.parse(storedUserInfo));
   }, [user, googleUser]);
 
-  const getInitials = (email: string) => email.split("@")[0].slice(0, 2).toUpperCase();
-  const getUserDisplayName = () => googleUser?.name || userInfo?.name || user?.user_metadata?.display_name || user?.user_metadata?.full_name || "User";
-  const getUserEmail = () => googleUser?.email || user?.email || userInfo?.email || "No email";
-  const getUserAvatar = () => googleUser?.avatar || userInfo?.avatar || user?.user_metadata?.avatar_url;
-  const getAuthProvider = () => googleUser ? "google" : userInfo?.provider || "email";
+  const getInitials = (email: string) =>
+    email.split("@")[0].slice(0, 2).toUpperCase();
+  const getUserDisplayName = () =>
+    googleUser?.name ||
+    userInfo?.name ||
+    user?.user_metadata?.display_name ||
+    "User";
+  const getUserEmail = () =>
+    googleUser?.email || user?.email || userInfo?.email || "No email";
+  const getUserAvatar = () =>
+    googleUser?.avatar || userInfo?.avatar || user?.user_metadata?.avatar_url;
+  const roleId = googleUser?.role_id || 2;
+  const location = useLocation();
 
   const handleLogout = async () => {
-    if (googleUser) {
-      googleSignOut();
-    } else {
-      await signOut();
-    }
+    if (googleUser) googleSignOut();
+    else await signOut();
     window.location.href = "/Admission-Dashboard/auth";
   };
 
@@ -69,13 +42,13 @@ export function AdmissionsSidebar() {
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Hamburger Button - Mobile Only */}
+      {/* Hamburger Button */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -93,7 +66,7 @@ export function AdmissionsSidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Close Button - Mobile Only */}
+        {/* Close Button - Mobile */}
         <div className="md:hidden absolute top-4 right-4">
           <button
             onClick={() => setIsOpen(false)}
@@ -103,7 +76,7 @@ export function AdmissionsSidebar() {
           </button>
         </div>
 
-        {/* Profile Section - Top (Updated Style) */}
+        {/* Profile Section */}
         <div className="p-6 border-b border-sidebar-medium">
           <div className="flex flex-col items-center text-center space-y-3">
             {getUserAvatar() ? (
@@ -128,29 +101,39 @@ export function AdmissionsSidebar() {
           </div>
         </div>
 
-        {/* Navigation Menu (Original Style) */}
+        {/* Navigation */}
+
         <nav className="px-4 py-6 space-y-1 flex-1">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              onClick={() => setIsOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-white",
-                  isActive
-                    ? "bg-sidebar-light font-bold text-white border border-primary/20"
-                    : "text-sidebar-text-muted hover:text-white hover:bg-sidebar-medium"
-                )
-              }
-            >
-              <item.icon className="mr-3 h-5 w-5" />
-              {item.name}
-            </NavLink>
-          ))}
+          {navigation
+            .filter((item) => item.allowedRoles.includes(roleId))
+            .map((item) => (
+              <NavLink
+                key={item.href}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    "block p-2 rounded",
+                    isActive
+                      ? "bg-gray-600 text-white"
+                      : "text-gray-300 hover:bg-gray-700"
+                  )
+                }
+                onClick={(event) => {
+                  // Prevent navigation and sidebar close if already on this route
+                  if (location.pathname === item.href) {
+                    event.preventDefault();
+                    return;
+                  }
+                  setIsOpen(false);
+                }}
+              >
+                <item.icon className="inline mr-2" />
+                {item.name}
+              </NavLink>
+            ))}
         </nav>
 
-        {/* Logout Button - Bottom (Original Style) */}
+        {/* Logout */}
         <div className="p-4 border-t border-sidebar-medium space-y-2">
           <button
             onClick={handleLogout}

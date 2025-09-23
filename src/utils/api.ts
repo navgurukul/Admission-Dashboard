@@ -822,6 +822,32 @@ export const updateQuestion = async (
   return data.data as Question;
 };
 
+// Sets
+interface QuestionSet {
+  id: number;
+  name: string; 
+  description: string;
+  status: boolean; 
+  maximumMarks: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
+  const response = await fetch(`${BASE_URL}/questions/question-sets`);
+  const json = await response.json();
+
+  const dataArray = Array.isArray(json.data) ? json.data : [];
+
+  return dataArray;
+};
+
+
+
+
+
+
+
 
 // Stage Management API
 export interface Stage {
@@ -1122,3 +1148,6 @@ export const deleteSchool = async (id: number) => {
     throw error;
   }
 };
+
+
+
