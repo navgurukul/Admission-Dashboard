@@ -196,6 +196,18 @@ export const ApplicantTableRow = ({
           />
         </div>
       </TableCell>
+
+      <TableCell className="w-24">
+        <div className="truncate">
+          <EditableCell 
+            applicant={applicant} 
+            field="campus_name" 
+            displayValue={applicant.religion_name || "N/A"} 
+            onUpdate={onUpdate}
+            showPencil={true}
+          />
+        </div>
+      </TableCell>
       
       {/* Actions - Dropdown menu (... button) */}
       <TableCell className="w-24">
