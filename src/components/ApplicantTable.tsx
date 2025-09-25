@@ -81,7 +81,7 @@ const ApplicantTable = () => {
     queryKey: ["students"],
     queryFn: async () => {
       const res = await getStudents(); // should return all data
-      console.log("Fetched data:", res);
+      // console.log("Fetched data:", res);
       return res;
     },
   });

@@ -1168,17 +1168,4 @@ export const deleteSchool = async (id: number) => {
   }
 };
 
-export const updateStudent = async (id: string, payload: any): Promise<any> => {
-  const response = await fetch(`${BASE_URL}/students/updateStudents/${id}`, {
-    method: "PUT",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to update student");
-  }
-
-  return response.json();
-};

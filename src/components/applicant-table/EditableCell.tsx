@@ -17,6 +17,7 @@ interface Option {
   id: number | string;
   name: string;
   value?: string;
+}
 
 interface EditableCellProps {
   applicant: any;
