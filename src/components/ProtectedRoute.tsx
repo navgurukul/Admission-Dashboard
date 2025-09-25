@@ -1,48 +1,53 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { navigation } from "@/components/ui/navigation.tsx";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user: googleUser, isAuthenticated, loading: googleLoading } = useGoogleAuth();
+  const { user: googleUser, isAuthenticated, loading } = useGoogleAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
+  // Get allowedRoles for current path from navigation
+  const currentNavItem = navigation.find(item => item.href === location.pathname);
+  const allowedRoles = currentNavItem?.allowedRoles;
 
- 
   useEffect(() => {
-    if (!googleLoading) {
-      // Check if user is authenticated via Google
-
+    if (!loading) {
+      // Not authenticated → redirect to auth page
       if (!googleUser || !isAuthenticated) {
-        // Redirect to auth page if not authenticated
-        navigate("/auth", { replace: true });
+        setAllowed(false);
         return;
       }
 
-      // Email check - only for authenticated users
-      if (!(googleUser.role_id === 1 || googleUser.role_id === 2)) {
-        // Redirect to students page if email not in allowed list
-        navigate("/students", { replace: true });
+      // Role not allowed → redirect to default page
+      if (allowedRoles && !allowedRoles.includes(googleUser.role_id)) {
+        setAllowed(false);
         return;
       }
 
+      // User is allowed
+      setAllowed(true);
     }
-  }, [googleUser, isAuthenticated, googleLoading, navigate]);
+  }, [googleUser, isAuthenticated, loading, allowedRoles]);
 
-  // Show loading while checking authentication
-  if (googleLoading) {
+  // Show loader while checking auth/role
+  if (loading || allowed === null) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
+  }
+
+  if (!allowed) {
+    // Redirect unauthorized users
+    return <Navigate to="/students" replace />;
   }
 
   return <>{children}</>;

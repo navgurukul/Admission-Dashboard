@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
@@ -16,7 +17,6 @@ interface Option {
   id: number | string;
   name: string;
   value?: string;
-}
 
 interface EditableCellProps {
   applicant: any;
@@ -71,7 +71,6 @@ export function EditableCell({
       }
 
       const response = await updateStudent(applicant.id, payload);
-
       toast({ title: "Success", description: "Field updated successfully" });
       setEditingCell(null);
       setCellValue("");
@@ -200,6 +199,7 @@ export function EditableCell({
     );
   }
 
+  // Default display
   return (
     <div
       className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
