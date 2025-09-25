@@ -1169,4 +1169,3 @@ export const deleteSchool = async (id: number) => {
 };
 
 
-

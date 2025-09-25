@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,21 +7,23 @@ import { useToast } from "@/hooks/use-toast";
 import { updateStudent } from "@/utils/api";
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from "@/components/ui/select";
 
 interface Option {
-  value: string | number;
-  label: string;
+  id: number | string;
+  name: string;
+  value?: string;
 }
 
 interface EditableCellProps {
   applicant: any;
   field: string;
   displayValue: any;
+  value?: any;
   onUpdate: () => void;
   showPencil?: boolean;
   options?: Option[];
@@ -30,41 +33,49 @@ export function EditableCell({
   applicant,
   field,
   displayValue,
+  value,
   onUpdate,
   showPencil = false,
   options,
 }: EditableCellProps) {
-  const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
-  const [cellValue, setCellValue] = useState<any>(displayValue || "");
+  const [editingCell, setEditingCell] = useState<{
+    id: number;
+    field: string;
+  } | null>(null);
+  const [cellValue, setCellValue] = useState<any>(value ?? displayValue ?? "");
+  const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  // Sync cellValue when displayValue changes (unless editing)
   useEffect(() => {
-    if (!editingCell) setCellValue(displayValue || "");
-  }, [displayValue, editingCell]);
+    setCellValue(value ?? displayValue ?? "");
+  }, [value, displayValue]);
 
   const startCellEdit = (id: number, field: string, currentValue: any) => {
     setEditingCell({ id, field });
-    setCellValue(currentValue || "");
+    setCellValue(currentValue ?? value ?? displayValue ?? "");
   };
 
   const saveCellEdit = async () => {
-    if (!editingCell) return;
+    if (!editingCell || isUpdating) return;
+
+    setIsUpdating(true);
     try {
+      const isIdField = String(field).endsWith("_id");
       const payload: any = {};
-      payload[field] =
-        String(field).endsWith("_id") || !isNaN(Number(cellValue))
-          ? cellValue === ""
-            ? null
-            : Number(cellValue)
-          : cellValue;
 
-      await updateStudent(editingCell.id, payload); // API call
+      if (isIdField) {
+        payload[field] =
+          cellValue === "" || cellValue === "none" ? null : Number(cellValue);
+      } else {
+        // Ensure we're not sending undefined values
+        payload[field] = cellValue === "" ? "" : cellValue ?? "";
+      }
 
+      const response = await updateStudent(applicant.id, payload);
+      toast({ title: "Success", description: "Field updated successfully" });
       setEditingCell(null);
       setCellValue("");
-      onUpdate(); // Refresh after API success
-      toast({ title: "Success", description: "Field updated successfully" });
+      onUpdate();
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
@@ -72,6 +83,8 @@ export function EditableCell({
         description: error?.message || "Failed to update field",
         variant: "destructive",
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -80,41 +93,83 @@ export function EditableCell({
     setCellValue("");
   };
 
-  const isEditing = editingCell?.id === applicant?.id && editingCell?.field === field;
+  // Direct dropdown save
+  const handleDirectDropdownChange = async (newValue: string) => {
+    if (isUpdating) return;
+    setIsUpdating(true);
 
-  // Dropdown edit
-  if (isEditing && options && options.length > 0) {
+    try {
+      const isIdField = String(field).endsWith("_id");
+      const payload: any = {};
+
+      if (newValue === "none" || newValue === "") {
+        payload[field] = null;
+      } else if (isIdField) {
+        payload[field] = Number(newValue);
+      } else {
+        payload[field] = newValue;
+      }
+
+      await updateStudent(applicant.id, payload);
+
+      toast({ title: "Success", description: "Field updated successfully" });
+      setCellValue(payload[field]);
+      onUpdate();
+    } catch (error: any) {
+      console.error("Error updating field:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to update field",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const getCurrentDropdownValue = () => {
+    if (value !== null && value !== undefined) {
+      return String(value);
+    }
+    return "none";
+  };
+
+  const isEditing =
+    editingCell?.id === applicant.id && editingCell?.field === field;
+  const isDropdownField = options && options.length > 0;
+
+  if (isDropdownField) {
     return (
-      <div className="flex items-center gap-2">
-        <Select value={String(cellValue || "")} onValueChange={setCellValue}>
-          <SelectTrigger className="h-8 text-xs">
-            <SelectValue placeholder={`Select ${field.replace("_", " ")}`} />
-          </SelectTrigger>
-          <SelectContent>
-            {!cellValue && (
-              <SelectItem value="" disabled>
-                {`Select ${field.replace("_", " ")}`}
-              </SelectItem>
-            )}
-            {options.map((opt, i) => (
-              <SelectItem key={i} value={String(opt.value)}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button size="sm" onClick={saveCellEdit} className="h-6 px-2">✓</Button>
-        <Button size="sm" variant="outline" onClick={cancelCellEdit} className="h-6 px-2">✕</Button>
-      </div>
+      <Select
+        value={getCurrentDropdownValue()}
+        onValueChange={handleDirectDropdownChange}
+        disabled={isUpdating}
+      >
+        <SelectTrigger className="h-8 text-xs border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring">
+          <SelectValue placeholder="Select option">
+            {isUpdating ? "Updating..." : displayValue || "Select option"}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">
+            <span className="text-muted-foreground">Select</span>
+          </SelectItem>
+          {options.map((opt) => (
+            <SelectItem key={String(opt.id)} value={String(opt.id)}>
+              {opt.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
 
-  // Text input edit
+  // Text fields
   if (isEditing) {
     return (
       <div className="flex items-center gap-2">
         <Input
-          value={cellValue}
+          value={cellValue ?? ""}
           onChange={(e) => setCellValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") saveCellEdit();
@@ -122,9 +177,25 @@ export function EditableCell({
           }}
           className="h-8 text-xs"
           autoFocus
+          disabled={isUpdating}
         />
-        <Button size="sm" onClick={saveCellEdit} className="h-6 px-2">✓</Button>
-        <Button size="sm" variant="outline" onClick={cancelCellEdit} className="h-6 px-2">✕</Button>
+        <Button
+          size="sm"
+          onClick={saveCellEdit}
+          className="h-6 px-2"
+          disabled={isUpdating}
+        >
+          {isUpdating ? "..." : "✓"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={cancelCellEdit}
+          className="h-6 px-2"
+          disabled={isUpdating}
+        >
+          ✕
+        </Button>
       </div>
     );
   }
@@ -133,13 +204,15 @@ export function EditableCell({
   return (
     <div
       className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
-      onClick={() => startCellEdit(applicant?.id || 0, field, displayValue)}
+      onClick={() =>
+        !isUpdating && startCellEdit(applicant.id, field, value ?? displayValue)
+      }
       title="Click to edit"
     >
       <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
-        {displayValue || "Click to add"}
+        {isUpdating ? "Updating..." : displayValue || "Click to add"}
       </span>
-      {showPencil && (
+      {showPencil && !isUpdating && (
         <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
       )}
     </div>
