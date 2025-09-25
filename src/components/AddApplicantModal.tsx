@@ -505,7 +505,7 @@ export function AddApplicantModal({
           {/* Mobile-friendly progress indicator */}
           <div className="flex justify-center mt-3 sm:mt-4">
             <div className="flex space-x-2 sm:space-x-4">
-              {["basic", "screening", "interviews", "final"].map(
+              {["basic", "screening"].map(
                 (tab, index) => {
                   const Icon = getTabIcon(tab);
                   const isCompleted = isTabCompleted(tab);
@@ -568,7 +568,7 @@ export function AddApplicantModal({
                 <FileText className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Screening</span>
               </TabsTrigger>
-              <TabsTrigger
+              {/* <TabsTrigger
                 value="interviews"
                 className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
               >
@@ -581,7 +581,7 @@ export function AddApplicantModal({
               >
                 <Trophy className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Final</span>
-              </TabsTrigger>
+              </TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4 sm:space-y-6">
@@ -1122,7 +1122,7 @@ export function AddApplicantModal({
             </TabsContent>
 
             {/* ---- Interviews Tab ---- */}
-            <TabsContent value="interviews" className="space-y-4 sm:space-y-6">
+            {/* <TabsContent value="interviews" className="space-y-4 sm:space-y-6">
               <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 sm:p-6 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   <MessageSquare className="w-5 h-5 mr-2 text-teal-600" />
@@ -1152,7 +1152,7 @@ export function AddApplicantModal({
                           </SelectItem>
                         ))}
                       </SelectContent> */}
-                    </Select>
+                    {/* </Select>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
@@ -1228,10 +1228,10 @@ export function AddApplicantModal({
                   </div>
                 </div>
               </div>
-            </TabsContent>
+            </TabsContent>  */}
 
             {/* ---- Final Stage Tab ---- */}
-            <TabsContent value="final" className="space-y-4 sm:space-y-6">
+            {/* <TabsContent value="final" className="space-y-4 sm:space-y-6">
               <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 sm:p-6 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   <Trophy className="w-5 h-5 mr-2 text-yellow-600" />
@@ -1253,7 +1253,7 @@ export function AddApplicantModal({
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select decision status" />
-                      </SelectTrigger>
+                      </SelectTrigger> */}
                       {/* <SelectContent>
                         {STAGE_STATUS_MAP.decision.map((status) => (
                           <SelectItem key={status} value={status}>
@@ -1261,7 +1261,7 @@ export function AddApplicantModal({
                           </SelectItem>
                         ))}
                       </SelectContent> */}
-                    </Select>
+                    {/* </Select>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
@@ -1339,7 +1339,7 @@ export function AddApplicantModal({
                   </div>
                 </div>
               </div>
-            </TabsContent>
+            </TabsContent> */}
           </Tabs>
         </div>
 
