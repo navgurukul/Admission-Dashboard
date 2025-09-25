@@ -91,7 +91,7 @@ const ApplicantTable = () => {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [campuses, schools,religions] = await Promise.all([
+        const [campuses, schools, religions] = await Promise.all([
           getCampusesApi(),
           getAllSchools(),
           getAllReligions(),
@@ -99,7 +99,7 @@ const ApplicantTable = () => {
 
         setCampusList(campuses || []);
         setSchoolsList(schools || []);
-        setReligionList(religions||[]);
+        setReligionList(religions || []);
       } catch (error) {
         console.error("Failed to fetch campuses/schools:", error);
       }
@@ -132,10 +132,10 @@ const ApplicantTable = () => {
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id);
+        (s) => s.id === student.current_status_id
+      );
       const religion = religionList.find((r) => r.id === student.religion_id);
 
-   
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
@@ -147,10 +147,10 @@ const ApplicantTable = () => {
         current_status_name: current_status
           ? current_status.current_status_name
           : "N/A",
-          religion_name: religion ? religion.religion_name : "N/A",
+        religion_name: religion ? religion.religion_name : "N/A",
       };
     });
-  }, [students, schoolList, campusList, currentstatusList,religionList]);
+  }, [students, schoolList, campusList, currentstatusList, religionList]);
 
   // Filter by search
   const filteredApplicants = useMemo(() => {
@@ -382,7 +382,7 @@ const ApplicantTable = () => {
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10 border-b">
                 <TableRow>
-                  <TableHead className="w-12 font-bold">
+                  <TableHead className="w-8 font-bold px-2">
                     <Checkbox
                       checked={
                         paginatedApplicants.length > 0 &&
@@ -392,46 +392,46 @@ const ApplicantTable = () => {
                       aria-label="Select all applicants"
                     />
                   </TableHead>
-                  <TableHead className="font-bold w-16">Image</TableHead>
-                  <TableHead className="font-bold min-w-[200px] max-w-[250px]">
+                  <TableHead className="font-bold w-12 px-2">Image</TableHead>
+                  <TableHead className="font-bold min-w-[150px] max-w-[180px] px-2">
                     Full Name
                   </TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+                  <TableHead className="font-bold min-w-[110px] max-w-[130px] px-2">
                     Phone Number
                   </TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px]">
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px] px-2">
                     WhatsApp Number
                   </TableHead>
-                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">
+                  <TableHead className="font-bold min-w-[80px] max-w-[100px] px-2">
                     Gender
                   </TableHead>
-                  <TableHead className="font-bold min-w-[120px] max-w-[160px]">
+                  <TableHead className="font-bold min-w-[90px] max-w-[120px] px-2">
                     City
                   </TableHead>
-                  <TableHead className="font-bold min-w-[180px] max-w-[220px]">
+                  <TableHead className="font-bold min-w-[100px] max-w-[140px] px-2">
                     State
                   </TableHead>
 
                   <TableHead className="font-bold w-24">Pin Code</TableHead>
 
                   {/* School */}
-                  <TableHead className="font-bold min-w-[180px]">
+                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
                     School
                   </TableHead>
 
                   {/* Campus */}
-                  <TableHead className="font-bold min-w-[180px]">
+                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
                     Campus
                   </TableHead>
 
-                  <TableHead className="w-24 font-bold">
+                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
                     Current Status
                   </TableHead>
-                  <TableHead className="w-24 font-bold">
+                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
                     Religion
                   </TableHead>
 
-                  <TableHead className="w-24 font-bold">Actions</TableHead>
+                  <TableHead className="w-16 font-bold px-2">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -462,6 +462,11 @@ const ApplicantTable = () => {
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
                       onCampusChange={refreshData}
+                      schoolList={schoolList}
+                      campusList={campusList}
+                      religionList={religionList}
+                      // casteList={campusList}
+                      currentstatusList={currentstatusList}
                     />
                   ))
                 )}
@@ -499,13 +504,13 @@ const ApplicantTable = () => {
       </CardContent>
 
       <AddApplicantModal
-         isOpen={showAddModal}
-  onClose={() => setShowAddModal(false)}
-  onSuccess={refreshData}
-  schoolList={schoolList}
-  campusList={campusList}
-  currentstatusList={currentstatusList}
-  religionList={religionList} 
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={refreshData}
+        schoolList={schoolList}
+        campusList={campusList}
+        currentstatusList={currentstatusList}
+        religionList={religionList}
       />
 
       <CSVImportModal
