@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AllApplicants from "./pages/AllApplicants";
 import Interviews from "./pages/Interviews";
@@ -36,6 +35,7 @@ import Qualification from "./pages/settings/Qualification";
 import StudentRoutes  from "./routes/StudentRoutes";
 import { StudentProvider } from "./utils/StudentContext.tsx";
 import { TestsProvider } from "./utils/TestContext.tsx";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 

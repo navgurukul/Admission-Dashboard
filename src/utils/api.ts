@@ -1,4 +1,5 @@
-import { get } from "http";
+import { Student } from "./student.types";
+import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -170,6 +171,8 @@ export interface UpdateUserData {
 }
 
 export const updateUser = async (id: string, userData: UpdateUserData): Promise<User> => {
+  console.log("userData",userData)
+  console.group("userId",id)
   const response = await fetch(`${BASE_URL}/users/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
@@ -508,21 +511,8 @@ export const getAllReligions = async (): Promise<Religion[]> => {
   }
 };
 
-// Get Religion By ID
-export const getReligionById = async (id: string): Promise<Religion> => {
-  const response = await fetch(`${BASE_URL}/religions/getReligionById/${id}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
 
-  const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch religion');
-  }
-
-  return data;
-};
 
 // Update Religion
 export const updateReligion = async (id: string, religionData: { religion_name: string }): Promise<Religion> => {
@@ -592,7 +582,37 @@ export const getStudents = async (page = 1, limit = 10) => {
   };
 };
 
+// Get Student By ID
+export const getStudentById = async (id: string): Promise<Student> => {
+  try {
+    const response = await axios.get<Student>(
+      `${BASE_URL}/students/getStudentsById/${id}`,
+    );
 
+    return response.data; // axios already parses JSON
+  } catch (error: any) {
+    console.error("Error in getStudentById:", error);
+    throw new Error(
+      error?.response?.data?.message || "Failed to fetch student"
+    );
+  }
+};
+
+// update students
+export const updateStudent = async (id: string, payload: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/updateStudents/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to update student");
+  }
+
+  return response.json();
+};
 
 // Qualification Management API functions
 export interface Qualification {
@@ -673,7 +693,6 @@ export const getAllStatus = async (): Promise<CurrentStatus[]> => {
     return [];
   }
 }
-
 
 
 // create Student
@@ -821,6 +840,32 @@ export const updateQuestion = async (
 
   return data.data as Question;
 };
+
+// Sets
+interface QuestionSet {
+  id: number;
+  name: string; 
+  description: string;
+  status: boolean; 
+  maximumMarks: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
+  const response = await fetch(`${BASE_URL}/questions/question-sets`);
+  const json = await response.json();
+
+  const dataArray = Array.isArray(json.data) ? json.data : [];
+
+  return dataArray;
+};
+
+
+
+
+
+
 
 
 // Stage Management API
@@ -1122,3 +1167,6 @@ export const deleteSchool = async (id: number) => {
     throw error;
   }
 };
+
+
+
