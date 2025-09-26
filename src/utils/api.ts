@@ -852,6 +852,7 @@ interface QuestionSet {
   updated_at: string;
 }
 
+// Get all question sets ...
 export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
   const response = await fetch(`${BASE_URL}/questions/question-sets`);
   const json = await response.json();
@@ -861,11 +862,69 @@ export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
   return dataArray;
 };
 
+interface QuestionSetMapping {
+  question_set_id: number;
+  question_id: number;
+  difficulty_level:number;
+}
 
+export const createQuestionSetMappings = async (
+  mappings: QuestionSetMapping[]
+): Promise<any> => {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}/questions/question-set-mappings`,
+      mappings,
+      {
+        headers: {
+          ...getAuthHeaders() as Record<string, string>, // force object type for axios
+        },
+      }
+    );
 
+    console.log("Mappings created successfully:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to create mappings:", error.response?.data || error.message);
+    throw error;
+  }
+};
 
+//  get random questions 
+export const getRandomQuestions = async () => {
+  try {
+    const response = await axios.get(
+      `${BASE_URL}/v1/questions/random-for-test`
+    );
+    return response.data; // Adjust depending on API response structure
+  } catch (error: any) {
+    console.error("Error fetching questions:", error);
+    throw error;
+  }
+};
 
+export const getQuestionsBySetType = async (setType: string) => {
+  try {
+    const url = `${BASE_URL}/questions/set/${setType}`;
+    const response = await axios.get(url);
+    return response.data; // Adjust based on API response structure
+  } catch (error: any) {
+    console.error(`Error fetching questions for set ${setType}:`, error);
+    throw error;
+  }
+};
 
+// delete question from set
+export const deleteQuestionFromSet = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/questions/question-set-mappings/remove/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete question from set');
+  }
+};
 
 
 // Stage Management API
