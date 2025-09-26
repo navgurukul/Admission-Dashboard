@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,11 +12,12 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
-interface Option {
-  id: number | string;
-  name: string;
-  value?: string;
-}
+type Option = {
+  id?: number | string;
+  name?: string;
+  value?: string | number;
+  label?: string;
+};
 
 interface EditableCellProps {
   applicant: any;
@@ -27,6 +27,14 @@ interface EditableCellProps {
   onUpdate: () => void;
   showPencil?: boolean;
   options?: Option[];
+}
+
+function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
+  if (!options) return [];
+  return options.map((opt) => ({
+    id: opt.id !== undefined ? String(opt.id) : String(opt.value ?? ""),
+    name: opt.name ?? opt.label ?? String(opt.value ?? ""),
+  }));
 }
 
 export function EditableCell({
@@ -67,11 +75,10 @@ export function EditableCell({
         payload[field] =
           cellValue === "" || cellValue === "none" ? null : Number(cellValue);
       } else {
-        // Ensure we're not sending undefined values
         payload[field] = cellValue === "" ? "" : cellValue ?? "";
       }
 
-      const response = await updateStudent(applicant.id, payload);
+      await updateStudent(applicant.id, payload);
       toast({ title: "Success", description: "Field updated successfully" });
       setEditingCell(null);
       setCellValue("");
@@ -93,7 +100,6 @@ export function EditableCell({
     setCellValue("");
   };
 
-  // Direct dropdown save
   const handleDirectDropdownChange = async (newValue: string) => {
     if (isUpdating) return;
     setIsUpdating(true);
@@ -136,7 +142,8 @@ export function EditableCell({
 
   const isEditing =
     editingCell?.id === applicant.id && editingCell?.field === field;
-  const isDropdownField = options && options.length > 0;
+  const normalizedOptions = normalizeOptions(options);
+  const isDropdownField = normalizedOptions.length > 0;
 
   if (isDropdownField) {
     return (
@@ -154,8 +161,8 @@ export function EditableCell({
           <SelectItem value="none">
             <span className="text-muted-foreground">Select</span>
           </SelectItem>
-          {options.map((opt) => (
-            <SelectItem key={String(opt.id)} value={String(opt.id)}>
+          {normalizedOptions.map((opt) => (
+            <SelectItem key={opt.id} value={opt.id}>
               {opt.name}
             </SelectItem>
           ))}
@@ -164,7 +171,6 @@ export function EditableCell({
     );
   }
 
-  // Text fields
   if (isEditing) {
     return (
       <div className="flex items-center gap-2">
@@ -200,7 +206,6 @@ export function EditableCell({
     );
   }
 
-  // Default display
   return (
     <div
       className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
