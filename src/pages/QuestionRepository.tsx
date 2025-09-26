@@ -261,7 +261,7 @@ export default function QuestionRepository() {
                 <CardTitle>Question Sets</CardTitle>
               </CardHeader>
               <CardContent>
-                <QuestionSetManager allQuestions={questions} />
+                <QuestionSetManager allQuestions={questions}  difficultyLevels={difficultyLevels}/>
               </CardContent>
             </Card>
           </TabsContent>
