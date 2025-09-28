@@ -14,9 +14,6 @@ interface StageDropdownProps {
 const STAGE_OPTIONS = [
   { value: "sourcing", label: "Sourcing" },
   { value: "screening", label: "Screening" },
-  { value: "interviews", label: "Interviews" },
-  { value: "decision", label: "Final Decision" },
-  { value: "onboarded", label: "Onboarded" }
 ];
 
 const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {

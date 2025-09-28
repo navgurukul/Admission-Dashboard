@@ -23,6 +23,7 @@ import {
   getStudentById,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
+import { InlineSubform } from "@/components/Subform";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -130,7 +131,7 @@ export function ApplicantModal({
     if (!currentApplicant?.id) return;
     try {
       const updated = await getStudentById(currentApplicant.id);
-      console.log("done updated",updated)
+      console.log("done updated", updated);
       setCurrentApplicant(updated);
     } catch (err) {
       console.error("Failed to refresh applicant", err);
@@ -179,22 +180,26 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="first_name"
-                    displayValue={currentApplicant?.first_name || "Not provided"}
+                    displayValue={
+                      currentApplicant?.first_name || "Not provided"
+                    }
                     onUpdate={handleUpdate}
                   />
                 </div>
-                 <div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Middle Name
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
                     field="middle_name"
-                    displayValue={currentApplicant?.middle_name || "Not provided"}
+                    displayValue={
+                      currentApplicant?.middle_name || "Not provided"
+                    }
                     onUpdate={handleUpdate}
                   />
                 </div>
-                 <div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Last Name
                   </label>
@@ -313,7 +318,8 @@ export function ApplicantModal({
                     displayValue={
                       qualifications.find(
                         (q) =>
-                          q.value === currentApplicant.qualification_id?.toString()
+                          q.value ===
+                          currentApplicant.qualification_id?.toString()
                       )?.label || "Not provided"
                     }
                     onUpdate={handleUpdate}
@@ -371,9 +377,9 @@ export function ApplicantModal({
               </div>
             </div>
 
-            {/* Application Status */}
+            {/* Screening Status */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Application Status</h3>
+              <h3 className="text-lg font-semibold">Screening Status</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
@@ -390,35 +396,6 @@ export function ApplicantModal({
                   </label>
                   <StatusDropdown
                     applicant={currentApplicant}
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Campus
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="campus"
-                    displayValue={
-                      campus.find(
-                        (q) => q.value === currentApplicant.campus?.toString()
-                      )?.label || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={campus}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Unique Number
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="unique_number"
-                    displayValue={
-                      currentApplicant.unique_number || "Not provided"
-                    }
                     onUpdate={handleUpdate}
                   />
                 </div>
@@ -478,9 +455,9 @@ export function ApplicantModal({
               </div>
             </div>
 
-            {/* Interview Information */}
-            <div className="space-y-4 md:col-span-2">
-              <h3 className="text-lg font-semibold">Interview Information</h3>
+            {/* Learning Round Information */}
+            {/* <div className="space-y-4 md:col-span-2">
+              <h3 className="text-lg font-semibold">Learning Round Information</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
@@ -498,6 +475,90 @@ export function ApplicantModal({
                     ]}
                   />
                 </div>
+
+                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    LR Comments
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="lr_comments"
+                    displayValue={currentApplicant.lr_comments || "No comments"}
+                    onUpdate={handleUpdate}
+                  />
+                </div>
+              </div>
+            </div> */}
+
+            {/* Learning Round Inline Subform */}
+            <InlineSubform
+              title="Learning Round Information"
+              initialData={
+                currentApplicant.learning_rounds || [
+                  {
+                    lr_status: "Pending",
+                    lr_comments: "",
+                  },
+                ]
+              }
+              fields={[
+                {
+                  name: "lr_status",
+                  label: "LR Status",
+                  type: "select",
+                  options: [
+                    { value: "Pending", label: "Pending" },
+                    { value: "Cleared", label: "Cleared" },
+                    { value: "Rejected", label: "Rejected" },
+                  ],
+                },
+                { name: "lr_comments", label: "LR Comments", type: "text" },
+              ]}
+              onSave={async (data) => {
+                // Save array of learning rounds
+                // You may want to update applicant here
+                // await handleUpdate({ learning_rounds: data });
+                await handleUpdate();
+              }}
+            />
+
+            {/* Cultural Fit Round Inline Subform */}
+            <InlineSubform
+              title="Cultural Fit Round Information"
+              initialData={
+                currentApplicant.cultural_fit_rounds || [
+                  {
+                    cfr_status: "Pending",
+                    cfr_comments: "",
+                  },
+                ]
+              }
+              fields={[
+                {
+                  name: "cfr_status",
+                  label: "CFR Status",
+                  type: "select",
+                  options: [
+                    { value: "Pending", label: "Pending" },
+                    { value: "Cleared", label: "Cleared" },
+                    { value: "Rejected", label: "Rejected" },
+                  ],
+                },
+                { name: "cfr_comments", label: "CFR Comments", type: "text" },
+              ]}
+              onSave={async (data) => {
+                // Save array of cultural fit rounds
+                // await handleUpdate({ cultural_fit_rounds: data });
+                await handleUpdate();
+              }}
+            />
+
+            {/* CulturalFit Round Information */}
+            {/* <div className="space-y-4 md:col-span-2">
+              <h3 className="text-lg font-semibold">
+                CulturalFit Round Information
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     CFR Status
@@ -514,28 +575,6 @@ export function ApplicantModal({
                     ]}
                   />
                 </div>
-                {/* <div>
-                  <label className="text-sm font-medium text-muted-foreground">Interview Mode</label>
-                  <EditableCell 
-                    applicant={currentApplicant} 
-                    field="interview_mode" 
-                    displayValue={currentApplicant.interview_mode || "Not provided"} 
-                    onUpdate={handleUpdate}
-                  />
-                </div> */}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    LR Comments
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="lr_comments"
-                    displayValue={currentApplicant.lr_comments || "No comments"}
-                    onUpdate={handleUpdate}
-                  />
-                </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     CFR Comments
@@ -550,12 +589,28 @@ export function ApplicantModal({
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Offer and Final Status */}
             <div className="space-y-4 md:col-span-2">
               <h3 className="text-lg font-semibold">Offer & Final Status</h3>
               <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Campus
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="campus"
+                    displayValue={
+                      campus.find(
+                        (q) => q.value === currentApplicant.campus?.toString()
+                      )?.label || "Not provided"
+                    }
+                    onUpdate={handleUpdate}
+                    options={campus}
+                  />
+                </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Offer Letter Status
@@ -660,16 +715,6 @@ export function ApplicantModal({
                   <p className="text-sm">
                     {currentApplicant.updated_at
                       ? new Date(currentApplicant.updated_at).toLocaleString()
-                      : "Not available"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Last Updated
-                  </label>
-                  <p className="text-sm">
-                    {currentApplicant.last_updated
-                      ? new Date(currentApplicant.last_updated).toLocaleString()
                       : "Not available"}
                   </p>
                 </div>
