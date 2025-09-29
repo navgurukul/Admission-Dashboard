@@ -234,6 +234,23 @@ export interface ApiResponse<T> {
   };
 }
 
+
+
+// Delete delete
+export const deleteStudent = async (id: string): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/students/deleteStudents/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(id)
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Failed to delete student');
+  }
+};
+
+
 // Create role
 export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/createRoles`, {
