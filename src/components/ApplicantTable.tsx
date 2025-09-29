@@ -34,7 +34,7 @@ import {
   getCampusesApi,
   getAllStatuses,
   getAllStages,
-  deleteUser,
+  deleteStudent,
   getAllReligions,
 } from "@/utils/api";
 
@@ -217,7 +217,7 @@ const ApplicantTable = () => {
       return;
     }
     try {
-      await Promise.all(selectedRows.map((id) => deleteUser(id)));
+      await Promise.all(selectedRows.map((id) => deleteStudent(id)));
       toast({
         title: "Applicants Deleted",
         description: "Successfully deleted selected applicants",
