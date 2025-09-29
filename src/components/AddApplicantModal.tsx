@@ -36,6 +36,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 import { createStudent, getAllCasts, getAllQualification } from "@/utils/api";
+import { string } from "zod";
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
 };
@@ -75,6 +76,16 @@ interface CurrentStatus {
   current_status_name: string;
 }
 
+interface QuestionSet {
+  id: number;
+  name: string;
+  description: string;
+  status: boolean;
+  maximumMarks: number;
+  created_at: string;
+  updated_at: string;
+}
+
 interface AddApplicantModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -83,39 +94,8 @@ interface AddApplicantModalProps {
   schoolList: School[];
   currentstatusList: CurrentStatus[];
   religionList: religion[];
+  questionSetList: QuestionSet[];
 }
-
-// const STAGE_STATUS_MAP = {
-//   sourcing: [
-//     "Enrollment Key Generated",
-//     "Basic Details Entered",
-//     "Duplicate",
-//     "Unreachable",
-//     "Became Disinterested",
-//   ],
-//   screening: [
-//     "Screening Test Pass",
-//     "Screening Test Fail",
-//     "Created Student Without Exam",
-//   ],
-//   interviews: [
-//     "Learner Round Pass",
-//     "Learner Round Fail",
-//     "Cultural Fit Interview Pass",
-//     "Cultural Fit Interview Fail",
-//     "Reschedule",
-//     "No Show",
-//   ],
-//   decision: [
-//     "Offer Pending",
-//     "Offer Sent",
-//     "Offer Accepted",
-//     "Offer Declined",
-//     "Waitlisted",
-//     "Selected but not joined",
-//   ],
-//   onboarded: ["Onboarded"],
-// };
 
 export function AddApplicantModal({
   isOpen,
@@ -125,6 +105,7 @@ export function AddApplicantModal({
   schoolList,
   currentstatusList,
   religionList,
+  questionSetList,
 }: AddApplicantModalProps) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
@@ -139,7 +120,7 @@ export function AddApplicantModal({
     first_name: "",
     middle_name: "",
     last_name: "",
-    mobile_no: "",
+    phone_number: "",
     whatsapp_number: "",
     email: "",
     dob: "",
@@ -151,20 +132,24 @@ export function AddApplicantModal({
     cast_id: "",
     gender: "",
     qualification_id: "",
-    current_work_id: "",
-    unique_number: "",
+    current_status_id: "",
     religion_id: "",
+    qualifying_school_id: "",
 
     // Campus / School
     campus_id: "",
     school_id: "",
+    school_medium: "",
 
     // Screening
-    set_name: "",
+    status: "",
+    is_passed: false,
+    question_set_id: "",
+    total_marks: 0,
+    obtained_marks: "",
     exam_centre: "",
-    date_of_testing: "",
-    final_marks: "",
-    qualifying_school: "",
+    date_of_test: "",
+    communication_notes: "",
 
     // Interview
     lr_status: "",
@@ -182,7 +167,6 @@ export function AddApplicantModal({
     // Stage management
     stage_id: "",
     status_id: "",
-    screening_status: "",
     interviews_status: "",
     decision_status: "",
   });
@@ -192,7 +176,7 @@ export function AddApplicantModal({
       first_name: "",
       middle_name: "",
       last_name: "",
-      mobile_no: "",
+      phone_number: "",
       whatsapp_number: "",
       email: "",
       dob: "",
@@ -206,13 +190,8 @@ export function AddApplicantModal({
       campus_id: "",
       school_id: "",
       qualification_id: "",
-      current_work_id: "",
-      unique_number: "",
-      set_name: "",
-      exam_centre: "",
-      date_of_testing: "",
-      final_marks: "",
-      qualifying_school: "",
+      current_status_id: "",
+      qualifying_school_id: "",
       lr_status: "",
       lr_comments: "",
       cfr_status: "",
@@ -224,10 +203,18 @@ export function AddApplicantModal({
       triptis_notes: "",
       stage_id: "",
       status_id: "",
-      screening_status: "",
       interviews_status: "",
       decision_status: "",
       religion_id: "",
+      status: "",
+      is_passed: false,
+      question_set_id: "",
+      total_marks: 0,
+      obtained_marks: "",
+      exam_centre: "",
+      date_of_test: "",
+      communication_notes: "",
+      school_medium: "",
     });
     setTestDate(undefined);
     setActiveTab("basic");
@@ -260,7 +247,21 @@ export function AddApplicantModal({
     fetchQualifications();
   }, []);
 
-  const handleInputChange = (field: string, value: string) => {
+  useEffect(() => {
+    if (formData.question_set_id && questionSetList.length > 0) {
+      const selectedQuestionSet = questionSetList.find(
+        (set) => set.id === Number(formData.question_set_id)
+      );
+      if (selectedQuestionSet) {
+        setFormData((prev) => ({
+          ...prev,
+          total_marks: selectedQuestionSet.maximumMarks,
+        }));
+      }
+    }
+  }, [formData.question_set_id, questionSetList]);
+
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -283,10 +284,10 @@ export function AddApplicantModal({
       newErrors.name = "Name is required";
     }
 
-    if (!formData.mobile_no.trim()) {
-      newErrors.mobile_no = "Mobile number is required";
-    } else if (!/^\d{10}$/.test(formData.mobile_no)) {
-      newErrors.mobile_no = "Mobile number must be 10 digits";
+    if (!formData.phone_number.trim()) {
+      newErrors.phone_number = "Mobile number is required";
+    } else if (!/^\d{10}$/.test(formData.phone_number)) {
+      newErrors.phone_number = "Mobile number must be 10 digits";
     }
 
     setErrors(newErrors);
@@ -297,7 +298,7 @@ export function AddApplicantModal({
     if (!validateForm()) {
       toast({
         title: "Validation Error",
-        description: "Please fix the errors before submitting",
+        description: "Please fill the required fields first",
         variant: "destructive",
       });
       return;
@@ -305,22 +306,21 @@ export function AddApplicantModal({
 
     setLoading(true);
     try {
-      // Map frontend form data to API schema
       const dataToInsert = {
         // Basic details
+        image_url: null,
         first_name: formData.first_name,
         middle_name: formData.middle_name,
         last_name: formData.last_name,
         gender: formData.gender || null,
         dob: formData.dob || null,
-        email: formData.email || `${formData.mobile_no}@example.com`,
-        phone_number: formData.mobile_no,
+        email: formData.email || `${formData.phone_number}@example.com`,
+        phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
 
         // Location details
         state: formData.state || null,
         city: formData.city || null,
-        block: formData.block || null,
         district: formData.district || null,
         pin_code: formData.pin_code || null,
 
@@ -329,32 +329,29 @@ export function AddApplicantModal({
         qualification_id: formData.qualification_id
           ? Number(formData.qualification_id)
           : null,
-        current_status_id: formData.current_work_id
-          ? Number(formData.current_work_id)
+        current_status_id: formData.current_status_id
+          ? Number(formData.current_status_id)
           : null,
+        religion_id: formData.religion_id ? Number(formData.religion_id) : null,
+        school_medium: formData.school_medium || null,
 
+        // Communication notes
+        communication_notes: formData.communication_notes || "",
         campus_id: formData.campus_id ? Number(formData.campus_id) : null,
         school_id: formData.school_id ? Number(formData.school_id) : null,
-        religion_id: formData.religion_id ? Number(formData.religion_id) : null,
 
-        // Optional fields that can be null
-        evaluation: null,
-        redflag: null,
-        image_url: null,
-        gps_lat: null,
-        gps_long: null,
-        school_medium: null,
-        percentage_in10th: null,
-        math_marks_in10th: null,
-        percentage_in12th: null,
-        math_marks_in12th: null,
-        // religion_id: nul
-        partner_id: null,
-        other_activities: null,
-        last_updated: null,
-        current_owner_id: null,
-        partner_refer: null,
-        school_stage_id: null,
+        // Exam Session Data
+        question_set_id: formData.question_set_id
+          ? Number(formData.question_set_id)
+          : 1,
+        total_marks: formData.total_marks ? Number(formData.total_marks) : 0,
+        obtained_marks: formData.obtained_marks
+          ? Number(formData.obtained_marks)
+          : 0,
+        is_passed: Boolean(formData.is_passed),
+        status: formData.status || null,
+        exam_centre: formData.exam_centre || null,
+        date_of_test: formData.date_of_test || null,
       };
 
       // API Call
@@ -392,6 +389,14 @@ export function AddApplicantModal({
         current_work:
           currentstatusList?.find((c) => c.id === response.current_status_id)
             ?.current_status_name || "",
+        is_passed: response.is_passed,
+        status: response.status,
+        total_marks: response.total_marks,
+        obtained_marks: response.obtained_marks,
+        question_set_id: response.question_set_id,
+        exam_centre: response.exam_centre,
+        date_of_test: response.date_of_test,
+        communication_notes: response.communication_notes,
       };
 
       toast({
@@ -414,44 +419,6 @@ export function AddApplicantModal({
     }
   };
 
-  // const getCurrentStatusOptions = (stage: string) => {
-  //   return STAGE_STATUS_MAP[stage as keyof typeof STAGE_STATUS_MAP] || [];
-  // };
-
-  // const getCurrentStatus = (stage: string) => {
-  //   switch (stage) {
-  //     case "sourcing":
-  //       return formData.status;
-  //     case "screening":
-  //       return formData.screening_status;
-  //     case "interviews":
-  //       return formData.interviews_status;
-  //     case "decision":
-  //       return formData.decision_status;
-  //     case "onboarded":
-  //       return "Onboarded";
-  //     default:
-  //       return "";
-  //   }
-  // };
-
-  // const handleStatusChange = (stage: string, value: string) => {
-  //   switch (stage) {
-  //     case "sourcing":
-  //       handleInputChange("status", value);
-  //       break;
-  //     case "screening":
-  //       handleInputChange("screening_status", value);
-  //       break;
-  //     case "interviews":
-  //       handleInputChange("interviews_status", value);
-  //       break;
-  //     case "decision":
-  //       handleInputChange("decision_status", value);
-  //       break;
-  //   }
-  // };
-
   const getTabIcon = (tabValue: string) => {
     const icons = {
       basic: User,
@@ -465,13 +432,15 @@ export function AddApplicantModal({
   const isTabCompleted = (tabValue: string) => {
     switch (tabValue) {
       case "basic":
-        return formData.first_name && formData.mobile_no && formData.stage_id;
+        return (
+          formData.first_name && formData.phone_number && formData.stage_id
+        );
       case "screening":
-        return formData.stage_id !== "screening" || formData.screening_status;
-      case "interviews":
-        return formData.stage_id !== "interviews" || formData.interviews_status;
-      case "final":
-        return formData.stage_id !== "decision" || formData.decision_status;
+        return formData.stage_id !== "screening" || formData.status;
+      // case "interviews":
+      //   return formData.stage_id !== "interviews" || formData.interviews_status;
+      // case "final":
+      //   return formData.stage_id !== "decision" || formData.decision_status;
       default:
         return false;
     }
@@ -504,43 +473,41 @@ export function AddApplicantModal({
 
           {/* Mobile-friendly progress indicator */}
           <div className="flex justify-center mt-3 sm:mt-4">
-            <div className="flex space-x-2 sm:space-x-4">
-              {["basic", "screening"].map(
-                (tab, index) => {
-                  const Icon = getTabIcon(tab);
-                  const isCompleted = isTabCompleted(tab);
-                  const isCurrent = activeTab === tab;
+            <div className="flex item-center space-x-4 sm:space-x-6 justify-between">
+              {["basic", "screening"].map((tab, index, arr) => {
+                const Icon = getTabIcon(tab);
+                const isCompleted = isTabCompleted(tab);
+                const isCurrent = activeTab === tab;
 
-                  return (
-                    <div key={tab} className="flex items-center">
-                      <div
-                        className={cn(
-                          "flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 transition-colors",
-                          isCurrent
-                            ? "bg-orange-500 border-orange-500 text-white"
-                            : isCompleted
-                            ? "bg-orange-500 border-orange-500 text-white"
-                            : "border-gray-300 text-gray-400"
-                        )}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-3 h-3 sm:w-5 sm:h-5" />
-                        ) : (
-                          <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
-                        )}
-                      </div>
-                      {index < 3 && (
-                        <div
-                          className={cn(
-                            "w-6 sm:w-12 h-0.5 mx-1 sm:mx-2",
-                            isCompleted ? "bg-orange-400" : "bg-orange-300"
-                          )}
-                        />
+                return (
+                  <div key={tab} className="flex items-center">
+                    <div
+                      className={cn(
+                        "flex items-center justify-center w-8 h-8 sm:w-8 sm:h-8 rounded-full border-2 transition-colors",
+                        isCurrent
+                          ? "bg-orange-500 border-orange-500 text-white"
+                          : isCompleted
+                          ? "bg-orange-500 border-orange-500 text-white"
+                          : "border-gray-300 text-gray-400"
+                      )}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      ) : (
+                        <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
                       )}
                     </div>
-                  );
-                }
-              )}
+                    {index < arr.length - 1 && (
+                      <div
+                        className={cn(
+                          "w-6 sm:w-12 h-0.5 mx-1 sm:mx-2",
+                          isCompleted ? "bg-orange-400" : "bg-orange-300"
+                        )}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </DialogHeader>
@@ -553,17 +520,17 @@ export function AddApplicantModal({
             className="w-full"
           >
             {/* Mobile-friendly tab list */}
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-8 h-auto">
+            <TabsList className="flex w-full justify-between mb-4 sm:mb-8 h-auto">
               <TabsTrigger
                 value="basic"
-                className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
+                className="flex-1 flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
               >
                 <User className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Basic</span>
               </TabsTrigger>
               <TabsTrigger
                 value="screening"
-                className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
+                className="flex-1 flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
               >
                 <FileText className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Screening</span>
@@ -639,18 +606,18 @@ export function AddApplicantModal({
                     </Label>
                     <Input
                       id="mobile"
-                      value={formData.mobile_no}
+                      value={formData.phone_number}
                       onChange={(e) =>
-                        handleInputChange("mobile_no", e.target.value)
+                        handleInputChange("phone_number", e.target.value)
                       }
                       placeholder="Enter 10-digit phone number"
                       maxLength={10}
-                      className={errors.mobile_no ? "border-red-500" : ""}
+                      className={errors.phone_number ? "border-red-500" : ""}
                     />
-                    {errors.mobile_no && (
+                    {errors.phone_number && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.mobile_no}
+                        {errors.phone_number}
                       </p>
                     )}
                   </div>
@@ -861,8 +828,8 @@ export function AddApplicantModal({
                     </Label>
                     <Select
                       value={
-                        formData.current_work_id
-                          ? String(formData.current_work_id)
+                        formData.current_status_id
+                          ? String(formData.current_status_id)
                           : ""
                       }
                       onValueChange={(value) =>
@@ -882,7 +849,7 @@ export function AddApplicantModal({
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="school_id" className="text-sm font-medium">
                       School
                     </Label>
@@ -905,7 +872,7 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2">
                     <Label htmlFor="campus_id" className="text-sm font-medium">
@@ -931,6 +898,7 @@ export function AddApplicantModal({
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div className="space-y-2">
                     <Label
                       htmlFor="religion_id"
@@ -968,10 +936,10 @@ export function AddApplicantModal({
                     Communication Notes
                   </Label>
                   <Textarea
-                    id="triptis_notes"
-                    value={formData.triptis_notes}
+                    id="communication_notes"
+                    value={formData.communication_notes}
                     onChange={(e) =>
-                      handleInputChange("triptis_notes", e.target.value)
+                      handleInputChange("communication_notes", e.target.value)
                     }
                     placeholder="Enter communication notes"
                     rows={3}
@@ -987,7 +955,9 @@ export function AddApplicantModal({
                   <FileText className="w-5 h-5 mr-2 text-orange-600" />
                   Screening Details
                 </h3>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
+                  {/* Screening Status */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="screening_status"
@@ -996,39 +966,62 @@ export function AddApplicantModal({
                       Screening Status
                     </Label>
                     <Select
-                      value={formData.screening_status}
+                      value={formData.status}
                       onValueChange={(value) =>
-                        handleInputChange("screening_status", value)
+                        handleInputChange("status", value)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select screening status" />
                       </SelectTrigger>
-                      {/* <SelectContent>
-                        {STAGE_STATUS_MAP.screening.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent> */}
+                      <SelectContent>
+                        <SelectItem value="Screening Test Pass">
+                          Screening Test Pass
+                        </SelectItem>
+                        <SelectItem value="Screening Test Fail">
+                          Screening Test Fail
+                        </SelectItem>
+                        <SelectItem value="Created Student Without Exam">
+                          Created Student Without Exam
+                        </SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {/* Question Set */}
                   <div className="space-y-2">
-                    <Label htmlFor="set_name" className="text-sm font-medium">
-                      Set Name
+                    <Label
+                      htmlFor="question_set_id"
+                      className="text-sm font-medium"
+                    >
+                      Question Set
                     </Label>
-                    <Input
-                      id="set_name"
-                      value={formData.set_name}
-                      onChange={(e) =>
-                        handleInputChange("set_name", e.target.value)
+                    <Select
+                      value={
+                        formData.question_set_id
+                          ? String(formData.question_set_id)
+                          : ""
                       }
-                      placeholder="Enter set name"
-                    />
+                      onValueChange={(value) =>
+                        handleInputChange("question_set_id", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select question set" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {questionSetList?.map((set) => (
+                          <SelectItem key={set.id} value={String(set.id)}>
+                            {set.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+
+                  {/* Exam Centre */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="exam_centre"
@@ -1045,301 +1038,128 @@ export function AddApplicantModal({
                       placeholder="Enter exam centre"
                     />
                   </div>
+
+                  {/* Date of Test */}
                   <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                    <Label className="text-sm font-medium">
-                      Date of Testing
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !testDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {testDate ? (
-                            format(testDate, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={testDate}
-                          onSelect={(date) => {
-                            setTestDate(date);
-                            handleInputChange(
-                              "date_of_testing",
-                              date ? format(date, "yyyy-MM-dd") : ""
-                            );
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="space-y-2">
                     <Label
-                      htmlFor="final_marks"
+                      htmlFor="date_of_test"
                       className="text-sm font-medium"
                     >
-                      Final Marks
+                      Date of Testing
                     </Label>
                     <Input
-                      id="final_marks"
-                      type="number"
-                      value={formData.final_marks}
+                      id="date_of_test"
+                      type="date"
+                      value={formData.date_of_test}
                       onChange={(e) =>
-                        handleInputChange("final_marks", e.target.value)
+                        handleInputChange("date_of_test", e.target.value)
                       }
-                      placeholder="Enter final marks"
-                      min="0"
-                      max="100"
                     />
                   </div>
+
+                  {/* Total Marks */}
                   <div className="space-y-2">
                     <Label
-                      htmlFor="qualifying_school"
+                      htmlFor="total_marks"
+                      className="text-sm font-medium"
+                    >
+                      Total Marks
+                    </Label>
+                    <Input
+                      id="total_marks"
+                      type="number"
+                      value={formData.total_marks}
+                      onChange={(e) =>
+                        handleInputChange("total_marks", e.target.value)
+                      }
+                      placeholder="Enter total marks"
+                    />
+                    {formData.question_set_id && (
+                      <p className="text-xs text-gray-500">
+                        {questionSetList.find(
+                          (q) => q.id === Number(formData.question_set_id)
+                        )?.name || "Selected Question Set"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Obtained Marks */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="obtained_marks"
+                      className="text-sm font-medium"
+                    >
+                      Obtained Marks
+                    </Label>
+                    <Input
+                      id="obtained_marks"
+                      type="number"
+                      value={formData.obtained_marks}
+                      onChange={(e) =>
+                        handleInputChange("obtained_marks", e.target.value)
+                      }
+                      placeholder="Enter obtained marks"
+                      min="0"
+                    />
+                  </div>
+
+                  {/* Qualifying School */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="qualifying_school_id"
                       className="text-sm font-medium"
                     >
                       Qualifying School
                     </Label>
-                    <Input
-                      id="qualifying_school"
-                      value={formData.qualifying_school}
-                      onChange={(e) =>
-                        handleInputChange("qualifying_school", e.target.value)
+                    <Select
+                      value={
+                        formData.qualifying_school_id
+                          ? String(formData.qualifying_school_id)
+                          : ""
                       }
-                      placeholder="Enter qualifying school"
-                    />
+                      onValueChange={(value) =>
+                        handleInputChange("qualifying_school_id", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select qualifying school" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {schoolList?.map((school) => (
+                          <SelectItem key={school.id} value={String(school.id)}>
+                            {school.school_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Is Passed */}
+                  <div className="space-y-2">
+                    <Label htmlFor="is_passed" className="text-sm font-medium">
+                      Is Passed
+                    </Label>
+                    <Select
+                      value={formData.is_passed ? "true" : "false"}
+                      onValueChange={(value) =>
+                        handleInputChange("is_passed", value === "true")
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder="Select pass status"
+                          className="text-left"
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
             </TabsContent>
-
-            {/* ---- Interviews Tab ---- */}
-            {/* <TabsContent value="interviews" className="space-y-4 sm:space-y-6">
-              <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <MessageSquare className="w-5 h-5 mr-2 text-teal-600" />
-                  Interview Details
-                </h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="interviews_status"
-                      className="text-sm font-medium"
-                    >
-                      Interview Status
-                    </Label>
-                    <Select
-                      value={formData.interviews_status}
-                      onValueChange={(value) =>
-                        handleInputChange("interviews_status", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select interview status" />
-                      </SelectTrigger>
-                      {/* <SelectContent>
-                        {STAGE_STATUS_MAP.interviews.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent> */}
-                    {/* </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="lr_status"
-                        className="text-sm font-medium"
-                      >
-                        Learner Round Status
-                      </Label>
-                      <Input
-                        id="lr_status"
-                        value={formData.lr_status}
-                        onChange={(e) =>
-                          handleInputChange("lr_status", e.target.value)
-                        }
-                        placeholder="Enter learner round status"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="lr_comments"
-                        className="text-sm font-medium"
-                      >
-                        Learner Round Feedback
-                      </Label>
-                      <Textarea
-                        id="lr_comments"
-                        value={formData.lr_comments}
-                        onChange={(e) =>
-                          handleInputChange("lr_comments", e.target.value)
-                        }
-                        placeholder="Enter learner round feedback"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="cfr_status"
-                        className="text-sm font-medium"
-                      >
-                        Cultural Fit Round Status
-                      </Label>
-                      <Input
-                        id="cfr_status"
-                        value={formData.cfr_status}
-                        onChange={(e) =>
-                          handleInputChange("cfr_status", e.target.value)
-                        }
-                        placeholder="Enter cultural fit round status"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="cfr_comments"
-                        className="text-sm font-medium"
-                      >
-                        Cultural Fit Round Feedback
-                      </Label>
-                      <Textarea
-                        id="cfr_comments"
-                        value={formData.cfr_comments}
-                        onChange={(e) =>
-                          handleInputChange("cfr_comments", e.target.value)
-                        }
-                        placeholder="Enter cultural fit round Feedback"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>  */}
-
-            {/* ---- Final Stage Tab ---- */}
-            {/* <TabsContent value="final" className="space-y-4 sm:space-y-6">
-              <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <Trophy className="w-5 h-5 mr-2 text-yellow-600" />
-                  Final Stage Details
-                </h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="decision_status"
-                      className="text-sm font-medium"
-                    >
-                      Final Decision Status
-                    </Label>
-                    <Select
-                      value={formData.decision_status}
-                      onValueChange={(value) =>
-                        handleInputChange("decision_status", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select decision status" />
-                      </SelectTrigger> */}
-                      {/* <SelectContent>
-                        {STAGE_STATUS_MAP.decision.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent> */}
-                    {/* </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="offer_letter_status"
-                        className="text-sm font-medium"
-                      >
-                        Offer Letter Status
-                      </Label>
-                      <Input
-                        id="offer_letter_status"
-                        value={formData.offer_letter_status}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "offer_letter_status",
-                            e.target.value
-                          )
-                        }
-                        placeholder="Enter offer letter status"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="allotted_school"
-                        className="text-sm font-medium"
-                      >
-                        Allotted School
-                      </Label>
-                      <Input
-                        id="allotted_school"
-                        value={formData.allotted_school}
-                        onChange={(e) =>
-                          handleInputChange("allotted_school", e.target.value)
-                        }
-                        placeholder="Enter allotted school"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="joining_status"
-                        className="text-sm font-medium"
-                      >
-                        Joining Status
-                      </Label>
-                      <Input
-                        id="joining_status"
-                        value={formData.joining_status}
-                        onChange={(e) =>
-                          handleInputChange("joining_status", e.target.value)
-                        }
-                        placeholder="Enter joining status"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="final_notes"
-                        className="text-sm font-medium"
-                      >
-                        Final Notes
-                      </Label>
-                      <Textarea
-                        id="final_notes"
-                        value={formData.final_notes}
-                        onChange={(e) =>
-                          handleInputChange("final_notes", e.target.value)
-                        }
-                        placeholder="Enter final notes"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent> */}
           </Tabs>
         </div>
 

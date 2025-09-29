@@ -28,6 +28,7 @@ interface ApplicantTableRowProps {
   religionList: any[];
   // casteList: any[];
   currentstatusList: any[];
+  questionSetList: any[];
 }
 
 export const ApplicantTableRow = ({
@@ -43,6 +44,7 @@ export const ApplicantTableRow = ({
   religionList,
   // casteList,
   currentstatusList,
+  questionSetList,
 }: ApplicantTableRowProps) => {
   const fullName =
     [applicant.first_name, applicant.middle_name, applicant.last_name]
@@ -238,6 +240,29 @@ export const ApplicantTableRow = ({
               id: r.id,
               name: r.religion_name,
             }))}
+            showPencil={false}
+          />
+        </div>
+      </TableCell>
+
+      <TableCell className="min-w-[80px] max-w-[100px] px-2">
+        <div className="truncate">
+          <EditableCell
+            applicant={applicant}
+            field="is_passed"
+            displayValue={
+              applicant.is_passed === true
+                ? "Yes"
+                : applicant.is_passed === false
+                ? "No"
+                : "Not Set"
+            }
+            value={applicant.is_passed}
+            onUpdate={onUpdate}
+            options={[
+              { id: "true", name: "Yes" },
+              { id: "false", name: "No" },
+            ]}
             showPencil={false}
           />
         </div>
