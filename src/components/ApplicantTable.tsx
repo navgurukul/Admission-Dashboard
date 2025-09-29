@@ -36,6 +36,7 @@ import {
   getAllStages,
   deleteUser,
   getAllReligions,
+  getAllQuestionSets,
 } from "@/utils/api";
 
 const ApplicantTable = () => {
@@ -54,6 +55,7 @@ const ApplicantTable = () => {
   const [currentstatusList, setcurrentstatusList] = useState<any[]>([]);
   const [stageList, setStageList] = useState<any[]>([]);
   const [religionList, setReligionList] = useState<any[]>([]);
+  const [questionSetList, setQuestionSetList] = useState<any[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -81,7 +83,6 @@ const ApplicantTable = () => {
     queryKey: ["students"],
     queryFn: async () => {
       const res = await getStudents(); // should return all data
-      // console.log("Fetched data:", res);
       return res;
     },
   });
@@ -126,6 +127,19 @@ const ApplicantTable = () => {
     fetchOptions();
   }, []);
 
+  useEffect(() => {
+    const fetchQuestionSets = async () => {
+      try {
+        const response = await getAllQuestionSets();
+        setQuestionSetList(response || []);
+      } catch (error) {
+        console.error("Error fetching question sets:", error);
+      }
+    };
+
+    fetchQuestionSets();
+  }, []);
+
   // Map phone to mobile_no if mobile_no is missing
   const applicants = useMemo(() => {
     return (students || []).map((student) => {
@@ -135,6 +149,9 @@ const ApplicantTable = () => {
         (s) => s.id === student.current_status_id
       );
       const religion = religionList.find((r) => r.id === student.religion_id);
+      const questionSet = questionSetList.find(
+        (q) => q.id === student.question_set_id
+      );
 
       return {
         ...student,
@@ -148,9 +165,18 @@ const ApplicantTable = () => {
           ? current_status.current_status_name
           : "N/A",
         religion_name: religion ? religion.religion_name : "N/A",
+        question_set_name: questionSet ? questionSet.name : "N/A",
+        maximumMarks: questionSet ? questionSet.maximumMarks : 0,
       };
     });
-  }, [students, schoolList, campusList, currentstatusList, religionList]);
+  }, [
+    students,
+    schoolList,
+    campusList,
+    currentstatusList,
+    religionList,
+    questionSetList,
+  ]);
 
   // Filter by search
   const filteredApplicants = useMemo(() => {
@@ -297,8 +323,9 @@ const ApplicantTable = () => {
       "status",
 
       // Additional Notes
-      "triptis_notes",
+      "communication_notes",
       "final_notes",
+      "is_passed",
     ];
 
     const csvContent = [
@@ -431,6 +458,10 @@ const ApplicantTable = () => {
                     Religion
                   </TableHead>
 
+                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                    Is Passed
+                  </TableHead>
+
                   <TableHead className="w-16 font-bold px-2">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -467,6 +498,7 @@ const ApplicantTable = () => {
                       religionList={religionList}
                       // casteList={campusList}
                       currentstatusList={currentstatusList}
+                      questionSetList={questionSetList}
                     />
                   ))
                 )}
@@ -511,6 +543,7 @@ const ApplicantTable = () => {
         campusList={campusList}
         currentstatusList={currentstatusList}
         religionList={religionList}
+        questionSetList={questionSetList}
       />
 
       <CSVImportModal
