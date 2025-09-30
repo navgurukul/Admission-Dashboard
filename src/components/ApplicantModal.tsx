@@ -634,7 +634,7 @@ export function ApplicantModal({
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Updated At
+                      Last updated At
                     </label>
                     <p className="text-sm">
                       {currentApplicant.updated_at
