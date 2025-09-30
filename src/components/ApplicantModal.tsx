@@ -485,173 +485,163 @@ export function ApplicantModal({
               </div>
             </div>
 
-              {/* --- LEARNING & CULTURAL FIT ROUNDS --- */}
-<div className="grid grid-cols-1 gap-6">
-  {/* <div className="col-span-12">
-   */}
-    <InlineSubform
-      title="Learning Round"
-      studentId={currentApplicant.id}
-      initialData={currentApplicant.learning_rounds || []}
-      fields={[
-        {
-          name: "learning_round_status",
-          label: "Status",
-          type: "select",
-          options: [
-            { value: "Learner Round Pass", label: "Learner Round Pass" },
-            { value: "Learner Round Fail", label: "Learner Round Fail" },
-            { value: "Reschedule", label: "Reschedule" },
-            { value: "No Show", label: "No Show" },
-          ],
-        },
-        { name: "comments", label: "Comments", type: "text" },
-      ]}
-      submitApi={API_MAP.learning.submit}
-      updateApi={API_MAP.learning.update}
-    />
-  {/* </div> */}
+            {/* --- LEARNING & CULTURAL FIT ROUNDS --- */}
+            <div className="grid grid-cols-1 gap-6">
+              <div className="col-span-full w-full">
+                <InlineSubform
+                  title="Learning Round"
+                  studentId={currentApplicant.id}
+                  initialData={currentApplicant.learning_rounds || []}
+                  fields={[
+                    {
+                      name: "learning_round_status",
+                      label: "Status",
+                      type: "select",
+                      options: [
+                        { value: "Learner Round Pass", label: "Learner Round Pass" },
+                        { value: "Learner Round Fail", label: "Learner Round Fail" },
+                        { value: "Reschedule", label: "Reschedule" },
+                        { value: "No Show", label: "No Show" },
+                      ],
+                    },
+                    { name: "comments", label: "Comments", type: "text" },
+                  ]}
+                  submitApi={API_MAP.learning.submit}
+                  updateApi={API_MAP.learning.update}
+                  onSave={handleUpdate}
+                />
+              </div>
+              <div className="col-span-full w-full">
+                <InlineSubform
+                  title="Cultural Fit Round"
+                  studentId={currentApplicant.id}
+                  initialData={currentApplicant.cultural_fit_rounds || []}
+                  fields={[
+                    {
+                      name: "cultural_fit_status",
+                      label: "Status",
+                      type: "select",
+                      options: [
+                        { value: "Cultural Fit Interview Pass", label: "Cultural Fit Interview Pass" },
+                        { value: "Cultural Fit Interview Fail", label: "Cultural Fit Interview Fail" },
+                        { value: "Reschedule", label: "Reschedule" },
+                        { value: "No Show", label: "No Show" },
+                      ],
+                    },
+                    { name: "comments", label: "Comments", type: "text" },
+                  ]}
+                  submitApi={API_MAP.cultural.submit}
+                  updateApi={API_MAP.cultural.update}
+                  onSave={handleUpdate}
+                />
+              </div>
 
-  {/* <div className="col-span-12"> */}
-  
-    <InlineSubform
-      title="Cultural Fit Round"
-      studentId={currentApplicant.id}
-      initialData={currentApplicant.cultural_fit_rounds || []}
-      fields={[
-        {
-          name: "cultural_fit_status",
-          label: "Status",
-          type: "select",
-          options: [
-            {
-              value: "Cultural Fit Interview Pass",
-              label: "Cultural Fit Interview Pass",
-            },
-            {
-              value: "Cultural Fit Interview Fail",
-              label: "Cultural Fit Interview Fail",
-            },
-            { value: "Reschedule", label: "Reschedule" },
-            { value: "No Show", label: "No Show" },
-          ],
-        },
-        { name: "comments", label: "Comments", type: "text" },
-      ]}
-      submitApi={API_MAP.cultural.submit}
-      updateApi={API_MAP.cultural.update}
-    />
-  {/* </div> */}
-</div>
+              {/* Offer and Final Status */}
+              <div className="space-y-4 md:col-span-2">
+                <h3 className="text-lg font-semibold">Offer & Final Status</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Campus
+                    </label>
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="campus"
+                      displayValue={
+                        campus.find(
+                          (q) => q.value === currentApplicant.campus?.toString()
+                        )?.label || "Not provided"
+                      }
+                      onUpdate={handleUpdate}
+                      options={campus}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Offer Letter Status
+                    </label>
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="offer_letter_status"
+                      displayValue={
+                        currentApplicant.offer_letter_status || "Not provided"
+                      }
+                      onUpdate={handleUpdate}
+                      options={[
+                        { value: "Pending", label: "Pending" },
+                        { value: "Sent", label: "Sent" },
+                        { value: "Accepted", label: "Accepted" },
+                        { value: "Rejected", label: "Rejected" },
+                      ]}
+                    />
+                  </div>
 
-              
-
-              
-            {/* Offer and Final Status */}
-            <div className="space-y-4 md:col-span-2">
-              <h3 className="text-lg font-semibold">Offer & Final Status</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Campus
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="campus"
-                    displayValue={
-                      campus.find(
-                        (q) => q.value === currentApplicant.campus?.toString()
-                      )?.label || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={campus}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Offer Letter Status
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="offer_letter_status"
-                    displayValue={
-                      currentApplicant.offer_letter_status || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={[
-                      { value: "Pending", label: "Pending" },
-                      { value: "Sent", label: "Sent" },
-                      { value: "Accepted", label: "Accepted" },
-                      { value: "Rejected", label: "Rejected" },
-                    ]}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Onboarded Status
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="onboarded_status"
-                    displayValue={
-                      currentApplicant.onboarded_status || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={[
-                      { value: "Not Joined", label: "Not Joined" },
-                      { value: "Joined", label: "Joined" },
-                      { value: "Deferred", label: "Deferred" },
-                      { value: "Rejected", label: "Rejected" },
-                    ]}
-                  />
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Onboarded Status
+                    </label>
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="onboarded_status"
+                      displayValue={
+                        currentApplicant.onboarded_status || "Not provided"
+                      }
+                      onUpdate={handleUpdate}
+                      options={[
+                        { value: "Not Joined", label: "Not Joined" },
+                        { value: "Joined", label: "Joined" },
+                        { value: "Deferred", label: "Deferred" },
+                        { value: "Rejected", label: "Rejected" },
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Notes */}
-            <div className="space-y-4 md:col-span-2">
-              <h3 className="text-lg font-semibold">Notes</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Final Notes
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="final_notes"
-                    displayValue={
-                      currentApplicant.final_notes || "No final notes"
-                    }
-                    onUpdate={handleUpdate}
-                  />
+              {/* Notes */}
+              <div className="space-y-4 md:col-span-2">
+                <h3 className="text-lg font-semibold">Notes</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Final Notes
+                    </label>
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="final_notes"
+                      displayValue={
+                        currentApplicant.final_notes || "No final notes"
+                      }
+                      onUpdate={handleUpdate}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Timestamps */}
-            <div className="space-y-4 md:col-span-2">
-              <h3 className="text-lg font-semibold">Timestamps</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Created At
-                  </label>
-                  <p className="text-sm">
-                    {currentApplicant.created_at
-                      ? new Date(currentApplicant.created_at).toLocaleString()
-                      : "Not available"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Updated At
-                  </label>
-                  <p className="text-sm">
-                    {currentApplicant.updated_at
-                      ? new Date(currentApplicant.updated_at).toLocaleString()
-                      : "Not available"}
-                  </p>
+              {/* Timestamps */}
+              <div className="space-y-4 md:col-span-2">
+                <h3 className="text-lg font-semibold">Timestamps</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Created At
+                    </label>
+                    <p className="text-sm">
+                      {currentApplicant.created_at
+                        ? new Date(currentApplicant.created_at).toLocaleString()
+                        : "Not available"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Last updated At
+                    </label>
+                    <p className="text-sm">
+                      {currentApplicant.updated_at
+                        ? new Date(currentApplicant.updated_at).toLocaleString()
+                        : "Not available"}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
