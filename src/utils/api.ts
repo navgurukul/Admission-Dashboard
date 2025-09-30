@@ -341,6 +341,62 @@ export const deleteRole = async (id: string | number): Promise<void> => {
   }
 };
 
+// Learning Round APIs
+export const submitLearningRound = async (row: any) => {
+  return fetch(
+    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/learningRoundFeedback",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+export const updateLearningRound = async (id: number, row: any) => {
+  return fetch(
+    `https://dev-new-admissions.navgurukul.org/api/v1/students/update/learningRoundFeedback/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+// Cultural Fit APIs
+export const submitCulturalFit = async (row: any) => {
+  return fetch(
+    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/culturalFitRoundFeedback",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+export const updateCulturalFit = async (id: number, row: any) => {
+  return fetch(
+    `https://dev-new-admissions.navgurukul.org/api/v1/students/update/culturalFitRoundFeedback/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+// Map to dynamically select API based on type
+export const API_MAP: Record<
+  string,
+  { submit: (row: any) => Promise<any>; update: (id: number, row: any) => Promise<any> }
+> = {
+  learning: { submit: submitLearningRound, update: updateLearningRound },
+  cultural: { submit: submitCulturalFit, update: updateCulturalFit },
+};
+
+
 
 // Updated logout function
 export const logoutUser = () => {
