@@ -21,6 +21,7 @@ import {
   getAllSchools,
   getCampusesApi,
   getStudentById,
+  API_MAP,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -168,7 +169,7 @@ export function ApplicantModal({
             </div>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
             {/* Personal Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Personal Information</h3>
@@ -343,24 +344,7 @@ export function ApplicantModal({
                     options={currentWorks}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Qualifying School
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="qualifying_school"
-                    displayValue={
-                      schools.find(
-                        (q) =>
-                          q.value ===
-                          currentApplicant.qualifying_school?.toString()
-                      )?.label || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={schools}
-                  />
-                </div>
+
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Final Marks
@@ -397,6 +381,52 @@ export function ApplicantModal({
                   <StatusDropdown
                     applicant={currentApplicant}
                     onUpdate={handleUpdate}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Obtained Marks
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="obtained_marks"
+                    displayValue={
+                      currentApplicant.obtained_marks || "Not provided"
+                    }
+                    onUpdate={handleUpdate}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Is Passed
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="is_passed"
+                    displayValue={currentApplicant.is_passed || "Not provided"}
+                    options={[
+                      { value: "1", label: "Yes" },
+                      { value: "0", label: "No" },
+                    ]}
+                    onUpdate={handleUpdate}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Qualifying School
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="qualifying_school"
+                    displayValue={
+                      schools.find(
+                        (q) =>
+                          q.value ===
+                          currentApplicant.qualifying_school?.toString()
+                      )?.label || "Not provided"
+                    }
+                    onUpdate={handleUpdate}
+                    options={schools}
                   />
                 </div>
               </div>
@@ -455,142 +485,68 @@ export function ApplicantModal({
               </div>
             </div>
 
-            {/* Learning Round Information */}
-            {/* <div className="space-y-4 md:col-span-2">
-              <h3 className="text-lg font-semibold">Learning Round Information</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    LR Status
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="lr_status"
-                    displayValue={currentApplicant.lr_status || "Not provided"}
-                    onUpdate={handleUpdate}
-                    options={[
-                      { value: "Pending", label: "Pending" },
-                      { value: "Cleared", label: "Cleared" },
-                      { value: "Rejected", label: "Rejected" },
-                    ]}
-                  />
-                </div>
+              {/* --- LEARNING & CULTURAL FIT ROUNDS --- */}
+<div className="grid grid-cols-1 gap-6">
+  {/* <div className="col-span-12">
+   */}
+    <InlineSubform
+      title="Learning Round"
+      studentId={currentApplicant.id}
+      initialData={currentApplicant.learning_rounds || []}
+      fields={[
+        {
+          name: "learning_round_status",
+          label: "Status",
+          type: "select",
+          options: [
+            { value: "Learner Round Pass", label: "Learner Round Pass" },
+            { value: "Learner Round Fail", label: "Learner Round Fail" },
+            { value: "Reschedule", label: "Reschedule" },
+            { value: "No Show", label: "No Show" },
+          ],
+        },
+        { name: "comments", label: "Comments", type: "text" },
+      ]}
+      submitApi={API_MAP.learning.submit}
+      updateApi={API_MAP.learning.update}
+    />
+  {/* </div> */}
 
-                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    LR Comments
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="lr_comments"
-                    displayValue={currentApplicant.lr_comments || "No comments"}
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-              </div>
-            </div> */}
+  {/* <div className="col-span-12"> */}
+  
+    <InlineSubform
+      title="Cultural Fit Round"
+      studentId={currentApplicant.id}
+      initialData={currentApplicant.cultural_fit_rounds || []}
+      fields={[
+        {
+          name: "cultural_fit_status",
+          label: "Status",
+          type: "select",
+          options: [
+            {
+              value: "Cultural Fit Interview Pass",
+              label: "Cultural Fit Interview Pass",
+            },
+            {
+              value: "Cultural Fit Interview Fail",
+              label: "Cultural Fit Interview Fail",
+            },
+            { value: "Reschedule", label: "Reschedule" },
+            { value: "No Show", label: "No Show" },
+          ],
+        },
+        { name: "comments", label: "Comments", type: "text" },
+      ]}
+      submitApi={API_MAP.cultural.submit}
+      updateApi={API_MAP.cultural.update}
+    />
+  {/* </div> */}
+</div>
 
-            {/* Learning Round Inline Subform */}
-            <InlineSubform
-              title="Learning Round Information"
-              initialData={
-                currentApplicant.learning_rounds || [
-                  {
-                    lr_status: "Pending",
-                    lr_comments: "",
-                  },
-                ]
-              }
-              fields={[
-                {
-                  name: "lr_status",
-                  label: "LR Status",
-                  type: "select",
-                  options: [
-                    { value: "Pending", label: "Pending" },
-                    { value: "Cleared", label: "Cleared" },
-                    { value: "Rejected", label: "Rejected" },
-                  ],
-                },
-                { name: "lr_comments", label: "LR Comments", type: "text" },
-              ]}
-              onSave={async (data) => {
-                // Save array of learning rounds
-                // You may want to update applicant here
-                // await handleUpdate({ learning_rounds: data });
-                await handleUpdate();
-              }}
-            />
+              
 
-            {/* Cultural Fit Round Inline Subform */}
-            <InlineSubform
-              title="Cultural Fit Round Information"
-              initialData={
-                currentApplicant.cultural_fit_rounds || [
-                  {
-                    cfr_status: "Pending",
-                    cfr_comments: "",
-                  },
-                ]
-              }
-              fields={[
-                {
-                  name: "cfr_status",
-                  label: "CFR Status",
-                  type: "select",
-                  options: [
-                    { value: "Pending", label: "Pending" },
-                    { value: "Cleared", label: "Cleared" },
-                    { value: "Rejected", label: "Rejected" },
-                  ],
-                },
-                { name: "cfr_comments", label: "CFR Comments", type: "text" },
-              ]}
-              onSave={async (data) => {
-                // Save array of cultural fit rounds
-                // await handleUpdate({ cultural_fit_rounds: data });
-                await handleUpdate();
-              }}
-            />
-
-            {/* CulturalFit Round Information */}
-            {/* <div className="space-y-4 md:col-span-2">
-              <h3 className="text-lg font-semibold">
-                CulturalFit Round Information
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    CFR Status
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="cfr_status"
-                    displayValue={currentApplicant.cfr_status || "Not provided"}
-                    onUpdate={handleUpdate}
-                    options={[
-                      { value: "Pending", label: "Pending" },
-                      { value: "Cleared", label: "Cleared" },
-                      { value: "Rejected", label: "Rejected" },
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    CFR Comments
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="cfr_comments"
-                    displayValue={
-                      currentApplicant.cfr_comments || "No comments"
-                    }
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-              </div>
-            </div> */}
-
+              
             {/* Offer and Final Status */}
             <div className="space-y-4 md:col-span-2">
               <h3 className="text-lg font-semibold">Offer & Final Status</h3>
@@ -630,15 +586,7 @@ export function ApplicantModal({
                     ]}
                   />
                 </div>
-                {/* <div>
-                  <label className="text-sm font-medium text-muted-foreground">Allotted School</label>
-                  <EditableCell 
-                    applicant={currentApplicant} 
-                    field="allotted_school" 
-                    displayValue={currentApplicant.allotted_school || "Not provided"} 
-                    onUpdate={handleUpdate}
-                  />
-                </div> */}
+
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Onboarded Status
@@ -674,19 +622,6 @@ export function ApplicantModal({
                     field="final_notes"
                     displayValue={
                       currentApplicant.final_notes || "No final notes"
-                    }
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Triptis Notes
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="triptis_notes"
-                    displayValue={
-                      currentApplicant.triptis_notes || "No triptis notes"
                     }
                     onUpdate={handleUpdate}
                   />
