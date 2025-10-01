@@ -343,7 +343,7 @@ export function ApplicantModal({
             {/* Screening Status */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Screening Status</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Stage
