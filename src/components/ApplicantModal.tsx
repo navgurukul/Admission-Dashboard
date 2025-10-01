@@ -173,7 +173,7 @@ export function ApplicantModal({
             {/* Personal Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Personal Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     First Name
@@ -268,6 +268,41 @@ export function ApplicantModal({
                     options={castes} // now as dropdown
                   />
                 </div>
+                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Qualification
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="qualification_id"
+                    displayValue={
+                      qualifications.find(
+                        (q) =>
+                          q.value ===
+                          currentApplicant.qualification_id?.toString()
+                      )?.label || "Not provided"
+                    }
+                    onUpdate={handleUpdate}
+                    options={qualifications}
+                  />
+                </div>
+                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Current Work
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="current_work"
+                    displayValue={
+                      currentWorks.find(
+                        (w) =>
+                          w.value === currentApplicant.current_work?.toString()
+                      )?.label || "Not provided"
+                    }
+                    onUpdate={handleUpdate}
+                    options={currentWorks}
+                  />
+                </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     States
@@ -305,62 +340,6 @@ export function ApplicantModal({
               </div>
             </div>
 
-            {/* Academic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Academic Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Qualification
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="qualification_id"
-                    displayValue={
-                      qualifications.find(
-                        (q) =>
-                          q.value ===
-                          currentApplicant.qualification_id?.toString()
-                      )?.label || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={qualifications}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Current Work
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="current_work"
-                    displayValue={
-                      currentWorks.find(
-                        (w) =>
-                          w.value === currentApplicant.current_work?.toString()
-                      )?.label || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={currentWorks}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Final Marks
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="final_marks"
-                    displayValue={
-                      currentApplicant.final_marks || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* Screening Status */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Screening Status</h3>
@@ -380,6 +359,17 @@ export function ApplicantModal({
                   </label>
                   <StatusDropdown
                     applicant={currentApplicant}
+                    onUpdate={handleUpdate}
+                  />
+                </div>
+                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Set Name
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="set_name"
+                    displayValue={currentApplicant.set_name || "Not provided"}
                     onUpdate={handleUpdate}
                   />
                 </div>
@@ -429,24 +419,6 @@ export function ApplicantModal({
                     options={schools}
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Exam Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Exam Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Set Name
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="set_name"
-                    displayValue={currentApplicant.set_name || "Not provided"}
-                    onUpdate={handleUpdate}
-                  />
-                </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Exam Centre
@@ -473,15 +445,6 @@ export function ApplicantModal({
                     onUpdate={handleUpdate}
                   />
                 </div>
-                {/* <div>
-                  <label className="text-sm font-medium text-muted-foreground">Exam Mode</label>
-                  <EditableCell 
-                    applicant={currentApplicant} 
-                    field="exam_mode" 
-                    displayValue={currentApplicant.exam_mode || "Not provided"} 
-                    onUpdate={handleUpdate}
-                  />
-                </div> */}
               </div>
             </div>
 
