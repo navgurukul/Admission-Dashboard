@@ -165,7 +165,7 @@ export function AddApplicantModal({
     triptis_notes: "",
 
     // Stage management
-    stage_id: "",
+    stage: "",
     status_id: "",
     interviews_status: "",
     decision_status: "",
@@ -201,7 +201,7 @@ export function AddApplicantModal({
       joining_status: "",
       final_notes: "",
       triptis_notes: "",
-      stage_id: "",
+      stage: "",
       status_id: "",
       interviews_status: "",
       decision_status: "",
@@ -326,12 +326,8 @@ export function AddApplicantModal({
 
         // Additional details
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
-        qualification_id: formData.qualification_id
-          ? Number(formData.qualification_id)
-          : null,
-        current_status_id: formData.current_status_id
-          ? Number(formData.current_status_id)
-          : null,
+        qualification_id: formData.qualification_id? Number(formData.qualification_id): null,
+        current_status_id: formData.current_status_id? Number(formData.current_status_id): null,
         religion_id: formData.religion_id ? Number(formData.religion_id) : null,
         school_medium: formData.school_medium || null,
 
@@ -339,6 +335,8 @@ export function AddApplicantModal({
         communication_notes: formData.communication_notes || "",
         campus_id: formData.campus_id ? Number(formData.campus_id) : null,
         school_id: formData.school_id ? Number(formData.school_id) : null,
+        qualifying_school_id: formData.qualifying_school_id ? Number(formData.qualifying_school_id) : null, 
+
 
         // Exam Session Data
         question_set_id: formData.question_set_id
@@ -370,25 +368,17 @@ export function AddApplicantModal({
         city: response.city,
 
         campus_id: response.campus_id,
-        campus:
-          campusList?.find((c) => Number(c.id) === Number(response.campus_id))
-            ?.campus_name || "",
+        campus:campusList?.find((c) => Number(c.id) === Number(response.campus_id))?.campus_name || "",
 
         //  School
         school_id: response.school_id,
-        school:
-          schoolList?.find((s) => s.id === response.school_id)?.school_name ||
-          "",
+        school:schoolList?.find((s) => s.id === response.school_id)?.school_name ||"",
 
         gender: response.gender,
         qualification_id: response.qualification_id,
-        qualification:
-          qualificationList?.find((q) => q.id === response.qualification_id)
-            ?.name || "",
+        qualification:qualificationList?.find((q) => q.id === response.qualification_id) ?.name || "",
         current_status_id: response.current_status_id,
-        current_work:
-          currentstatusList?.find((c) => c.id === response.current_status_id)
-            ?.current_status_name || "",
+        current_work:currentstatusList?.find((c) => c.id === response.current_status_id) ?.current_status_name || "",
         is_passed: response.is_passed,
         status: response.status,
         total_marks: response.total_marks,
@@ -433,10 +423,10 @@ export function AddApplicantModal({
     switch (tabValue) {
       case "basic":
         return (
-          formData.first_name && formData.phone_number && formData.stage_id
+          formData.first_name && formData.phone_number && formData.stage
         );
       case "screening":
-        return formData.stage_id !== "screening" || formData.status;
+        return formData.stage !== "screening" || formData.status;
       // case "interviews":
       //   return formData.stage_id !== "interviews" || formData.interviews_status;
       // case "final":
@@ -674,8 +664,8 @@ export function AddApplicantModal({
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="M">Male</SelectItem>
+                        <SelectItem value="F">Female</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -833,7 +823,7 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("current_work_id", value)
+                        handleInputChange("current_status_id", value)
                       }
                     >
                       <SelectTrigger>

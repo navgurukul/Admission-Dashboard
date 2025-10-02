@@ -132,8 +132,8 @@ export const ApplicantTableRow = ({
             field="gender"
             displayValue={applicant.gender || "Not specified"}
             options={[
-              { id: "male", name: "Male" },
-              { id: "female", name: "Female" },
+              { id: "M", name: "M" },
+              { id: "F", name: "F" },
               { id: "other", name: "Other" },
             ]}
             onUpdate={onUpdate}
