@@ -21,6 +21,7 @@ import {
   getAllSchools,
   getCampusesApi,
   getStudentById,
+  getAllQuestionSets,
   API_MAP,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
@@ -45,6 +46,7 @@ export function ApplicantModal({
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [currentWorks, setCurrentWorks] = useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
+    const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
@@ -57,13 +59,14 @@ export function ApplicantModal({
   useEffect(() => {
     async function fetchDropdowns() {
       try {
-        const [casteRes, qualRes, workRes, schoolRes, campusRes] =
+        const [casteRes, qualRes, workRes, schoolRes, campusRes,questionSet] =
           await Promise.all([
             getAllCasts(),
             getAllQualification(),
             getAllStatuses(),
             getAllSchools(),
             getCampusesApi(),
+            getAllQuestionSets,
           ]);
 
         // Set manual states
@@ -104,6 +107,13 @@ export function ApplicantModal({
             label: w.current_status_name,
           }))
         );
+            setQuestionSets(
+          (questionSet || []).map((qs: any) => ({
+            value: qs.id.toString(),
+            label: qs.name,
+          }))
+        );
+
       } catch (err) {
         console.error("Failed to load dropdown data", err);
       }
@@ -368,9 +378,14 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="set_name"
-                    displayValue={currentApplicant.set_name || "Not provided"}
+                    field="question_set_id"
+                    displayValue={ questionSets.find(
+                        (qs) =>
+                          qs.value === currentApplicant.question_set_id?.toString()
+                      )?.label || "Not provided"
+                    }
                     onUpdate={handleUpdate}
+                    options={questionSets}
                   />
                 </div>
                 <div>

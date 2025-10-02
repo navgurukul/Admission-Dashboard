@@ -305,7 +305,7 @@ const ApplicantTable = () => {
       // Academic / School Information
       "school_medium",
       "qualification_id",
-      "allotted_school",
+      "qualifying_school",
 
       // Caste / Religion
       "cast_id",
@@ -443,7 +443,7 @@ const ApplicantTable = () => {
 
                   {/* School */}
                   <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
-                    School
+                    Qualifying School
                   </TableHead>
 
                   {/* Campus */}
