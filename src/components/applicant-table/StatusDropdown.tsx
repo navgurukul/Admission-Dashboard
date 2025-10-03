@@ -40,19 +40,41 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
 
   const currentStage = applicant.stage || "screening";
 
+  // Screening stage ke liye exam_sessions se status lelo
+  const currentStatus = useMemo(() => {
+    if (applicant.stage === "screening" && applicant.exam_sessions?.[0]) {
+      return applicant.exam_sessions[0].status || STAGE_DEFAULT_STATUS["screening"];
+    }
+    return applicant.status || STAGE_DEFAULT_STATUS[applicant.stage as keyof typeof STAGE_DEFAULT_STATUS] || "Screening Test Pass";
+  }, [applicant]);
+
   const availableStatuses = useMemo(() => {
     return (
       STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] ||
       STAGE_STATUS_MAP.screening
     );
   }, [currentStage]);
+  
 
   const handleStatusChange = async (newStatus: string) => {
     if (!applicant?.id) return;
     try {
-      await updateStudent(applicant.id, {
-        status: newStatus,
-      });
+      // Agar screening stage hai toh exam_sessions update karo
+      if (applicant.stage === "screening" && applicant.exam_sessions?.[0]) {
+        await updateStudent(applicant.id, {
+          exam_sessions: [
+            { 
+              ...applicant.exam_sessions[0], 
+              status: newStatus 
+            },
+          ],
+        });
+      } else {
+        // Normal case
+        await updateStudent(applicant.id, {
+          status: newStatus,
+        });
+      }
 
       toast({
         title: "Status Updated",
@@ -70,33 +92,41 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     }
   };
 
+
   // Default status agar current status empty hai
-  const currentStatus =
-    applicant.status ||
-    STAGE_DEFAULT_STATUS[currentStage as keyof typeof STAGE_DEFAULT_STATUS] ||
-    "";
+  // const currentStatus =
+  // applicant.stage === "screening"
+  //   ? applicant.exam_sessions?.[0]?.status || STAGE_DEFAULT_STATUS["screening"]
+  //   : applicant.status || STAGE_DEFAULT_STATUS[applicant.stage];
+
 
   // Current status ko list me add karo agar available nahi hai
-  const finalAvailableStatuses = [...availableStatuses];
-  if (currentStatus && !availableStatuses.includes(currentStatus)) {
-    finalAvailableStatuses.unshift(currentStatus + " (Current)");
-  }
+  const finalAvailableStatuses = useMemo(() => {
+    const statuses = [...availableStatuses];
+    if (currentStatus && !availableStatuses.includes(currentStatus)) {
+      statuses.unshift(currentStatus);
+    }
+    return statuses;
+  }, [availableStatuses, currentStatus]);
 
   return (
-    <Select value={currentStatus} onValueChange={handleStatusChange}>
+    <Select
+      value={currentStatus || undefined}
+      onValueChange={handleStatusChange}
+    >
       <SelectTrigger className="w-full h-8 text-xs bg-white border border-gray-300 hover:bg-gray-50">
         <SelectValue placeholder="Select status" />
+        {/* {currentStatus || "Select status"} */}
       </SelectTrigger>
       <SelectContent className="bg-white border border-gray-300 shadow-lg z-[9999] max-h-[200px] overflow-y-auto">
         {finalAvailableStatuses.map((status) => {
-          const cleanStatus = status.replace(" (Current)", "");
-          const isCurrent = status.includes("(Current)");
+          const isCurrent = status === currentStatus;
           return (
             <SelectItem
               key={status}
-              value={cleanStatus}
+              value={status}
               className={`text-xs cursor-pointer hover:bg-gray-100 focus:bg-gray-100 ${
-                isCurrent ? "bg-blue-50 text-blue-700" : ""
+                isCurrent ? "bg-blue-50 text-blue-700 font-medium" : ""
               }`}
             >
               {status}
