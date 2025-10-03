@@ -64,6 +64,26 @@ export function ApplicantModal({
   }, [applicant]);
 
   useEffect(() => {
+  if (isOpen && applicant?.id) {
+    const fetchStudent = async () => {
+      try {
+        const response = await getStudentById(applicant.id);
+        const updated = response?.data || response;
+        if (updated?.id) {
+          setCurrentApplicant(updated);
+        } else {
+          console.error("Invalid response - no ID found:", response);
+        }
+      } catch (err) {
+        console.error("Failed to fetch student data", err);
+      }
+    };
+    fetchStudent();
+  }
+}, [isOpen, applicant?.id]);
+
+
+  useEffect(() => {
     async function fetchDropdowns() {
       try {
         const [
