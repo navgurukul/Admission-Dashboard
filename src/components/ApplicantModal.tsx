@@ -13,9 +13,16 @@ import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 import StageDropdown from "./applicant-table/StageDropdown";
 import StatusDropdown from "./applicant-table/StatusDropdown";
+import { Calendar } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { EditableCell } from "./applicant-table/EditableCell";
 import {
   getAllCasts,
+  updateStudent,
   getAllQualification,
   getAllStatuses,
   getAllSchools,
@@ -26,7 +33,7 @@ import {
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
-
+import { Input } from "@/components/ui/input";
 interface ApplicantModalProps {
   applicant: any;
   isOpen: boolean;
@@ -51,6 +58,23 @@ export function ApplicantModal({
     { value: string; label: string }[]
   >([]);
   const [campus, setCampus] = useState<any[]>([]);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  const format = (date: Date, formatStr: string) => {
+    if (formatStr === "PPP") {
+      return date.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+    if (formatStr === "yyyy-MM-dd") {
+      return date.toISOString().split("T")[0];
+    }
+    return date.toLocaleDateString();
+  };
+
   useEffect(() => {
     if (applicant?.id) {
       setCurrentApplicant(applicant);
@@ -164,6 +188,13 @@ export function ApplicantModal({
     }
   };
 
+
+  const dateOfTest =
+  currentApplicant.stage === "screening"
+    ? currentApplicant.exam_sessions?.[0]?.date_of_test || ""
+    : currentApplicant.date_of_test || "";
+
+
   if (!applicant) return null;
 
   return (
@@ -269,8 +300,8 @@ export function ApplicantModal({
                     field="gender"
                     displayValue={currentApplicant.gender || "Not provided"}
                     options={[
-                      { value: "M", label: "M" },
-                      { value: "F", label: "F" },
+                      { value: "Male", label: "Male" },
+                      { value: "Female", label: "Female" },
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
@@ -337,8 +368,8 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="stage"
-                    displayValue={currentApplicant.stage || "Not provided"}
+                    field="state"
+                    displayValue={currentApplicant.state || "Not provided"}
                     onUpdate={handleUpdate}
                     options={stateOptions}
                   />
@@ -489,15 +520,31 @@ export function ApplicantModal({
                   <label className="text-sm font-medium text-muted-foreground">
                     Date of Testing
                   </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="date_of_test"
-                    value={currentApplicant.date_of_test}
-                    displayValue={
-                      currentApplicant.date_of_test || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                  />
+                  <Input
+  type="date"
+  value={dateOfTest.split("T")[0]} // YYYY-MM-DD format
+  onChange={async (e) => {
+    const newDate = e.target.value;
+    if (!currentApplicant?.id) return;
+
+    try {
+      if (currentApplicant.stage === "screening" && currentApplicant.exam_sessions?.[0]) {
+        await updateStudent(currentApplicant.id, {
+          exam_sessions: [
+            { ...currentApplicant.exam_sessions[0], date_of_test: newDate },
+          ],
+        });
+      } else {
+        await updateStudent(currentApplicant.id, { date_of_test: newDate });
+      }
+      await handleUpdate();
+    } catch (err) {
+      console.error("Failed to update date of test", err);
+    }
+  }}
+  className="h-8 text-xs"
+/>
+
                 </div>
               </div>
             </div>
