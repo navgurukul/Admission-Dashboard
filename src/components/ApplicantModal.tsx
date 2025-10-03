@@ -21,6 +21,7 @@ import {
   getAllSchools,
   getCampusesApi,
   getStudentById,
+  getAllQuestionSets,
   API_MAP,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
@@ -45,26 +46,37 @@ export function ApplicantModal({
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [currentWorks, setCurrentWorks] = useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
+  const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
   const [campus, setCampus] = useState<any[]>([]);
-
   useEffect(() => {
-    setCurrentApplicant(applicant);
+    if (applicant?.id) {
+      setCurrentApplicant(applicant);
+    } else {
+      // console.error(" Applicant missing ID:", applicant);
+    }
   }, [applicant]);
 
   useEffect(() => {
     async function fetchDropdowns() {
       try {
-        const [casteRes, qualRes, workRes, schoolRes, campusRes] =
-          await Promise.all([
-            getAllCasts(),
-            getAllQualification(),
-            getAllStatuses(),
-            getAllSchools(),
-            getCampusesApi(),
-          ]);
+        const [
+          casteRes,
+          qualRes,
+          workRes,
+          schoolRes,
+          campusRes,
+          questionSetRes,
+        ] = await Promise.all([
+          getAllCasts(),
+          getAllQualification(),
+          getAllStatuses(),
+          getAllSchools(),
+          getCampusesApi(),
+          getAllQuestionSets(),
+        ]);
 
         // Set manual states
         setStateOptions(states);
@@ -104,6 +116,12 @@ export function ApplicantModal({
             label: w.current_status_name,
           }))
         );
+        setQuestionSets(
+          (questionSetRes || []).map((qs: any) => ({
+            value: qs.id.toString(),
+            label: qs.name,
+          }))
+        );
       } catch (err) {
         console.error("Failed to load dropdown data", err);
       }
@@ -131,9 +149,16 @@ export function ApplicantModal({
   const handleUpdate = async () => {
     if (!currentApplicant?.id) return;
     try {
-      const updated = await getStudentById(currentApplicant.id);
-      console.log("done updated", updated);
-      setCurrentApplicant(updated);
+      const response = await getStudentById(currentApplicant.id);
+
+      //  Extract actual data from response
+      const updated = response?.data || response;
+
+      if (updated?.id) {
+        setCurrentApplicant(updated);
+      } else {
+        console.error("Invalid response - no ID found:", response);
+      }
     } catch (err) {
       console.error("Failed to refresh applicant", err);
     }
@@ -244,8 +269,8 @@ export function ApplicantModal({
                     field="gender"
                     displayValue={currentApplicant.gender || "Not provided"}
                     options={[
-                      { value: "male", label: "M" },
-                      { value: "female", label: "F" },
+                      { value: "M", label: "M" },
+                      { value: "F", label: "F" },
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
@@ -259,6 +284,7 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="cast_id"
+                    value={currentApplicant.cast_id}
                     displayValue={
                       castes.find(
                         (c) => c.value === currentApplicant.cast_id?.toString()
@@ -268,13 +294,14 @@ export function ApplicantModal({
                     options={castes} // now as dropdown
                   />
                 </div>
-                 <div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Qualification
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
                     field="qualification_id"
+                    value={currentApplicant.qualification_id}
                     displayValue={
                       qualifications.find(
                         (q) =>
@@ -286,17 +313,18 @@ export function ApplicantModal({
                     options={qualifications}
                   />
                 </div>
-                 <div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Current Work
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="current_work"
+                    field="current_status_name"
                     displayValue={
                       currentWorks.find(
                         (w) =>
-                          w.value === currentApplicant.current_work?.toString()
+                          w.value ===
+                          currentApplicant.current_status_name?.toString()
                       )?.label || "Not provided"
                     }
                     onUpdate={handleUpdate}
@@ -349,6 +377,7 @@ export function ApplicantModal({
                     Stage
                   </label>
                   <StageDropdown
+                    applicantId={currentApplicant.id}
                     applicant={currentApplicant}
                     onUpdate={handleUpdate}
                   />
@@ -358,19 +387,28 @@ export function ApplicantModal({
                     Status
                   </label>
                   <StatusDropdown
+                    applicantId={currentApplicant.id}
                     applicant={currentApplicant}
                     onUpdate={handleUpdate}
                   />
                 </div>
-                 <div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Set Name
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="set_name"
-                    displayValue={currentApplicant.set_name || "Not provided"}
+                    field="question_set_id"
+                    value={currentApplicant.question_set_id}
+                    displayValue={
+                      questionSets.find(
+                        (qs) =>
+                          qs.value ===
+                          currentApplicant.question_set_id?.toString()
+                      )?.label || "Not provided"
+                    }
                     onUpdate={handleUpdate}
+                    options={questionSets}
                   />
                 </div>
                 <div>
@@ -380,8 +418,12 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="obtained_marks"
+                    value={Number(currentApplicant.obtained_marks) || 0}
                     displayValue={
-                      currentApplicant.obtained_marks || "Not provided"
+                      currentApplicant.obtained_marks !== null &&
+                      currentApplicant.obtained_marks !== undefined
+                        ? currentApplicant.obtained_marks
+                        : "Not provided"
                     }
                     onUpdate={handleUpdate}
                   />
@@ -393,7 +435,16 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="is_passed"
-                    displayValue={currentApplicant.is_passed || "Not provided"}
+                    value={currentApplicant.is_passed?.toString()}
+                    displayValue={
+                      currentApplicant.is_passed === 1 ||
+                      currentApplicant.is_passed === "1"
+                        ? "Yes"
+                        : currentApplicant.is_passed === 0 ||
+                          currentApplicant.is_passed === "0"
+                        ? "No"
+                        : "Not provided"
+                    }
                     options={[
                       { value: "1", label: "Yes" },
                       { value: "0", label: "No" },
@@ -408,6 +459,7 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="qualifying_school"
+                    value={currentApplicant.qualifying_school}
                     displayValue={
                       schools.find(
                         (q) =>
@@ -426,6 +478,7 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="exam_centre"
+                    value={currentApplicant.exam_centre}
                     displayValue={
                       currentApplicant.exam_centre || "Not provided"
                     }
@@ -438,9 +491,10 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="date_of_testing"
+                    field="date_of_test"
+                    value={currentApplicant.date_of_test}
                     displayValue={
-                      currentApplicant.date_of_testing || "Not provided"
+                      currentApplicant.date_of_test || "Not provided"
                     }
                     onUpdate={handleUpdate}
                   />
@@ -461,8 +515,14 @@ export function ApplicantModal({
                       label: "Status",
                       type: "select",
                       options: [
-                        { value: "Learner Round Pass", label: "Learner Round Pass" },
-                        { value: "Learner Round Fail", label: "Learner Round Fail" },
+                        {
+                          value: "Learner Round Pass",
+                          label: "Learner Round Pass",
+                        },
+                        {
+                          value: "Learner Round Fail",
+                          label: "Learner Round Fail",
+                        },
                         { value: "Reschedule", label: "Reschedule" },
                         { value: "No Show", label: "No Show" },
                       ],
@@ -485,8 +545,14 @@ export function ApplicantModal({
                       label: "Status",
                       type: "select",
                       options: [
-                        { value: "Cultural Fit Interview Pass", label: "Cultural Fit Interview Pass" },
-                        { value: "Cultural Fit Interview Fail", label: "Cultural Fit Interview Fail" },
+                        {
+                          value: "Cultural Fit Interview Pass",
+                          label: "Cultural Fit Interview Pass",
+                        },
+                        {
+                          value: "Cultural Fit Interview Fail",
+                          label: "Cultural Fit Interview Fail",
+                        },
                         { value: "Reschedule", label: "Reschedule" },
                         { value: "No Show", label: "No Show" },
                       ],

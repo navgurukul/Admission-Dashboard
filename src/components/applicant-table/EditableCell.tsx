@@ -64,6 +64,15 @@ export function EditableCell({
   };
 
   const saveCellEdit = async () => {
+    if (!applicant?.id) {
+      console.error(" Applicant ID is missing in EditableCell:", applicant);
+      toast({
+        title: "Error",
+        description: "Cannot update: Student ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!editingCell || isUpdating) return;
 
     setIsUpdating(true);
@@ -101,6 +110,16 @@ export function EditableCell({
   };
 
   const handleDirectDropdownChange = async (newValue: string) => {
+    if (!applicant?.id) {
+      console.error(" Applicant ID is missing in EditableCell:", applicant);
+      toast({
+        title: "Error",
+        description: "Cannot update: Student ID is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isUpdating) return;
     setIsUpdating(true);
 
