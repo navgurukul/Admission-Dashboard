@@ -23,6 +23,7 @@ import {
   getStudentById,
   getAllQuestionSets,
   API_MAP,
+  submitFinalDecision,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -38,6 +39,7 @@ export function ApplicantModal({
   isOpen,
   onClose,
 }: ApplicantModalProps) {
+  // All hooks here!
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
@@ -47,9 +49,11 @@ export function ApplicantModal({
   const [currentWorks, setCurrentWorks] = useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
   const [questionSets, setQuestionSets] = useState<any[]>([]);
+  const [joiningDate, setJoiningDate] = useState("")
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
+
   const [campus, setCampus] = useState<any[]>([]);
   useEffect(() => {
     if (applicant?.id) {
@@ -126,10 +130,36 @@ export function ApplicantModal({
         console.error("Failed to load dropdown data", err);
       }
     }
-
+    
     if (isOpen) fetchDropdowns();
   }, [isOpen]);
 
+  
+  
+  useEffect(() => {
+   if (currentApplicant?.joining_date) {
+     setJoiningDate(currentApplicant.joining_date);
+   }
+ }, [currentApplicant?.joining_date]);
+
+
+
+  const handleFinalDecisionUpdate = async (fields: Partial<any>) => {
+    if (!currentApplicant?.id) return;
+    try {
+      const payload = {
+        student_id: currentApplicant.id,
+        joining_date: joiningDate || undefined,
+        ...fields,
+      };
+      console.log("Submitting final decision payload:", payload);
+      await submitFinalDecision(payload);
+      await handleUpdate();
+    } catch (err) {
+      console.error("Failed to update final decision", err);
+    }
+  };
+  // Only after all hooks:
   if (!applicant || !currentApplicant) return null;
 
   const handleEditClick = () => {
@@ -163,6 +193,7 @@ export function ApplicantModal({
       console.error("Failed to refresh applicant", err);
     }
   };
+
 
   if (!applicant) return null;
 
@@ -370,7 +401,7 @@ export function ApplicantModal({
 
             {/* Screening Status */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Screening Status</h3>
+              <h3 className="text-lg font-semibold">Screening Round</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
@@ -508,7 +539,7 @@ export function ApplicantModal({
                 <InlineSubform
                   title="Learning Round"
                   studentId={currentApplicant.id}
-                  initialData={currentApplicant.learning_rounds || []}
+                  initialData={currentApplicant.interview_learner_round || []}
                   fields={[
                     {
                       name: "learning_round_status",
@@ -538,7 +569,9 @@ export function ApplicantModal({
                 <InlineSubform
                   title="Cultural Fit Round"
                   studentId={currentApplicant.id}
-                  initialData={currentApplicant.cultural_fit_rounds || []}
+                  initialData={
+                    currentApplicant.interview_cultural_fit_round || []
+                  }
                   fields={[
                     {
                       name: "cultural_fit_status",
@@ -595,13 +628,22 @@ export function ApplicantModal({
                       displayValue={
                         currentApplicant.offer_letter_status || "Not provided"
                       }
-                      onUpdate={handleUpdate}
                       options={[
-                        { value: "Pending", label: "Pending" },
-                        { value: "Sent", label: "Sent" },
-                        { value: "Accepted", label: "Accepted" },
-                        { value: "Rejected", label: "Rejected" },
+                        { value: "Offer Pending", label: "Offer Pending" },
+                        { value: "Offer Sent", label: "Offer Sent" },
+                        { value: "Offer Accepted", label: "Offer Accepted" },
+                        { value: "Offer Declined", label: "Offer Declined" },
+                        { value: "Waitlisted", label: "Waitlisted" },
+                        {
+                          value: "Selected but not joined",
+                          label: "Selected but not joined",
+                        },
                       ]}
+                      // onUpdate={async (value) =>
+                      //   await handleFinalDecisionUpdate({
+                      //     offer_letter_status: value,
+                      //   })
+                      // }
                     />
                   </div>
 
@@ -615,15 +657,30 @@ export function ApplicantModal({
                       displayValue={
                         currentApplicant.onboarded_status || "Not provided"
                       }
-                      onUpdate={handleUpdate}
                       options={[
-                        { value: "Not Joined", label: "Not Joined" },
                         { value: "Joined", label: "Joined" },
-                        { value: "Deferred", label: "Deferred" },
+                        { value: "Not Joined", label: "Not Joined" },
                         { value: "Rejected", label: "Rejected" },
                       ]}
+                      // onUpdate={async (value) =>
+                      //   await handleFinalDecisionUpdate({
+                      //     onboarded_status: value,
+                      //   })
+                      // }
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Joining Date
+                  </label>
+                  <input
+                    type="date"
+                    className="border rounded px-2 py-1 w-full"
+                    value={joiningDate}
+                    onChange={(e) => setJoiningDate(e.target.value)}
+                    onBlur={() => handleFinalDecisionUpdate({})}
+                  />
                 </div>
               </div>
 
@@ -641,7 +698,9 @@ export function ApplicantModal({
                       displayValue={
                         currentApplicant.final_notes || "No final notes"
                       }
-                      onUpdate={handleUpdate}
+                      onUpdate={async (value) =>
+                        await handleFinalDecisionUpdate({ final_notes: value })
+                      }
                     />
                   </div>
                 </div>

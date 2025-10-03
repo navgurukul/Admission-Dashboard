@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -70,6 +70,11 @@ export function InlineSubform({
   onSave,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
+
+  useEffect(() => {
+    setRows(initialData.map((r) => ({ ...r })));
+    console.log("Subform rows after update:", initialData);
+  }, [initialData]);
 
   const updateRow = (index: number, field: string, value: any) => {
     setRows((prev) => {
