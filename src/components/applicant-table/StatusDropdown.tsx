@@ -10,13 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { updateStudent } from "@/utils/api";
 
 interface StatusDropdownProps {
-  applicantId: string | number;
-  applicant: any;
+  applicant?: any;  // make optional
   onUpdate: () => void;
 }
 
-const STAGE_STATUS_MAP = {
-  "Cultural Fit Interview Pass": [
+export const STAGE_STATUS_MAP = {
+  Sourcing:[
     "Enrollment Key Generated",
     "Basic Details Entered",
     "Duplicate",
@@ -38,42 +37,50 @@ export const STAGE_DEFAULT_STATUS = {
 const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const { toast } = useToast();
 
+  // Guard: if applicant not ready, render nothing
+  if (!applicant) {
+    return (
+      <Select disabled>
+        <SelectTrigger className="w-full h-8 text-xs bg-gray-100 border border-gray-300">
+          <SelectValue placeholder="Loading status..." />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
   const currentStage = applicant.stage || "screening";
 
-  // Screening stage ke liye exam_sessions se status lelo
   const currentStatus = useMemo(() => {
-    if (applicant.stage === "screening" && applicant.exam_sessions?.[0]) {
-      return applicant.exam_sessions[0].status || STAGE_DEFAULT_STATUS["screening"];
+    if (currentStage === "screening" && applicant.exam_sessions?.[0]) {
+      return (
+        applicant.exam_sessions[0].status ||
+        STAGE_DEFAULT_STATUS["screening"]
+      );
     }
-    return applicant.status || STAGE_DEFAULT_STATUS[applicant.stage as keyof typeof STAGE_DEFAULT_STATUS] || "Screening Test Pass";
-  }, [applicant]);
+    return (
+      applicant.status ||
+      STAGE_DEFAULT_STATUS[currentStage as keyof typeof STAGE_DEFAULT_STATUS]
+    );
+  }, [applicant, currentStage]);
 
   const availableStatuses = useMemo(() => {
-    return (
-      STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] ||
-      STAGE_STATUS_MAP.screening
-    );
+    return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
   }, [currentStage]);
   
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!applicant?.id) return;
     try {
-      // Agar screening stage hai toh exam_sessions update karo
-      if (applicant.stage === "screening" && applicant.exam_sessions?.[0]) {
+      if (currentStage === "screening" && applicant.exam_sessions?.[0]) {
         await updateStudent(applicant.id, {
           exam_sessions: [
-            { 
-              ...applicant.exam_sessions[0], 
-              status: newStatus 
+            {
+              ...applicant.exam_sessions[0],
+              status: newStatus,
             },
           ],
         });
       } else {
-        // Normal case
-        await updateStudent(applicant.id, {
-          status: newStatus,
-        });
+        await updateStudent(applicant.id, { status: newStatus });
       }
 
       toast({
@@ -92,47 +99,18 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     }
   };
 
-
-  // Default status agar current status empty hai
-  // const currentStatus =
-  // applicant.stage === "screening"
-  //   ? applicant.exam_sessions?.[0]?.status || STAGE_DEFAULT_STATUS["screening"]
-  //   : applicant.status || STAGE_DEFAULT_STATUS[applicant.stage];
-
-
-  // Current status ko list me add karo agar available nahi hai
-  const finalAvailableStatuses = useMemo(() => {
-    const statuses = [...availableStatuses];
-    if (currentStatus && !availableStatuses.includes(currentStatus)) {
-      statuses.unshift(currentStatus);
-    }
-    return statuses;
-  }, [availableStatuses, currentStatus]);
-
   return (
-    <Select
-      value={currentStatus || undefined}
-      onValueChange={handleStatusChange}
-    >
-      <SelectTrigger className="w-full h-8 text-xs bg-white border border-gray-300 hover:bg-gray-50">
+    <Select value={currentStatus} onValueChange={handleStatusChange}>
+      <SelectTrigger className="w-full h-8 text-xs bg-white border border-gray-300">
         <SelectValue placeholder="Select status" />
         {/* {currentStatus || "Select status"} */}
       </SelectTrigger>
-      <SelectContent className="bg-white border border-gray-300 shadow-lg z-[9999] max-h-[200px] overflow-y-auto">
-        {finalAvailableStatuses.map((status) => {
-          const isCurrent = status === currentStatus;
-          return (
-            <SelectItem
-              key={status}
-              value={status}
-              className={`text-xs cursor-pointer hover:bg-gray-100 focus:bg-gray-100 ${
-                isCurrent ? "bg-blue-50 text-blue-700 font-medium" : ""
-              }`}
-            >
-              {status}
-            </SelectItem>
-          );
-        })}
+      <SelectContent>
+        {availableStatuses.map((status) => (
+          <SelectItem key={status} value={status}>
+            {status}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

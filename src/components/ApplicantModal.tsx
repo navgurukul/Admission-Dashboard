@@ -11,7 +11,7 @@ import { Edit, MessageSquare, Pencil } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import StageDropdown from "./applicant-table/StageDropdown";
+import StageStatusForm from "./applicant-table/StageDropdown";
 import StatusDropdown from "./applicant-table/StatusDropdown";
 import { Calendar } from "lucide-react";
 import {
@@ -30,10 +30,13 @@ import {
   getStudentById,
   getAllQuestionSets,
   API_MAP,
+  submitFinalDecision,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
 import { Input } from "@/components/ui/input";
+import StageDropdown, { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
+
 interface ApplicantModalProps {
   applicant: any;
   isOpen: boolean;
@@ -45,6 +48,7 @@ export function ApplicantModal({
   isOpen,
   onClose,
 }: ApplicantModalProps) {
+  // All hooks here!
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
@@ -54,9 +58,11 @@ export function ApplicantModal({
   const [currentWorks, setCurrentWorks] = useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
   const [questionSets, setQuestionSets] = useState<any[]>([]);
+  const [joiningDate, setJoiningDate] = useState("");
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
+
   const [campus, setCampus] = useState<any[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
@@ -82,6 +88,29 @@ export function ApplicantModal({
       // console.error(" Applicant missing ID:", applicant);
     }
   }, [applicant]);
+
+  useEffect(() => {
+    if (isOpen && applicant?.id) {
+      const fetchStudent = async () => {
+        try {
+          const response = await getStudentById(applicant.id);
+          // API may return the student object directly or { data: student }
+          let updated: any = response;
+          if (response && typeof response === "object" && "data" in response) {
+            updated = (response as any).data;
+          }
+          if (updated?.id) {
+            setCurrentApplicant(updated);
+          } else {
+            console.error("Invalid response - no ID found:", response);
+          }
+        } catch (err) {
+          console.error("Failed to fetch student data", err);
+        }
+      };
+      fetchStudent();
+    }
+  }, [isOpen, applicant?.id, refreshKey]);
 
   useEffect(() => {
     async function fetchDropdowns() {
@@ -154,6 +183,38 @@ export function ApplicantModal({
     if (isOpen) fetchDropdowns();
   }, [isOpen]);
 
+ useEffect(() => {
+  if (currentApplicant?.joining_date) {
+    setJoiningDate(currentApplicant.joining_date.split("T")[0]);
+  }
+}, [currentApplicant?.joining_date]);
+
+  const handleFinalDecisionUpdate = async (field: string, value: any) => {
+    if (!currentApplicant?.id) return;
+
+    try {
+      // Prepare payload with only the updated field
+      const payload: Record<string, any> = {
+        student_id: currentApplicant.id,
+        [field]: value,
+      };
+
+      console.log("value", value);
+      console.log(1, payload);
+
+      // If the field being updated is joining_date, include joiningDate from state
+      if (field === "joining_date") {
+        payload.joining_date = value;
+      }
+
+      await submitFinalDecision(payload);
+      await handleUpdate(); // Refresh UI after update
+    } catch (err) {
+      console.error("Failed to update final decision", err);
+    }
+  };
+
+  // Only after all hooks:
   if (!applicant || !currentApplicant) return null;
 
   const handleEditClick = () => {
@@ -175,8 +236,11 @@ export function ApplicantModal({
     try {
       const response = await getStudentById(currentApplicant.id);
 
-      //  Extract actual data from response
-      const updated = response?.data || response;
+      // Extract actual data from response which may be { data: student } or student
+      let updated: any = response;
+      if (response && typeof response === "object" && "data" in response) {
+        updated = (response as any).data;
+      }
 
       if (updated?.id) {
         setCurrentApplicant(updated);
@@ -188,19 +252,137 @@ export function ApplicantModal({
     }
   };
 
+  // Helper function to get label from ID
+  const getLabel = (
+    options: { value: string; label: string }[],
+    id: any,
+    defaultLabel = "Not provided"
+  ) => {
+    return (
+      options.find((o) => o.value === id?.toString())?.label || defaultLabel
+    );
+  };
 
   const dateOfTest =
-  currentApplicant.stage === "screening"
-    ? currentApplicant.exam_sessions?.[0]?.date_of_test || ""
-    : currentApplicant.date_of_test || "";
+    currentApplicant.stage === "screening"
+      ? currentApplicant.exam_sessions?.[0]?.date_of_test || ""
+      : currentApplicant.date_of_test || "";
 
+  // Helper for current exam session (if any) to simplify access throughout the component
+  const examSession = currentApplicant.exam_sessions?.[0] ?? null;
+
+  // StatusCell: renders status select for a given row and updates the row via updateRow
+  const StatusCell = ({ row, updateRow, disabled }: any) => {
+    const stage = row?.stage || "screening";
+    const options = STAGE_STATUS_MAP[stage] || STAGE_STATUS_MAP.screening;
+    const value = row?.status || "";
+
+    return (
+      <select
+        value={value}
+        onChange={(e) => updateRow?.("status", e.target.value)}
+        className="border p-1 rounded bg-white w-full"
+        disabled={disabled}
+      >
+        <option value="">{disabled ? "—" : "Select Status"}</option>
+        {options.map((opt: string) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    );
+  };
+
+  // Screening fields with correct components
+  const screeningFields = [
+    {
+      name: "stage",
+      label: "Stage",
+      type: "component",
+      component: (props: any) => <StageDropdown {...props} />,
+    },
+    {
+      name: "status",
+      label: "Status",
+      type: "component",
+      component: (props: any) => <StatusCell {...props} />,
+    },
+    {
+      name: "question_set_id",
+      label: "Set Name",
+      type: "readonly",
+      options: questionSets, // from state
+    },
+    {
+      name: "obtained_marks",
+      label: "Obtained Marks",
+      type: "readonly",
+    },
+    {
+      name: "is_passed",
+      label: "Is Passed",
+      type: "readonly",
+      options: [
+        { value: "1", label: "Yes" },
+        { value: "0", label: "No" },
+      ],
+    },
+    {
+      name: "qualifying_school",
+      label: "Qualifying School",
+      type: "select",
+      options: schools, // from state
+    },
+    {
+      name: "exam_centre",
+      label: "Exam Centre",
+     type: "readonly",
+    },
+    {
+      name: "date_of_test",
+      label: "Date of Testing",
+      type: "readonly",
+    },
+  ];
+
+  // Map the current applicant's data to the subform rows
+  const initialScreeningData =
+    currentApplicant.exam_sessions?.map((session) => ({
+      id: session.id,
+      // prefer session-level status; fallback to applicant-level
+      stage: session.stage ?? currentApplicant.stage ?? "",
+      status: session.status ?? currentApplicant.status ?? "",
+      question_set_id: session.question_set_id?.toString() || "",
+      obtained_marks:
+        session.obtained_marks !== null && session.obtained_marks !== undefined
+          ? session.obtained_marks.toString()
+          : "",
+      is_passed: session.is_passed ? "1" : "0",
+      qualifying_school: currentApplicant.qualifying_school || "",
+      exam_centre: session.exam_centre || "",
+      date_of_test: session.date_of_test?.split("T")[0] || "",
+    })) || [];
 
   if (!applicant) return null;
+
+  // Safe wrappers for screening API (prevent reading .submit of undefined)
+  const screeningSubmit =
+    API_MAP?.screening?.submit ?? (async (payload: any) => {
+      console.error("API_MAP.screening.submit is not available", payload);
+      throw new Error("screening submit API not available");
+    });
+
+  const screeningUpdate =
+    API_MAP?.screening?.update ?? (async (id: any, payload: any) => {
+      console.error("API_MAP.screening.update is not available", id, payload);
+      throw new Error("screening update API not available");
+    });
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>Applicant Details</DialogTitle>
             <div className="flex items-center gap-2">
@@ -316,11 +498,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="cast_id"
                     value={currentApplicant.cast_id}
-                    displayValue={
-                      castes.find(
-                        (c) => c.value === currentApplicant.cast_id?.toString()
-                      )?.label || "Not provided"
-                    }
+                    displayValue={getLabel(castes, currentApplicant.cast_id)}
                     onUpdate={handleUpdate}
                     options={castes} // now as dropdown
                   />
@@ -333,13 +511,10 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="qualification_id"
                     value={currentApplicant.qualification_id}
-                    displayValue={
-                      qualifications.find(
-                        (q) =>
-                          q.value ===
-                          currentApplicant.qualification_id?.toString()
-                      )?.label || "Not provided"
-                    }
+                    displayValue={getLabel(
+                      qualifications,
+                      currentApplicant.qualification_id
+                    )}
                     onUpdate={handleUpdate}
                     options={qualifications}
                   />
@@ -368,6 +543,8 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
+                    field="state"
+                    displayValue={currentApplicant.state || "Not provided"}
                     field="state"
                     displayValue={currentApplicant.state || "Not provided"}
                     onUpdate={handleUpdate}
@@ -399,155 +576,15 @@ export function ApplicantModal({
               </div>
             </div>
 
-            {/* Screening Status */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Screening Status</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Stage
-                  </label>
-                  <StageDropdown
-                    applicantId={currentApplicant.id}
-                    applicant={currentApplicant}
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Status
-                  </label>
-                  <StatusDropdown
-                    applicantId={currentApplicant.id}
-                    applicant={currentApplicant}
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Set Name
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="question_set_id"
-                    value={currentApplicant.question_set_id}
-                    displayValue={
-                      questionSets.find(
-                        (qs) =>
-                          qs.value ===
-                          currentApplicant.question_set_id?.toString()
-                      )?.label || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={questionSets}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Obtained Marks
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="obtained_marks"
-                    value={Number(currentApplicant.obtained_marks) || 0}
-                    displayValue={
-                      currentApplicant.obtained_marks !== null &&
-                      currentApplicant.obtained_marks !== undefined
-                        ? currentApplicant.obtained_marks
-                        : "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Is Passed
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="is_passed"
-                    value={currentApplicant.is_passed?.toString()}
-                    displayValue={
-                      currentApplicant.is_passed === 1 ||
-                      currentApplicant.is_passed === "1"
-                        ? "Yes"
-                        : currentApplicant.is_passed === 0 ||
-                          currentApplicant.is_passed === "0"
-                        ? "No"
-                        : "Not provided"
-                    }
-                    options={[
-                      { value: "1", label: "Yes" },
-                      { value: "0", label: "No" },
-                    ]}
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Qualifying School
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="qualifying_school"
-                    value={currentApplicant.qualifying_school}
-                    displayValue={
-                      schools.find(
-                        (q) =>
-                          q.value ===
-                          currentApplicant.qualifying_school?.toString()
-                      )?.label || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                    options={schools}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Exam Centre
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="exam_centre"
-                    value={currentApplicant.exam_centre}
-                    displayValue={
-                      currentApplicant.exam_centre || "Not provided"
-                    }
-                    onUpdate={handleUpdate}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Date of Testing
-                  </label>
-                  <Input
-  type="date"
-  value={dateOfTest.split("T")[0]} // YYYY-MM-DD format
-  onChange={async (e) => {
-    const newDate = e.target.value;
-    if (!currentApplicant?.id) return;
-
-    try {
-      if (currentApplicant.stage === "screening" && currentApplicant.exam_sessions?.[0]) {
-        await updateStudent(currentApplicant.id, {
-          exam_sessions: [
-            { ...currentApplicant.exam_sessions[0], date_of_test: newDate },
-          ],
-        });
-      } else {
-        await updateStudent(currentApplicant.id, { date_of_test: newDate });
-      }
-      await handleUpdate();
-    } catch (err) {
-      console.error("Failed to update date of test", err);
-    }
-  }}
-  className="h-8 text-xs"
-/>
-
-                </div>
-              </div>
-            </div>
+            <InlineSubform
+              title="Screening Round"
+              studentId={currentApplicant.id}
+              initialData={initialScreeningData}
+              fields={screeningFields}
+              submitApi={screeningSubmit}
+              updateApi={screeningUpdate}
+              onSave={handleUpdate}
+            />
 
             {/* --- LEARNING & CULTURAL FIT ROUNDS --- */}
             <div className="grid grid-cols-1 gap-6">
@@ -555,7 +592,7 @@ export function ApplicantModal({
                 <InlineSubform
                   title="Learning Round"
                   studentId={currentApplicant.id}
-                  initialData={currentApplicant.learning_rounds || []}
+                  initialData={currentApplicant.interview_learner_round || []}
                   fields={[
                     {
                       name: "learning_round_status",
@@ -585,7 +622,9 @@ export function ApplicantModal({
                 <InlineSubform
                   title="Cultural Fit Round"
                   studentId={currentApplicant.id}
-                  initialData={currentApplicant.cultural_fit_rounds || []}
+                  initialData={
+                    currentApplicant.interview_cultural_fit_round || []
+                  }
                   fields={[
                     {
                       name: "cultural_fit_status",
@@ -622,16 +661,16 @@ export function ApplicantModal({
                     </label>
                     <EditableCell
                       applicant={currentApplicant}
-                      field="campus"
-                      displayValue={
-                        campus.find(
-                          (q) => q.value === currentApplicant.campus?.toString()
-                        )?.label || "Not provided"
-                      }
+                      field="campus_id"
+                      displayValue={getLabel(
+                        campus,
+                        currentApplicant.campus_id
+                      )}
                       onUpdate={handleUpdate}
                       options={campus}
                     />
                   </div>
+                  {/* Offer Letter Status */}
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Offer Letter Status
@@ -639,19 +678,33 @@ export function ApplicantModal({
                     <EditableCell
                       applicant={currentApplicant}
                       field="offer_letter_status"
-                      displayValue={
-                        currentApplicant.offer_letter_status || "Not provided"
+                      value={
+                        currentApplicant.final_decisions?.[0]
+                          ?.offer_letter_status
                       }
-                      onUpdate={handleUpdate}
+                      displayValue={
+                        currentApplicant.final_decisions?.[0]
+                          ?.offer_letter_status || "Not provided"
+                      }
                       options={[
-                        { value: "Pending", label: "Pending" },
-                        { value: "Sent", label: "Sent" },
-                        { value: "Accepted", label: "Accepted" },
-                        { value: "Rejected", label: "Rejected" },
+                        { value: "Offer Pending", label: "Offer Pending" },
+                        { value: "Offer Sent", label: "Offer Sent" },
+                        { value: "Offer Accepted", label: "Offer Accepted" },
+                        { value: "Offer Declined", label: "Offer Declined" },
+                        { value: "Waitlisted", label: "Waitlisted" },
+                        {
+                          value: "Selected but not joined",
+                          label: "Selected but not joined",
+                        },
                       ]}
+                      onUpdate={async (value) => {
+                        await handleFinalDecisionUpdate(
+                          "offer_letter_status",
+                          value
+                        );
+                      }}
                     />
                   </div>
-
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Onboarded Status
@@ -659,18 +712,44 @@ export function ApplicantModal({
                     <EditableCell
                       applicant={currentApplicant}
                       field="onboarded_status"
-                      displayValue={
-                        currentApplicant.onboarded_status || "Not provided"
+                      value={
+                        currentApplicant.final_decisions?.[0]?.onboarded_status
                       }
-                      onUpdate={handleUpdate}
+                      displayValue={
+                        currentApplicant.final_decisions?.[0]
+                          ?.onboarded_status || "Not provided"
+                      }
                       options={[
-                        { value: "Not Joined", label: "Not Joined" },
                         { value: "Joined", label: "Joined" },
-                        { value: "Deferred", label: "Deferred" },
+                        { value: "Not Joined", label: "Not Joined" },
                         { value: "Rejected", label: "Rejected" },
                       ]}
+                      onUpdate={async (value) => {
+                        await handleFinalDecisionUpdate(
+                          "onboarded_status",
+                          value
+                        );
+                      }}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Joining Date
+                  </label>
+                  <input
+                    type="date"
+                    className="border rounded px-2 py-1 w-full"
+                    value={joiningDate}
+                    onChange={(e) => setJoiningDate(e.target.value)}
+                    onBlur={async () =>
+                      await handleFinalDecisionUpdate(
+                        "joining_date",
+                        joiningDate
+                      )
+                    }
+                  />
                 </div>
               </div>
 
@@ -678,19 +757,22 @@ export function ApplicantModal({
               <div className="space-y-4 md:col-span-2">
                 <h3 className="text-lg font-semibold">Notes</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Final Notes
-                    </label>
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="final_notes"
-                      displayValue={
-                        currentApplicant.final_notes || "No final notes"
-                      }
-                      onUpdate={handleUpdate}
-                    />
-                  </div>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="final_notes"
+                    value={
+                      currentApplicant.final_decisions?.[0]?.final_notes || ""
+                    }
+                    displayValue={
+                      currentApplicant.final_decisions?.[0]?.final_notes ||
+                      "No final notes"
+                    }
+                    onUpdate={async (value) => {
+                      if (!currentApplicant?.final_decisions?.[0]) return;
+                      console.log(2, value);
+                      await handleFinalDecisionUpdate("final_notes", value);
+                    }}
+                  />
                 </div>
               </div>
 
