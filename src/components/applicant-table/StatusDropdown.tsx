@@ -15,7 +15,7 @@ interface StatusDropdownProps {
 }
 
 export const STAGE_STATUS_MAP = {
-  "Cultural Fit Interview Pass": [
+  Sourcing:[
     "Enrollment Key Generated",
     "Basic Details Entered",
     "Duplicate",

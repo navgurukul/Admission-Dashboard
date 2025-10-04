@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 
 export const STAGE_OPTIONS = [
 	{ value: "screening", label: "Screening" },
-	{ value: "Sourcing", label: "Sourcing" },
+	{ value: "sourcing", label: "Sourcing" },
 ];
 
 export const STAGE_STATUS_MAP: Record<string, string[]> = {
-	"Cultural Fit Interview Pass": [
+	sourcing:[
 		"Enrollment Key Generated",
 		"Basic Details Entered",
 		"Duplicate",
@@ -21,7 +21,7 @@ export const STAGE_STATUS_MAP: Record<string, string[]> = {
 };
 
 export const STAGE_DEFAULT_STATUS: Record<string, string> = {
-	"Cultural Fit Interview Pass": "Enrollment Key Generated",
+	sourcing: "Enrollment Key Generated",
 	screening: "Screening Test Pass",
 };
 

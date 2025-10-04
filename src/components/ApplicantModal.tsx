@@ -183,11 +183,11 @@ export function ApplicantModal({
     if (isOpen) fetchDropdowns();
   }, [isOpen]);
 
-  useEffect(() => {
-    if (currentApplicant?.joining_date) {
-      setJoiningDate(currentApplicant.joining_date);
-    }
-  }, [currentApplicant?.joining_date]);
+ useEffect(() => {
+  if (currentApplicant?.joining_date) {
+    setJoiningDate(currentApplicant.joining_date.split("T")[0]);
+  }
+}, [currentApplicant?.joining_date]);
 
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
