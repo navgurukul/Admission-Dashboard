@@ -311,7 +311,7 @@ export function ApplicantModal({
     {
       name: "question_set_id",
       label: "Set Name",
-      type: "select",
+      type: "readonly",
       options: questionSets, // from state
     },
     {
@@ -322,7 +322,7 @@ export function ApplicantModal({
     {
       name: "is_passed",
       label: "Is Passed",
-      type: "select",
+      type: "readonly",
       options: [
         { value: "1", label: "Yes" },
         { value: "0", label: "No" },
@@ -337,12 +337,12 @@ export function ApplicantModal({
     {
       name: "exam_centre",
       label: "Exam Centre",
-      type: "text",
+     type: "readonly",
     },
     {
       name: "date_of_test",
       label: "Date of Testing",
-      type: "date",
+      type: "readonly",
     },
   ];
 

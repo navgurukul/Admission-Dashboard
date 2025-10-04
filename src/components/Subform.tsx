@@ -13,7 +13,7 @@ import { Plus, Pencil, Save } from "lucide-react";
 interface RowField {
   name: string;
   label: string;
-  type: "text" | "select" | "component";
+  type: "text" | "select" | "component" | "readonly";
   options?: { value: string; label: string }[];
   component?: React.ComponentType<any>; // allow any component signature
 }
@@ -30,18 +30,6 @@ interface InlineSubformProps {
 
 // Helper to map payload for special rounds
 function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
-  // Learning round
-  if ("learning_round_status" in row) {
-    return row.id
-      ? { learning_round_status: row.learning_round_status, comments: row.comments, booking_status: "completed" }
-      : { student_id: studentId, learning_round_status: row.learning_round_status, comments: row.comments };
-  } else if ("cultural_fit_status" in row) {
-    return row.id
-      ? { cultural_fit_status: row.cultural_fit_status, comments: row.comments, booking_status: "completed" }
-      : { student_id: studentId, cultural_fit_status: row.cultural_fit_status, comments: row.comments };
-  }
-
-  // Screening round detection: presence of common screening fields
   const isScreening = fields.some((f) =>
     ["question_set_id", "obtained_marks", "is_passed", "exam_centre", "date_of_test"].includes(f.name)
   );
@@ -57,21 +45,34 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       qualifying_school: row.qualifying_school || null,
       exam_centre: row.exam_centre || null,
       date_of_test: row.date_of_test || null,
-      // keep stage/status if present (some APIs expect these)
       stage: row.stage || undefined,
       status: row.status || undefined,
     };
-
-    return row.id
-      ? payload
-      : { student_id: studentId, ...payload };
+    return row.id ? payload : { student_id: studentId, ...payload };
   }
 
-  // default fallback
+  if ("learning_round_status" in row) {
+    return row.id
+      ? { learning_round_status: row.learning_round_status, comments: row.comments, booking_status: "completed" }
+      : { student_id: studentId, learning_round_status: row.learning_round_status, comments: row.comments };
+  } else if ("cultural_fit_status" in row) {
+    return row.id
+      ? { cultural_fit_status: row.cultural_fit_status, comments: row.comments, booking_status: "completed" }
+      : { student_id: studentId, cultural_fit_status: row.cultural_fit_status, comments: row.comments };
+  }
+
   return { ...row, student_id: studentId };
 }
 
-export function InlineSubform({ title, initialData, fields, studentId, submitApi, updateApi, onSave }: InlineSubformProps) {
+export function InlineSubform({
+  title,
+  initialData,
+  fields,
+  studentId,
+  submitApi,
+  updateApi,
+  onSave,
+}: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
 
   useEffect(() => {
@@ -126,6 +127,14 @@ export function InlineSubform({ title, initialData, fields, studentId, submitApi
     }
   };
 
+  const getDisplayValue = (row: any, field: RowField) => {
+    if (field.options) {
+      const match = field.options.find((o) => o.value === row[field.name]);
+      return match ? match.label : row[field.name] || "—";
+    }
+    return row[field.name] || "—";
+  };
+
   return (
     <div className="space-y-3 border rounded-lg p-4">
       <div className="flex justify-between items-center mb-2">
@@ -149,16 +158,14 @@ export function InlineSubform({ title, initialData, fields, studentId, submitApi
             {rows.map((row, idx) => (
               <tr key={idx} className="border-b hover:bg-gray-50">
                 {fields.map((f) => (
-                  <td key={f.name} className={`px-3 py-2 align-top ${f.name === "comments" ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]" : ""}`}>
-                    {!row.isEditing ? (
-                      f.type === "select" ? (
-                        f.options?.find((o) => o.value === row[f.name])?.label || "—"
-                      ) : f.type === "component" && f.component ? (
-                        // read-only render: pass row and disabled flag
-                        <f.component row={row} updateRow={(field: string, val: any) => updateRow(idx, field, val)} disabled />
-                      ) : (
-                        row[f.name] || "—"
-                      )
+                  <td
+                    key={f.name}
+                    className={`px-3 py-2 align-top ${f.name === "comments" ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]" : ""}`}
+                  >
+                    {!row.isEditing || f.type === "readonly" ? (
+                      <p className={`p-1 ${f.type === "readonly" ? "bg-gray-100 rounded" : ""}`}>
+                        {getDisplayValue(row, f)}
+                      </p>
                     ) : f.type === "select" ? (
                       <Select value={row[f.name]} onValueChange={(val) => updateRow(idx, f.name, val)}>
                         <SelectTrigger className="w-full">
@@ -171,7 +178,6 @@ export function InlineSubform({ title, initialData, fields, studentId, submitApi
                         </SelectContent>
                       </Select>
                     ) : f.type === "component" && f.component ? (
-                      // editing: allow component to update any field of the row
                       <f.component row={row} updateRow={(field: string, val: any) => updateRow(idx, field, val)} />
                     ) : (
                       <Input value={row[f.name]} onChange={(e) => updateRow(idx, f.name, e.target.value)} />
@@ -198,4 +204,3 @@ export function InlineSubform({ title, initialData, fields, studentId, submitApi
     </div>
   );
 }
-
