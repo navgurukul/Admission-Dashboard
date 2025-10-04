@@ -66,6 +66,7 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const availableStatuses = useMemo(() => {
     return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
   }, [currentStage]);
+  
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -102,6 +103,7 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
     <Select value={currentStatus} onValueChange={handleStatusChange}>
       <SelectTrigger className="w-full h-8 text-xs bg-white border border-gray-300">
         <SelectValue placeholder="Select status" />
+        {/* {currentStatus || "Select status"} */}
       </SelectTrigger>
       <SelectContent>
         {availableStatuses.map((status) => (
