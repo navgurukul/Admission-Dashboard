@@ -50,11 +50,21 @@ export default function QuestionRepository() {
     archiveQuestion,
     restoreQuestion,
     difficultyLevels,
+    refetch,
   } = useQuestions(filters, searchTerm);
 
   useEffect(() => {
-    console.log("Updated questions:", questions);
   }, [questions]);
+
+  const handleImportComplete = () => {    
+    refetch();
+    toast({
+      title: "Import Successful",
+      description: "Questions have been imported and list is refreshed.",
+    });
+    setActiveTab("list");
+  };
+
 
   const handleCreateQuestion = () => {
     setSelectedQuestion(null);
@@ -303,7 +313,7 @@ export default function QuestionRepository() {
               </CardHeader>
               <CardContent>
                 <QuestionBulkImport
-                  onImportComplete={() => setActiveTab("list")}
+                  onImportComplete={handleImportComplete}
                 />
               </CardContent>
             </Card>
