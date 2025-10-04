@@ -386,7 +386,7 @@ export function ApplicantModal({
           <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>Applicant Details</DialogTitle>
             <div className="flex items-center gap-2">
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={handleCommentsClick}
@@ -394,8 +394,8 @@ export function ApplicantModal({
               >
                 <MessageSquare className="h-4 w-4" />
                 Comments
-              </Button>
-              <Button
+              </Button> */}
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEditClick}
@@ -403,7 +403,7 @@ export function ApplicantModal({
               >
                 <Edit className="h-4 w-4" />
                 Edit Details
-              </Button>
+              </Button> */}
             </div>
           </DialogHeader>
 
@@ -807,14 +807,14 @@ export function ApplicantModal({
         </DialogContent>
       </Dialog>
 
-      {showEditModal && (
+      {/* {showEditModal && (
         <InlineEditModal
           applicant={currentApplicant}
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           onSuccess={handleEditSuccess}
         />
-      )}
+      )} */}
 
       {showCommentsModal && (
         <ApplicantCommentsModal
