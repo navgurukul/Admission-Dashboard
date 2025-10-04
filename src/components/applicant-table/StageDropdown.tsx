@@ -1,81 +1,110 @@
-import React from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { updateStudent } from "@/utils/api";
-import { STAGE_DEFAULT_STATUS } from "./StatusDropdown";
+import { useEffect, useState } from "react";
 
-interface StageDropdownProps {
-  applicantId: string | number;
-  applicant: any;
-  onUpdate: () => void;
-}
-
-const STAGE_OPTIONS = [
-  {
-    value: "Cultural Fit Interview Pass",
-    label: "Cultural Fit Interview Pass",
-  },
-  { value: "screening", label: "Screening" },
+export const STAGE_OPTIONS = [
+	{ value: "screening", label: "Screening" },
+	{ value: "Sourcing", label: "Sourcing" },
 ];
 
-const StageDropdown = ({ applicant, onUpdate }: StageDropdownProps) => {
-  const { toast } = useToast();
-
-  const handleStageChange = async (value: string) => {
-    if (!applicant?.id) return;
-    try {
-      const defaultStatus =
-        STAGE_DEFAULT_STATUS[value as keyof typeof STAGE_DEFAULT_STATUS];
-
-      // Update via API
-      await updateStudent(applicant.id, {
-        stage: value,
-        status: defaultStatus,
-      });
-
-      toast({
-        title: "Stage Updated",
-        description: `Stage changed to ${value}`,
-      });
-
-      // Refresh UI
-      onUpdate();
-    } catch (error) {
-      console.error("Error updating stage:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update stage",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const currentStage = applicant.stage || "screening";
-
-  return (
-    <Select value={currentStage} onValueChange={handleStageChange}>
-      <SelectTrigger className="w-full h-8 text-xs bg-white border border-gray-300">
-        <SelectValue placeholder="Select a stage" />
-      </SelectTrigger>
-      <SelectContent className="bg-white border border-gray-300 shadow-lg z-50">
-        {STAGE_OPTIONS.map((option) => (
-          <SelectItem
-            key={option.value}
-            value={option.value}
-            className="text-xs cursor-pointer hover:bg-gray-100"
-          >
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
+export const STAGE_STATUS_MAP: Record<string, string[]> = {
+	"Cultural Fit Interview Pass": [
+		"Enrollment Key Generated",
+		"Basic Details Entered",
+		"Duplicate",
+		"Unreachable",
+		"Became Disinterested",
+	],
+	screening: [
+		"Screening Test Pass",
+		"Screening Test Fail",
+		"Created Student Without Exam",
+	],
 };
 
-export default React.memo(StageDropdown);
+export const STAGE_DEFAULT_STATUS: Record<string, string> = {
+	"Cultural Fit Interview Pass": "Enrollment Key Generated",
+	screening: "Screening Test Pass",
+};
+
+interface StageDropdownProps {
+	row?: { id?: any; stage?: string; status?: string };
+	updateRow?: (field: string, value: any) => void;
+	disabled?: boolean;
+	// showStatus kept for backward compatibility if you ever want both selects in one cell
+	showStatus?: boolean;
+}
+
+export default function StageDropdown({ row, updateRow, disabled, showStatus }: StageDropdownProps) {
+	const [stage, setStage] = useState(row?.stage || "");
+	const [status, setStatus] = useState(row?.status || "");
+
+	useEffect(() => {
+		setStage(row?.stage || "");
+		setStatus(row?.status || "");
+	}, [row?.stage, row?.status]);
+
+	useEffect(() => {
+		// if stage becomes empty, reset status
+		if (!stage) setStatus("");
+	}, [stage]);
+
+	const handleStageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+		const newStage = e.target.value;
+		const defaultStatus = STAGE_DEFAULT_STATUS[newStage] || "";
+		setStage(newStage);
+		setStatus(defaultStatus);
+
+		// Inform parent to update both fields (stage column + status column)
+		updateRow?.("stage", newStage);
+		updateRow?.("status", defaultStatus);
+	};
+
+	const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+		const newStatus = e.target.value;
+		setStatus(newStatus);
+		updateRow?.("status", newStatus);
+	};
+
+	const statusOptions = stage ? STAGE_STATUS_MAP[stage] || [] : [];
+
+	return (
+		// Render only the Stage select by default so "Stage" and "Status" are separate table columns.
+		<div className="flex gap-4 items-center">
+			{/* Stage select (single field for the stage column) */}
+			<div>
+				<select
+					value={stage}
+					onChange={handleStageChange}
+					className="border p-1 rounded bg-white"
+					disabled={disabled}
+				>
+					<option value="">Select Stage</option>
+					{STAGE_OPTIONS.map((opt) => (
+						<option key={opt.value} value={opt.value}>
+							{opt.label}
+						</option>
+					))}
+				</select>
+			</div>
+
+			{/* Optional small status select only when explicitly requested via prop */}
+			{showStatus && (
+				<div>
+					<select
+						value={status}
+						onChange={handleStatusChange}
+						className="border p-1 rounded bg-white"
+						disabled={disabled || !stage}
+					>
+						<option value="">{disabled ? "—" : "Select Status"}</option>
+						{statusOptions.map((opt) => (
+							<option key={opt} value={opt}>
+								{opt}
+							</option>
+						))}
+					</select>
+				</div>
+			)}
+		</div>
+	);
+}
+
