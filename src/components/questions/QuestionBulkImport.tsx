@@ -1,16 +1,15 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { Upload, Download, AlertCircle, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useGoogleAuth } from '@/hooks/useGoogleAuth';
-import { supabase } from '@/integrations/supabase/client';
-import Papa from 'papaparse';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Upload, Download, AlertCircle, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { supabase } from "@/integrations/supabase/client";
+import Papa from "papaparse";
 
 interface QuestionBulkImportProps {
   onImportComplete: () => void;
@@ -29,33 +28,39 @@ interface CSVRow {
   time_limit_seconds?: string;
 }
 
-export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps) {
-  const [csvData, setCsvData] = useState('');
+export function QuestionBulkImport({
+  onImportComplete,
+}: QuestionBulkImportProps) {
+  const [csvData, setCsvData] = useState("");
   const [parsedData, setParsedData] = useState([]);
-  const [importStatus, setImportStatus] = useState('idle'); // idle, parsing, importing, complete, error
+  const [importStatus, setImportStatus] = useState("idle"); // idle, parsing, importing, complete, error
   const [importProgress, setImportProgress] = useState(0);
-  const [importResults, setImportResults] = useState({ success: 0, errors: 0, duplicates: 0 });
+  const [importResults, setImportResults] = useState({
+    success: 0,
+    errors: 0,
+    duplicates: 0,
+  });
   const [errors, setErrors] = useState([]);
-  
+
   const { toast } = useToast();
   const { user: googleUser } = useGoogleAuth();
 
   const downloadTemplate = () => {
     const template = [
-      'question_text,question_type,options_json,correct_answer_json,explanation,difficulty_level,language,points,tags,time_limit_seconds',
+      "question_text,question_type,options_json,correct_answer_json,explanation,difficulty_level,language,points,tags,time_limit_seconds",
       '"What is 2+2?",multiple_choice,"[{\\"id\\":\\"1\\",\\"text\\":\\"3\\"},{\\"id\\":\\"2\\",\\"text\\":\\"4\\"},{\\"id\\":\\"3\\",\\"text\\":\\"5\\"},{\\"id\\":\\"4\\",\\"text\\":\\"6\\"}]","2","Basic arithmetic operation","easy","EN",1,"mathematics,arithmetic",30',
       '"HTML stands for HyperText Markup Language",true_false,"[{\\"id\\":\\"true\\",\\"text\\":\\"True\\"},{\\"id\\":\\"false\\",\\"text\\":\\"False\\"}]","true","HTML is indeed HyperText Markup Language","easy","EN",1,"html,web-development",45',
       '"What is the capital of France?",short_answer,"","Paris","The capital city of France is Paris","medium","EN",2,"geography,capitals",60',
       '"Explain the concept of Object-Oriented Programming and its main principles.",long_answer,"","Object-Oriented Programming (OOP) is a programming paradigm based on the concept of objects. The main principles are: 1) Encapsulation - bundling data and methods together, 2) Inheritance - creating new classes based on existing ones, 3) Polymorphism - ability to take multiple forms, 4) Abstraction - hiding complex implementation details.","This tests understanding of fundamental programming concepts","hard","EN",5,"programming,oop,computer-science",300',
       '"Write a function to reverse a string in Python",coding,"","def reverse_string(s):\\n    return s[::-1]\\n\\n# Alternative solution:\\n# def reverse_string(s):\\n#     return \'\'.join(reversed(s))","Tests basic Python string manipulation skills","medium","EN",3,"python,coding,strings",600',
-      '"The ____ of a circle is the distance from its center to any point on its circumference.",fill_in_blank,"","radius","The radius is the distance from center to circumference","easy","EN",1,"mathematics,geometry",45'
-    ].join('\n');
+      '"The ____ of a circle is the distance from its center to any point on its circumference.",fill_in_blank,"","radius","The radius is the distance from center to circumference","easy","EN",1,"mathematics,geometry",45',
+    ].join("\n");
 
-    const blob = new Blob([template], { type: 'text/csv' });
+    const blob = new Blob([template], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'question_import_template.csv';
+    a.download = "question_import_template.csv";
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -65,20 +70,20 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
       toast({
         title: "No Data",
         description: "Please paste CSV data or upload a file",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    setImportStatus('parsing');
-    
+    setImportStatus("parsing");
+
     Papa.parse(csvData, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
         if (results.errors.length > 0) {
-          setErrors(results.errors.map(err => err.message));
-          setImportStatus('error');
+          setErrors(results.errors.map((err) => err.message));
+          setImportStatus("error");
           return;
         }
 
@@ -88,15 +93,36 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
         (results.data as CSVRow[]).forEach((row, index) => {
           try {
             // Validate required fields
-            if (!row.question_text || !row.question_type || !row.correct_answer_json) {
-              parseErrors.push(`Row ${index + 1}: Missing required fields (question_text, question_type, correct_answer_json)`);
+            if (
+              !row.question_text ||
+              !row.question_type ||
+              !row.correct_answer_json
+            ) {
+              parseErrors.push(
+                `Row ${
+                  index + 1
+                }: Missing required fields (question_text, question_type, correct_answer_json)`
+              );
               return;
             }
 
             // Validate question type
-            const validTypes = ['multiple_choice', 'true_false', 'short_answer', 'long_answer', 'coding', 'fill_in_blank'];
+            const validTypes = [
+              "multiple_choice",
+              "true_false",
+              "short_answer",
+              "long_answer",
+              "coding",
+              "fill_in_blank",
+            ];
             if (!validTypes.includes(row.question_type)) {
-              parseErrors.push(`Row ${index + 1}: Invalid question_type. Must be one of: ${validTypes.join(', ')}`);
+              parseErrors.push(
+                `Row ${
+                  index + 1
+                }: Invalid question_type. Must be one of: ${validTypes.join(
+                  ", "
+                )}`
+              );
               return;
             }
 
@@ -108,11 +134,13 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
               try {
                 options = JSON.parse(row.options_json);
               } catch (e) {
-                parseErrors.push(`Row ${index + 1}: Invalid JSON in options_json`);
+                parseErrors.push(
+                  `Row ${index + 1}: Invalid JSON in options_json`
+                );
                 return;
               }
             }
-            
+
             try {
               correctAnswer = JSON.parse(row.correct_answer_json);
             } catch (e) {
@@ -121,10 +149,16 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             }
 
             // Validate difficulty level
-            const validDifficulties = ['easy', 'medium', 'hard'];
-            const difficulty = row.difficulty_level || 'medium';
+            const validDifficulties = ["easy", "medium", "hard"];
+            const difficulty = row.difficulty_level || "medium";
             if (!validDifficulties.includes(difficulty)) {
-              parseErrors.push(`Row ${index + 1}: Invalid difficulty_level. Must be one of: ${validDifficulties.join(', ')}`);
+              parseErrors.push(
+                `Row ${
+                  index + 1
+                }: Invalid difficulty_level. Must be one of: ${validDifficulties.join(
+                  ", "
+                )}`
+              );
               return;
             }
 
@@ -133,12 +167,14 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
               question_type: row.question_type,
               options,
               correct_answer: correctAnswer,
-              explanation: row.explanation || '',
+              explanation: row.explanation || "",
               difficulty_level: difficulty,
-              language: row.language || 'EN',
-              points: parseInt(row.points || '1') || 1,
-              tags: row.tags ? row.tags.split(',').map(t => t.trim()) : [],
-              time_limit_seconds: row.time_limit_seconds ? parseInt(row.time_limit_seconds) : null
+              language: row.language || "EN",
+              points: parseInt(row.points || "1") || 1,
+              tags: row.tags ? row.tags.split(",").map((t) => t.trim()) : [],
+              time_limit_seconds: row.time_limit_seconds
+                ? parseInt(row.time_limit_seconds)
+                : null,
             };
 
             validQuestions.push(question);
@@ -149,29 +185,29 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
 
         if (parseErrors.length > 0) {
           setErrors(parseErrors);
-          setImportStatus('error');
+          setImportStatus("error");
         } else {
           setParsedData(validQuestions);
-          setImportStatus('parsed');
+          setImportStatus("parsed");
           toast({
             title: "CSV Parsed Successfully",
-            description: `Found ${validQuestions.length} valid questions`
+            description: `Found ${validQuestions.length} valid questions`,
           });
         }
       },
       error: (error) => {
         setErrors([error.message]);
-        setImportStatus('error');
-      }
+        setImportStatus("error");
+      },
     });
   };
 
   const importQuestions = async () => {
     if (parsedData.length === 0) return;
 
-    setImportStatus('importing');
+    setImportStatus("importing");
     setImportProgress(0);
-    
+
     const results = { success: 0, errors: 0, duplicates: 0 };
     const importErrors = [];
 
@@ -179,9 +215,9 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
       toast({
         title: "Authentication Error",
         description: "You must be logged in to import questions",
-        variant: "destructive"
+        variant: "destructive",
       });
-      setImportStatus('error');
+      setImportStatus("error");
       return;
     }
 
@@ -192,14 +228,14 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
       try {
         const questionData = {
           ...parsedData[i],
-          created_by: googleUser.id
+          created_by: googleUser.id,
         };
 
         // Check for duplicates by question text in main questions table
         const { data: existingQuestion } = await supabase
-          .from('questions')
-          .select('id')
-          .eq('question_text', questionData.question_text)
+          .from("questions")
+          .select("id")
+          .eq("question_text", questionData.question_text)
           .single();
 
         if (existingQuestion) {
@@ -207,35 +243,45 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
         } else {
           // Insert into imported_questions table first
           const { error: importError } = await supabase
-            .from('imported_questions')
-            .insert([{
-              ...questionData,
-              import_batch_id: batchId,
-              imported_by: googleUser.id,
-              is_processed: false
-            }]);
+            .from("imported_questions")
+            .insert([
+              {
+                ...questionData,
+                import_batch_id: batchId,
+                imported_by: googleUser.id,
+                is_processed: false,
+              },
+            ]);
 
           if (importError) {
             results.errors++;
-            importErrors.push(`Question ${i + 1}: Failed to record import - ${importError.message}`);
+            importErrors.push(
+              `Question ${i + 1}: Failed to record import - ${
+                importError.message
+              }`
+            );
           } else {
             // Insert into main questions table
             const { error: questionError } = await supabase
-              .from('questions')
+              .from("questions")
               .insert([questionData]);
 
             if (questionError) {
               results.errors++;
-              importErrors.push(`Question ${i + 1}: Failed to create question - ${questionError.message}`);
+              importErrors.push(
+                `Question ${i + 1}: Failed to create question - ${
+                  questionError.message
+                }`
+              );
             } else {
               results.success++;
-              
+
               // Mark as processed in imported_questions
               await supabase
-                .from('imported_questions')
+                .from("imported_questions")
                 .update({ is_processed: true })
-                .eq('import_batch_id', batchId)
-                .eq('question_text', questionData.question_text);
+                .eq("import_batch_id", batchId)
+                .eq("question_text", questionData.question_text);
             }
           }
         }
@@ -249,12 +295,12 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
 
     setImportResults(results);
     setErrors(importErrors);
-    setImportStatus('complete');
+    setImportStatus("complete");
 
     toast({
       title: "Import Complete",
       description: `Successfully imported ${results.success} questions. ${results.duplicates} duplicates skipped. ${results.errors} errors.`,
-      variant: results.errors > 0 ? "destructive" : "default"
+      variant: results.errors > 0 ? "destructive" : "default",
     });
 
     if (results.success > 0) {
@@ -268,11 +314,11 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+    if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
       toast({
         title: "Invalid File",
         description: "Please upload a CSV file",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -280,7 +326,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result;
-      if (typeof result === 'string') {
+      if (typeof result === "string") {
         setCsvData(result);
       }
     };
@@ -288,9 +334,9 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
   };
 
   const resetImport = () => {
-    setCsvData('');
+    setCsvData("");
     setParsedData([]);
-    setImportStatus('idle');
+    setImportStatus("idle");
     setImportProgress(0);
     setImportResults({ success: 0, errors: 0, duplicates: 0 });
     setErrors([]);
@@ -301,7 +347,9 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Import questions in bulk using CSV format. Questions will be added to both the main Question Library and tracked in the import history. Make sure to follow the template structure for successful import.
+          Import questions in bulk using CSV format. Questions will be added to
+          both the main Question Library and tracked in the import history. Make
+          sure to follow the template structure for successful import.
         </AlertDescription>
       </Alert>
 
@@ -310,7 +358,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
           <Download className="w-4 h-4 mr-2" />
           Download Template
         </Button>
-        
+
         <div>
           <input
             type="file"
@@ -319,13 +367,16 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             className="hidden"
             id="csv-upload"
           />
-          <Button variant="outline" onClick={() => document.getElementById('csv-upload')?.click()}>
+          <Button
+            variant="outline"
+            onClick={() => document.getElementById("csv-upload")?.click()}
+          >
             <Upload className="w-4 h-4 mr-2" />
             Upload CSV File
           </Button>
         </div>
 
-        {importStatus !== 'idle' && (
+        {importStatus !== "idle" && (
           <Button variant="outline" onClick={resetImport}>
             Reset
           </Button>
@@ -344,23 +395,23 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
             rows={10}
             className="font-mono text-sm"
           />
-          
+
           <div className="flex items-center gap-2 mt-4">
-            <Button 
+            <Button
               onClick={parseCsvData}
-              disabled={!csvData.trim() || importStatus === 'parsing'}
+              disabled={!csvData.trim() || importStatus === "parsing"}
             >
-              {importStatus === 'parsing' ? 'Parsing...' : 'Parse CSV Data'}
+              {importStatus === "parsing" ? "Parsing..." : "Parse CSV Data"}
             </Button>
-            
-            {importStatus === 'parsed' && (
+
+            {importStatus === "parsed" && (
               <Button onClick={importQuestions}>
                 Import {parsedData.length} Questions
               </Button>
             )}
           </div>
 
-          {importStatus === 'parsed' && (
+          {importStatus === "parsed" && (
             <div className="mt-4">
               <Badge variant="secondary">
                 {parsedData.length} questions ready for import
@@ -370,12 +421,14 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
         </CardContent>
       </Card>
 
-      {importStatus === 'importing' && (
+      {importStatus === "importing" && (
         <Card>
           <CardContent className="p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Importing questions...</span>
+                <span className="text-sm font-medium">
+                  Importing questions...
+                </span>
                 <span className="text-sm text-muted-foreground">
                   {Math.round(importProgress)}%
                 </span>
@@ -386,14 +439,14 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
         </Card>
       )}
 
-      {importStatus === 'complete' && (
+      {importStatus === "complete" && (
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <CheckCircle className="w-5 h-5 text-green-600" />
               <h3 className="font-medium">Import Complete</h3>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
@@ -426,7 +479,10 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
           <CardContent>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {errors.map((error, index) => (
-                <div key={index} className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                <div
+                  key={index}
+                  className="text-sm text-red-600 bg-red-50 p-2 rounded"
+                >
                   {error}
                 </div>
               ))}
