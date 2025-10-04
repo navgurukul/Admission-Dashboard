@@ -12,6 +12,7 @@ import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import Papa from 'papaparse';
 import { bulkUploadQuestions,getQuestions } from '@/utils/api';
 
+
 interface QuestionBulkImportProps {
   onImportComplete: () => void;
 }
@@ -103,6 +104,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
         return;
       }
 
+
       const validQuestions = [];
       const parseErrors = [];
 
@@ -148,6 +150,7 @@ export function QuestionBulkImport({ onImportComplete }: QuestionBulkImportProps
           } catch (e) {
             parseErrors.push(`Row ${index + 1}: Invalid JSON format in options or answer_key`);
             return;
+       
           }
 
           // Map question type to standard format
@@ -237,6 +240,7 @@ const importQuestions = async () => {
       title: "No Data",
       description: "Please parse CSV data first",
       variant: "destructive"
+
     });
     return;
   }
@@ -288,6 +292,8 @@ const importQuestions = async () => {
     toast({
       title: "Import Complete",
       description: `Successfully imported ${res.data?.success || res.success || parsedData.length} questions.`,
+
+      
     });
 
     onImportComplete();
@@ -310,20 +316,22 @@ const importQuestions = async () => {
 
     if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
       toast({ title: 'Invalid File', description: 'Please upload a CSV file', variant: 'destructive' });
+
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       if (typeof e.target?.result === 'string') setCsvData(e.target.result);
+
     };
     reader.readAsText(file);
   };
 
   const resetImport = () => {
-    setCsvData('');
+    setCsvData("");
     setParsedData([]);
-    setImportStatus('idle');
+    setImportStatus("idle");
     setImportProgress(0);
     setImportResults({ success: 0, errors: 0, duplicates: 0 });
     setErrors([]);
@@ -335,6 +343,7 @@ const importQuestions = async () => {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           Import questions in bulk using CSV. Supports English/Hindi/Marathi text and options. Follow the template format.
+
         </AlertDescription>
       </Alert>
 
@@ -351,6 +360,7 @@ const importQuestions = async () => {
         </div>
 
         {importStatus !== 'idle' && <Button variant="outline" onClick={resetImport}>Reset</Button>}
+
       </div>
 
       <Card>
@@ -369,16 +379,19 @@ const importQuestions = async () => {
           </div>
 
           {importStatus === 'parsed' && <div className="mt-4"><Badge variant="secondary">{parsedData.length} questions ready for import</Badge></div>}
+
+          
         </CardContent>
       </Card>
 
-      {importStatus === 'importing' && (
+      {importStatus === "importing" && (
         <Card>
           <CardContent className="p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Importing questions...</span>
                 <span className="text-sm text-muted-foreground">{Math.round(importProgress)}%</span>
+
               </div>
               <Progress value={importProgress} className="w-full" />
             </div>
@@ -386,7 +399,7 @@ const importQuestions = async () => {
         </Card>
       )}
 
-      {importStatus === 'complete' && (
+      {importStatus === "complete" && (
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -421,6 +434,8 @@ const importQuestions = async () => {
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {errors.map((error, index) => (
                 <div key={index} className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>
+
+                
               ))}
             </div>
           </CardContent>

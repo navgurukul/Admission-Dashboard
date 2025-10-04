@@ -394,6 +394,19 @@ export const API_MAP: Record<
   cultural: { submit: submitCulturalFit, update: updateCulturalFit },
 };
 
+// update 
+export const submitFinalDecision = async (payload: any) => {
+  // console.log("payload",payload)
+  return fetch(
+    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/finalDecision",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+};
+
 
 
 // Updated logout function

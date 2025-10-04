@@ -24,9 +24,10 @@ interface EditableCellProps {
   field: string;
   displayValue: any;
   value?: any;
-  onUpdate: () => void;
+  onUpdate?: (value: any) => void; // updated to always pass value
   showPencil?: boolean;
   options?: Option[];
+  showActionButtons?:boolean,
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -45,6 +46,7 @@ export function EditableCell({
   onUpdate,
   showPencil = false,
   options,
+  showActionButtons = true,
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -65,7 +67,7 @@ export function EditableCell({
 
   const saveCellEdit = async () => {
     if (!applicant?.id) {
-      console.error(" Applicant ID is missing in EditableCell:", applicant);
+      console.error("Applicant ID is missing in EditableCell:", applicant);
       toast({
         title: "Error",
         description: "Cannot update: Student ID is missing",
@@ -73,6 +75,19 @@ export function EditableCell({
       });
       return;
     }
+
+     if (
+      (field === "phone_number" || field === "whatsapp_number") &&
+      !/^\d{10}$/.test(cellValue)
+    ) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Mobile number must be exactly 10 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!editingCell || isUpdating) return;
 
     setIsUpdating(true);
@@ -84,14 +99,13 @@ export function EditableCell({
         payload[field] =
           cellValue === "" || cellValue === "none" ? null : Number(cellValue);
       } else {
-        payload[field] = cellValue === "" ? "" : cellValue ?? "";
+        payload[field] = cellValue ?? "";
       }
 
       await updateStudent(applicant.id, payload);
       toast({ title: "Success", description: "Field updated successfully" });
       setEditingCell(null);
-      setCellValue("");
-      onUpdate();
+      onUpdate && onUpdate(payload[field]); // ✅ Pass updated value
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
@@ -111,7 +125,7 @@ export function EditableCell({
 
   const handleDirectDropdownChange = async (newValue: string) => {
     if (!applicant?.id) {
-      console.error(" Applicant ID is missing in EditableCell:", applicant);
+      console.error("Applicant ID is missing in EditableCell:", applicant);
       toast({
         title: "Error",
         description: "Cannot update: Student ID is missing",
@@ -136,10 +150,9 @@ export function EditableCell({
       }
 
       await updateStudent(applicant.id, payload);
-
       toast({ title: "Success", description: "Field updated successfully" });
       setCellValue(payload[field]);
-      onUpdate();
+      onUpdate && onUpdate(payload[field]); // ✅ Pass updated value
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
@@ -190,7 +203,7 @@ export function EditableCell({
     );
   }
 
-  if (isEditing) {
+ if (isEditing) {
     return (
       <div className="flex items-center gap-2">
         <Input
@@ -204,32 +217,38 @@ export function EditableCell({
           autoFocus
           disabled={isUpdating}
         />
-        <Button
-          size="sm"
-          onClick={saveCellEdit}
-          className="h-6 px-2"
-          disabled={isUpdating}
-        >
-          {isUpdating ? "..." : "✓"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={cancelCellEdit}
-          className="h-6 px-2"
-          disabled={isUpdating}
-        >
-          ✕
-        </Button>
+        {showActionButtons && (
+          <>
+            <Button
+              size="sm"
+              onClick={saveCellEdit}
+              className="h-6 px-2"
+              disabled={isUpdating}
+            >
+              {isUpdating ? "..." : "✓"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={cancelCellEdit}
+              className="h-6 px-2"
+              disabled={isUpdating}
+            >
+              ✕
+            </Button>
+          </>
+        )}
       </div>
     );
   }
+
 
   return (
     <div
       className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
       onClick={() =>
-        !isUpdating && startCellEdit(applicant.id, field, value ?? displayValue)
+        !isUpdating &&
+        startCellEdit(applicant.id, field, value ?? displayValue)
       }
       title="Click to edit"
     >

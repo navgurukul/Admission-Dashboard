@@ -107,6 +107,7 @@ export const ApplicantTableRow = ({
             }
             onUpdate={onUpdate}
             showPencil={true}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -120,6 +121,7 @@ export const ApplicantTableRow = ({
             displayValue={applicant.whatsapp_number || "No WhatsApp"}
             onUpdate={onUpdate}
             showPencil={true}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -132,12 +134,13 @@ export const ApplicantTableRow = ({
             field="gender"
             displayValue={applicant.gender || "Not specified"}
             options={[
-              { id: "male", name: "Male" },
-              { id: "female", name: "Female" },
+              { id: "M", name: "Male" },
+              { id: "F", name: "Female" },
               { id: "other", name: "Other" },
             ]}
             onUpdate={onUpdate}
             showPencil={false}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -151,6 +154,7 @@ export const ApplicantTableRow = ({
             displayValue={applicant.city || "Not specified"}
             onUpdate={onUpdate}
             showPencil={true}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -164,6 +168,7 @@ export const ApplicantTableRow = ({
             displayValue={applicant.state || "Not specified"}
             onUpdate={onUpdate}
             showPencil={true}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -177,6 +182,7 @@ export const ApplicantTableRow = ({
             displayValue={applicant.pin_code || "N/A"}
             onUpdate={onUpdate}
             showPencil={true}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -192,6 +198,7 @@ export const ApplicantTableRow = ({
             onUpdate={onUpdate}
             options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
             showPencil={false}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -207,6 +214,7 @@ export const ApplicantTableRow = ({
             onUpdate={onUpdate}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
             showPencil={false}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -224,6 +232,7 @@ export const ApplicantTableRow = ({
               name: c.current_status_name,
             }))}
             showPencil={false}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -241,6 +250,7 @@ export const ApplicantTableRow = ({
               name: r.religion_name,
             }))}
             showPencil={false}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
@@ -260,10 +270,11 @@ export const ApplicantTableRow = ({
             value={applicant.is_passed}
             onUpdate={onUpdate}
             options={[
-              { id: "true", name: "Yes" },
-              { id: "false", name: "No" },
+              { id: "0", name: "Yes" },
+              { id: "1", name: "No" },
             ]}
             showPencil={false}
+            showActionButtons={false} 
           />
         </div>
       </TableCell>
