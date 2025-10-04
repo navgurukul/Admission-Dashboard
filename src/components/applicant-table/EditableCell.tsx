@@ -27,6 +27,7 @@ interface EditableCellProps {
   onUpdate?: (value: any) => void; // updated to always pass value
   showPencil?: boolean;
   options?: Option[];
+  showActionButtons?:boolean,
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -45,6 +46,7 @@ export function EditableCell({
   onUpdate,
   showPencil = false,
   options,
+  showActionButtons = true,
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -201,7 +203,7 @@ export function EditableCell({
     );
   }
 
-  if (isEditing) {
+ if (isEditing) {
     return (
       <div className="flex items-center gap-2">
         <Input
@@ -215,26 +217,31 @@ export function EditableCell({
           autoFocus
           disabled={isUpdating}
         />
-        <Button
-          size="sm"
-          onClick={saveCellEdit}
-          className="h-6 px-2"
-          disabled={isUpdating}
-        >
-          {isUpdating ? "..." : "✓"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={cancelCellEdit}
-          className="h-6 px-2"
-          disabled={isUpdating}
-        >
-          ✕
-        </Button>
+        {showActionButtons && (
+          <>
+            <Button
+              size="sm"
+              onClick={saveCellEdit}
+              className="h-6 px-2"
+              disabled={isUpdating}
+            >
+              {isUpdating ? "..." : "✓"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={cancelCellEdit}
+              className="h-6 px-2"
+              disabled={isUpdating}
+            >
+              ✕
+            </Button>
+          </>
+        )}
       </div>
     );
   }
+
 
   return (
     <div
