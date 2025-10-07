@@ -344,7 +344,7 @@ export const deleteRole = async (id: string | number): Promise<void> => {
 // Learning Round APIs
 export const submitLearningRound = async (row: any) => {
   return fetch(
-    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/learningRoundFeedback",
+    `${BASE_URL}/students/submit/learningRoundFeedback`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -355,7 +355,7 @@ export const submitLearningRound = async (row: any) => {
 
 export const updateLearningRound = async (id: number, row: any) => {
   return fetch(
-    `https://dev-new-admissions.navgurukul.org/api/v1/students/update/learningRoundFeedback/${id}`,
+   `${BASE_URL}/students/update/learningRoundFeedback/${id}`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -364,10 +364,34 @@ export const updateLearningRound = async (id: number, row: any) => {
   );
 };
 
+// screening round Round APIs
+export const submitScreeningRound = async (row: any) => {
+  return fetch(
+    `${BASE_URL}/students/submit/screeningRoundFeedback`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+export const updateScreeningRound = async (id: number, row: any) => {
+  return fetch(
+    `${BASE_URL}/students/update/screeningRoundFeedback/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+
 // Cultural Fit APIs
 export const submitCulturalFit = async (row: any) => {
   return fetch(
-    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/culturalFitRoundFeedback",
+   `${BASE_URL}/students/submit/culturalFitRoundFeedback`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -378,7 +402,7 @@ export const submitCulturalFit = async (row: any) => {
 
 export const updateCulturalFit = async (id: number, row: any) => {
   return fetch(
-    `https://dev-new-admissions.navgurukul.org/api/v1/students/update/culturalFitRoundFeedback/${id}`,
+    `${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -394,13 +418,14 @@ export const API_MAP: Record<
 > = {
   learning: { submit: submitLearningRound, update: updateLearningRound },
   cultural: { submit: submitCulturalFit, update: updateCulturalFit },
+  screening: { submit: submitScreeningRound, update: updateScreeningRound },
 };
 
 // update 
 export const submitFinalDecision = async (payload: any) => {
   // console.log("payload",payload)
   return fetch(
-    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/finalDecision",
+    `${BASE_URL}/students/submit/finalDecision`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

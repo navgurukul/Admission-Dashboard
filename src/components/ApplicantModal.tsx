@@ -35,7 +35,9 @@ import {
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
 import { Input } from "@/components/ui/input";
-import StageDropdown, { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
+import StageDropdown, {
+  STAGE_STATUS_MAP,
+} from "./applicant-table/StageDropdown";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -183,11 +185,11 @@ export function ApplicantModal({
     if (isOpen) fetchDropdowns();
   }, [isOpen]);
 
- useEffect(() => {
-  if (currentApplicant?.joining_date) {
-    setJoiningDate(currentApplicant.joining_date.split("T")[0]);
-  }
-}, [currentApplicant?.joining_date]);
+  useEffect(() => {
+    if (currentApplicant?.joining_date) {
+      setJoiningDate(currentApplicant.joining_date.split("T")[0]);
+    }
+  }, [currentApplicant?.joining_date]);
 
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
@@ -198,9 +200,6 @@ export function ApplicantModal({
         student_id: currentApplicant.id,
         [field]: value,
       };
-
-      console.log("value", value);
-      console.log(1, payload);
 
       // If the field being updated is joining_date, include joiningDate from state
       if (field === "joining_date") {
@@ -332,12 +331,12 @@ export function ApplicantModal({
       name: "qualifying_school",
       label: "Qualifying School",
       type: "select",
-      options: schools, // from state
+      options: schools, 
     },
     {
       name: "exam_centre",
       label: "Exam Centre",
-     type: "readonly",
+      type: "readonly",
     },
     {
       name: "date_of_test",
@@ -368,13 +367,15 @@ export function ApplicantModal({
 
   // Safe wrappers for screening API (prevent reading .submit of undefined)
   const screeningSubmit =
-    API_MAP?.screening?.submit ?? (async (payload: any) => {
+    API_MAP?.screening?.submit ??
+    (async (payload: any) => {
       console.error("API_MAP.screening.submit is not available", payload);
       throw new Error("screening submit API not available");
     });
 
   const screeningUpdate =
-    API_MAP?.screening?.update ?? (async (id: any, payload: any) => {
+    API_MAP?.screening?.update ??
+    (async (id: any, payload: any) => {
       console.error("API_MAP.screening.update is not available", id, payload);
       throw new Error("screening update API not available");
     });
@@ -395,7 +396,7 @@ export function ApplicantModal({
                 <MessageSquare className="h-4 w-4" />
                 Comments
               </Button> */}
-              {/* <Button
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEditClick}
@@ -403,7 +404,7 @@ export function ApplicantModal({
               >
                 <Edit className="h-4 w-4" />
                 Edit Details
-              </Button> */}
+              </Button>
             </div>
           </DialogHeader>
 
@@ -482,8 +483,8 @@ export function ApplicantModal({
                     field="gender"
                     displayValue={currentApplicant.gender || "Not provided"}
                     options={[
-                      { value: "Male", label: "Male" },
-                      { value: "Female", label: "Female" },
+                      { value: "M", label: "Male" },
+                      { value: "F", label: "Female" },
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
@@ -741,14 +742,23 @@ export function ApplicantModal({
                   <input
                     type="date"
                     className="border rounded px-2 py-1 w-full"
-                    value={joiningDate}
-                    onChange={(e) => setJoiningDate(e.target.value)}
-                    onBlur={async () =>
-                      await handleFinalDecisionUpdate(
-                        "joining_date",
-                        joiningDate
-                      )
+                    // Always show clean date in yyyy-MM-dd format
+                    value={
+                      joiningDate ||
+                      currentApplicant.final_decisions?.[0]?.joining_date?.split(
+                        "T"
+                      )[0] ||
+                      ""
                     }
+                    onChange={(e) => setJoiningDate(e.target.value)}
+                    onBlur={async () => {
+                      if (joiningDate) {
+                        await handleFinalDecisionUpdate(
+                          "joining_date",
+                          joiningDate
+                        );
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -807,14 +817,14 @@ export function ApplicantModal({
         </DialogContent>
       </Dialog>
 
-      {/* {showEditModal && (
+      {showEditModal && (
         <InlineEditModal
           applicant={currentApplicant}
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           onSuccess={handleEditSuccess}
         />
-      )} */}
+      )}
 
       {showCommentsModal && (
         <ApplicantCommentsModal
