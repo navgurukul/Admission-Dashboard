@@ -483,8 +483,8 @@ export function ApplicantModal({
                     field="gender"
                     displayValue={currentApplicant.gender || "Not provided"}
                     options={[
-                      { value: "M", label: "Male" },
-                      { value: "F", label: "Female" },
+                      { value: "M", label: "M" },
+                      { value: "F", label: "F" },
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
@@ -544,8 +544,6 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="state"
-                    displayValue={currentApplicant.state || "Not provided"}
                     field="state"
                     displayValue={currentApplicant.state || "Not provided"}
                     onUpdate={handleUpdate}
