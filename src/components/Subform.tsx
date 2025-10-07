@@ -59,7 +59,7 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
     return row.id
       ? { cultural_fit_status: row.cultural_fit_status, comments: row.comments, booking_status: "completed" }
       : { student_id: studentId, cultural_fit_status: row.cultural_fit_status, comments: row.comments };
-  }
+  } 
 
   return { ...row, student_id: studentId };
 }

@@ -171,8 +171,6 @@ export interface UpdateUserData {
 }
 
 export const updateUser = async (id: string, userData: UpdateUserData): Promise<User> => {
-  console.log("userData",userData)
-  console.group("userId",id)
   const response = await fetch(`${BASE_URL}/users/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
@@ -344,7 +342,7 @@ export const deleteRole = async (id: string | number): Promise<void> => {
 // Learning Round APIs
 export const submitLearningRound = async (row: any) => {
   return fetch(
-    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/learningRoundFeedback",
+    `${BASE_URL}/students/submit/learningRoundFeedback`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -355,7 +353,7 @@ export const submitLearningRound = async (row: any) => {
 
 export const updateLearningRound = async (id: number, row: any) => {
   return fetch(
-    `https://dev-new-admissions.navgurukul.org/api/v1/students/update/learningRoundFeedback/${id}`,
+   `${BASE_URL}/students/update/learningRoundFeedback/${id}`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -364,10 +362,34 @@ export const updateLearningRound = async (id: number, row: any) => {
   );
 };
 
+// screening round Round APIs
+export const submitScreeningRound = async (row: any) => {
+  return fetch(
+    `${BASE_URL}/students/submit/screeningRoundFeedback`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+export const updateScreeningRound = async (id: number, row: any) => {
+  return fetch(
+    `${BASE_URL}/students/update/screeningRoundFeedback/${id}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(row),
+    }
+  );
+};
+
+
 // Cultural Fit APIs
 export const submitCulturalFit = async (row: any) => {
   return fetch(
-    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/culturalFitRoundFeedback",
+   `${BASE_URL}/students/submit/culturalFitRoundFeedback`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -378,7 +400,7 @@ export const submitCulturalFit = async (row: any) => {
 
 export const updateCulturalFit = async (id: number, row: any) => {
   return fetch(
-    `https://dev-new-admissions.navgurukul.org/api/v1/students/update/culturalFitRoundFeedback/${id}`,
+    `${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -394,13 +416,14 @@ export const API_MAP: Record<
 > = {
   learning: { submit: submitLearningRound, update: updateLearningRound },
   cultural: { submit: submitCulturalFit, update: updateCulturalFit },
+  screening: { submit: submitScreeningRound, update: updateScreeningRound },
 };
 
 // update 
 export const submitFinalDecision = async (payload: any) => {
   // console.log("payload",payload)
   return fetch(
-    "https://dev-new-admissions.navgurukul.org/api/v1/students/submit/finalDecision",
+    `${BASE_URL}/students/submit/finalDecision`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -838,7 +861,6 @@ export const createQuestion = async (questionData: CreateQuestionData
   });
 
   const data = await response.json();
-  console.log("create data ",data)
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to create questions');
@@ -864,7 +886,6 @@ export const getQuestions = async (): Promise<Question[]> => {
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     
-    console.log('Get Questions Response: gol', data.data.data);
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
 
@@ -921,7 +942,6 @@ export const updateQuestion = async (
   });
 
   const data = await response.json();
-  console.log("on api",data)
   if (!response.ok) throw new Error(data.message || "Failed to update question");
 
   return data.data as Question;
@@ -968,7 +988,6 @@ export const createQuestionSetMappings = async (
       }
     );
 
-    console.log("Mappings created successfully:", response.data);
     return response.data;
   } catch (error: any) {
     console.error("Failed to create mappings:", error.response?.data || error.message);
@@ -1012,6 +1031,34 @@ export const deleteQuestionFromSet = async (id: number) => {
   }
 };
 
+
+export const bulkUploadQuestions = async (csvData: string): Promise<any> => {
+  const blob = new Blob([csvData], { type: 'text/csv' });
+  const file = new File([blob], 'questions.csv', { type: 'text/csv' });
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('uploadType', 'bulk');
+  formData.append('timestamp', new Date().toISOString());
+
+  const authHeaders = getAuthHeaders();
+  const headers = { ...authHeaders };
+  delete headers['Content-Type'];
+  delete headers['content-type'];
+
+  const response = await fetch(`${BASE_URL}/questions/bulkUpload`, {
+    method: "POST",
+    headers: headers,
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to upload questions");
+  }
+  return data;
+};
 
 // Stage Management API
 export interface Stage {
