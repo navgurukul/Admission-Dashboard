@@ -184,11 +184,12 @@ const ApplicantTable = () => {
     if (!searchTerm) return applicants;
 
     const searchRegex = new RegExp(searchTerm, "i");
+
     return applicants.filter(
       (a) =>
         searchRegex.test(a.name || "") ||
-        searchRegex.test(a.mobile_no || "") ||
-        searchRegex.test(a.unique_number || "")
+        searchRegex.test(a.phone_number || "") ||
+        searchRegex.test(a.whatsapp_number || "")
     );
   }, [applicants, searchTerm]);
 
