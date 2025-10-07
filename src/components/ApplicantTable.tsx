@@ -439,7 +439,7 @@ const ApplicantTable = () => {
                     State
                   </TableHead>
 
-                  <TableHead className="font-bold w-24">Pin Code</TableHead>
+                  {/* <TableHead className="font-bold w-24">Pin Code</TableHead> */}
 
                   {/* School */}
                   <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
@@ -452,15 +452,15 @@ const ApplicantTable = () => {
                   </TableHead>
 
                   <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
-                    Current Status
+                    Current Stage
                   </TableHead>
-                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
                     Religion
-                  </TableHead>
+                  </TableHead> */}
 
-                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
                     Is Passed
-                  </TableHead>
+                  </TableHead> */}
 
                   <TableHead className="w-16 font-bold px-2">Actions</TableHead>
                 </TableRow>

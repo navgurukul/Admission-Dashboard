@@ -15,7 +15,7 @@ interface RowField {
   label: string;
   type: "text" | "select" | "component" | "readonly";
   options?: { value: string; label: string }[];
-  component?: React.ComponentType<any>; // allow any component signature
+  component?: React.ComponentType<any>;
 }
 
 interface InlineSubformProps {
@@ -28,7 +28,7 @@ interface InlineSubformProps {
   onSave?: () => void;
 }
 
-// Helper to map payload for special rounds
+// Map payload based on round type
 function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
   const isScreening = fields.some((f) =>
     ["question_set_id", "obtained_marks", "is_passed", "exam_centre", "date_of_test"].includes(f.name)
@@ -59,10 +59,23 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
     return row.id
       ? { cultural_fit_status: row.cultural_fit_status, comments: row.comments, booking_status: "completed" }
       : { student_id: studentId, cultural_fit_status: row.cultural_fit_status, comments: row.comments };
-  } 
+  }
 
   return { ...row, student_id: studentId };
 }
+
+// Helper to choose which fields are editable
+const getEditableFields = (row: any, allFields: RowField[]) => {
+  if (!row.id) {
+    // New row: all fields editable
+    return allFields;
+  } else {
+    // Existing row: only specific fields editable
+    return allFields.filter((f) =>
+      ["stage", "status", "qualifying_school"].includes(f.name)
+    );
+  }
+};
 
 export function InlineSubform({
   title,
@@ -103,6 +116,17 @@ export function InlineSubform({
 
   const saveRow = async (index: number) => {
     const row = rows[index];
+
+    // Validate fields
+    const editableFields = getEditableFields(row, fields);
+    // Validate only the fields that are editable for this row (new rows => all fields)
+    for (let field of editableFields) {
+      if (!row[field.name] || row[field.name].toString().trim() === "") {
+        alert(`Please fill the field: ${field.label}`);
+        return;
+      }
+    }
+
     const payload = mapPayload(row, fields, studentId);
 
     try {
@@ -155,49 +179,58 @@ export function InlineSubform({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => (
-              <tr key={idx} className="border-b hover:bg-gray-50">
-                {fields.map((f) => (
-                  <td
-                    key={f.name}
-                    className={`px-3 py-2 align-top ${f.name === "comments" ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]" : ""}`}
-                  >
-                    {!row.isEditing || f.type === "readonly" ? (
-                      <p className={`p-1 ${f.type === "readonly" ? "bg-gray-100 rounded" : ""}`}>
-                        {getDisplayValue(row, f)}
-                      </p>
-                    ) : f.type === "select" ? (
-                      <Select value={row[f.name]} onValueChange={(val) => updateRow(idx, f.name, val)}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={`Select ${f.label}`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {f.options?.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : f.type === "component" && f.component ? (
-                      <f.component row={row} updateRow={(field: string, val: any) => updateRow(idx, field, val)} />
+            {rows.map((row, idx) => {
+              const editableFields = getEditableFields(row, fields);
+              return (
+                <tr key={idx} className="border-b hover:bg-gray-50">
+                  {fields.map((f) => (
+                    <td
+                      key={f.name}
+                      className={`px-3 py-2 align-top ${f.name === "comments" ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]" : ""}`}
+                    >
+                      {/* Show display value when not editing OR (existing row AND readonly) OR field not in editableFields */}
+                      {!row.isEditing || (row.id && f.type === "readonly") || !editableFields.includes(f) ? (
+                        <p className={`p-1 ${f.type === "readonly" ? "bg-gray-100 rounded" : ""}`}>
+                          {getDisplayValue(row, f)}
+                        </p>
+                      ) : f.type === "select" ? (
+                        <Select value={row[f.name]} onValueChange={(val) => updateRow(idx, f.name, val)}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={`Select ${f.label}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {f.options?.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : f.type === "component" && f.component ? (
+                        // compute disabled for this component: disabled when field is not editable for this row
+                        <f.component
+                          row={row}
+                          updateRow={(field: string, val: any) => updateRow(idx, field, val)}
+                          disabled={!editableFields.includes(f)}
+                        />
+                      ) : (
+                        <Input value={row[f.name]} onChange={(e) => updateRow(idx, f.name, e.target.value)} />
+                      )}
+                     </td>
+                   ))}
+
+                  <td className="px-3 py-2 text-right">
+                    {!row.isEditing ? (
+                      <Button size="icon" variant="ghost" className="text-blue-600 hover:bg-blue-50" onClick={() => toggleEdit(idx, true)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     ) : (
-                      <Input value={row[f.name]} onChange={(e) => updateRow(idx, f.name, e.target.value)} />
+                      <Button size="icon" variant="ghost" className="text-green-600 hover:bg-green-50" onClick={() => saveRow(idx)}>
+                        <Save className="h-4 w-4" />
+                      </Button>
                     )}
                   </td>
-                ))}
-
-                <td className="px-3 py-2 text-right">
-                  {!row.isEditing ? (
-                    <Button size="icon" variant="ghost" className="text-blue-600 hover:bg-blue-50" onClick={() => toggleEdit(idx, true)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button size="icon" variant="ghost" className="text-green-600 hover:bg-green-50" onClick={() => saveRow(idx)}>
-                      <Save className="h-4 w-4" />
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
