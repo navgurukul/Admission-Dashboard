@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +66,20 @@ const CSVImportModal = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
+  
+  useEffect(() => {
+  if (isOpen) {
+    // Reset modal state each time it opens
+    setCsvFile(null);
+    setData([]);
+    setError(null);
+    setShowSuccess(false);
+    setSuccessCount(0);
+    setUploadProgress(0);
+    setIsProcessing(false);
+  }
+}, [isOpen]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     setShowSuccess(false);
@@ -106,18 +120,25 @@ const CSVImportModal = ({
           processCSVData(results.data); // this will update successCount
         },
         error: (err) => {
-          setError(err.message);
+          setError("Something went wrong while uploading your CSV file. Please check it and try again.");
           setIsProcessing(false);
         },
       });
-    } catch (error) {
-      console.error("Import error:", error);
-      setError(
-        error instanceof Error ? error.message : "Unknown error occurred"
-      );
-      setIsProcessing(false);
-    }
-  };
+    } catch (error: any) {
+    console.error("Upload failed:", error);
+    // Display API error message or fallback
+    const customMsg = error &&  "Something went wrong while uploading your CSV file. Please check it and try again.";
+    setError(customMsg);
+    setIsProcessing(false);
+
+    // toast({
+    //   title: "Upload Failed",
+    //   description: customMsg,
+    //   variant: "destructive",
+    // });
+  }
+};
+
 
   const parseNumericValue = (value: string | undefined): number | null => {
     if (!value || value.trim() === "") return null;
@@ -140,11 +161,11 @@ const CSVImportModal = ({
     // Handle regular numeric values
     const numericValue = parseFloat(trimmedValue);
     if (!isNaN(numericValue)) {
-      console.log(`Parsed ${trimmedValue} as ${numericValue}`);
+      // console.log(`Parsed ${trimmedValue} as ${numericValue}`);
       return numericValue;
     }
 
-    console.log(`Could not parse ${trimmedValue} as number, returning null`);
+    // console.log(`Could not parse ${trimmedValue} as number, returning null`);
     return null;
   };
 
@@ -153,7 +174,7 @@ const CSVImportModal = ({
       setIsProcessing(true);
 
       const processedData = data.map((row, index) => {
-        console.log(`Processing row ${index + 1}:`, row);
+        // console.log(`Processing row ${index + 1}:`, row);
 
         const processedRow = {
           mobile_no: row["Mobile No."]?.toString() || "",
@@ -180,10 +201,10 @@ const CSVImportModal = ({
           triptis_notes: row["Triptis Notes"] || null,
         };
 
-        console.log(
-          `Processed row ${index + 1} final_marks:`,
-          processedRow.final_marks
-        );
+        // console.log(
+        //   `Processed row ${index + 1} final_marks:`,
+        //   processedRow.final_marks
+        // );
         return processedRow;
       });
 
@@ -200,9 +221,10 @@ const CSVImportModal = ({
       });
 
       onSuccess();
-      onClose(); 
+      onClose();
     } catch (error) {
       console.error("Import error:", error);
+      
       setError(
         error instanceof Error ? error.message : "Unknown error occurred"
       );
