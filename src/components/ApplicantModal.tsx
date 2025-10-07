@@ -310,8 +310,8 @@ export function ApplicantModal({
     {
       name: "question_set_id",
       label: "Set Name",
-      type: "readonly",
-      options: questionSets, // from state
+      type: "select",
+      options: questionSets,
     },
     {
       name: "obtained_marks",
@@ -321,7 +321,7 @@ export function ApplicantModal({
     {
       name: "is_passed",
       label: "Is Passed",
-      type: "readonly",
+      type: "select",
       options: [
         { value: "1", label: "Yes" },
         { value: "0", label: "No" },
@@ -341,7 +341,20 @@ export function ApplicantModal({
     {
       name: "date_of_test",
       label: "Date of Testing",
-      type: "readonly",
+      type: "component",
+      component: ({ row, updateRow, disabled }: any) => {
+        // Subform will show this component only when the field is editable for the row.
+        // Render a native date input that updates the row value (in yyyy-MM-dd).
+        return (
+          <input
+            type="date"
+            value={row?.date_of_test || ""}
+            onChange={(e) => updateRow?.("date_of_test", e.target.value)}
+            className="border p-1 rounded w-full"
+            disabled={!!disabled}
+          />
+        );
+      },
     },
   ];
 
@@ -396,7 +409,7 @@ export function ApplicantModal({
                 <MessageSquare className="h-4 w-4" />
                 Comments
               </Button> */}
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEditClick}
@@ -404,7 +417,7 @@ export function ApplicantModal({
               >
                 <Edit className="h-4 w-4" />
                 Edit Details
-              </Button>
+              </Button> */}
             </div>
           </DialogHeader>
 
@@ -483,8 +496,8 @@ export function ApplicantModal({
                     field="gender"
                     displayValue={currentApplicant.gender || "Not provided"}
                     options={[
-                      { value: "M", label: "Male" },
-                      { value: "F", label: "Female" },
+                      { value: "M", label: "M" },
+                      { value: "F", label: "F" },
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
@@ -526,12 +539,12 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="current_status_name"
+                    field="current_status_id"
                     displayValue={
                       currentWorks.find(
                         (w) =>
                           w.value ===
-                          currentApplicant.current_status_name?.toString()
+                          currentApplicant.current_status_id?.toString()
                       )?.label || "Not provided"
                     }
                     onUpdate={handleUpdate}
@@ -544,8 +557,6 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="state"
-                    displayValue={currentApplicant.state || "Not provided"}
                     field="state"
                     displayValue={currentApplicant.state || "Not provided"}
                     onUpdate={handleUpdate}

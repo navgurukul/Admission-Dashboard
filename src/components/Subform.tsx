@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/use-toast";
+
 import {
   Select,
   SelectTrigger,
@@ -15,7 +17,7 @@ interface RowField {
   label: string;
   type: "text" | "select" | "component" | "readonly";
   options?: { value: string; label: string }[];
-  component?: React.ComponentType<any>; // allow any component signature
+  component?: React.ComponentType<any>;
 }
 
 interface InlineSubformProps {
@@ -28,10 +30,16 @@ interface InlineSubformProps {
   onSave?: () => void;
 }
 
-// Helper to map payload for special rounds
+// Map payload based on round type
 function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
   const isScreening = fields.some((f) =>
-    ["question_set_id", "obtained_marks", "is_passed", "exam_centre", "date_of_test"].includes(f.name)
+    [
+      "question_set_id",
+      "obtained_marks",
+      "is_passed",
+      "exam_centre",
+      "date_of_test",
+    ].includes(f.name)
   );
 
   if (isScreening) {
@@ -53,16 +61,56 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
 
   if ("learning_round_status" in row) {
     return row.id
-      ? { learning_round_status: row.learning_round_status, comments: row.comments, booking_status: "completed" }
-      : { student_id: studentId, learning_round_status: row.learning_round_status, comments: row.comments };
+      ? {
+          learning_round_status: row.learning_round_status,
+          comments: row.comments,
+          booking_status: "completed",
+        }
+      : {
+          student_id: studentId,
+          learning_round_status: row.learning_round_status,
+          comments: row.comments,
+        };
   } else if ("cultural_fit_status" in row) {
     return row.id
-      ? { cultural_fit_status: row.cultural_fit_status, comments: row.comments, booking_status: "completed" }
-      : { student_id: studentId, cultural_fit_status: row.cultural_fit_status, comments: row.comments };
-  } 
+      ? {
+          cultural_fit_status: row.cultural_fit_status,
+          comments: row.comments,
+          booking_status: "completed",
+        }
+      : {
+          student_id: studentId,
+          cultural_fit_status: row.cultural_fit_status,
+          comments: row.comments,
+        };
+  }
 
   return { ...row, student_id: studentId };
 }
+
+// Helper to choose which fields are editable
+const getEditableFields = (row: any, allFields: RowField[]) => {
+  if (!row.id) {
+    return allFields; // new row: all editable
+  }
+
+  // Determine editable fields based on what fields exist in the row
+  const fieldNames = Object.keys(row);
+
+  return allFields.filter((f) => {
+    if (f.name === "stage" || f.name === "status" || f.name === "qualifying_school") {
+      return true; // screening-related
+    }
+    if (f.name === "learning_round_status" || f.name === "comments") {
+      return true; // learning round
+    }
+    if (f.name === "cultural_fit_status" || f.name === "comments") {
+      return true; // cultural fit
+    }
+    return false;
+  });
+};
+
 
 export function InlineSubform({
   title,
@@ -103,18 +151,50 @@ export function InlineSubform({
 
   const saveRow = async (index: number) => {
     const row = rows[index];
+
+    // Validate fields
+    const editableFields = getEditableFields(row, fields);
+    // Validate only the fields that are editable for this row (new rows => all fields)
+    for (let field of editableFields) {
+      if (!row[field.name] || row[field.name].toString().trim() === "") {
+        toast({
+          title: "Validation Error",
+          description: `Please fill the field: ${field.label}`,
+          variant: "destructive", // red style
+        });
+        return;
+      }
+    }
+
     const payload = mapPayload(row, fields, studentId);
 
     try {
       let res;
       if (row.id) {
         const response = await updateApi(row.id, payload);
-        res = typeof response.json === "function" ? await response.json() : response;
+        res =
+          typeof response.json === "function"
+            ? await response.json()
+            : response;
+
+        toast({
+        title: "Updated Successfully",
+        description: "Row updated successfully.",
+        variant: "default",
+      });
       } else {
         const response = await submitApi(payload);
-        res = typeof response.json === "function" ? await response.json() : response;
-      }
-
+        res =
+          typeof response.json === "function"
+            ? await response.json()
+            : response;
+        toast({
+        title: "Created Successfully",
+        description: "Row created successfully.",
+        variant: "default",
+      });
+    }
+    
       setRows((prev) => {
         const newRows = [...prev];
         newRows[index] = { ...row, ...res, isEditing: false };
@@ -124,6 +204,11 @@ export function InlineSubform({
       onSave?.();
     } catch (err) {
       console.error("Save failed", err);
+      toast({
+        title: "Save Failed",
+        description: "Something went wrong while saving.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -149,55 +234,98 @@ export function InlineSubform({
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
               {fields.map((f) => (
-                <th key={f.name} className="px-3 py-2 border-b">{f.label}</th>
+                <th key={f.name} className="px-3 py-2 border-b">
+                  {f.label}
+                </th>
               ))}
               <th className="px-3 py-2 border-b text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => (
-              <tr key={idx} className="border-b hover:bg-gray-50">
-                {fields.map((f) => (
-                  <td
-                    key={f.name}
-                    className={`px-3 py-2 align-top ${f.name === "comments" ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]" : ""}`}
-                  >
-                    {!row.isEditing || f.type === "readonly" ? (
-                      <p className={`p-1 ${f.type === "readonly" ? "bg-gray-100 rounded" : ""}`}>
-                        {getDisplayValue(row, f)}
-                      </p>
-                    ) : f.type === "select" ? (
-                      <Select value={row[f.name]} onValueChange={(val) => updateRow(idx, f.name, val)}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder={`Select ${f.label}`} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {f.options?.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : f.type === "component" && f.component ? (
-                      <f.component row={row} updateRow={(field: string, val: any) => updateRow(idx, field, val)} />
+            {rows.map((row, idx) => {
+              const editableFields = getEditableFields(row, fields);
+              return (
+                <tr key={idx} className="border-b hover:bg-gray-50">
+                  {fields.map((f) => (
+                    <td
+                      key={f.name}
+                      className={`px-3 py-2 align-top ${
+                        f.name === "comments"
+                          ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]"
+                          : ""
+                      }`}
+                    >
+                      {/* Show display value when not editing OR (existing row AND readonly) OR field not in editableFields */}
+                      {!row.isEditing ||
+                      (row.id && f.type === "readonly") ||
+                      !editableFields.includes(f) ? (
+                        <p
+                          className={`p-1 ${
+                            f.type === "readonly" ? "bg-gray-100 rounded" : ""
+                          }`}
+                        >
+                          {getDisplayValue(row, f)}
+                        </p>
+                      ) : f.type === "select" ? (
+                        <Select
+                          value={row[f.name]}
+                          onValueChange={(val) => updateRow(idx, f.name, val)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={`Select ${f.label}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {f.options?.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : f.type === "component" && f.component ? (
+                        // compute disabled for this component: disabled when field is not editable for this row
+                        <f.component
+                          row={row}
+                          updateRow={(field: string, val: any) =>
+                            updateRow(idx, field, val)
+                          }
+                          disabled={!editableFields.includes(f)}
+                        />
+                      ) : (
+                        <Input
+                          value={row[f.name]}
+                          onChange={(e) =>
+                            updateRow(idx, f.name, e.target.value)
+                          }
+                        />
+                      )}
+                    </td>
+                  ))}
+
+                  <td className="px-3 py-2 text-right">
+                    {!row.isEditing ? (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-blue-600 hover:bg-blue-50"
+                        onClick={() => toggleEdit(idx, true)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     ) : (
-                      <Input value={row[f.name]} onChange={(e) => updateRow(idx, f.name, e.target.value)} />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-green-600 hover:bg-green-50"
+                        onClick={() => saveRow(idx)}
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
                     )}
                   </td>
-                ))}
-
-                <td className="px-3 py-2 text-right">
-                  {!row.isEditing ? (
-                    <Button size="icon" variant="ghost" className="text-blue-600 hover:bg-blue-50" onClick={() => toggleEdit(idx, true)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button size="icon" variant="ghost" className="text-green-600 hover:bg-green-50" onClick={() => saveRow(idx)}>
-                      <Save className="h-4 w-4" />
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
