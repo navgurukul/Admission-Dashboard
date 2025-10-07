@@ -171,8 +171,6 @@ export interface UpdateUserData {
 }
 
 export const updateUser = async (id: string, userData: UpdateUserData): Promise<User> => {
-  console.log("userData",userData)
-  console.group("userId",id)
   const response = await fetch(`${BASE_URL}/users/${id}`, {
     method: 'PUT',
     headers: getAuthHeaders(),
@@ -863,7 +861,6 @@ export const createQuestion = async (questionData: CreateQuestionData
   });
 
   const data = await response.json();
-  console.log("create data ",data)
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to create questions');
@@ -889,7 +886,6 @@ export const getQuestions = async (): Promise<Question[]> => {
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     
-    console.log('Get Questions Response: gol', data.data.data);
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
 
@@ -946,7 +942,6 @@ export const updateQuestion = async (
   });
 
   const data = await response.json();
-  console.log("on api",data)
   if (!response.ok) throw new Error(data.message || "Failed to update question");
 
   return data.data as Question;
@@ -993,7 +988,6 @@ export const createQuestionSetMappings = async (
       }
     );
 
-    console.log("Mappings created successfully:", response.data);
     return response.data;
   } catch (error: any) {
     console.error("Failed to create mappings:", error.response?.data || error.message);
@@ -1037,6 +1031,34 @@ export const deleteQuestionFromSet = async (id: number) => {
   }
 };
 
+
+export const bulkUploadQuestions = async (csvData: string): Promise<any> => {
+  const blob = new Blob([csvData], { type: 'text/csv' });
+  const file = new File([blob], 'questions.csv', { type: 'text/csv' });
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('uploadType', 'bulk');
+  formData.append('timestamp', new Date().toISOString());
+
+  const authHeaders = getAuthHeaders();
+  const headers = { ...authHeaders };
+  delete headers['Content-Type'];
+  delete headers['content-type'];
+
+  const response = await fetch(`${BASE_URL}/questions/bulkUpload`, {
+    method: "POST",
+    headers: headers,
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to upload questions");
+  }
+  return data;
+};
 
 // Stage Management API
 export interface Stage {

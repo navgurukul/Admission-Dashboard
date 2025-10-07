@@ -156,7 +156,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   }, [filters, searchTerm]); 
 
 
-  console.log(difficultyLevels)
+  // console.log(difficultyLevels)
   return {
     questions,
     loading,
