@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { addApplicants } from "@/utils/localStorage";
 import { bulkUploadStudents } from "@/utils/api";
+import { Loader2 } from "lucide-react";
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -51,7 +52,11 @@ interface ApplicantData {
   triptis_notes: string | null;
 }
 
-const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => {
+const CSVImportModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CSVImportModalProps) => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -68,43 +73,59 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
     setUploadProgress(0);
 
     const file = event.target.files && event.target.files[0];
-    if (file && file.type === 'text/csv') {
+    if (file && file.type === "text/csv") {
       setCsvFile(file);
     } else {
       setCsvFile(null);
-      setError('Please select a valid CSV file.');
+      setError("Please select a valid CSV file.");
     }
   };
 
   const handleParse = async () => {
     if (!csvFile) {
-      setError('Please select a CSV file.');
+      setError("Please select a CSV file.");
       return;
     }
-    await bulkUploadStudents(csvFile);
-    setIsProcessing(true);
-    Papa.parse(csvFile, {
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: false,
-      complete: (results) => {
-        setData(results.data);
-        processCSVData(results.data);
-      },
-      error: (err) => {
-        setError(err.message);
-        setIsProcessing(false);
-      },
-    });
+
+    setError(null);
+    setShowSuccess(false);
+    setSuccessCount(0);
+    setIsProcessing(true); // set loading **before API call**
+
+    try {
+      // Call API
+      await bulkUploadStudents(csvFile);
+
+      // Parse CSV
+      Papa.parse(csvFile, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: (results) => {
+          setData(results.data);
+          processCSVData(results.data); // this will update successCount
+        },
+        error: (err) => {
+          setError(err.message);
+          setIsProcessing(false);
+        },
+      });
+    } catch (error) {
+      console.error("Import error:", error);
+      setError(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
+      setIsProcessing(false);
+    }
   };
 
   const parseNumericValue = (value: string | undefined): number | null => {
-    if (!value || value.trim() === '') return null;
-    
+    if (!value || value.trim() === "") return null;
+
     const trimmedValue = value.trim();
     // Handle fractional format like "18/25"
-    if (trimmedValue.includes('/')) {
-      const parts = trimmedValue.split('/');
+    if (trimmedValue.includes("/")) {
+      const parts = trimmedValue.split("/");
       if (parts.length === 2) {
         const numerator = parseFloat(parts[0]);
         const denominator = parseFloat(parts[1]);
@@ -115,14 +136,14 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
         }
       }
     }
-    
+
     // Handle regular numeric values
     const numericValue = parseFloat(trimmedValue);
     if (!isNaN(numericValue)) {
       console.log(`Parsed ${trimmedValue} as ${numericValue}`);
       return numericValue;
     }
-    
+
     console.log(`Could not parse ${trimmedValue} as number, returning null`);
     return null;
   };
@@ -130,10 +151,10 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
   const processCSVData = async (data: any[]) => {
     try {
       setIsProcessing(true);
-      
+
       const processedData = data.map((row, index) => {
         console.log(`Processing row ${index + 1}:`, row);
-        
+
         const processedRow = {
           mobile_no: row["Mobile No."]?.toString() || "",
           unique_number: row["Unique Number"]?.toString() || null, // if exists
@@ -169,14 +190,22 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
       // Save to localStorage first
       addApplicants(processedData);
 
-    
-       
-        setSuccessCount(processedData.length);
-        setShowSuccess(true);
-        onSuccess();
+      setSuccessCount(processedData.length);
+      setShowSuccess(true);
+
+      // Show toast
+      toast({
+        title: "Success",
+        description: `Successfully imported ${processedData.length} applicants!`,
+      });
+
+      onSuccess();
+      onClose(); 
     } catch (error) {
-      console.error('Import error:', error);
-      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      console.error("Import error:", error);
+      setError(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -188,7 +217,8 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
         <DialogHeader>
           <DialogTitle>Import Applicants from CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple applicants at once. Duplicate mobile numbers are now allowed.
+            Upload a CSV file to add multiple applicants at once. Duplicate
+            mobile numbers are now allowed.
           </DialogDescription>
         </DialogHeader>
 
@@ -230,8 +260,13 @@ const CSVImportModal = ({ isOpen, onClose, onSuccess }: CSVImportModalProps) => 
           )}
         </div>
 
-        <Button onClick={handleParse} disabled={!csvFile || isProcessing}>
-          {isProcessing ? 'Importing...' : 'Import'}
+        <Button
+          onClick={handleParse}
+          disabled={!csvFile || isProcessing}
+          className="flex items-center gap-2"
+        >
+          {isProcessing && <Loader2 className="animate-spin h-4 w-4" />}
+          {isProcessing ? "Importing..." : "Import"}
         </Button>
       </DialogContent>
     </Dialog>
