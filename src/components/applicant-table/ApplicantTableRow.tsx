@@ -179,7 +179,10 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="school_id"
-            displayValue={applicant.school_name || "N/A"}
+            displayValue={
+              schoolList.find((s) => s.id === applicant.school_id)
+                ?.school_name || "N/A"
+            }
             value={applicant.school_id}
             onUpdate={onUpdate}
             options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
@@ -195,7 +198,10 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="campus_id"
-            displayValue={applicant.campus_name || "N/A"}
+            displayValue={
+              campusList.find((s) => s.id === applicant.campus_id)
+                ?.campus_name || "N/A"
+            }
             value={applicant.campus_id}
             onUpdate={onUpdate}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
@@ -204,22 +210,23 @@ export const ApplicantTableRow = ({
           />
         </div>
       </TableCell>
-      {/* current status*/}
+      {/* current Stage*/}
       <TableCell className="min-w-[100px] max-w-[120px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
-            field="current_status_id"
-            displayValue={applicant.current_status_name || "N/A"}
-            value={applicant.current_status_id}
+            field="stage_name"
+            displayValue={applicant.stage_name || "N/A"}
+            value={applicant.stage_name}
             onUpdate={onUpdate}
             options={[
               { value: "Screening Round", label: "Screening Round" },
-              { value: "Learning Round" , label: "Learning Round" },
-              { value: "Culture Fit Round" , label: "Culture Fit Round" },
+              { value: "Learning Round", label: "Learning Round" },
+              { value: "Culture Fit Round", label: "Culture Fit Round" },
             ]}
             showPencil={false}
             showActionButtons={false}
+            disabled={true}
           />
         </div>
       </TableCell>
