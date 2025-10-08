@@ -35,9 +35,7 @@ import {
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
 import { Input } from "@/components/ui/input";
-import StageDropdown, {
-  STAGE_STATUS_MAP,
-} from "./applicant-table/StageDropdown";
+import StageDropdown, { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -185,11 +183,11 @@ export function ApplicantModal({
     if (isOpen) fetchDropdowns();
   }, [isOpen]);
 
-  useEffect(() => {
-    if (currentApplicant?.joining_date) {
-      setJoiningDate(currentApplicant.joining_date.split("T")[0]);
-    }
-  }, [currentApplicant?.joining_date]);
+ useEffect(() => {
+  if (currentApplicant?.joining_date) {
+    setJoiningDate(currentApplicant.joining_date.split("T")[0]);
+  }
+}, [currentApplicant?.joining_date]);
 
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
@@ -200,6 +198,9 @@ export function ApplicantModal({
         student_id: currentApplicant.id,
         [field]: value,
       };
+
+      console.log("value", value);
+      console.log(1, payload);
 
       // If the field being updated is joining_date, include joiningDate from state
       if (field === "joining_date") {
@@ -263,7 +264,7 @@ export function ApplicantModal({
   };
 
   const dateOfTest =
-    currentApplicant.stage === "screening"
+    currentApplicant.stage_name === "screening"
       ? currentApplicant.exam_sessions?.[0]?.date_of_test || ""
       : currentApplicant.date_of_test || "";
 
@@ -272,19 +273,30 @@ export function ApplicantModal({
 
   // StatusCell: renders status select for a given row and updates the row via updateRow
   const StatusCell = ({ row, updateRow, disabled }: any) => {
-    const stage = row?.stage || "screening";
-    const options = STAGE_STATUS_MAP[stage] || STAGE_STATUS_MAP.screening;
-    const value = row?.status || "";
+    // Prefer per-row stage_name, fallback to applicant-level stage for context
+    const stage_name = row?.stage_name || currentApplicant?.stage_name || "";
+    // Get status options for the stage (if any)
+    const options = stage_name ? STAGE_STATUS_MAP[stage_name] || STAGE_STATUS_MAP.screening : [];
+    const value = row?.status ?? "";
+
+    // Disable when no stage selected
+    const isDisabled = !!disabled || !stage_name;
+
+    // If there is an existing value that's not in the options, include it so the select shows the current value
+    const extraValues = value && value !== "" && !options.includes(value) ? [value] : [];
+    const allOptions = [...options, ...extraValues];
 
     return (
       <select
-        value={value}
+        value={value || ""}
         onChange={(e) => updateRow?.("status", e.target.value)}
         className="border p-1 rounded bg-white w-full"
-        disabled={disabled}
+        disabled={isDisabled}
       >
-        <option value="">{disabled ? "—" : "Select Status"}</option>
-        {options.map((opt: string) => (
+        <option value="">
+          {isDisabled ? "Select stage first" : "Select Status"}
+        </option>
+        {allOptions.map((opt: string) => (
           <option key={opt} value={opt}>
             {opt}
           </option>
@@ -296,7 +308,7 @@ export function ApplicantModal({
   // Screening fields with correct components
   const screeningFields = [
     {
-      name: "stage",
+      name: "stage_name",
       label: "Stage",
       type: "component",
       component: (props: any) => <StageDropdown {...props} />,
@@ -310,8 +322,8 @@ export function ApplicantModal({
     {
       name: "question_set_id",
       label: "Set Name",
-      type: "readonly",
-      options: questionSets, // from state
+      type: "select",
+      options: questionSets,
     },
     {
       name: "obtained_marks",
@@ -321,7 +333,7 @@ export function ApplicantModal({
     {
       name: "is_passed",
       label: "Is Passed",
-      type: "readonly",
+      type: "select",
       options: [
         { value: "1", label: "Yes" },
         { value: "0", label: "No" },
@@ -341,7 +353,20 @@ export function ApplicantModal({
     {
       name: "date_of_test",
       label: "Date of Testing",
-      type: "readonly",
+      type: "component",
+      component: ({ row, updateRow, disabled }: any) => {
+        // Subform will show this component only when the field is editable for the row.
+        // Render a native date input that updates the row value (in yyyy-MM-dd).
+        return (
+          <input
+            type="date"
+            value={row?.date_of_test || ""}
+            onChange={(e) => updateRow?.("date_of_test", e.target.value)}
+            className="border p-1 rounded w-full"
+            disabled={!!disabled}
+          />
+        );
+      },
     },
   ];
 
@@ -350,7 +375,7 @@ export function ApplicantModal({
     currentApplicant.exam_sessions?.map((session) => ({
       id: session.id,
       // prefer session-level status; fallback to applicant-level
-      stage: session.stage ?? currentApplicant.stage ?? "",
+      stage_name: session.stage_name ?? currentApplicant.stage_name ?? "",
       status: session.status ?? currentApplicant.status ?? "",
       question_set_id: session.question_set_id?.toString() || "",
       obtained_marks:
@@ -367,15 +392,13 @@ export function ApplicantModal({
 
   // Safe wrappers for screening API (prevent reading .submit of undefined)
   const screeningSubmit =
-    API_MAP?.screening?.submit ??
-    (async (payload: any) => {
+    API_MAP?.screening?.submit ?? (async (payload: any) => {
       console.error("API_MAP.screening.submit is not available", payload);
       throw new Error("screening submit API not available");
     });
 
   const screeningUpdate =
-    API_MAP?.screening?.update ??
-    (async (id: any, payload: any) => {
+    API_MAP?.screening?.update ?? (async (id: any, payload: any) => {
       console.error("API_MAP.screening.update is not available", id, payload);
       throw new Error("screening update API not available");
     });
@@ -396,7 +419,7 @@ export function ApplicantModal({
                 <MessageSquare className="h-4 w-4" />
                 Comments
               </Button> */}
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEditClick}
@@ -404,7 +427,7 @@ export function ApplicantModal({
               >
                 <Edit className="h-4 w-4" />
                 Edit Details
-              </Button>
+              </Button> */}
             </div>
           </DialogHeader>
 
@@ -526,12 +549,12 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="current_status_name"
+                    field="current_status_id"
                     displayValue={
                       currentWorks.find(
                         (w) =>
                           w.value ===
-                          currentApplicant.current_status_name?.toString()
+                          currentApplicant.current_status_id?.toString()
                       )?.label || "Not provided"
                     }
                     onUpdate={handleUpdate}
@@ -719,9 +742,8 @@ export function ApplicantModal({
                           ?.onboarded_status || "Not provided"
                       }
                       options={[
-                        { value: "Joined", label: "Joined" },
-                        { value: "Not Joined", label: "Not Joined" },
-                        { value: "Rejected", label: "Rejected" },
+                        { value: "Onboarded", label: "Onboarded" },
+   
                       ]}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(

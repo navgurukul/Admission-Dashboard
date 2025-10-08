@@ -6,6 +6,9 @@ export const STAGE_OPTIONS = [
 ];
 
 export const STAGE_STATUS_MAP: Record<string, string[]> = {
+	"" :[
+		""
+	],
 	sourcing:[
 		"Enrollment Key Generated",
 		"Basic Details Entered",
@@ -21,12 +24,13 @@ export const STAGE_STATUS_MAP: Record<string, string[]> = {
 };
 
 export const STAGE_DEFAULT_STATUS: Record<string, string> = {
+	"" : "",
 	sourcing: "Enrollment Key Generated",
 	screening: "Screening Test Pass",
 };
 
 interface StageDropdownProps {
-	row?: { id?: any; stage?: string; status?: string };
+	row?: { id?: any; stage_name?: string; status?: string };
 	updateRow?: (field: string, value: any) => void;
 	disabled?: boolean;
 	// showStatus kept for backward compatibility if you ever want both selects in one cell
@@ -34,13 +38,14 @@ interface StageDropdownProps {
 }
 
 export default function StageDropdown({ row, updateRow, disabled, showStatus }: StageDropdownProps) {
-	const [stage, setStage] = useState(row?.stage || "");
+	const [stage, setStage] = useState(row?.stage_name || "");
 	const [status, setStatus] = useState(row?.status || "");
 
 	useEffect(() => {
-		setStage(row?.stage || "");
+		console.log("row",row)
+		setStage(row?.stage_name || "");
 		setStatus(row?.status || "");
-	}, [row?.stage, row?.status]);
+	}, [row?.stage_name, row?.status]);
 
 	useEffect(() => {
 		// if stage becomes empty, reset status

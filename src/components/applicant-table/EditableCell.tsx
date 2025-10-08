@@ -27,7 +27,8 @@ interface EditableCellProps {
   onUpdate?: (value: any) => void; // updated to always pass value
   showPencil?: boolean;
   options?: Option[];
-  showActionButtons?:boolean,
+  showActionButtons?: boolean;
+  disabled?: boolean;
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -47,6 +48,7 @@ export function EditableCell({
   showPencil = false,
   options,
   showActionButtons = true,
+  disabled
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -76,7 +78,7 @@ export function EditableCell({
       return;
     }
 
-     if (
+    if (
       (field === "phone_number" || field === "whatsapp_number") &&
       !/^\d{10}$/.test(cellValue)
     ) {
@@ -181,8 +183,8 @@ export function EditableCell({
     return (
       <Select
         value={getCurrentDropdownValue()}
-        onValueChange={handleDirectDropdownChange}
-        disabled={isUpdating}
+        onValueChange={(val) => !disabled && handleDirectDropdownChange(val)}
+        disabled={isUpdating || disabled}
       >
         <SelectTrigger className="h-8 text-xs border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring">
           <SelectValue placeholder="Select option">
@@ -203,7 +205,7 @@ export function EditableCell({
     );
   }
 
- if (isEditing) {
+  if (isEditing) {
     return (
       <div className="flex items-center gap-2">
         <Input
@@ -215,7 +217,7 @@ export function EditableCell({
           }}
           className="h-8 text-xs"
           autoFocus
-          disabled={isUpdating}
+          disabled={isUpdating || disabled}
         />
         {showActionButtons && (
           <>
@@ -223,7 +225,7 @@ export function EditableCell({
               size="sm"
               onClick={saveCellEdit}
               className="h-6 px-2"
-              disabled={isUpdating}
+              disabled={isUpdating || disabled}
             >
               {isUpdating ? "..." : "✓"}
             </Button>
@@ -242,15 +244,19 @@ export function EditableCell({
     );
   }
 
-
   return (
     <div
-      className="cursor-pointer hover:bg-muted/50 p-1 rounded min-h-[24px] flex items-center gap-2 group"
-      onClick={() =>
-        !isUpdating &&
-        startCellEdit(applicant.id, field, value ?? displayValue)
-      }
-      title="Click to edit"
+      className={`p-1 rounded min-h-[24px] flex items-center gap-2 group ${
+        disabled
+          ? "cursor-not-allowed opacity-70"
+          : "cursor-pointer hover:bg-muted/50"
+      }`}
+      onClick={() => {
+        if (!disabled && !isUpdating) {
+          startCellEdit(applicant.id, field, value ?? displayValue);
+        }
+      }}
+      title={disabled ? "Editing disabled" : "Click to edit"}
     >
       <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
         {isUpdating ? "Updating..." : displayValue || "Click to add"}

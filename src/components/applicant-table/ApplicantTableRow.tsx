@@ -107,7 +107,7 @@ export const ApplicantTableRow = ({
             }
             onUpdate={onUpdate}
             showPencil={true}
-            showActionButtons={false} 
+            showActionButtons={false}
           />
         </div>
       </TableCell>
@@ -121,7 +121,7 @@ export const ApplicantTableRow = ({
             displayValue={applicant.whatsapp_number || "No WhatsApp"}
             onUpdate={onUpdate}
             showPencil={true}
-            showActionButtons={false} 
+            showActionButtons={false}
           />
         </div>
       </TableCell>
@@ -134,13 +134,13 @@ export const ApplicantTableRow = ({
             field="gender"
             displayValue={applicant.gender || "Not specified"}
             options={[
-              { id: "M", name: "Male" },
-              { id: "F", name: "Female" },
+              { id: "M", name: "M" },
+              { id: "F", name: "F" },
               { id: "other", name: "Other" },
             ]}
             onUpdate={onUpdate}
             showPencil={false}
-            showActionButtons={false} 
+            showActionButtons={false}
           />
         </div>
       </TableCell>
@@ -154,7 +154,7 @@ export const ApplicantTableRow = ({
             displayValue={applicant.city || "Not specified"}
             onUpdate={onUpdate}
             showPencil={true}
-            showActionButtons={false} 
+            showActionButtons={false}
           />
         </div>
       </TableCell>
@@ -168,21 +168,7 @@ export const ApplicantTableRow = ({
             displayValue={applicant.state || "Not specified"}
             onUpdate={onUpdate}
             showPencil={true}
-            showActionButtons={false} 
-          />
-        </div>
-      </TableCell>
-
-      {/* Pin Code - Simple text field */}
-      <TableCell className="w-20 px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="pin_code"
-            displayValue={applicant.pin_code || "N/A"}
-            onUpdate={onUpdate}
-            showPencil={true}
-            showActionButtons={false} 
+            showActionButtons={false}
           />
         </div>
       </TableCell>
@@ -193,12 +179,15 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="school_id"
-            displayValue={applicant.school_name || "N/A"}
+            displayValue={
+              schoolList.find((s) => s.id === applicant.school_id)
+                ?.school_name || "N/A"
+            }
             value={applicant.school_id}
             onUpdate={onUpdate}
             options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
             showPencil={false}
-            showActionButtons={false} 
+            showActionButtons={false}
           />
         </div>
       </TableCell>
@@ -209,72 +198,35 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="campus_id"
-            displayValue={applicant.campus_name || "N/A"}
+            displayValue={
+              campusList.find((s) => s.id === applicant.campus_id)
+                ?.campus_name || "N/A"
+            }
             value={applicant.campus_id}
             onUpdate={onUpdate}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
             showPencil={false}
-            showActionButtons={false} 
+            showActionButtons={false}
           />
         </div>
       </TableCell>
-      {/* current status*/}
+      {/* current Stage*/}
       <TableCell className="min-w-[100px] max-w-[120px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
-            field="current_status_id"
-            displayValue={applicant.current_status_name || "N/A"}
-            value={applicant.current_status_id}
-            onUpdate={onUpdate}
-            options={currentstatusList.map((c) => ({
-              id: c.id,
-              name: c.current_status_name,
-            }))}
-            showPencil={false}
-            showActionButtons={false} 
-          />
-        </div>
-      </TableCell>
-
-      <TableCell className="min-w-[100px] max-w-[120px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="religion_id"
-            displayValue={applicant.religion_name || "N/A"}
-            value={applicant.religion_id}
-            onUpdate={onUpdate}
-            options={religionList.map((r) => ({
-              id: r.id,
-              name: r.religion_name,
-            }))}
-            showPencil={false}
-            showActionButtons={false} 
-          />
-        </div>
-      </TableCell>
-
-      <TableCell className="min-w-[80px] max-w-[100px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="is_passed"
-            displayValue={
-              applicant.is_passed === true
-                ? "Yes"
-                : applicant.is_passed === false
-                ? "No"
-                : "Not Set"
-            }
-            value={applicant.is_passed}
+            field="stage_name"
+            displayValue={applicant.stage_name || "N/A"}
+            value={applicant.stage_name}
             onUpdate={onUpdate}
             options={[
-              { id: "0", name: "Yes" },
-              { id: "1", name: "No" },
+              { value: "Screening Round", label: "Screening Round" },
+              { value: "Learning Round", label: "Learning Round" },
+              { value: "Culture Fit Round", label: "Culture Fit Round" },
             ]}
             showPencil={false}
-            showActionButtons={false} 
+            showActionButtons={false}
+            disabled={true}
           />
         </div>
       </TableCell>
