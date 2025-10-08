@@ -818,6 +818,10 @@ export const createStudent = async (studentData: any): Promise<any> => {
     throw new Error(data.message || 'Failed to create student');
   }
 
+    if (data?.data?.error === true) {
+    throw new Error(data.data.message || 'Validation failed');
+  }
+
   return data;
 };
 
