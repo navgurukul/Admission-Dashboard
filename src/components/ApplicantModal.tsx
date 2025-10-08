@@ -35,7 +35,9 @@ import {
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
 import { Input } from "@/components/ui/input";
-import StageDropdown, { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
+import StageDropdown, {
+  STAGE_STATUS_MAP,
+} from "./applicant-table/StageDropdown";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -183,11 +185,11 @@ export function ApplicantModal({
     if (isOpen) fetchDropdowns();
   }, [isOpen]);
 
- useEffect(() => {
-  if (currentApplicant?.joining_date) {
-    setJoiningDate(currentApplicant.joining_date.split("T")[0]);
-  }
-}, [currentApplicant?.joining_date]);
+  useEffect(() => {
+    if (currentApplicant?.joining_date) {
+      setJoiningDate(currentApplicant.joining_date.split("T")[0]);
+    }
+  }, [currentApplicant?.joining_date]);
 
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
@@ -276,14 +278,17 @@ export function ApplicantModal({
     // Prefer per-row stage_name, fallback to applicant-level stage for context
     const stage_name = row?.stage_name || currentApplicant?.stage_name || "";
     // Get status options for the stage (if any)
-    const options = stage_name ? STAGE_STATUS_MAP[stage_name] || STAGE_STATUS_MAP.screening : [];
+    const options = stage_name
+      ? STAGE_STATUS_MAP[stage_name] || STAGE_STATUS_MAP.screening
+      : [];
     const value = row?.status ?? "";
 
     // Disable when no stage selected
     const isDisabled = !!disabled || !stage_name;
 
     // If there is an existing value that's not in the options, include it so the select shows the current value
-    const extraValues = value && value !== "" && !options.includes(value) ? [value] : [];
+    const extraValues =
+      value && value !== "" && !options.includes(value) ? [value] : [];
     const allOptions = [...options, ...extraValues];
 
     return (
@@ -309,30 +314,30 @@ export function ApplicantModal({
   const screeningFields = [
     {
       name: "stage_name",
-      label: "Stage",
+      label: "Stage  *",
       type: "component",
       component: (props: any) => <StageDropdown {...props} />,
     },
     {
       name: "status",
-      label: "Status",
+      label: "Status *",
       type: "component",
       component: (props: any) => <StatusCell {...props} />,
     },
     {
       name: "question_set_id",
-      label: "Set Name",
+      label: "Set Name *",
       type: "select",
       options: questionSets,
     },
     {
       name: "obtained_marks",
-      label: "Obtained Marks",
+      label: "Obtained Marks *",
       type: "readonly",
     },
     {
       name: "is_passed",
-      label: "Is Passed",
+      label: "Is Passed *",
       type: "select",
       options: [
         { value: "1", label: "Yes" },
@@ -340,19 +345,20 @@ export function ApplicantModal({
       ],
     },
     {
-      name: "qualifying_school",
-      label: "Qualifying School",
+      name: "school_id",
+      label: "Qualifying School *",
       type: "select",
-      options: schools, 
+      options: schools,
+      
     },
     {
       name: "exam_centre",
-      label: "Exam Centre",
+      label: "Exam Centre *",
       type: "readonly",
     },
     {
       name: "date_of_test",
-      label: "Date of Testing",
+      label: "Date of Testing *",
       type: "component",
       component: ({ row, updateRow, disabled }: any) => {
         // Subform will show this component only when the field is editable for the row.
@@ -382,8 +388,12 @@ export function ApplicantModal({
         session.obtained_marks !== null && session.obtained_marks !== undefined
           ? session.obtained_marks.toString()
           : "",
+      school_id:
+        session.school_id !== null && session.school_id !== undefined
+          ? session.school_id.toString()
+          : "",
       is_passed: session.is_passed ? "1" : "0",
-      qualifying_school: currentApplicant.qualifying_school || "",
+      // school_id: currentApplicant.school_id || "",
       exam_centre: session.exam_centre || "",
       date_of_test: session.date_of_test?.split("T")[0] || "",
     })) || [];
@@ -392,13 +402,15 @@ export function ApplicantModal({
 
   // Safe wrappers for screening API (prevent reading .submit of undefined)
   const screeningSubmit =
-    API_MAP?.screening?.submit ?? (async (payload: any) => {
+    API_MAP?.screening?.submit ??
+    (async (payload: any) => {
       console.error("API_MAP.screening.submit is not available", payload);
       throw new Error("screening submit API not available");
     });
 
   const screeningUpdate =
-    API_MAP?.screening?.update ?? (async (id: any, payload: any) => {
+    API_MAP?.screening?.update ??
+    (async (id: any, payload: any) => {
       console.error("API_MAP.screening.update is not available", id, payload);
       throw new Error("screening update API not available");
     });
@@ -618,7 +630,7 @@ export function ApplicantModal({
                   fields={[
                     {
                       name: "learning_round_status",
-                      label: "Status",
+                      label: "Status *",
                       type: "select",
                       options: [
                         {
@@ -633,7 +645,7 @@ export function ApplicantModal({
                         { value: "No Show", label: "No Show" },
                       ],
                     },
-                    { name: "comments", label: "Comments", type: "text" },
+                    { name: "comments", label: "Comments *", type: "text" },
                   ]}
                   submitApi={API_MAP.learning.submit}
                   updateApi={API_MAP.learning.update}
@@ -650,7 +662,7 @@ export function ApplicantModal({
                   fields={[
                     {
                       name: "cultural_fit_status",
-                      label: "Status",
+                      label: "Status *",
                       type: "select",
                       options: [
                         {
@@ -665,7 +677,7 @@ export function ApplicantModal({
                         { value: "No Show", label: "No Show" },
                       ],
                     },
-                    { name: "comments", label: "Comments", type: "text" },
+                    { name: "comments", label: "Comments *", type: "text" },
                   ]}
                   submitApi={API_MAP.cultural.submit}
                   updateApi={API_MAP.cultural.update}
@@ -741,10 +753,7 @@ export function ApplicantModal({
                         currentApplicant.final_decisions?.[0]
                           ?.onboarded_status || "Not provided"
                       }
-                      options={[
-                        { value: "Onboarded", label: "Onboarded" },
-   
-                      ]}
+                      options={[{ value: "Onboarded", label: "Onboarded" }]}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",

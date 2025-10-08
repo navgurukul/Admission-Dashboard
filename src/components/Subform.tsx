@@ -37,6 +37,7 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       "question_set_id",
       "obtained_marks",
       "is_passed",
+      "school_id",
       "exam_centre",
       "date_of_test",
     ].includes(f.name)
@@ -54,7 +55,7 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
         row.is_passed === "1" || row.is_passed === 1 || row.is_passed === true
           ? true
           : false,
-      qualifying_school: row.qualifying_school || null,
+      school_id: row.school_id || null,
       exam_centre: row.exam_centre || null,
       date_of_test: row.date_of_test || null,
       // include canonical names expected by API
@@ -62,6 +63,7 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       status: statusVal,
     };
     return row.id ? payload : { student_id: studentId, ...payload };
+    console.log("payload",payload)
   }
 
   if ("learning_round_status" in row) {
@@ -106,7 +108,7 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
     if (
       f.name === "stage_name" ||
       f.name === "status" ||
-      f.name === "qualifying_school"
+      f.name === "school_id"
     ) {
       return true; // screening-related
     }
