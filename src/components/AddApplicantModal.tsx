@@ -284,11 +284,20 @@ export function AddApplicantModal({
       newErrors.name = "Name is required";
     }
 
+
     if (!formData.phone_number.trim()) {
       newErrors.phone_number = "Mobile number is required";
     } else if (!/^\d{10}$/.test(formData.phone_number)) {
       newErrors.phone_number = "Mobile number must be 10 digits";
     }
+
+     if (!formData.gender) {
+    newErrors.gender = "Gender is required";
+  }
+
+   if (!formData.dob) {
+    newErrors.dob = "Date of birth is required";
+  }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -351,7 +360,6 @@ export function AddApplicantModal({
         exam_centre: formData.exam_centre || null,
         date_of_test: formData.date_of_test || null,
       };
-
       // API Call
       const response = await createStudent(dataToInsert);
 
@@ -423,7 +431,7 @@ export function AddApplicantModal({
     switch (tabValue) {
       case "basic":
         return (
-          formData.first_name && formData.phone_number && formData.stage
+          formData.first_name && formData.phone_number && formData.gender && formData.dob
         );
       case "screening":
         return formData.stage !== "screening" || formData.status;
@@ -641,7 +649,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="dob" className="text-sm font-medium">
-                      Date of Birth
+                      Date of Birth *
                     </Label>
                     <Input
                       id="dob"
@@ -652,7 +660,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender" className="text-sm font-medium">
-                      Gender
+                      Gender *
                     </Label>
                     <Select
                       value={formData.gender}
@@ -664,9 +672,9 @@ export function AddApplicantModal({
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="M">M</SelectItem>
-                        <SelectItem value="F">F</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
