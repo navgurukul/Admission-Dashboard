@@ -37,12 +37,17 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       "question_set_id",
       "obtained_marks",
       "is_passed",
+      "school_id",
       "exam_centre",
       "date_of_test",
     ].includes(f.name)
   );
 
   if (isScreening) {
+    // read stage/status from either possible keys used across the app
+    const stageVal = row.stage_name ?? row.stage_name ?? undefined;
+    const statusVal = row.status ?? row.status_name ?? undefined;
+
     const payload = {
       question_set_id: row.question_set_id || null,
       obtained_marks: row.obtained_marks === "" ? null : row.obtained_marks,
@@ -50,13 +55,15 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
         row.is_passed === "1" || row.is_passed === 1 || row.is_passed === true
           ? true
           : false,
-      qualifying_school: row.qualifying_school || null,
+      school_id: row.school_id || null,
       exam_centre: row.exam_centre || null,
       date_of_test: row.date_of_test || null,
-      stage: row.stage || undefined,
-      status: row.status || undefined,
+      // include canonical names expected by API
+      stage_name: stageVal,
+      status: statusVal,
     };
     return row.id ? payload : { student_id: studentId, ...payload };
+    console.log("payload",payload)
   }
 
   if ("learning_round_status" in row) {
@@ -98,7 +105,11 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
   const fieldNames = Object.keys(row);
 
   return allFields.filter((f) => {
-    if (f.name === "stage" || f.name === "status" || f.name === "qualifying_school") {
+    if (
+      f.name === "stage_name" ||
+      f.name === "status" ||
+      f.name === "school_id"
+    ) {
       return true; // screening-related
     }
     if (f.name === "learning_round_status" || f.name === "comments") {
@@ -110,7 +121,6 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
     return false;
   });
 };
-
 
 export function InlineSubform({
   title,
@@ -152,17 +162,19 @@ export function InlineSubform({
   const saveRow = async (index: number) => {
     const row = rows[index];
 
-    // Validate fields
-    const editableFields = getEditableFields(row, fields);
-    // Validate only the fields that are editable for this row (new rows => all fields)
-    for (let field of editableFields) {
-      if (!row[field.name] || row[field.name].toString().trim() === "") {
-        toast({
-          title: "Validation Error",
-          description: `Please fill the field: ${field.label}`,
-          variant: "destructive", // red style
-        });
-        return;
+    if (!row.id) {
+      // Validate fields
+      const editableFields = getEditableFields(row, fields);
+      // Validate only the fields that are editable for this row (new rows => all fields)
+      for (let field of editableFields) {
+        if (!row[field.name] || row[field.name].toString().trim() === "") {
+          toast({
+            title: "Validation Error",
+            description: `Please fill the field: ${field.label}`,
+            variant: "destructive", // red style
+          });
+          return;
+        }
       }
     }
 
@@ -178,10 +190,10 @@ export function InlineSubform({
             : response;
 
         toast({
-        title: "Updated Successfully",
-        description: "Row updated successfully.",
-        variant: "default",
-      });
+          title: "Updated Successfully",
+          description: "Row updated successfully.",
+          variant: "default",
+        });
       } else {
         const response = await submitApi(payload);
         res =
@@ -189,12 +201,12 @@ export function InlineSubform({
             ? await response.json()
             : response;
         toast({
-        title: "Created Successfully",
-        description: "Row created successfully.",
-        variant: "default",
-      });
-    }
-    
+          title: "Created Successfully",
+          description: "Row created successfully.",
+          variant: "default",
+        });
+      }
+
       setRows((prev) => {
         const newRows = [...prev];
         newRows[index] = { ...row, ...res, isEditing: false };
