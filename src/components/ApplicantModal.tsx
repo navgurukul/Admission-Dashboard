@@ -496,8 +496,8 @@ export function ApplicantModal({
                     field="gender"
                     displayValue={currentApplicant.gender || "Not provided"}
                     options={[
-                      { value: "M", label: "M" },
-                      { value: "F", label: "F" },
+                      { value: "male", label: "Male" },
+                      { value: "female", label: "Female" },
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
