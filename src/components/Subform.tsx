@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/use-toast";
-
+import { useToast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectTrigger,
@@ -44,26 +43,17 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
   );
 
   if (isScreening) {
-    // read stage/status from either possible keys used across the app
-    const stageVal = row.stage_name ?? row.stage_name ?? undefined;
     const statusVal = row.status ?? row.status_name ?? undefined;
 
     const payload = {
       question_set_id: row.question_set_id || null,
       obtained_marks: row.obtained_marks === "" ? null : row.obtained_marks,
-      is_passed:
-        row.is_passed === "1" || row.is_passed === 1 || row.is_passed === true
-          ? true
-          : false,
       school_id: row.school_id || null,
       exam_centre: row.exam_centre || null,
       date_of_test: row.date_of_test || null,
-      // include canonical names expected by API
-      stage_name: stageVal,
       status: statusVal,
     };
     return row.id ? payload : { student_id: studentId, ...payload };
-    console.log("payload",payload)
   }
 
   if ("learning_round_status" in row) {
@@ -71,7 +61,7 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       ? {
           learning_round_status: row.learning_round_status,
           comments: row.comments,
-          booking_status: "completed",
+      
         }
       : {
           student_id: studentId,
@@ -83,7 +73,7 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       ? {
           cultural_fit_status: row.cultural_fit_status,
           comments: row.comments,
-          booking_status: "completed",
+         
         }
       : {
           student_id: studentId,
@@ -97,30 +87,57 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
 
 // Helper to choose which fields are editable
 const getEditableFields = (row: any, allFields: RowField[]) => {
-  if (!row.id) {
-    return allFields; // new row: all editable
-  }
-
-  // Determine editable fields based on what fields exist in the row
-  const fieldNames = Object.keys(row);
+  if (!row.id) return allFields; // new row: all editable
 
   return allFields.filter((f) => {
-    if (
-      f.name === "stage_name" ||
-      f.name === "status" ||
-      f.name === "school_id"
-    ) {
-      return true; // screening-related
-    }
-    if (f.name === "learning_round_status" || f.name === "comments") {
-      return true; // learning round
-    }
-    if (f.name === "cultural_fit_status" || f.name === "comments") {
-      return true; // cultural fit
-    }
+    if (["status", "school_id"].includes(f.name)) return true;
+    if (["learning_round_status", "comments"].includes(f.name)) return true;
+    if (["cultural_fit_status", "comments"].includes(f.name)) return true;
     return false;
   });
 };
+
+// Always-mounted editable cell component
+const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
+  if (field.type === "select") {
+    return (
+      <Select value={row[field.name]} onValueChange={(val) => updateRow(field.name, val)} disabled={!isEditable}>
+        <SelectTrigger
+          className={`w-full ${!isEditable ? "cursor-text pointer-events-none" : ""}`}
+        >
+          <SelectValue placeholder={`Select ${field.label}`} />
+        </SelectTrigger>
+        <SelectContent>
+          {field.options?.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  } else if (field.type === "component" && field.component) {
+    return (
+      <field.component
+        row={row}
+        updateRow={(fName: string, val: any) => updateRow(fName, val)}
+        disabled={!isEditable}
+        className={!isEditable ? "cursor-text pointer-events-none" : ""}
+      />
+    );
+  } else {
+    return (
+      <Input
+        value={row[field.name]}
+        onChange={(e) => updateRow(field.name, e.target.value)}
+        disabled={!isEditable}
+        className={!isEditable ? "cursor-text" : ""}
+      />
+    );
+  }
+};
+
+
 
 export function InlineSubform({
   title,
@@ -132,10 +149,15 @@ export function InlineSubform({
   onSave,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
+  const { toast } = useToast();
 
   useEffect(() => {
     setRows(initialData.map((r) => ({ ...r })));
   }, [initialData]);
+
+  const editableFieldsMap = useMemo(() => {
+    return rows.map((row) => new Set(getEditableFields(row, fields).map(f => f.name)));
+  }, [rows, fields]);
 
   const updateRow = (index: number, field: string, value: any) => {
     setRows((prev) => {
@@ -161,17 +183,15 @@ export function InlineSubform({
 
   const saveRow = async (index: number) => {
     const row = rows[index];
+    const editableFields = getEditableFields(row, fields);
 
     if (!row.id) {
-      // Validate fields
-      const editableFields = getEditableFields(row, fields);
-      // Validate only the fields that are editable for this row (new rows => all fields)
       for (let field of editableFields) {
         if (!row[field.name] || row[field.name].toString().trim() === "") {
           toast({
             title: "Validation Error",
             description: `Please fill the field: ${field.label}`,
-            variant: "destructive", // red style
+            variant: "destructive",
           });
           return;
         }
@@ -254,11 +274,11 @@ export function InlineSubform({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => {
-              const editableFields = getEditableFields(row, fields);
-              return (
-                <tr key={idx} className="border-b hover:bg-gray-50">
-                  {fields.map((f) => (
+            {rows.map((row, idx) => (
+              <tr key={idx} className="border-b hover:bg-gray-50">
+                {fields.map((f) => {
+                  const isEditable = row.isEditing && editableFieldsMap[idx].has(f.name);
+                  return (
                     <td
                       key={f.name}
                       className={`px-3 py-2 align-top ${
@@ -267,77 +287,42 @@ export function InlineSubform({
                           : ""
                       }`}
                     >
-                      {/* Show display value when not editing OR (existing row AND readonly) OR field not in editableFields */}
-                      {!row.isEditing ||
-                      (row.id && f.type === "readonly") ||
-                      !editableFields.includes(f) ? (
-                        <p
-                          className={`p-1 ${
-                            f.type === "readonly" ? "bg-gray-100 rounded" : ""
-                          }`}
-                        >
-                          {getDisplayValue(row, f)}
-                        </p>
-                      ) : f.type === "select" ? (
-                        <Select
-                          value={row[f.name]}
-                          onValueChange={(val) => updateRow(idx, f.name, val)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={`Select ${f.label}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {f.options?.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : f.type === "component" && f.component ? (
-                        // compute disabled for this component: disabled when field is not editable for this row
-                        <f.component
-                          row={row}
-                          updateRow={(field: string, val: any) =>
-                            updateRow(idx, field, val)
-                          }
-                          disabled={!editableFields.includes(f)}
-                        />
+                      {!isEditable && f.type === "readonly" ? (
+                        <p className="p-1 bg-gray-100 rounded">{getDisplayValue(row, f)}</p>
                       ) : (
-                        <Input
-                          value={row[f.name]}
-                          onChange={(e) =>
-                            updateRow(idx, f.name, e.target.value)
-                          }
+                        <EditableCell
+                          row={row}
+                          field={f}
+                          isEditable={isEditable}
+                          updateRow={(fieldName, value) => updateRow(idx, fieldName, value)}
                         />
                       )}
                     </td>
-                  ))}
-
-                  <td className="px-3 py-2 text-right">
-                    {!row.isEditing ? (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-blue-600 hover:bg-blue-50"
-                        onClick={() => toggleEdit(idx, true)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-green-600 hover:bg-green-50"
-                        onClick={() => saveRow(idx)}
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+                  );
+                })}
+                <td className="px-3 py-2 text-right">
+                  {!row.isEditing ? (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-blue-600 hover:bg-blue-50"
+                      onClick={() => toggleEdit(idx, true)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-green-600 hover:bg-green-50"
+                      onClick={() => saveRow(idx)}
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
