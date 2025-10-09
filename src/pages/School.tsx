@@ -119,11 +119,8 @@ const SchoolPage = () => {
       });
       return;
     }
-
-
     try {
       const result = await createSchool(newSchool);
-
       const newSchoolData: School = {
         id: result.id || result.data?.id || Date.now(),
         school_name: newSchool,
@@ -131,7 +128,7 @@ const SchoolPage = () => {
         // created_at: new Date().toISOString(),
       };
 
-      setSchools((prev) => [...prev, newSchoolData]);
+      setSchools((prev) => [...prev,newSchoolData]);
       setNewSchool("");
       setAddDialog(false);
 
@@ -140,9 +137,10 @@ const SchoolPage = () => {
         description: "School has been successfully added.",
       });
     } catch (err) {
+      const errorMessage = formatErrorMessage(err as Error);
       toast({
-        title: "Error",
-        description: `Failed to create school: ${err instanceof Error ? err.message : "Unknown error"}`,
+        title: "Error creating school",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -150,9 +148,9 @@ const SchoolPage = () => {
 
   //  Update School
   const handleUpdateSchool = async (id: number, updatedName: string) => {
-    try {
-      await updateSchool(id, updatedName);
-
+        
+      try {
+      await updateSchool(id,updatedName);
       setSchools((prev) =>
         prev.map((s) => (s.id === id ? { ...s, school_name: updatedName } : s))
       );
@@ -162,15 +160,16 @@ const SchoolPage = () => {
         description: `School "${updatedName}" updated successfully.`,
       });
     } catch (error) {
+      const errorMessage = formatErrorMessage(error as Error)
       toast({
         title: "Error updating school",
-        description: (error as Error).message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
   };
 
-  // 🔹 Delete School
+  // Delete School
   const handleDeleteSchool = async (id: number) => {
     try {
       await deleteSchool(id);
@@ -181,9 +180,10 @@ const SchoolPage = () => {
         description: `School ID ${id} has been deleted.`,
       });
     } catch (error) {
+     const errorMessage = formatErrorMessage(error as Error);
       toast({
         title: "Error deleting school",
-        description: (error as Error).message,
+        description: errorMessage,
         variant: "destructive",
       });
     }
