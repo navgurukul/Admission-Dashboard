@@ -44,7 +44,30 @@ const SchoolPage = () => {
   const [updatedSchoolName, setUpdatedSchoolName] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
-  // 🔹 Fetch schools
+
+
+  const formatErrorMessage = (error: Error): string => {
+    const errorMessage = error.message.toLowerCase();
+    
+    // Duplicate value errors
+    if (errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
+      return 'This school name already exists. Please use a different name.';
+    }
+    
+    // Server errors (500)
+    if (errorMessage.includes('500') || errorMessage.includes('internal server error')) {
+      return 'Server is temporarily unavailable. Please try again later.';
+    }
+    
+    // Network errors
+    if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    
+    return 'An error occurred. Please try again.';
+  };
+
+  // Fetch schools
   useEffect(() => {
   const fetchSchools = async () => {
     setLoading(true);
@@ -62,12 +85,10 @@ const SchoolPage = () => {
   fetchSchools();
 }, []);
 
-
-  // 🔹 Filter & pagination
+  //  Filter & pagination
  const filteredSchools = schools.filter(
   (school) => (school.school_name || "").toLowerCase().includes(search.toLowerCase())
 );
-
 
   const totalPages = Math.ceil(filteredSchools.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -82,9 +103,24 @@ const SchoolPage = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
-  // 🔹 Add School
+  //  Add School
   const handleAddSchool = async (e: React.FormEvent) => {
     e.preventDefault();
+
+     const isDuplicate = schools.some(
+      school => school.school_name.toLowerCase() === newSchool.toLowerCase().trim()
+    );
+    
+    if (isDuplicate) {
+      toast({
+        title: "Duplicate School",
+        description: "This school name already exists. Please use a different name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+
     try {
       const result = await createSchool(newSchool);
 
@@ -112,7 +148,7 @@ const SchoolPage = () => {
     }
   };
 
-  // 🔹 Update School
+  //  Update School
   const handleUpdateSchool = async (id: number, updatedName: string) => {
     try {
       await updateSchool(id, updatedName);
