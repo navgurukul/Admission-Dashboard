@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect ,useMemo} from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,6 @@ import { Edit, MessageSquare, Pencil } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import StageStatusForm from "./applicant-table/StageDropdown";
-import StatusDropdown from "./applicant-table/StatusDropdown";
 import { Calendar } from "lucide-react";
 import {
   Popover,
@@ -67,6 +65,7 @@ export function ApplicantModal({
 
   const [campus, setCampus] = useState<any[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  
 
   const format = (date: Date, formatStr: string) => {
     if (formatStr === "PPP") {
@@ -265,64 +264,21 @@ export function ApplicantModal({
     );
   };
 
-  const dateOfTest =
-    currentApplicant.stage_name === "screening"
-      ? currentApplicant.exam_sessions?.[0]?.date_of_test || ""
-      : currentApplicant.date_of_test || "";
-
   // Helper for current exam session (if any) to simplify access throughout the component
   const examSession = currentApplicant.exam_sessions?.[0] ?? null;
 
-  // StatusCell: renders status select for a given row and updates the row via updateRow
-  const StatusCell = ({ row, updateRow, disabled }: any) => {
-    // Prefer per-row stage_name, fallback to applicant-level stage for context
-    const stage_name = row?.stage_name || currentApplicant?.stage_name || "";
-    // Get status options for the stage (if any)
-    const options = stage_name
-      ? STAGE_STATUS_MAP[stage_name] || STAGE_STATUS_MAP.screening
-      : [];
-    const value = row?.status ?? "";
-
-    // Disable when no stage selected
-    const isDisabled = !!disabled || !stage_name;
-
-    // If there is an existing value that's not in the options, include it so the select shows the current value
-    const extraValues =
-      value && value !== "" && !options.includes(value) ? [value] : [];
-    const allOptions = [...options, ...extraValues];
-
-    return (
-      <select
-        value={value || ""}
-        onChange={(e) => updateRow?.("status", e.target.value)}
-        className="border p-1 rounded bg-white w-full"
-        disabled={isDisabled}
-      >
-        <option value="">
-          {isDisabled ? "Select stage first" : "Select Status"}
-        </option>
-        {allOptions.map((opt: string) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
-    );
-  };
-
   // Screening fields with correct components
   const screeningFields = [
-    {
-      name: "stage_name",
-      label: "Stage  *",
-      type: "component",
-      component: (props: any) => <StageDropdown {...props} />,
-    },
+
     {
       name: "status",
       label: "Status *",
-      type: "component",
-      component: (props: any) => <StatusCell {...props} />,
+      type: "select",
+      options: [
+        { value:  "Screening Test Pass", label:  "Screening Test Pass" },
+        { value: "Screening Test Fail", label: "Screening Test Fail" },
+        { value:   "Created Student Without Exam", label:   "Created Student Without Exam"},
+      ],
     },
     {
       name: "question_set_id",
@@ -334,15 +290,6 @@ export function ApplicantModal({
       name: "obtained_marks",
       label: "Obtained Marks *",
       type: "readonly",
-    },
-    {
-      name: "is_passed",
-      label: "Is Passed *",
-      type: "select",
-      options: [
-        { value: "1", label: "Yes" },
-        { value: "0", label: "No" },
-      ],
     },
     {
       name: "school_id",
@@ -380,8 +327,6 @@ export function ApplicantModal({
   const initialScreeningData =
     currentApplicant.exam_sessions?.map((session) => ({
       id: session.id,
-      // prefer session-level status; fallback to applicant-level
-      stage_name: session.stage_name ?? currentApplicant.stage_name ?? "",
       status: session.status ?? currentApplicant.status ?? "",
       question_set_id: session.question_set_id?.toString() || "",
       obtained_marks:
@@ -392,7 +337,7 @@ export function ApplicantModal({
         session.school_id !== null && session.school_id !== undefined
           ? session.school_id.toString()
           : "",
-      is_passed: session.is_passed ? "1" : "0",
+     
       // school_id: currentApplicant.school_id || "",
       exam_centre: session.exam_centre || "",
       date_of_test: session.date_of_test?.split("T")[0] || "",
