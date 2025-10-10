@@ -160,7 +160,7 @@ export const ApplicantTableRow = ({
       </TableCell>
 
       {/* State - Simple text field */}
-      <TableCell className="min-w-[100px] max-w-[140px] px-2">
+      {/* <TableCell className="min-w-[100px] max-w-[140px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
@@ -171,10 +171,10 @@ export const ApplicantTableRow = ({
             showActionButtons={false}
           />
         </div>
-      </TableCell>
+      </TableCell> */}
 
       {/* School*/}
-      <TableCell className="min-w-[120px] max-w-[150px] px-2">
+      {/* <TableCell className="min-w-[120px] max-w-[150px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
@@ -190,7 +190,7 @@ export const ApplicantTableRow = ({
             showActionButtons={false}
           />
         </div>
-      </TableCell>
+      </TableCell> */}
 
       {/* Campus  */}
       <TableCell className="min-w-[120px] max-w-[150px] px-2">

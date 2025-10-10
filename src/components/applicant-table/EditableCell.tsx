@@ -24,11 +24,13 @@ interface EditableCellProps {
   field: string;
   displayValue: any;
   value?: any;
-  onUpdate?: (value: any) => void; // updated to always pass value
+  onUpdate?: (value: any) => void; 
   showPencil?: boolean;
   options?: Option[];
   showActionButtons?: boolean;
   disabled?: boolean;
+  renderInput?: (props: { value: any; onChange: (val: any) => void }) => JSX.Element; 
+
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -48,7 +50,8 @@ export function EditableCell({
   showPencil = false,
   options,
   showActionButtons = true,
-  disabled
+  disabled,
+  renderInput
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -206,8 +209,13 @@ export function EditableCell({
   }
 
   if (isEditing) {
-    return (
-      <div className="flex items-center gap-2">
+  return (
+    <div className="flex flex-col gap-1 w-full">
+      {renderInput ? (
+        <div className="flex-1 min-w-0">
+       { renderInput({ value: cellValue, onChange: setCellValue })}
+        </div>
+      ) : (
         <Input
           value={cellValue ?? ""}
           onChange={(e) => setCellValue(e.target.value)}
@@ -215,34 +223,35 @@ export function EditableCell({
             if (e.key === "Enter") saveCellEdit();
             if (e.key === "Escape") cancelCellEdit();
           }}
-          className="h-8 text-xs"
+          className="h-7 text-xs flex-1  min-w-0"
           autoFocus
           disabled={isUpdating || disabled}
         />
-        {showActionButtons && (
-          <>
-            <Button
-              size="sm"
-              onClick={saveCellEdit}
-              className="h-6 px-2"
-              disabled={isUpdating || disabled}
-            >
-              {isUpdating ? "..." : "✓"}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={cancelCellEdit}
-              className="h-6 px-2"
-              disabled={isUpdating}
-            >
-              ✕
-            </Button>
-          </>
-        )}
-      </div>
-    );
-  }
+      )}
+      {showActionButtons && (
+        <div className="flex gap-2 mt-1">
+          <Button
+            size="sm"
+            onClick={saveCellEdit}
+            className="h-6 px-2"
+            disabled={isUpdating || disabled}
+          >
+            {isUpdating ? "..." : "✓"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={cancelCellEdit}
+            className="h-6 px-2"
+            disabled={isUpdating}
+          >
+            ✕
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
   return (
     <div
@@ -258,7 +267,7 @@ export function EditableCell({
       }}
       title={disabled ? "Editing disabled" : "Click to edit"}
     >
-      <span className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">
+      <span className="flex-1 whitespace-pre-wrap break-words">
         {isUpdating ? "Updating..." : displayValue || "Click to add"}
       </span>
       {showPencil && !isUpdating && (

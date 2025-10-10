@@ -410,7 +410,7 @@ const ApplicantTable = () => {
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10 border-b">
                 <TableRow>
-                  <TableHead className="w-8 font-bold px-2">
+                  <TableHead className="w-8 font-bold px-3">
                     <Checkbox
                       checked={
                         paginatedApplicants.length > 0 &&
@@ -420,50 +420,50 @@ const ApplicantTable = () => {
                       aria-label="Select all applicants"
                     />
                   </TableHead>
-                  <TableHead className="font-bold w-12 px-2">Image</TableHead>
-                  <TableHead className="font-bold min-w-[150px] max-w-[180px] px-2">
+                  <TableHead className="font-bold w-12 px-3">Image</TableHead>
+                  <TableHead className="font-bold min-w-[150px] max-w-[180px] px-3">
                     Full Name
                   </TableHead>
-                  <TableHead className="font-bold min-w-[110px] max-w-[130px] px-2">
+                  <TableHead className="font-bold min-w-[110px] max-w-[130px] px-3">
                     Phone Number
                   </TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px] px-2">
+                  <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
                     WhatsApp Number
                   </TableHead>
-                  <TableHead className="font-bold min-w-[80px] max-w-[100px] px-2">
+                  <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
                     Gender
                   </TableHead>
-                  <TableHead className="font-bold min-w-[90px] max-w-[120px] px-2">
+                  <TableHead className="font-bold min-w-[90px] max-w-[120px] px-3">
                     City
                   </TableHead>
-                  <TableHead className="font-bold min-w-[100px] max-w-[140px] px-2">
+                  {/* <TableHead className="font-bold min-w-[100px] max-w-[140px] px-3">
                     State
-                  </TableHead>
+                  </TableHead> */}
 
                   {/* <TableHead className="font-bold w-24">Pin Code</TableHead> */}
 
                   {/* School */}
-                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
                     Qualifying School
-                  </TableHead>
+                  </TableHead> */}
 
                   {/* Campus */}
-                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
                     Campus
                   </TableHead>
 
-                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
                     Current Stage
                   </TableHead>
-                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
                     Religion
                   </TableHead> */}
 
-                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-2">
+                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
                     Is Passed
                   </TableHead> */}
 
-                  <TableHead className="w-16 font-bold px-2">Actions</TableHead>
+                  <TableHead className="w-16 font-bold px-3">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
