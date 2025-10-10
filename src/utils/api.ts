@@ -1264,7 +1264,7 @@ export const updateCampusApi = async (id: number, updatedName: string) => {
   const response = await fetch(`${BASE_URL}/campuses/updateCampus/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ campus_name: updatedName }),
+    body: JSON.stringify({ updatedName }),
   });
 
   if (!response.ok) throw new Error("Failed to update campus");
@@ -1276,7 +1276,7 @@ export const deleteCampusApi = async (id: number) => {
   const response = await fetch(`${BASE_URL}/campuses/deleteCampus/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
-    body: JSON.stringify(id)
+    body: JSON.stringify({id})
   });
 
   if (!response.ok) throw new Error("Failed to delete campus");
