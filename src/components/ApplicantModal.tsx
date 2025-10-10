@@ -349,7 +349,6 @@ export function ApplicantModal({
       label: "Qualifying School *",
       type: "select",
       options: schools,
-      
     },
     {
       name: "exam_centre",
@@ -806,9 +805,17 @@ export function ApplicantModal({
                       currentApplicant.final_decisions?.[0]?.final_notes ||
                       "No final notes"
                     }
+                    renderInput={({ value, onChange }) => (
+                      <textarea
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        rows={4}
+                        className="border rounded px-2 py-1 w-full resize-none"
+                        placeholder="Enter final notes here..."
+                      />
+                    )}
                     onUpdate={async (value) => {
                       if (!currentApplicant?.final_decisions?.[0]) return;
-                      console.log(2, value);
                       await handleFinalDecisionUpdate("final_notes", value);
                     }}
                   />
