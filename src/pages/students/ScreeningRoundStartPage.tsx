@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getQuestions, getExamDuration } from "@/utils/mockApi";
+import { getRandomQuestions as  getQuestions } from "@/utils/api";
 import { useLanguage } from "@/routes/LaunguageContext";
 
 const ScreeningRoundStartPage: React.FC = () => {
@@ -8,28 +8,25 @@ const ScreeningRoundStartPage: React.FC = () => {
   const { selectedLanguage } = useLanguage();
 
   const [questionCount, setQuestionCount] = useState<number | null>(null);
-  const [duration, setDuration] = useState<number | null>(null); 
+  const [duration, setDuration] = useState<number>(1800); 
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch values when page loads
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const qs = await getQuestions();
-        const examDuration = await getExamDuration();
-
-        setQuestions(qs || []);
-        setQuestionCount(qs?.length || 0);
-        setDuration(examDuration);
-      } catch (err) {
-        console.error("Error fetching exam data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const fetchData = async () => {
+    try {
+      const qs = await getQuestions(selectedLanguage); // pass language here
+      setQuestions(qs || []);
+      setQuestionCount(qs?.length || 0);
+    } catch (err) {
+      console.error("Error fetching exam data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, [selectedLanguage]);
 
   const formatDuration = (minutes: number) => {
     const hrs = Math.floor(minutes / 60);
@@ -73,6 +70,7 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   const handleStartTest = () => {
     if (!questions.length || !duration) return;
+    console.log("questions",questions)
 
     // Navigate to TestPage with state
     navigate("/students/test-section", {
