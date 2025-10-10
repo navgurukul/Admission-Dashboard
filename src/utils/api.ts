@@ -999,13 +999,22 @@ export const createQuestionSetMappings = async (
   }
 };
 
-//  get random questions 
-export const getRandomQuestions = async () => {
+
+// create test for students
+export const getRandomQuestions = async (language: "english" | "hindi" | "marathi" = "english") => {
   try {
-    const response = await axios.get(
-      `${BASE_URL}/v1/questions/random-for-test`
-    );
-    return response.data; // Adjust depending on API response structure
+    const response = await axios.get(`${BASE_URL}/questions/random-for-test`);
+    
+    const questions = response.data?.data?.map((q: any) => ({
+      id: q.id,
+      question: q[`${language}_text`],
+      options: q[`${language}_options`],
+      difficulty_level : q.difficulty_level,
+      answer: q.answer_key[0], // assuming first index in answer_key array is correct
+    })) || [];
+
+    console.log("questions1",questions)
+    return questions;
   } catch (error: any) {
     console.error("Error fetching questions:", error);
     throw error;

@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTests } from "@/utils/TestContext";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "student_test_progress";
 
@@ -7,7 +18,8 @@ interface Question {
   id: number;
   question: string;
   options: string[];
-  answer: string;
+  difficulty_level:number;
+  answer: number; // store the index of the correct option
 }
 
 const formatTime = (seconds: number) => {
@@ -19,12 +31,17 @@ const formatTime = (seconds: number) => {
 const TestPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { questions: stateQuestions, duration: stateDuration } = location.state || {};
+  const { tests, setTests } = useTests();
+  const { questions: stateQuestions, duration: stateDuration } =
+    location.state || {};
 
   const [questions, setQuestions] = useState<Question[]>(stateQuestions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [timeLeft, setTimeLeft] = useState<number | null>(stateDuration || null);
+  const [answers, setAnswers] = useState<Record<number, number>>({}); // store selected option index
+  const [timeLeft, setTimeLeft] = useState<number | null>(
+    stateDuration || null
+  );
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Restore progress from localStorage
   useEffect(() => {
@@ -32,7 +49,8 @@ const TestPage: React.FC = () => {
 
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const { answers, currentIndex, examStartTime, duration } = JSON.parse(stored);
+      const { answers, currentIndex, examStartTime, duration } =
+        JSON.parse(stored);
       const elapsed = Math.floor((Date.now() - examStartTime) / 1000);
       const remaining = duration - elapsed;
 
@@ -61,11 +79,14 @@ const TestPage: React.FC = () => {
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft <= 0) {
-      submitTest();
+      handleConfirmSubmit();
       return;
     }
 
-    const timer = setInterval(() => setTimeLeft((t) => (t !== null ? t - 1 : 0)), 1000);
+    const timer = setInterval(
+      () => setTimeLeft((t) => (t !== null ? t - 1 : 0)),
+      1000
+    );
     return () => clearInterval(timer);
   }, [timeLeft]);
 
@@ -82,28 +103,67 @@ const TestPage: React.FC = () => {
     }
   }, [answers, currentIndex, timeLeft]);
 
-  const handleAnswer = (option: string) => {
+  const handleAnswer = (optionIndex: number) => {
     const qid = questions[currentIndex].id;
-    setAnswers({ ...answers, [qid]: option });
+    setAnswers({ ...answers, [qid]: optionIndex });
   };
 
-  const submitTest = () => {
-    if (!window.confirm("Are you sure you want to submit the test?")) return;
-
-    let score = 0;
-    questions.forEach((q) => {
-      if (answers[q.id] === q.answer) score += 1;
-    });
-
-    localStorage.removeItem(STORAGE_KEY);
-
-    navigate("/students/test-result", {
-      state: { score, total: questions.length },
-    });
+  const handleConfirmSubmit = () => {
+    setShowConfirm(true);
   };
+
+ const submitTest = () => {
+  setShowConfirm(false);
+
+  let score = 0;
+  questions.forEach((q) => {
+    const correctIndex = Array.isArray(q.answer) ? q.answer[0] : q.answer;
+    if (answers[q.id] === correctIndex) score += q.difficulty_level;
+  });
+
+  const totalPossibleScore = questions.reduce((sum, q) => sum + q.difficulty_level, 0);
+  const passed = score >= totalPossibleScore / 2;
+
+  localStorage.removeItem(STORAGE_KEY);
+
+  setTests((prev) => {
+    const index = prev.findIndex((t) => t.name === "Screening Test");
+    if (index !== -1) {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        score,
+        status: passed ? "Pass" : "Fail",
+        action: "Completed",
+      };
+      return updated;
+    } else {
+      return [
+        ...prev,
+        {
+          id: Date.now(),
+          name: "Screening Test",
+          score,
+          status: passed ? "Pass" : "Fail",
+          action: "Completed",
+          slotBooking: { status: null },
+        },
+      ];
+    }
+  });
+
+  navigate("/students/test-result", {
+    state: { score, total: totalPossibleScore },
+  });
+};
+
 
   if (timeLeft === null || questions.length === 0) {
-    return <div className="text-center mt-10 text-lg font-semibold">Loading test...</div>;
+    return (
+      <div className="text-center mt-10 text-lg font-semibold">
+        Loading test...
+      </div>
+    );
   }
 
   return (
@@ -134,7 +194,7 @@ const TestPage: React.FC = () => {
               <label
                 key={idx}
                 className={`block border rounded-lg px-4 py-3 cursor-pointer transition ${
-                  answers[qid] === opt
+                  answers[qid] === idx
                     ? "bg-blue-100 border-blue-500"
                     : "hover:bg-gray-100 border-gray-300"
                 }`}
@@ -142,8 +202,8 @@ const TestPage: React.FC = () => {
                 <input
                   type="radio"
                   name={`q-${qid}`}
-                  checked={answers[qid] === opt}
-                  onChange={() => handleAnswer(opt)}
+                  checked={answers[qid] === idx}
+                  onChange={() => handleAnswer(idx)}
                   className="hidden"
                 />
                 {opt}
@@ -161,13 +221,36 @@ const TestPage: React.FC = () => {
           >
             Previous
           </button>
+
           {currentIndex === questions.length - 1 ? (
-            <button
-              onClick={submitTest}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700"
-            >
-              Submit
-            </button>
+            <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+              <DialogTrigger asChild>
+                <button
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700"
+                  onClick={handleConfirmSubmit}
+                >
+                  Submit
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirm Submission</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to submit the test? You won’t be able
+                    to change your answers afterwards.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex justify-end gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowConfirm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={submitTest}>Yes, Submit</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           ) : (
             <button
               onClick={() => setCurrentIndex((i) => i + 1)}
