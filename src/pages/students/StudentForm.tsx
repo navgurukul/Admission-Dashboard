@@ -22,6 +22,7 @@ const StudentForm: React.FC = () => {
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   const [religions, setReligions] = useState<Religion[]>([]);
+  const [emailError, setEmailError] = useState("");
 
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
@@ -118,18 +119,29 @@ const StudentForm: React.FC = () => {
     fetchReligions();
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    console.log(name, value);
-    const newFormData = {
-      ...formData,
-      [name]: value,
-    };
-    setFormData(newFormData);
-    localStorage.setItem("studentFormData", JSON.stringify(newFormData));
-  };
+ const handleInputChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
+  const newFormData = { ...formData, [name]: value };
+  setFormData(newFormData);
+  localStorage.setItem("studentFormData", JSON.stringify(newFormData));
+
+  // Live email validation
+  if (name === "email") {
+    if (!validateEmail(value)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  }
+};
+
+const validateEmail = (email: string) => {
+  // Simple regex for email validation
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -178,6 +190,8 @@ const getAge = (dob: string) => {
       age >= 16.5 
     );
   };
+
+  
 
   const handleSubmit = async () => {
   const age = getAge(formData.dateOfBirth);
@@ -588,18 +602,20 @@ const handlePrevious = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.email}
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder={content.enterEmail}
-              />
-            </div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    {content.email} *
+  </label>
+  <input
+    type="email"
+    name="email"
+    value={formData.email}
+    onChange={handleInputChange}
+    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+    placeholder={content.enterEmail}
+  />
+  {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+</div>
+
           </div>
         </div>
 
