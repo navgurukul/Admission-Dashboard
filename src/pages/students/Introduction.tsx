@@ -1,3 +1,4 @@
+import LogoutButton from '@/components/ui/LogoutButton';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -68,6 +69,7 @@ const Instructions: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
+      <LogoutButton className="from-orange-400 to-red-500" />
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
         <h1 className="text-3xl font-bold text-gray-800 text-center mb-4">{content.title}</h1>
         
