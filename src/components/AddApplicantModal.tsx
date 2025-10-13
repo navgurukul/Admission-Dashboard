@@ -281,7 +281,7 @@ export function AddApplicantModal({
     const newErrors: Record<string, string> = {};
 
     if (!formData.first_name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = "First name  is required";
     }
 
 
@@ -295,8 +295,15 @@ export function AddApplicantModal({
     newErrors.gender = "Gender is required";
   }
 
-   if (!formData.dob) {
+   // Date of birth validation
+  if (!formData.dob) {
     newErrors.dob = "Date of birth is required";
+  } else {
+    const dobDate = new Date(formData.dob);
+    const today = new Date();
+    if (dobDate >= today) {
+      newErrors.dob = "Date of birth cannot be today or in the future";
+    }
   }
 
     setErrors(newErrors);
@@ -443,6 +450,15 @@ export function AddApplicantModal({
         return false;
     }
   };
+
+  // Calculate the maximum date allowed
+const getMaxDOB = () => {
+  const today = new Date();
+  today.setFullYear(today.getFullYear() - 16); // 16 years
+  today.setMonth(today.getMonth() - 6); // additional 0.5 year (6 months)
+  return today.toISOString().split("T")[0]; // format YYYY-MM-DD
+};
+
 
   const handleClose = () => {
     resetForm();
@@ -655,6 +671,7 @@ export function AddApplicantModal({
                       id="dob"
                       type="date"
                       value={formData.dob}
+                      max={getMaxDOB()} 
                       onChange={(e) => handleInputChange("dob", e.target.value)}
                     />
                   </div>
@@ -725,7 +742,7 @@ export function AddApplicantModal({
                       placeholder="Enter city"
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="block" className="text-sm font-medium">
                       Block
                     </Label>
@@ -737,12 +754,13 @@ export function AddApplicantModal({
                       }
                       placeholder="Enter block"
                     />
-                  </div>
+                  </div> */}
                   <div className="space-y-2">
                     <Label htmlFor="pin_code" className="text-sm font-medium">
                       PIN Code
                     </Label>
                     <Input
+                      type="text"
                       id="pin_code"
                       value={formData.pin_code}
                       onChange={(e) =>
@@ -750,6 +768,8 @@ export function AddApplicantModal({
                       }
                       placeholder="Enter PIN code"
                       maxLength={6}
+                      pattern="[0-9]{6}"
+                      inputMode="numeric"
                     />
                   </div>
                 </div>

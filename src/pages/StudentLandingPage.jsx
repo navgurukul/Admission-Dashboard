@@ -111,25 +111,25 @@ const StudentLandingPage = () => {
   const testCompleted = localStorage.getItem("testCompleted") === "true";
   const allowRetest = localStorage.getItem("allowRetest") === "true";
 
-  // 🧑 Case 1: Not logged in
+  // Case 1: Not logged in
   if (!studentId) {
     navigate("/students/login");
     return;
   }
 
-  // ✅ Case 2: Test already completed and retest not allowed
+  // Case 2: Test already completed and retest not allowed
   if (testCompleted && !allowRetest) {
     navigate("/students/final-result");
     return;
   }
 
-  // 🔁 Case 3: Test in progress or retest allowed
+  // Case 3: Test in progress or retest allowed
   if (testStarted || allowRetest) {
     navigate("/students/test/start");
     return;
   }
 
-  // 📝 Case 4: Logged in but not started
+  // Case 4: Logged in but not started
   navigate("/students/details/instructions");
 };
 
