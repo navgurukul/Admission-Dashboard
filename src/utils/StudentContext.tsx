@@ -1,31 +1,41 @@
-import { createContext, useContext,useEffect, useState, ReactNode } from "react";
-import {Student} from "./student.types"
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+interface Student {
+  firstName: string;
+  middleName?: string;
+  lastName?: string;
+  email: string;
+  whatsappNumber: string;
+  city: string;
+  [key: string]: any; // allow extra fields
+}
 
 interface StudentContextType {
   student: Student | null;
-  setStudent: (s: Student) => void;
+  setStudent: React.Dispatch<React.SetStateAction<Student | null>>;
 }
 
-//Create context
-const StudentContext = createContext<StudentContextType | undefined>(undefined);
+const StudentContext = createContext<StudentContextType>({
+  student: null,
+  setStudent: () => {},
+});
 
-
-export const StudentProvider = ({ children }: { children: ReactNode }) => {
-  const [student, setStudent] = useState<Student | null>();
+export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [student, setStudent] = useState<Student | null>(null);
 
   useEffect(() => {
-    const studentData = localStorage.getItem("studentFormData");
-    if (studentData) {
+    // 🔹 Load student data from localStorage on mount
+    const savedData = localStorage.getItem("studentFormData");
+    if (savedData) {
       try {
-        const parsed = JSON.parse(studentData) as Student;
+        const parsed = JSON.parse(savedData);
         setStudent(parsed);
-      } catch {
-        setStudent(null);
+      } catch (err) {
+        console.error("Error parsing studentFormData:", err);
       }
     }
   }, []);
 
-  console.log(student)
   return (
     <StudentContext.Provider value={{ student, setStudent }}>
       {children}
@@ -33,8 +43,4 @@ export const StudentProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useStudent = () => {
-  const ctx = useContext(StudentContext);
-  if (!ctx) throw new Error("useStudent must be used inside StudentProvider");
-  return ctx;
-};
+export const useStudent = () => useContext(StudentContext);

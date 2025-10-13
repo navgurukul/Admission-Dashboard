@@ -176,13 +176,13 @@ const StudentForm: React.FC = () => {
 
     try {
       const apiPayload = mapFormDataToApi(formData);
-      console.log("API Payload:", apiPayload);
 
       const response = await createStudent(apiPayload);
-      console.log("Create Student Response:", response);
 
+      localStorage.setItem("registrationDone", "true");
       localStorage.setItem("studentFormData", JSON.stringify(formData));
-      navigate("/students/test-start");
+
+      navigate("/students/test/start");
     } catch (error: any) {
       console.error("Error creating student:", error);
       alert(error.message || "Failed to create student");
@@ -190,7 +190,7 @@ const StudentForm: React.FC = () => {
   };
 
   const handlePrevious = () => {
-    navigate("/students/instructions");
+    navigate("/students/details/instructions");
   };
 
   // language-specific strings

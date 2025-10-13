@@ -59,7 +59,7 @@ const Instructions: React.FC = () => {
 
   const handleNext = () => {
     localStorage.setItem("instructionsAccepted", "true");
-    navigate('/students/registration');
+    navigate('/students/details/registration');
   };
 
   const handlePrevious = () => {

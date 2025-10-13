@@ -13,9 +13,15 @@ export default function StudentResult() {
     navigate(`/students/slot-booking/${testId}`);
   };
 
-  const handleRetestNavigation = () =>{
-    navigate(`/students/test-start`);
-  }
+const handleRetestNavigation = () => {
+  localStorage.setItem("testStarted", "false");
+  localStorage.setItem("testCompleted", "false");
+  localStorage.setItem("allowRetest", "true");
+
+    navigate("/students/test/start", { replace: true });
+ 
+};
+
 
   if (!student) return <p>Loading student data…</p>;
 
@@ -96,7 +102,7 @@ export default function StudentResult() {
                       <td className="px-4 py-2 border">
                         {test.name === "Screening Test" && test.status === "Fail" && (
                           <Button onClick={() => handleRetestNavigation()}>
-                            Reset
+                            Retest
                           </Button>
                         )}
                         {((test.slotBooking.status === "Pending" ||

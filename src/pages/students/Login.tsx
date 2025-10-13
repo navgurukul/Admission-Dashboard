@@ -114,10 +114,8 @@ export default function StudentLogin() {
       }
 
       // Save student identifier
-      localStorage.setItem("studentId", String(data.student.id));
-      localStorage.setItem("phone", data.student.phone);
-      localStorage.setItem("lastname", data.student.lastname);
       localStorage.setItem("role", "student");
+      localStorage.setItem("studentId", data.student.id);
 
       toast({
         title: getContent().successMessage,
@@ -130,7 +128,7 @@ export default function StudentLogin() {
         className: "bg-green-50 border-green-500 text-green-800",
       });
 
-      navigate("/students/instructions");
+      navigate("/students/details/instructions");
     } catch (err: any) {
       toast({
         title: getContent().failureMessage,

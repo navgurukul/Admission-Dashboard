@@ -3,10 +3,6 @@ import { useLanguage } from "../routes/LaunguageContext";
 import { useNavigate } from "react-router-dom";
 
 
-
-
-
-console.log("LanguageContext:", useLanguage); // Debugging line
 const slides = [
   {
     id: 1,
@@ -100,12 +96,44 @@ const StudentLandingPage = () => {
 }
   }, [setSelectedLanguage]);
 
+
+
   // Save language on change
   useEffect(() => {
     if (selectedLanguage) {
       localStorage.setItem("selectedLanguage", selectedLanguage);
     }
   }, [selectedLanguage]);
+
+  const handleNavigation = () => {
+  const studentId = localStorage.getItem("studentId");
+  const testStarted = localStorage.getItem("testStarted") === "true";
+  const testCompleted = localStorage.getItem("testCompleted") === "true";
+  const allowRetest = localStorage.getItem("allowRetest") === "true";
+
+  // 🧑 Case 1: Not logged in
+  if (!studentId) {
+    navigate("/students/login");
+    return;
+  }
+
+  // ✅ Case 2: Test already completed and retest not allowed
+  if (testCompleted && !allowRetest) {
+    navigate("/students/final-result");
+    return;
+  }
+
+  // 🔁 Case 3: Test in progress or retest allowed
+  if (testStarted || allowRetest) {
+    navigate("/students/test/start");
+    return;
+  }
+
+  // 📝 Case 4: Logged in but not started
+  navigate("/students/details/instructions");
+};
+
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -185,7 +213,7 @@ const StudentLandingPage = () => {
             <div>
               <button
                 className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg shadow-md"
-                onClick={() => navigate("/students/login")}
+                onClick={() => handleNavigation()}
               >
                 {content[selectedLanguage].buttonText}
               </button>
