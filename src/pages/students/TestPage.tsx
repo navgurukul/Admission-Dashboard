@@ -152,7 +152,10 @@ const TestPage: React.FC = () => {
     }
   });
 
-  navigate("/students/test-result", {
+   localStorage.setItem("testStarted", "false");
+  localStorage.setItem("testCompleted", "true");
+  localStorage.setItem("allowRetest", "false");
+  navigate("/students/test/result", {
     state: { score, total: totalPossibleScore },
   });
 };

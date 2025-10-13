@@ -22,7 +22,7 @@ const ScreeningResultPage: React.FC = () => {
           : t
       )
     );
-      navigate("/students/result")
+      navigate("/students/final-result")
   }
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
