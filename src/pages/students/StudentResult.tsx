@@ -1,29 +1,50 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useStudent } from "../../utils/StudentContext";
 import { useTests } from "../../utils/TestContext";
 
+interface Student {
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  email: string;
+  whatsappNumber: string;
+  city: string;
+}
+
 export default function StudentResult() {
-  const { student, setStudent } = useStudent();
+  const [student, setStudent] = useState<Student | null>(null);
   const { tests } = useTests();
   const navigate = useNavigate();
+
+  // Load student from localStorage on mount
+  useEffect(() => {
+    const savedStudent = localStorage.getItem("studentFormData");
+    if (savedStudent) {
+      setStudent(JSON.parse(savedStudent));
+    }
+  }, []);
 
   const handleBooking = (testId: number) => {
     navigate(`/students/slot-booking/${testId}`);
   };
 
-const handleRetestNavigation = () => {
-  localStorage.setItem("testStarted", "false");
-  localStorage.setItem("testCompleted", "false");
-  localStorage.setItem("allowRetest", "true");
+  const handleRetestNavigation = () => {
+    localStorage.setItem("testStarted", "false");
+    localStorage.setItem("testCompleted", "false");
+    localStorage.setItem("allowRetest", "true");
 
     navigate("/students/test/start", { replace: true });
- 
-};
+  };
 
-
-  if (!student) return <p>Loading student data…</p>;
+  if (!student) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Loading student data…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 p-4 flex">
@@ -93,7 +114,7 @@ const handleRetestNavigation = () => {
                         </span>
                       </td>
                       <td className="px-4 py-2 border">
-                        {test.slotBooking.scheduledTime
+                        {test.slotBooking?.scheduledTime
                           ? new Date(
                               test.slotBooking.scheduledTime
                             ).toLocaleString()
@@ -101,16 +122,15 @@ const handleRetestNavigation = () => {
                       </td>
                       <td className="px-4 py-2 border">
                         {test.name === "Screening Test" && test.status === "Fail" && (
-                          <Button onClick={() => handleRetestNavigation()}>
-                            Retest
-                          </Button>
+                          <Button onClick={handleRetestNavigation}>Retest</Button>
                         )}
-                        {((test.slotBooking.status === "Pending" ||
-                          test.slotBooking.status === "Booked" ||
-                          test.slotBooking.status === "Cancelled")) && (
+                        {["Pending", "Booked", "Cancelled"].includes(
+                          test.slotBooking?.status
+                        ) && (
                           <Button onClick={() => handleBooking(test.id)}>
-                            {test.slotBooking.status === "Booked" || 
-                            test.slotBooking.status === "Cancelled"
+                            {["Booked", "Cancelled"].includes(
+                              test.slotBooking?.status || ""
+                            )
                               ? "Reschedule"
                               : "Book Slot"}
                           </Button>
@@ -118,9 +138,7 @@ const handleRetestNavigation = () => {
                         {test.action === "view-result" && (
                           <span className="text-gray-600">Result Ready</span>
                         )}
-                     
                       </td>
-
                       <td className="px-4 py-2 border">{test.score}</td>
                     </tr>
                   ))}
