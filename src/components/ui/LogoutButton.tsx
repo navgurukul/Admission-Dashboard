@@ -13,10 +13,10 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ className }) => {
   const handleLogout = () => {
     // Clear all student-related data
     localStorage.removeItem("studentId");
-    localStorage.removeItem("testStarted");
-    localStorage.removeItem("testCompleted");
-    localStorage.removeItem("allowRetest");
-    localStorage.removeItem("registrationDone");
+    // localStorage.removeItem("testStarted");
+    // localStorage.removeItem("testCompleted");
+    // localStorage.removeItem("allowRetest");
+    // localStorage.removeItem("registrationDone");
 
     // Redirect to students login/landing
     navigate("/students", { replace: true });
