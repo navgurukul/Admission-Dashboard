@@ -1260,11 +1260,11 @@ export const createCampusApi = async (campusName: string) => {
 };
 
 // Update campus
-export const updateCampusApi = async (id: number, updatedName: string) => {
+export const updateCampusApi = async (id: number, campus_name: string) => {
   const response = await fetch(`${BASE_URL}/campuses/updateCampus/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ updatedName }),
+    body: JSON.stringify({ campus_name }),
   });
 
   if (!response.ok) throw new Error("Failed to update campus");

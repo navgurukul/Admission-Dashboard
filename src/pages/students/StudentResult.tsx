@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTests } from "../../utils/TestContext";
+import LogoutButton from "@/components/ui/LogoutButton";
 
 interface Student {
   firstName: string;
@@ -50,6 +51,7 @@ export default function StudentResult() {
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 p-4 flex">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full h-[95vh] overflow-y-auto">
         <header className="mb-6">
+          <LogoutButton className="from-orange-400 to-red-500" />
           <h1 className="text-2xl font-bold">Student Results</h1>
           <p className="text-gray-600">
             Track your test results and interview slot booking status.

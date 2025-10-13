@@ -13,6 +13,7 @@ import {
   getAllReligions,
   createStudent,
 } from "@/utils/api";
+import LogoutButton from "@/components/ui/LogoutButton";
 
 const StudentForm: React.FC = () => {
   const navigate = useNavigate();
@@ -190,8 +191,6 @@ const getAge = (dob: string) => {
       age >= 16.5 
     );
   };
-
-  
 
   const handleSubmit = async () => {
   const age = getAge(formData.dateOfBirth);
@@ -436,6 +435,7 @@ const handlePrevious = () => {
       <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
+          <LogoutButton />
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
             {content.signUp}
           </h1>
@@ -946,6 +946,7 @@ const handlePrevious = () => {
             </div>
           </div>
         </div>
+   
 
         {/* Action Buttons */}
         <div className="flex justify-center space-x-4">

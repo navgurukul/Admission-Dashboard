@@ -1,4 +1,3 @@
-// CampusPage.tsx
 import React, { useEffect, useState } from "react";
 import { AdmissionsSidebar } from "../components/AdmissionsSidebar";
 import {
@@ -22,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 
-// API functions (from your new api.ts)
 import {
   getCampusesApi,
   createCampusApi,
@@ -37,7 +35,8 @@ interface Campus {
 
 const CampusPage: React.FC = () => {
   const [campuses, setCampuses] = useState<Campus[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // initial page load
+  const [actionLoading, setActionLoading] = useState(false); // for add/update/delete
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,98 +50,104 @@ const CampusPage: React.FC = () => {
   const [updatedCampusName, setUpdatedCampusName] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<Campus | null>(null);
 
-  // Fetch campuses on mount
-  useEffect(() => {
-    const fetchCampuses = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await getCampusesApi();
-        setCampuses(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Reusable fetch function
+  const fetchCampuses = async (showLoader = false) => {
+    if (showLoader) setLoading(true);
+    try {
+      const data = await getCampusesApi();
+      setCampuses(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unknown error occurred");
+    } finally {
+      if (showLoader) setLoading(false);
+    }
+  };
 
-    fetchCampuses();
+  // Fetch on mount
+  useEffect(() => {
+    fetchCampuses(true);
   }, []);
 
-  // Filter + pagination calculations (IMPORTANT: currentItems is defined here)
-  const filteredCampuses = campuses.filter((campus) =>
-    campus.campus_name.toLowerCase().includes(search.toLowerCase())
+  // Filter + pagination
+  const filteredCampuses = campuses.filter((c) =>
+    c.campus_name.toLowerCase().includes(search.toLowerCase())
   );
-
   const totalPages = Math.ceil(filteredCampuses.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredCampuses.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleNextPage = () => {
-    if (currentPage < Math.max(totalPages, 1)) {
-      setCurrentPage((prev) => prev + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
 
   // Add campus
   const handleAddCampus = async (e: React.FormEvent) => {
     e.preventDefault();
+    setActionLoading(true);
     try {
-      const result = await createCampusApi(newCampus);
-      const newCampusData: Campus = {
-        id: result.id || result.data?.id,
-         campus_name: result.campus_name || newCampus,
-      };
-      setCampuses((prev) => [...prev, newCampusData]);
-      setNewCampus("");
+      await createCampusApi(newCampus);
       setAddDialog(false);
+      setNewCampus("");
       toast({ title: "Campus Added", description: "Campus has been successfully added." });
+      await fetchCampuses(false); // update table silently
+      setCurrentPage(1); // go to first page
     } catch (err) {
-      console.error("Error creating campus:", err);
       toast({
         title: "Error",
-        description: `Failed to create campus: ${err instanceof Error ? err.message : "Unknown error"}`,
+        description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });
+    } finally {
+      setActionLoading(false);
     }
   };
 
   // Update campus
-  const handleUpdateCampus = async (id: number, updatedName: string) => {
+  const handleUpdateCampus = async (id: number, campus_name: string) => {
+    setActionLoading(true);
     try {
-      await updateCampusApi(id, updatedName);
-      setCampuses((prev) => prev.map((c) => (c.id === id ? { ...c, campus_name: updatedName } : c)));
-      toast({ title: "Campus Updated", description: `Campus "${updatedName}" updated successfully.` });
-    } catch (error) {
+      await updateCampusApi(id, campus_name);
+      setEditDialog(false);
+      setSelectedCampus(null);
+      toast({ title: "Campus Updated", description: `Campus "${campus_name}" updated successfully.` });
+      await fetchCampuses(false); // update table silently
+    } catch (err) {
       toast({
-        title: "Error updating campus",
-        description: (error as Error).message,
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });
+    } finally {
+      setActionLoading(false);
     }
   };
 
   // Delete campus
-  const handleDeleteCampus = async (id: number) => {
+  const handleDeleteCampus = async (id: number, campus_name: string) => {
+    setActionLoading(true);
     try {
       await deleteCampusApi(id);
-      setCampuses((prev) => prev.filter((c) => c.id !== id));
-      toast({ title: "Campus deleted", description: `Campus ID ${id} has been deleted.` });
-    } catch (error) {
+      setDeleteDialog(false);
+      setSelectedCampus(null);
+      toast({ title: "Campus Deleted", description: `Campus "${campus_name}" has been deleted.` });
+      await fetchCampuses(false); // update table silently
+      setCurrentPage(1);
+    } catch (err) {
       toast({
-        title: "Error deleting campus",
-        description: (error as Error).message,
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });
+    } finally {
+      setActionLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
@@ -345,7 +350,7 @@ const CampusPage: React.FC = () => {
                 Cancel
               </button>
               <button className="px-4 py-2 bg-red-600 text-white rounded" onClick={() => {
-                handleDeleteCampus(selectedCampus.id);
+                handleDeleteCampus(selectedCampus.id, selectedCampus.campus_name);
                 setDeleteDialog(false);
                 setSelectedCampus(null);
               }}>

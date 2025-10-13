@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTests } from "../../utils/TestContext"
+import LogoutButton from "@/components/ui/LogoutButton";
 
 const ScreeningResultPage: React.FC = () => {
   const { tests, setTests } = useTests();
@@ -26,6 +27,7 @@ const ScreeningResultPage: React.FC = () => {
   }
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
+      <LogoutButton />
       <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-2xl w-full flex flex-col items-center text-center">
         {status === "pass" ? (
           <>
