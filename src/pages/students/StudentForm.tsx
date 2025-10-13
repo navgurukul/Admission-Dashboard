@@ -12,9 +12,7 @@ import {
   Religion,
   getAllReligions,
   createStudent,
-
 } from "@/utils/api";
-
 
 const StudentForm: React.FC = () => {
   const navigate = useNavigate();
@@ -150,8 +148,20 @@ const StudentForm: React.FC = () => {
     }
   };
 
+  // Calculate age in years
+  const getAge = (dob: string) => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    const diff = today.getTime() - birthDate.getTime();
+    const age = diff / (1000 * 60 * 60 * 24 * 365.25);
+    return age;
+  };
+
   const isFormValid = () => {
+    const age = getAge(formData.dateOfBirth);
     return (
+      formData.profileImage &&
       formData.firstName &&
       formData.dateOfBirth &&
       formData.whatsappNumber &&
@@ -164,33 +174,116 @@ const StudentForm: React.FC = () => {
       formData.maximumQualification &&
       formData.schoolMedium &&
       formData.casteTribe &&
-      formData.religion
+      formData.religion &&
+      age >= 16.5
     );
   };
 
   const handleSubmit = async () => {
-    if (!isFormValid()) {
-      alert("Please fill all required fields");
-      return;
+    const age = getAge(formData.dateOfBirth);
+
+    if (!formData.profileImage) {
+      return toast({
+        title: "Profile Image Required",
+        description: "Please upload a profile image.",
+        variant: "destructive",
+      });
+    }
+
+    if (!formData.firstName) {
+      return toast({
+        title: "First Name Required",
+        description: "Please enter your first name.",
+        variant: "destructive",
+      });
+    }
+
+    if (!formData.dateOfBirth || age < 16.5) {
+      return toast({
+        title: "Invalid Date of Birth",
+        description: "You must be at least 16.5 years old.",
+        variant: "destructive",
+      });
+    }
+
+    if (!formData.whatsappNumber || !/^\d{10}$/.test(formData.whatsappNumber)) {
+      return toast({
+        title: "Invalid WhatsApp Number",
+        description: "Enter a valid 10-digit WhatsApp number.",
+        variant: "destructive",
+      });
+    }
+
+    if (!formData.gender) {
+      return toast({
+        title: "Gender Required",
+        description: "Please select your gender.",
+        variant: "destructive",
+      });
+    }
+
+    if (
+      !formData.state ||
+      !formData.district ||
+      !formData.city ||
+      !formData.pinCode
+    ) {
+      return toast({
+        title: "Address Required",
+        description: "Please fill all required address fields.",
+        variant: "destructive",
+      });
+    }
+
+    if (
+      !formData.currentStatus ||
+      !formData.maximumQualification ||
+      !formData.schoolMedium ||
+      !formData.casteTribe ||
+      !formData.religion
+    ) {
+      return toast({
+        title: "Additional Info Required",
+        description: "Please fill all required additional fields.",
+        variant: "destructive",
+      });
     }
 
     try {
       const apiPayload = mapFormDataToApi(formData);
-      console.log("API Payload:", apiPayload);
+      await createStudent(apiPayload);
 
-      const response = await createStudent(apiPayload);
-      console.log("Create Student Response:", response);
-
+      localStorage.setItem("registrationDone", "true");
       localStorage.setItem("studentFormData", JSON.stringify(formData));
-      navigate("/students/test-start");
+
+      toast({
+        title: "Student Created",
+        description: "Your registration was successful!",
+        variant: "default",
+      });
+
+      navigate("/students/test/start");
     } catch (error: any) {
       console.error("Error creating student:", error);
-      alert(error.message || "Failed to create student");
+      toast({
+        title: "Registration Failed",
+        description:
+          error.message || "Something went wrong while creating student.",
+        variant: "destructive",
+      });
     }
   };
 
   const handlePrevious = () => {
-    navigate("/students/instructions");
+    navigate("/students/details/instructions");
+  };
+
+  // Calculate the maximum date allowed
+  const getMaxDOB = () => {
+    const today = new Date();
+    today.setFullYear(today.getFullYear() - 16); // 16 years
+    today.setMonth(today.getMonth() - 6); // additional 0.5 year (6 months)
+    return today.toISOString().split("T")[0]; // format YYYY-MM-DD
   };
 
   // language-specific strings
@@ -428,11 +521,9 @@ const StudentForm: React.FC = () => {
                 name="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
+                max={getMaxDOB()} // restrict selection
                 className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
-              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                📅
-              </span>
             </div>
           </div>
           <div>
@@ -479,10 +570,10 @@ const StudentForm: React.FC = () => {
               <input
                 type="tel"
                 name="whatsappNumber"
-                maxLength={10}
-                pattern="[0-9]{10}"
                 value={formData.whatsappNumber}
                 onChange={handleInputChange}
+                maxLength={10}
+                pattern="\d{10}" // exactly 10 digits
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                 placeholder={content.enterWhatsapp}
               />
@@ -651,9 +742,18 @@ const StudentForm: React.FC = () => {
                 type="text"
                 name="pinCode"
                 value={formData.pinCode}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^\d{0,6}$/.test(value)) {
+                    // only allow up to 6 digits
+                    handleInputChange(e);
+                  }
+                }}
+                maxLength={6}
+                inputMode="numeric"
+                pattern="\d{6}"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="Enter pin code"
+                placeholder="Enter 6-digit PIN code"
               />
               <p className="text-xs text-gray-500 mt-1">
                 {content.pinCodeExample}

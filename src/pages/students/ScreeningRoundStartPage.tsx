@@ -73,7 +73,10 @@ const ScreeningRoundStartPage: React.FC = () => {
     console.log("questions",questions)
 
     // Navigate to TestPage with state
-    navigate("/students/test-section", {
+   localStorage.setItem("testStarted", "true");
+    localStorage.setItem("testCompleted", "false");
+    localStorage.setItem("allowRetest", "false"); // reset retest flag
+    navigate("/students/test/section", {
       state: { questions, duration },
     });
   };
