@@ -654,11 +654,14 @@ export const deleteReligion = async (id: string): Promise<void> => {
 };
 
 // Get All Students
-export const getStudents = async (page = 1, limit = 10) => {
-  const response = await apiRequest(`/students/getStudents?page=${page}&limit=${limit}`, {
-    method: "GET",
-    headers: getAuthHeaders()
-  });
+export const getStudents = async (page, limit) => {
+  const response = await apiRequest(
+    `/students/getStudents?page=${page}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
 
   const dataParsed = await response.json();
 
@@ -666,28 +669,15 @@ export const getStudents = async (page = 1, limit = 10) => {
     throw new Error(dataParsed.message || "Failed to fetch students");
   }
 
-  // Handle different response formats and ensure we return both data and total count
-  let students = [];
-  let totalCount = 0;
-
-  if (dataParsed && dataParsed.data) {
-    if (Array.isArray(dataParsed.data)) {
-      students = dataParsed.data;
-      totalCount = dataParsed.totalCount || dataParsed.total || students.length;
-    } else if (dataParsed.data.data && Array.isArray(dataParsed.data.data)) {
-      students = dataParsed.data.data;
-      totalCount = dataParsed.data.totalCount || dataParsed.data.total || students.length;
-    }
-  } else if (Array.isArray(dataParsed)) {
-    students = dataParsed;
-    totalCount = students.length;
-  } else {
-    return { data: [], totalCount: 0 };
-  }
+  const students = dataParsed.data?.data || [];
+  const pagination = dataParsed.data?.pagination || {};
 
   return {
     data: students,
-    totalCount: totalCount
+    totalCount: Number(pagination.total) || students.length,
+    totalPages: Number(pagination.totalPages) || Math.ceil(students.length / limit),
+    page: pagination.page || page,
+    limit: pagination.limit || limit,
   };
 };
 
@@ -1260,11 +1250,11 @@ export const createCampusApi = async (campusName: string) => {
 };
 
 // Update campus
-export const updateCampusApi = async (id: number, campus_name: string) => {
+export const updateCampusApi = async (id: number, updatedName: string) => {
   const response = await fetch(`${BASE_URL}/campuses/updateCampus/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ campus_name }),
+    body: JSON.stringify({ updatedName }),
   });
 
   if (!response.ok) throw new Error("Failed to update campus");
