@@ -32,10 +32,18 @@ import {
   FileText,
   MessageSquare,
   Trophy,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-import { createStudent, getAllCasts, getAllQualification } from "@/utils/api";
+import {
+  createStudent,
+  getAllCasts,
+  getAllQualification,
+  getAllStates,
+  getBlocksByDistrict,
+  getDistrictsByState,
+} from "@/utils/api";
 import { string } from "zod";
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
@@ -114,6 +122,20 @@ export function AddApplicantModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [casteList, setCasteList] = useState<any[]>([]);
   const [qualificationList, setQualificationList] = useState<any[]>([]);
+  const [stateOptions, setStateOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [districtOptions, setDistrictOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [blockOptions, setBlockOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+  const [selectedBlock, setSelectedBlock] = useState<string>("");
 
   const [formData, setFormData] = useState({
     // Basic Info
@@ -216,6 +238,14 @@ export function AddApplicantModal({
       communication_notes: "",
       school_medium: "",
     });
+    setSelectedState("");
+    setSelectedDistrict("");
+    setSelectedBlock("");
+    {
+      /* ✅ CORRECT: selectedBlock reset karein */
+    }
+    setDistrictOptions([]);
+    setBlockOptions([]);
     setTestDate(undefined);
     setActiveTab("basic");
     setErrors({});
@@ -277,6 +307,120 @@ export function AddApplicantModal({
     }
   };
 
+  // States fetch karne ka useEffect
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const statesRes = await getAllStates();
+        const statesData = statesRes?.data || statesRes || [];
+        const mappedStates = statesData.map((s: any) => ({
+          value: s.state_code,
+          label: s.state_name,
+        }));
+        setStateOptions(mappedStates);
+      } catch (error) {
+        console.error("Failed to fetch states:", error);
+        // Fallback states agar API fail ho
+        setStateOptions([
+          { value: "S-UP", label: "Uttar Pradesh" },
+          { value: "S-DL", label: "Delhi" },
+          // ... other states
+        ]);
+      }
+    };
+
+    if (isOpen) {
+      fetchStates();
+    }
+  }, [isOpen]);
+
+  // Districts fetch karne ka useEffect
+  useEffect(() => {
+    if (!selectedState) {
+      setDistrictOptions([]);
+      setBlockOptions([]);
+      setFormData((prev) => ({
+        ...prev,
+        district: "",
+        block: "",
+      }));
+      return;
+    }
+
+    const fetchDistricts = async () => {
+      setIsLoadingDistricts(true);
+      try {
+        const districtsRes = await getDistrictsByState(selectedState);
+        const districts = districtsRes?.data || districtsRes || [];
+        const mappedDistricts = districts.map((d: any) => ({
+          value: d.district_code,
+          label: d.district_name,
+        }));
+        setDistrictOptions(mappedDistricts);
+
+        // Reset district and block when state changes
+        setFormData((prev) => ({
+          ...prev,
+          district: "",
+          block: "",
+          state:
+            stateOptions.find((s) => s.value === selectedState)?.label ||
+            selectedState,
+        }));
+      } catch (err) {
+        console.error("Failed to fetch districts:", err);
+        setDistrictOptions([]);
+      } finally {
+        setIsLoadingDistricts(false);
+      }
+    };
+
+    fetchDistricts();
+  }, [selectedState, stateOptions]);
+
+  // Blocks fetch karne ka useEffect
+  useEffect(() => {
+    if (!selectedDistrict) {
+      setBlockOptions([]);
+      setSelectedBlock("");
+      setFormData((prev) => ({
+        ...prev,
+        block: "",
+      }));
+      return;
+    }
+
+    const fetchBlocks = async () => {
+      setIsLoadingBlocks(true);
+      try {
+        const blocksRes = await getBlocksByDistrict(selectedDistrict);
+        const blocks = blocksRes?.data || blocksRes || [];
+        const mappedBlocks = blocks.map((b: any) => ({
+          value: b.block_code,
+          label: b.block_name,
+        }));
+        setBlockOptions(mappedBlocks);
+        setSelectedBlock("");
+
+        // Set district name in form data
+        setFormData((prev) => ({
+          ...prev,
+          district:
+            districtOptions.find((d) => d.value === selectedDistrict)?.label ||
+            selectedDistrict,
+          block: "",
+        }));
+      } catch (err) {
+        console.error("Failed to fetch blocks:", err);
+        setBlockOptions([]);
+      } finally {
+        setIsLoadingBlocks(false);
+      }
+    };
+
+    fetchBlocks();
+  }, [selectedDistrict, districtOptions]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -284,27 +428,26 @@ export function AddApplicantModal({
       newErrors.name = "First name  is required";
     }
 
-
     if (!formData.phone_number.trim()) {
       newErrors.phone_number = "Mobile number is required";
     } else if (!/^\d{10}$/.test(formData.phone_number)) {
       newErrors.phone_number = "Mobile number must be 10 digits";
     }
 
-     if (!formData.gender) {
-    newErrors.gender = "Gender is required";
-  }
-
-   // Date of birth validation
-  if (!formData.dob) {
-    newErrors.dob = "Date of birth is required";
-  } else {
-    const dobDate = new Date(formData.dob);
-    const today = new Date();
-    if (dobDate >= today) {
-      newErrors.dob = "Date of birth cannot be today or in the future";
+    if (!formData.gender) {
+      newErrors.gender = "Gender is required";
     }
-  }
+
+    // Date of birth validation
+    if (!formData.dob) {
+      newErrors.dob = "Date of birth is required";
+    } else {
+      const dobDate = new Date(formData.dob);
+      const today = new Date();
+      if (dobDate >= today) {
+        newErrors.dob = "Date of birth cannot be today or in the future";
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -342,8 +485,12 @@ export function AddApplicantModal({
 
         // Additional details
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
-        qualification_id: formData.qualification_id? Number(formData.qualification_id): null,
-        current_status_id: formData.current_status_id? Number(formData.current_status_id): null,
+        qualification_id: formData.qualification_id
+          ? Number(formData.qualification_id)
+          : null,
+        current_status_id: formData.current_status_id
+          ? Number(formData.current_status_id)
+          : null,
         religion_id: formData.religion_id ? Number(formData.religion_id) : null,
         school_medium: formData.school_medium || null,
 
@@ -351,8 +498,9 @@ export function AddApplicantModal({
         communication_notes: formData.communication_notes || "",
         campus_id: formData.campus_id ? Number(formData.campus_id) : null,
         school_id: formData.school_id ? Number(formData.school_id) : null,
-        qualifying_school_id: formData.qualifying_school_id ? Number(formData.qualifying_school_id) : null, 
-
+        qualifying_school_id: formData.qualifying_school_id
+          ? Number(formData.qualifying_school_id)
+          : null,
 
         // Exam Session Data
         question_set_id: formData.question_set_id
@@ -383,17 +531,25 @@ export function AddApplicantModal({
         city: response.city,
 
         campus_id: response.campus_id,
-        campus:campusList?.find((c) => Number(c.id) === Number(response.campus_id))?.campus_name || "",
+        campus:
+          campusList?.find((c) => Number(c.id) === Number(response.campus_id))
+            ?.campus_name || "",
 
         //  School
         school_id: response.school_id,
-        school:schoolList?.find((s) => s.id === response.school_id)?.school_name ||"",
+        school:
+          schoolList?.find((s) => s.id === response.school_id)?.school_name ||
+          "",
 
         gender: response.gender,
         qualification_id: response.qualification_id,
-        qualification:qualificationList?.find((q) => q.id === response.qualification_id) ?.name || "",
+        qualification:
+          qualificationList?.find((q) => q.id === response.qualification_id)
+            ?.name || "",
         current_status_id: response.current_status_id,
-        current_work:currentstatusList?.find((c) => c.id === response.current_status_id) ?.current_status_name || "",
+        current_work:
+          currentstatusList?.find((c) => c.id === response.current_status_id)
+            ?.current_status_name || "",
         is_passed: response.is_passed,
         status: response.status,
         total_marks: response.total_marks,
@@ -438,7 +594,10 @@ export function AddApplicantModal({
     switch (tabValue) {
       case "basic":
         return (
-          formData.first_name && formData.phone_number && formData.gender && formData.dob
+          formData.first_name &&
+          formData.phone_number &&
+          formData.gender &&
+          formData.dob
         );
       case "screening":
         return formData.stage !== "screening" || formData.status;
@@ -452,13 +611,12 @@ export function AddApplicantModal({
   };
 
   // Calculate the maximum date allowed
-const getMaxDOB = () => {
-  const today = new Date();
-  today.setFullYear(today.getFullYear() - 16); // 16 years
-  today.setMonth(today.getMonth() - 6); // additional 0.5 year (6 months)
-  return today.toISOString().split("T")[0]; // format YYYY-MM-DD
-};
-
+  const getMaxDOB = () => {
+    const today = new Date();
+    today.setFullYear(today.getFullYear() - 16); // 16 years
+    today.setMonth(today.getMonth() - 6); // additional 0.5 year (6 months)
+    return today.toISOString().split("T")[0]; // format YYYY-MM-DD
+  };
 
   const handleClose = () => {
     resetForm();
@@ -671,7 +829,7 @@ const getMaxDOB = () => {
                       id="dob"
                       type="date"
                       value={formData.dob}
-                      max={getMaxDOB()} 
+                      max={getMaxDOB()}
                       onChange={(e) => handleInputChange("dob", e.target.value)}
                     />
                   </div>
@@ -707,27 +865,63 @@ const getMaxDOB = () => {
                     <Label htmlFor="state" className="text-sm font-medium">
                       State
                     </Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) =>
-                        handleInputChange("state", e.target.value)
-                      }
-                      placeholder="Enter state"
-                    />
+                    <Select
+                      value={selectedState}
+                      onValueChange={(value) => {
+                        setSelectedState(value);
+                        setSelectedDistrict("");
+                        setBlockOptions([]);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {stateOptions.map((state) => (
+                          <SelectItem key={state.value} value={state.value}>
+                            {state.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="district" className="text-sm font-medium">
                       District
                     </Label>
-                    <Input
-                      id="district"
-                      value={formData.district}
-                      onChange={(e) =>
-                        handleInputChange("district", e.target.value)
-                      }
-                      placeholder="Enter district"
-                    />
+                    <Select
+                      value={selectedDistrict}
+                      onValueChange={(value) => {
+                        setSelectedDistrict(value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          block: "",
+                        }));
+                      }}
+                      disabled={!selectedState || isLoadingDistricts}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            isLoadingDistricts
+                              ? "Loading districts..."
+                              : !selectedState
+                              ? "Select state first"
+                              : "Select district"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {districtOptions.map((district) => (
+                          <SelectItem
+                            key={district.value}
+                            value={district.value}
+                          >
+                            {district.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="city" className="text-sm font-medium">
@@ -742,19 +936,40 @@ const getMaxDOB = () => {
                       placeholder="Enter city"
                     />
                   </div>
-                  {/* <div className="space-y-2">
+                  <div className="space-y-2">
                     <Label htmlFor="block" className="text-sm font-medium">
                       Block
                     </Label>
-                    <Input
-                      id="block"
-                      value={formData.block}
-                      onChange={(e) =>
-                        handleInputChange("block", e.target.value)
-                      }
-                      placeholder="Enter block"
-                    />
-                  </div> */}
+                    <Select
+                      value={selectedBlock}
+                      onValueChange={setSelectedBlock}
+                      disabled={!selectedDistrict || isLoadingBlocks}
+                    >
+                      <SelectTrigger>
+                        {isLoadingBlocks ? (
+                          <div className="flex items-center">
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Loading blocks...
+                          </div>
+                        ) : (
+                          <SelectValue
+                            placeholder={
+                              !selectedDistrict
+                                ? "Select district first"
+                                : "Select block"
+                            }
+                          />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {blockOptions.map((block) => (
+                          <SelectItem key={block.value} value={block.value}>
+                            {block.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="pin_code" className="text-sm font-medium">
                       PIN Code
