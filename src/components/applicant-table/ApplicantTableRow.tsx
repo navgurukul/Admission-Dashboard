@@ -65,7 +65,7 @@ export const ApplicantTableRow = ({
   return (
     <TableRow key={applicant.id}>
       {/* Checkbox */}
-      <TableCell className="w-8 px-2">
+      <TableCell className="sticky left-0 z-30 bg-white w-12 px-2">
         <Checkbox
           checked={isSelected}
           onCheckedChange={() => onSelect(applicant.id)}
@@ -84,7 +84,7 @@ export const ApplicantTableRow = ({
       </TableCell>
 
       {/* Full Name - Editable */}
-      <TableCell className="min-w-[150px] max-w-[180px] px-2">
+      <TableCell className="sticky left-10  bg-white z-20 min-w-[150px] max-w-[180px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
@@ -219,14 +219,10 @@ export const ApplicantTableRow = ({
             displayValue={applicant.stage_name || "N/A"}
             value={applicant.stage_name}
             onUpdate={onUpdate}
-            options={[
-              { value: "Screening Round", label: "Screening Round" },
-              { value: "Learning Round", label: "Learning Round" },
-              { value: "Culture Fit Round", label: "Culture Fit Round" },
-            ]}
             showPencil={false}
             showActionButtons={false}
             disabled={true}
+            tooltipMessage="Current stage update by student details"
           />
         </div>
       </TableCell>

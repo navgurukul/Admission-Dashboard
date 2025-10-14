@@ -24,13 +24,16 @@ interface EditableCellProps {
   field: string;
   displayValue: any;
   value?: any;
-  onUpdate?: (value: any) => void; 
+  onUpdate?: (value: any) => void;
   showPencil?: boolean;
   options?: Option[];
   showActionButtons?: boolean;
   disabled?: boolean;
-  renderInput?: (props: { value: any; onChange: (val: any) => void }) => JSX.Element; 
-
+  renderInput?: (props: {
+    value: any;
+    onChange: (val: any) => void;
+  }) => JSX.Element;
+  tooltipMessage?: string;
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -51,7 +54,8 @@ export function EditableCell({
   options,
   showActionButtons = true,
   disabled,
-  renderInput
+  renderInput,
+  tooltipMessage
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -110,7 +114,7 @@ export function EditableCell({
       await updateStudent(applicant.id, payload);
       toast({ title: "Success", description: "Field updated successfully" });
       setEditingCell(null);
-      onUpdate && onUpdate(payload[field]); // ✅ Pass updated value
+      onUpdate && onUpdate(payload[field]); // Pass updated value
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
@@ -157,7 +161,7 @@ export function EditableCell({
       await updateStudent(applicant.id, payload);
       toast({ title: "Success", description: "Field updated successfully" });
       setCellValue(payload[field]);
-      onUpdate && onUpdate(payload[field]); // ✅ Pass updated value
+      onUpdate && onUpdate(payload[field]); // Pass updated value
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
@@ -209,55 +213,55 @@ export function EditableCell({
   }
 
   if (isEditing) {
-  return (
-    <div className="flex flex-col gap-1 w-full">
-      {renderInput ? (
-        <div className="flex-1 min-w-0">
-       { renderInput({ value: cellValue, onChange: setCellValue })}
-        </div>
-      ) : (
-        <Input
-          value={cellValue ?? ""}
-          onChange={(e) => setCellValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") saveCellEdit();
-            if (e.key === "Escape") cancelCellEdit();
-          }}
-          className="h-7 text-xs flex-1  min-w-0"
-          autoFocus
-          disabled={isUpdating || disabled}
-        />
-      )}
-      {showActionButtons && (
-        <div className="flex gap-2 mt-1">
-          <Button
-            size="sm"
-            onClick={saveCellEdit}
-            className="h-6 px-2"
+    return (
+      <div className="flex flex-col gap-1 w-full">
+        {renderInput ? (
+          <div className="flex-1 min-w-0">
+            {renderInput({ value: cellValue, onChange: setCellValue })}
+          </div>
+        ) : (
+          <Input
+            value={cellValue ?? ""}
+            onChange={(e) => setCellValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveCellEdit();
+              if (e.key === "Escape") cancelCellEdit();
+            }}
+            className="h-7 text-xs flex-1  min-w-0"
+            autoFocus
             disabled={isUpdating || disabled}
-          >
-            {isUpdating ? "..." : "✓"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={cancelCellEdit}
-            className="h-6 px-2"
-            disabled={isUpdating}
-          >
-            ✕
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
+          />
+        )}
+        {showActionButtons && (
+          <div className="flex gap-2 mt-1">
+            <Button
+              size="sm"
+              onClick={saveCellEdit}
+              className="h-6 px-2"
+              disabled={isUpdating || disabled}
+            >
+              {isUpdating ? "..." : "✓"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={cancelCellEdit}
+              className="h-6 px-2"
+              disabled={isUpdating}
+            >
+              ✕
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
       className={`p-1 rounded min-h-[24px] flex items-center gap-2 group ${
         disabled
-          ? "cursor-not-allowed opacity-70"
+          ? "cursor-default opacity-70"
           : "cursor-pointer hover:bg-muted/50"
       }`}
       onClick={() => {
@@ -265,14 +269,15 @@ export function EditableCell({
           startCellEdit(applicant.id, field, value ?? displayValue);
         }
       }}
-      title={disabled ? "Editing disabled" : "Click to edit"}
-    >
+      title={disabled && tooltipMessage ? tooltipMessage : disabled ? "Editing disabled" : "Click to edit"}
+>
       <span className="flex-1 whitespace-pre-wrap break-words">
         {isUpdating ? "Updating..." : displayValue || "Click to add"}
       </span>
       {showPencil && !isUpdating && (
         <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
       )}
+   
     </div>
   );
 }
