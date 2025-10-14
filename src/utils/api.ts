@@ -688,9 +688,8 @@ export const getStudentById = async (id: string): Promise<Student> => {
       `${BASE_URL}/students/getStudentsById/${id}`,
     );
 
-    return response.data; // axios already parses JSON
+    return response.data; 
   } catch (error: any) {
-    console.error("Error in getStudentById:", error);
     throw new Error(
       error?.response?.data?.message || "Failed to fetch student"
     );
@@ -1358,9 +1357,50 @@ export const deleteSchool = async (id: number) => {
     }
     return await response.json();
   } catch (error) {
-    console.error("Error deleting school:", error);
+    // console.error("Error deleting school:", error);
     throw error;
   }
 };
 
+// state and district api
+export const getAllStates = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/states/getAll`, {
+      method: "GET",
+    });
+    if (!response.ok) throw new Error(`Failed to fetch states`);
+    return await response.json();
+  } catch (error) {
+    // console.error("Error fetching states:", error);
+    throw error;
+  }
+};
+
+//  Get districts by state_code
+export const getDistrictsByState = async (stateCode: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/states/getByState/${stateCode}`, {
+      method: "GET",
+    });
+    if (!response.ok) throw new Error(`Failed to fetch districts for ${stateCode}`);
+    return await response.json();
+  } catch (error) {
+    // console.error("Error fetching districts:", error);
+    throw error;
+  }
+};
+
+//  Get blocks by district_code
+export const getBlocksByDistrict = async (districtCode: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/districts/getByDistrict/${districtCode}`, {
+      method: "GET",
+    });
+    if (!response.ok) throw new Error(`Failed to fetch blocks for ${districtCode}`);
+    return await response.json();
+  } catch (error) {
+    // console.error("Error fetching blocks:", error);
+    throw error;
+  }
+};
 
