@@ -1,4 +1,4 @@
-import { useState, useEffect ,useMemo} from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,9 @@ import {
   getAllQuestionSets,
   API_MAP,
   submitFinalDecision,
+  getAllStates,
+  getBlocksByDistrict,
+  getDistrictsByState,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -36,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import StageDropdown, {
   STAGE_STATUS_MAP,
 } from "./applicant-table/StageDropdown";
+import { Value } from "@radix-ui/react-select";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -48,7 +52,6 @@ export function ApplicantModal({
   isOpen,
   onClose,
 }: ApplicantModalProps) {
-  // All hooks here!
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
@@ -62,10 +65,19 @@ export function ApplicantModal({
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const [districtOptions, setDistrictOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [blockOptions, setBlockOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
   const [campus, setCampus] = useState<any[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  
 
   const format = (date: Date, formatStr: string) => {
     if (formatStr === "PPP") {
@@ -82,26 +94,97 @@ export function ApplicantModal({
     return date.toLocaleDateString();
   };
 
+    // Helper to convert state name to state code (if needed)
+ const getStateCodeFromNameOrCode = (value: string) => {
+    if (!value) return null;
+    
+    // Check if it's already a state_code (starts with "S-")
+    if (value.startsWith("S-")) {
+      return value;
+    }
+    
+    // Try to find the state_code by matching the name
+    const stateOption = stateOptions.find(
+      (opt) => opt.label.toUpperCase() === value.toUpperCase()
+    );
+    
+    return stateOption ? stateOption.value : value;
+  };
+
+  // Helper to convert district name to district code (if needed)
+  const getDistrictCodeFromNameOrCode = (value: string) => {
+    if (!value) return null;
+    
+    // Check if it's already a district_code (starts with "D-")
+    if (value.startsWith("D-")) {
+      return value;
+    }
+    
+    // Try to find the district_code by matching the name
+    const districtOption = districtOptions.find(
+      (opt) => opt.label.toUpperCase() === value.toUpperCase()
+    );
+    
+    return districtOption ? districtOption.value : value;
+  };
+
+  // Fetch states on modal open
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const statesRes = await getAllStates();
+        const statesData = statesRes?.data || statesRes || [];
+        const mappedStates = statesData.map((s: any) => ({
+          value: s.state_code,
+          label: s.state_name,
+        }));
+        setStateOptions(mappedStates);
+      } catch (error) {
+        // console.error("Failed to fetch states:", error);
+        setStateOptions(states);
+      }
+    };
+
+    if (isOpen) {
+      fetchStates();
+    }
+  }, [isOpen]);
+
+  // Initialize selected state and district from applicant data
   useEffect(() => {
     if (applicant?.id) {
       setCurrentApplicant(applicant);
-    } else {
-      // console.error(" Applicant missing ID:", applicant);
+      if (applicant.state) {
+        const stateCode = getStateCodeFromNameOrCode(applicant.state);
+        setSelectedState(stateCode);
+      }
+      if (applicant.district) {
+        const districtCode = getDistrictCodeFromNameOrCode(applicant.district);
+        setSelectedDistrict(districtCode);
+      }
     }
-  }, [applicant]);
+  }, [applicant]); //, stateOptions, districtOptions
 
+  // Fetch student data on modal open
   useEffect(() => {
     if (isOpen && applicant?.id) {
       const fetchStudent = async () => {
         try {
           const response = await getStudentById(applicant.id);
-          // API may return the student object directly or { data: student }
           let updated: any = response;
           if (response && typeof response === "object" && "data" in response) {
             updated = (response as any).data;
           }
           if (updated?.id) {
             setCurrentApplicant(updated);
+            if (updated.state) {
+              const stateCode = getStateCodeFromNameOrCode(updated.state);
+              setSelectedState(stateCode);
+            }
+            if (updated.district) {
+              const districtCode = getDistrictCodeFromNameOrCode(updated.district);
+              setSelectedDistrict(districtCode);
+            }
           } else {
             console.error("Invalid response - no ID found:", response);
           }
@@ -111,8 +194,9 @@ export function ApplicantModal({
       };
       fetchStudent();
     }
-  }, [isOpen, applicant?.id, refreshKey]);
+  }, [isOpen, applicant?.id, refreshKey, stateOptions, districtOptions]);
 
+  // Fetch dropdowns data
   useEffect(() => {
     async function fetchDropdowns() {
       try {
@@ -132,10 +216,6 @@ export function ApplicantModal({
           getAllQuestionSets(),
         ]);
 
-        // Set manual states
-        setStateOptions(states);
-
-        // Map API responses
         setCampus(
           (campusRes || []).map((c: any) => ({
             value: c.id.toString(),
@@ -177,24 +257,82 @@ export function ApplicantModal({
           }))
         );
       } catch (err) {
-        console.error("Failed to load dropdown data", err);
+        // console.error("Failed to load dropdown data", err);
       }
     }
 
     if (isOpen) fetchDropdowns();
   }, [isOpen]);
 
+  // Set joining date from current applicant
   useEffect(() => {
     if (currentApplicant?.joining_date) {
       setJoiningDate(currentApplicant.joining_date.split("T")[0]);
     }
   }, [currentApplicant?.joining_date]);
 
+  // Fetch districts when state changes
+  useEffect(() => {
+    if (!selectedState) {
+      setDistrictOptions([]);
+      setBlockOptions([]);
+      return;
+    }
+
+    const fetchDistricts = async () => {
+      setIsLoadingDistricts(true);
+      try {
+        const districtsRes = await getDistrictsByState(selectedState);
+        const districts = districtsRes?.data || districtsRes || [];
+        const mappedDistricts = districts.map((d: any) => ({
+          value: d.district_code,
+          label: d.district_name,
+        }));
+        setDistrictOptions(mappedDistricts);
+      } catch (err) {
+        // console.error("Failed to fetch districts:", err);
+        setDistrictOptions([]);
+      } finally {
+        setIsLoadingDistricts(false);
+      }
+    };
+
+    fetchDistricts();
+  }, [selectedState]);
+
+  // Fetch blocks when district changes
+  useEffect(() => {
+    if (!selectedDistrict) {
+      setBlockOptions([]);
+      return;
+    }
+
+
+    const fetchBlocks = async () => {
+      setIsLoadingBlocks(true);
+      try {
+        const blocksRes = await getBlocksByDistrict(selectedDistrict);
+        const blocks = blocksRes?.data || blocksRes || [];
+        const mappedBlocks = blocks.map((b: any) => ({
+          value: b.block_code,
+          label: b.block_name,
+        }));
+        setBlockOptions(mappedBlocks);
+      } catch (err) {
+        // console.error("Failed to fetch blocks:", err);
+        setBlockOptions([]);
+      } finally {
+        setIsLoadingBlocks(false);
+      }
+    };
+
+    fetchBlocks();
+  }, [selectedDistrict]);
+
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
 
     try {
-      // Prepare payload with only the updated field
       const payload: Record<string, any> = {
         student_id: currentApplicant.id,
         [field]: value,
@@ -203,19 +341,17 @@ export function ApplicantModal({
       console.log("value", value);
       console.log(1, payload);
 
-      // If the field being updated is joining_date, include joiningDate from state
       if (field === "joining_date") {
         payload.joining_date = value;
       }
 
       await submitFinalDecision(payload);
-      await handleUpdate(); // Refresh UI after update
+      await handleUpdate();
     } catch (err) {
       console.error("Failed to update final decision", err);
     }
   };
 
-  // Only after all hooks:
   if (!applicant || !currentApplicant) return null;
 
   const handleEditClick = () => {
@@ -231,13 +367,11 @@ export function ApplicantModal({
     setRefreshKey((prev) => prev + 1);
   };
 
-  // Refetch applicant after update
   const handleUpdate = async () => {
     if (!currentApplicant?.id) return;
     try {
       const response = await getStudentById(currentApplicant.id);
 
-      // Extract actual data from response which may be { data: student } or student
       let updated: any = response;
       if (response && typeof response === "object" && "data" in response) {
         updated = (response as any).data;
@@ -253,7 +387,6 @@ export function ApplicantModal({
     }
   };
 
-  // Helper function to get label from ID
   const getLabel = (
     options: { value: string; label: string }[],
     id: any,
@@ -264,20 +397,34 @@ export function ApplicantModal({
     );
   };
 
-  // Helper for current exam session (if any) to simplify access throughout the component
+
+  const handleStateChange = async (value: string) => {
+    setSelectedState(value);
+    setSelectedDistrict(null);
+    setDistrictOptions([]);
+    setBlockOptions([]);
+    
+    await handleUpdate();
+  };
+
+  const handleDistrictChange = async (value: string) => {
+    setSelectedDistrict(value);
+    setBlockOptions([]);
+    
+    await handleUpdate();
+  };
+
   const examSession = currentApplicant.exam_sessions?.[0] ?? null;
 
-  // Screening fields with correct components
   const screeningFields = [
-
     {
       name: "status",
       label: "Status *",
       type: "select",
       options: [
-        { value:  "Screening Test Pass", label:  "Screening Test Pass" },
+        { value: "Screening Test Pass", label: "Screening Test Pass" },
         { value: "Screening Test Fail", label: "Screening Test Fail" },
-        { value:   "Created Student Without Exam", label:   "Created Student Without Exam"},
+        { value: "Created Student Without Exam",label: "Created Student Without Exam",},
       ],
     },
     {
@@ -307,8 +454,6 @@ export function ApplicantModal({
       label: "Date of Testing *",
       type: "component",
       component: ({ row, updateRow, disabled }: any) => {
-        // Subform will show this component only when the field is editable for the row.
-        // Render a native date input that updates the row value (in yyyy-MM-dd).
         return (
           <input
             type="date"
@@ -322,7 +467,6 @@ export function ApplicantModal({
     },
   ];
 
-  // Map the current applicant's data to the subform rows
   const initialScreeningData =
     currentApplicant.exam_sessions?.map((session) => ({
       id: session.id,
@@ -336,15 +480,12 @@ export function ApplicantModal({
         session.school_id !== null && session.school_id !== undefined
           ? session.school_id.toString()
           : "",
-     
-      // school_id: currentApplicant.school_id || "",
       exam_centre: session.exam_centre || "",
       date_of_test: session.date_of_test?.split("T")[0] || "",
     })) || [];
 
   if (!applicant) return null;
 
-  // Safe wrappers for screening API (prevent reading .submit of undefined)
   const screeningSubmit =
     API_MAP?.screening?.submit ??
     (async (payload: any) => {
@@ -471,16 +612,15 @@ export function ApplicantModal({
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Caste
+                    Cast
                   </label>
-                  {/* Caste Dropdown */}
                   <EditableCell
                     applicant={currentApplicant}
                     field="cast_id"
                     value={currentApplicant.cast_id}
                     displayValue={getLabel(castes, currentApplicant.cast_id)}
                     onUpdate={handleUpdate}
-                    options={castes} // now as dropdown
+                    options={castes}
                   />
                 </div>
                 <div>
@@ -519,13 +659,17 @@ export function ApplicantModal({
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    States
+                    State
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
                     field="state"
-                    displayValue={currentApplicant.state || "Not provided"}
-                    onUpdate={handleUpdate}
+                    displayValue={getLabel(
+                      stateOptions,
+                      currentApplicant.state
+                    )}
+                    value={currentApplicant.state}
+                    onUpdate={handleStateChange}
                     options={stateOptions}
                   />
                 </div>
@@ -547,8 +691,33 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="district"
-                    displayValue={currentApplicant.district || "Not provided"}
+                    displayValue={
+                      isLoadingDistricts 
+                        ? "Loading..." 
+                        : getLabel(districtOptions, currentApplicant.district)
+                    }
+                    value={currentApplicant.district}
+                    onUpdate={handleDistrictChange}
+                    options={districtOptions}
+                    disabled={!selectedState || isLoadingDistricts}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Block
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="block"
+                    displayValue={
+                      isLoadingBlocks 
+                        ? "Loading..." 
+                        : getLabel(blockOptions, currentApplicant.block)
+                    }
+                    value={currentApplicant.block}
                     onUpdate={handleUpdate}
+                    options={blockOptions}
+                    disabled={!selectedDistrict || isLoadingBlocks}
                   />
                 </div>
               </div>
@@ -564,7 +733,7 @@ export function ApplicantModal({
               onSave={handleUpdate}
             />
 
-            {/* --- LEARNING & CULTURAL FIT ROUNDS --- */}
+            {/* Learning & Cultural Fit Rounds */}
             <div className="grid grid-cols-1 gap-6">
               <div className="col-span-full w-full">
                 <InlineSubform
@@ -648,7 +817,6 @@ export function ApplicantModal({
                       options={campus}
                     />
                   </div>
-                  {/* Offer Letter Status */}
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Offer Letter Status
@@ -715,7 +883,6 @@ export function ApplicantModal({
                   <input
                     type="date"
                     className="border rounded px-2 py-1 w-full"
-                    // Always show clean date in yyyy-MM-dd format
                     value={
                       joiningDate ||
                       currentApplicant.final_decisions?.[0]?.joining_date?.split(
