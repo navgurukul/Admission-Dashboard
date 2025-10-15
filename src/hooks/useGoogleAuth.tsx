@@ -189,15 +189,22 @@ const checkExistingSession = () => {
           isAuthenticated: true,
         });
 
-
-      
-        toast({
-          title: "Welcome!",
-          description: `Successfully signed in as ${apiUser.name}`,
-        });
-
-         navigate("/") 
-
+        console.log("Logged in user:", apiUser);
+        if (apiUser.role_name === "ADMIN" || apiUser.role_name === "USER") {
+          localStorage.setItem("userRole", JSON.stringify(apiUser.role_name));
+          navigate("/");
+          toast({
+            title: "Welcome!",
+            description: `Successfully signed in as ${apiUser.name}`,
+          });
+        } else {
+          localStorage.setItem("userRole", JSON.stringify("student"));
+          navigate("/students");
+          toast({
+            title: "No Role Assigned",
+            description: `No role assigned. Please contact admin to assign a role.`,
+          });
+        }
       } else {
         throw new Error(loginResponse.message || 'Login failed');
       }

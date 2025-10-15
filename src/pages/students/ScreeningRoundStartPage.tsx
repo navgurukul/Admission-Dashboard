@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getRandomQuestions as  getQuestions } from "@/utils/api";
 import { useLanguage } from "@/routes/LaunguageContext";
+import LogoutButton from "@/components/ui/LogoutButton";
 
 const ScreeningRoundStartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -91,6 +92,7 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+      <LogoutButton />
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full flex flex-col items-center justify-center">
         <h1 className="text-2xl font-semibold mb-4">{content.heading}</h1>
         <p className="text-gray-600 mb-2">{content.description1}</p>

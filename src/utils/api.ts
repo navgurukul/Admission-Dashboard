@@ -654,11 +654,14 @@ export const deleteReligion = async (id: string): Promise<void> => {
 };
 
 // Get All Students
-export const getStudents = async (page = 1, limit = 10) => {
-  const response = await apiRequest(`/students/getStudents?page=${page}&limit=${limit}`, {
-    method: "GET",
-    headers: getAuthHeaders()
-  });
+export const getStudents = async (page, limit) => {
+  const response = await apiRequest(
+    `/students/getStudents?page=${page}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
 
   const dataParsed = await response.json();
 
@@ -666,28 +669,15 @@ export const getStudents = async (page = 1, limit = 10) => {
     throw new Error(dataParsed.message || "Failed to fetch students");
   }
 
-  // Handle different response formats and ensure we return both data and total count
-  let students = [];
-  let totalCount = 0;
-
-  if (dataParsed && dataParsed.data) {
-    if (Array.isArray(dataParsed.data)) {
-      students = dataParsed.data;
-      totalCount = dataParsed.totalCount || dataParsed.total || students.length;
-    } else if (dataParsed.data.data && Array.isArray(dataParsed.data.data)) {
-      students = dataParsed.data.data;
-      totalCount = dataParsed.data.totalCount || dataParsed.data.total || students.length;
-    }
-  } else if (Array.isArray(dataParsed)) {
-    students = dataParsed;
-    totalCount = students.length;
-  } else {
-    return { data: [], totalCount: 0 };
-  }
+  const students = dataParsed.data?.data || [];
+  const pagination = dataParsed.data?.pagination || {};
 
   return {
     data: students,
-    totalCount: totalCount
+    totalCount: Number(pagination.total) || students.length,
+    totalPages: Number(pagination.totalPages) || Math.ceil(students.length / limit),
+    page: pagination.page || page,
+    limit: pagination.limit || limit,
   };
 };
 
@@ -698,9 +688,8 @@ export const getStudentById = async (id: string): Promise<Student> => {
       `${BASE_URL}/students/getStudentsById/${id}`,
     );
 
-    return response.data; // axios already parses JSON
+    return response.data; 
   } catch (error: any) {
-    console.error("Error in getStudentById:", error);
     throw new Error(
       error?.response?.data?.message || "Failed to fetch student"
     );
@@ -1368,9 +1357,50 @@ export const deleteSchool = async (id: number) => {
     }
     return await response.json();
   } catch (error) {
-    console.error("Error deleting school:", error);
+    // console.error("Error deleting school:", error);
     throw error;
   }
 };
 
+// state and district api
+export const getAllStates = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/states/getAll`, {
+      method: "GET",
+    });
+    if (!response.ok) throw new Error(`Failed to fetch states`);
+    return await response.json();
+  } catch (error) {
+    // console.error("Error fetching states:", error);
+    throw error;
+  }
+};
+
+//  Get districts by state_code
+export const getDistrictsByState = async (stateCode: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/states/getByState/${stateCode}`, {
+      method: "GET",
+    });
+    if (!response.ok) throw new Error(`Failed to fetch districts for ${stateCode}`);
+    return await response.json();
+  } catch (error) {
+    // console.error("Error fetching districts:", error);
+    throw error;
+  }
+};
+
+//  Get blocks by district_code
+export const getBlocksByDistrict = async (districtCode: string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/districts/getByDistrict/${districtCode}`, {
+      method: "GET",
+    });
+    if (!response.ok) throw new Error(`Failed to fetch blocks for ${districtCode}`);
+    return await response.json();
+  } catch (error) {
+    // console.error("Error fetching blocks:", error);
+    throw error;
+  }
+};
 

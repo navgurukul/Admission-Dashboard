@@ -170,14 +170,14 @@ const SchoolPage = () => {
   };
 
   // Delete School
-  const handleDeleteSchool = async (id: number) => {
+  const handleDeleteSchool = async (id: number, school_name: string) => {
     try {
       await deleteSchool(id);
 
       setSchools((prev) => prev.filter((s) => s.id !== id));
       toast({
         title: "School Deleted",
-        description: `School ID ${id} has been deleted.`,
+        description: `School ${school_name} has been deleted.`,
       });
     } catch (error) {
      const errorMessage = formatErrorMessage(error as Error);
@@ -415,7 +415,7 @@ const SchoolPage = () => {
               <button
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                 onClick={() => {
-                  handleDeleteSchool(selectedSchool.id);
+                  handleDeleteSchool(selectedSchool.id, selectedSchool.school_name);
                   setDeleteDialog(false);
                   setSelectedSchool(null);
                 }}

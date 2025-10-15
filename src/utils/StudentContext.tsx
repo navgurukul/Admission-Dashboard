@@ -24,7 +24,7 @@ export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [student, setStudent] = useState<Student | null>(null);
 
   useEffect(() => {
-    // 🔹 Load student data from localStorage on mount
+    // Load student data from localStorage on mount
     const savedData = localStorage.getItem("studentFormData");
     if (savedData) {
       try {

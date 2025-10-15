@@ -12,17 +12,49 @@ import {
   Religion,
   getAllReligions,
   createStudent,
+  getAllStates,
+  getDistrictsByState,
+  getBlocksByDistrict,
 } from "@/utils/api";
+import LogoutButton from "@/components/ui/LogoutButton";
+interface State {
+  id: string;
+  state_name: string;
+  state_code: string;
+}
+
+interface District {
+  id: string;
+  district_name: string;
+  district_code: string;
+  state_code: string;
+}
+
+interface Block {
+  id: string;
+  block_name: string;
+  block_code: string;
+  district_code: string;
+}
 
 const StudentForm: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
+
   const [casts, setCasts] = useState<Cast[]>([]);
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   const [religions, setReligions] = useState<Religion[]>([]);
+  const [states, setStates] = useState<State[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [blocks, setBlocks] = useState<Block[]>([]);
   const [emailError, setEmailError] = useState("");
+  const [loadingStates, setLoadingStates] = useState({
+    states: false,
+    districts: false,
+    blocks: false,
+  });
 
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
@@ -35,7 +67,11 @@ const StudentForm: React.FC = () => {
     email: "",
     gender: "",
     state: "",
+    stateCode: "",
     district: "",
+    districtCode: "",
+    block: "",
+    blockCode: "",
     city: "",
     pinCode: "",
     currentStatus: "",
@@ -60,7 +96,11 @@ const StudentForm: React.FC = () => {
       email: data.email,
       gender: data.gender,
       state: data.state,
+      state_code: data.stateCode,
       district: data.district,
+      district_code: data.districtCode,
+      block: data.block,
+      block_code: data.blockCode,
       city: data.city,
       pin_code: data.pinCode,
       school_medium: data.schoolMedium,
@@ -71,17 +111,142 @@ const StudentForm: React.FC = () => {
     };
   };
 
+  // Fetch all states on component mount
+  const fetchStates = async () => {
+    try {
+      setLoadingStates((prev) => ({ ...prev, states: true }));
+      const response = await getAllStates();
+
+      // Handle different possible response structures
+      let statesData: State[] = [];
+
+      if (Array.isArray(response)) {
+        // If response is directly an array
+        statesData = response;
+      } else if (response && Array.isArray(response.data)) {
+        // If response has data property that is an array
+        statesData = response.data;
+      } else if (response && response.states) {
+        // If response has states property
+        statesData = response.states;
+      } else if (response && response.result) {
+        // If response has result property
+        statesData = response.result;
+      }
+
+      setStates(statesData || []);
+    } catch (error) {
+      // console.error("Error fetching states:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load states",
+        variant: "destructive",
+      });
+      setStates([]);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, states: false }));
+    }
+  };
+
+  // Fetch districts when state is selected
+  const fetchDistricts = async (stateCode: string) => {
+    if (!stateCode) {
+      setDistricts([]);
+      setBlocks([]);
+      return;
+    }
+
+    try {
+      setLoadingStates((prev) => ({ ...prev, districts: true }));
+      const response = await getDistrictsByState(stateCode);
+      // Handle different possible response structures
+      let districtsData: District[] = [];
+
+      if (Array.isArray(response)) {
+        districtsData = response;
+      } else if (response && Array.isArray(response.data)) {
+        districtsData = response.data;
+      } else if (response && response.districts) {
+        districtsData = response.districts;
+      } else if (response && response.result) {
+        districtsData = response.result;
+      }
+      setDistricts(districtsData || []);
+    } catch (error) {
+      console.error("Error fetching districts:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load districts",
+        variant: "destructive",
+      });
+      setDistricts([]);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, districts: false }));
+    }
+  };
+
+  // Fetch blocks when district is selected
+  const fetchBlocks = async (districtCode: string) => {
+    if (!districtCode) {
+      setBlocks([]);
+      return;
+    }
+
+    try {
+      setLoadingStates((prev) => ({ ...prev, blocks: true }));
+      const response = await getBlocksByDistrict(districtCode);
+      // Handle different possible response structures
+      let blocksData: Block[] = [];
+
+      if (Array.isArray(response)) {
+        blocksData = response;
+      } else if (response && Array.isArray(response.data)) {
+        blocksData = response.data;
+      } else if (response && response.blocks) {
+        blocksData = response.blocks;
+      } else if (response && response.result) {
+        blocksData = response.result;
+      }
+
+      setBlocks(blocksData || []);
+    } catch (error) {
+      // console.error("Error fetching blocks:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load blocks",
+        variant: "destructive",
+      });
+      setBlocks([]);
+    } finally {
+      setLoadingStates((prev) => ({ ...prev, blocks: false }));
+    }
+  };
+
   useEffect(() => {
     const savedFormData = localStorage.getItem("studentFormData");
     if (savedFormData) {
-      setFormData(JSON.parse(savedFormData));
+      const parsedData = JSON.parse(savedFormData);
+      setFormData(parsedData);
+      // If state was previously selected, fetch its districts
+      if (parsedData.stateCode) {
+        fetchDistricts(parsedData.stateCode);
+      }
+
+      // If district was previously selected, fetch its blocks
+      if (parsedData.districtCode) {
+        fetchBlocks(parsedData.districtCode);
+      }
     }
+
+    // Fetch initial data
+    fetchStates();
+
     const fetchCasts = async () => {
       try {
         const response = await getAllCasts();
         setCasts(response);
       } catch (error) {
-        console.error("Error fetching casts:", error);
+        // console.error("Error fetching casts:", error);
       }
     };
     fetchCasts();
@@ -92,17 +257,18 @@ const StudentForm: React.FC = () => {
         const response = await getAllQualification();
         setQualifications(response);
       } catch (error) {
-        console.error("Error fetching qualifications:", error);
+        // console.error("Error fetching qualifications:", error);
       }
     };
     fetchQualifications();
+
     // fetch statuses
     const fetchStatuses = async () => {
       try {
-        const response = await getAllStatus(); // returns CurrentStatus[]
+        const response = await getAllStatus();
         setStatuses(response);
       } catch (error) {
-        console.error("Error fetching current statuses:", error);
+        // console.error("Error fetching current statuses:", error);
       }
     };
     fetchStatuses();
@@ -110,38 +276,84 @@ const StudentForm: React.FC = () => {
     // fetch religions
     const fetchReligions = async () => {
       try {
-        const response = await getAllReligions(); // returns Religion[]
+        const response = await getAllReligions();
         setReligions(response);
       } catch (error) {
-        console.error("Error fetching religions:", error);
+        // console.error("Error fetching religions:", error);
       }
     };
     fetchReligions();
   }, []);
 
- const handleInputChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-) => {
-  const { name, value } = e.target;
-  const newFormData = { ...formData, [name]: value };
-  setFormData(newFormData);
-  localStorage.setItem("studentFormData", JSON.stringify(newFormData));
-
-  // Live email validation
-  if (name === "email") {
-    if (!validateEmail(value)) {
-      setEmailError("Please enter a valid email address");
-    } else {
-      setEmailError("");
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    let newFormData = { ...formData, [name]: value };
+    // Handle state change
+    if (name === "stateCode") {
+      const selectedState = states.find((state) => state.state_code === value);
+      newFormData = {
+        ...newFormData,
+        stateCode: value,
+        state: selectedState?.state_name || "",
+        district: "",
+        districtCode: "",
+        block: "",
+        blockCode: "",
+      };
+      setDistricts([]);
+      setBlocks([]);
+      if (value) {
+        fetchDistricts(value);
+      }
     }
-  }
-};
 
-const validateEmail = (email: string) => {
-  // Simple regex for email validation
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(email);
-};
+    // Handle district change
+    if (name === "districtCode") {
+      const selectedDistrict = districts.find(
+        (district) => district.district_code === value
+      );
+      newFormData = {
+        ...newFormData,
+        districtCode: value,
+        district: selectedDistrict?.district_name || "",
+        block: "",
+        blockCode: "",
+      };
+      setBlocks([]);
+      if (value) {
+        fetchBlocks(value);
+      }
+    }
+
+    // Handle block change
+    if (name === "blockCode") {
+      const selectedBlock = blocks.find((block) => block.block_code === value);
+      newFormData = {
+        ...newFormData,
+        blockCode: value,
+        block: selectedBlock?.block_name || "",
+      };
+    }
+
+    setFormData(newFormData);
+    localStorage.setItem("studentFormData", JSON.stringify(newFormData));
+
+    // Live email validation
+    if (name === "email") {
+      if (!validateEmail(value)) {
+        setEmailError("Please enter a valid email address");
+      } else {
+        setEmailError("");
+      }
+    }
+  };
+
+  const validateEmail = (email: string) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -161,14 +373,14 @@ const validateEmail = (email: string) => {
   };
 
   // Calculate age in years
-const getAge = (dob: string) => {
-  if (!dob) return 0;
-  const birthDate = new Date(dob);
-  const today = new Date();
-  const diff = today.getTime() - birthDate.getTime();
-  const age = diff / (1000 * 60 * 60 * 24 * 365.25);
-  return age;
-};
+  const getAge = (dob: string) => {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    const diff = today.getTime() - birthDate.getTime();
+    const age = diff / (1000 * 60 * 60 * 24 * 365.25);
+    return age;
+  };
 
   const isFormValid = () => {
     const age = getAge(formData.dateOfBirth);
@@ -178,8 +390,8 @@ const getAge = (dob: string) => {
       formData.dateOfBirth &&
       formData.whatsappNumber &&
       formData.gender &&
-      formData.state &&
-      formData.district &&
+      formData.stateCode &&
+      formData.districtCode &&
       formData.city &&
       formData.pinCode &&
       formData.currentStatus &&
@@ -187,111 +399,114 @@ const getAge = (dob: string) => {
       formData.schoolMedium &&
       formData.casteTribe &&
       formData.religion &&
-      age >= 16.5 
+      age >= 16.5
     );
   };
 
-  
-
   const handleSubmit = async () => {
-  const age = getAge(formData.dateOfBirth);
+    const age = getAge(formData.dateOfBirth);
 
-  if (!formData.profileImage) {
-    return toast({
-      title: "Profile Image Required",
-      description: "Please upload a profile image.",
-      variant: "destructive",
-    });
-  }
+    if (!formData.profileImage) {
+      return toast({
+        title: "Profile Image Required",
+        description: "Please upload a profile image.",
+        variant: "destructive",
+      });
+    }
 
-  if (!formData.firstName) {
-    return toast({
-      title: "First Name Required",
-      description: "Please enter your first name.",
-      variant: "destructive",
-    });
-  }
+    if (!formData.firstName) {
+      return toast({
+        title: "First Name Required",
+        description: "Please enter your first name.",
+        variant: "destructive",
+      });
+    }
 
-  if (!formData.dateOfBirth || age < 16.5) {
-    return toast({
-      title: "Invalid Date of Birth",
-      description: "You must be at least 16.5 years old.",
-      variant: "destructive",
-    });
-  }
+    if (!formData.dateOfBirth || age < 16.5) {
+      return toast({
+        title: "Invalid Date of Birth",
+        description: "You must be at least 16.5 years old.",
+        variant: "destructive",
+      });
+    }
 
-  if (!formData.whatsappNumber || !/^\d{10}$/.test(formData.whatsappNumber)) {
-    return toast({
-      title: "Invalid WhatsApp Number",
-      description: "Enter a valid 10-digit WhatsApp number.",
-      variant: "destructive",
-    });
-  }
+    if (!formData.whatsappNumber || !/^\d{10}$/.test(formData.whatsappNumber)) {
+      return toast({
+        title: "Invalid WhatsApp Number",
+        description: "Enter a valid 10-digit WhatsApp number.",
+        variant: "destructive",
+      });
+    }
 
-  if (!formData.gender) {
-    return toast({
-      title: "Gender Required",
-      description: "Please select your gender.",
-      variant: "destructive",
-    });
-  }
+    if (!formData.gender) {
+      return toast({
+        title: "Gender Required",
+        description: "Please select your gender.",
+        variant: "destructive",
+      });
+    }
 
-  if (
-    !formData.state ||
-    !formData.district ||
-    !formData.city ||
-    !formData.pinCode
-  ) {
-    return toast({
-      title: "Address Required",
-      description: "Please fill all required address fields.",
-      variant: "destructive",
-    });
-  }
+    if (
+      !formData.stateCode ||
+      !formData.districtCode ||
+      !formData.city ||
+      !formData.pinCode
+    ) {
+      return toast({
+        title: "Address Required",
+        description: "Please fill all required address fields.",
+        variant: "destructive",
+      });
+    }
 
-  if (!formData.currentStatus || !formData.maximumQualification || !formData.schoolMedium || !formData.casteTribe || !formData.religion) {
-    return toast({
-      title: "Additional Info Required",
-      description: "Please fill all required additional fields.",
-      variant: "destructive",
-    });
-  }
+    if (
+      !formData.currentStatus ||
+      !formData.maximumQualification ||
+      !formData.schoolMedium ||
+      !formData.casteTribe ||
+      !formData.religion
+    ) {
+      return toast({
+        title: "Additional Info Required",
+        description: "Please fill all required additional fields.",
+        variant: "destructive",
+      });
+    }
 
-  try {
-    const apiPayload = mapFormDataToApi(formData);
-    await createStudent(apiPayload);
+    try {
+      const apiPayload = mapFormDataToApi(formData);
+      await createStudent(apiPayload);
 
-    localStorage.setItem("registrationDone", "true");
-    localStorage.setItem("studentFormData", JSON.stringify(formData));
+      localStorage.setItem("registrationDone", "true");
+      localStorage.setItem("studentFormData", JSON.stringify(formData));
 
-    toast({
-      title: "Student Created",
-      description: "Your registration was successful!",
-      variant: "default",
-    });
+      toast({
+        title: "Student Created",
+        description: "Your registration was successful!",
+        variant: "default",
+      });
 
-    navigate("/students/test/start");
-  } catch (error: any) {
-    console.error("Error creating student:", error);
-    toast({
-      title: "Registration Failed",
-      description: error.message || "Something went wrong while creating student.",
-      variant: "destructive",
-    });
-  }
-};
+      navigate("/students/test/start");
+    } catch (error: any) {
+      console.error("Error creating student:", error);
+      toast({
+        title: "Registration Failed",
+        description:
+          error.message || "Something went wrong while creating student.",
+        variant: "destructive",
+      });
+    }
+  };
 
-const handlePrevious = () => {
-  navigate("/students/details/instructions");
-};
-
-
+  const handlePrevious = () => {
+    navigate("/students/details/instructions");
+  };
   // Calculate the maximum date allowed
   const getMaxDOB = () => {
     const today = new Date();
-    today.setFullYear(today.getFullYear() - 16); // 16 years
-    today.setMonth(today.getMonth() - 6); // additional 0.5 year (6 months)
-    return today.toISOString().split("T")[0]; // format YYYY-MM-DD
+    today.setFullYear(today.getFullYear() - 16);
+    today.setMonth(today.getMonth() - 6);
+    return today.toISOString().split("T")[0];
   };
 
   // language-specific strings
@@ -315,6 +530,7 @@ const handlePrevious = () => {
           email: "ईमेल पता ",
           state: "राज्य चुनें *",
           district: "जिला चुनें *",
+          block: "ब्लॉक चुनें",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "वर्तमान स्थिति *",
@@ -326,6 +542,7 @@ const handlePrevious = () => {
           saveContinue: "सहेजें और जारी रखें",
           selectState: "राज्य चुनें",
           selectDistrict: "जिला चुनें",
+          selectBlock: "ब्लॉक चुनें",
           selectOption: "विकल्प चुनें",
           selectQualification: "योग्यता चुनें",
           selectMedium: "माध्यम चुनें",
@@ -338,6 +555,7 @@ const handlePrevious = () => {
           enterEmail: "ईमेल पता दर्ज करें",
           cityExample: "उदा. मुंबई",
           pinCodeExample: "उदा. 400001",
+          loading: "लोड हो रहा है...",
         };
 
       case "marathi":
@@ -358,6 +576,7 @@ const handlePrevious = () => {
           email: "ईमेल पत्ता ",
           state: "राज्य निवडा *",
           district: "जिल्हा निवडा *",
+          block: "ब्लॉक निवडा",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "सध्याची स्थिती *",
@@ -369,6 +588,7 @@ const handlePrevious = () => {
           saveContinue: "जतन करा आणि सुरू ठेवा",
           selectState: "राज्य निवडा",
           selectDistrict: "जिल्हा निवडा",
+          selectBlock: "ब्लॉक निवडा",
           selectOption: "पर्याय निवडा",
           selectQualification: "पात्रता निवडा",
           selectMedium: "माध्यम निवडा",
@@ -381,6 +601,7 @@ const handlePrevious = () => {
           enterEmail: "ईमेल पत्ता प्रविष्ट करा",
           cityExample: "उदा. पुणे",
           pinCodeExample: "उदा. 411001",
+          loading: "लोड होत आहे...",
         };
 
       default: // English
@@ -401,6 +622,7 @@ const handlePrevious = () => {
           email: "Email Address",
           state: "Select State *",
           district: "Select District *",
+          block: "Select Block",
           city: "City *",
           pinCode: "Pin Code *",
           currentStatus: "Current Status *",
@@ -411,7 +633,8 @@ const handlePrevious = () => {
           back: "Back",
           saveContinue: "Save & Continue",
           selectState: "Select State",
-          enterDistrict: "Select District",
+          selectDistrict: "Select District",
+          selectBlock: "Select Block",
           selectOption: "Select Option",
           selectQualification: "Select Qualification",
           selectMedium: "Select Medium",
@@ -424,18 +647,19 @@ const handlePrevious = () => {
           enterEmail: "Enter email address",
           cityExample: "Ex. Bangalore",
           pinCodeExample: "Ex. 4402xx",
+          loading: "Loading...",
         };
     }
   };
 
   const content = getContent();
 
-  //   const content = getContent();
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
+          <LogoutButton />
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
             {content.signUp}
           </h1>
@@ -529,7 +753,7 @@ const handlePrevious = () => {
                 name="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
-                max={getMaxDOB()} // restrict selection
+                max={getMaxDOB()}
                 className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
@@ -602,20 +826,21 @@ const handlePrevious = () => {
               />
             </div>
             <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    {content.email} *
-  </label>
-  <input
-    type="email"
-    name="email"
-    value={formData.email}
-    onChange={handleInputChange}
-    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-    placeholder={content.enterEmail}
-  />
-  {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
-</div>
-
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {content.email} *
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder={content.enterEmail}
+              />
+              {emailError && (
+                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -625,60 +850,31 @@ const handlePrevious = () => {
             Additional Information
           </h3>
 
-          {/* State and District */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* State, District and Block */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.state}
               </label>
               <div className="relative">
                 <select
-                  name="state"
-                  value={formData.state}
+                  name="stateCode"
+                  value={formData.stateCode}
                   onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  disabled={loadingStates.states}
+                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  <option value="">{content.selectState}</option>
-                  <option value="Andhra Pradesh">Andhra Pradesh</option>
-                  <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-                  <option value="Assam">Assam</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Chhattisgarh">Chhattisgarh</option>
-                  <option value="Goa">Goa</option>
-                  <option value="Gujarat">Gujarat</option>
-                  <option value="Haryana">Haryana</option>
-                  <option value="Himachal Pradesh">Himachal Pradesh</option>
-                  <option value="Jharkhand">Jharkhand</option>
-                  <option value="Karnataka">Karnataka</option>
-                  <option value="Kerala">Kerala</option>
-                  <option value="Madhya Pradesh">Madhya Pradesh</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Manipur">Manipur</option>
-                  <option value="Meghalaya">Meghalaya</option>
-                  <option value="Mizoram">Mizoram</option>
-                  <option value="Nagaland">Nagaland</option>
-                  <option value="Odisha">Odisha</option>
-                  <option value="Punjab">Punjab</option>
-                  <option value="Rajasthan">Rajasthan</option>
-                  <option value="Sikkim">Sikkim</option>
-                  <option value="Tamil Nadu">Tamil Nadu</option>
-                  <option value="Telangana">Telangana</option>
-                  <option value="Tripura">Tripura</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                  <option value="Uttarakhand">Uttarakhand</option>
-                  <option value="West Bengal">West Bengal</option>
-                  <option value="Andaman and Nicobar Islands">
-                    Andaman and Nicobar Islands
+                  <option value="">
+                    {loadingStates.states
+                      ? content.loading
+                      : content.selectState}
                   </option>
-                  <option value="Chandigarh">Chandigarh</option>
-                  <option value="Dadra and Nagar Haveli and Daman and Diu">
-                    Dadra and Nagar Haveli and Daman and Diu
-                  </option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Jammu and Kashmir">Jammu and Kashmir</option>
-                  <option value="Ladakh">Ladakh</option>
-                  <option value="Lakshadweep">Lakshadweep</option>
-                  <option value="Puducherry">Puducherry</option>
+                  {Array.isArray(states) &&
+                    states.map((state) => (
+                      <option key={state.state_code} value={state.state_code}>
+                        {state.state_name}
+                      </option>
+                    ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg
@@ -702,26 +898,88 @@ const handlePrevious = () => {
                 {content.district}
               </label>
               <div className="relative">
-                {/* <select
-                  name="district"
-                  value={formData.district}
+                <select
+                  name="districtCode"
+                  value={formData.districtCode}
                   onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  disabled={loadingStates.districts || !formData.stateCode}
+                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  <option value="">{content.selectDistrict}</option>
-                  <option value="Mumbai">Mumbai</option>
-                  <option value="Pune">Pune</option>
-                  <option value="Nagpur">Nagpur</option>
-                  <option value="Thane">Thane</option>
-                </select> */}
-                <input
-                  type="text"
-                  name="district"
-                  value={formData.district}
+                  <option value="">
+                    {loadingStates.districts
+                      ? content.loading
+                      : !formData.stateCode
+                      ? "Select state first"
+                      : content.selectDistrict}
+                  </option>
+                  {Array.isArray(districts) &&
+                    districts.map((district) => (
+                      <option
+                        key={district.district_code}
+                        value={district.district_code}
+                      >
+                        {district.district_name}
+                      </option>
+                    ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {content.block}
+              </label>
+              <div className="relative">
+                <select
+                  name="blockCode"
+                  value={formData.blockCode}
                   onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  placeholder={content.enterDistrict}
-                />
+                  disabled={loadingStates.blocks || !formData.districtCode}
+                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {loadingStates.blocks
+                      ? content.loading
+                      : !formData.districtCode
+                      ? "Select district first"
+                      : content.selectBlock}
+                  </option>
+                  {Array.isArray(blocks) &&
+                    blocks.map((block) => (
+                      <option key={block.block_code} value={block.block_code}>
+                        {block.block_name}
+                      </option>
+                    ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -880,12 +1138,11 @@ const handlePrevious = () => {
               <div className="relative">
                 <select
                   name="casteTribe"
-                  value={formData.casteTribe} // this will store numeric id
+                  value={formData.casteTribe}
                   onChange={handleInputChange}
                   className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">{content.selectOption}</option>
-
                   {casts.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.cast_name}
@@ -980,3 +1237,6 @@ const handlePrevious = () => {
 };
 
 export default StudentForm;
+
+
+
