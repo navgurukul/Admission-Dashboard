@@ -17,21 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  CalendarIcon,
   CheckCircle2,
   Circle,
   AlertCircle,
   User,
   FileText,
-  MessageSquare,
-  Trophy,
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -43,25 +34,11 @@ import {
   getAllStates,
   getBlocksByDistrict,
   getDistrictsByState,
+  submitScreeningRound,
 } from "@/utils/api";
-import { string } from "zod";
+
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
-};
-
-const format = (date: Date, formatStr: string) => {
-  if (formatStr === "PPP") {
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  }
-  if (formatStr === "yyyy-MM-dd") {
-    return date.toISOString().split("T")[0];
-  }
-  return date.toLocaleDateString();
 };
 
 interface Campus {
@@ -117,7 +94,6 @@ export function AddApplicantModal({
 }: AddApplicantModalProps) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
-  const [testDate, setTestDate] = useState<Date>();
   const { toast } = useToast();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [casteList, setCasteList] = useState<any[]>([]);
@@ -138,7 +114,6 @@ export function AddApplicantModal({
   const [selectedBlock, setSelectedBlock] = useState<string>("");
 
   const [formData, setFormData] = useState({
-    // Basic Info
     first_name: "",
     middle_name: "",
     last_name: "",
@@ -157,13 +132,8 @@ export function AddApplicantModal({
     current_status_id: "",
     religion_id: "",
     qualifying_school_id: "",
-
-    // Campus / School
     campus_id: "",
-    school_id: "",
     school_medium: "",
-
-    // Screening
     status: "",
     is_passed: false,
     question_set_id: "",
@@ -172,25 +142,6 @@ export function AddApplicantModal({
     exam_centre: "",
     date_of_test: "",
     communication_notes: "",
-
-    // Interview
-    lr_status: "",
-    lr_comments: "",
-    cfr_status: "",
-    cfr_comments: "",
-
-    // Final
-    offer_letter_status: "",
-    allotted_school: "",
-    joining_status: "",
-    final_notes: "",
-    triptis_notes: "",
-
-    // Stage management
-    stage: "",
-    status_id: "",
-    interviews_status: "",
-    decision_status: "",
   });
 
   const resetForm = () => {
@@ -210,23 +161,9 @@ export function AddApplicantModal({
       cast_id: "",
       gender: "",
       campus_id: "",
-      school_id: "",
       qualification_id: "",
       current_status_id: "",
       qualifying_school_id: "",
-      lr_status: "",
-      lr_comments: "",
-      cfr_status: "",
-      cfr_comments: "",
-      offer_letter_status: "",
-      allotted_school: "",
-      joining_status: "",
-      final_notes: "",
-      triptis_notes: "",
-      stage: "",
-      status_id: "",
-      interviews_status: "",
-      decision_status: "",
       religion_id: "",
       status: "",
       is_passed: false,
@@ -241,12 +178,8 @@ export function AddApplicantModal({
     setSelectedState("");
     setSelectedDistrict("");
     setSelectedBlock("");
-    {
-      /* ✅ CORRECT: selectedBlock reset karein */
-    }
     setDistrictOptions([]);
     setBlockOptions([]);
-    setTestDate(undefined);
     setActiveTab("basic");
     setErrors({});
   };
@@ -257,7 +190,7 @@ export function AddApplicantModal({
         const response = await getAllCasts();
         setCasteList(response || []);
       } catch (error) {
-        console.error("Error fetching castes:", error);
+        // console.error("Error fetching castes:", error);
       }
     };
 
@@ -270,7 +203,7 @@ export function AddApplicantModal({
         const response = await getAllQualification();
         setQualificationList(response || []);
       } catch (error) {
-        console.error("Error fetching qualifications:", error);
+        // console.error("Error fetching qualifications:", error);
       }
     };
 
@@ -297,7 +230,6 @@ export function AddApplicantModal({
       [field]: value,
     }));
 
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -307,7 +239,6 @@ export function AddApplicantModal({
     }
   };
 
-  // States fetch karne ka useEffect
   useEffect(() => {
     const fetchStates = async () => {
       try {
@@ -319,12 +250,10 @@ export function AddApplicantModal({
         }));
         setStateOptions(mappedStates);
       } catch (error) {
-        console.error("Failed to fetch states:", error);
-        // Fallback states agar API fail ho
+        // console.error("Failed to fetch states:", error);
         setStateOptions([
           { value: "S-UP", label: "Uttar Pradesh" },
           { value: "S-DL", label: "Delhi" },
-          // ... other states
         ]);
       }
     };
@@ -334,7 +263,6 @@ export function AddApplicantModal({
     }
   }, [isOpen]);
 
-  // Districts fetch karne ka useEffect
   useEffect(() => {
     if (!selectedState) {
       setDistrictOptions([]);
@@ -358,7 +286,6 @@ export function AddApplicantModal({
         }));
         setDistrictOptions(mappedDistricts);
 
-        // Reset district and block when state changes
         setFormData((prev) => ({
           ...prev,
           district: "",
@@ -368,7 +295,7 @@ export function AddApplicantModal({
             selectedState,
         }));
       } catch (err) {
-        console.error("Failed to fetch districts:", err);
+        // console.error("Failed to fetch districts:", err);
         setDistrictOptions([]);
       } finally {
         setIsLoadingDistricts(false);
@@ -378,7 +305,6 @@ export function AddApplicantModal({
     fetchDistricts();
   }, [selectedState, stateOptions]);
 
-  // Blocks fetch karne ka useEffect
   useEffect(() => {
     if (!selectedDistrict) {
       setBlockOptions([]);
@@ -402,7 +328,6 @@ export function AddApplicantModal({
         setBlockOptions(mappedBlocks);
         setSelectedBlock("");
 
-        // Set district name in form data
         setFormData((prev) => ({
           ...prev,
           district:
@@ -425,7 +350,7 @@ export function AddApplicantModal({
     const newErrors: Record<string, string> = {};
 
     if (!formData.first_name.trim()) {
-      newErrors.name = "First name  is required";
+      newErrors.first_name = "First name is required";
     }
 
     if (!formData.phone_number.trim()) {
@@ -438,7 +363,6 @@ export function AddApplicantModal({
       newErrors.gender = "Gender is required";
     }
 
-    // Date of birth validation
     if (!formData.dob) {
       newErrors.dob = "Date of birth is required";
     } else {
@@ -465,8 +389,8 @@ export function AddApplicantModal({
 
     setLoading(true);
     try {
-      const dataToInsert = {
-        // Basic details
+      // Step 1: Create student with basic details only
+      const studentData = {
         image_url: null,
         first_name: formData.first_name,
         middle_name: formData.middle_name,
@@ -476,14 +400,10 @@ export function AddApplicantModal({
         email: formData.email || `${formData.phone_number}@example.com`,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
-
-        // Location details
         state: formData.state || null,
         city: formData.city || null,
         district: formData.district || null,
         pin_code: formData.pin_code || null,
-
-        // Additional details
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
         qualification_id: formData.qualification_id
           ? Number(formData.qualification_id)
@@ -493,75 +413,76 @@ export function AddApplicantModal({
           : null,
         religion_id: formData.religion_id ? Number(formData.religion_id) : null,
         school_medium: formData.school_medium || null,
-
-        // Communication notes
         communication_notes: formData.communication_notes || "",
         campus_id: formData.campus_id ? Number(formData.campus_id) : null,
-        school_id: formData.school_id ? Number(formData.school_id) : null,
-        qualifying_school_id: formData.qualifying_school_id
-          ? Number(formData.qualifying_school_id)
-          : null,
-
-        // Exam Session Data
-        question_set_id: formData.question_set_id
-          ? Number(formData.question_set_id)
-          : 1,
-        total_marks: formData.total_marks ? Number(formData.total_marks) : 0,
-        obtained_marks: formData.obtained_marks
-          ? Number(formData.obtained_marks)
-          : 0,
-        is_passed: Boolean(formData.is_passed),
-        status: formData.status || null,
-        exam_centre: formData.exam_centre || null,
-        date_of_test: formData.date_of_test || null,
       };
-      // API Call
-      const response = await createStudent(dataToInsert);
+
+      // API Call - Create Student
+      const response = await createStudent(studentData);
+      
+      // Extract student ID from response (handle different response structures)
+      const studentId = response?.data?.id || response?.id;
+      
+      // Step 2: If screening data exists, submit it separately
+      if (studentId && (formData.status || formData.question_set_id)) {
+        const screeningData = {
+          student_id: studentId,
+          status: formData.status || null,
+          question_set_id: formData.question_set_id
+            ? Number(formData.question_set_id)
+            : null,
+          obtained_marks: formData.obtained_marks
+            ? Number(formData.obtained_marks)
+            : null,
+          school_id: formData.qualifying_school_id
+            ? Number(formData.qualifying_school_id)
+            : null,
+          exam_centre: formData.exam_centre || null,
+          date_of_test: formData.date_of_test || null,
+        };
+
+        // Submit screening round data
+        const screeningResponse = await submitScreeningRound(screeningData);
+      }
 
       // Transform the response to match your table structure
       const transformedApplicant = {
-        id: response.id,
+        id: studentId,
         name:
-          response.first_name +
-          (response.middle_name ? ` ${response.middle_name}` : "") +
-          (response.last_name ? ` ${response.last_name}` : ""),
-        mobile_no: response.phone_number,
-        whatsapp_number: response.whatsapp_number,
-        email: response.email,
-        city: response.city,
-
-        campus_id: response.campus_id,
+          (response?.data?.first_name || response?.first_name || "") +
+          ((response?.data?.middle_name || response?.middle_name) ? ` ${response?.data?.middle_name || response?.middle_name}` : "") +
+          ((response?.data?.last_name || response?.last_name) ? ` ${response?.data?.last_name || response?.last_name}` : ""),
+        mobile_no: response?.data?.phone_number || response?.phone_number,
+        whatsapp_number: response?.data?.whatsapp_number || response?.whatsapp_number,
+        email: response?.data?.email || response?.email,
+        city: response?.data?.city || response?.city,
+        campus_id: response?.data?.campus_id || response?.campus_id,
         campus:
-          campusList?.find((c) => Number(c.id) === Number(response.campus_id))
+          campusList?.find((c) => Number(c.id) === Number(response?.data?.campus_id || response?.campus_id))
             ?.campus_name || "",
-
-        //  School
-        school_id: response.school_id,
+        school_id: response?.data?.school_id || response?.school_id,
         school:
-          schoolList?.find((s) => s.id === response.school_id)?.school_name ||
+          schoolList?.find((s) => s.id === (response?.data?.school_id || response?.school_id))?.school_name ||
           "",
-
-        gender: response.gender,
-        qualification_id: response.qualification_id,
+        gender: response?.data?.gender || response?.gender,
+        qualification_id: response?.data?.qualification_id || response?.qualification_id,
         qualification:
-          qualificationList?.find((q) => q.id === response.qualification_id)
-            ?.name || "",
-        current_status_id: response.current_status_id,
+          qualificationList?.find((q) => q.id === (response?.data?.qualification_id || response?.qualification_id))
+            ?.qualification_name || "",
+        current_status_id: response?.data?.current_status_id || response?.current_status_id,
         current_work:
-          currentstatusList?.find((c) => c.id === response.current_status_id)
+          currentstatusList?.find((c) => c.id === (response?.data?.current_status_id || response?.current_status_id))
             ?.current_status_name || "",
-        is_passed: response.is_passed,
-        status: response.status,
-        total_marks: response.total_marks,
-        obtained_marks: response.obtained_marks,
-        question_set_id: response.question_set_id,
-        exam_centre: response.exam_centre,
-        date_of_test: response.date_of_test,
-        communication_notes: response.communication_notes,
+        status: formData.status,
+        obtained_marks: formData.obtained_marks,
+        question_set_id: formData.question_set_id,
+        exam_centre: formData.exam_centre,
+        date_of_test: formData.date_of_test,
+        communication_notes: response?.data?.communication_notes || response?.communication_notes,
       };
 
       toast({
-        title: "Success! ",
+        title: "Success!",
         description: "Applicant created successfully",
       });
 
@@ -584,8 +505,6 @@ export function AddApplicantModal({
     const icons = {
       basic: User,
       screening: FileText,
-      interviews: MessageSquare,
-      final: Trophy,
     };
     return icons[tabValue as keyof typeof icons] || Circle;
   };
@@ -600,39 +519,22 @@ export function AddApplicantModal({
           formData.dob
         );
       case "screening":
-        return formData.stage !== "screening" || formData.status;
-      // case "interviews":
-      //   return formData.stage_id !== "interviews" || formData.interviews_status;
-      // case "final":
-      //   return formData.stage_id !== "decision" || formData.decision_status;
+        return !!formData.status;
       default:
         return false;
     }
   };
 
-  // Calculate the maximum date allowed
   const getMaxDOB = () => {
     const today = new Date();
-    today.setFullYear(today.getFullYear() - 16); // 16 years
-    today.setMonth(today.getMonth() - 6); // additional 0.5 year (6 months)
-    return today.toISOString().split("T")[0]; // format YYYY-MM-DD
+    today.setFullYear(today.getFullYear() - 16);
+    today.setMonth(today.getMonth() - 6);
+    return today.toISOString().split("T")[0];
   };
 
   const handleClose = () => {
     resetForm();
     onClose();
-  };
-
-  const getNextTab = () => {
-    const tabs = ["basic", "screening", "interviews", "final"];
-    const currentIndex = tabs.indexOf(activeTab);
-    return currentIndex < tabs.length - 1 ? tabs[currentIndex + 1] : null;
-  };
-
-  const getPreviousTab = () => {
-    const tabs = ["basic", "screening", "interviews", "final"];
-    const currentIndex = tabs.indexOf(activeTab);
-    return currentIndex > 0 ? tabs[currentIndex - 1] : null;
   };
 
   return (
@@ -643,7 +545,6 @@ export function AddApplicantModal({
             Add New Applicant
           </DialogTitle>
 
-          {/* Mobile-friendly progress indicator */}
           <div className="flex justify-center mt-3 sm:mt-4">
             <div className="flex item-center space-x-4 sm:space-x-6 justify-between">
               {["basic", "screening"].map((tab, index, arr) => {
@@ -684,14 +585,12 @@ export function AddApplicantModal({
           </div>
         </DialogHeader>
 
-        {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-0">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
             className="w-full"
           >
-            {/* Mobile-friendly tab list */}
             <TabsList className="flex w-full justify-between mb-4 sm:mb-8 h-auto">
               <TabsTrigger
                 value="basic"
@@ -707,20 +606,6 @@ export function AddApplicantModal({
                 <FileText className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Screening</span>
               </TabsTrigger>
-              {/* <TabsTrigger
-                value="interviews"
-                className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Interviews</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="final"
-                className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
-              >
-                <Trophy className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Final</span>
-              </TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="basic" className="space-y-4 sm:space-y-6">
@@ -741,7 +626,14 @@ export function AddApplicantModal({
                         handleInputChange("first_name", e.target.value)
                       }
                       placeholder="Enter first name"
+                      className={errors.first_name ? "border-red-500" : ""}
                     />
+                    {errors.first_name && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.first_name}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label
@@ -761,7 +653,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last_name" className="text-sm font-medium">
-                      Last Name *
+                      Last Name
                     </Label>
                     <Input
                       id="last_name"
@@ -831,7 +723,14 @@ export function AddApplicantModal({
                       value={formData.dob}
                       max={getMaxDOB()}
                       onChange={(e) => handleInputChange("dob", e.target.value)}
+                      className={errors.dob ? "border-red-500" : ""}
                     />
+                    {errors.dob && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.dob}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender" className="text-sm font-medium">
@@ -843,7 +742,7 @@ export function AddApplicantModal({
                         handleInputChange("gender", value)
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.gender ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -852,6 +751,12 @@ export function AddApplicantModal({
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.gender && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.gender}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -996,7 +901,6 @@ export function AddApplicantModal({
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {/* ---- Caste ---- */}
                   <div className="space-y-2">
                     <Label htmlFor="caste_id" className="text-sm font-medium">
                       Caste
@@ -1020,7 +924,6 @@ export function AddApplicantModal({
                     </Select>
                   </div>
 
-                  {/* ---- Qualification ---- */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="qualification_id"
@@ -1051,7 +954,6 @@ export function AddApplicantModal({
                     </Select>
                   </div>
 
-                  {/* ---- Current Work ---- */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="current_work"
@@ -1081,31 +983,6 @@ export function AddApplicantModal({
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* <div className="space-y-2">
-                    <Label htmlFor="school_id" className="text-sm font-medium">
-                      School
-                    </Label>
-                    <Select
-                      value={
-                        formData.school_id ? String(formData.school_id) : ""
-                      }
-                      onValueChange={(value) =>
-                        handleInputChange("school_id", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select school" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {schoolList?.map((q) => (
-                          <SelectItem key={q.id} value={String(q.id)}>
-                            {q.school_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div> */}
 
                   <div className="space-y-2">
                     <Label htmlFor="campus_id" className="text-sm font-medium">
@@ -1163,7 +1040,7 @@ export function AddApplicantModal({
 
                 <div className="space-y-2 mt-4">
                   <Label
-                    htmlFor="triptis_notes"
+                    htmlFor="communication_notes"
                     className="text-sm font-medium"
                   >
                     Communication Notes
@@ -1190,7 +1067,6 @@ export function AddApplicantModal({
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
-                  {/* Screening Status */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="screening_status"
@@ -1223,7 +1099,6 @@ export function AddApplicantModal({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {/* Question Set */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="question_set_id"
@@ -1254,7 +1129,6 @@ export function AddApplicantModal({
                     </Select>
                   </div>
 
-                  {/* Exam Centre */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="exam_centre"
@@ -1272,7 +1146,6 @@ export function AddApplicantModal({
                     />
                   </div>
 
-                  {/* Date of Test */}
                   <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                     <Label
                       htmlFor="date_of_test"
@@ -1290,7 +1163,6 @@ export function AddApplicantModal({
                     />
                   </div>
 
-                  {/* Total Marks */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="total_marks"
@@ -1306,17 +1178,15 @@ export function AddApplicantModal({
                         handleInputChange("total_marks", e.target.value)
                       }
                       placeholder="Enter total marks"
+                      disabled
                     />
                     {formData.question_set_id && (
                       <p className="text-xs text-gray-500">
-                        {questionSetList.find(
-                          (q) => q.id === Number(formData.question_set_id)
-                        )?.name || "Selected Question Set"}
+                        Auto-filled from selected question set
                       </p>
                     )}
                   </div>
 
-                  {/* Obtained Marks */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="obtained_marks"
@@ -1336,7 +1206,6 @@ export function AddApplicantModal({
                     />
                   </div>
 
-                  {/* Qualifying School */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="qualifying_school_id"
@@ -1366,42 +1235,18 @@ export function AddApplicantModal({
                       </SelectContent>
                     </Select>
                   </div>
-
-                  {/* Is Passed */}
-                  <div className="space-y-2">
-                    <Label htmlFor="is_passed" className="text-sm font-medium">
-                      Is Passed
-                    </Label>
-                    <Select
-                      value={formData.is_passed ? "true" : "false"}
-                      onValueChange={(value) =>
-                        handleInputChange("is_passed", value === "true")
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder="Select pass status"
-                          className="text-left"
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true">Yes</SelectItem>
-                        <SelectItem value="false">No</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </div>
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Fixed bottom buttons */}
         <div className="flex-shrink-0 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 p-4 sm:pt-4 border-t bg-white">
           <Button
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full sm:w-auto"
+            disabled={loading}
           >
             Cancel
           </Button>
@@ -1410,7 +1255,14 @@ export function AddApplicantModal({
             disabled={loading}
             className="w-full sm:w-auto"
           >
-            {loading ? "Saving..." : "Save Applicant"}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Applicant"
+            )}
           </Button>
         </div>
       </DialogContent>
