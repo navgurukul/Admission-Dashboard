@@ -16,6 +16,7 @@ import {
   getDistrictsByState,
   getBlocksByDistrict,
 } from "@/utils/api";
+import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
 interface State {
   id: string;
@@ -355,9 +356,31 @@ const StudentForm: React.FC = () => {
     return regex.test(email);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Show loading toast
+      toast({
+        title: content.verifying || "Verifying...",
+        description: content.verifyingMessage || "Please wait while we verify the image...",
+      });
+
+      // Verify if image contains human face
+      const isFaceDetected = await detectHumanFace(file);
+
+      if (!isFaceDetected) {
+        // Show error toast
+        toast({
+          variant: "destructive",
+          title: content.noFaceDetected || "No Face Detected",
+          description: content.noFaceMessage || "Please upload an image with a clear human face.",
+        });
+        // Clear the file input
+        e.target.value = "";
+        return;
+      }
+
+      // Face detected - proceed with upload
       const newFormData = {
         ...formData,
         profileImage: file,
@@ -369,6 +392,12 @@ const StudentForm: React.FC = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Show success toast
+      toast({
+        title: content.faceVerified || "Face Verified",
+        description: content.faceVerifiedMessage || "Image uploaded successfully!",
+      });
     }
   };
 
@@ -555,7 +584,12 @@ const StudentForm: React.FC = () => {
           enterEmail: "ईमेल पता दर्ज करें",
           cityExample: "उदा. मुंबई",
           pinCodeExample: "उदा. 400001",
-          loading: "लोड हो रहा है...",
+          verifying: "सत्यापन हो रहा है...",
+          verifyingMessage: "कृपया प्रतीक्षा करें जबकि हम छवि सत्यापित करते हैं...",
+          noFaceDetected: "कोई चेहरा नहीं मिला",
+          noFaceMessage: "कृपया स्पष्ट मानव चेहरे वाली छवि अपलोड करें।",
+          faceVerified: "चेहरा सत्यापित",
+          faceVerifiedMessage: "छवि सफलतापूर्वक अपलोड की गई!",
         };
 
       case "marathi":
@@ -601,7 +635,12 @@ const StudentForm: React.FC = () => {
           enterEmail: "ईमेल पत्ता प्रविष्ट करा",
           cityExample: "उदा. पुणे",
           pinCodeExample: "उदा. 411001",
-          loading: "लोड होत आहे...",
+          verifying: "पडताळणी करत आहे...",
+          verifyingMessage: "कृपया प्रतीक्षा करा जेव्हा आम्ही प्रतिमा सत्यापित करतो...",
+          noFaceDetected: "चेहरा सापडला नाही",
+          noFaceMessage: "कृपया स्पष्ट मानवी चेहऱ्याची प्रतिमा अपलोड करा.",
+          faceVerified: "चेहरा सत्यापित",
+          faceVerifiedMessage: "प्रतिमा यशस्वीरित्या अपलोड केली!",
         };
 
       default: // English
@@ -647,7 +686,12 @@ const StudentForm: React.FC = () => {
           enterEmail: "Enter email address",
           cityExample: "Ex. Bangalore",
           pinCodeExample: "Ex. 4402xx",
-          loading: "Loading...",
+          verifying: "Verifying...",
+          verifyingMessage: "Please wait while we verify the image...",
+          noFaceDetected: "No Face Detected",
+          noFaceMessage: "Please upload an image with a clear human face.",
+          faceVerified: "Face Verified",
+          faceVerifiedMessage: "Image uploaded successfully!",
         };
     }
   };
