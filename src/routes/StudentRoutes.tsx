@@ -80,17 +80,17 @@ const StudentRoutes: React.FC = () => {
       <Route
         path="offer-letter"
         element={
-          <StudentProtectedRoute>
+          // <StudentProtectedRoute>
             <OfferLetterPage />
-          </StudentProtectedRoute>
+          // </StudentProtectedRoute> 
         }
       />
       <Route
         path="whatsapp-redirect"
         element={
-          <StudentProtectedRoute>
+          // <StudentProtectedRoute>
             <WhatsAppRedirect />
-          </StudentProtectedRoute>
+          // </StudentProtectedRoute>
         }
       />
 
