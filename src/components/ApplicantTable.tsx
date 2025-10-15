@@ -52,6 +52,7 @@ const ApplicantTable = () => {
     null
   );
 
+
   // Option lists
   const [campusList, setCampusList] = useState<any[]>([]);
   const [schoolList, setSchoolsList] = useState<any[]>([]);
@@ -94,6 +95,7 @@ const ApplicantTable = () => {
   });
 
   const students = studentsData?.data || [];
+  console.log("Fetched students:", students);
   const totalStudents = studentsData?.totalCount || 0;
   const totalPages =
     studentsData?.totalPages ||
@@ -201,6 +203,7 @@ const ApplicantTable = () => {
   // Reset page when search term changes(its helpfull when seearch handle by backend API)
   // useEffect(() => setCurrentPage(1), [searchTerm]);
 
+
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
     setSelectedRows((prev) =>
@@ -281,38 +284,39 @@ const ApplicantTable = () => {
       "email",
       "phone_number",
       "whatsapp_number",
-      "image",
+  
 
       // Address Information
       "state",
       "district",
       "city",
+      "block",
       "pin_code",
 
       // Academic / School Information
       "school_medium",
-      "qualification_id",
-      "qualifying_school",
+      // "qualification_name",
+      // "qualifying_school",
 
       // Caste / Religion
-      "cast_id",
-      "religion_id",
+      "cast_name",
+      "religion_name",
 
       // Status Information
-      "current_status_id",
-      "lr_status",
-      "lr_comments",
-      "cfr_status",
-      "cfr_comments",
-      "decision_status",
-      "offer_letter_status",
-      "joining_status",
-      "status",
+      // "current_status_name",
+      // "lr_status",
+      // "lr_comments",
+      // "cfr_status",
+      // "cfr_comments",
+      // "decision_status",
+      // "offer_letter_status",
+      // "joining_status",
+
 
       // Additional Notes
-      "communication_notes",
-      "final_notes",
-      "is_passed",
+      // "communication_notes",
+      // "final_notes",
+  
     ];
 
     const csvContent = [
