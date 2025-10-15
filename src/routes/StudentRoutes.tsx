@@ -72,9 +72,9 @@ const StudentRoutes: React.FC = () => {
       <Route
         path="slot-booking/:id"
         element={
-          <StudentProtectedRoute>
+          // <StudentProtectedRoute>
             <SlotBooking />
-          </StudentProtectedRoute>
+          // </StudentProtectedRoute>
         }
       />
       <Route
