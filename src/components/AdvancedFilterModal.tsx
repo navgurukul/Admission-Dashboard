@@ -19,10 +19,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-
-// Import your state and city data here if you have separate files
-// import states from "./data/states";
-// import cities from "./data/cities";
+import {
+  getStatesList,
+  getDistrictsList,
+  getCampusesList,
+  getSchoolsList,
+  getReligionsList,
+  getStatusesList,
+  getPartnersFromStudents,
+  getDistrictsFromStudents,
+  getStatesFromStudents,
+  State,
+  District
+} from "@/utils/filterUtils";
 
 interface FilterState {
   stage: string;
@@ -75,130 +84,162 @@ export function AdvancedFilterModal({
   onApplyFilters,
   currentFilters,
   students,
-  campusList,
-  schoolList,
-  religionList,
-  currentstatusList,
+  campusList = [],
+  schoolList = [],
+  religionList = [],
+  currentstatusList = [],
 }: AdvancedFilterModalProps) {
-  const safeCampusList = Array.isArray(campusList) ? campusList : [];
-  const safeSchoolList = Array.isArray(schoolList) ? schoolList : [];
-  const safeReligionList = Array.isArray(religionList) ? religionList : [];
-  const safeCurrentStatusList = Array.isArray(currentstatusList) ? currentstatusList : [];
-
   const [filters, setFilters] = useState<FilterState>(currentFilters);
   const [availableOptions, setAvailableOptions] = useState({
     partners: [] as string[],
     districts: [] as string[],
+    schools: [] as any[],
+    religions: [] as any[],
+    currentStatuses: [] as any[],
+    campuses: [] as any[],
   });
 
-  const [availableStates, setAvailableStates] = useState<string[]>([]);
-  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [availableStates, setAvailableStates] = useState<State[]>([]);
+  const [availableDistricts, setAvailableDistricts] = useState<District[]>([]);
+  const [isLoading, setIsLoading] = useState({
+    states: false,
+    districts: false,
+    general: false
+  });
 
   const { toast } = useToast();
 
-  // Load states on component mount
+  // Load all filter data when modal opens
   useEffect(() => {
-    // If you have state data file, uncomment this:
-    // const stateNames = [...new Set(states.map((s) => s.state_name))].sort();
-    // setAvailableStates(stateNames);
-    
-    // For now, extract unique states from students data
-    const statesFromStudents = [
-      ...new Set(
-        students
-          .filter((s) => s?.state)
-          .map((s) => s.state)
-          .filter(Boolean)
-      ),
-    ].sort();
-    setAvailableStates(statesFromStudents as string[]);
-  }, [students]);
-
-  // Load modal data when open
-  useEffect(() => {
-    if (isOpen) {
+    const loadFilterData = async () => {
+      if (!isOpen) return;
+      
+      setIsLoading(prev => ({ ...prev, general: true }));
       setFilters(currentFilters);
 
-      // Extract partners from students
-      const partners = [
-        ...new Set(
-          students
-            .filter((s) => s?.partner)
-            .map((s) => s.partner)
-            .filter(Boolean)
-        ),
-      ];
+      try {
+        // Load data from APIs in parallel
+        const [
+          apiStates,
+          apiCampuses, 
+          apiSchools,
+          apiReligions,
+          apiStatuses
+        ] = await Promise.all([
+          getStatesList(),
+          getCampusesList(),
+          getSchoolsList(),
+          getReligionsList(),
+          getStatusesList()
+        ]);
 
-      // Extract districts from students
-      const districts = [
-        ...new Set(
-          students
-            .filter((s) => s?.district)
-            .map((s) => s.district)
-            .filter(Boolean)
-        ),
-      ];
+        // Extract data from students
+        const partnersFromStudents = getPartnersFromStudents(students);
+        const districtsFromStudents = getDistrictsFromStudents(students);
+        const statesFromStudents = getStatesFromStudents(students);
 
-      setAvailableOptions({
-        partners: partners as string[],
-        districts: districts as string[],
-      });
+        // console.log("📊 Student data extracted:", {
+        //   partners: partnersFromStudents.length,
+        //   districts: districtsFromStudents.length,
+        //   states: statesFromStudents.length
+        // });
 
-      // Load cities based on selected state
-      if (filters.state) {
-        // If you have city data file, uncomment this:
-        // const filteredCities = cities
-        //   .filter((c) => c.state_name === filters.state)
-        //   .map((c) => c.name);
-        // setAvailableCities([...new Set(filteredCities)].sort());
-        
-        // For now, extract cities from students for selected state
-        const citiesForState = [
-          ...new Set(
-            students
-              .filter((s) => s?.state === filters.state && s?.district)
-              .map((s) => s.district)
-              .filter(Boolean)
-          ),
-        ].sort();
-        setAvailableCities(citiesForState as string[]);
+        // Combine API states with states from students
+        const allStates = [...apiStates];
+        statesFromStudents.forEach(stateName => {
+          if (!allStates.find(s => s.name === stateName)) {
+            allStates.push({ id: stateName, name: stateName });
+          }
+        });
+
+        // Use provided lists or API data
+        const finalCampuses = campusList.length > 0 ? campusList : apiCampuses;
+        const finalSchools = schoolList.length > 0 ? schoolList : apiSchools;
+        const finalReligions = religionList.length > 0 ? religionList : apiReligions;
+        const finalStatuses = currentstatusList.length > 0 ? currentstatusList : apiStatuses;
+
+        setAvailableOptions({
+          partners: partnersFromStudents,
+          districts: districtsFromStudents,
+          schools: finalSchools,
+          religions: finalReligions,
+          currentStatuses: finalStatuses,
+          campuses: finalCampuses,
+        });
+
+        setAvailableStates(allStates);
+
+        // Load districts for current state if selected
+        if (currentFilters.state && currentFilters.state !== 'all') {
+          await handleStateChange(currentFilters.state, false);
+        }
+
+      } catch (error) {
+        // console.error(" Error loading filter data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load filter options",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(prev => ({ ...prev, general: false }));
       }
-    }
-  }, [isOpen, currentFilters, students, filters.state]);
+    };
 
-  const handleStateChange = (selectedState: string) => {
-    if (selectedState === "all") {
+    loadFilterData();
+  }, [isOpen, currentFilters, students, campusList, schoolList, religionList, currentstatusList]);
+
+  // State change handler
+  const handleStateChange = async (selectedState: string, updateFilters = true) => {
+    // console.log(" State Selected:", selectedState);
+    
+    if (updateFilters) {
       setFilters((prev) => ({
         ...prev,
-        state: undefined,
-        district: [],
+        state: selectedState === "all" ? undefined : selectedState,
+        district: [], // Reset district when state changes
       }));
-      setAvailableCities([]);
+    }
+
+    if (selectedState === "all") {
+      setAvailableDistricts([]);
       return;
     }
 
-    setFilters((prev) => ({
-      ...prev,
-      state: selectedState,
-      district: [],
-    }));
+    setIsLoading(prev => ({ ...prev, districts: true }));
 
-    // If you have city data file, uncomment this:
-    // const filteredCities = cities
-    //   .filter((c) => c.state_name === selectedState)
-    //   .map((c) => c.name);
-    // setAvailableCities([...new Set(filteredCities)].sort());
+    try {
+      // Find state code from available states
+      const stateObj = availableStates.find(s => s.name === selectedState);
+      const stateCode = stateObj?.state_code || stateObj?.id;
 
-    // For now, extract cities from students for selected state
-    const citiesForState = [
-      ...new Set(
-        students
-          .filter((s) => s?.state === selectedState && s?.district)
-          .map((s) => s.district)
-          .filter(Boolean)
-      ),
-    ].sort();
-    setAvailableCities(citiesForState as string[]);
+      let districts: District[] = [];
+      
+      if (stateCode && stateCode !== selectedState) {
+        // Get districts from API using state code
+        districts = await getDistrictsList(stateCode);
+      } else {
+        // Fallback: filter districts from students data
+        const studentDistricts = availableOptions.districts;
+        districts = studentDistricts.map(district => ({
+          id: district,
+          name: district
+        }));
+      }
+
+      // console.log(" Districts loaded:", {
+      //   state: selectedState,
+      //   stateCode,
+      //   districts: districts.length
+      // });
+
+      setAvailableDistricts(districts);
+    } catch (error) {
+      // console.error("Error loading districts:", error);
+      setAvailableDistricts([]);
+    } finally {
+      setIsLoading(prev => ({ ...prev, districts: false }));
+    }
   };
 
   const resetFilters = () => {
@@ -215,10 +256,11 @@ export function AdvancedFilterModal({
       state: undefined,
       dateRange: { type: "application" },
     });
-    setAvailableCities([]);
+    setAvailableDistricts([]);
   };
 
   const handleApplyFilters = () => {
+    // console.log(" Applying Filters:", filters);
     onApplyFilters(filters);
     onClose();
     toast({
@@ -232,6 +274,38 @@ export function AdvancedFilterModal({
       ? STAGE_STATUS_MAP[filters.stage as keyof typeof STAGE_STATUS_MAP] || []
       : [];
 
+  // Helper function to get display name
+  const getDisplayName = (item: any, nameKey: string = 'name', fallbackPrefix: string = 'Item') => {
+    if (!item) return `${fallbackPrefix}`;
+    if (typeof item === 'string') return item;
+    
+    const possibleKeys = [
+      nameKey, 'name', 'title', 'label', 
+      'school_name', 'religion_name', 'current_status_name',
+      'campus_name', 'partner_name', 'district_name'
+    ];
+    
+    for (const key of possibleKeys) {
+      if (item[key] && typeof item[key] === 'string') {
+        return item[key];
+      }
+    }
+    
+    return item.id ? `${fallbackPrefix} ${item.id}` : `${fallbackPrefix}`;
+  };
+
+  // Helper function to get value
+  const getValue = (item: any, valueKey: string = 'id') => {
+    if (!item) return '';
+    if (typeof item === 'string') return item;
+    
+    if (item[valueKey]) return String(item[valueKey]);
+    if (item.id) return String(item.id);
+    if (item.value) return String(item.value);
+    
+    return String(item);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
@@ -239,13 +313,13 @@ export function AdvancedFilterModal({
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Filter className="w-5 h-5" />
             Advanced Filters
+            {isLoading.general && <span className="text-sm text-muted-foreground">(Loading...)</span>}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Stage & Status & Modes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-            {/* Stage */}
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Stage</h3>
               <Select
@@ -332,31 +406,31 @@ export function AdvancedFilterModal({
 
           {/* Location Filters - State, District, Partner, Campus */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-            {/* State */}
             <div>
               <h3 className="font-semibold text-sm mb-2">State</h3>
               <Select
                 value={filters.state || "all"}
                 onValueChange={handleStateChange}
+                disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select State" />
+                  <SelectValue placeholder="Select State">
+                    {filters.state || "All States"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All States</SelectItem>
-                  {availableStates.length > 0 ? (
-                    availableStates.map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-data" disabled>
-                      No states available
+                  {availableStates.map((state) => (
+                    <SelectItem key={state.id} value={state.name}>
+                      {state.name}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableStates.length} states available */}
+                {isLoading.general && " - Loading..."}
+              </p>
             </div>
 
             {/* District / City */}
@@ -370,25 +444,29 @@ export function AdvancedFilterModal({
                     district: value === "all" ? [] : [value],
                   }))
                 }
+                disabled={!filters.state || filters.state === 'all' || isLoading.districts}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select City" />
+                  <SelectValue placeholder={
+                    !filters.state || filters.state === 'all' 
+                      ? "Select state first" 
+                      : isLoading.districts ? "Loading districts..." : "Select district"
+                  } />
                 </SelectTrigger>
                 <SelectContent className="z-50">
-                  <SelectItem value="all">All Cities</SelectItem>
-                  {availableCities.length > 0 ? (
-                    availableCities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {city}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-data" disabled>
-                      {filters.state ? "No cities available" : "Select a state first"}
+                  <SelectItem value="all">All Districts</SelectItem>
+                  {availableDistricts.map((district) => (
+                    <SelectItem key={district.id} value={district.name}>
+                      {district.name}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableDistricts.length} districts available */}
+                {"Select state first"}
+                {isLoading.districts && " - Loading..."}
+              </p>
             </div>
 
             {/* Partner */}
@@ -402,36 +480,30 @@ export function AdvancedFilterModal({
                     partner: value === "all" ? [] : [value],
                   }))
                 }
+                disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select partner" />
+                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select partner"} />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Partners</SelectItem>
-                  {availableOptions.partners.length > 0 ? (
-                    availableOptions.partners.map((partner) => (
-                      <SelectItem key={partner} value={partner}>
-                        {partner}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-data" disabled>
-                      No partners available
+                  {availableOptions.partners.map((partner) => (
+                    <SelectItem key={partner} value={partner}>
+                      {partner}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {availableOptions.partners.length} partners available
+              </p>
             </div>
 
             {/* Campus */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Campus</h3>
               <Select
-                value={
-                  filters.partner && filters.partner.length > 1
-                    ? filters.partner[1]
-                    : "all"
-                }
+                value={filters.partner?.[1] || "all"}
                 onValueChange={(value) => {
                   if (value === "all") {
                     setFilters((prev) => ({
@@ -441,36 +513,30 @@ export function AdvancedFilterModal({
                   } else {
                     setFilters((prev) => ({
                       ...prev,
-                      partner:
-                        prev.partner.length > 0
-                          ? [prev.partner[0], value]
-                          : ["", value],
+                      partner: prev.partner.length > 0 ? [prev.partner[0], value] : [value],
                     }));
                   }
                 }}
+                disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select campus" />
+                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select campus"} />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Campuses</SelectItem>
-                  {safeCampusList.length > 0 ? (
-                    safeCampusList.map((campus) => (
-                      <SelectItem key={campus.id} value={String(campus.id)}>
-                        {campus.campus_name || `Campus ${campus.id}`}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-data" disabled>
-                      No campuses available
+                  {availableOptions.campuses.map((campus) => (
+                    <SelectItem key={getValue(campus)} value={getValue(campus)}>
+                      {getDisplayName(campus, 'campus_name', 'Campus')}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.campuses.length} campuses available */}
+              </p>
             </div>
           </div>
 
-          {/* Education & Demographics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
             {/* School */}
             <div>
@@ -483,25 +549,23 @@ export function AdvancedFilterModal({
                     school: value === "all" ? [] : [value],
                   }))
                 }
+                disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select school" />
+                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select school"} />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Schools</SelectItem>
-                  {safeSchoolList.length > 0 ? (
-                    safeSchoolList.map((school) => (
-                      <SelectItem key={school.id} value={String(school.id)}>
-                        {school.school_name || `School ${school.id}`}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-data" disabled>
-                      No schools available
+                  {availableOptions.schools.map((school) => (
+                    <SelectItem key={getValue(school)} value={getValue(school)}>
+                      {getDisplayName(school, 'school_name', 'School')}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.schools.length} schools available */}
+              </p>
             </div>
 
             {/* Religion */}
@@ -515,25 +579,23 @@ export function AdvancedFilterModal({
                     religion: value === "all" ? [] : [value],
                   }))
                 }
+                disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select religion" />
+                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select religion"} />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Religions</SelectItem>
-                  {safeReligionList.length > 0 ? (
-                    safeReligionList.map((religion) => (
-                      <SelectItem key={religion.id} value={String(religion.id)}>
-                        {religion.religion_name || `Religion ${religion.id}`}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-data" disabled>
-                      No religions available
+                  {availableOptions.religions.map((religion) => (
+                    <SelectItem key={getValue(religion)} value={getValue(religion)}>
+                      {getDisplayName(religion, 'religion_name', 'Religion')}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.religions.length} religions available */}
+              </p>
             </div>
 
             {/* Current Status */}
@@ -547,25 +609,23 @@ export function AdvancedFilterModal({
                     currentStatus: value === "all" ? [] : [value],
                   }))
                 }
+                disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select status"} />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Statuses</SelectItem>
-                  {safeCurrentStatusList.length > 0 ? (
-                    safeCurrentStatusList.map((status) => (
-                      <SelectItem key={status.id} value={String(status.id)}>
-                        {status.current_status_name || `Status ${status.id}`}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-data" disabled>
-                      No statuses available
+                  {availableOptions.currentStatuses.map((status) => (
+                    <SelectItem key={getValue(status)} value={getValue(status)}>
+                      {getDisplayName(status, 'current_status_name', 'Status')}
                     </SelectItem>
-                  )}
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.currentStatuses.length} statuses available */}
+              </p>
             </div>
           </div>
 
@@ -654,17 +714,18 @@ export function AdvancedFilterModal({
 
         {/* Bottom actions */}
         <div className="flex justify-between pt-4 border-t mt-4">
-          <Button variant="outline" onClick={resetFilters} size="sm">
+          <Button variant="outline" onClick={resetFilters} size="sm" disabled={isLoading.general}>
             Reset All
           </Button>
           <div className="space-x-2">
-            <Button variant="outline" onClick={onClose} size="sm">
+            <Button variant="outline" onClick={onClose} size="sm" disabled={isLoading.general}>
               Cancel
             </Button>
             <Button
               onClick={handleApplyFilters}
               size="sm"
               className="bg-primary text-primary-foreground"
+              disabled={isLoading.general}
             >
               Apply Filters
             </Button>

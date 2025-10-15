@@ -356,15 +356,15 @@ const ApplicantTable = () => {
     <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
-           <div className="flex flex-col mr-10">
+          <div className="flex flex-col mr-10">
             <CardTitle>Applicants</CardTitle>
-           <CardDescription className="text-sm text-muted-foreground">
+            <CardDescription className="text-sm text-muted-foreground">
               {searchTerm
                 ? `${filteredApplicants.length} applicants found (filtered)`
                 : `${totalStudents} total applicants`}
             </CardDescription>
           </div>
-         <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+          <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
             <BulkActions
               selectedRowsCount={selectedRows.length}
               onBulkUpdate={() => setShowBulkUpdate(true)}
@@ -536,6 +536,10 @@ const ApplicantTable = () => {
         onApplyFilters={handleApplyFilters}
         currentFilters={filters}
         students={students}
+        campusList={campusList}
+        schoolList={schoolList}
+        religionList={religionList}
+        currentstatusList={currentstatusList}
       />
       <BulkUpdateModal
         isOpen={showBulkUpdate}
