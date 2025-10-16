@@ -91,7 +91,7 @@ export const ApplicantTableRow = ({
             field="first_name"
             displayValue={fullName}
             onUpdate={onUpdate}
-            showPencil={true}
+            disabled={true}
           />
         </div>
       </TableCell>
