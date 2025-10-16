@@ -927,7 +927,6 @@ export function ApplicantModal({
                       />
                     )}
                     onUpdate={async (value) => {
-                      if (!currentApplicant?.final_decisions?.[0]) return;
                       await handleFinalDecisionUpdate("final_notes", value);
                     }}
                   />
