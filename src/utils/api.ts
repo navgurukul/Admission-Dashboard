@@ -1404,3 +1404,54 @@ export const getBlocksByDistrict = async (districtCode: string) => {
   }
 };
 
+// Get all stages
+export const getStagesApi = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/stages/getStages`, {
+      method: "GET",
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch stages");
+    const data = await response.json();
+
+    // Handle possible nested response formats
+    if (data?.data && Array.isArray(data.data)) {
+      return data.data;
+    } else if (Array.isArray(data)) {
+      return data;
+    } else if (data?.stages && Array.isArray(data.stages)) {
+      return data.stages;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Error fetching stages:", error);
+    throw error;
+  }
+};
+
+// Get statuses by stage ID
+export const getStatusesByStageId = async (stageId: number | string) => {
+  try {
+    const response = await fetch(`${BASE_URL}/stages/statuses/${stageId}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) throw new Error(`Failed to fetch statuses for stage ${stageId}`);
+    const data = await response.json();
+
+    // Handle common response shapes
+    if (data?.data && Array.isArray(data.data)) {
+      return data.data;
+    } else if (Array.isArray(data)) {
+      return data;
+    } else if (data?.statuses && Array.isArray(data.statuses)) {
+      return data.statuses;
+    } else {
+      return [];
+    }
+  } catch (error) {
+    console.error("Error fetching statuses:", error);
+    throw error;
+  }
+};
