@@ -434,6 +434,20 @@ export const submitFinalDecision = async (payload: any) => {
 
 
 
+// Slot booking for students side
+export const createStudentSlotBooking = async (payload: any) => {
+  console.log("payload",payload)
+  return fetch(
+  
+    `${BASE_URL}/book-slot`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+};
+
 // Updated logout function
 export const logoutUser = () => {
   localStorage.removeItem('authToken');
