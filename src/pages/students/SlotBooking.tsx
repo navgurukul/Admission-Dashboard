@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, Clock, User, CheckCircle, XCircle, Loader2, Video } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  User,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Video,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTests } from "../../utils/TestContext";
 import { useStudent } from "../../utils/StudentContext";
@@ -11,6 +19,7 @@ import {
   deleteCalendarEvent,
   formatDateTimeForCalendar,
 } from "../../utils/googleCalendar";
+import { createStudentSlotBooking } from "@/utils/api";
 
 // ================== Types ==================
 interface TimeSlot {
@@ -48,7 +57,7 @@ const SlotBooking: React.FC = () => {
     lastName: "Student",
     email: "test@example.com",
     whatsappNumber: "1234567890",
-    city: "Test City"
+    city: "Test City",
   };
 
   const dummyTest = {
@@ -57,7 +66,7 @@ const SlotBooking: React.FC = () => {
     status: "Pending" as const,
     action: "slot-book",
     score: null,
-    slotBooking: { status: "Pending" as const }
+    slotBooking: { status: "Pending" as const },
   };
 
   const test = tests.find((t) => t.id === testId) || dummyTest;
@@ -85,8 +94,9 @@ const SlotBooking: React.FC = () => {
   const [timings, setTimings] = useState<TimeSlot[]>(defaultTimings);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
-  const [notificationType, setNotificationType] =
-    useState<"success" | "error" | "info">("success");
+  const [notificationType, setNotificationType] = useState<
+    "success" | "error" | "info"
+  >("success");
   const [isGoogleSignedIn, setIsGoogleSignedIn] = useState(false);
   const [isBookingInProgress, setIsBookingInProgress] = useState(false);
   const [showSignInHelper, setShowSignInHelper] = useState(false);
@@ -132,7 +142,10 @@ const SlotBooking: React.FC = () => {
       setShowSignInHelper(true);
 
       if (!isSignedIn()) {
-        showNotificationMessage("Opening Google Sign-in popup... Please allow popups if blocked.", "info");
+        showNotificationMessage(
+          "Opening Google Sign-in popup... Please allow popups if blocked.",
+          "info"
+        );
         await signIn();
         setIsGoogleSignedIn(true);
         setShowSignInHelper(false);
@@ -147,9 +160,11 @@ const SlotBooking: React.FC = () => {
       let errorMessage = "Failed to sign in with Google. Please try again.";
 
       if (error.message && error.message.includes("popup")) {
-        errorMessage = "Sign-in popup was closed. Please click the button again and complete the sign-in.";
+        errorMessage =
+          "Sign-in popup was closed. Please click the button again and complete the sign-in.";
       } else if (error.message && error.message.includes("access_denied")) {
-        errorMessage = "Access denied. Please grant calendar permissions to continue.";
+        errorMessage =
+          "Access denied. Please grant calendar permissions to continue.";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -208,8 +223,8 @@ const SlotBooking: React.FC = () => {
         ...slot,
         is_cancelled: false,
         on_date: formatDate(selectedDate),
-        start_time: slot.from,
-        end_time_expected: slot.to,
+        start_time: slot.from ?? "",
+        end_time_expected: slot.to ?? "",
         student_name: `${currentStudent.firstName} ${currentStudent.lastName}`,
         topic_name: test.name,
       };
@@ -229,12 +244,78 @@ const SlotBooking: React.FC = () => {
       updateSlot(testId, {
         status: "Booked",
         scheduledTime: `${bookedSlot.on_date} ${bookedSlot.start_time}`,
+        calendar_event_id: bookedSlot.calendar_event_id,
+        meet_link: bookedSlot.meet_link,
       });
 
-      showNotificationMessage("Slot Booked & Meet Scheduled Successfully!", "success");
+      // Build payload for backend booking API
+      try {
+        const studentIdNum =
+          (currentStudent as any)?.id ||
+          (localStorage.getItem("studentId")
+            ? Number(localStorage.getItem("studentId"))
+            : undefined);
+
+        const startISO = new Date(
+          `${bookedSlot.on_date}T${bookedSlot.start_time}+05:30`
+        ).toISOString();
+        const endISO = new Date(
+          `${bookedSlot.on_date}T${bookedSlot.end_time_expected}+05:30`
+        ).toISOString();
+
+        const backendPayload = {
+          student_id: 105,
+          admin_id: 1,
+          title: `${bookedSlot.topic_name} - Interview`,
+          description: `Interview scheduled for ${bookedSlot.student_name}. Topic: ${bookedSlot.topic_name}`,
+          start_time: startISO,
+          end_time: endISO,
+          status: "scheduled",
+          meeting_link: bookedSlot.meet_link,
+          google_event_id: bookedSlot.calendar_event_id,
+          created_by: "admin",
+        };
+
+        // Call backend API to persist slot
+        showNotificationMessage("Saving slot to server...", "info");
+        const res = await createStudentSlotBooking(backendPayload);
+        // Optionally: check response for success and returned id
+        showNotificationMessage("Slot Booked & Saved Successfully!", "success");
+
+        // If backend returned an id or updated data, update local slot / context
+        try {
+          const resJson = (await (res as any).json?.()) ?? res;
+          if (resJson && (resJson.id || resJson.data)) {
+            const returned = resJson.data ?? resJson;
+            // merge any returned fields
+            const merged = { ...bookedSlot, ...returned };
+            setSlot(merged);
+            localStorage.setItem(
+              `bookedSlot_${testId}`,
+              JSON.stringify(merged)
+            );
+            updateSlot(testId, {
+              status: "Booked",
+              scheduledTime: `${merged.on_date} ${merged.start_time}`,
+            });
+          }
+        } catch {
+          // ignore JSON parsing issues
+        }
+      } catch (backendError: any) {
+        console.error("Backend slot booking failed:", backendError);
+        showNotificationMessage(
+          "Slot was created in Google Calendar but saving to server failed.",
+          "error"
+        );
+        // still keep local calendar booking information
+      }
     } catch (error) {
       console.error("Booking error:", error);
-      showNotificationMessage("Failed to book slot. Please try again.", "error");
+      showNotificationMessage(
+        "Failed to book slot. Please try again.",
+        "error"
+      );
     } finally {
       setIsBookingInProgress(false);
     }
@@ -292,7 +373,9 @@ const SlotBooking: React.FC = () => {
         setTimings(defaultTimings);
       } catch (error: any) {
         console.error("Initialization error:", error);
-        const errorMessage = error.message || "Failed to initialize Google Calendar. Please check console for details.";
+        const errorMessage =
+          error.message ||
+          "Failed to initialize Google Calendar. Please check console for details.";
         showNotificationMessage(errorMessage, "error");
       } finally {
         setLoading(false);
@@ -301,7 +384,8 @@ const SlotBooking: React.FC = () => {
 
     initialize();
     window.addEventListener("storage", loadSlotFromLocalStorage);
-    return () => window.removeEventListener("storage", loadSlotFromLocalStorage);
+    return () =>
+      window.removeEventListener("storage", loadSlotFromLocalStorage);
     // eslint-disable-next-line
   }, [testId]);
 
@@ -322,9 +406,7 @@ const SlotBooking: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Cannot Book Slot
           </h2>
-          <p className="text-gray-600">
-            Student or test data not found.
-          </p>
+          <p className="text-gray-600">Student or test data not found.</p>
         </div>
       </div>
     );
@@ -345,7 +427,9 @@ const SlotBooking: React.FC = () => {
           } text-white`}
         >
           <div className="flex items-center space-x-2">
-            {notificationType === "success" && <CheckCircle className="w-5 h-5" />}
+            {notificationType === "success" && (
+              <CheckCircle className="w-5 h-5" />
+            )}
             {notificationType === "error" && <XCircle className="w-5 h-5" />}
             {notificationType === "info" && <Calendar className="w-5 h-5" />}
             <span>{notificationMessage}</span>
@@ -369,7 +453,8 @@ const SlotBooking: React.FC = () => {
               </p>
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-gray-700">
-                  <strong>Popup blocked?</strong><br />
+                  <strong>Popup blocked?</strong>
+                  <br />
                   Please allow popups for this site and try again.
                 </p>
               </div>
@@ -391,7 +476,8 @@ const SlotBooking: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5" />
                 <span className="text-lg">
-                  Book Interview Slot for {currentStudent.firstName} {currentStudent.lastName}
+                  Book Interview Slot for {currentStudent.firstName}{" "}
+                  {currentStudent.lastName}
                 </span>
               </div>
             </div>
@@ -409,7 +495,9 @@ const SlotBooking: React.FC = () => {
                     value={formatDate(selectedDate)}
                     onChange={(e) => setSelectedDate(new Date(e.target.value))}
                     min={formatDate(new Date())}
-                    max={formatDate(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000))}
+                    max={formatDate(
+                      new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
+                    )}
                     className="w-full p-3 border border-gray-300 rounded-lg"
                   />
                   <div className="bg-orange-50 p-3 rounded-lg">
@@ -431,7 +519,9 @@ const SlotBooking: React.FC = () => {
                   {timings.map(({ id, from, to }) => (
                     <button
                       key={id}
-                      onClick={() => setSlot({ id, from, to, is_cancelled: true })}
+                      onClick={() =>
+                        setSlot({ id, from, to, is_cancelled: true })
+                      }
                       className={`p-4 rounded-lg border-2 transition-all ${
                         slot.id === id
                           ? "border-orange-500 bg-orange-50"
@@ -454,10 +544,12 @@ const SlotBooking: React.FC = () => {
                         Google Meet Setup Required
                       </h4>
                       <p className="text-sm text-blue-700 mb-2">
-                        You'll need to sign in with Google to automatically create a Meet link for your interview.
+                        You'll need to sign in with Google to automatically
+                        create a Meet link for your interview.
                       </p>
                       <p className="text-xs text-blue-600">
-                        ℹ️ A popup will open for sign-in when you click "Book Slot"
+                        ℹ️ A popup will open for sign-in when you click "Book
+                        Slot"
                       </p>
                     </div>
                   </div>
@@ -469,7 +561,8 @@ const SlotBooking: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     <p className="text-sm text-green-700">
-                      ✓ Google account connected. Meet link will be created automatically.
+                      ✓ Google account connected. Meet link will be created
+                      automatically.
                     </p>
                   </div>
                 </div>
