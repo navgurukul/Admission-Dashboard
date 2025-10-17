@@ -216,7 +216,6 @@ export function BulkUpdateModal({
       updateData.state === "no_change" &&
       updateData.district === "no_change" &&
       updateData.block === "no_change" &&
-      !updateData.city &&
       updateData.castId === "no_change" &&
       updateData.qualificationId === "no_change" &&
       updateData.currentWorkId === "no_change" &&
@@ -249,7 +248,7 @@ export function BulkUpdateModal({
     if (updateData.state !== "no_change") studentFields.state = updateData.state;
     if (updateData.district !== "no_change") studentFields.district = updateData.district;
     if (updateData.block !== "no_change") studentFields.block = updateData.block;
-    if (updateData.city) studentFields.city = updateData.city;
+ ;
 
     // Final decision fields (separate API)
     const finalDecisionFields: Record<string, any> = {};
@@ -419,6 +418,9 @@ export function BulkUpdateModal({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Changing state will reset district and block selections.
+              </p>
             </div>
 
             <div>
@@ -440,6 +442,9 @@ export function BulkUpdateModal({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Changing district will reset the block selection.
+              </p>
             </div>
 
             <div>
@@ -463,18 +468,12 @@ export function BulkUpdateModal({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Block options depend on the selected district.
+              </p>
             </div>
 
-            <div>
-              <Label>City</Label>
-              <Input
-                value={updateData.city}
-                onChange={(e: any) =>
-                  setUpdateData((prev) => ({ ...prev, city: e.target.value }))
-                }
-                placeholder="Leave empty to keep unchanged"
-              />
-            </div>
+            
           </div>
 
           {/* ---------- New: Personal fields (Caste / Qualification / Current Work) ---------- */}
@@ -642,7 +641,7 @@ export function BulkUpdateModal({
                   if (updateData.block !== "no_change") {
                     parts.push(`Block: ${blockOptions.find(b => b.value === updateData.block)?.label || updateData.block}`);
                   }
-                  if (updateData.city) parts.push(`City: ${updateData.city}`);
+         
                   if (updateData.offerLetterStatus !== "no_change") parts.push(`Offer: ${updateData.offerLetterStatus}`);
                   if (updateData.onboardedStatus !== "no_change") parts.push(`Onboarded: ${updateData.onboardedStatus}`);
                   if (updateData.joiningDate) parts.push(`Joining: ${updateData.joiningDate}`);
@@ -668,7 +667,7 @@ export function BulkUpdateModal({
                   updateData.state === "no_change" &&
                   updateData.district === "no_change" &&
                   updateData.block === "no_change" &&
-                  !updateData.city &&
+            
                   (updateData as any).castId === "no_change" &&
                   (updateData as any).qualificationId === "no_change" &&
                   (updateData as any).currentWorkId === "no_change" &&

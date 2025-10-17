@@ -421,7 +421,6 @@ const StudentForm: React.FC = () => {
       formData.gender &&
       formData.stateCode &&
       formData.districtCode &&
-      formData.city &&
       formData.pinCode &&
       formData.currentStatus &&
       formData.maximumQualification &&
@@ -478,7 +477,6 @@ const StudentForm: React.FC = () => {
     if (
       !formData.stateCode ||
       !formData.districtCode ||
-      !formData.city ||
       !formData.pinCode
     ) {
       return toast({
@@ -662,7 +660,6 @@ const StudentForm: React.FC = () => {
           state: "Select State *",
           district: "Select District *",
           block: "Select Block",
-          city: "City *",
           pinCode: "Pin Code *",
           currentStatus: "Current Status *",
           maximumQualification: "Maximum Qualification *",
@@ -1027,25 +1024,8 @@ const StudentForm: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* City and Pin Code */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.city}
-              </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="Enter city"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                {content.cityExample}
-              </p>
-            </div> */}
+        
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.pinCode}
