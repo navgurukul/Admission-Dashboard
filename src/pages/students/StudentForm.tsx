@@ -1030,7 +1030,7 @@ const StudentForm: React.FC = () => {
 
           {/* City and Pin Code */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.city}
               </label>
@@ -1045,7 +1045,7 @@ const StudentForm: React.FC = () => {
               <p className="text-xs text-gray-500 mt-1">
                 {content.cityExample}
               </p>
-            </div>
+            </div> */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.pinCode}

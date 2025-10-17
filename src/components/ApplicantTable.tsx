@@ -427,9 +427,9 @@ const ApplicantTable = () => {
                   <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
                     Gender
                   </TableHead>
-                  <TableHead className="font-bold min-w-[90px] max-w-[120px] px-3">
+                  {/* <TableHead className="font-bold min-w-[90px] max-w-[120px] px-3">
                     City
-                  </TableHead>
+                  </TableHead> */}
                   {/* <TableHead className="font-bold min-w-[100px] max-w-[140px] px-3">
                     State
                   </TableHead> */}
