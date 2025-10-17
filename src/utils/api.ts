@@ -435,6 +435,8 @@ export const submitFinalDecision = async (payload: any) => {
 
 
 // Slot booking for students side
+
+// creation 
 export const createStudentSlotBooking = async (payload: any) => {
   console.log("payload",payload)
   return fetch(
@@ -447,6 +449,54 @@ export const createStudentSlotBooking = async (payload: any) => {
     }
   );
 };
+
+// For creating single and multiple slots.
+export const createSlotBookingTimes = async (payload: any) => {
+  console.log("payload",payload)
+  return fetch(
+  
+    `${BASE_URL}/slots/createSlots`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
+};
+
+// get Slot Booking by user id
+export const getSlotByUserId = async (user_id: number): Promise<Role> => {
+  const response = await fetch(`${BASE_URL}/slots/${user_id}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch slot');
+  }
+
+  return data;
+};
+
+//  For getting the slots data by date:
+export const getSlotByDate = async (date: string): Promise<Role> => {
+  const response = await fetch(`${BASE_URL}/date/?date=${date}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch slot');
+  }
+
+  return data;
+};
+
+
 
 // Updated logout function
 export const logoutUser = () => {

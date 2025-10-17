@@ -828,7 +828,7 @@ export function AddApplicantModal({
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="city" className="text-sm font-medium">
                       City
                     </Label>
@@ -840,7 +840,7 @@ export function AddApplicantModal({
                       }
                       placeholder="Enter city"
                     />
-                  </div>
+                  </div> */}
                   <div className="space-y-2">
                     <Label htmlFor="block" className="text-sm font-medium">
                       Block

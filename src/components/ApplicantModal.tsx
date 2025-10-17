@@ -673,7 +673,7 @@ export function ApplicantModal({
                     options={stateOptions}
                   />
                 </div>
-                <div>
+                {/* <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     City
                   </label>
@@ -683,7 +683,7 @@ export function ApplicantModal({
                     displayValue={currentApplicant.city || "Not provided"}
                     onUpdate={handleUpdate}
                   />
-                </div>
+                </div> */}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     District

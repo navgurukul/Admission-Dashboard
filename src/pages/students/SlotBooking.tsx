@@ -342,7 +342,7 @@ const SlotBooking: React.FC = () => {
     }
   };
 
-  const handleNavigationOnStudentPage = () => navigate("/students/result");
+  const handleNavigationOnStudentPage = () => navigate("/students/final-result");
 
   const loadSlotFromLocalStorage = () => {
     const storedSlot = localStorage.getItem(`bookedSlot_${testId}`);
