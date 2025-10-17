@@ -146,7 +146,7 @@ export const ApplicantTableRow = ({
       </TableCell>
 
       {/* City - Simple text field */}
-      <TableCell className="min-w-[90px] max-w-[120px] px-2">
+      {/* <TableCell className="min-w-[90px] max-w-[120px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
@@ -157,7 +157,7 @@ export const ApplicantTableRow = ({
             showActionButtons={false}
           />
         </div>
-      </TableCell>
+      </TableCell> */}
 
       {/* State - Simple text field */}
       {/* <TableCell className="min-w-[100px] max-w-[140px] px-2">
