@@ -678,8 +678,8 @@ export const getAllReligions = async (): Promise<Religion[]> => {
   } else if (Array.isArray(data)) {
     return data;
   } else {
-    console.error('Unexpected API response format:', data);
-    console.error('Data structure:', JSON.stringify(data, null, 2));
+    // console.error('Unexpected API response format:', data);
+    // console.error('Data structure:', JSON.stringify(data, null, 2));
     return [];
   }
 };
