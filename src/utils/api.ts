@@ -1519,3 +1519,29 @@ export const getStatusesByStageId = async (stageId: number | string) => {
     throw error;
   }
 };
+
+export const searchStudentsApi = async (searchTerm: string): Promise<any> => {
+  const response = await fetch(
+    `${BASE_URL}/students/search?search=${encodeURIComponent(searchTerm)}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to search students");
+  }
+
+  // Handle flexible response shapes (array or nested data)
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else {
+    console.error("Unexpected search API response:", data);
+    return [];
+  }
+};

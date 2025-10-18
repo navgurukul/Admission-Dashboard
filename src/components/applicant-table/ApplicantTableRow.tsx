@@ -126,13 +126,28 @@ export const ApplicantTableRow = ({
         </div>
       </TableCell>
 
+      <TableCell className="min-w-[120px] max-w-[220px] px-2">
+        <div className="truncate">
+          <EditableCell
+            applicant={applicant}
+            field="email"
+            displayValue={
+              applicant.email || "No Email"
+            }
+            onUpdate={onUpdate}
+            showPencil={true}
+            showActionButtons={false}
+          />
+        </div>
+      </TableCell>
+
       {/* Gender - Simple text field */}
       <TableCell className="min-w-[80px] max-w-[100px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
             field="gender"
-            displayValue={applicant.gender || "Not specified"}
+            displayValue={applicant.gender || "No Set"}
             options={[
               { id: "male", name: "Male" },
               { id: "female", name: "Female" },

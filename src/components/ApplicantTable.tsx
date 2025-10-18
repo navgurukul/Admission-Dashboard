@@ -37,6 +37,7 @@ import {
   deleteStudent,
   getAllReligions,
   getAllQuestionSets,
+  searchStudentsApi,
 } from "@/utils/api";
 
 const ApplicantTable = () => {
@@ -52,7 +53,6 @@ const ApplicantTable = () => {
     null
   );
 
-
   // Option lists
   const [campusList, setCampusList] = useState<any[]>([]);
   const [schoolList, setSchoolsList] = useState<any[]>([]);
@@ -60,6 +60,8 @@ const ApplicantTable = () => {
   const [stageList, setStageList] = useState<any[]>([]);
   const [religionList, setReligionList] = useState<any[]>([]);
   const [questionSetList, setQuestionSetList] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Search & filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -95,7 +97,6 @@ const ApplicantTable = () => {
   });
 
   const students = studentsData?.data || [];
-  console.log("Fetched students:", students);
   const totalStudents = studentsData?.totalCount || 0;
   const totalPages =
     studentsData?.totalPages ||
@@ -114,7 +115,7 @@ const ApplicantTable = () => {
         setSchoolsList(schools || []);
         setReligionList(religions || []);
       } catch (error) {
-        console.error("Failed to fetch campuses/schools:", error);
+        // console.error("Failed to fetch campuses/schools:", error);
       }
     };
     fetchOptions();
@@ -130,7 +131,7 @@ const ApplicantTable = () => {
         setStageList(stages || []);
         setcurrentstatusList(statuses || []);
       } catch (error) {
-        console.error("Failed to fetch stages/statuses:", error);
+        // console.error("Failed to fetch stages/statuses:", error);
       }
     };
     fetchOptions();
@@ -142,7 +143,7 @@ const ApplicantTable = () => {
         const response = await getAllQuestionSets();
         setQuestionSetList(response || []);
       } catch (error) {
-        console.error("Error fetching question sets:", error);
+        // console.error("Error fetching question sets:", error);
       }
     };
     fetchQuestionSets();
@@ -186,23 +187,73 @@ const ApplicantTable = () => {
     questionSetList,
   ]);
 
-  // Filter applicants by search
-  const filteredApplicants = useMemo(() => {
-    if (!applicantsToDisplay) return [];
-    if (!searchTerm) return applicantsToDisplay;
+  useEffect(() => {
+    const delayDebounce = setTimeout(async () => {
+      if (!searchTerm.trim()) {
+        setSearchResults([]);
+        return;
+      }
+      try {
+        setIsSearching(true);
+        const results = await searchStudentsApi(searchTerm.trim());
+        setSearchResults(results || []);
+      } catch (error) {
+        toast({
+          title: "Search Error",
+          description: "Unable to fetch search results.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
 
-    const searchRegex = new RegExp(searchTerm, "i");
-    return applicantsToDisplay.filter(
-      (a) =>
-        searchRegex.test(a.name || "") ||
-        searchRegex.test(a.phone_number || "") ||
-        searchRegex.test(a.whatsapp_number || "")
-    );
-  }, [applicantsToDisplay, searchTerm]);
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm]);
+
+  //  Use API search results if searching, otherwise show fetched students
+  const filteredApplicants = useMemo(() => {
+    const source = searchTerm.trim() ? searchResults : applicantsToDisplay;
+
+    return source.map((student) => {
+      const school = schoolList.find((s) => s.id === student.school_id);
+      const campus = campusList.find((c) => c.id === student.campus_id);
+      const current_status = currentstatusList.find(
+        (s) => s.id === student.current_status_id
+      );
+      const religion = religionList.find((r) => r.id === student.religion_id);
+      const questionSet = questionSetList.find(
+        (q) => q.id === student.question_set_id
+      );
+
+      return {
+        ...student,
+        name: `${student.first_name || ""} ${student.middle_name || ""} ${
+          student.last_name || ""
+        }`.trim(),
+        school_name: school ? school.school_name : "N/A",
+        campus_name: campus ? campus.campus_name : "N/A",
+        current_status_name: current_status
+          ? current_status.current_status_name
+          : "N/A",
+        religion_name: religion ? religion.religion_name : "N/A",
+        question_set_name: questionSet ? questionSet.name : "N/A",
+        maximumMarks: questionSet ? questionSet.maximumMarks : 0,
+      };
+    });
+  }, [
+    searchTerm,
+    searchResults,
+    applicantsToDisplay,
+    schoolList,
+    campusList,
+    currentstatusList,
+    religionList,
+    questionSetList,
+  ]);
 
   // Reset page when search term changes(its helpfull when seearch handle by backend API)
   // useEffect(() => setCurrentPage(1), [searchTerm]);
-
 
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
@@ -243,7 +294,7 @@ const ApplicantTable = () => {
       setSelectedRows([]);
       refreshData();
     } catch (error) {
-      console.error("Error deleting applicants:", error);
+      // console.error("Error deleting applicants:", error);
       toast({
         title: "Error",
         description: "Failed to delete applicants",
@@ -284,7 +335,6 @@ const ApplicantTable = () => {
       "email",
       "phone_number",
       "whatsapp_number",
-  
 
       // Address Information
       "state",
@@ -312,11 +362,9 @@ const ApplicantTable = () => {
       // "offer_letter_status",
       // "joining_status",
 
-
       // Additional Notes
       // "communication_notes",
       // "final_notes",
-  
     ];
 
     const csvContent = [
@@ -424,6 +472,9 @@ const ApplicantTable = () => {
                   <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
                     WhatsApp Number
                   </TableHead>
+                  <TableHead className="font-bold min-w-[120px] max-w-[220px] px-3">
+                    Email
+                  </TableHead>
                   <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
                     Gender
                   </TableHead>
@@ -462,7 +513,15 @@ const ApplicantTable = () => {
               </TableHeader>
 
               <TableBody>
-                {filteredApplicants.length === 0 ? (
+                {isSearching ? (
+                  <TableRow>
+                    <TableCell colSpan={13} className="text-center py-6">
+                      <span className="text-muted-foreground animate-pulse">
+                        Searching...
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredApplicants.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={13}
