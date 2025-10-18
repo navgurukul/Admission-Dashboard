@@ -97,6 +97,15 @@ export function EditableCell({
       return;
     }
 
+    if (field === "email" && cellValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellValue)) {
+    toast({
+      title: "Invalid Email",
+      description: "Please enter a valid email address",
+      variant: "destructive",
+    });
+    return;
+  }
+
     if (!editingCell || isUpdating) return;
 
     setIsUpdating(true);
