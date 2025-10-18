@@ -1238,7 +1238,7 @@ const StudentForm: React.FC = () => {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!isFormValid()}
+            // disabled={!isFormValid()}
             className={`px-6 py-2 rounded-lg transition duration-200 ${
               isFormValid()
                 ? "bg-orange-500 hover:bg-orange-600 text-white"
