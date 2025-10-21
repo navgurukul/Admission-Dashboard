@@ -38,6 +38,7 @@ import {
   getAllReligions,
   getAllQuestionSets,
   searchStudentsApi,
+  getFilterStudent,
 } from "@/utils/api";
 
 const ApplicantTable = () => {
@@ -62,6 +63,9 @@ const ApplicantTable = () => {
   const [questionSetList, setQuestionSetList] = useState<any[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [hasActiveFilters, setHasActiveFilters] = useState(false);
 
   // Search & filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,7 +77,13 @@ const ApplicantTable = () => {
     partner: [],
     district: [],
     market: [],
-    dateRange: { type: "application" as const },
+    school: [],
+    religion: [],
+    qualification: [],
+    currentStatus: [],
+    state: undefined,
+    gender: undefined,
+    dateRange: { type: "application" as const, from: undefined, to: undefined },
   });
 
   // Selected rows
@@ -93,13 +103,13 @@ const ApplicantTable = () => {
   } = useQuery({
     queryKey: ["students", currentPage, itemsPerPage],
     queryFn: () => getStudents(currentPage, itemsPerPage),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
-  const students = studentsData?.data || [];
-  const totalStudents = studentsData?.totalCount || 0;
-  const totalPages =
-    studentsData?.totalPages ||
+  const students = (studentsData as any)?.data || [];
+  const totalStudents = (studentsData as any)?.totalCount || 0;
+  const totalPagesFromAPI =
+    (studentsData as any)?.totalPages ||
     Math.max(1, Math.ceil(totalStudents / itemsPerPage));
 
   // Fetch static options
@@ -211,11 +221,23 @@ const ApplicantTable = () => {
     return () => clearTimeout(delayDebounce);
   }, [searchTerm]);
 
-  //  Use API search results if searching, otherwise show fetched students
+  //  Use API search results if searching, otherwise show fetched students or filtered students
   const filteredApplicants = useMemo(() => {
-    const source = searchTerm.trim() ? searchResults : applicantsToDisplay;
+    // Priority: 1. Search results 2. Filtered students 3. All students
+    let source;
+    if (searchTerm.trim()) {
+      source = searchResults;
+    } else if (hasActiveFilters) {
+      source = filteredStudents;
+    } else {
+      source = applicantsToDisplay;
+    }
 
     return source.map((student) => {
+      // Handle both API response formats:
+      // 1. Regular API: returns IDs (campus_id, school_id, etc.)
+      // 2. Filter API: returns names directly (campus_name, school_name, etc.)
+      
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
@@ -231,19 +253,21 @@ const ApplicantTable = () => {
         name: `${student.first_name || ""} ${student.middle_name || ""} ${
           student.last_name || ""
         }`.trim(),
-        school_name: school ? school.school_name : "N/A",
-        campus_name: campus ? campus.campus_name : "N/A",
-        current_status_name: current_status
-          ? current_status.current_status_name
-          : "N/A",
-        religion_name: religion ? religion.religion_name : "N/A",
-        question_set_name: questionSet ? questionSet.name : "N/A",
+        // Use the name from filter API if available, otherwise lookup by ID
+        school_name: student.school_name || (school ? school.school_name : "N/A"),
+        campus_name: student.campus_name || (campus ? campus.campus_name : "N/A"),
+        current_status_name: student.current_status_name || (current_status ? current_status.current_status_name : "N/A"),
+        religion_name: student.religion_name || (religion ? religion.religion_name : "N/A"),
+        question_set_name: student.question_set_name || (questionSet ? questionSet.name : "N/A"),
         maximumMarks: questionSet ? questionSet.maximumMarks : 0,
+        stage_name: student.stage_name || "N/A",
       };
     });
   }, [
     searchTerm,
     searchResults,
+    hasActiveFilters,
+    filteredStudents,
     applicantsToDisplay,
     schoolList,
     campusList,
@@ -270,10 +294,32 @@ const ApplicantTable = () => {
     );
   }, [filteredApplicants]);
 
-  const refreshData = useCallback(() => {
-    setCurrentPage(1);
-    refetchStudents();
-  }, [refetchStudents]);
+  const refreshData = useCallback(async () => {
+    // If searching, re-run the search to get updated data
+    if (searchTerm.trim()) {
+      try {
+        const results = await searchStudentsApi(searchTerm.trim());
+        setSearchResults(results || []);
+      } catch (error) {
+        console.error("Error refreshing search results:", error);
+      }
+    }
+    // If filters are active, re-apply them to get updated data
+    else if (hasActiveFilters && filters) {
+      try {
+        const apiParams = transformFiltersToAPI(filters);
+        const results = await getFilterStudent(apiParams);
+        setFilteredStudents(results || []);
+      } catch (error) {
+        console.error("Error refreshing filtered data:", error);
+      }
+    } 
+    // Otherwise, refetch regular paginated data
+    else {
+      setCurrentPage(1);
+      refetchStudents();
+    }
+  }, [searchTerm, hasActiveFilters, filters, refetchStudents]);
 
   // Bulk actions
   const handleBulkDelete = async () => {
@@ -313,7 +359,115 @@ const ApplicantTable = () => {
     }
   };
 
-  const handleApplyFilters = (newFilters: any) => setFilters(newFilters);
+  // Transform filter state to API query parameters
+  const transformFiltersToAPI = (filterState: any) => {
+    const apiParams: any = {};
+
+    // Date range mapping based on type
+    if (filterState.dateRange?.from && filterState.dateRange?.to) {
+      const formatDate = (date: Date) => {
+        const d = new Date(date);
+        return d.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      };
+
+      if (filterState.dateRange.type === 'application') {
+        apiParams.created_at_from = formatDate(filterState.dateRange.from);
+        apiParams.created_at_to = formatDate(filterState.dateRange.to);
+      } else if (filterState.dateRange.type === 'lastUpdate') {
+        apiParams.updated_at_from = formatDate(filterState.dateRange.from);
+        apiParams.updated_at_to = formatDate(filterState.dateRange.to);
+      } else if (filterState.dateRange.type === 'interview') {
+        apiParams.interview_date_from = formatDate(filterState.dateRange.from);
+        apiParams.interview_date_to = formatDate(filterState.dateRange.to);
+      }
+    }
+
+    // Qualification ID
+    if (filterState.qualification?.length && filterState.qualification[0] !== 'all') {
+      apiParams.qualification_id = filterState.qualification[0];
+    }
+
+    // Campus ID
+    if (filterState.partner?.length > 1 && filterState.partner[1] !== 'all') {
+      apiParams.campus_id = filterState.partner[1];
+    }
+
+    // School ID
+    if (filterState.school?.length && filterState.school[0] !== 'all') {
+      apiParams.school_id = filterState.school[0];
+    }
+
+    // Current Status ID
+    if (filterState.currentStatus?.length && filterState.currentStatus[0] !== 'all') {
+      apiParams.current_status_id = filterState.currentStatus[0];
+    }
+
+    // State
+    if (filterState.state && filterState.state !== 'all') {
+      apiParams.state = filterState.state;
+    }
+
+    // District
+    if (filterState.district?.length && filterState.district[0] !== 'all') {
+      apiParams.district = filterState.district[0];
+    }
+
+    // Gender
+    if (filterState.gender && filterState.gender !== 'all') {
+      apiParams.gender = filterState.gender;
+    }
+
+    return apiParams;
+  };
+
+  // Apply filters and fetch filtered students
+  const handleApplyFilters = async (newFilters: any) => {
+    setFilters(newFilters);
+    
+    // Check if any meaningful filters are applied
+    const hasFilters = 
+      (newFilters.qualification?.length && newFilters.qualification[0] !== 'all') ||
+      (newFilters.school?.length && newFilters.school[0] !== 'all') ||
+      (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== 'all') ||
+      (newFilters.partner?.length > 1 && newFilters.partner[1] !== 'all') ||
+      (newFilters.state && newFilters.state !== 'all') ||
+      (newFilters.district?.length && newFilters.district[0] !== 'all') ||
+      (newFilters.gender && newFilters.gender !== 'all') ||
+      (newFilters.dateRange?.from && newFilters.dateRange?.to);
+
+    if (!hasFilters) {
+      setHasActiveFilters(false);
+      setFilteredStudents([]);
+      setCurrentPage(1);
+      return;
+    }
+
+    try {
+      setIsFiltering(true);
+      setHasActiveFilters(true);
+      const apiParams = transformFiltersToAPI(newFilters);
+      
+      // Call the filter API
+      const results = await getFilterStudent(apiParams);
+      setFilteredStudents(results || []);
+      setCurrentPage(1); // Reset to first page when filters are applied
+      
+      toast({
+        title: "Filters Applied",
+        description: `Found ${results?.length || 0} applicants matching your criteria`,
+      });
+    } catch (error) {
+      console.error("Error applying filters:", error);
+      toast({
+        title: "Filter Error",
+        description: "Failed to apply filters. Please try again.",
+        variant: "destructive",
+      });
+      setFilteredStudents([]);
+    } finally {
+      setIsFiltering(false);
+    }
+  };
 
   const exportToCSV = () => {
     if (!filteredApplicants.length) {
@@ -400,9 +554,31 @@ const ApplicantTable = () => {
     });
   };
 
-  const showingStart =
-    students.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const showingEnd = Math.min(currentPage * itemsPerPage, totalStudents);
+  // Calculate pagination based on current view (search, filter, or regular)
+  const getTotalCount = () => {
+    if (searchTerm.trim()) {
+      return searchResults.length;
+    } else if (hasActiveFilters) {
+      return filteredStudents.length;
+    } else {
+      return totalStudents;
+    }
+  };
+
+  const currentTotalCount = getTotalCount();
+  
+  // Calculate total pages based on current view
+  const totalPages = Math.ceil(currentTotalCount / itemsPerPage);
+  
+  // Apply pagination to filtered results
+  const paginatedApplicants = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredApplicants.slice(startIndex, endIndex);
+  }, [filteredApplicants, currentPage, itemsPerPage]);
+
+  const showingStart = paginatedApplicants.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const showingEnd = Math.min(currentPage * itemsPerPage, currentTotalCount);
 
   return (
     <Card className="h-full flex flex-col">
@@ -412,6 +588,8 @@ const ApplicantTable = () => {
             <CardTitle>Applicants</CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
               {searchTerm
+                ? `${filteredApplicants.length} applicants found (search)`
+                : hasActiveFilters
                 ? `${filteredApplicants.length} applicants found (filtered)`
                 : `${totalStudents} total applicants`}
             </CardDescription>
@@ -466,15 +644,16 @@ const ApplicantTable = () => {
                   <TableHead className="sticky left-12 bg-background z-10 min-w-[150px] px-3">
                     Full Name
                   </TableHead>
+                  <TableHead className="font-bold min-w-[120px] max-w-[220px] px-3">
+                    Email
+                  </TableHead>
                   <TableHead className="font-bold min-w-[110px] max-w-[130px] px-3">
                     Phone Number
                   </TableHead>
                   <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
                     WhatsApp Number
                   </TableHead>
-                  <TableHead className="font-bold min-w-[120px] max-w-[220px] px-3">
-                    Email
-                  </TableHead>
+                  
                   <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
                     Gender
                   </TableHead>
@@ -513,15 +692,15 @@ const ApplicantTable = () => {
               </TableHeader>
 
               <TableBody>
-                {isSearching ? (
+                {isSearching || isFiltering ? (
                   <TableRow>
                     <TableCell colSpan={13} className="text-center py-6">
                       <span className="text-muted-foreground animate-pulse">
-                        Searching...
+                        {isSearching ? "Searching..." : "Applying filters..."}
                       </span>
                     </TableCell>
                   </TableRow>
-                ) : filteredApplicants.length === 0 ? (
+                ) : paginatedApplicants.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={13}
@@ -531,7 +710,7 @@ const ApplicantTable = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredApplicants.map((applicant) => (
+                  paginatedApplicants.map((applicant) => (
                     <ApplicantTableRow
                       key={applicant.id}
                       applicant={applicant}
@@ -540,6 +719,7 @@ const ApplicantTable = () => {
                       onUpdate={refreshData}
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
+                      onCampusChange={refreshData}
                       schoolList={schoolList}
                       campusList={campusList}
                       religionList={religionList}
@@ -556,7 +736,7 @@ const ApplicantTable = () => {
         {/* Pagination */}
         <div className="flex justify-between items-center mt-4">
           <p className="text-sm text-muted-foreground">
-            Showing {showingStart} – {showingEnd} of {totalStudents}
+            Showing {showingStart} – {showingEnd} of {currentTotalCount}
           </p>
           <div className="flex gap-2">
             <button
@@ -566,6 +746,9 @@ const ApplicantTable = () => {
             >
               Previous
             </button>
+            <span className="px-3 py-1 text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}

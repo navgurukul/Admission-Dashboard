@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
+import { getFilterStudent } from "@/utils/api"
 import {
   getStatesList,
   getDistrictsList,
@@ -46,6 +47,7 @@ interface FilterState {
   qualification: string[];
   currentStatus: string[];
   state?: string;
+  gender?: string;
   dateRange: {
     type: "application" | "lastUpdate" | "interview";
     from?: Date;
@@ -392,6 +394,7 @@ export function AdvancedFilterModal({
                 onValueChange={(value) =>
                   setFilters((prev) => ({ ...prev, stage: value, status: "all" }))
                 }
+                disabled={true}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select stage" />
@@ -444,6 +447,28 @@ export function AdvancedFilterModal({
                   <SelectItem value="all">All Modes</SelectItem>
                   <SelectItem value="online">Online</SelectItem>
                   <SelectItem value="offline">Offline</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Gender */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Gender</h3>
+              <Select
+                value={filters.gender || "all"}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, gender: value === "all" ? undefined : value }))
+                }
+                disabled={true}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  <SelectItem value="all">All Genders</SelectItem>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
