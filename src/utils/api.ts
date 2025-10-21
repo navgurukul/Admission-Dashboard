@@ -458,7 +458,7 @@ export const createSlotBookingTimes = async (payload: any) => {
     `${BASE_URL}/slots/createSlots`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     }
   );
@@ -482,7 +482,7 @@ export const getSlotByUserId = async (user_id: number): Promise<Role> => {
 
 //  For getting the slots data by date:
 export const getSlotByDate = async (date: string): Promise<Role> => {
-  const response = await fetch(`${BASE_URL}/date/?date=${date}`, {
+  const response = await fetch(`${BASE_URL}/slots/date/?date=${date}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -678,8 +678,8 @@ export const getAllReligions = async (): Promise<Religion[]> => {
   } else if (Array.isArray(data)) {
     return data;
   } else {
-    console.error('Unexpected API response format:', data);
-    console.error('Data structure:', JSON.stringify(data, null, 2));
+    // console.error('Unexpected API response format:', data);
+    // console.error('Data structure:', JSON.stringify(data, null, 2));
     return [];
   }
 };
@@ -877,6 +877,41 @@ export const createStudent = async (studentData: any): Promise<any> => {
 
   return data;
 };
+
+
+// https://dev-new-admissions.navgurukul.org/api/v1/students/filter?created_at_from=2025-09-29&created_at_to=2025-10-04&qualification_id=2&campus_id=5&school_id=18&current_status_id=1&state=Maharashtra&district=Mumbai
+export const getFilterStudent = async (filters: any): Promise<any[]> => {
+  const query = new URLSearchParams(filters).toString();
+  const response = await fetch(`${BASE_URL}/students/filter?${query}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch statuses');
+  }
+
+  // Return the data array from the response
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+
+    return data.data;
+  } else if (data && data.statuses && Array.isArray(data.statuses)) {
+   
+    return data.statuses;
+  } else if (Array.isArray(data)) {
+  
+    return data;
+  } else {
+    console.error('Data structure:', JSON.stringify(data, null, 2));
+    return [];
+  }
+}
+
+
 
 
 // Questions (getQuestions, CreateQuestion)
@@ -1517,5 +1552,31 @@ export const getStatusesByStageId = async (stageId: number | string) => {
   } catch (error) {
     console.error("Error fetching statuses:", error);
     throw error;
+  }
+};
+
+export const searchStudentsApi = async (searchTerm: string): Promise<any> => {
+  const response = await fetch(
+    `${BASE_URL}/students/search?search=${encodeURIComponent(searchTerm)}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to search students");
+  }
+
+  // Handle flexible response shapes (array or nested data)
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else {
+    console.error("Unexpected search API response:", data);
+    return [];
   }
 };

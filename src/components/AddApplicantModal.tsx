@@ -336,7 +336,7 @@ export function AddApplicantModal({
           block: "",
         }));
       } catch (err) {
-        console.error("Failed to fetch blocks:", err);
+        // console.error("Failed to fetch blocks:", err);
         setBlockOptions([]);
       } finally {
         setIsLoadingBlocks(false);
@@ -397,7 +397,7 @@ export function AddApplicantModal({
         last_name: formData.last_name,
         gender: formData.gender || null,
         dob: formData.dob || null,
-        email: formData.email || `${formData.phone_number}@example.com`,
+        email: formData.email || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
         state: formData.state || null,
@@ -490,7 +490,7 @@ export function AddApplicantModal({
       resetForm();
       onClose();
     } catch (error: any) {
-      console.error("Error creating student:", error);
+      // console.error("Error creating student:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create student",

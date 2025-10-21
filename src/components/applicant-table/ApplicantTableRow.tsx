@@ -96,6 +96,21 @@ export const ApplicantTableRow = ({
         </div>
       </TableCell>
 
+       <TableCell className="min-w-[120px] max-w-[220px] px-2">
+        <div className="truncate">
+          <EditableCell
+            applicant={applicant}
+            field="email"
+            displayValue={
+              applicant.email || "No Email"
+            }
+            onUpdate={onUpdate}
+            showPencil={true}
+            showActionButtons={false}
+          />
+        </div>
+      </TableCell>
+
       {/* Phone Number - Simple text field */}
       <TableCell className="min-w-[110px] max-w-[130px] px-2">
         <div className="truncate">
@@ -126,13 +141,14 @@ export const ApplicantTableRow = ({
         </div>
       </TableCell>
 
+     
       {/* Gender - Simple text field */}
       <TableCell className="min-w-[80px] max-w-[100px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
             field="gender"
-            displayValue={applicant.gender || "Not specified"}
+            displayValue={applicant.gender || "No Set"}
             options={[
               { id: "male", name: "Male" },
               { id: "female", name: "Female" },
@@ -198,10 +214,11 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="campus_id"
-            displayValue={
-              campusList.find((s) => s.id === applicant.campus_id)
-                ?.campus_name || "N/A"
-            }
+            // displayValue={
+            //   campusList.find((s) => s.id === applicant.campus_id)
+            //     ?.campus_name || "N/A"
+            // }
+            displayValue={applicant.campus_name || "N/A" }
             value={applicant.campus_id}
             onUpdate={onUpdate}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
