@@ -311,31 +311,33 @@ const CampusPage: React.FC = () => {
       {/* Edit Dialog */}
       {editDialog && selectedCampus && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (selectedCampus) {
+                handleUpdateCampus(selectedCampus.id, updatedCampusName);
+              }
+            }}
+            className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200"
+          >
             <h2 className="text-lg font-semibold mb-4 text-orange-700">Update Campus</h2>
             <input
               type="text"
               placeholder="Enter campus name"
-              className="border border-orange-300 px-3 py-2 rounded w-full"
+              className="border border-orange-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
               value={updatedCampusName}
               onChange={(e) => setUpdatedCampusName(e.target.value)}
               required
             />
             <div className="flex justify-end gap-2 mt-6">
-              <button className="px-4 py-2 bg-gray-300 text-gray-700 rounded" onClick={() => { setEditDialog(false); setSelectedCampus(null); }}>
+              <button type="button" className="px-4 py-2 bg-gray-300 text-gray-700 rounded" onClick={() => { setEditDialog(false); setSelectedCampus(null); }}>
                 Cancel
               </button>
-              <button className="px-4 py-2 bg-orange-500 text-white rounded" onClick={() => {
-                if (selectedCampus) {
-                  handleUpdateCampus(selectedCampus.id, updatedCampusName);
-                  setEditDialog(false);
-                  setSelectedCampus(null);
-                }
-              }}>
-                Update
+              <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded" disabled={actionLoading}>
+                {actionLoading ? "Updating..." : "Update"}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
