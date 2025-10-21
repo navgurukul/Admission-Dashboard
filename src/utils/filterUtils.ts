@@ -4,7 +4,10 @@ import {
   getCampusesApi, 
   getAllSchools, 
   getAllReligions, 
-  getAllStatuses 
+  getAllQualification,
+  Qualification,
+  getAllStatuses
+
 } from "./api";
 
 // Types for filter data
@@ -47,6 +50,7 @@ const cache = {
   campuses: null as Campus[] | null,
   schools: null as School[] | null,
   religions: null as Religion[] | null,
+  qualifications: null as Qualification[] | null,
   statuses: null as CurrentStatus[] | null,
   districts: new Map<string, District[]>(),
 };
@@ -165,6 +169,22 @@ export const getReligionsList = async (): Promise<Religion[]> => {
   }
 };
 
+// Get qualifications with caching
+export const getQualificationsList = async (): Promise<Qualification[]> => {
+  if (cache.qualifications) {
+    return cache.qualifications;
+  }
+
+  try {
+    const qualifications = await getAllQualification();
+    cache.qualifications = qualifications;
+    return qualifications;            
+  } catch (error) {
+    // console.error("Error fetching qualifications:", error);
+    return [];
+  }
+};
+   
 // Get statuses with caching
 export const getStatusesList = async (): Promise<CurrentStatus[]> => {
   if (cache.statuses) {
@@ -237,5 +257,6 @@ export const clearFilterCache = () => {
   cache.schools = null;
   cache.religions = null;
   cache.statuses = null;
+  cache.qualifications = null;
   cache.districts.clear();
 };

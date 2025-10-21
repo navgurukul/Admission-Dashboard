@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Filter } from "lucide-react";
+import { CalendarIcon, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -25,6 +25,7 @@ import {
   getCampusesList,
   getSchoolsList,
   getReligionsList,
+  getQualificationsList,
   getStatusesList,
   getPartnersFromStudents,
   getDistrictsFromStudents,
@@ -42,6 +43,7 @@ interface FilterState {
   district: string[];
   school: string[];
   religion: string[];
+  qualification: string[];
   currentStatus: string[];
   state?: string;
   dateRange: {
@@ -60,6 +62,7 @@ interface AdvancedFilterModalProps {
   campusList?: any[];
   schoolList?: any[];
   religionList?: any[];
+  qualificationList?: any[];
   currentstatusList?: any[];
 }
 
@@ -87,6 +90,7 @@ export function AdvancedFilterModal({
   campusList = [],
   schoolList = [],
   religionList = [],
+  qualificationList = [],
   currentstatusList = [],
 }: AdvancedFilterModalProps) {
   const [filters, setFilters] = useState<FilterState>(currentFilters);
@@ -95,6 +99,7 @@ export function AdvancedFilterModal({
     districts: [] as string[],
     schools: [] as any[],
     religions: [] as any[],
+    qualifications: [] as any[],
     currentStatuses: [] as any[],
     campuses: [] as any[],
   });
@@ -108,89 +113,13 @@ export function AdvancedFilterModal({
   });
 
   const { toast } = useToast();
+  
+  // Use ref to track if initial load is done
+  const isInitialLoadDone = useRef(false);
+  const prevIsOpen = useRef(isOpen);
 
-  // Load all filter data when modal opens
-  useEffect(() => {
-    const loadFilterData = async () => {
-      if (!isOpen) return;
-      
-      setIsLoading(prev => ({ ...prev, general: true }));
-      setFilters(currentFilters);
-
-      try {
-        // Load data from APIs in parallel
-        const [
-          apiStates,
-          apiCampuses, 
-          apiSchools,
-          apiReligions,
-          apiStatuses
-        ] = await Promise.all([
-          getStatesList(),
-          getCampusesList(),
-          getSchoolsList(),
-          getReligionsList(),
-          getStatusesList()
-        ]);
-
-        // Extract data from students
-        const partnersFromStudents = getPartnersFromStudents(students);
-        const districtsFromStudents = getDistrictsFromStudents(students);
-        const statesFromStudents = getStatesFromStudents(students);
-
-        // console.log("📊 Student data extracted:", {
-        //   partners: partnersFromStudents.length,
-        //   districts: districtsFromStudents.length,
-        //   states: statesFromStudents.length
-        // });
-
-        // Combine API states with states from students
-        const allStates = [...apiStates];
-        statesFromStudents.forEach(stateName => {
-          if (!allStates.find(s => s.name === stateName)) {
-            allStates.push({ id: stateName, name: stateName });
-          }
-        });
-
-        // Use provided lists or API data
-        const finalCampuses = campusList.length > 0 ? campusList : apiCampuses;
-        const finalSchools = schoolList.length > 0 ? schoolList : apiSchools;
-        const finalReligions = religionList.length > 0 ? religionList : apiReligions;
-        const finalStatuses = currentstatusList.length > 0 ? currentstatusList : apiStatuses;
-
-        setAvailableOptions({
-          partners: partnersFromStudents,
-          districts: districtsFromStudents,
-          schools: finalSchools,
-          religions: finalReligions,
-          currentStatuses: finalStatuses,
-          campuses: finalCampuses,
-        });
-
-        setAvailableStates(allStates);
-
-        // Load districts for current state if selected
-        if (currentFilters.state && currentFilters.state !== 'all') {
-          await handleStateChange(currentFilters.state, false);
-        }
-
-      } catch (error) {
-        // console.error(" Error loading filter data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load filter options",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(prev => ({ ...prev, general: false }));
-      }
-    };
-
-    loadFilterData();
-  }, [isOpen, currentFilters, students, campusList, schoolList, religionList, currentstatusList]);
-
-  // State change handler
-  const handleStateChange = async (selectedState: string, updateFilters = true) => {
+  // State change handler - wrapped in useCallback to prevent recreating on every render
+  const handleStateChange = useCallback(async (selectedState: string, updateFilters = true) => {
     // console.log(" State Selected:", selectedState);
     
     if (updateFilters) {
@@ -240,7 +169,99 @@ export function AdvancedFilterModal({
     } finally {
       setIsLoading(prev => ({ ...prev, districts: false }));
     }
-  };
+  }, [availableStates, availableOptions.districts]);
+
+  // Load all filter data when modal opens - optimized to prevent freezing
+  useEffect(() => {
+    const loadFilterData = async () => {
+      // Only load when modal opens (not on every prop change)
+      if (!isOpen) {
+        isInitialLoadDone.current = false;
+        return;
+      }
+
+      // Prevent re-running if modal is already open
+      if (prevIsOpen.current === isOpen && isInitialLoadDone.current) {
+        return;
+      }
+
+      prevIsOpen.current = isOpen;
+      
+      setIsLoading(prev => ({ ...prev, general: true }));
+      setFilters(currentFilters);
+
+      try {
+        // Load data from APIs in parallel
+        const [
+          apiStates,
+          apiCampuses, 
+          apiSchools,
+          apiReligions,
+          apiQualifications,
+          apiStatuses
+        ] = await Promise.all([
+          getStatesList(),
+          getCampusesList(),
+          getSchoolsList(),
+          getReligionsList(),
+          getQualificationsList(),
+          getStatusesList()
+        ]);
+
+        // Extract data from students
+        const partnersFromStudents = getPartnersFromStudents(students);
+        const districtsFromStudents = getDistrictsFromStudents(students);
+        const statesFromStudents = getStatesFromStudents(students);
+
+        // Combine API states with states from students
+        const allStates = [...apiStates];
+        statesFromStudents.forEach(stateName => {
+          if (!allStates.find(s => s.name === stateName)) {
+            allStates.push({ id: stateName, name: stateName });
+          }
+        });
+
+        // Use provided lists or API data
+        const finalCampuses = campusList.length > 0 ? campusList : apiCampuses;
+        const finalSchools = schoolList.length > 0 ? schoolList : apiSchools;
+        const finalReligions = religionList.length > 0 ? religionList : apiReligions;
+        const finalQualifications = qualificationList.length > 0 ? qualificationList : apiQualifications;
+        const finalStatuses = currentstatusList.length > 0 ? currentstatusList : apiStatuses;
+
+        setAvailableOptions({
+          partners: partnersFromStudents,
+          districts: districtsFromStudents,
+          schools: finalSchools,
+          religions: finalReligions,
+          qualifications: finalQualifications,
+          currentStatuses: finalStatuses,
+          campuses: finalCampuses,
+        });
+
+        setAvailableStates(allStates);
+
+        // Load districts for current state if selected
+        if (currentFilters.state && currentFilters.state !== 'all') {
+          await handleStateChange(currentFilters.state, false);
+        }
+
+        isInitialLoadDone.current = true;
+
+      } catch (error) {
+        // console.error(" Error loading filter data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load filter options",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(prev => ({ ...prev, general: false }));
+      }
+    };
+
+    loadFilterData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Only depend on isOpen to prevent infinite loops and freezing
 
   const resetFilters = () => {
     setFilters({
@@ -252,6 +273,7 @@ export function AdvancedFilterModal({
       district: [],
       school: [],
       religion: [],
+      qualification: [],
       currentStatus: [],
       state: undefined,
       dateRange: { type: "application" },
@@ -260,6 +282,48 @@ export function AdvancedFilterModal({
   };
 
   const handleApplyFilters = () => {
+    // // Validate qualification field
+    // if (!filters.qualification?.length || filters.qualification[0] === 'all') {
+    //   toast({
+    //     title: "Validation Error",
+    //     description: "Please select a qualification before applying filters.",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
+
+    // Validate date range - if start is selected, end must be selected
+    if (filters.dateRange.from && !filters.dateRange.to) {
+      toast({
+        title: "Incomplete Date Range",
+        description: "Please select an end date to complete the date range.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate date range - if end is selected, start must be selected
+    if (filters.dateRange.to && !filters.dateRange.from) {
+      toast({
+        title: "Incomplete Date Range",
+        description: "Please select a start date before selecting an end date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that end date is greater than or equal to start date (allow same day)
+    if (filters.dateRange.from && filters.dateRange.to) {
+      if (filters.dateRange.from > filters.dateRange.to) {
+        toast({
+          title: "Invalid Date Range",
+          description: "End date cannot be before start date.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     // console.log(" Applying Filters:", filters);
     onApplyFilters(filters);
     onClose();
@@ -282,6 +346,7 @@ export function AdvancedFilterModal({
     const possibleKeys = [
       nameKey, 'name', 'title', 'label', 
       'school_name', 'religion_name', 'current_status_name',
+      'qualification_name',
       'campus_name', 'partner_name', 'district_name'
     ];
     
@@ -384,7 +449,7 @@ export function AdvancedFilterModal({
             </div>
 
             {/* Interview Mode */}
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <h3 className="font-semibold text-sm">Interview Mode</h3>
               <Select
                 value={filters.interviewMode}
@@ -401,7 +466,7 @@ export function AdvancedFilterModal({
                   <SelectItem value="offline">Offline</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
           </div>
 
           {/* Location Filters - State, District, Partner, Campus */}
@@ -435,7 +500,7 @@ export function AdvancedFilterModal({
 
             {/* District / City */}
             <div>
-              <h3 className="font-semibold text-sm mb-2">City / District</h3>
+              <h3 className="font-semibold text-sm mb-2">District</h3>
               <Select
                 value={filters.district?.[0] || "all"}
                 onValueChange={(value) =>
@@ -568,34 +633,34 @@ export function AdvancedFilterModal({
               </p>
             </div>
 
-            {/* Religion */}
+            {/* Qualification */}
             <div>
-              <h3 className="font-semibold text-sm mb-2">Religion</h3>
+              <h3 className="font-semibold text-sm mb-2">
+                Qualification
+              </h3>
               <Select
-                value={filters.religion?.[0] || "all"}
+                value={filters.qualification?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    religion: value === "all" ? [] : [value],
+                    qualification: value === "all" ? [] : [value],
                   }))
                 }
                 disabled={isLoading.general}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select religion"} />
+                <SelectTrigger className={`w-full ${!filters.qualification?.length || filters.qualification[0] === 'all' ? 'border-red-300' : ''}`}>
+                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select qualification"} />
                 </SelectTrigger>
                 <SelectContent className="z-50">
-                  <SelectItem value="all">All Religions</SelectItem>
-                  {availableOptions.religions.map((religion) => (
-                    <SelectItem key={getValue(religion)} value={getValue(religion)}>
-                      {getDisplayName(religion, 'religion_name', 'Religion')}
+                  <SelectItem value="all">All Qualifications</SelectItem>
+                  {availableOptions.qualifications.map((qualification) => (
+                    <SelectItem key={getValue(qualification)} value={getValue(qualification)}>
+                      {getDisplayName(qualification, 'qualification_name', 'Qualification')}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.religions.length} religions available */}
-              </p>
+             
             </div>
 
             {/* Current Status */}
@@ -631,8 +696,27 @@ export function AdvancedFilterModal({
 
           {/* Date Range */}
           <div className="p-4 bg-muted/30 rounded-lg">
-            <h3 className="font-semibold text-sm mb-3">Date Range</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm">Date Range</h3>
+              {(filters.dateRange.from || filters.dateRange.to) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      dateRange: { ...prev.dateRange, from: undefined, to: undefined },
+                    }));
+                  }}
+                  className="h-7 text-xs"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Clear Dates
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-sm">Date Type</Label>
                 <Select
@@ -658,55 +742,93 @@ export function AdvancedFilterModal({
               </div>
 
               <div>
-                <Label className="text-sm">From</Label>
-                <Popover>
+                <Label className="text-sm">
+                  From
+                  {filters.dateRange.from && !filters.dateRange.to && (
+                    <span className="text-red-500 ml-1">*</span>
+                  )}
+                </Label>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start ${filters.dateRange.from && !filters.dateRange.to ? 'border-red-300' : ''}`}
+                    >
                       <CalendarIcon className="mr-2 h-3 w-3" />
                       {filters.dateRange.from
                         ? format(filters.dateRange.from, "PP")
-                        : "Pick a date"}
+                        : "Pick start date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50">
+                  <PopoverContent className="w-auto p-0 z-[60]" align="start">
                     <Calendar
                       mode="single"
                       selected={filters.dateRange.from}
-                      onSelect={(date) =>
+                      onSelect={(date) => {
                         setFilters((prev) => ({
                           ...prev,
-                          dateRange: { ...prev.dateRange, from: date },
-                        }))
-                      }
+                          dateRange: { 
+                            ...prev.dateRange, 
+                            from: date,
+                            // Auto-set end date to same as start date by default
+                            to: date 
+                          },
+                        }));
+                      }}
+                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
+                {filters.dateRange.from && !filters.dateRange.to && (
+                  <p className="text-xs text-red-500 mt-1">Please select end date</p>
+                )}
               </div>
 
               <div>
-                <Label className="text-sm">To</Label>
-                <Popover>
+                <Label className="text-sm">
+                  To
+                  {filters.dateRange.to && !filters.dateRange.from && (
+                    <span className="text-red-500 ml-1">*</span>
+                  )}
+                </Label>
+                <Popover modal={true}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className={`w-full justify-start ${filters.dateRange.to && !filters.dateRange.from ? 'border-red-300' : ''}`}
+                      disabled={!filters.dateRange.from}
+                    >
                       <CalendarIcon className="mr-2 h-3 w-3" />
                       {filters.dateRange.to
                         ? format(filters.dateRange.to, "PP")
-                        : "Pick a date"}
+                        : filters.dateRange.from 
+                          ? "Pick end date" 
+                          : "Select start first"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50">
+                  <PopoverContent className="w-auto p-0 z-[60]" align="start">
                     <Calendar
                       mode="single"
                       selected={filters.dateRange.to}
-                      onSelect={(date) =>
+                      onSelect={(date) => {
                         setFilters((prev) => ({
                           ...prev,
                           dateRange: { ...prev.dateRange, to: date },
-                        }))
+                        }));
+                      }}
+                      disabled={(date) =>
+                        filters.dateRange.from ? date < filters.dateRange.from : true
                       }
+                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
+                {!filters.dateRange.from && (
+                  <p className="text-xs text-muted-foreground mt-1">Select start date first</p>
+                )}
+                {filters.dateRange.to && !filters.dateRange.from && (
+                  <p className="text-xs text-red-500 mt-1">Please select start date</p>
+                )}
               </div>
             </div>
           </div>
