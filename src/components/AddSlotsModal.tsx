@@ -1,16 +1,24 @@
-
 import { useState } from "react";
 import { Calendar, Clock, User, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { createSlotBookingTimes } from "@/utils/api";
 
 interface TimeSlot {
   startTime: string;
@@ -24,16 +32,23 @@ interface AddSlotsModalProps {
   onSuccess: () => void;
 }
 
-export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps) {
+export function AddSlotsModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddSlotsModalProps) {
   const [date, setDate] = useState<Date>();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { startTime: "", endTime: "", interviewer: "" }
+    { startTime: "", endTime: "", interviewer: "" },
   ]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const addTimeSlot = () => {
-    setTimeSlots([...timeSlots, { startTime: "", endTime: "", interviewer: "" }]);
+    setTimeSlots([
+      ...timeSlots,
+      { startTime: "", endTime: "", interviewer: "" },
+    ]);
   };
 
   const removeTimeSlot = (index: number) => {
@@ -43,7 +58,11 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
     }
   };
 
-  const updateTimeSlot = (index: number, field: keyof TimeSlot, value: string) => {
+  const updateTimeSlot = (
+    index: number,
+    field: keyof TimeSlot,
+    value: string
+  ) => {
     const newSlots = [...timeSlots];
     newSlots[index][field] = value;
     setTimeSlots(newSlots);
@@ -51,7 +70,7 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!date) {
       toast({
         title: "Error",
@@ -61,10 +80,9 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
       return;
     }
 
-    const invalidSlots = timeSlots.some(slot => 
-      !slot.startTime || !slot.endTime || !slot.interviewer
+    const invalidSlots = timeSlots.some(
+      (slot) => !slot.startTime || !slot.endTime
     );
-
     if (invalidSlots) {
       toast({
         title: "Error",
@@ -74,25 +92,48 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
       return;
     }
 
+    // Validate time format (HH:mm) and start < end
+    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    const toMinutes = (t: string) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    for (let i = 0; i < timeSlots.length; i++) {
+      const { startTime, endTime } = timeSlots[i];
+
+      if (!timePattern.test(startTime) || !timePattern.test(endTime)) {
+        toast({
+          title: "Invalid time",
+          description: `Slot ${i + 1}: times must be in HH:mm format.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (toMinutes(startTime) >= toMinutes(endTime)) {
+        toast({
+          title: "Invalid time range",
+          description: `Slot ${i + 1}: start time must be earlier than end time.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     try {
       setLoading(true);
 
-      // For now, we'll store slots in a simple format in the admission_dashboard table
-      // In a real application, you might want a separate interview_slots table
-      const slotsData = timeSlots.map(slot => ({
-        date_of_testing: format(date, 'yyyy-MM-dd'),
-        lr_status: `Available Slot: ${slot.startTime} - ${slot.endTime}`,
-        lr_comments: `Interviewer: ${slot.interviewer}`,
-        name: 'Interview Slot',
-        mobile_no: `slot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Temporary unique identifier
+      const slotsData = timeSlots.map((slot) => ({
+        date: format(date, "yyyy-MM-dd"),
+        start_time: slot.startTime,
+        end_time: slot.endTime,
+        // interviewer: slot.interviewer,
         created_at: new Date().toISOString(),
       }));
 
-      const { error } = await supabase
-        .from('admission_dashboard')
-        .insert(slotsData);
-
-      if (error) throw error;
+      await createSlotBookingTimes(slotsData);
+      console.log("Slots created via API", slotsData);
 
       toast({
         title: "Success",
@@ -102,7 +143,7 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
       onSuccess();
       handleClose();
     } catch (error) {
-      console.error('Error adding slots:', error);
+      console.error("Error adding slots:", error);
       toast({
         title: "Error",
         description: "Failed to add interview slots",
@@ -176,7 +217,10 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
             </div>
 
             {timeSlots.map((slot, index) => (
-              <div key={index} className="p-4 border border-border rounded-lg space-y-3">
+              <div
+                key={index}
+                className="p-4 border border-border rounded-lg space-y-3"
+              >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Slot {index + 1}</span>
                   {timeSlots.length > 1 && (
@@ -194,7 +238,10 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor={`start-${index}`} className="flex items-center gap-2">
+                    <Label
+                      htmlFor={`start-${index}`}
+                      className="flex items-center gap-2"
+                    >
                       <Clock className="w-4 h-4" />
                       Start Time
                     </Label>
@@ -202,13 +249,18 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
                       id={`start-${index}`}
                       type="time"
                       value={slot.startTime}
-                      onChange={(e) => updateTimeSlot(index, 'startTime', e.target.value)}
+                      onChange={(e) =>
+                        updateTimeSlot(index, "startTime", e.target.value)
+                      }
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`end-${index}`} className="flex items-center gap-2">
+                    <Label
+                      htmlFor={`end-${index}`}
+                      className="flex items-center gap-2"
+                    >
                       <Clock className="w-4 h-4" />
                       End Time
                     </Label>
@@ -216,13 +268,15 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
                       id={`end-${index}`}
                       type="time"
                       value={slot.endTime}
-                      onChange={(e) => updateTimeSlot(index, 'endTime', e.target.value)}
+                      onChange={(e) =>
+                        updateTimeSlot(index, "endTime", e.target.value)
+                      }
                       required
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor={`interviewer-${index}`} className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Interviewer Name
@@ -235,7 +289,7 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
                     onChange={(e) => updateTimeSlot(index, 'interviewer', e.target.value)}
                     required
                   />
-                </div>
+                </div> */}
               </div>
             ))}
           </div>
@@ -255,7 +309,11 @@ export function AddSlotsModal({ isOpen, onClose, onSuccess }: AddSlotsModalProps
               disabled={loading}
               className="bg-gradient-primary hover:bg-primary/90 text-white"
             >
-              {loading ? "Adding Slots..." : `Add ${timeSlots.length} Slot${timeSlots.length > 1 ? 's' : ''}`}
+              {loading
+                ? "Adding Slots..."
+                : `Add ${timeSlots.length} Slot${
+                    timeSlots.length > 1 ? "s" : ""
+                  }`}
             </Button>
           </div>
         </form>

@@ -19,7 +19,7 @@ import {
   deleteCalendarEvent,
   formatDateTimeForCalendar,
 } from "../../utils/googleCalendar";
-import { createStudentSlotBooking } from "@/utils/api";
+import { createStudentSlotBooking,getSlotByDate } from "@/utils/api";
 
 // ================== Types ==================
 interface TimeSlot {
@@ -72,16 +72,6 @@ const SlotBooking: React.FC = () => {
   const test = tests.find((t) => t.id === testId) || dummyTest;
   const currentStudent = student || dummyStudent;
 
-  // ---------- Mock API ----------
-  const defaultTimings: TimeSlot[] = [
-    { id: 1, from: "9:00", to: "10:00" },
-    { id: 2, from: "10:00", to: "11:00" },
-    { id: 3, from: "11:00", to: "12:00" },
-    { id: 4, from: "12:00", to: "13:00" },
-    { id: 5, from: "13:00", to: "14:00" },
-    { id: 6, from: "14:00", to: "15:00" },
-  ];
-
   // ---------- State ----------
   const [loading, setLoading] = useState(true);
   const [slot, setSlot] = useState<SlotData>({
@@ -90,8 +80,12 @@ const SlotBooking: React.FC = () => {
     id: null,
     is_cancelled: true,
   });
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [timings, setTimings] = useState<TimeSlot[]>(defaultTimings);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1); // default to tomorrow
+    return d;
+  });
+  const [timings, setTimings] = useState<TimeSlot[]>([]);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationType, setNotificationType] = useState<
@@ -134,6 +128,36 @@ const SlotBooking: React.FC = () => {
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 5000);
   };
+
+  // Load timings from API for the selected date
+  const fetchTimings = async (dateObj: Date) => {
+    try {
+      const dateStr = formatDate(dateObj);
+      const res = await getSlotByDate(dateStr);
+      const items = Array.isArray(res) ? res : res?.data || [];
+
+      const mapped: TimeSlot[] = items
+        .map((s: any, idx: number) => ({
+          id: s.id ?? idx + 1,
+          from: (s.start_time ?? s.from ?? "").slice(0, 5),
+          to: (s.end_time ?? s.to ?? "").slice(0, 5),
+          availiblity: s.availiblity ?? true,
+        }))
+        .filter((t: TimeSlot) => t.from && t.to);
+
+      setTimings(mapped);
+    } catch (err) {
+      console.error("Failed to load timings:", err);
+      setTimings([]);
+    }
+  };
+
+  // Refetch timings and clear selected slot when date changes
+  useEffect(() => {
+    fetchTimings(selectedDate);
+    setSlot({ from: "", to: "", id: null, is_cancelled: true });
+    // eslint-disable-next-line
+  }, [selectedDate]);
 
   // ---------- Google Calendar Integration ----------
   const handleGoogleSignIn = async () => {
@@ -370,7 +394,6 @@ const SlotBooking: React.FC = () => {
         }
 
         loadSlotFromLocalStorage();
-        setTimings(defaultTimings);
       } catch (error: any) {
         console.error("Initialization error:", error);
         const errorMessage =

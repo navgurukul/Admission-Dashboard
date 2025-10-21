@@ -458,7 +458,7 @@ export const createSlotBookingTimes = async (payload: any) => {
     `${BASE_URL}/slots/createSlots`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     }
   );
@@ -482,7 +482,7 @@ export const getSlotByUserId = async (user_id: number): Promise<Role> => {
 
 //  For getting the slots data by date:
 export const getSlotByDate = async (date: string): Promise<Role> => {
-  const response = await fetch(`${BASE_URL}/date/?date=${date}`, {
+  const response = await fetch(`${BASE_URL}/slots/date/?date=${date}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
