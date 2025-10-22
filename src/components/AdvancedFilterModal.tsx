@@ -432,7 +432,7 @@ export function AdvancedFilterModal({
             </div>
 
             {/* Exam Mode */}
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <h3 className="font-semibold text-sm">Exam Mode</h3>
               <Select
                 value={filters.examMode}
@@ -449,10 +449,10 @@ export function AdvancedFilterModal({
                   <SelectItem value="offline">Offline</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             {/* Gender */}
-            <div className="space-y-3">
+            {/* <div className="space-y-3">
               <h3 className="font-semibold text-sm">Gender</h3>
               <Select
                 value={filters.gender || "all"}
@@ -471,7 +471,7 @@ export function AdvancedFilterModal({
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             {/* Interview Mode */}
             {/* <div className="space-y-3">
@@ -759,9 +759,9 @@ export function AdvancedFilterModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    <SelectItem value="application">Application Date</SelectItem>
-                    <SelectItem value="lastUpdate">Last Update</SelectItem>
-                    <SelectItem value="interview">Interview Date</SelectItem>
+                    <SelectItem value="application">Application Creation Date</SelectItem>
+                    {/* <SelectItem value="lastUpdate">Last Update</SelectItem>
+                    <SelectItem value="interview">Interview Date</SelectItem> */}
                   </SelectContent>
                 </Select>
               </div>
