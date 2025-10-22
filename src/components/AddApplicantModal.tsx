@@ -112,6 +112,10 @@ export function AddApplicantModal({
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
   const [selectedBlock, setSelectedBlock] = useState<string>("");
+  const [showLocationWarning, setShowLocationWarning] = useState({
+    district: false,
+    block: false,
+  });
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -359,6 +363,12 @@ export function AddApplicantModal({
       newErrors.phone_number = "Mobile number must be 10 digits";
     }
 
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
     if (!formData.gender) {
       newErrors.gender = "Gender is required";
     }
@@ -381,15 +391,68 @@ export function AddApplicantModal({
       }
     }
 
+    // Screening section validation: If any field is filled, all required fields must be filled
+    const screeningFields = {
+      status: formData.status,
+      question_set_id: formData.question_set_id,
+      exam_centre: formData.exam_centre,
+      date_of_test: formData.date_of_test,
+      obtained_marks: formData.obtained_marks,
+      qualifying_school_id: formData.qualifying_school_id,
+    };
+
+    console.log(screeningFields);
+    const hasAnyScreeningData = Object.values(screeningFields).some(
+      (value) => value !== "" && value !== null && value !== undefined
+    );
+
+    if (hasAnyScreeningData) {
+      // If any screening field is filled, validate all required screening fields
+      if (!formData.status) {
+        newErrors.status = "Screening status is required when filling screening details";
+      }
+
+      if (!formData.question_set_id) {
+        newErrors.question_set_id = "Question set is required when filling screening details";
+      }
+
+      if (!formData.exam_centre || !formData.exam_centre.trim()) {
+        newErrors.exam_centre = "Exam centre is required when filling screening details";
+      }
+
+      if (!formData.date_of_test) {
+        newErrors.date_of_test = "Date of test is required when filling screening details";
+      }
+
+      if (!formData.obtained_marks || formData.obtained_marks === "") {
+        newErrors.obtained_marks = "Obtained marks is required when filling screening details";
+      } else if (Number(formData.obtained_marks) < 0) {
+        newErrors.obtained_marks = "Obtained marks cannot be negative";
+      } else if (formData.total_marks && Number(formData.obtained_marks) > Number(formData.total_marks)) {
+        newErrors.obtained_marks = "Obtained marks cannot exceed total marks";
+      }
+
+      if (!formData.qualifying_school_id) {
+        newErrors.qualifying_school_id = "Qualifying school is required when filling screening details";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) {
+      // Check if screening validation failed
+      const hasScreeningErrors = Object.keys(errors).some(key => 
+        ['status', 'question_set_id', 'exam_centre', 'date_of_test', 'obtained_marks', 'qualifying_school_id'].includes(key)
+      );
+      
       toast({
         title: "Validation Error",
-        description: "Please fill the required fields first",
+        description: hasScreeningErrors 
+          ? "Please complete all required screening fields or leave the section empty" 
+          : "Please fill all required Basic section fields",
         variant: "destructive",
       });
       return;
@@ -813,15 +876,42 @@ export function AddApplicantModal({
                     <Select
                       value={selectedState}
                       onValueChange={(value) => {
-                        setSelectedState(value);
-                        setSelectedDistrict("");
-                        setBlockOptions([]);
+                        if (value === "none") {
+                          setSelectedState("");
+                          setSelectedDistrict("");
+                          setBlockOptions([]);
+                          setFormData((prev) => ({
+                            ...prev,
+                            state: "",
+                            district: "",
+                            block: "",
+                          }));
+                          setShowLocationWarning({ district: false, block: false });
+                        } else {
+                          // Show warning if district or block has values
+                          if (selectedDistrict || formData.block) {
+                            setShowLocationWarning({ 
+                              district: !!selectedDistrict, 
+                              block: !!formData.block 
+                            });
+                            // Clear warning after 3 seconds
+                            setTimeout(() => {
+                              setShowLocationWarning({ district: false, block: false });
+                            }, 3000);
+                          }
+                          setSelectedState(value);
+                          setSelectedDistrict("");
+                          setBlockOptions([]);
+                        }
                       }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select state" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none" className="text-gray-400">
+                          Select state
+                        </SelectItem>
                         {stateOptions.map((state) => (
                           <SelectItem key={state.value} value={state.value}>
                             {state.label}
@@ -837,15 +927,37 @@ export function AddApplicantModal({
                     <Select
                       value={selectedDistrict}
                       onValueChange={(value) => {
-                        setSelectedDistrict(value);
-                        setFormData((prev) => ({
-                          ...prev,
-                          block: "",
-                        }));
+                        if (value === "none") {
+                          setSelectedDistrict("");
+                          setFormData((prev) => ({
+                            ...prev,
+                            district: "",
+                            block: "",
+                          }));
+                          setBlockOptions([]);
+                          setShowLocationWarning({ district: false, block: false });
+                        } else {
+                          // Show warning if block has value
+                          if (selectedBlock) {
+                            setShowLocationWarning({ 
+                              district: false, 
+                              block: true 
+                            });
+                            // Clear warning after 3 seconds
+                            setTimeout(() => {
+                              setShowLocationWarning({ district: false, block: false });
+                            }, 3000);
+                          }
+                          setSelectedDistrict(value);
+                          setFormData((prev) => ({
+                            ...prev,
+                            block: "",
+                          }));
+                        }
                       }}
                       disabled={!selectedState || isLoadingDistricts}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={showLocationWarning.district ? "border-red-500" : ""}>
                         <SelectValue
                           placeholder={
                             isLoadingDistricts
@@ -857,6 +969,11 @@ export function AddApplicantModal({
                         />
                       </SelectTrigger>
                       <SelectContent>
+                        {selectedDistrict && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select district
+                          </SelectItem>
+                        )}
                         {districtOptions.map((district) => (
                           <SelectItem
                             key={district.value}
@@ -890,7 +1007,7 @@ export function AddApplicantModal({
                       onValueChange={setSelectedBlock}
                       disabled={!selectedDistrict || isLoadingBlocks}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={showLocationWarning.block ? "border-red-500" : ""}>
                         {isLoadingBlocks ? (
                           <div className="flex items-center">
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -948,13 +1065,18 @@ export function AddApplicantModal({
                     <Select
                       value={formData.cast_id ? String(formData.cast_id) : ""}
                       onValueChange={(value) =>
-                        handleInputChange("cast_id", value)
+                        handleInputChange("cast_id", value === "none" ? "" : value)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select caste" />
                       </SelectTrigger>
                       <SelectContent>
+                        {formData.cast_id && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select caste
+                          </SelectItem>
+                        )}
                         {casteList?.map((caste) => (
                           <SelectItem key={caste.id} value={String(caste.id)}>
                             {caste.cast_name}
@@ -978,13 +1100,18 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("qualification_id", value)
+                        handleInputChange("qualification_id", value === "none" ? "" : value)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select qualification" />
                       </SelectTrigger>
                       <SelectContent>
+                        {formData.qualification_id && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select qualification
+                          </SelectItem>
+                        )}
                         {qualificationList?.map((q) => (
                           <SelectItem key={q.id} value={String(q.id)}>
                             {q.qualification_name}
@@ -1008,13 +1135,18 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("current_status_id", value)
+                        handleInputChange("current_status_id", value === "none" ? "" : value)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select current work" />
                       </SelectTrigger>
                       <SelectContent>
+                        {formData.current_status_id && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select current work
+                          </SelectItem>
+                        )}
                         {currentstatusList?.map((work) => (
                           <SelectItem key={work.id} value={String(work.id)}>
                             {work.current_status_name}
@@ -1033,13 +1165,18 @@ export function AddApplicantModal({
                         formData.campus_id ? String(formData.campus_id) : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("campus_id", value)
+                        handleInputChange("campus_id", value === "none" ? "" : value)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select Campus" />
                       </SelectTrigger>
                       <SelectContent side="bottom" align="end">
+                        {formData.campus_id && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select Campus
+                          </SelectItem>
+                        )}
                         {campusList?.map((q) => (
                           <SelectItem key={q.id} value={String(q.id)}>
                             {q.campus_name}
@@ -1061,13 +1198,18 @@ export function AddApplicantModal({
                         formData.religion_id ? String(formData.religion_id) : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("religion_id", value)
+                        handleInputChange("religion_id", value === "none" ? "" : value)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select religion" />
                       </SelectTrigger>
                       <SelectContent>
+                        {formData.religion_id && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select religion
+                          </SelectItem>
+                        )}
                         {religionList?.map((r) => (
                           <SelectItem key={r.id} value={String(r.id)}>
                             {r.religion_name}
@@ -1101,10 +1243,14 @@ export function AddApplicantModal({
 
             <TabsContent value="screening" className="space-y-4 sm:space-y-6">
               <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
                   <FileText className="w-5 h-5 mr-2 text-orange-600" />
                   Screening Details
                 </h3>
+                <p className="text-sm text-gray-600 mb-4 bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                  <AlertCircle className="w-4 h-4 inline mr-1 text-blue-600" />
+                  <strong>Note:</strong> If you fill any field in this section, all screening fields are required.
+                </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div className="space-y-2">
@@ -1113,17 +1259,25 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Screening Status
+                      {errors.status && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </Label>
                     <Select
                       value={formData.status}
                       onValueChange={(value) =>
-                        handleInputChange("status", value)
+                        handleInputChange("status", value === "none" ? "" : value)
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.status ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select screening status" />
                       </SelectTrigger>
                       <SelectContent>
+                        {formData.status && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select screening status
+                          </SelectItem>
+                        )}
                         <SelectItem value="Screening Test Pass">
                           Screening Test Pass
                         </SelectItem>
@@ -1135,6 +1289,9 @@ export function AddApplicantModal({
                         </SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.status && (
+                      <p className="text-xs text-red-500">{errors.status}</p>
+                    )}
                   </div>
                 </div>
 
@@ -1145,6 +1302,9 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Question Set
+                      {errors.question_set_id && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </Label>
                     <Select
                       value={
@@ -1153,13 +1313,18 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("question_set_id", value)
+                        handleInputChange("question_set_id", value === "none" ? "" : value)
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.question_set_id ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select question set" />
                       </SelectTrigger>
                       <SelectContent>
+                        {formData.question_set_id && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select question set
+                          </SelectItem>
+                        )}
                         {questionSetList?.map((set) => (
                           <SelectItem key={set.id} value={String(set.id)}>
                             {set.name}
@@ -1167,6 +1332,9 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.question_set_id && (
+                      <p className="text-xs text-red-500">{errors.question_set_id}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1175,6 +1343,9 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Exam Centre
+                      {errors.exam_centre && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </Label>
                     <Input
                       id="exam_centre"
@@ -1183,7 +1354,11 @@ export function AddApplicantModal({
                         handleInputChange("exam_centre", e.target.value)
                       }
                       placeholder="Enter exam centre"
+                      className={errors.exam_centre ? "border-red-500" : ""}
                     />
+                    {errors.exam_centre && (
+                      <p className="text-xs text-red-500">{errors.exam_centre}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2 sm:col-span-2 lg:col-span-1">
@@ -1192,6 +1367,9 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Date of Testing
+                      {errors.date_of_test && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </Label>
                     <Input
                       id="date_of_test"
@@ -1200,7 +1378,11 @@ export function AddApplicantModal({
                       onChange={(e) =>
                         handleInputChange("date_of_test", e.target.value)
                       }
+                      className={errors.date_of_test ? "border-red-500" : ""}
                     />
+                    {errors.date_of_test && (
+                      <p className="text-xs text-red-500">{errors.date_of_test}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1233,6 +1415,9 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Obtained Marks
+                      {errors.obtained_marks && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </Label>
                     <Input
                       id="obtained_marks"
@@ -1243,7 +1428,11 @@ export function AddApplicantModal({
                       }
                       placeholder="Enter obtained marks"
                       min="0"
+                      className={errors.obtained_marks ? "border-red-500" : ""}
                     />
+                    {errors.obtained_marks && (
+                      <p className="text-xs text-red-500">{errors.obtained_marks}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1252,6 +1441,9 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Qualifying School
+                      {errors.qualifying_school_id && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </Label>
                     <Select
                       value={
@@ -1260,13 +1452,18 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("qualifying_school_id", value)
+                        handleInputChange("qualifying_school_id", value === "none" ? "" : value)
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={errors.qualifying_school_id ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select qualifying school" />
                       </SelectTrigger>
                       <SelectContent>
+                        {formData.qualifying_school_id && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select qualifying school
+                          </SelectItem>
+                        )}
                         {schoolList?.map((school) => (
                           <SelectItem key={school.id} value={String(school.id)}>
                             {school.school_name}
@@ -1274,6 +1471,9 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.qualifying_school_id && (
+                      <p className="text-xs text-red-500">{errors.qualifying_school_id}</p>
+                    )}
                   </div>
                 </div>
               </div>
