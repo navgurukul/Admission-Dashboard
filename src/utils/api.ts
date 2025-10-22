@@ -878,8 +878,6 @@ export const createStudent = async (studentData: any): Promise<any> => {
   return data;
 };
 
-
-// https://dev-new-admissions.navgurukul.org/api/v1/students/filter?created_at_from=2025-09-29&created_at_to=2025-10-04&qualification_id=2&campus_id=5&school_id=18&current_status_id=1&state=Maharashtra&district=Mumbai
 export const getFilterStudent = async (filters: any): Promise<any[]> => {
   const query = new URLSearchParams(filters).toString();
   const response = await fetch(`${BASE_URL}/students/filter?${query}`, {
@@ -911,6 +909,23 @@ export const getFilterStudent = async (filters: any): Promise<any[]> => {
   }
 }
 
+
+// post student exam submission
+export const createStudentExamSubmission = async (submissionData: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/questions/submitExam`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(submissionData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to submit exam');
+  }
+
+  return data;
+};
 
 
 
