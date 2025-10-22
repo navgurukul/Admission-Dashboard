@@ -382,6 +382,14 @@ export function AddApplicantModal({
         newErrors.dob = "Date of birth cannot be today or in the future";
       }
     }
+    if (!formData.email || !formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = "Please enter a valid email address";
+      }
+    }
 
     // Screening section validation: If any field is filled, all required fields must be filled
     const screeningFields = {
@@ -482,10 +490,10 @@ export function AddApplicantModal({
 
       // API Call - Create Student
       const response = await createStudent(studentData);
-      
+
       // Extract student ID from response (handle different response structures)
       const studentId = response?.data?.id || response?.id;
-      
+
       // Step 2: If screening data exists, submit it separately
       if (studentId && (formData.status || formData.question_set_id)) {
         const screeningData = {
@@ -513,43 +521,65 @@ export function AddApplicantModal({
         id: studentId,
         name:
           (response?.data?.first_name || response?.first_name || "") +
-          ((response?.data?.middle_name || response?.middle_name) ? ` ${response?.data?.middle_name || response?.middle_name}` : "") +
-          ((response?.data?.last_name || response?.last_name) ? ` ${response?.data?.last_name || response?.last_name}` : ""),
+          (response?.data?.middle_name || response?.middle_name
+            ? ` ${response?.data?.middle_name || response?.middle_name}`
+            : "") +
+          (response?.data?.last_name || response?.last_name
+            ? ` ${response?.data?.last_name || response?.last_name}`
+            : ""),
         mobile_no: response?.data?.phone_number || response?.phone_number,
-        whatsapp_number: response?.data?.whatsapp_number || response?.whatsapp_number,
+        whatsapp_number:
+          response?.data?.whatsapp_number || response?.whatsapp_number,
         email: response?.data?.email || response?.email,
         city: response?.data?.city || response?.city,
         campus_id: response?.data?.campus_id || response?.campus_id,
         campus:
-          campusList?.find((c) => Number(c.id) === Number(response?.data?.campus_id || response?.campus_id))
-            ?.campus_name || "",
+          campusList?.find(
+            (c) =>
+              Number(c.id) ===
+              Number(response?.data?.campus_id || response?.campus_id)
+          )?.campus_name || "",
         school_id: response?.data?.school_id || response?.school_id,
         school:
-          schoolList?.find((s) => s.id === (response?.data?.school_id || response?.school_id))?.school_name ||
-          "",
+          schoolList?.find(
+            (s) => s.id === (response?.data?.school_id || response?.school_id)
+          )?.school_name || "",
         gender: response?.data?.gender || response?.gender,
-        qualification_id: response?.data?.qualification_id || response?.qualification_id,
+        qualification_id:
+          response?.data?.qualification_id || response?.qualification_id,
         qualification:
-          qualificationList?.find((q) => q.id === (response?.data?.qualification_id || response?.qualification_id))
-            ?.qualification_name || "",
-        current_status_id: response?.data?.current_status_id || response?.current_status_id,
+          qualificationList?.find(
+            (q) =>
+              q.id ===
+              (response?.data?.qualification_id || response?.qualification_id)
+          )?.qualification_name || "",
+        current_status_id:
+          response?.data?.current_status_id || response?.current_status_id,
         current_work:
-          currentstatusList?.find((c) => c.id === (response?.data?.current_status_id || response?.current_status_id))
-            ?.current_status_name || "",
+          currentstatusList?.find(
+            (c) =>
+              c.id ===
+              (response?.data?.current_status_id || response?.current_status_id)
+          )?.current_status_name || "",
         status: formData.status,
         obtained_marks: formData.obtained_marks,
         question_set_id: formData.question_set_id,
         exam_centre: formData.exam_centre,
         date_of_test: formData.date_of_test,
-        communication_notes: response?.data?.communication_notes || response?.communication_notes,
+        communication_notes:
+          response?.data?.communication_notes || response?.communication_notes,
       };
+
+      if (!response || response.status >= 400) {
+        throw new Error(response?.message || "Failed to create student");
+      }
 
       toast({
         title: "Success!",
         description: "Applicant created successfully",
       });
 
-      onSuccess(transformedApplicant);
+      onSuccess?.(response?.data);
       resetForm();
       onClose();
     } catch (error: any) {
@@ -813,7 +843,9 @@ export function AddApplicantModal({
                         handleInputChange("gender", value)
                       }
                     >
-                      <SelectTrigger className={errors.gender ? "border-red-500" : ""}>
+                      <SelectTrigger
+                        className={errors.gender ? "border-red-500" : ""}
+                      >
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1217,7 +1249,7 @@ export function AddApplicantModal({
                 </h3>
                 <p className="text-sm text-gray-600 mb-4 bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
                   <AlertCircle className="w-4 h-4 inline mr-1 text-blue-600" />
-                  <strong>Note:</strong> If you fill any field in this section, all screening fields marked with * are required.
+                  <strong>Note:</strong> If you fill any field in this section, all screening fields are required.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
