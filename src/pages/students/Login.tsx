@@ -91,18 +91,11 @@ export default function StudentLogin() {
     setLoading(true);
 
     try {
-      // 🔹 Mocked API response (replace with fetch when backend ready)
-      // const res = await fetch(`${BASE_URL}/auth/student/login`, {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(formData),
-      // });
-      // const data: LoginResponse = await res.json();
 
       const data: LoginResponse = {
         success: true,
         student: {
-          id: 12,
+          id: 105,
           name: formData.name,
           lastname: formData.lastname,
           phone: formData.phone,
