@@ -94,37 +94,37 @@ export function ApplicantModal({
     return date.toLocaleDateString();
   };
 
-    // Helper to convert state name to state code (if needed)
- const getStateCodeFromNameOrCode = (value: string) => {
+  // Helper to convert state name to state code (if needed)
+  const getStateCodeFromNameOrCode = (value: string) => {
     if (!value) return null;
-    
+
     // Check if it's already a state_code (starts with "S-")
     if (value.startsWith("S-")) {
       return value;
     }
-    
+
     // Try to find the state_code by matching the name
     const stateOption = stateOptions.find(
       (opt) => opt.label.toUpperCase() === value.toUpperCase()
     );
-    
+
     return stateOption ? stateOption.value : value;
   };
 
   // Helper to convert district name to district code (if needed)
   const getDistrictCodeFromNameOrCode = (value: string) => {
     if (!value) return null;
-    
+
     // Check if it's already a district_code (starts with "D-")
     if (value.startsWith("D-")) {
       return value;
     }
-    
+
     // Try to find the district_code by matching the name
     const districtOption = districtOptions.find(
       (opt) => opt.label.toUpperCase() === value.toUpperCase()
     );
-    
+
     return districtOption ? districtOption.value : value;
   };
 
@@ -182,14 +182,16 @@ export function ApplicantModal({
               setSelectedState(stateCode);
             }
             if (updated.district) {
-              const districtCode = getDistrictCodeFromNameOrCode(updated.district);
+              const districtCode = getDistrictCodeFromNameOrCode(
+                updated.district
+              );
               setSelectedDistrict(districtCode);
             }
           } else {
-            console.error("Invalid response - no ID found:", response);
+            // console.error("Invalid response - no ID found:", response);
           }
         } catch (err) {
-          console.error("Failed to fetch student data", err);
+          // console.error("Failed to fetch student data", err);
         }
       };
       fetchStudent();
@@ -265,11 +267,20 @@ export function ApplicantModal({
   }, [isOpen]);
 
   // Set joining date from current applicant
+  // useEffect(() => {
+  //   if (currentApplicant?.joining_date) {
+  //     setJoiningDate(currentApplicant.joining_date.split("T")[0]);
+  //   }
+  // }, [currentApplicant?.joining_date]);
+
+  // Fix: Load joining date from nested final_decisions if available
   useEffect(() => {
-    if (currentApplicant?.joining_date) {
-      setJoiningDate(currentApplicant.joining_date.split("T")[0]);
-    }
-  }, [currentApplicant?.joining_date]);
+    const jd =
+      currentApplicant?.final_decisions?.[0]?.joining_date ||
+      currentApplicant?.joining_date ||
+      "";
+    setJoiningDate(jd ? jd.split("T")[0] : "");
+  }, [currentApplicant]);
 
   // Fetch districts when state changes
   useEffect(() => {
@@ -307,7 +318,6 @@ export function ApplicantModal({
       return;
     }
 
-
     const fetchBlocks = async () => {
       setIsLoadingBlocks(true);
       try {
@@ -338,8 +348,8 @@ export function ApplicantModal({
         [field]: value,
       };
 
-      console.log("value", value);
-      console.log(1, payload);
+      // console.log("value", value);
+      // console.log(1, payload);
 
       if (field === "joining_date") {
         payload.joining_date = value;
@@ -348,7 +358,7 @@ export function ApplicantModal({
       await submitFinalDecision(payload);
       await handleUpdate();
     } catch (err) {
-      console.error("Failed to update final decision", err);
+      // console.error("Failed to update final decision", err);
     }
   };
 
@@ -380,10 +390,10 @@ export function ApplicantModal({
       if (updated?.id) {
         setCurrentApplicant(updated);
       } else {
-        console.error("Invalid response - no ID found:", response);
+        // console.error("Invalid response - no ID found:", response);
       }
     } catch (err) {
-      console.error("Failed to refresh applicant", err);
+      // console.error("Failed to refresh applicant", err);
     }
   };
 
@@ -397,20 +407,19 @@ export function ApplicantModal({
     );
   };
 
-
   const handleStateChange = async (value: string) => {
     setSelectedState(value);
     setSelectedDistrict(null);
     setDistrictOptions([]);
     setBlockOptions([]);
-    
+
     await handleUpdate();
   };
 
   const handleDistrictChange = async (value: string) => {
     setSelectedDistrict(value);
     setBlockOptions([]);
-    
+
     await handleUpdate();
   };
 
@@ -424,7 +433,10 @@ export function ApplicantModal({
       options: [
         { value: "Screening Test Pass", label: "Screening Test Pass" },
         { value: "Screening Test Fail", label: "Screening Test Fail" },
-        { value: "Created Student Without Exam",label: "Created Student Without Exam",},
+        {
+          value: "Created Student Without Exam",
+          label: "Created Student Without Exam",
+        },
       ],
     },
     {
@@ -489,14 +501,14 @@ export function ApplicantModal({
   const screeningSubmit =
     API_MAP?.screening?.submit ??
     (async (payload: any) => {
-      console.error("API_MAP.screening.submit is not available", payload);
+      // console.error("API_MAP.screening.submit is not available", payload);
       throw new Error("screening submit API not available");
     });
 
   const screeningUpdate =
     API_MAP?.screening?.update ??
     (async (id: any, payload: any) => {
-      console.error("API_MAP.screening.update is not available", id, payload);
+      // console.error("API_MAP.screening.update is not available", id, payload);
       throw new Error("screening update API not available");
     });
 
@@ -692,8 +704,8 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="district"
                     displayValue={
-                      isLoadingDistricts 
-                        ? "Loading..." 
+                      isLoadingDistricts
+                        ? "Loading..."
                         : getLabel(districtOptions, currentApplicant.district)
                     }
                     value={currentApplicant.district}
@@ -710,8 +722,8 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="block"
                     displayValue={
-                      isLoadingBlocks 
-                        ? "Loading..." 
+                      isLoadingBlocks
+                        ? "Loading..."
                         : getLabel(blockOptions, currentApplicant.block)
                     }
                     value={currentApplicant.block}
@@ -892,11 +904,25 @@ export function ApplicantModal({
                     }
                     onChange={(e) => setJoiningDate(e.target.value)}
                     onBlur={async () => {
-                      if (joiningDate) {
+                      try {
+                        // Only update if user changed
                         await handleFinalDecisionUpdate(
                           "joining_date",
-                          joiningDate
+                          joiningDate || null
                         );
+
+                        // Immediately sync
+                        setCurrentApplicant((prev) => ({
+                          ...prev,
+                          final_decisions: [
+                            {
+                              ...(prev.final_decisions?.[0] || {}),
+                              joining_date: joiningDate,
+                            },
+                          ],
+                        }));
+                      } catch (err) {
+                        // console.error("Failed to update joining date:", err);
                       }
                     }}
                   />
