@@ -18,7 +18,6 @@ export const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
   };
 };
 
-
 // Make authenticated API request
 export const apiRequest = async (
   endpoint: string,
@@ -35,7 +34,7 @@ export const apiRequest = async (
     },
   };
 
-  return fetch(url, config);
+return fetch(url,config)
 };
 
 // AUTHENTICATION FUNCTIONS (NEW) 
@@ -99,6 +98,13 @@ export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise
     throw new Error(data.message || 'Login failed');
   }
 
+   if (data.data?.user) {
+    localStorage.setItem('user', JSON.stringify({
+      ...data.data.user,
+      profile_pic: data.data.user.profile_pic || googlePayload.picture || ''
+    }));
+  }
+
   return data;
 };
 
@@ -110,14 +116,51 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
     headers: getAuthHeaders(),
   });
 
-  const data = await response.json();
+  const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch users');
+    throw new Error(result.message || 'Failed to fetch users');
   }
 
-  return data;
+  // API returns {success, message, data: {data: User[], total, totalPages}}
+  // We need to transform it to {users: User[], total: number}
+  // Also normalize user_role_id to role_id for consistency
+  const users = (result.data?.data || []).map((user: any) => ({
+    ...user,
+    role_id: user.user_role_id,
+  }));
   
+  return {
+    users,
+    total: result.data?.total || 0
+  };
+  
+};
+
+
+export const getUserProfileImage = (): string => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return '';
+    
+    const user = JSON.parse(userStr);
+    return user.profile_pic || user.picture || '';
+  } catch (error) {
+    // console.error('Error getting profile image:', error);
+    return '';
+  }
+};
+
+// Get current user data for profile image
+export const getCurrentUser = (): User | null => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    return JSON.parse(userStr);
+  } catch (error) {
+    // console.error('Error getting current user:', error);
+    return null;
+  }
 };
 
 // Get user by ID
@@ -201,7 +244,22 @@ export const deleteUser = async (id: string): Promise<void> => {
   }
 };
 
+//search user
+export const searchUsers = async (query: string): Promise<User[]> => {
+  
+  const response = await fetch(`${BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
 
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to search users');
+  }
+
+  return data.data || [];
+};
 
 export const bulkUploadStudents = async (file: File) => {
   const formData = new FormData();

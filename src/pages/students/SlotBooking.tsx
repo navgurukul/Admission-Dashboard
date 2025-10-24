@@ -517,7 +517,7 @@ const SlotBooking: React.FC = () => {
                     type="date"
                     value={formatDate(selectedDate)}
                     onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                    min={formatDate(new Date())}
+                    min={formatDate(new Date(Date.now() + 24 * 60 * 60 * 1000))}
                     max={formatDate(
                       new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)
                     )}
@@ -538,23 +538,31 @@ const SlotBooking: React.FC = () => {
                   <Clock className="w-6 h-6 mr-2 text-orange-600" />
                   Available Time Slots
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {timings.map(({ id, from, to }) => (
-                    <button
-                      key={id}
-                      onClick={() =>
-                        setSlot({ id, from, to, is_cancelled: true })
-                      }
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        slot.id === id
-                          ? "border-orange-500 bg-orange-50"
-                          : "border-gray-200 bg-white"
-                      }`}
-                    >
-                      {formatTime(from)} - {formatTime(to)}
-                    </button>
-                  ))}
-                </div>
+                {timings.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {timings.map(({ id, from, to }) => (
+                      <button
+                        key={id}
+                        onClick={() =>
+                          setSlot({ id, from, to, is_cancelled: true })
+                        }
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          slot.id === id
+                            ? "border-orange-500 bg-orange-50"
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
+                        {formatTime(from)} - {formatTime(to)}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+                    <p className="text-gray-600 text-base">
+                      No slots available for this date. Please select another date.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Google Sign-in Status */}

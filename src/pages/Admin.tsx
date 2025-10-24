@@ -20,16 +20,20 @@ import {
   Role,
 } from "@/utils/api";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
+import {searchUsers} from "@/utils/api";
 
 const ROWS_PER_PAGE = 10;
 
 const AdminPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [phoneError, setPhoneError] = useState<string>("");
 
@@ -41,6 +45,7 @@ const AdminPage: React.FC = () => {
     username: string;
     selectedRoleId: string;
     editId: number | null;
+    user_role_id?: number;
   }>({
     open: false,
     email: "",
@@ -49,22 +54,19 @@ const AdminPage: React.FC = () => {
     username: "",
     selectedRoleId: "",
     editId: null,
+    user_role_id: undefined,
   });
-
-  useEffect(() => {
-    fetchUsers(page);
-    fetchRoles();
-  }, [page]);
 
   const fetchUsers = async (pageNo: number = page): Promise<void> => {
     setLoading(true);
     try {
       const res = await getAllUsers(pageNo, ROWS_PER_PAGE);
-      const users = res?.data?.data || [];
-      const total = res?.data?.totalPages || 1;
+      const users = res?.users || [];
+      const total = res?.total || 0;
 
       setUsers(users);
-      setTotalPages(total);
+      setTotalUsers(total);
+      setTotalPages(Math.ceil(total / ROWS_PER_PAGE));
     } catch (err) {
       console.error("Error fetching users:", err);
       setUsers([]);
@@ -82,6 +84,49 @@ const AdminPage: React.FC = () => {
       setRoles([]);
     }
   };
+
+  // Fetch users when page changes or search is cleared
+  useEffect(() => {
+    // Only fetch users from server when not searching
+    if (!searchQuery.trim()) {
+      fetchUsers(page);
+    }
+  }, [page, searchQuery]);
+
+  // Fetch roles once on mount
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  // Search with debouncing
+  useEffect(() => {
+    // Don't do anything if search is empty
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const results = await searchUsers(searchQuery.trim());
+        setSearchResults(results || []);
+      } catch (err) {
+        console.error("Error searching users:", err);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const handleAddUserSubmit = async (
     e: React.FormEvent<HTMLFormElement>
@@ -120,16 +165,31 @@ const AdminPage: React.FC = () => {
       if (addUserDialog.editId) {
         // Update
         await updateUser(addUserDialog.editId.toString(), payload);
-        await fetchUsers(); // refresh same page
+        
+        // Refresh current state without changing page or search
+        if (searchQuery.trim()) {
+          // Re-run the search to get updated results
+          const results = await searchUsers(searchQuery.trim());
+          setSearchResults(results || []);
+        } else {
+          // Refresh current page
+          await fetchUsers(page);
+        }
       } else {
         // Create
         await onboardUser(payload);
 
+        // Clear search if active
+        if (searchQuery.trim()) {
+          setSearchQuery("");
+          setSearchResults([]);
+        }
+
         // Add hone ke baad last page le jao
         const res = await getAllUsers(1, ROWS_PER_PAGE);
-        const total = res?.data?.totalPages || 1;
-        setPage(total);
-        await fetchUsers(total);
+        const totalPagesCalculated = Math.ceil((res?.total || 0) / ROWS_PER_PAGE);
+        setPage(totalPagesCalculated);
+        await fetchUsers(totalPagesCalculated);
       }
 
       closeAddUserDialog();
@@ -165,7 +225,16 @@ const AdminPage: React.FC = () => {
   const handleDeleteUser = async (id: number): Promise<void> => {
     try {
       await deleteUser(id.toString());
-      await fetchUsers();
+      
+      // Refresh current state without changing page or search
+      if (searchQuery.trim()) {
+        // Re-run the search to get updated results
+        const results = await searchUsers(searchQuery.trim());
+        setSearchResults(results || []);
+      } else {
+        // Just refresh current page
+        await fetchUsers(page);
+      }
     } catch (err) {
       console.error("Error deleting user:", err);
     }
@@ -176,13 +245,19 @@ const AdminPage: React.FC = () => {
     return role ? role.name : `Role ${roleId}`;
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.user_name &&
-        user.user_name.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Use search results if searching, otherwise show all users
+  const filteredUsers = searchQuery.trim() ? searchResults : users;
+
+  // Client-side pagination for search results only
+  // For regular users, server already sends paginated data
+  const paginatedUsers = searchQuery.trim()
+    ? filteredUsers.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE)
+    : users;
+
+  // Calculate total pages based on whether we're searching or not
+  const totalPagesCount = searchQuery.trim()
+    ? Math.ceil(filteredUsers.length / ROWS_PER_PAGE)
+    : totalPages;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -240,7 +315,9 @@ const AdminPage: React.FC = () => {
                     User Management
                   </h1>
                   <p className="text-gray-600 mt-1">
-                    Manage system users and their roles
+                    {searchQuery
+                      ? `${filteredUsers.length} users found (search)`
+                      : "Manage system users and their roles"}
                   </p>
                 </div>
 
@@ -289,7 +366,7 @@ const AdminPage: React.FC = () => {
                       Total Users
                     </p>
                     <p className="text-2xl font-semibold text-gray-900">
-                      {users.length}
+                      {searchQuery.trim() ? filteredUsers.length : totalUsers}
                     </p>
                   </div>
                 </div>
@@ -329,12 +406,12 @@ const AdminPage: React.FC = () => {
             </div>
 
             {/* Table */}
-            {loading ? (
+            {loading || isSearching ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
                 <div className="flex flex-col items-center justify-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
                   <div className="text-lg text-gray-600 mt-4">
-                    Loading users...
+                    {isSearching ? "Searching users..." : "Loading users..."}
                   </div>
                 </div>
               </div>
@@ -363,7 +440,7 @@ const AdminPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredUsers.map((user) => (
+                      {paginatedUsers.map((user) => (
                         <tr
                           key={user.id}
                           className="hover:bg-gray-50 transition-colors duration-150"
@@ -440,7 +517,7 @@ const AdminPage: React.FC = () => {
 
                 {/* Mobile Cards */}
                 <div className="md:hidden divide-y divide-gray-200">
-                  {filteredUsers.map((user) => (
+                  {paginatedUsers.map((user) => (
                     <div key={user.id} className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start space-x-3 flex-1">
@@ -518,7 +595,7 @@ const AdminPage: React.FC = () => {
             )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPagesCount > 1 && (
               <div className="flex justify-center mt-6">
                 <nav className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
                   <div className="flex items-center gap-1">
@@ -535,7 +612,7 @@ const AdminPage: React.FC = () => {
                     </button>
 
                     <div className="flex gap-1 mx-2">
-                      {[...Array(totalPages)].map((_, i) => (
+                      {[...Array(totalPagesCount)].map((_, i) => (
                         <button
                           key={i}
                           onClick={() => setPage(i + 1)}
@@ -552,11 +629,11 @@ const AdminPage: React.FC = () => {
 
                     <button
                       onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
+                        setPage((p) => Math.min(totalPagesCount, p + 1))
                       }
-                      disabled={page === totalPages}
+                      disabled={page === totalPagesCount}
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                        page === totalPages
+                        page === totalPagesCount
                           ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                           : "bg-white text-gray-700 hover:bg-orange-50 hover:text-orange-600"
                       }`}
