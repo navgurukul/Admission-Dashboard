@@ -203,6 +203,11 @@ const ApplicantTable = () => {
         setSearchResults([]);
         return;
       }
+      
+      // Clear filters when search is performed
+      setHasActiveFilters(false);
+      setFilteredStudents([]);
+      
       try {
         setIsSearching(true);
         const results = await searchStudentsApi(searchTerm.trim());
@@ -441,6 +446,10 @@ const ApplicantTable = () => {
       setCurrentPage(1);
       return;
     }
+
+    // Clear search when filters are applied
+    setSearchTerm("");
+    setSearchResults([]);
 
     try {
       setIsFiltering(true);

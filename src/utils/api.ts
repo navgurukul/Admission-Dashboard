@@ -110,13 +110,24 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
     headers: getAuthHeaders(),
   });
 
-  const data = await response.json();
+  const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch users');
+    throw new Error(result.message || 'Failed to fetch users');
   }
 
-  return data;
+  // API returns {success, message, data: {data: User[], total, totalPages}}
+  // We need to transform it to {users: User[], total: number}
+  // Also normalize user_role_id to role_id for consistency
+  const users = (result.data?.data || []).map((user: any) => ({
+    ...user,
+    role_id: user.user_role_id,
+  }));
+  
+  return {
+    users,
+    total: result.data?.total || 0
+  };
   
 };
 
@@ -201,7 +212,22 @@ export const deleteUser = async (id: string): Promise<void> => {
   }
 };
 
+//search user
+export const searchUsers = async (query: string): Promise<User[]> => {
+  
+  const response = await fetch(`${BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
 
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to search users');
+  }
+
+  return data.data || [];
+};
 
 export const bulkUploadStudents = async (file: File) => {
   const formData = new FormData();
