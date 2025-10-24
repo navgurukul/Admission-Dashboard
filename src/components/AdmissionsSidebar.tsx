@@ -1,41 +1,61 @@
-import { NavLink,useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { NavLink, useLocation } from "react-router-dom";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useEffect, useState } from "react";
 import { navigation } from "@/components/ui/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+import { getUserProfileImage, getCurrentUser, logoutUser } from '@/utils/api';
 
 export function AdmissionsSidebar() {
-  const { user, signOut } = useAuth();
   const { user: googleUser, signOut: googleSignOut } = useGoogleAuth();
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Get profile image and user from helper functions
+  const profileImage = getUserProfileImage();
+  const currentUser = getCurrentUser();
 
   useEffect(() => {
     const storedUserInfo = localStorage.getItem("userInfo");
     if (storedUserInfo) setUserInfo(JSON.parse(storedUserInfo));
-  }, [user, googleUser]);
+  }, [googleUser]);
 
   const getInitials = (email: string) =>
     email.split("@")[0].slice(0, 2).toUpperCase();
+  
   const getUserDisplayName = () =>
+    currentUser?.name ||
     googleUser?.name ||
     userInfo?.name ||
-    user?.user_metadata?.display_name ||
     "User";
+  
   const getUserEmail = () =>
-    googleUser?.email || user?.email || userInfo?.email || "No email";
+    currentUser?.email ||
+    googleUser?.email || 
+    userInfo?.email || 
+    "No email";
+  
   const getUserAvatar = () =>
-    googleUser?.avatar || userInfo?.avatar || user?.user_metadata?.avatar_url;
-  const roleId = googleUser?.role_id || 2;
+    profileImage ||
+    googleUser?.avatar || 
+    userInfo?.avatar;
+  
+  const roleId = currentUser?.user_role_id || googleUser?.role_id || 2;
   const location = useLocation();
 
   const handleLogout = async () => {
-    if (googleUser) googleSignOut();
-    else await signOut();
-    window.location.href = "/Admission-Dashboard/auth";
+    try {
+      if (googleUser) {
+        googleSignOut();
+      }
+      logoutUser(); // This clears localStorage
+      window.location.href = "/Admission-Dashboard/auth";
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Force logout anyway
+      logoutUser();
+      window.location.href = "/Admission-Dashboard/auth";
+    }
   };
 
   return (
@@ -84,14 +104,25 @@ export function AdmissionsSidebar() {
                 src={getUserAvatar()}
                 alt="User avatar"
                 className="w-16 h-16 rounded-full object-cover border-2 border-white/20"
+                onError={(e) => {
+                  // Fallback to initials if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
               />
-            ) : (
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xl font-semibold">
-                  {getUserEmail() ? getInitials(getUserEmail()) : "U"}
-                </span>
-              </div>
-            )}
+            ) : null}
+            
+            {/* Fallback Avatar with Initials */}
+            <div 
+              className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center"
+              style={{ display: getUserAvatar() ? 'none' : 'flex' }}
+            >
+              <span className="text-white text-xl font-semibold">
+                {getUserEmail() ? getInitials(getUserEmail()) : "U"}
+              </span>
+            </div>
+            
             <div>
               <h3 className="text-lg font-semibold text-sidebar-text">
                 {getUserDisplayName()}
@@ -102,7 +133,6 @@ export function AdmissionsSidebar() {
         </div>
 
         {/* Navigation */}
-
         <nav className="px-4 py-6 space-y-1 flex-1">
           {navigation
             .filter((item) => item.allowedRoles.includes(roleId))
@@ -119,7 +149,6 @@ export function AdmissionsSidebar() {
                   )
                 }
                 onClick={(event) => {
-                  // Prevent navigation and sidebar close if already on this route
                   if (location.pathname === item.href) {
                     event.preventDefault();
                     return;

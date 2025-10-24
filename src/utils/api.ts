@@ -18,7 +18,6 @@ export const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
   };
 };
 
-
 // Make authenticated API request
 export const apiRequest = async (
   endpoint: string,
@@ -35,7 +34,7 @@ export const apiRequest = async (
     },
   };
 
-  return fetch(url, config);
+return fetch(url,config)
 };
 
 // AUTHENTICATION FUNCTIONS (NEW) 
@@ -99,6 +98,13 @@ export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise
     throw new Error(data.message || 'Login failed');
   }
 
+   if (data.data?.user) {
+    localStorage.setItem('user', JSON.stringify({
+      ...data.data.user,
+      profile_pic: data.data.user.profile_pic || googlePayload.picture || ''
+    }));
+  }
+
   return data;
 };
 
@@ -129,6 +135,32 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
     total: result.data?.total || 0
   };
   
+};
+
+
+export const getUserProfileImage = (): string => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return '';
+    
+    const user = JSON.parse(userStr);
+    return user.profile_pic || user.picture || '';
+  } catch (error) {
+    // console.error('Error getting profile image:', error);
+    return '';
+  }
+};
+
+// Get current user data for profile image
+export const getCurrentUser = (): User | null => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    return JSON.parse(userStr);
+  } catch (error) {
+    // console.error('Error getting current user:', error);
+    return null;
+  }
 };
 
 // Get user by ID
