@@ -339,28 +339,34 @@ export function ApplicantModal({
     fetchBlocks();
   }, [selectedDistrict]);
 
-  const handleFinalDecisionUpdate = async (field: string, value: any) => {
-    if (!currentApplicant?.id) return;
+const handleFinalDecisionUpdate = async (field: string, value: any) => {
+  if (!currentApplicant?.id) return;
 
-    try {
-      const payload: Record<string, any> = {
-        student_id: currentApplicant.id,
-        [field]: value,
-      };
+  try {
+    const existingDecision = currentApplicant.final_decisions?.[0] || {};
 
-      // console.log("value", value);
-      // console.log(1, payload);
+    const payload: Record<string, any> = {
+      student_id: currentApplicant.id,
+      id: existingDecision.id, 
+      offer_letter_status: existingDecision.offer_letter_status ?? null,
+      onboarded_status: existingDecision.onboarded_status ?? null,
+      final_notes: existingDecision.final_notes ?? null,
+      joining_date: existingDecision.joining_date ?? null,
+      stage_id: existingDecision.stage_id ?? null,
+      [field]: value, 
+    };
 
-      if (field === "joining_date") {
-        payload.joining_date = value;
-      }
-
-      await submitFinalDecision(payload);
-      await handleUpdate();
-    } catch (err) {
-      // console.error("Failed to update final decision", err);
+    if (field === "joining_date") {
+      payload.joining_date = value !== "" ? value : null;
     }
-  };
+
+    await submitFinalDecision(payload);
+
+    await handleUpdate();
+  } catch (err) {
+    // console.error("Failed to update final decision", err);
+  }
+};
 
   if (!applicant || !currentApplicant) return null;
 
