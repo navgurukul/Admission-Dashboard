@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { createSlotBookingTimes } from "@/utils/api";
 
 interface TimeSlot {
+  date?: Date;
   startTime: string;
   endTime: string;
   interviewer: string;
@@ -37,9 +38,8 @@ export function AddSlotsModal({
   onClose,
   onSuccess,
 }: AddSlotsModalProps) {
-  const [date, setDate] = useState<Date>();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { startTime: "", endTime: "", interviewer: "" },
+    { date: undefined, startTime: "", endTime: "", interviewer: "" },
   ]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -47,7 +47,7 @@ export function AddSlotsModal({
   const addTimeSlot = () => {
     setTimeSlots([
       ...timeSlots,
-      { startTime: "", endTime: "", interviewer: "" },
+      { date: undefined, startTime: "", endTime: "", interviewer: "" },
     ]);
   };
 
@@ -61,20 +61,22 @@ export function AddSlotsModal({
   const updateTimeSlot = (
     index: number,
     field: keyof TimeSlot,
-    value: string
+    value: string | Date
   ) => {
     const newSlots = [...timeSlots];
-    newSlots[index][field] = value;
+    newSlots[index][field] = value as any;
     setTimeSlots(newSlots);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!date) {
+    // Check if all slots have dates
+    const missingDates = timeSlots.some((slot) => !slot.date);
+    if (missingDates) {
       toast({
         title: "Error",
-        description: "Please select a date",
+        description: "Please select a date for all slots",
         variant: "destructive",
       });
       return;
@@ -114,7 +116,9 @@ export function AddSlotsModal({
       if (toMinutes(startTime) >= toMinutes(endTime)) {
         toast({
           title: "Invalid time range",
-          description: `Slot ${i + 1}: start time must be earlier than end time.`,
+          description: `Slot ${
+            i + 1
+          }: start time must be earlier than end time.`,
           variant: "destructive",
         });
         return;
@@ -125,7 +129,7 @@ export function AddSlotsModal({
       setLoading(true);
 
       const slotsData = timeSlots.map((slot) => ({
-        date: format(date, "yyyy-MM-dd"),
+        date: format(slot.date!, "yyyy-MM-dd"),
         start_time: slot.startTime,
         end_time: slot.endTime,
         // interviewer: slot.interviewer,
@@ -155,8 +159,7 @@ export function AddSlotsModal({
   };
 
   const handleClose = () => {
-    setDate(undefined);
-    setTimeSlots([{ startTime: "", endTime: "", interviewer: "" }]);
+    setTimeSlots([{ date: undefined, startTime: "", endTime: "", interviewer: "" }]);
     onClose();
   };
 
@@ -171,35 +174,6 @@ export function AddSlotsModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Date Selection */}
-          <div className="space-y-2">
-            <Label>Select Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                  disabled={(date) => date < new Date()}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
           {/* Time Slots */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -221,6 +195,35 @@ export function AddSlotsModal({
                 key={index}
                 className="p-4 border border-border rounded-lg space-y-3"
               >
+                {/* Date Selection */}
+                <div className="space-y-2">
+                  <Label>Select Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !slot.date && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {slot.date ? format(slot.date, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={slot.date}
+                        onSelect={(newDate) => updateTimeSlot(index, "date", newDate!)}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Slot {index + 1}</span>
                   {timeSlots.length > 1 && (
