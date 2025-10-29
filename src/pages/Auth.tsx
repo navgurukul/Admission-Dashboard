@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -22,8 +22,8 @@ console.log("AUTH.TSX")
       const timer = setTimeout(() => {
         renderGoogleSignInButton('google-signin-button');
       }, 100);
-      
-      // return () => clearTimeout(timer);
+
+      return () => clearTimeout(timer);
     }
   },[ googleLoading]);
 
@@ -71,8 +71,8 @@ console.log("AUTH.TSX")
         </CardHeader>
         <CardContent>
           {/* Google Sign In Button */}
-          <div 
-            id="google-signin-button" 
+          <div
+            id="google-signin-button"
             ref={googleButtonRef}
             className="w-full flex justify-center"
           ></div>

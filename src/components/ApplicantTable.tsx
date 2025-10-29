@@ -201,12 +201,14 @@ const ApplicantTable = () => {
     const delayDebounce = setTimeout(async () => {
       if (!searchTerm.trim()) {
         setSearchResults([]);
+        setCurrentPage(1); // Reset to page 1 when search is cleared
         return;
       }
       
       // Clear filters when search is performed
       setHasActiveFilters(false);
       setFilteredStudents([]);
+      setCurrentPage(1); // Reset to page 1 when searching
       
       try {
         setIsSearching(true);
@@ -577,14 +579,26 @@ const ApplicantTable = () => {
   const currentTotalCount = getTotalCount();
   
   // Calculate total pages based on current view
-  const totalPages = Math.ceil(currentTotalCount / itemsPerPage);
+  const totalPages = useMemo(() => {
+    // For search and filter modes, use client-side pagination
+    if (searchTerm.trim() || hasActiveFilters) {
+      return Math.max(1, Math.ceil(currentTotalCount / itemsPerPage));
+    }
+    // For normal mode, use server-side pagination count
+    return totalPagesFromAPI;
+  }, [searchTerm, hasActiveFilters, currentTotalCount, itemsPerPage, totalPagesFromAPI]);
   
-  // Apply pagination to filtered results
+  // Apply pagination to filtered results (only for search/filter mode)
   const paginatedApplicants = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredApplicants.slice(startIndex, endIndex);
-  }, [filteredApplicants, currentPage, itemsPerPage]);
+    // For search or filter mode, apply client-side pagination
+    if (searchTerm.trim() || hasActiveFilters) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      return filteredApplicants.slice(startIndex, endIndex);
+    }
+    // For normal mode, use data directly from server (already paginated)
+    return filteredApplicants;
+  }, [searchTerm, hasActiveFilters, filteredApplicants, currentPage, itemsPerPage]);
 
   const showingStart = paginatedApplicants.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const showingEnd = Math.min(currentPage * itemsPerPage, currentTotalCount);

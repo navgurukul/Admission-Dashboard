@@ -49,12 +49,12 @@ export function AdmissionsSidebar() {
         googleSignOut();
       }
       logoutUser(); // This clears localStorage
-      window.location.href = "/Admission-Dashboard/auth";
+      window.location.href = "/Admission-Dashboard/students";
     } catch (error) {
       console.error("Logout error:", error);
       // Force logout anyway
       logoutUser();
-      window.location.href = "/Admission-Dashboard/auth";
+      window.location.href = "/Admission-Dashboard/students";
     }
   };
 
