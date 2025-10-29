@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import AllApplicants from "./pages/AllApplicants";
 import Interviews from "./pages/Interviews";
@@ -14,7 +14,6 @@ import InterviewRounds from "./pages/InterviewRounds";
 import FinalDecisions from "./pages/FinalDecisions";
 import OfferLetters from "./pages/OfferLetters";
 import QuestionRepository from "./pages/QuestionRepository";
-import Auth from "./pages/Auth";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PartnerPage from "./pages/Partner";
@@ -48,7 +47,8 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <Routes>
-          <Route path="/auth" element={<Auth />} />
+          {/* Redirect /auth to /students/login - All users login from same page */}
+          <Route path="/auth" element={<Navigate to="/students/login" replace />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/applicants" element={<ProtectedRoute><AllApplicants /></ProtectedRoute>} />
           <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />

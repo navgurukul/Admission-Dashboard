@@ -32,8 +32,8 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ className }) => {
     // localStorage.removeItem("allowRetest");
     // localStorage.removeItem("registrationDone");
 
-    // Redirect to students login/landing
-    navigate("/students", { replace: true });
+    // Redirect to login page
+    navigate("/students/login", { replace: true });
   };
 
   return (
