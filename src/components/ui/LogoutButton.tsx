@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 interface LogoutButtonProps {
   className?: string;
@@ -9,10 +10,23 @@ interface LogoutButtonProps {
 const LogoutButton: React.FC<LogoutButtonProps> = ({ className }) => {
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
+  const { signOut: googleSignOut } = useGoogleAuth();
 
   const handleLogout = () => {
+    // Sign out from Google if authenticated
+    try {
+      googleSignOut();
+    } catch (error) {
+      console.error("Google sign out error:", error);
+    }
+
     // Clear all student-related data
     localStorage.removeItem("studentId");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("googleUser");
+    localStorage.removeItem("roleAccess");
     // localStorage.removeItem("testStarted");
     // localStorage.removeItem("testCompleted");
     // localStorage.removeItem("allowRetest");
