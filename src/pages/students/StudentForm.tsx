@@ -59,6 +59,7 @@ const StudentForm: React.FC = () => {
 
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
+    profileImageUrl: "", // Store base64 URL for API
     firstName: "",
     middleName: "",
     lastName: "",
@@ -85,9 +86,10 @@ const StudentForm: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Convert camelCase → snake_case before API call
+  // Send codes as state, district, block (not separate keys)
   const mapFormDataToApi = (data: typeof formData) => {
     return {
-      image_url: data.profileImage || null,
+      image_url: data.profileImageUrl || null, // Send base64 URL
       first_name: data.firstName,
       middle_name: data.middleName,
       last_name: data.lastName,
@@ -96,12 +98,9 @@ const StudentForm: React.FC = () => {
       phone_number: data.alternateNumber,
       email: data.email,
       gender: data.gender,
-      state: data.state,
-      state_code: data.stateCode,
-      district: data.district,
-      district_code: data.districtCode,
-      block: data.block,
-      block_code: data.blockCode,
+      state: data.stateCode,      // Send code as state
+      district: data.districtCode, // Send code as district
+      block: data.blockCode,       // Send code as block
       city: data.city,
       pin_code: data.pinCode,
       school_medium: data.schoolMedium,
@@ -228,6 +227,12 @@ const StudentForm: React.FC = () => {
     if (savedFormData) {
       const parsedData = JSON.parse(savedFormData);
       setFormData(parsedData);
+      
+      // Restore image preview if profileImageUrl exists
+      if (parsedData.profileImageUrl) {
+        setImagePreview(parsedData.profileImageUrl);
+      }
+      
       // If state was previously selected, fetch its districts
       if (parsedData.stateCode) {
         fetchDistricts(parsedData.stateCode);
@@ -381,15 +386,19 @@ const StudentForm: React.FC = () => {
       }
 
       // Face detected - proceed with upload
-      const newFormData = {
-        ...formData,
-        profileImage: file,
-      };
-      setFormData(newFormData);
-
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        
+        // Store both file and base64 URL in formData
+        const newFormData = {
+          ...formData,
+          profileImage: file,
+          profileImageUrl: base64String,
+        };
+        setFormData(newFormData);
+        localStorage.setItem("studentFormData", JSON.stringify(newFormData));
       };
       reader.readAsDataURL(file);
 
@@ -502,6 +511,14 @@ const StudentForm: React.FC = () => {
 
     try {
       const apiPayload = mapFormDataToApi(formData);
+      
+      // Log the payload to verify codes are being sent
+      console.log("API Payload being sent:", apiPayload);
+      console.log("Image URL length:", apiPayload.image_url?.length || 0);
+      console.log("State (code):", apiPayload.state);
+      console.log("District (code):", apiPayload.district);
+      console.log("Block (code):", apiPayload.block);
+      
       const studentFormResponseData = await createStudent(apiPayload);
 
       console.log("Student API Response:", studentFormResponseData);
