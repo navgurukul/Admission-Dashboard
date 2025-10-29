@@ -502,10 +502,36 @@ const StudentForm: React.FC = () => {
 
     try {
       const apiPayload = mapFormDataToApi(formData);
-      await createStudent(apiPayload);
+      const studentFormResponseData = await createStudent(apiPayload);
 
+      console.log("Student API Response:", studentFormResponseData);
+      
+      // Store registration status
       localStorage.setItem("registrationDone", "true");
+      
+      // Store the complete API response
+      localStorage.setItem("studentApiResponse", JSON.stringify(studentFormResponseData));
+      
+      // Store form data
       localStorage.setItem("studentFormData", JSON.stringify(formData));
+      
+      // Extract and store studentId from response
+      // Handle different possible response structures
+      let studentId = null;
+      if (studentFormResponseData?.id) {
+        studentId = studentFormResponseData.id;
+      } else if (studentFormResponseData?.data?.id) {
+        studentId = studentFormResponseData.data.id;
+      } else if (studentFormResponseData?.student?.id) {
+        studentId = studentFormResponseData.student.id;
+      }
+      
+      if (studentId) {
+        localStorage.setItem("studentId", studentId.toString());
+        console.log("Student ID stored:", studentId);
+      } else {
+        console.warn("Student ID not found in response");
+      }
 
       toast({
         title: "Student Created",
