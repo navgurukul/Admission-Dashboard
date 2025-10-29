@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { User, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 type Student = {
   id: number;
@@ -28,6 +29,8 @@ type LoginResponse = {
 export default function StudentLogin() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user: googleUser, isAuthenticated, loading: googleLoading, renderGoogleSignInButton } = useGoogleAuth();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -35,6 +38,39 @@ export default function StudentLogin() {
     phone: "",
   });
   const [loading, setLoading] = useState(false);
+
+  // Render Google button when component mounts and Google auth is ready
+  useEffect(() => {
+    if (googleButtonRef.current && !googleLoading) {
+      const timer = setTimeout(() => {
+        renderGoogleSignInButton('google-signin-button-student');
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [googleLoading, renderGoogleSignInButton]);
+
+  // Handle Google authentication redirect
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (!googleUser) return;
+
+    // Save student identifier from Google user
+    localStorage.setItem("role", "student");
+    localStorage.setItem("studentId", googleUser.id);
+
+    toast({
+      title: getContent().successMessage,
+      description: (
+        <div className="flex items-center space-x-2">
+          <CheckCircle2 className="w-5 h-5 text-green-500" />
+          <span>Welcome back, {googleUser.name}! 🎉</span>
+        </div>
+      ),
+      className: "bg-green-50 border-green-500 text-green-800",
+    });
+
+    navigate("/students/details/instructions");
+  }, [googleUser, isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -108,7 +144,7 @@ export default function StudentLogin() {
 
       // Save student identifier
       localStorage.setItem("role", "student");
-      localStorage.setItem("studentId", data.student.id);
+      localStorage.setItem("studentId", data.student.id.toString());
 
       toast({
         title: getContent().successMessage,
@@ -151,7 +187,7 @@ export default function StudentLogin() {
           </div>
           <CardDescription>{getContent().description}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               type="text"
@@ -181,6 +217,25 @@ export default function StudentLogin() {
               {loading ? "Signing in..." : getContent().signInButton}
             </Button>
           </form>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          {/* Google Sign In Button */}
+          <div
+            id="google-signin-button-student"
+            ref={googleButtonRef}
+            className="w-full flex justify-center"
+          ></div>
         </CardContent>
       </Card>
     </div>
