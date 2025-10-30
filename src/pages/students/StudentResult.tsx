@@ -99,51 +99,82 @@ export default function StudentResult() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tests.map((test) => (
-                    <tr key={test.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 border">{test.name}</td>
-                      <td className="px-4 py-2 border">
-                        <span
-                          className={`px-2 py-1 rounded text-sm font-medium ${
-                            test.status === "Pass"
-                              ? "bg-green-100 text-green-700"
-                              : test.status === "Pending"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {test.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 border">
-                        {test.slotBooking?.scheduledTime
-                          ? new Date(
-                              test.slotBooking.scheduledTime
-                            ).toLocaleString()
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-2 border">
-                        {test.name === "Screening Test" && test.status === "Fail" && (
-                          <Button onClick={handleRetestNavigation}>Retest</Button>
-                        )}
-                        {["Pending", "Booked", "Cancelled"].includes(
-                          test.slotBooking?.status
-                        ) && (
-                          <Button onClick={() => handleBooking(test.id)}>
-                            {["Booked", "Cancelled"].includes(
-                              test.slotBooking?.status || ""
-                            )
-                              ? "Reschedule"
-                              : "Book Slot"}
-                          </Button>
-                        )}
-                        {test.action === "view-result" && (
-                          <span className="text-gray-600">Result Ready</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 border">{test.score}</td>
-                    </tr>
-                  ))}
+                  {tests.map((test) => {
+                    // Get slot booking status
+                    const slotStatus = test.slotBooking?.status;
+                    const isSlotBooked = slotStatus === "Booked";
+                    const isSlotCancelled = slotStatus === "Cancelled";
+                    const hasSlotBooking = test.slotBooking !== undefined;
+
+                    return (
+                      <tr key={test.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 border">{test.name}</td>
+                        <td className="px-4 py-2 border">
+                          <span
+                            className={`px-2 py-1 rounded text-sm font-medium ${
+                              test.status === "Pass"
+                                ? "bg-green-100 text-green-700"
+                                : test.status === "Pending"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {test.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {test.slotBooking?.scheduledTime
+                            ? new Date(
+                                test.slotBooking.scheduledTime
+                              ).toLocaleString()
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-2 border">
+                          {/* Retest button for failed screening test */}
+                          {test.name === "Screening Test" && test.status === "Fail" && (
+                            <Button 
+                              onClick={handleRetestNavigation}
+                              className="bg-orange-500 hover:bg-orange-600"
+                            >
+                              Retest
+                            </Button>
+                          )}
+
+                          {/* Book/Reschedule button for passed tests */}
+                          {test.status === "Pass" && (
+                            <>
+                              {isSlotBooked || isSlotCancelled ? (
+                                <Button 
+                                  onClick={() => handleBooking(test.id)}
+                                  variant="outline"
+                                >
+                                  Reschedule
+                                </Button>
+                              ) : (
+                                <Button 
+                                  onClick={() => handleBooking(test.id)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  Book Slot
+                                </Button>
+                              )}
+                            </>
+                          )}
+
+                          {/* View Result for completed tests */}
+                          {test.action === "view-result" && (
+                            <span className="text-gray-600">Result Ready</span>
+                          )}
+
+                          {/* No action available */}
+                          {test.status === "Pending" && test.name !== "Screening Test" && (
+                            <span className="text-gray-400 text-sm">Complete previous stage</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 border">{test.score || "-"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
