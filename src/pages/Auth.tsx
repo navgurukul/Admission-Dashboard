@@ -14,7 +14,7 @@ export default function Auth() {
 
   // Check if user is already authenticated
 
-console.log("AUTH.TSX")
+// console.log("AUTH.TSX")
   // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
     if (googleButtonRef.current && !googleLoading) {
@@ -32,7 +32,7 @@ console.log("AUTH.TSX")
   if (!googleUser || googleUser.role_id === undefined) return;
 
   if (googleUser.role_id === 1 || googleUser.role_id === 2 ) {
-    console.log("FROM AUTH.TSX 17", googleUser.role_id);
+    // console.log("FROM AUTH.TSX 17", googleUser.role_id);
     navigate("/");
     return;
   }
