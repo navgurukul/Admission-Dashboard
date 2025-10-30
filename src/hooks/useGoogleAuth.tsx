@@ -25,8 +25,12 @@ interface GoogleAuthState {
 // Google OAuth Configuration
 const GOOGLE_CLIENT_ID = '654022633429-fv4rgcs654a0f9r0464tl6o8jvjk3dco.apps.googleusercontent.com';
 
-export const useGoogleAuth = () => {
-  
+interface UseGoogleAuthOptions {
+  skipAutoNavigation?: boolean;
+}
+
+export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
+
   const navigate = useNavigate()
   const [authState, setAuthState] = useState<GoogleAuthState>({
     user: null,
@@ -34,6 +38,7 @@ export const useGoogleAuth = () => {
     isAuthenticated: false,
   });
   const { toast } = useToast();
+  const skipAutoNavigation = options?.skipAutoNavigation || false;
 
   // Initialize Google OAuth
   useEffect(() => {
@@ -146,6 +151,10 @@ const checkExistingSession = () => {
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
       console.log('Google JWT payload:', payload);
 
+      // Store Google's JWT credential for students (who don't get backend token)
+      const googleJWT = response.credential;
+      sessionStorage.setItem('google_credential', googleJWT);
+
       const googleAuthPayload: GoogleAuthPayload = {
         iss: payload.iss,
         aud: payload.aud,
@@ -164,7 +173,23 @@ const checkExistingSession = () => {
       if (loginResponse.success && loginResponse.data) {
         const { user: apiUser, token } = loginResponse.data;
 
-        localStorage.setItem('authToken', token);
+        console.log('Storing auth data:', {
+          token: token ? 'exists' : 'missing',
+          tokenValue: token,
+          userId: apiUser?.id,
+          userEmail: apiUser?.email,
+          skipAutoNavigation
+        });
+
+        // Store token only if it exists and is not undefined
+        if (token && token !== 'undefined') {
+          localStorage.setItem('authToken', token);
+          console.log('✅ Backend token stored successfully');
+        } else {
+          console.warn('⚠️ Backend did not provide token for user:', apiUser?.email);
+          // Don't store undefined - let student login page handle it
+        }
+
         localStorage.setItem('user', JSON.stringify(apiUser));
 
         if (apiUser.role_name) {
@@ -177,7 +202,7 @@ const checkExistingSession = () => {
           name: apiUser.name,
           avatar: apiUser.profile_pic || payload.picture || '',
           provider: 'google',
-          role_id: apiUser.role_id || apiUser.role_id,
+          role_id: apiUser.user_role_id,
           // role: apiUser.role,
           role_name: apiUser.role_name,
           profile_pic: apiUser.profile_pic,
@@ -190,20 +215,24 @@ const checkExistingSession = () => {
         });
 
         console.log("Logged in user:", apiUser);
-        if (apiUser.role_name === "ADMIN" || apiUser.role_name === "USER") {
-          localStorage.setItem("userRole", JSON.stringify(apiUser.role_name));
-          navigate("/");
-          toast({
-            title: "Welcome!",
-            description: `Successfully signed in as ${apiUser.name}`,
-          });
-        } else {
-          localStorage.setItem("userRole", JSON.stringify("student"));
-          navigate("/students");
-          toast({
-            title: "No Role Assigned",
-            description: `No role assigned. Please contact admin to assign a role.`,
-          });
+
+        // Skip auto-navigation if requested (e.g., for student login page)
+        if (!skipAutoNavigation) {
+          if (apiUser.role_name === "ADMIN" || apiUser.role_name === "USER") {
+            localStorage.setItem("userRole", JSON.stringify(apiUser.role_name));
+            navigate("/");
+            toast({
+              title: "Welcome!",
+              description: `Successfully signed in as ${apiUser.name}`,
+            });
+          } else {
+            localStorage.setItem("userRole", JSON.stringify("student"));
+            navigate("/students");
+            toast({
+              title: "No Role Assigned",
+              description: `No role assigned. Please contact admin to assign a role.`,
+            });
+          }
         }
       } else {
         throw new Error(loginResponse.message || 'Login failed');
