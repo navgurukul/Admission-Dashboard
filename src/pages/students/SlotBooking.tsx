@@ -20,9 +20,10 @@ import {
   formatDateTimeForCalendar,
 } from "../../utils/googleCalendar";
 import { 
-  getMyAvailableSlots, 
+  getSlotByDate, 
   scheduleInterview, 
   getCurrentUser 
+
 } from "@/utils/api";
 
 // ================== Types ==================
@@ -63,7 +64,7 @@ const SlotBooking: React.FC = () => {
 
   // Get current user from API
   const currentUser = getCurrentUser();
-  const studentId = currentUser?.id || parseInt(localStorage.getItem("student_id") || "0");
+  const studentId = parseInt(localStorage.getItem("studentId"));
 
   const test = tests.find((t) => t.id === testId);
   const currentStudent = student;
@@ -129,9 +130,9 @@ const SlotBooking: React.FC = () => {
   const fetchTimings = async (dateObj: Date) => {
     try {
       const dateStr = formatDate(dateObj);
-      showNotificationMessage("Loading available slots...", "info");
       
-      const response = await getMyAvailableSlots(dateStr);
+      const response = await getSlotByDate(dateStr);
+      console.log("Fetched timings response:", response);
       
       // Handle different response formats
       const items = Array.isArray(response) 
@@ -140,25 +141,20 @@ const SlotBooking: React.FC = () => {
 
       // Filter only available (not booked) slots
       const availableSlots: TimeSlot[] = items
-        .filter((s: any) => !s.is_booked && s.status === 'available')
+        .filter((s: any) => !s.is_booked && s.status?.toLowerCase() === 'available')
         .map((s: any) => ({
           id: s.id,
           start_time: s.start_time,
           end_time: s.end_time,
           interviewer_id: s.interviewer_id,
-          interviewer_email: s.interviewer_email,
-          interviewer_name: s.interviewer_name,
+          interviewer_email: s.user_email,
+          interviewer_name: s.user_name,
           is_booked: s.is_booked || false,
           status: s.status || 'available',
         }));
 
       setTimings(availableSlots);
-      
-      if (availableSlots.length === 0) {
-        showNotificationMessage("No available slots for this date", "info");
-      } else {
-        showNotificationMessage(`Found ${availableSlots.length} available slots`, "success");
-      }
+      console.log("Available slots for", dateStr, ":", availableSlots);
     } catch (err: any) {
       // console.error("Failed to load timings:", err);
       showNotificationMessage(
@@ -245,6 +241,7 @@ const SlotBooking: React.FC = () => {
       };
 
       const result = await createCalendarEvent(eventDetails);
+      console.log("Calendar event created:", result);
       return result;
     } catch (error) {
       console.error("Error creating calendar event:", error);
@@ -273,6 +270,7 @@ const SlotBooking: React.FC = () => {
       // Check Google sign-in
       if (!isSignedIn()) {
         const signInSuccess = await handleGoogleSignIn();
+        console.log("Google sign-in success:", signInSuccess);
         if (!signInSuccess) {
           return;
         }
@@ -280,21 +278,23 @@ const SlotBooking: React.FC = () => {
 
       // Find selected slot details
       const selectedSlotDetails = timings.find(t => t.id === slot.id);
-      if (!selectedSlotDetails) {
-        showNotificationMessage("Selected slot not found", "error");
-        return;
-      }
+      console.log("Selected slot details:", selectedSlotDetails);
+      // if (!selectedSlotDetails) {
+      //   showNotificationMessage("Selected slot not found", "error");
+      //   return;
+      // }
 
       //  Validate emails
-      if (!selectedSlotDetails.interviewer_email) {
-        showNotificationMessage("Interviewer email not found", "error");
-        return;
-      }
+      // if (!selectedSlotDetails.interviewer_email) {
+      //   console.error("Interviewer email missing for slot:", selectedSlotDetails);
+      //   showNotificationMessage("Interviewer email not found", "error");
+      //   return;
+      // }
 
-      if (!currentStudent.email) {
-        showNotificationMessage("Student email not found", "error");
-        return;
-      }
+      // if (!currentStudent.email) {
+      //   showNotificationMessage("Student email not found", "error");
+      //   return;
+      // }
 
       const bookedSlot: SlotData = {
         ...slot,
@@ -311,6 +311,7 @@ const SlotBooking: React.FC = () => {
       // Create Google Calendar event
       showNotificationMessage("Creating Google Meet...", "info");
       const calendarResult = await scheduleGoogleMeet(bookedSlot);
+      console.log("Google Calendar result:", calendarResult);
 
       if (!calendarResult.meetLink) {
         showNotificationMessage("Failed to create Google Meet link", "error");
@@ -332,9 +333,12 @@ const SlotBooking: React.FC = () => {
         created_by: "Student" as const,
       };
 
+      console.log("Backend payload for scheduling interview:", backendPayload);
+
       //  Save to backend
       showNotificationMessage("Saving slot to server...", "info");
       await scheduleInterview(backendPayload);
+      console.log("Slot booked successfully:", backendPayload);
 
       // Update local state
       setSlot(bookedSlot);
@@ -461,19 +465,19 @@ const SlotBooking: React.FC = () => {
     );
   }
 
-  // if (!currentStudent || !test) {
-  //   return (
-  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-  //       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-  //         <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-  //         <h2 className="text-2xl font-bold text-gray-800 mb-2">
-  //           Cannot Book Slot
-  //         </h2>
-  //         <p className="text-gray-600">Student or test data not found.</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (!currentStudent || !test) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Cannot Book Slot
+          </h2>
+          <p className="text-gray-600">Student or test data not found.</p>
+        </div>
+      </div>
+    );
+  }
 
   // ---------- UI ----------
   return (
@@ -603,9 +607,9 @@ const SlotBooking: React.FC = () => {
                           <p className="font-semibold text-gray-800">
                             {formatTime(timing.start_time)} - {formatTime(timing.end_time)}
                           </p>
-                          <p className="text-xs text-gray-500 mt-2">
+                          {/* <p className="text-xs text-gray-500 mt-2">
                             {timing.interviewer_name || timing.interviewer_email}
-                          </p>
+                          </p> */}
                         </div>
                       </button>
                     ))}
@@ -630,10 +634,6 @@ const SlotBooking: React.FC = () => {
                   <div className="text-sm text-blue-700 space-y-1">
                     <p>📅 Date: {formatDisplayDate(selectedDate)}</p>
                     <p>🕐 Time: {formatTime(slot.from)} - {formatTime(slot.to)}</p>
-                    {slot.interviewer_name && (
-                      <p>👤 Interviewer: {slot.interviewer_name}</p>
-                    )}
-                    <p>📧 Email: {slot.interviewer_email}</p>
                   </div>
                 </div>
               )}
