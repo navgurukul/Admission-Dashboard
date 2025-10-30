@@ -96,12 +96,9 @@ const StudentForm: React.FC = () => {
       phone_number: data.alternateNumber,
       email: data.email,
       gender: data.gender,
-      state: data.state,
-      state_code: data.stateCode,
-      district: data.district,
-      district_code: data.districtCode,
-      block: data.block,
-      block_code: data.blockCode,
+      state: data.stateCode,      // Send code as state
+      district: data.districtCode, // Send code as district
+      block: data.blockCode,       // Send code as block
       city: data.city,
       pin_code: data.pinCode,
       school_medium: data.schoolMedium,

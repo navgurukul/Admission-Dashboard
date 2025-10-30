@@ -29,7 +29,8 @@ type LoginResponse = {
 export default function StudentLogin() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user: googleUser, isAuthenticated, loading: googleLoading, renderGoogleSignInButton } = useGoogleAuth();
+  // All users (Admin, User, Student) login from this page
+  const { user: googleUser, isAuthenticated, loading: googleLoading, renderGoogleSignInButton } = useGoogleAuth({ skipAutoNavigation: true });
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
@@ -49,27 +50,98 @@ export default function StudentLogin() {
     }
   }, [googleLoading, renderGoogleSignInButton]);
 
-  // Handle Google authentication redirect
+  // Handle Google authentication redirect for students
   useEffect(() => {
-    if (!isAuthenticated) return;
-    if (!googleUser) return;
+    if (!isAuthenticated) {
+      console.log("❌ Not authenticated yet, waiting...");
+      return;
+    }
+    if (!googleUser) {
+      console.log("❌ googleUser is undefined, waiting...");
+      return;
+    }
 
-    // Save student identifier from Google user
-    localStorage.setItem("role", "student");
-    localStorage.setItem("studentId", googleUser.id);
+    // Check if authToken and user are already stored by useGoogleAuth
+    let authToken = localStorage.getItem("authToken");
+    let storedUser = localStorage.getItem("user");
 
-    toast({
-      title: getContent().successMessage,
-      description: (
-        <div className="flex items-center space-x-2">
-          <CheckCircle2 className="w-5 h-5 text-green-500" />
-          <span>Welcome back, {googleUser.name}! 🎉</span>
-        </div>
-      ),
-      className: "bg-green-50 border-green-500 text-green-800",
-    });
+    // Always try to get Google credential first
+    const googleCredential = sessionStorage.getItem('google_credential');
 
-    navigate("/students/details/instructions");
+    // Check if we need to use Google credential
+    if ((!authToken || authToken === "undefined") && googleCredential) {
+
+      // Store Google JWT as authToken
+      localStorage.setItem("authToken", googleCredential);
+      authToken = googleCredential;
+
+      // Parse Google token to verify it
+      try {
+        const tokenParts = googleCredential.split('.');
+        const payload = JSON.parse(atob(tokenParts[1]));
+      } catch (e) {
+        console.error("❌ Error parsing Google token:", e);
+      }
+    } else if (authToken && authToken !== "undefined") {
+      console.log("✅ Using backend token (Admin/User)");
+    } else {
+      console.error("❌ No valid token available - neither backend nor Google credential");
+    }
+
+    // Ensure student user data exists
+    if (googleUser && !storedUser) {
+      const studentUserData = {
+        id: googleUser.id,
+        name: googleUser.name,
+        email: googleUser.email,
+        profile_pic: googleUser.avatar,
+        user_role_id: 3,
+        role_name: "STUDENT"
+      };
+      localStorage.setItem("user", JSON.stringify(studentUserData));
+      console.log("✅ Stored student user data");
+    }
+
+    // Determine user role and navigate accordingly
+    const userRole = googleUser.role_id;
+    const roleName = googleUser.role_name;
+
+    if (userRole === 1 || userRole === 2 || roleName === "ADMIN" || roleName === "USER") {
+      // Admin/User - Navigate to dashboard
+      console.log("✅ Admin/User detected - navigating to dashboard");
+      localStorage.setItem("role", roleName || "user");
+      localStorage.setItem("userRole", JSON.stringify(roleName));
+
+      toast({
+        title: "Welcome!",
+        description: `Successfully signed in as ${googleUser.name}`,
+      });
+
+      setTimeout(() => {
+        navigate("/");
+      }, 500);
+    } else {
+      // Student - Navigate to instructions
+      console.log("✅ Student detected - navigating to instructions");
+      localStorage.setItem("role", "student");
+      localStorage.setItem("studentId", googleUser.id);
+      localStorage.setItem("userRole", JSON.stringify("student"));
+
+      toast({
+        title: getContent().successMessage,
+        description: (
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <span>Welcome back, {googleUser.name}! 🎉</span>
+          </div>
+        ),
+        className: "bg-green-50 border-green-500 text-green-800",
+      });
+
+      setTimeout(() => {
+        navigate("/students/details/instructions");
+      }, 500);
+    }
   }, [googleUser, isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
