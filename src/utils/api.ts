@@ -1704,8 +1704,10 @@ export const scheduleInterview = async (payload: ScheduleInterviewPayload): Prom
     body: JSON.stringify(payload),
   });
 
+  console.log("Scheduling response:", response);
   const data = await response.json();
 
+  console.log("Scheduling response data:", data);
   if (!response.ok) {
     throw new Error(data.message || 'Failed to schedule interview');
   }
@@ -1761,3 +1763,4 @@ export const getScheduledInterviews = async (date?: string): Promise<ScheduledIn
   }
 };
 
+};
