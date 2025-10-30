@@ -35,7 +35,7 @@ export const initClient = (): Promise<boolean> => {
 
       // Check if google is already loaded
       if ((window as any).google) {
-        console.log("Google Identity Services already loaded");
+        // console.log("Google Identity Services already loaded");
         initTokenClient();
         resolve(true);
         return;
@@ -47,17 +47,17 @@ export const initClient = (): Promise<boolean> => {
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        console.log("Google Identity Services loaded successfully");
+        // console.log("Google Identity Services loaded successfully");
         initTokenClient();
         resolve(true);
       };
       script.onerror = (error) => {
-        console.error("Failed to load Google Identity Services:", error);
+        // console.error("Failed to load Google Identity Services:", error);
         reject(new Error("Failed to load Google Identity Services"));
       };
       document.head.appendChild(script);
     } catch (error) {
-      console.error("Error initializing Google Identity Services:", error);
+      // console.error("Error initializing Google Identity Services:", error);
       reject(error);
     }
   });
@@ -76,17 +76,17 @@ const initTokenClient = () => {
       scope: SCOPES,
       callback: (response: any) => {
         if (response.error) {
-          console.error("Token client error:", response);
+          // console.error("Token client error:", response);
           throw new Error(response.error);
         }
         accessToken = response.access_token;
-        console.log("Access token received successfully");
+        // console.log("Access token received successfully");
       },
     });
 
-    console.log("Token client initialized successfully");
+    // console.log("Token client initialized successfully");
   } catch (error) {
-    console.error("Error initializing token client:", error);
+    // console.error("Error initializing token client:", error);
     throw error;
   }
 };
@@ -99,7 +99,7 @@ export const signIn = async (): Promise<boolean> => {
         throw new Error("Token client not initialized. Please refresh the page.");
       }
 
-      console.log("Requesting access token...");
+      // console.log("Requesting access token...");
 
       // Set up callback for token response
       tokenClient.callback = (response: any) => {
@@ -110,7 +110,7 @@ export const signIn = async (): Promise<boolean> => {
         }
 
         accessToken = response.access_token;
-        console.log("Sign-in successful, access token received");
+        // console.log("Sign-in successful, access token received");
         resolve(true);
       };
 
@@ -136,12 +136,12 @@ export const signOut = async (): Promise<boolean> => {
       const google = (window as any).google;
       if (google && google.accounts.oauth2) {
         google.accounts.oauth2.revoke(accessToken, () => {
-          console.log("Token revoked");
+          // console.log("Token revoked");
         });
       }
       accessToken = null;
     }
-    console.log("Signed out successfully");
+    // console.log("Signed out successfully");
     return true;
   } catch (error) {
     console.error("Error signing out:", error);
@@ -150,11 +150,23 @@ export const signOut = async (): Promise<boolean> => {
 };
 
 // Create calendar event with Google Meet link
-export const createCalendarEvent = async (eventDetails: EventDetails) => {
+export const createCalendarEvent = async (eventDetails: {
+  summary: string;
+  description: string;
+  startDateTime: string;
+  endDateTime: string;
+  attendeeEmail: string;
+  studentName: string;
+  attendees?: string[]; //for multiple attendees
+}) => {
   try {
     if (!accessToken) {
       throw new Error("Not authenticated. Please sign in first.");
     }
+
+    // Build attendees list
+    const attendeesList = eventDetails.attendees || [eventDetails.attendeeEmail];
+    const uniqueAttendees = [...new Set(attendeesList.filter(Boolean))];
 
     const event = {
       summary: eventDetails.summary,
@@ -167,7 +179,7 @@ export const createCalendarEvent = async (eventDetails: EventDetails) => {
         dateTime: eventDetails.endDateTime,
         timeZone: "Asia/Kolkata",
       },
-      attendees: [{ email: eventDetails.attendeeEmail }],
+      attendees: uniqueAttendees.map(email => ({ email })), // Add all attendees
       conferenceData: {
         createRequest: {
           requestId: `meet-${Date.now()}`,
@@ -183,7 +195,7 @@ export const createCalendarEvent = async (eventDetails: EventDetails) => {
       },
     };
 
-    console.log("Creating calendar event...");
+    // console.log("Creating calendar event...");
 
     const response = await fetch(
       "https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all",
@@ -204,7 +216,7 @@ export const createCalendarEvent = async (eventDetails: EventDetails) => {
     }
 
     const result = await response.json();
-    console.log("Calendar event created successfully:", result.id);
+    // console.log("Calendar event created successfully:", result.id);
 
     return {
       success: true,
@@ -225,7 +237,7 @@ export const deleteCalendarEvent = async (eventId: string) => {
       throw new Error("Not authenticated. Please sign in first.");
     }
 
-    console.log("Deleting calendar event:", eventId);
+    // console.log("Deleting calendar event:", eventId);
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}?sendUpdates=all`,
@@ -243,7 +255,7 @@ export const deleteCalendarEvent = async (eventId: string) => {
       throw new Error(errorData.error?.message || "Failed to delete calendar event");
     }
 
-    console.log("Calendar event deleted successfully");
+    // console.log("Calendar event deleted successfully");
     return { success: true };
   } catch (error) {
     console.error("Error deleting calendar event:", error);
@@ -253,7 +265,6 @@ export const deleteCalendarEvent = async (eventId: string) => {
 
 // Format date and time for calendar
 export const formatDateTimeForCalendar = (date: string, time: string): string => {
-  // date format: YYYY-MM-DD
-  // time format: HH:MM
+ 
   return `${date}T${time}:00+05:30`;
 };

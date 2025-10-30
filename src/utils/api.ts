@@ -1653,3 +1653,64 @@ export const searchStudentsApi = async (searchTerm: string): Promise<any> => {
     return [];
   }
 };
+
+// Interview Scheduling APIs
+
+// Get available slots for interviewer by date 
+export const getMyAvailableSlots = async (date?: string): Promise<any> => {
+  let url = `${BASE_URL}/slots/my-available-slots`;
+  
+  if (date) {
+    url += `?date=${date}`;
+  }
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch available slots');
+  }
+
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else if (data?.slots && Array.isArray(data.slots)) {
+    return data.slots;
+  } else {
+    return data;
+  }
+};
+
+// Schedule interview meeting by students
+export interface ScheduleInterviewPayload {
+  student_id: number;
+  title: string;
+  slot_id: number;
+  description: string;
+  meeting_link: string;
+  google_event_id: string;
+  created_by: 'Student' | 'Admin';
+}
+
+export const scheduleInterview = async (payload: ScheduleInterviewPayload): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/interview-schedule/create`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  console.log("Scheduling response:", response);
+  const data = await response.json();
+
+  console.log("Scheduling response data:", data);
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to schedule interview');
+  }
+
+  return data;
+};
