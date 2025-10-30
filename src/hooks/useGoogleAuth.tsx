@@ -149,7 +149,7 @@ const checkExistingSession = () => {
       setAuthState(prev => ({ ...prev, loading: true }));
 
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
-      console.log('Google JWT payload:', payload);
+      // console.log('Google JWT payload:', payload);
 
       // Store Google's JWT credential for students (who don't get backend token)
       const googleJWT = response.credential;
@@ -168,25 +168,25 @@ const checkExistingSession = () => {
       };
 
       const loginResponse = await loginWithGoogle(googleAuthPayload);
-      console.log('NG login response:', loginResponse);
+      // console.log('NG login response:', loginResponse);
 
       if (loginResponse.success && loginResponse.data) {
         const { user: apiUser, token } = loginResponse.data;
 
-        console.log('Storing auth data:', {
-          token: token ? 'exists' : 'missing',
-          tokenValue: token,
-          userId: apiUser?.id,
-          userEmail: apiUser?.email,
-          skipAutoNavigation
-        });
+        // console.log('Storing auth data:', {
+        //   token: token ? 'exists' : 'missing',
+        //   tokenValue: token,
+        //   userId: apiUser?.id,
+        //   userEmail: apiUser?.email,
+        //   skipAutoNavigation
+        // });
 
         // Store token only if it exists and is not undefined
         if (token && token !== 'undefined') {
           localStorage.setItem('authToken', token);
-          console.log('✅ Backend token stored successfully');
+          // console.log('✅ Backend token stored successfully');
         } else {
-          console.warn('⚠️ Backend did not provide token for user:', apiUser?.email);
+          // console.warn('⚠️ Backend did not provide token for user:', apiUser?.email);
           // Don't store undefined - let student login page handle it
         }
 
@@ -214,7 +214,7 @@ const checkExistingSession = () => {
           isAuthenticated: true,
         });
 
-        console.log("Logged in user:", apiUser);
+        // console.log("Logged in user:", apiUser);
 
         // Skip auto-navigation if requested (e.g., for student login page)
         if (!skipAutoNavigation) {
