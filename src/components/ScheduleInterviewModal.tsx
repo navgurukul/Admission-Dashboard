@@ -14,6 +14,16 @@ interface ScheduleInterviewModalProps {
     interviewer_email?: string;
     interviewer_name?: string;
   } | null;
+  allAvailableSlots?: Array<{
+    id: number;
+    date: string;
+    start_time: string;
+    end_time: string;
+    interviewer_email?: string;
+    interviewer_name?: string;
+    is_booked: boolean;
+  }>;
+  isDirectScheduleMode?: boolean;
   onSchedule: (
     slotId: number,
     studentId: number,
@@ -33,6 +43,8 @@ export const ScheduleInterviewModal = ({
   isOpen,
   onClose,
   slotData,
+  allAvailableSlots = [],
+  isDirectScheduleMode = false,
   onSchedule,
   isLoading,
 }: ScheduleInterviewModalProps) => {
@@ -41,8 +53,27 @@ export const ScheduleInterviewModal = ({
   const [studentName, setStudentName] = useState("");
   const [topicName, setTopicName] = useState("");
   const [interviewerEmail, setInterviewerEmail] = useState("");
+  
+  // New states for date and slot selection
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
 
-  if (!isOpen || !slotData) return null;
+  if (!isOpen) return null;
+
+  // Get unique dates from available slots
+  const availableDates = Array.from(
+    new Set(allAvailableSlots.filter(s => !s.is_booked).map(s => s.date))
+  ).sort();
+
+  // Get slots for selected date
+  const slotsForSelectedDate = selectedDate
+    ? allAvailableSlots.filter(s => s.date === selectedDate && !s.is_booked)
+    : [];
+
+  // Get selected slot details
+  const currentSlot = isDirectScheduleMode
+    ? slotsForSelectedDate.find(s => s.id === selectedSlotId)
+    : slotData;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +83,18 @@ export const ScheduleInterviewModal = ({
       return;
     }
 
-    const finalInterviewerEmail = interviewerEmail || slotData.interviewer_email || "";
+    if (isDirectScheduleMode && !selectedSlotId) {
+      alert("Please select a date and slot");
+      return;
+    }
+
+    const slotToUse = currentSlot;
+    if (!slotToUse) {
+      alert("Please select a valid slot");
+      return;
+    }
+
+    const finalInterviewerEmail = interviewerEmail || slotToUse.interviewer_email || "";
     if (!finalInterviewerEmail) {
       alert("Please enter interviewer email");
       return;
@@ -60,23 +102,26 @@ export const ScheduleInterviewModal = ({
 
     try {
       await onSchedule(
-        slotData.id,
+        slotToUse.id,
         parseInt(studentId),
         studentEmail,
         studentName,
         finalInterviewerEmail,
-        slotData.interviewer_name || finalInterviewerEmail,
-        slotData.date,
-        slotData.start_time,
-        slotData.end_time,
+        slotToUse.interviewer_name || finalInterviewerEmail,
+        slotToUse.date,
+        slotToUse.start_time,
+        slotToUse.end_time,
         topicName
       );
 
+      // Reset form
       setStudentId("");
       setStudentEmail("");
       setStudentName("");
       setTopicName("");
       setInterviewerEmail("");
+      setSelectedDate("");
+      setSelectedSlotId(null);
     } catch (error) {
       console.error("Error in handleSubmit:", error);
     }
@@ -103,14 +148,6 @@ export const ScheduleInterviewModal = ({
         <DialogHeader className="pb-4 border-b border-gray-200">
           <DialogTitle className="flex items-center justify-between text-lg font-semibold text-gray-900">
             <span>Schedule Interview</span>
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isLoading}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
-            >
-              {/* <X className="w-5 h-5" /> */}
-            </button>
           </DialogTitle>
           <p className="text-sm text-gray-500 mt-1">
             Create Google Meet link and schedule the interview
@@ -118,41 +155,110 @@ export const ScheduleInterviewModal = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Slot Info */}
-          <div className="bg-muted/30 border border-gray-200 rounded-lg p-5">
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-orange-600" />
-              Selected Slot Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Date:</span>
-                <span>{formatDate(slotData.date)}</span>
+          {/* Date and Slot Selection (only in direct schedule mode) */}
+          {isDirectScheduleMode && (
+            <div className="bg-blue-50 border border-orange-200 rounded-lg p-5">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+                Select Date & Slot
+              </h3>
+              
+              {/* Date Picker */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Date <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setSelectedSlotId(null);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  required
+                >
+                  <option value="">Choose a date</option>
+                  {availableDates.map((date) => (
+                    <option key={date} value={date}>
+                      {formatDate(date)}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Time:</span>
-                <span>
-                  {formatTime(slotData.start_time)} - {formatTime(slotData.end_time)}
-                </span>
-              </div>
-              {slotData.interviewer_name && (
-                <div className="flex items-center gap-2 md:col-span-2">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Interviewer:</span>
-                  <span>{slotData.interviewer_name}</span>
-                </div>
-              )}
-              {slotData.interviewer_email && (
-                <div className="flex items-center gap-2 md:col-span-2">
-                  <Mail className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Email:</span>
-                  <span>{slotData.interviewer_email}</span>
+
+              {/* Slot Selection */}
+              {selectedDate && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Time Slot <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {slotsForSelectedDate.map((slot) => (
+                      <div
+                        key={slot.id}
+                        onClick={() => setSelectedSlotId(slot.id)}
+                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                          selectedSlotId === slot.id
+                            ? "border-orange-500 bg-orange-50"
+                            : "border-gray-200 hover:border-orange-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium text-sm">
+                            {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                          </span>
+                        </div>
+                        {slot.interviewer_name && (
+                          <p className="text-xs text-gray-600 ml-6">
+                            {slot.interviewer_name}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
+          )}
+
+          {/* Slot Info (only show when slot is selected) */}
+          {currentSlot && (
+            <div className="bg-muted/30 border border-gray-200 rounded-lg p-5">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-orange-600" />
+                Selected Slot Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">Date:</span>
+                  <span>{formatDate(currentSlot.date)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <span className="font-medium">Time:</span>
+                  <span>
+                    {formatTime(currentSlot.start_time)} - {formatTime(currentSlot.end_time)}
+                  </span>
+                </div>
+                {currentSlot.interviewer_name && (
+                  <div className="flex items-center gap-2 md:col-span-2">
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium">Interviewer:</span>
+                    <span>{currentSlot.interviewer_name}</span>
+                  </div>
+                )}
+                {currentSlot.interviewer_email && (
+                  <div className="flex items-center gap-2 md:col-span-2">
+                    <Mail className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium">Email:</span>
+                    <span>{currentSlot.interviewer_email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Student Info */}
           <div className="p-4 bg-muted/30 rounded-lg space-y-4">
@@ -208,7 +314,7 @@ export const ScheduleInterviewModal = ({
           </div>
 
           {/* Interviewer Info */}
-          {!slotData.interviewer_email && (
+          {!currentSlot?.interviewer_email && (
             <div className="p-4 bg-muted/30 rounded-lg space-y-4">
               <h3 className="font-semibold text-gray-900 flex items-center">
                 <Mail className="w-5 h-5 mr-2 text-orange-600" />

@@ -461,19 +461,19 @@ const SlotBooking: React.FC = () => {
     );
   }
 
-  if (!currentStudent || !test) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Cannot Book Slot
-          </h2>
-          <p className="text-gray-600">Student or test data not found.</p>
-        </div>
-      </div>
-    );
-  }
+  // if (!currentStudent || !test) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+  //         <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+  //         <h2 className="text-2xl font-bold text-gray-800 mb-2">
+  //           Cannot Book Slot
+  //         </h2>
+  //         <p className="text-gray-600">Student or test data not found.</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // ---------- UI ----------
   return (
