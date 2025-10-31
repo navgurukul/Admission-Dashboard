@@ -458,7 +458,7 @@ const handleFinalDecisionUpdate = async (field: string, value: any) => {
     },
     {
       name: "school_id",
-      label: "Qualifying School *",
+      label: "Qualifying School",
       type: "select",
       options: schools,
     },

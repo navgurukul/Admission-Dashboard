@@ -101,13 +101,25 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
 const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
   if (field.type === "select") {
     return (
-      <Select value={row[field.name]} onValueChange={(val) => updateRow(field.name, val)} disabled={!isEditable}>
+      <Select 
+        value={row[field.name] || "CLEAR_SELECTION"} 
+        onValueChange={(val) => {
+          // Convert CLEAR_SELECTION back to empty string
+          const actualValue = val === "CLEAR_SELECTION" ? "" : val;
+          updateRow(field.name, actualValue);
+        }} 
+        disabled={!isEditable}
+      >
         <SelectTrigger
           className={`w-full ${!isEditable ? "cursor-text pointer-events-none" : ""}`}
         >
           <SelectValue placeholder={`Select ${field.label}`} />
         </SelectTrigger>
         <SelectContent>
+          {/* Add clear selection option with a valid non-empty value */}
+          <SelectItem value="CLEAR_SELECTION">
+            <span className="text-gray-400">Selection</span>
+          </SelectItem>
           {field.options?.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
@@ -152,7 +164,16 @@ export function InlineSubform({
   const { toast } = useToast();
 
   useEffect(() => {
-    setRows(initialData.map((r) => ({ ...r })));
+    // Only update if the initialData actually changed (different length or ids)
+    const currentIds = rows.map(r => r.id).filter(Boolean).sort();
+    const newIds = initialData.map(r => r.id).filter(Boolean).sort();
+    
+    // Check if IDs are different or if we have new data
+    const idsChanged = JSON.stringify(currentIds) !== JSON.stringify(newIds);
+    
+    if (idsChanged || rows.length === 0) {
+      setRows(initialData.map((r) => ({ ...r })));
+    }
   }, [initialData]);
 
   const editableFieldsMap = useMemo(() => {
@@ -186,8 +207,28 @@ export function InlineSubform({
     const editableFields = getEditableFields(row, fields);
 
     if (!row.id) {
+      // Conditional validation based on status
+      const status = row.status;
+      
       for (let field of editableFields) {
-        if (!row[field.name] || row[field.name].toString().trim() === "") {
+        const fieldValue = row[field.name];
+        const isEmpty = !fieldValue || fieldValue.toString().trim() === "";
+        
+        // Skip validation for specific fields based on status
+        if (field.name === "school_id") {
+          // If status is "Screening Test Fail", school_id is NOT mandatory
+          if (status === "Screening Test Fail") {
+            continue; // Skip validation for this field
+          }
+        }
+        
+        // If status is "Created Student Without Exam", ALL fields are non-mandatory
+        if (status === "Created Student Without Exam") {
+          continue; // Skip validation for all fields
+        }
+        
+        // For all other cases, validate required fields
+        if (isEmpty) {
           toast({
             title: "Validation Error",
             description: `Please fill the field: ${field.label}`,
@@ -227,13 +268,22 @@ export function InlineSubform({
         });
       }
 
+      // Update the row with response data first
+      const updatedRow = { ...row, ...res, isEditing: false };
       setRows((prev) => {
         const newRows = [...prev];
-        newRows[index] = { ...row, ...res, isEditing: false };
+        newRows[index] = updatedRow;
         return newRows;
       });
 
-      onSave?.();
+      // Call onSave callback after state is updated
+      // This allows parent to refresh with the new data
+      if (onSave) {
+        // Use setTimeout to ensure state update completes first
+        setTimeout(() => {
+          onSave();
+        }, 0);
+      }
     } catch (err) {
       console.error("Save failed", err);
       toast({
