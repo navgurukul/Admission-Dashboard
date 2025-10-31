@@ -9,7 +9,7 @@ const ScreeningRoundStartPage: React.FC = () => {
   const { selectedLanguage } = useLanguage();
 
   const [questionCount, setQuestionCount] = useState<number | null>(null);
-  const [duration, setDuration] = useState<number>(1800); 
+  const [duration, setDuration] = useState<number>(3600); 
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,10 +29,10 @@ const ScreeningRoundStartPage: React.FC = () => {
   fetchData();
 }, [selectedLanguage]);
 
-  const formatDuration = (minutes: number) => {
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hrs > 0 ? `${hrs} Hour${hrs > 1 ? "s" : ""}` : ""} ${mins > 0 ? `${mins} Minute${mins > 1 ? "s" : ""}` : ""}`;
+  const formatDuration = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    return `${hrs > 0 ? `${hrs} Hour${hrs > 1 ? "s" : ""}` : ""} ${mins > 0 ? `${mins} Minute${mins > 1 ? "s" : ""}` : ""}`.trim();
   };
 
   const getContent = () => {

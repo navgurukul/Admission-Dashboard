@@ -1714,3 +1714,52 @@ export const scheduleInterview = async (payload: ScheduleInterviewPayload): Prom
 
   return data;
 };
+
+// Get scheduled interviews by date
+export interface ScheduledInterview {
+  id: number;
+  student_id: number;
+  slot_id: number;
+  title: string;
+  description: string;
+  meeting_link: string;
+  google_event_id: string;
+  created_by: 'Student' | 'Admin';
+  status: string;
+  start_time: string;
+  end_time: string;
+  date: string;
+  student_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const getScheduledInterviews = async (date?: string): Promise<ScheduledInterview[]> => {
+  let url = `${BASE_URL}/interview-schedule/`;
+  
+  if (date) {
+    url += `?date=${date}`;
+  }
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch scheduled interviews');
+  }
+
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else if (data?.interviews && Array.isArray(data.interviews)) {
+    return data.interviews;
+  } else {
+    return [];
+  }
+};
+

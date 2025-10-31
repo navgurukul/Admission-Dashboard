@@ -1,66 +1,37 @@
 import { useState, useEffect } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Calendar, Clock, User, MessageSquare } from "lucide-react";
+import { Calendar, Clock, User, MessageSquare, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { supabase } from "@/integrations/supabase/client";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
-
-type ApplicantData = {
-  id: string;
-  mobile_no: string;
-  unique_number: string | null;
-  name: string | null;
-  lr_status: string | null;
-  cfr_status: string | null;
-  lr_comments: string | null;
-  cfr_comments: string | null;
-  date_of_testing: string | null;
-};
+import { getScheduledInterviews, type ScheduledInterview } from "@/utils/api";
 
 const Interviews = () => {
-  const [applicants, setApplicants] = useState<ApplicantData[]>([]);
+  const [interviews, setInterviews] = useState<ScheduledInterview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const { toast } = useToast();
-  const { user: googleUser } = useGoogleAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchInterviewData();
   }, []);
 
-  const handleSchedules =()=>{
-      navigate("/schedule");
-  }
+  const handleSchedules = () => {
+    navigate("/schedule");
+  };
+
   const fetchInterviewData = async () => {
     try {
       setLoading(true);
 
-      if (!googleUser) {
-        setApplicants([]);
-        return;
-      }
+      // Fetch all interviews without date filter
+      const data = await getScheduledInterviews();
 
-      // Fetch applicants who are in interview stages (have lr_status or cfr_status)
-      const { data, error } = await supabase
-        .from("admission_dashboard")
-        .select(
-          "id, mobile_no, unique_number, name, lr_status, cfr_status, lr_comments, cfr_comments, date_of_testing"
-        )
-        .or("lr_status.not.is.null,cfr_status.not.is.null")
-        .order("date_of_testing", { ascending: false });
-
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
-      }
-
-      console.log(
-        `Successfully fetched ${data?.length || 0} interview records`
-      );
-      setApplicants(data || []);
+      console.log(`Successfully fetched ${data?.length || 0} interview records`);
+      console.log("Interview data:", data);
+      setInterviews(data || []);
     } catch (error) {
       console.error("Error fetching interview data:", error);
       toast({
@@ -68,23 +39,90 @@ const Interviews = () => {
         description: "Failed to load interview data",
         variant: "destructive",
       });
-      setApplicants([]);
+      setInterviews([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getInterviewType = (applicant: ApplicantData): string => {
-    if (applicant.cfr_status) return "Cultural Fit";
-    if (applicant.lr_status) return "Learning Round";
-    return "Interview";
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
   };
 
-  const getInterviewStatus = (applicant: ApplicantData): string => {
-    if (applicant.cfr_status) return applicant.cfr_status;
-    if (applicant.lr_status) return applicant.lr_status;
-    return "scheduled";
+  const formatTime = (timeString: string) => {
+    if (!timeString) return "N/A";
+
+    try {
+      // Handle both ISO string and time-only formats
+      let date;
+
+      // If it's just time (HH:MM:SS or HH:MM)
+      if (timeString.includes(":") && !timeString.includes("T")) {
+        const today = new Date();
+        const [hours, minutes] = timeString.split(":");
+        date = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate(),
+          parseInt(hours),
+          parseInt(minutes)
+        );
+      } else {
+        // ISO format
+        date = new Date(timeString);
+      }
+
+      if (isNaN(date.getTime())) {
+        return timeString;
+      }
+
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (error) {
+      console.error("Error formatting time:", timeString, error);
+      return timeString;
+    }
   };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      console.error("Error formatting date:", dateString, error);
+      return dateString;
+    }
+  };
+
+  // Filter interviews based on selected date
+  const filteredInterviews = selectedDate
+    ? interviews.filter((interview) => {
+        const interviewDate = interview.date || interview.start_time;
+        if (!interviewDate) return false;
+        
+        try {
+          const date = new Date(interviewDate);
+          const formattedInterviewDate = date.toISOString().split("T")[0];
+          return formattedInterviewDate === selectedDate;
+        } catch {
+          return false;
+        }
+      })
+    : interviews;
 
   return (
     <div className="min-h-screen bg-background">
@@ -103,16 +141,39 @@ const Interviews = () => {
 
           <div className="bg-card rounded-xl shadow-soft border border-border">
             <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-4">
                 <h2 className="text-xl font-semibold text-foreground">
                   Interview Records
+                  {selectedDate && (
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      (Filtered by: {formatDate(selectedDate)})
+                    </span>
+                  )}
                 </h2>
-                <div className="flex flex-col gap-4 md:flex-row">
-                  {/* <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Schedule Interview
-                  </Button> */}
-                  <Button className="bg-gradient-primary hover:bg-primary/90 text-white" onClick={ handleSchedules}>
+                <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                  <div className="flex items-center gap-2">
+                    Select Date
+                    
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                    />
+                    {selectedDate && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedDate("")}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  <Button
+                    className="bg-gradient-primary hover:bg-primary/90 text-white"
+                    onClick={handleSchedules}
+                  >
                     <Calendar className="w-4 h-4 mr-2" />
                     Schedule Interview
                   </Button>
@@ -125,19 +186,25 @@ const Interviews = () => {
                 <thead className="bg-muted/30">
                   <tr>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                      Applicant
+                      Applicant Name
                     </th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                      Type
+                      Email
+                    </th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                      Title
                     </th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                       Date
                     </th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                      Status
+                      Start Time
                     </th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                      Comments
+                      End Time
+                    </th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                      Status
                     </th>
                     <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                       Actions
@@ -148,42 +215,61 @@ const Interviews = () => {
                   {loading ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={8}
                         className="p-4 text-center text-muted-foreground"
                       >
                         Loading interviews...
                       </td>
                     </tr>
-                  ) : applicants.length === 0 ? (
+                  ) : filteredInterviews.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={8}
                         className="p-4 text-center text-muted-foreground"
                       >
-                        No interview records found
+                        {selectedDate
+                          ? "No interviews found for selected date"
+                          : "No interview records found"}
                       </td>
                     </tr>
                   ) : (
-                    applicants.map((applicant) => (
+                    filteredInterviews.map((interview) => (
                       <tr
-                        key={applicant.id}
+                        key={interview.id}
                         className="border-b border-border hover:bg-muted/20 transition-colors"
                       >
                         <td className="p-4">
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {applicant.name || "N/A"}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {applicant.unique_number || applicant.mobile_no}
-                            </p>
+                          <div className="flex items-center space-x-2">
+                            {/* <User className="w-4 h-4 text-muted-foreground" /> */}
+                            <span className="font-medium text-foreground">
+                              {interview.student_name ||
+                                `Student #${interview.student_id}`}
+                            </span>
                           </div>
                         </td>
                         <td className="p-4">
                           <div className="flex items-center space-x-2">
-                            <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                            {/* <Mail className="w-4 h-4 text-muted-foreground" /> */}
                             <span className="text-sm text-foreground">
-                              {getInterviewType(applicant)}
+                              {interview.student_email || "N/A"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center space-x-2">
+                            {/* <MessageSquare className="w-4 h-4 text-muted-foreground" /> */}
+                            <span className="text-sm text-foreground">
+                              {interview.title || "Interview"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center space-x-2">
+                            {/* <Calendar className="w-4 h-4 text-muted-foreground" /> */}
+                            <span className="text-sm text-foreground">
+                              {formatDate(
+                                interview.date || interview.start_time
+                              )}
                             </span>
                           </div>
                         </td>
@@ -191,29 +277,32 @@ const Interviews = () => {
                           <div className="flex items-center space-x-2">
                             <Clock className="w-4 h-4 text-muted-foreground" />
                             <span className="text-sm text-foreground">
-                              {applicant.date_of_testing
-                                ? new Date(
-                                    applicant.date_of_testing
-                                  ).toLocaleDateString()
-                                : "Not scheduled"}
+                              {formatTime(interview.start_time)}
                             </span>
                           </div>
                         </td>
                         <td className="p-4">
-                          <StatusBadge
-                            status={getInterviewStatus(applicant) as any}
-                          />
+                          <div className="flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm text-foreground">
+                              {formatTime(interview.end_time)}
+                            </span>
+                          </div>
                         </td>
                         <td className="p-4">
-                          <span className="text-sm text-foreground">
-                            {applicant.cfr_comments ||
-                              applicant.lr_comments ||
-                              "No comments"}
-                          </span>
+                          <StatusBadge status={interview.status as any} />
                         </td>
                         <td className="p-4">
-                          <Button variant="outline" size="sm">
-                            View Details
+                          <Button
+                            className="bg-orange-500 hover:bg-orange-600 text-white"
+                            size="sm"
+                            onClick={() =>
+                              interview.meeting_link &&
+                              window.open(interview.meeting_link, "_blank")
+                            }
+                            disabled={!interview.meeting_link}
+                          >
+                            Join Meeting
                           </Button>
                         </td>
                       </tr>
