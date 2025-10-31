@@ -39,7 +39,6 @@ export default function StudentLogin() {
     phone: "",
   });
   const [loading, setLoading] = useState(false);
-  const [phoneError, setPhoneError] = useState("");
 
   // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
@@ -54,11 +53,11 @@ export default function StudentLogin() {
   // Handle Google authentication redirect for students
   useEffect(() => {
     if (!isAuthenticated) {
-      console.log("Not authenticated yet, waiting...");
+      console.log("❌ Not authenticated yet, waiting...");
       return;
     }
     if (!googleUser) {
-      console.log("googleUser is undefined, waiting...");
+      console.log("❌ googleUser is undefined, waiting...");
       return;
     }
 
@@ -81,12 +80,12 @@ export default function StudentLogin() {
         const tokenParts = googleCredential.split('.');
         const payload = JSON.parse(atob(tokenParts[1]));
       } catch (e) {
-        console.error("Error parsing Google token:", e);
+        console.error("❌ Error parsing Google token:", e);
       }
     } else if (authToken && authToken !== "undefined") {
-      console.log("Using backend token (Admin/User)");
+      console.log("✅ Using backend token (Admin/User)");
     } else {
-      console.error("No valid token available - neither backend nor Google credential");
+      console.error("❌ No valid token available - neither backend nor Google credential");
     }
 
     // Ensure student user data exists
@@ -146,29 +145,7 @@ export default function StudentLogin() {
   }, [googleUser, isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    // Phone number validation
-    if (name === "phone") {
-      // Only allow digits
-      const digitsOnly = value.replace(/\D/g, "");
-      
-      // Limit to 10 digits
-      const truncated = digitsOnly.slice(0, 10);
-      
-      setFormData({ ...formData, phone: truncated });
-      
-      // Set error message based on length
-      if (truncated.length === 0) {
-        setPhoneError("");
-      } else if (truncated.length < 10) {
-        setPhoneError("Phone number must be 10 digits");
-      } else {
-        setPhoneError("");
-      }
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const content = {
@@ -219,13 +196,6 @@ export default function StudentLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate phone number before submission
-    if (formData.phone.length !== 10) {
-      setPhoneError("Phone number must be exactly 10 digits");
-      return;
-    }
-    
     setLoading(true);
 
     try {
@@ -314,14 +284,8 @@ export default function StudentLogin() {
               value={formData.phone}
               onChange={handleChange}
               required
-              maxLength={10}
-              pattern="[0-9]{10}"
-              className={phoneError ? "border-red-500" : ""}
             />
-            {phoneError && (
-              <p className="text-red-500 text-sm mt-1">{phoneError}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading || phoneError !== ""}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : getContent().signInButton}
             </Button>
           </form>
