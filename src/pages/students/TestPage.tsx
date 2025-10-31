@@ -147,6 +147,7 @@ const TestPage: React.FC = () => {
     const totalPossibleScore = exam_session.total_marks;
     const passed = exam_session.is_passed;
 
+    console.log("totalPossibleScore",totalPossibleScore,"Score:", score, "Passed:", passed, "Summary:", summary);
     localStorage.removeItem(STORAGE_KEY);
 
     // Update tests context

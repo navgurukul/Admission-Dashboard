@@ -8,11 +8,11 @@ const ScreeningResultPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get score and total from navigation state
-  const { score = 0, total = 0 } = location.state || {};
+  // Get score, total, and isPassed from navigation state
+  const { score = 0, total = 0, isPassed = false } = location.state || {};
 
-  // Decide pass/fail (example: pass if score >= 50%)
-  const status = score >= Math.ceil(total * 0.5) ? "pass" : "fail";
+  // Use the isPassed value from API response instead of calculating locally
+  const status = isPassed ? "pass" : "fail";
 
   const screeningTest = tests.find(t => t.name === "Screening Test");
   const handleSubmit = ()=>{
