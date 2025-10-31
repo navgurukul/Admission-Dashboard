@@ -54,11 +54,11 @@ export default function StudentLogin() {
   // Handle Google authentication redirect for students
   useEffect(() => {
     if (!isAuthenticated) {
-      console.log("❌ Not authenticated yet, waiting...");
+      console.log("Not authenticated yet, waiting...");
       return;
     }
     if (!googleUser) {
-      console.log("❌ googleUser is undefined, waiting...");
+      console.log("googleUser is undefined, waiting...");
       return;
     }
 
@@ -81,12 +81,12 @@ export default function StudentLogin() {
         const tokenParts = googleCredential.split('.');
         const payload = JSON.parse(atob(tokenParts[1]));
       } catch (e) {
-        console.error("❌ Error parsing Google token:", e);
+        console.error("Error parsing Google token:", e);
       }
     } else if (authToken && authToken !== "undefined") {
-      console.log("✅ Using backend token (Admin/User)");
+      console.log("Using backend token (Admin/User)");
     } else {
-      console.error("❌ No valid token available - neither backend nor Google credential");
+      console.error("No valid token available - neither backend nor Google credential");
     }
 
     // Ensure student user data exists
