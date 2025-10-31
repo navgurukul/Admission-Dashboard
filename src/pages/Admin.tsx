@@ -695,7 +695,8 @@ const AdminPage: React.FC = () => {
                             email: e.target.value,
                           }))
                         }
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200"
+                        disabled={!!addUserDialog.editId}
+                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="Enter email address"
                       />
                     </div>
