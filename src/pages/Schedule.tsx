@@ -385,9 +385,9 @@ const Schedule = () => {
                   <table className="w-full">
                     <thead className="bg-muted/30 sticky top-0">
                       <tr>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        {/* <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Interviewer Name
-                        </th>
+                        </th> */}
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Type
                         </th>
@@ -415,12 +415,12 @@ const Schedule = () => {
                           className="border-b border-border hover:bg-muted/20 transition-colors"
                         >
                           {/* Interviewer Name */}
-                          <td className="p-4">
-                            <div className="flex items-center space-x-3">
+                          {/* <td className="p-4">
+                            <div className="flex items-center space-x-3"> */}
                               {/* <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                                 <Users className="w-4 h-4 text-primary" />
                               </div> */}
-                              <div>
+                              {/* <div>
                                 <p className="font-medium text-foreground">
                                   {slot.interviewer_name || "N/A"}
                                 </p>
@@ -429,8 +429,8 @@ const Schedule = () => {
                                 </p>
                               </div>
                             </div>
-                          </td>
-
+                          </td> */}
+                        
                           {/* Type */}
                           <td className="p-4">
                             <span className="text-sm text-foreground">
