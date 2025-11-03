@@ -343,30 +343,70 @@ const handleFinalDecisionUpdate = async (field: string, value: any) => {
   if (!currentApplicant?.id) return;
 
   try {
-    const existingDecision = currentApplicant.final_decisions?.[0] || {};
+    // Fetch latest data to ensure we have all current values
+    const response = await getStudentById(currentApplicant.id);
+    let latestData: any = response;
+    if (response && typeof response === "object" && "data" in response) {
+      latestData = (response as any).data;
+    }
 
+    const existingDecision = latestData?.final_decisions?.[0] || {};
+
+    // Get the current joining_date - prioritize the state value
+    let currentJoiningDate = joiningDate;
+    if (!currentJoiningDate && existingDecision.joining_date) {
+      currentJoiningDate = existingDecision.joining_date.split("T")[0];
+    }
+
+    // Create payload with ALL existing values preserved
     const payload: Record<string, any> = {
       student_id: currentApplicant.id,
-      id: existingDecision.id, 
+      id: existingDecision.id,
+      // Preserve ALL existing values
       offer_letter_status: existingDecision.offer_letter_status ?? null,
       onboarded_status: existingDecision.onboarded_status ?? null,
       final_notes: existingDecision.final_notes ?? null,
-      joining_date: existingDecision.joining_date ?? null,
+      joining_date: currentJoiningDate || null,
       stage_id: existingDecision.stage_id ?? null,
-      [field]: value, 
     };
 
+    // Override with the new value being updated
     if (field === "joining_date") {
       payload.joining_date = value !== "" ? value : null;
+    } else {
+      payload[field] = value;
     }
-
     await submitFinalDecision(payload);
 
+    // Update local state immediately
+    setCurrentApplicant((prev) => ({
+      ...prev,
+      final_decisions: [
+        {
+          ...existingDecision,
+          [field]: value,
+          joining_date: field === "joining_date" ? value : currentJoiningDate,
+        },
+      ],
+    }));
+
+    // Also update joiningDate state if that's what was changed
+    if (field === "joining_date") {
+      setJoiningDate(value);
+    }
+
+    // Refresh to get latest data from server
     await handleUpdate();
   } catch (err) {
-    // console.error("Failed to update final decision", err);
+    console.error("Failed to update final decision", err);
+    toast({
+      title: "Error",
+      description: "Failed to update final decision. Please try again.",
+      variant: "destructive",
+    });
   }
 };
+
 
   if (!applicant || !currentApplicant) return null;
 
