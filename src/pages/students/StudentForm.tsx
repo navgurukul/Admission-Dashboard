@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/routes/LaunguageContext.tsx";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -40,6 +40,7 @@ interface Block {
 
 const StudentForm: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
 
@@ -222,8 +223,14 @@ const StudentForm: React.FC = () => {
 
   useEffect(() => {
     const savedFormData = localStorage.getItem("studentFormData");
+    const googleEmail = location.state?.googleEmail;
+
     if (savedFormData) {
       const parsedData = JSON.parse(savedFormData);
+      // If Google email is present and email is not already set, use Google email
+      if (googleEmail && !parsedData.email) {
+        parsedData.email = googleEmail;
+      }
       setFormData(parsedData);
       // If state was previously selected, fetch its districts
       if (parsedData.stateCode) {
@@ -234,6 +241,9 @@ const StudentForm: React.FC = () => {
       if (parsedData.districtCode) {
         fetchBlocks(parsedData.districtCode);
       }
+    } else if (googleEmail) {
+      // If no saved form data but Google email exists, set it
+      setFormData(prev => ({ ...prev, email: googleEmail }));
     }
 
     // Fetch initial data
@@ -281,7 +291,8 @@ const StudentForm: React.FC = () => {
       }
     };
     fetchReligions();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.googleEmail]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -537,12 +548,12 @@ const StudentForm: React.FC = () => {
       });
 
       navigate("/students/test/start");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating student:", error);
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong while creating student.";
       toast({
         title: "Registration Failed",
-        description:
-          error.message || "Something went wrong while creating student.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -611,6 +622,7 @@ const StudentForm: React.FC = () => {
           noFaceMessage: "कृपया स्पष्ट मानव चेहरे वाली छवि अपलोड करें।",
           faceVerified: "चेहरा सत्यापित",
           faceVerifiedMessage: "छवि सफलतापूर्वक अपलोड की गई!",
+          loading: "लोड हो रहा है...",
         };
 
       case "marathi":
@@ -662,6 +674,7 @@ const StudentForm: React.FC = () => {
           noFaceMessage: "कृपया स्पष्ट मानवी चेहऱ्याची प्रतिमा अपलोड करा.",
           faceVerified: "चेहरा सत्यापित",
           faceVerifiedMessage: "प्रतिमा यशस्वीरित्या अपलोड केली!",
+          loading: "लोड करत आहे...",
         };
 
       default: // English
@@ -712,6 +725,7 @@ const StudentForm: React.FC = () => {
           noFaceMessage: "Please upload an image with a clear human face.",
           faceVerified: "Face Verified",
           faceVerifiedMessage: "Image uploaded successfully!",
+          loading: "Loading...",
         };
     }
   };
@@ -898,7 +912,10 @@ const StudentForm: React.FC = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                disabled={!!location.state?.googleEmail}
+                className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                  location.state?.googleEmail ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
                 placeholder={content.enterEmail}
               />
               {emailError && (
