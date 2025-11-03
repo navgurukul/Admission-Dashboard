@@ -1,9 +1,10 @@
 import LogoutButton from '@/components/ui/LogoutButton';
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Instructions: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Get selected language from localStorage
   const selectedLanguage = localStorage.getItem('selectedLanguage') || 'english';
@@ -60,7 +61,9 @@ const Instructions: React.FC = () => {
 
   const handleNext = () => {
     localStorage.setItem("instructionsAccepted", "true");
-    navigate('/students/details/registration');
+    navigate('/students/details/registration', {
+      state: { googleEmail: location.state?.googleEmail }
+    });
   };
 
   const handlePrevious = () => {

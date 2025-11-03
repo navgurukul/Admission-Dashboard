@@ -139,7 +139,9 @@ export default function StudentLogin() {
       });
 
       setTimeout(() => {
-        navigate("/students/details/instructions");
+        navigate("/students/details/instructions", {
+          state: { googleEmail: googleUser.email }
+        });
       }, 500);
     }
   }, [googleUser, isAuthenticated, navigate]);
