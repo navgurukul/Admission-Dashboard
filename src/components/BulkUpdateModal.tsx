@@ -21,8 +21,9 @@ import {
   getAllStatus,
   updateStudent,
   submitFinalDecision,
+  getStudentById
 } from "@/utils/api";
-import { Input } from "@/components/ui/input"; // added for city / date inputs
+import { Input } from "@/components/ui/input"; 
 
 interface CampusOption {
   id: number;
@@ -95,7 +96,6 @@ export function BulkUpdateModal({
   const [districtOptions, setDistrictOptions] = useState<DistrictOption[]>([]);
   const [blockOptions, setBlockOptions] = useState<BlockOption[]>([]);
 
-  // NEW option lists for cast / qualification / current work
   const [castOptions, setCastOptions] = useState<{ value: string; label: string }[]>([]);
   const [qualificationOptions, setQualificationOptions] = useState<{ value: string; label: string }[]>([]);
   const [currentWorkOptions, setCurrentWorkOptions] = useState<{ value: string; label: string }[]>([]);
@@ -170,8 +170,6 @@ export function BulkUpdateModal({
 
   // ---------- Dependent dropdowns ----------
 
-
-
   const handleStateChange = async (stateCode: string) => {
     setUpdateData((prev) => ({ ...prev, state: stateCode, district: "no_change", block: "no_change" }));
     setDistrictOptions([]);
@@ -207,129 +205,152 @@ export function BulkUpdateModal({
     }
   };
 
-  // ---------- Replace mock update with per-applicant API calls ----------
-  const handleBulkUpdate = async () => {
-    // Ensure at least one real change
-    const isNoChange =
-      updateData.stageId === "no_change" &&
-      updateData.campusId === "no_change" &&
-      updateData.state === "no_change" &&
-      updateData.district === "no_change" &&
-      updateData.block === "no_change" &&
-      updateData.castId === "no_change" &&
-      updateData.qualificationId === "no_change" &&
-      updateData.currentWorkId === "no_change" &&
-      updateData.offerLetterStatus === "no_change" &&
-      updateData.onboardedStatus === "no_change" &&
-      !updateData.joiningDate &&
-      !updateData.finalNotes;
+const handleBulkUpdate = async () => {
+  const isNoChange =
+    updateData.stageId === "no_change" &&
+    updateData.campusId === "no_change" &&
+    updateData.state === "no_change" &&
+    updateData.district === "no_change" &&
+    updateData.block === "no_change" &&
+    updateData.castId === "no_change" &&
+    updateData.qualificationId === "no_change" &&
+    updateData.currentWorkId === "no_change" &&
+    updateData.offerLetterStatus === "no_change" &&
+    updateData.onboardedStatus === "no_change" &&
+    !updateData.joiningDate &&
+    !updateData.finalNotes;
 
-    if (isNoChange) {
-      toast({
-        title: "Error",
-        description: "Please select at least one field to update.",
-        variant: "destructive",
-      });
-      return;
-    }
+  if (isNoChange) {
+    toast({
+      title: "Error",
+      description: "Please select the field to update.",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    // Build shared payload fragments (student-level fields)
-    const studentFields: Record<string, any> = {};
-    if (updateData.stageId !== "no_change") {
-      studentFields.stage_id = Number(updateData.stageId);
-      if (updateData.statusId !== "no_change") studentFields.status_id = Number(updateData.statusId);
-    }
-    if (updateData.campusId !== "no_change") {
-      studentFields.campus_id = updateData.campusId === "unassigned" ? null : Number(updateData.campusId);
-    }
-    if (updateData.castId !== "no_change") studentFields.cast_id = Number(updateData.castId);
-    if (updateData.qualificationId !== "no_change") studentFields.qualification_id = Number(updateData.qualificationId);
-    if (updateData.currentWorkId !== "no_change") studentFields.current_status_id = Number(updateData.currentWorkId);
-    if (updateData.state !== "no_change") studentFields.state = updateData.state;
-    if (updateData.district !== "no_change") studentFields.district = updateData.district;
-    if (updateData.block !== "no_change") studentFields.block = updateData.block;
- ;
+  // Build shared payload fragments
+  const studentFields: Record<string, any> = {};
+  if (updateData.stageId !== "no_change") {
+    studentFields.stage_id = Number(updateData.stageId);
+    if (updateData.statusId !== "no_change") studentFields.status_id = Number(updateData.statusId);
+  }
+  if (updateData.campusId !== "no_change") {
+    studentFields.campus_id = updateData.campusId === "unassigned" ? null : Number(updateData.campusId);
+  }
+  if (updateData.castId !== "no_change") studentFields.cast_id = Number(updateData.castId);
+  if (updateData.qualificationId !== "no_change") studentFields.qualification_id = Number(updateData.qualificationId);
+  if (updateData.currentWorkId !== "no_change") studentFields.current_status_id = Number(updateData.currentWorkId);
+  if (updateData.state !== "no_change") studentFields.state = updateData.state;
+  if (updateData.district !== "no_change") studentFields.district = updateData.district;
+  if (updateData.block !== "no_change") studentFields.block = updateData.block;
 
-    // Final decision fields (separate API)
-    const finalDecisionFields: Record<string, any> = {};
-    if (updateData.offerLetterStatus !== "no_change") finalDecisionFields.offer_letter_status = updateData.offerLetterStatus;
-    if (updateData.onboardedStatus !== "no_change") finalDecisionFields.onboarded_status = updateData.onboardedStatus;
-    if (updateData.joiningDate) finalDecisionFields.joining_date = updateData.joiningDate;
-    if (updateData.finalNotes) finalDecisionFields.final_notes = updateData.finalNotes;
+  // Check if any final decision fields need updating
+  const hasFinalDecisionUpdates =
+    updateData.offerLetterStatus !== "no_change" ||
+    updateData.onboardedStatus !== "no_change" ||
+    updateData.joiningDate ||
+    updateData.finalNotes;
 
-    setLoading(true);
-    const errors: { id: string; error: any }[] = [];
+  setLoading(true);
+  const errors: { id: string; error: any }[] = [];
 
-    try {
-      // Update each selected applicant one-by-one
-      for (const applicantId of selectedApplicants) {
-        try {
-          // 1) Update student core fields if any
-          if (Object.keys(studentFields).length > 0) {
-            await updateStudent(applicantId, studentFields);
-          }
-
-          // 2) Update final decision if any final decision fields provided
-          if (Object.keys(finalDecisionFields).length > 0) {
-            const payload = { student_id: applicantId, ...finalDecisionFields };
-            await submitFinalDecision(payload);
-          }
-        } catch (err) {
-          console.error(`Failed updating applicant ${applicantId}:`, err);
-          errors.push({ id: applicantId, error: err });
+  try {
+    for (const applicantId of selectedApplicants) {
+      try {
+        if (Object.keys(studentFields).length > 0) {
+          await updateStudent(applicantId, studentFields);
         }
+
+        if (hasFinalDecisionUpdates) {
+          // First, fetch existing final decision to preserve all fields
+          const studentData = await getStudentById(applicantId);
+          const existingDecision = studentData?.final_decisions?.[0] || studentData?.data?.final_decisions?.[0] || {};
+
+          // Build payload with ALL existing values preserved
+          const payload: Record<string, any> = {
+            student_id: applicantId,
+            id: existingDecision.id,
+            // Preserve all existing values
+            offer_letter_status: existingDecision.offer_letter_status ?? null,
+            onboarded_status: existingDecision.onboarded_status ?? null,
+            final_notes: existingDecision.final_notes ?? null,
+            joining_date: existingDecision.joining_date ? existingDecision.joining_date.split("T")[0] : null,
+            stage_id: existingDecision.stage_id ?? null,
+          };
+
+          // Override only the fields that are being updated
+          if (updateData.offerLetterStatus !== "no_change") {
+            payload.offer_letter_status = updateData.offerLetterStatus;
+          }
+          if (updateData.onboardedStatus !== "no_change") {
+            payload.onboarded_status = updateData.onboardedStatus;
+          }
+          if (updateData.joiningDate) {
+            payload.joining_date = updateData.joiningDate;
+          }
+          if (updateData.finalNotes) {
+            payload.final_notes = updateData.finalNotes;
+          }
+
+          await submitFinalDecision(payload);
+        }
+      } catch (err) {
+        console.error(`Failed updating applicant ${applicantId}:`, err);
+        errors.push({ id: applicantId, error: err });
       }
+    }
 
-      if (errors.length === 0) {
-        toast({
-          title: "Success",
-          description: `Updated ${selectedApplicants.length} applicant(s) successfully.`,
-        });
-      } else if (errors.length === selectedApplicants.length) {
-        toast({
-          title: "Failed",
-          description: `All ${selectedApplicants.length} updates failed.`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Partial Success",
-          description: `Updated ${selectedApplicants.length - errors.length}/${selectedApplicants.length} applicants. ${errors.length} failed.`,
-          variant: "destructive",
-        });
-      }
-
-      onSuccess();
-      onClose();
-
-      // Reset form
-      setUpdateData({
-        stageId: "no_change",
-        statusId: "no_change",
-        campusId: "no_change",
-        state: "no_change",
-        district: "no_change",
-        block: "no_change",
-        city: "",
-        castId: "no_change",
-        qualificationId: "no_change",
-        currentWorkId: "no_change",
-        offerLetterStatus: "no_change",
-        onboardedStatus: "no_change",
-        joiningDate: "",
-        finalNotes: "",
-      });
-    } catch (err: any) {
-      console.error("Bulk update failure:", err);
+    if (errors.length === 0) {
       toast({
-        title: "Update Failed",
-        description: err?.message || "Bulk update failed. Please try again.",
+        title: "Success",
+        description: `Updated ${selectedApplicants.length} applicant(s) successfully.`,
+      });
+    } else if (errors.length === selectedApplicants.length) {
+      toast({
+        title: "Failed",
+        description: `All ${selectedApplicants.length} updates failed.`,
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+    } else {
+      toast({
+        title: "Partial Success",
+        description: `Updated ${selectedApplicants.length - errors.length}/${selectedApplicants.length} applicants. ${errors.length} failed.`,
+        variant: "destructive",
+      });
     }
-  };
+
+    onSuccess();
+    onClose();
+
+    // Reset form
+    setUpdateData({
+      stageId: "no_change",
+      statusId: "no_change",
+      campusId: "no_change",
+      state: "no_change",
+      district: "no_change",
+      block: "no_change",
+      city: "",
+      castId: "no_change",
+      qualificationId: "no_change",
+      currentWorkId: "no_change",
+      offerLetterStatus: "no_change",
+      onboardedStatus: "no_change",
+      joiningDate: "",
+      finalNotes: "",
+    });
+  } catch (err: any) {
+    console.error("Bulk update failure:", err);
+    toast({
+      title: "Update Failed",
+      description: err?.message || "Bulk update failed. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
