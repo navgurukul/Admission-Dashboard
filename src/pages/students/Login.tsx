@@ -39,7 +39,6 @@ export default function StudentLogin() {
     phone: "",
   });
   const [loading, setLoading] = useState(false);
-  const [phoneError, setPhoneError] = useState("");
 
   // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
@@ -140,35 +139,15 @@ export default function StudentLogin() {
       });
 
       setTimeout(() => {
-        navigate("/students/details/instructions");
+        navigate("/students/details/instructions", {
+          state: { googleEmail: googleUser.email }
+        });
       }, 500);
     }
   }, [googleUser, isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    // Phone number validation
-    if (name === "phone") {
-      // Only allow digits
-      const digitsOnly = value.replace(/\D/g, "");
-      
-      // Limit to 10 digits
-      const truncated = digitsOnly.slice(0, 10);
-      
-      setFormData({ ...formData, phone: truncated });
-      
-      // Set error message based on length
-      if (truncated.length === 0) {
-        setPhoneError("");
-      } else if (truncated.length < 10) {
-        setPhoneError("Phone number must be 10 digits");
-      } else {
-        setPhoneError("");
-      }
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const content = {
@@ -219,13 +198,6 @@ export default function StudentLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate phone number before submission
-    if (formData.phone.length !== 10) {
-      setPhoneError("Phone number must be exactly 10 digits");
-      return;
-    }
-    
     setLoading(true);
 
     try {
@@ -314,14 +286,8 @@ export default function StudentLogin() {
               value={formData.phone}
               onChange={handleChange}
               required
-              maxLength={10}
-              pattern="[0-9]{10}"
-              className={phoneError ? "border-red-500" : ""}
             />
-            {phoneError && (
-              <p className="text-red-500 text-sm mt-1">{phoneError}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading || phoneError !== ""}>
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Signing in..." : getContent().signInButton}
             </Button>
           </form>

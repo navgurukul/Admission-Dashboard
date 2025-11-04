@@ -127,8 +127,11 @@ export function AddApplicantModal({
     dob: "",
     city: "",
     block: "",
+    blockCode: "",
     state: "",
+    stateCode: "",
     district: "",
+    districtCode: "",
     pin_code: "",
     cast_id: "",
     gender: "",
@@ -159,8 +162,11 @@ export function AddApplicantModal({
       dob: "",
       city: "",
       block: "",
+      blockCode: "",
       state: "",
+      stateCode: "",
       district: "",
+      districtCode: "",
       pin_code: "",
       cast_id: "",
       gender: "",
@@ -229,10 +235,20 @@ export function AddApplicantModal({
   }, [formData.question_set_id, questionSetList]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    // Handle PIN code - only allow 6 digits
+    if (field === "pin_code" && typeof value === "string") {
+      const digitsOnly = value.replace(/\D/g, "");
+      const truncated = digitsOnly.slice(0, 6);
+      setFormData((prev) => ({
+        ...prev,
+        [field]: truncated,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
 
     if (errors[field]) {
       setErrors((prev) => {
@@ -293,10 +309,13 @@ export function AddApplicantModal({
         setFormData((prev) => ({
           ...prev,
           district: "",
+          districtCode: "",
           block: "",
+          blockCode: "",
           state:
             stateOptions.find((s) => s.value === selectedState)?.label ||
             selectedState,
+          stateCode: selectedState,
         }));
       } catch (err) {
         // console.error("Failed to fetch districts:", err);
@@ -316,6 +335,7 @@ export function AddApplicantModal({
       setFormData((prev) => ({
         ...prev,
         block: "",
+        blockCode: "",
       }));
       return;
     }
@@ -337,7 +357,9 @@ export function AddApplicantModal({
           district:
             districtOptions.find((d) => d.value === selectedDistrict)?.label ||
             selectedDistrict,
+          districtCode: selectedDistrict,
           block: "",
+          blockCode: "",
         }));
       } catch (err) {
         // console.error("Failed to fetch blocks:", err);
@@ -349,6 +371,18 @@ export function AddApplicantModal({
 
     fetchBlocks();
   }, [selectedDistrict, districtOptions]);
+
+  // Handle block selection - update formData with both code and label
+  useEffect(() => {
+    if (selectedBlock) {
+      const selectedBlockOption = blockOptions.find((b) => b.value === selectedBlock);
+      setFormData((prev) => ({
+        ...prev,
+        block: selectedBlockOption?.label || selectedBlock,
+        blockCode: selectedBlock,
+      }));
+    }
+  }, [selectedBlock, blockOptions]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -460,6 +494,7 @@ export function AddApplicantModal({
 
     setLoading(true);
     try {
+      console.log("Submitting form data:", formData);
       // Step 1: Create student with basic details only
       const studentData = {
         image_url: null,
@@ -471,9 +506,10 @@ export function AddApplicantModal({
         email: formData.email || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
-        state: formData.state || null,
+        state: formData.stateCode || null,       // Send code instead of label
         city: formData.city || null,
-        district: formData.district || null,
+        district: formData.districtCode || null, // Send code instead of label
+        block: formData.blockCode || null,       // Send code instead of label
         pin_code: formData.pin_code || null,
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
         qualification_id: formData.qualification_id

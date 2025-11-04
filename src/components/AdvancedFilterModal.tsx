@@ -842,7 +842,7 @@ export function AdvancedFilterModal({
                         }));
                       }}
                       disabled={(date) =>
-                        filters.dateRange.from ? date < filters.dateRange.from : true
+                        filters.dateRange.from ? date <= filters.dateRange.from : true
                       }
                       initialFocus
                     />
