@@ -88,14 +88,27 @@ const CampusPage: React.FC = () => {
   // Add campus
   const handleAddCampus = async (e: React.FormEvent) => {
     e.preventDefault();
+
+     const isDuplicate = campuses.some(
+      (campus) => campus.campus_name.toLowerCase() === newCampus.toLowerCase().trim()
+    );
+    
+    if (isDuplicate) {
+      toast({
+        title: "Duplicate Campus",
+        description: `This campus name already exists. Please use a different name..`,
+        variant: "destructive",
+      });
+      return;
+    }
     setActionLoading(true);
     try {
       await createCampusApi(newCampus);
       setAddDialog(false);
       setNewCampus("");
       toast({ title: "Campus Added", description: "Campus has been successfully added." });
-      await fetchCampuses(false); // update table silently
-      setCurrentPage(1); // go to first page
+      await fetchCampuses(false); 
+      setCurrentPage(1); 
     } catch (err) {
       toast({
         title: "Error",
@@ -115,7 +128,7 @@ const CampusPage: React.FC = () => {
       setEditDialog(false);
       setSelectedCampus(null);
       toast({ title: "Campus Updated", description: `Campus "${campus_name}" updated successfully.` });
-      await fetchCampuses(false); // update table silently
+      await fetchCampuses(false); 
     } catch (err) {
       toast({
         title: "Error",
@@ -135,7 +148,7 @@ const CampusPage: React.FC = () => {
       setDeleteDialog(false);
       setSelectedCampus(null);
       toast({ title: "Campus Deleted", description: `Campus "${campus_name}" has been deleted.` });
-      await fetchCampuses(false); // update table silently
+      await fetchCampuses(false); 
       setCurrentPage(1);
     } catch (err) {
       toast({
