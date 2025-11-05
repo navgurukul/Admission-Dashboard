@@ -3,7 +3,7 @@
 import { useState, useEffect,useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from './use-toast';
-import { loginWithGoogle, Role, GoogleAuthPayload } from '@/utils/api';
+import { loginWithGoogle, GoogleAuthPayload } from '@/utils/api';
 
 interface GoogleUser {
   id: string;
@@ -42,7 +42,6 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
 
   // Initialize Google OAuth
   useEffect(() => {
-     checkExistingSession();
     const initializeGoogleAuth = () => {
       if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
         if (window.google) {
@@ -81,7 +80,8 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
             cancel_on_tap_outside: true,
           });
 
-          // checkExistingSession();
+          // Check for existing session after Google is initialized
+          checkExistingSession();
         } catch (error) {
           console.error('Error initializing Google OAuth:', error);
           setAuthState({

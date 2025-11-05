@@ -39,19 +39,25 @@ export default function StudentLogin() {
     phone: "",
   });
   const [loading, setLoading] = useState(false);
+  const [hasProcessedAuth, setHasProcessedAuth] = useState(false);
 
   // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
-    if (googleButtonRef.current && !googleLoading) {
+    if (googleButtonRef.current && !googleLoading && !isAuthenticated) {
       const timer = setTimeout(() => {
         renderGoogleSignInButton('google-signin-button-student');
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [googleLoading, renderGoogleSignInButton]);
+  }, [googleLoading, renderGoogleSignInButton, isAuthenticated]);
 
   // Handle Google authentication redirect for students
   useEffect(() => {
+    // Skip if we've already processed authentication in this session
+    if (hasProcessedAuth) {
+      return;
+    }
+
     if (!isAuthenticated) {
       console.log("❌ Not authenticated yet, waiting...");
       return;
@@ -67,6 +73,27 @@ export default function StudentLogin() {
 
     // Always try to get Google credential first
     const googleCredential = sessionStorage.getItem('google_credential');
+
+    // Check if this is a fresh login or page refresh
+    // Fresh login will have google_credential in sessionStorage
+    // Page refresh won't have it but will have authToken and user in localStorage
+    const isFreshLogin = googleCredential !== null;
+    const isExistingSession = authToken && storedUser && !isFreshLogin;
+
+    // If existing session without fresh login, this is a page refresh
+    // Don't process authentication again
+    if (isExistingSession) {
+      console.log("⚠️ Existing session detected - skipping auto-navigation (page refresh)");
+      setHasProcessedAuth(true);
+      return;
+    }
+
+    // If not a fresh login and no existing session, something is wrong
+    if (!isFreshLogin && !authToken) {
+      console.log("⚠️ No fresh login and no existing session - this shouldn't happen");
+      setHasProcessedAuth(true);
+      return;
+    }
 
     // Check if we need to use Google credential
     if ((!authToken || authToken === "undefined") && googleCredential) {
@@ -117,6 +144,10 @@ export default function StudentLogin() {
         description: `Successfully signed in as ${googleUser.name}`,
       });
 
+      // Mark as processed and clear the credential
+      setHasProcessedAuth(true);
+      sessionStorage.removeItem('google_credential');
+
       setTimeout(() => {
         navigate("/");
       }, 500);
@@ -138,13 +169,17 @@ export default function StudentLogin() {
         className: "bg-green-50 border-green-500 text-green-800",
       });
 
+      // Mark as processed and clear the credential
+      setHasProcessedAuth(true);
+      sessionStorage.removeItem('google_credential');
+
       setTimeout(() => {
         navigate("/students/details/instructions", {
           state: { googleEmail: googleUser.email }
         });
       }, 500);
     }
-  }, [googleUser, isAuthenticated, navigate]);
+  }, [googleUser, isAuthenticated, navigate, hasProcessedAuth]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
