@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search } from "lucide-react";
+import { Search,X } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
@@ -392,7 +392,10 @@ const ApplicantTable = () => {
         apiParams.interview_date_to = formatDate(filterState.dateRange.to);
       }
     }
-
+    
+    if (filterState.stage_id) {
+    apiParams.stage_id = filterState.stage_id;
+  }
     // Qualification ID
     if (filterState.qualification?.length && filterState.qualification[0] !== 'all') {
       apiParams.qualification_id = filterState.qualification[0];
@@ -437,6 +440,7 @@ const ApplicantTable = () => {
     
     // Check if any meaningful filters are applied
     const hasFilters = 
+      newFilters.stage_id ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== 'all') ||
       (newFilters.school?.length && newFilters.school[0] !== 'all') ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== 'all') ||
@@ -483,6 +487,34 @@ const ApplicantTable = () => {
       setIsFiltering(false);
     }
   };
+
+  const handleClearFilters = () => {
+    setFilters({
+      stage: "all",
+      status: "all",
+      examMode: "all",
+      interviewMode: "all",
+      partner: [],
+      district: [],
+      market: [],
+      school: [],
+      religion: [],
+      qualification: [],
+      currentStatus: [],
+      state: undefined,
+      gender: undefined,
+      dateRange: { type: "application", from: undefined, to: undefined },
+    });
+    setHasActiveFilters(false);
+    setFilteredStudents([]);
+    setCurrentPage(1);
+    
+    toast({
+      title: "Filters Cleared",
+      description: "All filters have been removed. Showing all applicants.",
+    });
+  };
+
 
   const exportToCSV = () => {
     if (!filteredApplicants.length) {
@@ -634,6 +666,15 @@ const ApplicantTable = () => {
               onShowFilters={() => setShowAdvancedFilters(true)}
               onAddApplicant={() => setShowAddModal(true)}
             />
+             {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center text-destructive hover:text-destructive/80 text-sm"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
       </CardHeader>
