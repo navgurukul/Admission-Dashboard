@@ -1763,3 +1763,36 @@ export const getScheduledInterviews = async (date?: string): Promise<ScheduledIn
   }
 };
 
+export const updateScheduledInterview = async (
+  scheduledInterviewId: number,
+  payload: {
+    slot_id: number;
+    title: string;
+    description: string;
+    meeting_link: string;
+    google_event_id?: string;
+  }
+): Promise<any> => {
+  console.log("Rescheduling interview ID:", scheduledInterviewId);
+  console.log("Reschedule payload:", payload);
+  
+  const response = await fetch(
+    `${BASE_URL}/interview-schedule/${scheduledInterviewId}/reschedule`,
+    {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    }
+  );
+
+  console.log("Rescheduling response:", response);
+  const data = await response.json();
+
+  console.log("Rescheduling response data:", data);
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to reschedule interview");
+  }
+
+  return data;
+};
