@@ -554,6 +554,30 @@ export const getSlotByDate = async (date: string): Promise<Role> => {
   return data;
 };
 
+// Update slot API
+export const updateSlot = async (
+  slotId: number,
+  payload: {
+    start_time: string;
+    end_time: string;
+    date: string;
+  }
+) => {
+  const response = await fetch(`${BASE_URL}/slots/update/${slotId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update slot');
+  }
+
+  return data;
+};
+
 
 
 // Updated logout function
