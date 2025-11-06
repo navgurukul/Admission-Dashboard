@@ -4,6 +4,7 @@ import { Calendar, Clock, Plus, Users, Video } from "lucide-react";
 import { Trash2, Edit } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { AddSlotsModal } from "@/components/AddSlotsModal";
+import { EditSlotModal } from "@/components/EditSlotModal";
 import { useToast } from "@/components/ui/use-toast";
 import { getMyAvailableSlots, scheduleInterview } from "@/utils/api";
 import {
@@ -30,6 +31,8 @@ type SlotData = {
 
 const Schedule = () => {
   const [isAddSlotsModalOpen, setIsAddSlotsModalOpen] = useState(false);
+  const [isEditSlotModalOpen, setIsEditSlotModalOpen] = useState(false);
+  const [selectedSlotForEdit, setSelectedSlotForEdit] = useState<SlotData | null>(null);
   const { toast } = useToast();
 
   // Add state for admin scheduling
@@ -389,9 +392,6 @@ const Schedule = () => {
                           Interviewer Name
                         </th> */}
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                          Type
-                        </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Date
                         </th>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
@@ -430,13 +430,6 @@ const Schedule = () => {
                               </div>
                             </div>
                           </td> */}
-                        
-                          {/* Type */}
-                          <td className="p-4">
-                            <span className="text-sm text-foreground">
-                              Interview
-                            </span>
-                          </td>
 
                           {/* Date */}
                           <td className="p-4">
@@ -491,6 +484,10 @@ const Schedule = () => {
                                 variant="outline"
                                 size="sm"
                                 disabled={slot.is_booked}
+                                onClick={() => {
+                                  setSelectedSlotForEdit(slot);
+                                  setIsEditSlotModalOpen(true);
+                                }}
                               >
                                 <Edit className="w-3 h-3 mr-1" />
                               </Button>
@@ -522,6 +519,18 @@ const Schedule = () => {
         onSuccess={() => {
           fetchAllAvailableSlots();
         }}
+      />
+
+      <EditSlotModal
+        isOpen={isEditSlotModalOpen}
+        onClose={() => {
+          setIsEditSlotModalOpen(false);
+          setSelectedSlotForEdit(null);
+        }}
+        onSuccess={() => {
+          fetchAllAvailableSlots();
+        }}
+        slotData={selectedSlotForEdit}
       />
 
       <ScheduleInterviewModal
