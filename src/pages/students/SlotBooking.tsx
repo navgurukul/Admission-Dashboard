@@ -22,7 +22,8 @@ import {
 import { 
   getSlotByDate, 
   scheduleInterview, 
-  getCurrentUser 
+  getCurrentUser ,
+  updateScheduledInterview
 
 } from "@/utils/api";
 
@@ -52,6 +53,7 @@ interface SlotData {
   meet_link?: string;
   interviewer_email?: string;
   interviewer_name?: string;
+  scheduled_interview_id?: number; // ID of the scheduled interview record
 }
 
 // ================== Component ==================
@@ -77,6 +79,13 @@ const SlotBooking: React.FC = () => {
     id: null,
     is_cancelled: true,
   });
+  const [newSlot, setNewSlot] = useState<SlotData>({
+    from: "",
+    to: "",
+    id: null,
+    is_cancelled: true,
+  });
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1); // default to tomorrow
@@ -131,13 +140,13 @@ const SlotBooking: React.FC = () => {
     try {
       const dateStr = formatDate(dateObj);
       
-      const response = await getSlotByDate(dateStr);
+      const response: any = await getSlotByDate(dateStr);
       console.log("Fetched timings response:", response);
       
       // Handle different response formats
       const items = Array.isArray(response) 
         ? response 
-        : response?.data?.data || response?.data || [];
+        : (response as any)?.data?.data || (response as any)?.data || [];
 
       // Filter only available (not booked) slots
       const availableSlots: TimeSlot[] = items
@@ -156,7 +165,7 @@ const SlotBooking: React.FC = () => {
       setTimings(availableSlots);
       console.log("Available slots for", dateStr, ":", availableSlots);
     } catch (err: any) {
-      // console.error("Failed to load timings:", err);
+      console.error("Failed to load timings:", err);
       showNotificationMessage(
         err.message || "Failed to load available slots", 
         "error"
@@ -168,7 +177,13 @@ const SlotBooking: React.FC = () => {
   // Refetch timings and clear selected slot when date changes
   useEffect(() => {
     fetchTimings(selectedDate);
-    setSlot({ from: "", to: "", id: null, is_cancelled: true });
+    // Only clear slot selection if not in rescheduling mode
+    if (!isRescheduling) {
+      setSlot({ from: "", to: "", id: null, is_cancelled: true });
+    } else {
+      // Clear new slot selection when date changes during reschedule
+      setNewSlot({ from: "", to: "", id: null, is_cancelled: true });
+    }
     // eslint-disable-next-line
   }, [selectedDate]);
 
@@ -274,27 +289,30 @@ const SlotBooking: React.FC = () => {
         if (!signInSuccess) {
           return;
         }
+        // Update the signed-in state
+        setIsGoogleSignedIn(true);
       }
 
       // Find selected slot details
       const selectedSlotDetails = timings.find(t => t.id === slot.id);
       console.log("Selected slot details:", selectedSlotDetails);
-      // if (!selectedSlotDetails) {
-      //   showNotificationMessage("Selected slot not found", "error");
-      //   return;
-      // }
+      
+      if (!selectedSlotDetails) {
+        showNotificationMessage("Selected slot not found", "error");
+        return;
+      }
 
       //  Validate emails
-      // if (!selectedSlotDetails.interviewer_email) {
-      //   console.error("Interviewer email missing for slot:", selectedSlotDetails);
-      //   showNotificationMessage("Interviewer email not found", "error");
-      //   return;
-      // }
+      if (!selectedSlotDetails.interviewer_email) {
+        console.error("Interviewer email missing for slot:", selectedSlotDetails);
+        showNotificationMessage("Interviewer email not found", "error");
+        return;
+      }
 
-      // if (!currentStudent.email) {
-      //   showNotificationMessage("Student email not found", "error");
-      //   return;
-      // }
+      if (!currentStudent.email) {
+        showNotificationMessage("Student email not found", "error");
+        return;
+      }
 
       const bookedSlot: SlotData = {
         ...slot,
@@ -337,8 +355,15 @@ const SlotBooking: React.FC = () => {
 
       //  Save to backend
       showNotificationMessage("Saving slot to server...", "info");
-      await scheduleInterview(backendPayload);
-      console.log("Slot booked successfully:", backendPayload);
+      const scheduleResponse = await scheduleInterview(backendPayload);
+      console.log("Slot booked successfully:", scheduleResponse);
+
+      // Store the scheduled interview ID from response
+      if (scheduleResponse?.data?.id) {
+        bookedSlot.scheduled_interview_id = scheduleResponse.data.id;
+      } else if (scheduleResponse?.id) {
+        bookedSlot.scheduled_interview_id = scheduleResponse.id;
+      }
 
       // Update local state
       setSlot(bookedSlot);
@@ -352,7 +377,7 @@ const SlotBooking: React.FC = () => {
       });
 
       showNotificationMessage(
-        "✅ Slot Booked! Google Meet link sent to both emails.", 
+        "✅ Slot Booked! Google Meet link sent to your email.", 
         "success"
       );
 
@@ -379,35 +404,168 @@ const SlotBooking: React.FC = () => {
 
   const handleDeleteSlot = async () => {
     if (!test) return;
+    
+    if (!slot.scheduled_interview_id) {
+      showNotificationMessage(
+        "Cannot cancel: Interview ID not found. Please contact support.", 
+        "error"
+      );
+      return;
+    }
+
+    // Enter rescheduling mode
+    setIsRescheduling(true);
+    showNotificationMessage(
+      "Select a new time slot to reschedule your interview", 
+      "info"
+    );
+  };
+
+  const handleRescheduleConfirm = async () => {
+    if (!newSlot.id || !slot.scheduled_interview_id || !currentStudent || !test) {
+      if (!newSlot.id) {
+        showNotificationMessage("Please select a new time slot", "error");
+      } else if (!slot.scheduled_interview_id) {
+        showNotificationMessage("Interview ID not found. Please contact support.", "error");
+      } else {
+        showNotificationMessage("Missing required information", "error");
+      }
+      return;
+    }
+
     try {
       setIsBookingInProgress(true);
-      
-      // Delete calendar event if exists
+
+      // Check Google sign-in - only sign in if not already signed in
+      if (!isSignedIn()) {
+        const signInSuccess = await handleGoogleSignIn();
+        console.log("Google sign-in success:", signInSuccess);
+        if (!signInSuccess) {
+          return;
+        }
+        // Update the signed-in state
+        setIsGoogleSignedIn(true);
+      }
+
+      // Find new slot details
+      const newSlotDetails = timings.find(t => t.id === newSlot.id);
+      if (!newSlotDetails) {
+        showNotificationMessage("New slot not found", "error");
+        return;
+      }
+
+      // Validate emails
+      if (!newSlotDetails.interviewer_email) {
+        showNotificationMessage("Interviewer email not found", "error");
+        return;
+      }
+
+      if (!currentStudent.email) {
+        showNotificationMessage("Student email not found", "error");
+        return;
+      }
+
+      // Delete old calendar event
       if (slot.calendar_event_id) {
         try {
           await deleteCalendarEvent(slot.calendar_event_id);
-          showNotificationMessage("Google Meet deleted", "info");
+          showNotificationMessage("Old Google Meet deleted", "info");
         } catch (error) {
-          console.error("Error deleting calendar event:", error);
+          console.error("Error deleting old calendar event:", error);
+          // Continue even if deletion fails
         }
       }
 
-      setSlot({ from: "", to: "", id: null, is_cancelled: true });
-      localStorage.removeItem(`bookedSlot_${testId}`);
-      updateSlot(testId, { status: "Pending", scheduledTime: "" });
-      showNotificationMessage("Slot Cancelled Successfully", "success");
+      // Create new Google Calendar event
+      showNotificationMessage("Creating new Google Meet...", "info");
+      const newBookedSlot: SlotData = {
+        ...newSlot,
+        is_cancelled: false,
+        on_date: formatDate(selectedDate),
+        start_time: newSlotDetails.start_time,
+        end_time_expected: newSlotDetails.end_time,
+        student_name: `${currentStudent.firstName} ${currentStudent.lastName}`,
+        topic_name: test.name,
+        interviewer_email: newSlotDetails.interviewer_email,
+        interviewer_name: newSlotDetails.interviewer_name,
+      };
+
+      const calendarResult = await scheduleGoogleMeet(newBookedSlot);
+      console.log("New Google Calendar result:", calendarResult);
+
+      if (!calendarResult.meetLink) {
+        throw new Error("Failed to create Google Meet link");
+      }
+
+      newBookedSlot.calendar_event_id = calendarResult.eventId;
+      newBookedSlot.meet_link = calendarResult.meetLink;
+
+      // Call reschedule API with old scheduled_interview_id and new slot_id
+      const reschedulePayload = {
+        slot_id: newSlot.id, // New slot ID
+        title: `${newBookedSlot.topic_name} - Interview (Rescheduled)`,
+        description: `Rescheduled interview for ${newBookedSlot.student_name}. Topic: ${newBookedSlot.topic_name}. Interviewer: ${newBookedSlot.interviewer_name || newBookedSlot.interviewer_email}. Student: ${currentStudent.email}`,
+        meeting_link: newBookedSlot.meet_link,
+        google_event_id: newBookedSlot.calendar_event_id,
+      };
+
+      console.log("Rescheduling with:", {
+        scheduledInterviewId: slot.scheduled_interview_id,
+        payload: reschedulePayload
+      });
+
+      const rescheduleResponse = await updateScheduledInterview(
+        slot.scheduled_interview_id, // Old scheduled interview ID
+        reschedulePayload
+      );
+
+      console.log("Reschedule response:", rescheduleResponse);
+
+      // Store new scheduled interview ID if returned
+      if (rescheduleResponse?.data?.id) {
+        newBookedSlot.scheduled_interview_id = rescheduleResponse.data.id;
+      } else if (rescheduleResponse?.id) {
+        newBookedSlot.scheduled_interview_id = rescheduleResponse.id;
+      } else {
+        // Keep the old ID if no new one returned
+        newBookedSlot.scheduled_interview_id = slot.scheduled_interview_id;
+      }
+
+      // Update local state
+      setSlot(newBookedSlot);
+      setNewSlot({ from: "", to: "", id: null, is_cancelled: true });
+      setIsRescheduling(false);
+      localStorage.setItem(`bookedSlot_${testId}`, JSON.stringify(newBookedSlot));
       
-      // Refresh slots
-      fetchTimings(selectedDate);
-    } catch (error: any) {
-      console.error("Cancellation error:", error);
+      updateSlot(testId, {
+        status: "Booked",
+        scheduledTime: `${newBookedSlot.on_date} ${newBookedSlot.start_time}`,
+        calendar_event_id: newBookedSlot.calendar_event_id,
+        meet_link: newBookedSlot.meet_link,
+      });
+
       showNotificationMessage(
-        error.message || "Error cancelling slot",
+        "✅ Interview Rescheduled Successfully! New Google Meet link sent.", 
+        "success"
+      );
+
+      fetchTimings(selectedDate);
+
+    } catch (error: any) {
+      console.error("Rescheduling error:", error);
+      showNotificationMessage(
+        error.message || "Error rescheduling slot. Please try again.",
         "error"
       );
     } finally {
       setIsBookingInProgress(false);
     }
+  };
+
+  const handleCancelReschedule = () => {
+    setIsRescheduling(false);
+    setNewSlot({ from: "", to: "", id: null, is_cancelled: true });
+    showNotificationMessage("Rescheduling cancelled", "info");
   };
 
   const handleNavigationOnStudentPage = () => navigate("/students/final-result");
@@ -461,20 +619,6 @@ const SlotBooking: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-orange-600 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!currentStudent || !test) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Cannot Book Slot
-          </h2>
-          <p className="text-gray-600">Student or test data not found.</p>
-        </div>
       </div>
     );
   }
@@ -534,12 +678,14 @@ const SlotBooking: React.FC = () => {
       )}
 
       <div className="max-w-4xl mx-auto">
-        {slot.is_cancelled ? (
+        {slot.is_cancelled || isRescheduling ? (
           // ---------- Booking Section ----------
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-orange-400 px-8 py-6 text-white">
-              <h1 className="text-3xl font-bold mb-2">Book Interview Slot</h1>
+              <h1 className="text-3xl font-bold mb-2">
+                {isRescheduling ? "Reschedule Interview Slot" : "Book Interview Slot"}
+              </h1>
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5" />
                 <span className="text-lg">
@@ -547,6 +693,14 @@ const SlotBooking: React.FC = () => {
                 </span>
               </div>
               <p className="text-sm mt-1 opacity-90">{currentStudent.email}</p>
+              {isRescheduling && (
+                <div className="mt-3 bg-orange-500 bg-opacity-50 rounded-lg p-3">
+                  <p className="text-sm font-semibold">
+                    📅 Current Slot: {slot.on_date && formatDisplayDate(new Date(slot.on_date))} at {slot.start_time && formatTime(slot.start_time)}
+                  </p>
+                  <p className="text-xs mt-1">Select a new time slot below to reschedule</p>
+                </div>
+              )}
             </div>
 
             <div className="p-8">
@@ -587,18 +741,29 @@ const SlotBooking: React.FC = () => {
                     {timings.map((timing) => (
                       <button
                         key={timing.id}
-                        onClick={() =>
-                          setSlot({ 
-                            id: timing.id, 
-                            from: timing.start_time, 
-                            to: timing.end_time, 
-                            is_cancelled: true,
-                            interviewer_email: timing.interviewer_email,
-                            interviewer_name: timing.interviewer_name,
-                          })
-                        }
+                        onClick={() => {
+                          if (isRescheduling) {
+                            setNewSlot({ 
+                              id: timing.id, 
+                              from: timing.start_time, 
+                              to: timing.end_time, 
+                              is_cancelled: true,
+                              interviewer_email: timing.interviewer_email,
+                              interviewer_name: timing.interviewer_name,
+                            });
+                          } else {
+                            setSlot({ 
+                              id: timing.id, 
+                              from: timing.start_time, 
+                              to: timing.end_time, 
+                              is_cancelled: true,
+                              interviewer_email: timing.interviewer_email,
+                              interviewer_name: timing.interviewer_name,
+                            });
+                          }
+                        }}
                         className={`p-4 rounded-lg border-2 transition-all ${
-                          slot.id === timing.id
+                          (isRescheduling ? newSlot.id : slot.id) === timing.id
                             ? "border-orange-500 bg-orange-50 shadow-md"
                             : "border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm"
                         }`}
@@ -628,18 +793,20 @@ const SlotBooking: React.FC = () => {
               </div>
 
               {/* Selected Slot Info */}
-              {slot.id && (
+              {(slot.id || newSlot.id) && (
                 <div className="mb-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">Selected Slot:</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">
+                    {isRescheduling ? "New Slot Selected:" : "Selected Slot:"}
+                  </h4>
                   <div className="text-sm text-blue-700 space-y-1">
                     <p>📅 Date: {formatDisplayDate(selectedDate)}</p>
-                    <p>🕐 Time: {formatTime(slot.from)} - {formatTime(slot.to)}</p>
+                    <p>🕐 Time: {formatTime(isRescheduling ? newSlot.from : slot.from)} - {formatTime(isRescheduling ? newSlot.to : slot.to)}</p>
                   </div>
                 </div>
               )}
 
               {/* Google Sign-in Status */}
-              {!isGoogleSignedIn && slot.id && (
+              {!isGoogleSignedIn && (slot.id || newSlot.id) && (
                 <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex items-start space-x-3">
                     <Video className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
@@ -659,7 +826,7 @@ const SlotBooking: React.FC = () => {
                 </div>
               )}
 
-              {isGoogleSignedIn && slot.id && (
+              {isGoogleSignedIn && (slot.id || newSlot.id) && (
                 <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
@@ -670,26 +837,59 @@ const SlotBooking: React.FC = () => {
                 </div>
               )}
 
-              <button
-                onClick={handleSlotBooking}
-                disabled={!slot.id || isBookingInProgress}
-                className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
-                  !slot.id || isBookingInProgress
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-orange-600 to-orange-400 text-white hover:from-orange-700 hover:to-orange-500 shadow-lg hover:shadow-xl"
-                }`}
-              >
-                {isBookingInProgress ? (
-                  <span className="flex items-center justify-center">
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Booking...
-                  </span>
-                ) : slot.id ? (
-                  "Book Selected Slot & Schedule Meet"
-                ) : (
-                  "Select a Time Slot"
-                )}
-              </button>
+              {/* Booking/Rescheduling Buttons */}
+              {isRescheduling ? (
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleCancelReschedule}
+                    disabled={isBookingInProgress}
+                    className="flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-all bg-gray-300 text-gray-700 hover:bg-gray-400 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRescheduleConfirm}
+                    disabled={!newSlot.id || isBookingInProgress}
+                    className={`flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
+                      !newSlot.id || isBookingInProgress
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-gradient-to-r from-green-600 to-green-400 text-white hover:from-green-700 hover:to-green-500 shadow-lg hover:shadow-xl"
+                    }`}
+                  >
+                    {isBookingInProgress ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Rescheduling...
+                      </span>
+                    ) : newSlot.id ? (
+                      "Confirm Reschedule"
+                    ) : (
+                      "Select New Time Slot"
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleSlotBooking}
+                  disabled={!slot.id || isBookingInProgress}
+                  className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
+                    !slot.id || isBookingInProgress
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-gradient-to-r from-orange-600 to-orange-400 text-white hover:from-orange-700 hover:to-orange-500 shadow-lg hover:shadow-xl"
+                  }`}
+                >
+                  {isBookingInProgress ? (
+                    <span className="flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Booking...
+                    </span>
+                  ) : slot.id ? (
+                    "Book Selected Slot & Schedule Meet"
+                  ) : (
+                    "Select a Time Slot"
+                  )}
+                </button>
+              )}
             </div>
           </div>
         ) : (
