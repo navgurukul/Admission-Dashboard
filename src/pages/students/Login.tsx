@@ -186,37 +186,26 @@ export default function StudentLogin() {
   };
 
   const content = {
-    english: {
-      title: "Student Login",
-      description: "Sign in with your name and phone number to continue",
-      namePlaceholder: "Enter your name",
-      lastnamePlaceholder: "Enter your last name",
-      phonePlaceholder: "Enter your phone number",
-      signInButton: "Sign In",
-      successMessage: "Login Successful! ",
-      failureMessage: "Login Failed. Please try again.",
-    },
-    hindi: {
-      title: "छात्र लॉगिन",
-      description: "जारी रखने के लिए अपना नाम और फोन नंबर दर्ज करें",
-      namePlaceholder: "अपना नाम दर्ज करें",
-      lastnamePlaceholder: "अपना उपनाम दर्ज करें",
-      phonePlaceholder: "अपना फोन नंबर दर्ज करें",
-      signInButton: "साइन इन करें",
-      successMessage: "लॉगिन सफल! ",
-      failureMessage: "लॉगिन विफल। कृपया पुनः प्रयास करें।",
-    },
-    marathi: {
-      title: "विद्यार्थी लॉगिन",
-      description: "सुरू ठेवण्यासाठी आपले नाव आणि फोन नंबर प्रविष्ट करा",
-      namePlaceholder: "आपले नाव प्रविष्ट करा",
-      lastnamePlaceholder: "आपले आडनाव प्रविष्ट करा",
-      phonePlaceholder: "आपला फोन नंबर प्रविष्ट करा",
-      signInButton: "साइन इन करा",
-      successMessage: "लॉगिन यशस्वी! ",
-      failureMessage: "लॉगिन अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
-    },
-  };
+  english: {
+    title: "Login",
+    description: "Sign in with your Google account to continue.",
+    successMessage: "Login Successful!",
+    failureMessage: "Login Failed. Please try again.",
+  },
+  hindi: {
+    title: "लॉगिन",
+    description: "जारी रखने के लिए अपने Google खाते से साइन इन करें।",
+    successMessage: "लॉगिन सफल!",
+    failureMessage: "लॉगिन विफल। कृपया पुनः प्रयास करें।",
+  },
+  marathi: {
+    title: "लॉगिन",
+    description: "सुरू ठेवण्यासाठी आपल्या Google खात्याने साइन इन करा.",
+    successMessage: "लॉगिन यशस्वी!",
+    failureMessage: "लॉगिन अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+  },
+};
+
 
   const getContent = () => {
     const lang = localStorage.getItem("selectedLanguage") || "english";
@@ -297,47 +286,7 @@ export default function StudentLogin() {
           <CardDescription>{getContent().description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              type="text"
-              name="name"
-              placeholder={getContent().namePlaceholder}
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-            <Input
-              type="text"
-              name="lastname"
-              placeholder={getContent().lastnamePlaceholder}
-              value={formData.lastname}
-              onChange={handleChange}
-              required
-            />
-            <Input
-              type="tel"
-              name="phone"
-              placeholder={getContent().phonePlaceholder}
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : getContent().signInButton}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
+  
 
           {/* Google Sign In Button */}
           <div
