@@ -582,7 +582,7 @@ const handleBulkUpdate = async () => {
                 <SelectContent>
                   <SelectItem value="no_change">No change</SelectItem>
                   <SelectItem value="Offer Pending">Offer Pending</SelectItem>
-                  <SelectItem value="Offer Sent">Offer Sent</SelectItem>
+                  {/* <SelectItem value="Offer Sent">Offer Sent</SelectItem> */}
                   <SelectItem value="Offer Accepted">Offer Accepted</SelectItem>
                   <SelectItem value="Offer Declined">Offer Declined</SelectItem>
                   <SelectItem value="Waitlisted">Waitlisted</SelectItem>
