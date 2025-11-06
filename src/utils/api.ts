@@ -834,6 +834,34 @@ export const updateStudent = async (id: string, payload: any): Promise<any> => {
   return response.json();
 };
 
+// Bulk update students
+export const bulkUpdateStudents = async (payload: {
+  student_ids: number[];
+  campus_id?: number;
+  state?: string;
+  district?: string;
+  block?: string;
+  current_status_id?: number;
+  qualification_id?: number;
+  cast_id?: number;
+  offer_letter_status?: string;
+  onboarded_status?: string;
+  joining_date?: string;
+}): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/bulk-update`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to bulk update students");
+  }
+
+  return response.json();
+};
+
 // Qualification Management API functions
 export interface Qualification {
   id: number;
