@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Calendar, Clock, Plus, Users, Video } from "lucide-react";
-import { Trash2, Edit } from "lucide-react"; 
+import { Calendar, Clock, Plus, Users, Video, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddSlotsModal } from "@/components/AddSlotsModal";
+import { EditSlotModal } from "@/components/EditSlotModal";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
-import { getMyAvailableSlots, scheduleInterview } from "@/utils/api";
+import { getMyAvailableSlots, scheduleInterview, deleteInterviewSlot } from "@/utils/api";
 import {
   initClient,
   signIn,
@@ -30,6 +31,8 @@ type SlotData = {
 
 const Schedule = () => {
   const [isAddSlotsModalOpen, setIsAddSlotsModalOpen] = useState(false);
+  const [isEditSlotModalOpen, setIsEditSlotModalOpen] = useState(false);
+  const [selectedSlotForEdit, setSelectedSlotForEdit] = useState<SlotData | null>(null);
   const { toast } = useToast();
 
   // Add state for admin scheduling
@@ -47,6 +50,11 @@ const Schedule = () => {
   const [allSlots, setAllSlots] = useState<SlotData[]>([]); // Store all slots
   const [selectedDate, setSelectedDate] = useState<string>(""); // Empty means show all
   const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [slotToDelete, setSlotToDelete] = useState<SlotData | null>(null);
+  const [isDeletingSlot, setIsDeletingSlot] = useState(false);
 
   // Initialize Google API on mount
   useEffect(() => {
@@ -200,6 +208,69 @@ const Schedule = () => {
       });
     } finally {
       setSchedulingInProgress(false);
+    }
+  };
+
+  // Check if slot can be deleted
+  const canDeleteSlot = (slot: SlotData): boolean => {
+    // Cannot delete if booked
+    if (slot.is_booked) {
+      return false;
+    }
+
+    // Cannot delete if in the past
+    try {
+      const slotDate = new Date(slot.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      slotDate.setHours(0, 0, 0, 0);
+
+      return slotDate >= today;
+    } catch {
+      return false;
+    }
+  };
+
+  // Open delete confirmation dialog
+  const openDeleteDialog = (slot: SlotData) => {
+    if (!canDeleteSlot(slot)) {
+      toast({
+        title: "Cannot Delete",
+        description: "Cannot delete booked slots or past date slots",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSlotToDelete(slot);
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (!slotToDelete) return;
+
+    try {
+      setIsDeletingSlot(true);
+      await deleteInterviewSlot(slotToDelete.id);
+      
+      toast({
+        title: "Success",
+        description: "Slot deleted successfully",
+      });
+
+      // Refresh slots
+      fetchAllAvailableSlots();
+      setDeleteDialogOpen(false);
+      setSlotToDelete(null);
+    } catch (error: any) {
+      console.error("Error deleting slot:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete slot",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingSlot(false);
     }
   };
 
@@ -385,12 +456,6 @@ const Schedule = () => {
                   <table className="w-full">
                     <thead className="bg-muted/30 sticky top-0">
                       <tr>
-                        {/* <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                          Interviewer Name
-                        </th> */}
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                          Type
-                        </th>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Date
                         </th>
@@ -414,30 +479,6 @@ const Schedule = () => {
                           key={slot.id}
                           className="border-b border-border hover:bg-muted/20 transition-colors"
                         >
-                          {/* Interviewer Name */}
-                          {/* <td className="p-4">
-                            <div className="flex items-center space-x-3"> */}
-                              {/* <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                <Users className="w-4 h-4 text-primary" />
-                              </div> */}
-                              {/* <div>
-                                <p className="font-medium text-foreground">
-                                  {slot.interviewer_name || "N/A"}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {slot.interviewer_email}
-                                </p>
-                              </div>
-                            </div>
-                          </td> */}
-                        
-                          {/* Type */}
-                          <td className="p-4">
-                            <span className="text-sm text-foreground">
-                              Interview
-                            </span>
-                          </td>
-
                           {/* Date */}
                           <td className="p-4">
                             <span className="text-sm text-foreground">
@@ -465,7 +506,13 @@ const Schedule = () => {
 
                           {/* Status */}
                           <td className="p-4">
-                            <span className="text-sm text-foreground">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                slot.is_booked
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-green-100 text-green-800"
+                              }`}
+                            >
                               {slot.is_booked ? "Booked" : "Available"}
                             </span>
                           </td>
@@ -481,9 +528,9 @@ const Schedule = () => {
                                     setSelectedSlotForScheduling(slot);
                                     setIsScheduleModalOpen(true);
                                   }}
+                                  title="Schedule interview"
                                 >
                                   <Video className="w-3 h-3 mr-1" />
-                                  {/* Schedule */}
                                 </Button>
                               )}
 
@@ -491,6 +538,15 @@ const Schedule = () => {
                                 variant="outline"
                                 size="sm"
                                 disabled={slot.is_booked}
+                                onClick={() => {
+                                  setSelectedSlotForEdit(slot);
+                                  setIsEditSlotModalOpen(true);
+                                }}
+                                title={
+                                  slot.is_booked
+                                    ? "Cannot edit booked slot"
+                                    : "Edit slot"
+                                }
                               >
                                 <Edit className="w-3 h-3 mr-1" />
                               </Button>
@@ -498,11 +554,16 @@ const Schedule = () => {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                disabled={slot.is_booked}
+                                disabled={!canDeleteSlot(slot)}
+                                onClick={() => openDeleteDialog(slot)}
+                                title={
+                                  !canDeleteSlot(slot)
+                                    ? "Cannot delete booked or past slots"
+                                    : "Delete slot"
+                                }
                               >
                                 <Trash2 className="w-3 h-3 mr-1" />
                               </Button>
-                             
                             </div>
                           </td>
                         </tr>
@@ -520,8 +581,23 @@ const Schedule = () => {
         isOpen={isAddSlotsModalOpen}
         onClose={() => setIsAddSlotsModalOpen(false)}
         onSuccess={() => {
+          setIsAddSlotsModalOpen(false);
           fetchAllAvailableSlots();
         }}
+      />
+
+      <EditSlotModal
+        isOpen={isEditSlotModalOpen}
+        onClose={() => {
+          setIsEditSlotModalOpen(false);
+          setSelectedSlotForEdit(null);
+        }}
+        onSuccess={() => {
+          setIsEditSlotModalOpen(false);
+          setSelectedSlotForEdit(null);
+          fetchAllAvailableSlots();
+        }}
+        slotData={selectedSlotForEdit}
       />
 
       <ScheduleInterviewModal
@@ -536,6 +612,24 @@ const Schedule = () => {
         isDirectScheduleMode={isDirectScheduleMode}
         onSchedule={handleAdminScheduleMeet}
         isLoading={schedulingInProgress}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setSlotToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Slot"
+        description={
+          slotToDelete
+            ? `Are you sure you want to delete this slot?\n\nDate: ${new Date(slotToDelete.date).toLocaleDateString()}\nTime: ${formatTime(slotToDelete.start_time)} - ${formatTime(slotToDelete.end_time)}\n\nThis action cannot be undone.`
+            : ""
+        }
+        confirmText="Delete Slot"
+        isLoading={isDeletingSlot}
       />
     </div>
   );

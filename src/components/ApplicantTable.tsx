@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search,X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
@@ -40,6 +40,17 @@ import {
   searchStudentsApi,
   getFilterStudent,
 } from "@/utils/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const ApplicantTable = () => {
   // Modals
@@ -66,6 +77,7 @@ const ApplicantTable = () => {
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
   const [isFiltering, setIsFiltering] = useState(false);
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Search & filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -204,12 +216,12 @@ const ApplicantTable = () => {
         setCurrentPage(1); // Reset to page 1 when search is cleared
         return;
       }
-      
+
       // Clear filters when search is performed
       setHasActiveFilters(false);
       setFilteredStudents([]);
       setCurrentPage(1); // Reset to page 1 when searching
-      
+
       try {
         setIsSearching(true);
         const results = await searchStudentsApi(searchTerm.trim());
@@ -244,7 +256,7 @@ const ApplicantTable = () => {
       // Handle both API response formats:
       // 1. Regular API: returns IDs (campus_id, school_id, etc.)
       // 2. Filter API: returns names directly (campus_name, school_name, etc.)
-      
+
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
@@ -261,11 +273,17 @@ const ApplicantTable = () => {
           student.last_name || ""
         }`.trim(),
         // Use the name from filter API if available, otherwise lookup by ID
-        school_name: student.school_name || (school ? school.school_name : "N/A"),
-        campus_name: student.campus_name || (campus ? campus.campus_name : "N/A"),
-        current_status_name: student.current_status_name || (current_status ? current_status.current_status_name : "N/A"),
-        religion_name: student.religion_name || (religion ? religion.religion_name : "N/A"),
-        question_set_name: student.question_set_name || (questionSet ? questionSet.name : "N/A"),
+        school_name:
+          student.school_name || (school ? school.school_name : "N/A"),
+        campus_name:
+          student.campus_name || (campus ? campus.campus_name : "N/A"),
+        current_status_name:
+          student.current_status_name ||
+          (current_status ? current_status.current_status_name : "N/A"),
+        religion_name:
+          student.religion_name || (religion ? religion.religion_name : "N/A"),
+        question_set_name:
+          student.question_set_name || (questionSet ? questionSet.name : "N/A"),
         maximumMarks: questionSet ? questionSet.maximumMarks : 0,
         stage_name: student.stage_name || "N/A",
       };
@@ -320,7 +338,7 @@ const ApplicantTable = () => {
       } catch (error) {
         console.error("Error refreshing filtered data:", error);
       }
-    } 
+    }
     // Otherwise, refetch regular paginated data
     else {
       setCurrentPage(1);
@@ -376,58 +394,64 @@ const ApplicantTable = () => {
         const d = new Date(date);
         // Use local date to avoid timezone issues
         const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
       };
 
-      if (filterState.dateRange.type === 'application') {
+      if (filterState.dateRange.type === "application") {
         apiParams.created_at_from = formatDate(filterState.dateRange.from);
         apiParams.created_at_to = formatDate(filterState.dateRange.to);
-      } else if (filterState.dateRange.type === 'lastUpdate') {
+      } else if (filterState.dateRange.type === "lastUpdate") {
         apiParams.updated_at_from = formatDate(filterState.dateRange.from);
         apiParams.updated_at_to = formatDate(filterState.dateRange.to);
-      } else if (filterState.dateRange.type === 'interview') {
+      } else if (filterState.dateRange.type === "interview") {
         apiParams.interview_date_from = formatDate(filterState.dateRange.from);
         apiParams.interview_date_to = formatDate(filterState.dateRange.to);
       }
     }
-    
+
     if (filterState.stage_id) {
-    apiParams.stage_id = filterState.stage_id;
-  }
+      apiParams.stage_id = filterState.stage_id;
+    }
     // Qualification ID
-    if (filterState.qualification?.length && filterState.qualification[0] !== 'all') {
+    if (
+      filterState.qualification?.length &&
+      filterState.qualification[0] !== "all"
+    ) {
       apiParams.qualification_id = filterState.qualification[0];
     }
 
     // Campus ID
-    if (filterState.partner?.length > 1 && filterState.partner[1] !== 'all') {
+    if (filterState.partner?.length > 1 && filterState.partner[1] !== "all") {
       apiParams.campus_id = filterState.partner[1];
     }
 
     // School ID
-    if (filterState.school?.length && filterState.school[0] !== 'all') {
+    if (filterState.school?.length && filterState.school[0] !== "all") {
       apiParams.school_id = filterState.school[0];
     }
 
     // Current Status ID
-    if (filterState.currentStatus?.length && filterState.currentStatus[0] !== 'all') {
+    if (
+      filterState.currentStatus?.length &&
+      filterState.currentStatus[0] !== "all"
+    ) {
       apiParams.current_status_id = filterState.currentStatus[0];
     }
 
     // State
-    if (filterState.state && filterState.state !== 'all') {
+    if (filterState.state && filterState.state !== "all") {
       apiParams.state = filterState.state;
     }
 
     // District
-    if (filterState.district?.length && filterState.district[0] !== 'all') {
+    if (filterState.district?.length && filterState.district[0] !== "all") {
       apiParams.district = filterState.district[0];
     }
 
     // Gender
-    if (filterState.gender && filterState.gender !== 'all') {
+    if (filterState.gender && filterState.gender !== "all") {
       apiParams.gender = filterState.gender;
     }
 
@@ -437,17 +461,19 @@ const ApplicantTable = () => {
   // Apply filters and fetch filtered students
   const handleApplyFilters = async (newFilters: any) => {
     setFilters(newFilters);
-    
+
     // Check if any meaningful filters are applied
-    const hasFilters = 
+    const hasFilters =
       newFilters.stage_id ||
-      (newFilters.qualification?.length && newFilters.qualification[0] !== 'all') ||
-      (newFilters.school?.length && newFilters.school[0] !== 'all') ||
-      (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== 'all') ||
-      (newFilters.partner?.length > 1 && newFilters.partner[1] !== 'all') ||
-      (newFilters.state && newFilters.state !== 'all') ||
-      (newFilters.district?.length && newFilters.district[0] !== 'all') ||
-      (newFilters.gender && newFilters.gender !== 'all') ||
+      (newFilters.qualification?.length &&
+        newFilters.qualification[0] !== "all") ||
+      (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.currentStatus?.length &&
+        newFilters.currentStatus[0] !== "all") ||
+      (newFilters.partner?.length > 1 && newFilters.partner[1] !== "all") ||
+      (newFilters.state && newFilters.state !== "all") ||
+      (newFilters.district?.length && newFilters.district[0] !== "all") ||
+      (newFilters.gender && newFilters.gender !== "all") ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
     if (!hasFilters) {
@@ -465,15 +491,17 @@ const ApplicantTable = () => {
       setIsFiltering(true);
       setHasActiveFilters(true);
       const apiParams = transformFiltersToAPI(newFilters);
-      
+
       // Call the filter API
       const results = await getFilterStudent(apiParams);
       setFilteredStudents(results || []);
       setCurrentPage(1); // Reset to first page when filters are applied
-      
+
       toast({
         title: "Filters Applied",
-        description: `Found ${results?.length || 0} applicants matching your criteria`,
+        description: `Found ${
+          results?.length || 0
+        } applicants matching your criteria`,
       });
     } catch (error) {
       console.error("Error applying filters:", error);
@@ -508,13 +536,12 @@ const ApplicantTable = () => {
     setHasActiveFilters(false);
     setFilteredStudents([]);
     setCurrentPage(1);
-    
+
     toast({
       title: "Filters Cleared",
       description: "All filters have been removed. Showing all applicants.",
     });
   };
-
 
   const exportToCSV = () => {
     if (!filteredApplicants.length) {
@@ -613,7 +640,7 @@ const ApplicantTable = () => {
   };
 
   const currentTotalCount = getTotalCount();
-  
+
   // Calculate total pages based on current view
   const totalPages = useMemo(() => {
     // For search and filter modes, use client-side pagination
@@ -622,8 +649,14 @@ const ApplicantTable = () => {
     }
     // For normal mode, use server-side pagination count
     return totalPagesFromAPI;
-  }, [searchTerm, hasActiveFilters, currentTotalCount, itemsPerPage, totalPagesFromAPI]);
-  
+  }, [
+    searchTerm,
+    hasActiveFilters,
+    currentTotalCount,
+    itemsPerPage,
+    totalPagesFromAPI,
+  ]);
+
   // Apply pagination to filtered results (only for search/filter mode)
   const paginatedApplicants = useMemo(() => {
     // For search or filter mode, apply client-side pagination
@@ -634,9 +667,16 @@ const ApplicantTable = () => {
     }
     // For normal mode, use data directly from server (already paginated)
     return filteredApplicants;
-  }, [searchTerm, hasActiveFilters, filteredApplicants, currentPage, itemsPerPage]);
+  }, [
+    searchTerm,
+    hasActiveFilters,
+    filteredApplicants,
+    currentPage,
+    itemsPerPage,
+  ]);
 
-  const showingStart = paginatedApplicants.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const showingStart =
+    paginatedApplicants.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const showingEnd = Math.min(currentPage * itemsPerPage, currentTotalCount);
 
   return (
@@ -658,7 +698,7 @@ const ApplicantTable = () => {
               selectedRowsCount={selectedRows.length}
               onBulkUpdate={() => setShowBulkUpdate(true)}
               onSendOfferLetters={handleSendOfferLetters}
-              onBulkDelete={handleBulkDelete}
+              onBulkDelete={() => setShowDeleteConfirm(true)}
             />
             <TableActions
               onCSVImport={() => setShowCSVImport(true)}
@@ -666,7 +706,7 @@ const ApplicantTable = () => {
               onShowFilters={() => setShowAdvancedFilters(true)}
               onAddApplicant={() => setShowAddModal(true)}
             />
-             {hasActiveFilters && (
+            {hasActiveFilters && (
               <button
                 onClick={handleClearFilters}
                 className="flex items-center text-destructive hover:text-destructive/80 text-sm"
@@ -721,7 +761,7 @@ const ApplicantTable = () => {
                   <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
                     WhatsApp Number
                   </TableHead>
-                  
+
                   <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
                     Gender
                   </TableHead>
@@ -872,6 +912,30 @@ const ApplicantTable = () => {
         isOpen={!!applicantForComments}
         onClose={() => setApplicantForComments(null)}
       />
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedRows.length} applicant
+              {selectedRows.length > 1 ? "s" : ""}? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={async () => {
+                setShowDeleteConfirm(false);
+                await handleBulkDelete();
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
