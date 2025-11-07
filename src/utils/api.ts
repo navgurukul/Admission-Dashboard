@@ -496,7 +496,7 @@ export const submitFinalDecision = async (payload: any) => {
 
 // creation 
 export const createStudentSlotBooking = async (payload: any) => {
-  console.log("payload",payload)
+  // console.log("payload",payload)
   return fetch(
   
     `${BASE_URL}/book-slot`,
@@ -510,7 +510,7 @@ export const createStudentSlotBooking = async (payload: any) => {
 
 // For creating single and multiple slots.
 export const createSlotBookingTimes = async (payload: any) => {
-  console.log("payload",payload)
+  // console.log("payload",payload)
   return fetch(
   
     `${BASE_URL}/slots/createSlots`,
@@ -1226,7 +1226,7 @@ export const getRandomQuestions = async (language: "english" | "hindi" | "marath
       answer: q.answer_key[0], // assuming first index in answer_key array is correct
     })) || [];
 
-    console.log("questions1",questions)
+    // console.log("questions1",questions)
     return questions;
   } catch (error: any) {
     console.error("Error fetching questions:", error);
@@ -1756,10 +1756,10 @@ export const scheduleInterview = async (payload: ScheduleInterviewPayload): Prom
     body: JSON.stringify(payload),
   });
 
-  console.log("Scheduling response:", response);
+  // console.log("Scheduling response:", response);
   const data = await response.json();
 
-  console.log("Scheduling response data:", data);
+  // console.log("Scheduling response data:", data);
   if (!response.ok) {
     throw new Error(data.message || 'Failed to schedule interview');
   }
@@ -1782,6 +1782,7 @@ export interface ScheduledInterview {
   end_time: string;
   date: string;
   student_name?: string;
+  student_email?: string;
   created_at: string;
   updated_at: string;
 }
@@ -1825,8 +1826,8 @@ export const updateScheduledInterview = async (
     google_event_id?: string;
   }
 ): Promise<any> => {
-  console.log("Rescheduling interview ID:", scheduledInterviewId);
-  console.log("Reschedule payload:", payload);
+  // console.log("Rescheduling interview ID:", scheduledInterviewId);
+  // console.log("Reschedule payload:", payload);
   
   const response = await fetch(
     `${BASE_URL}/interview-schedule/${scheduledInterviewId}/reschedule`,
@@ -1837,10 +1838,10 @@ export const updateScheduledInterview = async (
     }
   );
 
-  console.log("Rescheduling response:", response);
+  // console.log("Rescheduling response:", response);
   const data = await response.json();
 
-  console.log("Rescheduling response data:", data);
+  // console.log("Rescheduling response data:", data);
 
   if (!response.ok) {
     throw new Error(data.message || "Failed to reschedule interview");
