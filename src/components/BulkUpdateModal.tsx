@@ -21,7 +21,8 @@ import {
   getAllStatus,
   updateStudent,
   submitFinalDecision,
-  getStudentById
+  getStudentById,
+  bulkUpdateStudents
 } from "@/utils/api";
 import { Input } from "@/components/ui/input"; 
 
@@ -229,96 +230,52 @@ const handleBulkUpdate = async () => {
     return;
   }
 
-  // Build shared payload fragments
-  const studentFields: Record<string, any> = {};
-  if (updateData.stageId !== "no_change") {
-    studentFields.stage_id = Number(updateData.stageId);
-    if (updateData.statusId !== "no_change") studentFields.status_id = Number(updateData.statusId);
-  }
-  if (updateData.campusId !== "no_change") {
-    studentFields.campus_id = updateData.campusId === "unassigned" ? null : Number(updateData.campusId);
-  }
-  if (updateData.castId !== "no_change") studentFields.cast_id = Number(updateData.castId);
-  if (updateData.qualificationId !== "no_change") studentFields.qualification_id = Number(updateData.qualificationId);
-  if (updateData.currentWorkId !== "no_change") studentFields.current_status_id = Number(updateData.currentWorkId);
-  if (updateData.state !== "no_change") studentFields.state = updateData.state;
-  if (updateData.district !== "no_change") studentFields.district = updateData.district;
-  if (updateData.block !== "no_change") studentFields.block = updateData.block;
+  // Build bulk update payload
+  const payload: any = {
+    student_ids: selectedApplicants.map(id => Number(id)),
+  };
 
-  // Check if any final decision fields need updating
-  const hasFinalDecisionUpdates =
-    updateData.offerLetterStatus !== "no_change" ||
-    updateData.onboardedStatus !== "no_change" ||
-    updateData.joiningDate ||
-    updateData.finalNotes;
+  // Add only the fields that are being changed
+  if (updateData.campusId !== "no_change") {
+    payload.campus_id = updateData.campusId === "unassigned" ? null : Number(updateData.campusId);
+  }
+  if (updateData.state !== "no_change") {
+    payload.state = updateData.state;
+  }
+  if (updateData.district !== "no_change") {
+    payload.district = updateData.district;
+  }
+  if (updateData.block !== "no_change") {
+    payload.block = updateData.block;
+  }
+  if (updateData.castId !== "no_change") {
+    payload.cast_id = Number(updateData.castId);
+  }
+  if (updateData.qualificationId !== "no_change") {
+    payload.qualification_id = Number(updateData.qualificationId);
+  }
+  if (updateData.currentWorkId !== "no_change") {
+    payload.current_status_id = Number(updateData.currentWorkId);
+  }
+  if (updateData.offerLetterStatus !== "no_change") {
+    payload.offer_letter_status = updateData.offerLetterStatus;
+  }
+  if (updateData.onboardedStatus !== "no_change") {
+    payload.onboarded_status = updateData.onboardedStatus;
+  }
+  if (updateData.joiningDate) {
+    payload.joining_date = updateData.joiningDate;
+  }
 
   setLoading(true);
-  const errors: { id: string; error: any }[] = [];
 
   try {
-    for (const applicantId of selectedApplicants) {
-      try {
-        if (Object.keys(studentFields).length > 0) {
-          await updateStudent(applicantId, studentFields);
-        }
+    await bulkUpdateStudents(payload);
 
-        if (hasFinalDecisionUpdates) {
-          // First, fetch existing final decision to preserve all fields
-          const studentData = await getStudentById(applicantId);
-          const existingDecision = studentData?.final_decisions?.[0] || studentData?.data?.final_decisions?.[0] || {};
-
-          // Build payload with ALL existing values preserved
-          const payload: Record<string, any> = {
-            student_id: applicantId,
-            id: existingDecision.id,
-            // Preserve all existing values
-            offer_letter_status: existingDecision.offer_letter_status ?? null,
-            onboarded_status: existingDecision.onboarded_status ?? null,
-            final_notes: existingDecision.final_notes ?? null,
-            joining_date: existingDecision.joining_date ? existingDecision.joining_date.split("T")[0] : null,
-            stage_id: existingDecision.stage_id ?? null,
-          };
-
-          // Override only the fields that are being updated
-          if (updateData.offerLetterStatus !== "no_change") {
-            payload.offer_letter_status = updateData.offerLetterStatus;
-          }
-          if (updateData.onboardedStatus !== "no_change") {
-            payload.onboarded_status = updateData.onboardedStatus;
-          }
-          if (updateData.joiningDate) {
-            payload.joining_date = updateData.joiningDate;
-          }
-          if (updateData.finalNotes) {
-            payload.final_notes = updateData.finalNotes;
-          }
-
-          await submitFinalDecision(payload);
-        }
-      } catch (err) {
-        console.error(`Failed updating applicant ${applicantId}:`, err);
-        errors.push({ id: applicantId, error: err });
-      }
-    }
-
-    if (errors.length === 0) {
-      toast({
-        title: "Success",
-        description: `Updated ${selectedApplicants.length} applicant(s) successfully.`,
-      });
-    } else if (errors.length === selectedApplicants.length) {
-      toast({
-        title: "Failed",
-        description: `All ${selectedApplicants.length} updates failed.`,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Partial Success",
-        description: `Updated ${selectedApplicants.length - errors.length}/${selectedApplicants.length} applicants. ${errors.length} failed.`,
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Success",
+      description: `Updated ${selectedApplicants.length} applicant(s) successfully.`,
+    });
 
     onSuccess();
     onClose();
@@ -582,7 +539,7 @@ const handleBulkUpdate = async () => {
                 <SelectContent>
                   <SelectItem value="no_change">No change</SelectItem>
                   <SelectItem value="Offer Pending">Offer Pending</SelectItem>
-                  <SelectItem value="Offer Sent">Offer Sent</SelectItem>
+                  {/* <SelectItem value="Offer Sent">Offer Sent</SelectItem> */}
                   <SelectItem value="Offer Accepted">Offer Accepted</SelectItem>
                   <SelectItem value="Offer Declined">Offer Declined</SelectItem>
                   <SelectItem value="Waitlisted">Waitlisted</SelectItem>

@@ -554,6 +554,30 @@ export const getSlotByDate = async (date: string): Promise<Role> => {
   return data;
 };
 
+// Update slot API
+export const updateSlot = async (
+  slotId: number,
+  payload: {
+    start_time: string;
+    end_time: string;
+    date: string;
+  }
+) => {
+  const response = await fetch(`${BASE_URL}/slots/update/${slotId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update slot');
+  }
+
+  return data;
+};
+
 
 
 // Updated logout function
@@ -829,6 +853,34 @@ export const updateStudent = async (id: string, payload: any): Promise<any> => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || "Failed to update student");
+  }
+
+  return response.json();
+};
+
+// Bulk update students
+export const bulkUpdateStudents = async (payload: {
+  student_ids: number[];
+  campus_id?: number;
+  state?: string;
+  district?: string;
+  block?: string;
+  current_status_id?: number;
+  qualification_id?: number;
+  cast_id?: number;
+  offer_letter_status?: string;
+  onboarded_status?: string;
+  joining_date?: string;
+}): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/bulk-update`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to bulk update students");
   }
 
   return response.json();
@@ -1763,3 +1815,50 @@ export const getScheduledInterviews = async (date?: string): Promise<ScheduledIn
   }
 };
 
+export const updateScheduledInterview = async (
+  scheduledInterviewId: number,
+  payload: {
+    slot_id: number;
+    title: string;
+    description: string;
+    meeting_link: string;
+    google_event_id?: string;
+  }
+): Promise<any> => {
+  console.log("Rescheduling interview ID:", scheduledInterviewId);
+  console.log("Reschedule payload:", payload);
+  
+  const response = await fetch(
+    `${BASE_URL}/interview-schedule/${scheduledInterviewId}/reschedule`,
+    {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    }
+  );
+
+  console.log("Rescheduling response:", response);
+  const data = await response.json();
+
+  console.log("Rescheduling response data:", data);
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to reschedule interview");
+  }
+
+  return data;
+};
+
+// Delete interview slot
+export const deleteInterviewSlot = async (slotId: number): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/slots/${slotId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(slotId)
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Cannot delete booked slots or past date slots');
+  }
+};

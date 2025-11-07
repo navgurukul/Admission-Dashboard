@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { getFilterStudent } from "@/utils/api"
+import { getFilterStudent,getAllStages } from "@/utils/api"
 import {
   getStatesList,
   getDistrictsList,
@@ -37,6 +37,7 @@ import {
 
 interface FilterState {
   stage: string;
+  stage_id?: number;
   status: string;
   examMode: string;
   interviewMode: string;
@@ -68,20 +69,20 @@ interface AdvancedFilterModalProps {
   currentstatusList?: any[];
 }
 
-const STAGE_STATUS_MAP = {
-  sourcing: [
-    "Enrollment Key Generated",
-    "Basic Details Entered",
-    "Duplicate",
-    "Unreachable",
-    "Became Disinterested",
-  ],
-  screening: [
-    "Screening Test Pass",
-    "Screening Test Fail",
-    "Created Student Without Exam",
-  ],
-};
+// const STAGE_STATUS_MAP = {
+//   sourcing: [
+//     "Enrollment Key Generated",
+//     "Basic Details Entered",
+//     "Duplicate",
+//     "Unreachable",
+//     "Became Disinterested",
+//   ],
+//   screening: [
+//     "Screening Test Pass",
+//     "Screening Test Fail",
+//     "Created Student Without Exam",
+//   ],
+// };
 
 export function AdvancedFilterModal({
   isOpen,
@@ -104,6 +105,7 @@ export function AdvancedFilterModal({
     qualifications: [] as any[],
     currentStatuses: [] as any[],
     campuses: [] as any[],
+    stages: [] as any[],
   });
 
   const [availableStates, setAvailableStates] = useState<State[]>([]);
@@ -200,14 +202,16 @@ export function AdvancedFilterModal({
           apiSchools,
           apiReligions,
           apiQualifications,
-          apiStatuses
+          apiStatuses,
+          apiStages,
         ] = await Promise.all([
           getStatesList(),
           getCampusesList(),
           getSchoolsList(),
           getReligionsList(),
           getQualificationsList(),
-          getStatusesList()
+          getStatusesList(),
+          getAllStages()
         ]);
 
         // Extract data from students
@@ -238,6 +242,7 @@ export function AdvancedFilterModal({
           qualifications: finalQualifications,
           currentStatuses: finalStatuses,
           campuses: finalCampuses,
+          stages : apiStages,
         });
 
         setAvailableStates(allStates);
@@ -268,6 +273,7 @@ export function AdvancedFilterModal({
   const resetFilters = () => {
     setFilters({
       stage: "all",
+      stage_id:undefined,
       status: "all",
       examMode: "all",
       interviewMode: "all",
@@ -335,10 +341,10 @@ export function AdvancedFilterModal({
     });
   };
 
-  const availableStatuses =
-    filters.stage && filters.stage !== "all"
-      ? STAGE_STATUS_MAP[filters.stage as keyof typeof STAGE_STATUS_MAP] || []
-      : [];
+  // const availableStatuses =
+  //   filters.stage && filters.stage !== "all"
+  //     ? STAGE_STATUS_MAP[filters.stage as keyof typeof STAGE_STATUS_MAP] || []
+  //     : [];
 
   // Helper function to get display name
   const getDisplayName = (item: any, nameKey: string = 'name', fallbackPrefix: string = 'Item') => {
@@ -367,6 +373,7 @@ export function AdvancedFilterModal({
     if (typeof item === 'string') return item;
     
     if (item[valueKey]) return String(item[valueKey]);
+    if(item.stage_id) return String (item.stage_id);
     if (item.id) return String(item.id);
     if (item.value) return String(item.value);
     
@@ -390,45 +397,49 @@ export function AdvancedFilterModal({
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Stage</h3>
               <Select
-                value={filters.stage}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, stage: value, status: "all" }))
-                }
-                disabled={true}
+                value={filters.stage_id ? String(filters.stage_id) : "all"}
+                onValueChange={(value) => {
+                  if (value === "all") {
+                    setFilters((prev) => ({ ...prev, stage: "all", stage_id: undefined, status: "all" }));
+                    return;
+                  }
+                  
+                  const selectedStage = availableOptions.stages.find(
+                    (s: any) => String(s.stage_id) === String(value) || String(s.id) === String(value)
+                  );
+                                    
+                  if (selectedStage) {
+                    const stageName = selectedStage.stage_name || selectedStage.name || String(value);
+                    const stageId = selectedStage.stage_id || selectedStage.id;
+                                        
+                    setFilters((prev) => ({ 
+                      ...prev, 
+                      stage: stageName, 
+                      stage_id: Number(stageId), 
+                      status: "all" 
+                    }));
+                  }
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select stage" />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Stages</SelectItem>
-                  <SelectItem value="sourcing">Sourcing</SelectItem>
-                  <SelectItem value="screening">Screening</SelectItem>
+                  {/* <SelectItem value="sourcing">Sourcing</SelectItem>
+                  <SelectItem value="screening">Screening</SelectItem> */}
+
+                  {availableOptions.stages.map((stage: any) => {
+                    const stageId = stage.stage_id || stage.id;
+                    const stageName = stage.stage_name || stage.name || `Stage ${stageId}`;
+                    return (
+                      <SelectItem key={stageId} value={String(stageId)}>
+                        {stageName}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
-
-              {availableStatuses.length > 0 && (
-                <>
-                  <Label className="text-sm">Status</Label>
-                  <Select
-                    value={filters.status}
-                    onValueChange={(value) =>
-                      setFilters((prev) => ({ ...prev, status: value }))
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50">
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      {availableStatuses.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
             </div>
 
             {/* Exam Mode */}
