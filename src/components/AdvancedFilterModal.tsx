@@ -50,7 +50,7 @@ interface FilterState {
   state?: string;
   gender?: string;
   dateRange: {
-    type: "application" | "lastUpdate" | "interview";
+    type: "applicant" | "lastUpdate" | "interview";
     from?: Date;
     to?: Date;
   };
@@ -284,7 +284,7 @@ export function AdvancedFilterModal({
       qualification: [],
       currentStatus: [],
       state: undefined,
-      dateRange: { type: "application" },
+      dateRange: { type: "applicant" },
     });
     setAvailableDistricts([]);
   };
@@ -758,7 +758,7 @@ export function AdvancedFilterModal({
                 <Select
                   value={filters.dateRange.type}
                   onValueChange={(
-                    value: "application" | "lastUpdate" | "interview"
+                    value: "applicant" | "lastUpdate" | "interview"
                   ) =>
                     setFilters((prev) => ({
                       ...prev,
@@ -770,7 +770,7 @@ export function AdvancedFilterModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    <SelectItem value="application">Application Creation Date</SelectItem>
+                    <SelectItem value="applicant">Applicant Creation Date</SelectItem>
                     {/* <SelectItem value="lastUpdate">Last Update</SelectItem>
                     <SelectItem value="interview">Interview Date</SelectItem> */}
                   </SelectContent>
