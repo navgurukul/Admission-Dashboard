@@ -29,8 +29,8 @@ const Interviews = () => {
       // Fetch all interviews without date filter
       const data = await getScheduledInterviews();
 
-      console.log(`Successfully fetched ${data?.length || 0} interview records`);
-      console.log("Interview data:", data);
+      // console.log(`Successfully fetched ${data?.length || 0} interview records`);
+      // console.log("Interview data:", data);
       setInterviews(data || []);
     } catch (error) {
       console.error("Error fetching interview data:", error);
@@ -45,8 +45,33 @@ const Interviews = () => {
     }
   };
 
-  const handleDateChange = (date: string) => {
-    setSelectedDate(date);
+  const handleDateChange = async (date: string) => {
+    try {
+      setLoading(true);
+      setSelectedDate(date);
+      
+      // If date is empty, fetch all interviews
+      if (!date) {
+        const data = await getScheduledInterviews();
+        // console.log(`Fetched all interviews: ${data?.length || 0} records`);
+        setInterviews(data || []);
+      } else {
+        // Fetch interviews for selected date
+        const data = await getScheduledInterviews(date);
+        // console.log(`Fetched interviews for ${date}: ${data?.length || 0} records`);
+        setInterviews(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching interviews by date:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load interviews for selected date",
+        variant: "destructive",
+      });
+      setInterviews([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatTime = (timeString: string) => {
@@ -108,22 +133,6 @@ const Interviews = () => {
     }
   };
 
-  // Filter interviews based on selected date
-  const filteredInterviews = selectedDate
-    ? interviews.filter((interview) => {
-        const interviewDate = interview.date || interview.start_time;
-        if (!interviewDate) return false;
-        
-        try {
-          const date = new Date(interviewDate);
-          const formattedInterviewDate = date.toISOString().split("T")[0];
-          return formattedInterviewDate === selectedDate;
-        } catch {
-          return false;
-        }
-      })
-    : interviews;
-
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
@@ -164,7 +173,7 @@ const Interviews = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedDate("")}
+                        onClick={() => handleDateChange("")}
                       >
                         Clear
                       </Button>
@@ -221,7 +230,7 @@ const Interviews = () => {
                         Loading interviews...
                       </td>
                     </tr>
-                  ) : filteredInterviews.length === 0 ? (
+                  ) : interviews.length === 0 ? (
                     <tr>
                       <td
                         colSpan={8}
@@ -233,7 +242,7 @@ const Interviews = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredInterviews.map((interview) => (
+                    interviews.map((interview) => (
                       <tr
                         key={interview.id}
                         className="border-b border-border hover:bg-muted/20 transition-colors"
