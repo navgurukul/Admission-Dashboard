@@ -5,8 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Use root path for Vercel, GitHub Pages path otherwise
-  base: process.env.VERCEL ? '/' : '/Admission-Dashboard/',
+  base: "/Admission-Dashboard/",
   server: {
     host: "::",
     port: 8080,
