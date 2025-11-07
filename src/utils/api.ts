@@ -1848,3 +1848,17 @@ export const updateScheduledInterview = async (
 
   return data;
 };
+
+// Delete interview slot
+export const deleteInterviewSlot = async (slotId: number): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/slots/${slotId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(slotId)
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || 'Cannot delete booked slots or past date slots');
+  }
+};
