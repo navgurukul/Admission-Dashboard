@@ -980,7 +980,7 @@ export function ApplicantModal({
                 <div className="grid grid-cols-3 gap-4">
                 <div className="mb-4">
                   <label className="text-sm font-medium text-muted-foreground"> 
-                    Notes
+                    Note
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
@@ -990,7 +990,7 @@ export function ApplicantModal({
                     }
                     displayValue={
                       currentApplicant.final_decisions?.[0]?.final_notes ||
-                      "No final notes"
+                      "No final note"
                     }
                     renderInput={({ value, onChange }) => (
                       <textarea
