@@ -99,8 +99,8 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
   // Restore session from localStorage
 const checkExistingSession = () => {
   const storedUser = localStorage.getItem('user');
-  const authToken = localStorage.getItem('authToken');
-  
+const authToken = sessionStorage.getItem('authToken');
+   
   if (storedUser && authToken) {
     try {
       const apiUser = JSON.parse(storedUser);
@@ -183,10 +183,10 @@ const checkExistingSession = () => {
 
         // Store token only if it exists and is not undefined
         if (token && token !== 'undefined') {
-          localStorage.setItem('authToken', token);
-          // console.log('✅ Backend token stored successfully');
+          sessionStorage.setItem('authToken', token);
+          // console.log(' Backend token stored successfully');
         } else {
-          // console.warn('⚠️ Backend did not provide token for user:', apiUser?.email);
+          // console.warn(' Backend did not provide token for user:', apiUser?.email);
           // Don't store undefined - let student login page handle it
         }
 
