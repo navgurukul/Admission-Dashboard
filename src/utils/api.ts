@@ -1456,6 +1456,18 @@ export const getCampusesApi = async (): Promise<{ id: number; campus_name: strin
 };
 
 
+// Get campus by ID
+export const getCampusById = async (id:number)=>{
+  const response = await fetch(`${BASE_URL}/campuses/getCampusById/${id}`,{
+    method: "GET",
+    headers: getAuthHeaders(),
+  })
+
+  if (!response.ok) throw new Error("Failed to fetch campus by ID");
+  return response.json();
+
+}
+
 // Create campus
 export const createCampusApi = async (campusName: string) => {
   const response = await fetch(`${BASE_URL}/campuses/createCampus`, {
@@ -1514,6 +1526,8 @@ export const createSchool = async (schoolName: string) => {
     throw error;
   }
 };
+
+
 
 interface School {
   id: number;

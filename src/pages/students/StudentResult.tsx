@@ -76,7 +76,7 @@ export default function StudentResult() {
               {student.whatsappNumber}
             </p>
             <p>
-              <span className="font-semibold">City:</span> {student.city}
+              <span className="font-semibold">State:</span> {student.state}
             </p>
           </CardContent>
         </Card>

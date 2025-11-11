@@ -55,6 +55,7 @@ const CampusPage: React.FC = () => {
     if (showLoader) setLoading(true);
     try {
       const data = await getCampusesApi();
+      console.log("campus Data",data)
       setCampuses(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
