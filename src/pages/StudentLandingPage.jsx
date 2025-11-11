@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLanguage } from "../routes/LaunguageContext";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, Code, Users, Lightbulb } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 
 const slides = [
@@ -49,9 +51,15 @@ const content = {
     description:
       "Learn coding, problem-solving, and critical thinking in a thriving community of learners. Take the scholarship test today and begin your journey towards becoming a software engineer.",
     buttonText: "Get Started",
+    learnMoreText: "Learn More",
     footerText: "For more queries, email at",
     footerContact: "hi@navgurukul.org",
     imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    features: {
+      realProjects: "Real Projects",
+      community: "Community",
+      mentorship: "Mentorship"
+    }
   },
   hindi: {
     heading: "सॉफ्टवेयर इंजीनियरिंग छात्रवृत्ति",
@@ -60,9 +68,15 @@ const content = {
     description:
       "एक समृद्ध शिक्षार्थी समुदाय में कोडिंग, समस्या-समाधान, और आलोचनात्मक सोच सीखें। आज ही छात्रवृत्ति परीक्षा दें और सॉफ्टवेयर इंजीनियर बनने की अपनी यात्रा शुरू करें।",
     buttonText: "शुरू करें",
+    learnMoreText: "और जानें",
     footerText: "अधिक जानकारी के लिए ईमेल करें:",
     footerContact: "hi@navgurukul.org",
     imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    features: {
+      realProjects: "वास्तविक परियोजनाएं",
+      community: "समुदाय",
+      mentorship: "मार्गदर्शन"
+    }
   },
   marathi: {
     heading: "सॉफ्टवेअर अभियांत्रिकी शिष्यवृत्ती",
@@ -71,9 +85,15 @@ const content = {
     description:
       "कोडिंग, समस्या सोडवणे, आणि विचारशक्ती विकसित करणे यामध्ये एक समृद्ध समुदायात शिकणे. आजच शिष्यवृत्ती चाचणी द्या आणि सॉफ्टवेअर अभियंता बनण्याच्या आपल्या प्रवासाची सुरूवात करा.",
     buttonText: "सुरू करा",
+    learnMoreText: "अधिक जाणून घ्या",
     footerText: "अधिक प्रश्नांसाठी, ईमेल करा:",
     footerContact: "hi@navgurukul.org",
     imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    features: {
+      realProjects: "वास्तविक प्रकल्प",
+      community: "समुदाय",
+      mentorship: "मार्गदर्शन"
+    }
   },
 };
 const StudentLandingPage = () => {
@@ -136,98 +156,139 @@ const StudentLandingPage = () => {
 
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* ---- Top Navbar ---- */}
-      <header className="flex justify-between items-center px-6 py-4 shadow">
-        <div className="flex items-center space-x-2">
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* ---- Modern Navbar ---- */}
+      <header className="sticky top-0 flex justify-between items-center px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-white border-b border-gray-200 z-50 backdrop-blur-sm bg-white/95">
+        {/* Logo Section */}
+        <div className="flex items-center space-x-2 md:space-x-3">
           <img
             src={content[selectedLanguage].imageUrl}
             alt="NavGurukul Logo"
-            className="h-10"
+            className="h-8 md:h-10 lg:h-12"
           />
+          <span className="hidden sm:block text-lg md:text-xl font-bold text-gray-800">
+            {content[selectedLanguage].title}
+          </span>
         </div>
 
-        <div className="flex items-center space-x-4">
-         <select
-  value={selectedLanguage}
-  onChange={(e) => setSelectedLanguage(e.target.value)} // no `as any`
-  className="border rounded px-3 py-1 text-gray-700"
->
-  <option value="english">English</option>
-  <option value="marathi">Marathi</option>
-  <option value="hindi">Hindi</option>
-</select>
-
+        {/* Right Section - Language Selector & CTA */}
+        <div className="flex items-center gap-2 md:gap-4">
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 text-gray-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white hover:border-orange-400 transition-colors cursor-pointer"
+          >
+            <option value="english">English</option>
+            <option value="hindi">हिंदी</option>
+            <option value="marathi">मराठी</option>
+          </select>
+          
+          <Button
+            onClick={handleNavigation}
+            size="sm"
+            className="hidden sm:flex bg-orange-500 hover:bg-orange-600 text-white text-xs md:text-sm px-3 md:px-4"
+          >
+            {content[selectedLanguage].buttonText}
+          </Button>
         </div>
       </header>
 
-      {/* ---- Main Content ---- */}
-      <main className="flex flex-col items-center flex-1 px-6 py-12">
-        <h1 className="text-2xl md:text-3xl font-semibold mb-8 text-center">
-          {content[selectedLanguage].heading}
-        </h1>
+      {/* ---- Main Hero Section ---- */}
+      <section className="flex-1 flex items-center py-8 md:py-12 lg:py-16 bg-gradient-to-br from-orange-50 to-orange-100">
+        <div className="w-full px-4 md:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 items-center max-w-[90rem] mx-auto px-6 md:px-12 lg:px-20">
+            {/* Left Section - Content */}
+            <div className="space-y-4 md:space-y-6 order-2 md:order-1">
+              <div className="inline-block">
+                <span className="bg-orange-500/10 text-orange-600 md:rounded-full text-3xl md:text-3xl lg:text-base font-semibold">
+                  {content[selectedLanguage].heading}
+                </span>
+              </div>
+              
+              <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+                {content[selectedLanguage].subtitle}{" "}
+                <span className="text-orange-500">{content[selectedLanguage].title}</span>
+              </h1>
+              
+              <p className="text-base md:text-lg lg:text-xl text-gray-600 leading-relaxed">
+                {content[selectedLanguage].description}
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
+                <Button 
+                  onClick={handleNavigation}
+                  className="bg-orange-500 hover:bg-orange-600 text-white group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full sm:w-auto"
+                >
+                  {content[selectedLanguage].buttonText}
+                  <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-orange-500 text-orange-600 hover:bg-orange-50 w-full sm:w-auto"
+                  onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+                >
+                  {content[selectedLanguage].learnMoreText}
+                </Button>
+              </div>
+              
+              {/* <div className="grid grid-cols-3 gap-2 md:gap-4 pt-4 md:pt-8">
+                <div className="flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-2">
+                  <Code className="w-4 h-4 md:w-5 md:h-5 text-orange-500 flex-shrink-0" />
+                  <span className="text-xs md:text-lg font-medium text-center md:text-left">{content[selectedLanguage].features.realProjects}</span>
+                </div>
+                <div className="flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-2">
+                  <Users className="w-4 h-4 md:w-5 md:h-5 text-orange-500 flex-shrink-0" />
+                  <span className="text-xs md:text-lg font-medium text-center md:text-left">{content[selectedLanguage].features.community}</span>
+                </div>
+                <div className="flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-2">
+                  <Lightbulb className="w-4 h-4 md:w-5 md:h-5 text-orange-500 flex-shrink-0" />
+                  <span className="text-xs md:text-lg font-medium text-center md:text-left">{content[selectedLanguage].features.mentorship}</span>
+                </div>
+              </div> */}
+            </div>
+            
+            {/* Right Section - Video Carousel */}
+            <div className="relative order-1 md:order-2">
+              <div className="absolute inset-0 bg-orange-500/5 rounded-2xl blur-3xl"></div>
+              <div className="relative w-full overflow-hidden rounded-xl md:rounded-2xl shadow-xl md:shadow-2xl">
+                <a
+                  href={slides[currentSlide].videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img
+                    src={slides[currentSlide].image}
+                    alt={
+                      selectedLanguage === "english"
+                        ? slides[currentSlide].englishCaption
+                        : selectedLanguage === "hindi"
+                        ? slides[currentSlide].hindiCaption
+                        : slides[currentSlide].marathiCaption
+                    }
+                    className="w-full h-auto object-cover aspect-video"
+                  />
+                </a>
 
-        <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-12 w-full max-w-6xl">
-          <div className="flex justify-center px-8 md:px-10">
-            <div className="relative w-full overflow-hidden rounded-lg shadow-2xl">
-              <a
-                href={slides[currentSlide].videoUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <img
-                  src={slides[currentSlide].image}
-                  alt={
-                    selectedLanguage === "english"
-                      ? slides[currentSlide].englishCaption
-                      : selectedLanguage === "hindi"
-                      ? slides[currentSlide].hindiCaption
-                      : slides[currentSlide].marathiCaption
-                  }
-                  className="w-full h-60 object-cover"
-                />
-              </a>
-
-              {/* Caption */}
-              <div className="absolute bottom-0 left-0 right-0  bg-opacity-50 text-white text-center py-3 text-base">
-                {selectedLanguage === "english"
-                  ? slides[currentSlide].englishCaption
-                  : selectedLanguage === "hindi"
-                  ? slides[currentSlide].hindiCaption
-                  : slides[currentSlide].marathiCaption}
+                {/* Caption */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black text-white text-center py-2 md:py-3 text-lg md:text-sm lg:text-base px-2">
+                  {selectedLanguage === "english"
+                    ? slides[currentSlide].englishCaption
+                    : selectedLanguage === "hindi"
+                    ? slides[currentSlide].hindiCaption
+                    : slides[currentSlide].marathiCaption}
+                </div>
               </div>
             </div>
           </div>
-
-          {/* ---- Right Section ---- */}
-          <div className="mt-10 md:mt-0 md:ml-10 flex flex-col justify-center text-center bg-white p-6">
-            <h1 className="text-3xl md:text-3xl font-bold text-gray-900 mb-6 leading-tight">
-              {content[selectedLanguage].subtitle}{" "}
-              <span className="text-orange-500">{content[selectedLanguage].title}</span>
-            </h1>
-
-            <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-              {content[selectedLanguage].description}
-            </p>
-
-            <div>
-              <button
-                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg shadow-md"
-                onClick={() => handleNavigation()}
-              >
-                {content[selectedLanguage].buttonText}
-              </button>
-            </div>
-          </div>
         </div>
-      </main>
+      </section>
 
       {/* ---- Footer ---- */}
-      <footer className="bg-gray-100 text-center text-sm py-4">
+      <footer className="bg-gray-100 text-center text-xs md:text-sm py-4 md:py-6 mt-auto px-4">
         {content[selectedLanguage].footerText}{" "}
         <a
           href={`mailto:${content[selectedLanguage].footerContact}`}
-          className="text-blue-600"
+          className="text-blue-600 hover:underline break-all md:break-normal"
         >
           {content[selectedLanguage].footerContact}
         </a>
@@ -236,3 +297,8 @@ const StudentLandingPage = () => {
   );
 };
 export default StudentLandingPage;
+
+
+
+
+

@@ -339,74 +339,73 @@ export function ApplicantModal({
     fetchBlocks();
   }, [selectedDistrict]);
 
-const handleFinalDecisionUpdate = async (field: string, value: any) => {
-  if (!currentApplicant?.id) return;
+  const handleFinalDecisionUpdate = async (field: string, value: any) => {
+    if (!currentApplicant?.id) return;
 
-  try {
-    // Fetch latest data to ensure we have all current values
-    const response = await getStudentById(currentApplicant.id);
-    let latestData: any = response;
-    if (response && typeof response === "object" && "data" in response) {
-      latestData = (response as any).data;
+    try {
+      // Fetch latest data to ensure we have all current values
+      const response = await getStudentById(currentApplicant.id);
+      let latestData: any = response;
+      if (response && typeof response === "object" && "data" in response) {
+        latestData = (response as any).data;
+      }
+
+      const existingDecision = latestData?.final_decisions?.[0] || {};
+
+      // Get the current joining_date - prioritize the state value
+      let currentJoiningDate = joiningDate;
+      if (!currentJoiningDate && existingDecision.joining_date) {
+        currentJoiningDate = existingDecision.joining_date.split("T")[0];
+      }
+
+      // Create payload with ALL existing values preserved
+      const payload: Record<string, any> = {
+        student_id: currentApplicant.id,
+        id: existingDecision.id,
+        // Preserve ALL existing values
+        offer_letter_status: existingDecision.offer_letter_status ?? null,
+        onboarded_status: existingDecision.onboarded_status ?? null,
+        final_notes: existingDecision.final_notes ?? null,
+        joining_date: currentJoiningDate || null,
+        stage_id: existingDecision.stage_id ?? null,
+      };
+
+      // Override with the new value being updated
+      if (field === "joining_date") {
+        payload.joining_date = value !== "" ? value : null;
+      } else {
+        payload[field] = value;
+      }
+      await submitFinalDecision(payload);
+
+      // Update local state immediately
+      setCurrentApplicant((prev) => ({
+        ...prev,
+        final_decisions: [
+          {
+            ...existingDecision,
+            [field]: value,
+            joining_date: field === "joining_date" ? value : currentJoiningDate,
+          },
+        ],
+      }));
+
+      // Also update joiningDate state if that's what was changed
+      if (field === "joining_date") {
+        setJoiningDate(value);
+      }
+
+      // Refresh to get latest data from server
+      await handleUpdate();
+    } catch (err) {
+      console.error("Failed to update final decision", err);
+      toast({
+        title: "Error",
+        description: "Failed to update final decision. Please try again.",
+        variant: "destructive",
+      });
     }
-
-    const existingDecision = latestData?.final_decisions?.[0] || {};
-
-    // Get the current joining_date - prioritize the state value
-    let currentJoiningDate = joiningDate;
-    if (!currentJoiningDate && existingDecision.joining_date) {
-      currentJoiningDate = existingDecision.joining_date.split("T")[0];
-    }
-
-    // Create payload with ALL existing values preserved
-    const payload: Record<string, any> = {
-      student_id: currentApplicant.id,
-      id: existingDecision.id,
-      // Preserve ALL existing values
-      offer_letter_status: existingDecision.offer_letter_status ?? null,
-      onboarded_status: existingDecision.onboarded_status ?? null,
-      final_notes: existingDecision.final_notes ?? null,
-      joining_date: currentJoiningDate || null,
-      stage_id: existingDecision.stage_id ?? null,
-    };
-
-    // Override with the new value being updated
-    if (field === "joining_date") {
-      payload.joining_date = value !== "" ? value : null;
-    } else {
-      payload[field] = value;
-    }
-    await submitFinalDecision(payload);
-
-    // Update local state immediately
-    setCurrentApplicant((prev) => ({
-      ...prev,
-      final_decisions: [
-        {
-          ...existingDecision,
-          [field]: value,
-          joining_date: field === "joining_date" ? value : currentJoiningDate,
-        },
-      ],
-    }));
-
-    // Also update joiningDate state if that's what was changed
-    if (field === "joining_date") {
-      setJoiningDate(value);
-    }
-
-    // Refresh to get latest data from server
-    await handleUpdate();
-  } catch (err) {
-    console.error("Failed to update final decision", err);
-    toast({
-      title: "Error",
-      description: "Failed to update final decision. Please try again.",
-      variant: "destructive",
-    });
-  }
-};
-
+  };
 
   if (!applicant || !currentApplicant) return null;
 
@@ -977,8 +976,12 @@ const handleFinalDecisionUpdate = async (field: string, value: any) => {
 
               {/* Notes */}
               <div className="space-y-4 md:col-span-2">
-                <h3 className="text-lg font-semibold">Notes</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <h3 className="text-lg font-semibold">Final Notes</h3>
+                <div className="grid grid-cols-3 gap-4">
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-muted-foreground"> 
+                    Note
+                  </label>
                   <EditableCell
                     applicant={currentApplicant}
                     field="final_notes"
@@ -987,7 +990,7 @@ const handleFinalDecisionUpdate = async (field: string, value: any) => {
                     }
                     displayValue={
                       currentApplicant.final_decisions?.[0]?.final_notes ||
-                      "No final notes"
+                      "No final note"
                     }
                     renderInput={({ value, onChange }) => (
                       <textarea
@@ -1003,6 +1006,22 @@ const handleFinalDecisionUpdate = async (field: string, value: any) => {
                     }}
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground"> 
+                    Last Updated By
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="last_updated_by"
+                    displayValue={
+                      currentApplicant.last_updated_by || "Not provided"
+                    }
+                    value={currentApplicant.last_updated_by}
+                    onUpdate={handleUpdate}
+                    disabled={true}
+                  />
+                </div>
+              </div>
               </div>
 
               {/* Timestamps */}
