@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
@@ -25,6 +32,7 @@ interface TimeSlot {
   startTime: string;
   endTime: string;
   interviewer: string;
+  slot_type: string;
 }
 
 interface AddSlotsModalProps {
@@ -39,7 +47,7 @@ export function AddSlotsModal({
   onSuccess,
 }: AddSlotsModalProps) {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { date: undefined, startTime: "", endTime: "", interviewer: "" },
+    { date: undefined, startTime: "", endTime: "", interviewer: "", slot_type: "" },
   ]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -47,7 +55,7 @@ export function AddSlotsModal({
   const addTimeSlot = () => {
     setTimeSlots([
       ...timeSlots,
-      { date: undefined, startTime: "", endTime: "", interviewer: "" },
+      { date: undefined, startTime: "", endTime: "", interviewer: "", slot_type: "" },
     ]);
   };
 
@@ -83,12 +91,12 @@ export function AddSlotsModal({
     }
 
     const invalidSlots = timeSlots.some(
-      (slot) => !slot.startTime || !slot.endTime
+      (slot) => !slot.startTime || !slot.endTime || !slot.slot_type
     );
     if (invalidSlots) {
       toast({
         title: "Error",
-        description: "Please fill in all time slot details",
+        description: "Please fill in all slot details including slot type",
         variant: "destructive",
       });
       return;
@@ -132,7 +140,7 @@ export function AddSlotsModal({
         date: format(slot.date!, "yyyy-MM-dd"),
         start_time: slot.startTime,
         end_time: slot.endTime,
-        // interviewer: slot.interviewer,
+        slot_type: slot.slot_type,
         created_at: new Date().toISOString(),
       }));
 
@@ -159,7 +167,7 @@ export function AddSlotsModal({
   };
 
   const handleClose = () => {
-    setTimeSlots([{ date: undefined, startTime: "", endTime: "", interviewer: "" }]);
+    setTimeSlots([{ date: undefined, startTime: "", endTime: "", interviewer: "", slot_type: "" }]);
     onClose();
   };
 
@@ -239,6 +247,23 @@ export function AddSlotsModal({
                   )}
                 </div>
 
+                {/* Slot Type Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor={`slot-type-${index}`}>Slot Type</Label>
+                  <Select
+                    value={slot.slot_type}
+                    onValueChange={(value) => updateTimeSlot(index, "slot_type", value)}
+                  >
+                    <SelectTrigger id={`slot-type-${index}`}>
+                      <SelectValue placeholder="Select slot type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LR">Learning Round (LR)</SelectItem>
+                      <SelectItem value="CFR">Cultural Fit Round (CFR)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label
@@ -278,21 +303,6 @@ export function AddSlotsModal({
                     />
                   </div>
                 </div>
-
-                {/* <div className="space-y-2">
-                  <Label htmlFor={`interviewer-${index}`} className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Interviewer Name
-                  </Label>
-                  <Input
-                    id={`interviewer-${index}`}
-                    type="text"
-                    placeholder="Enter interviewer name"
-                    value={slot.interviewer}
-                    onChange={(e) => updateTimeSlot(index, 'interviewer', e.target.value)}
-                    required
-                  />
-                </div> */}
               </div>
             ))}
           </div>

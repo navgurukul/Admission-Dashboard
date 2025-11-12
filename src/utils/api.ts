@@ -3,19 +3,40 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Get auth token from localStorage
+// Get auth token from sessionStorage ONLY
 export const getAuthToken = (): string | null => {
-  const token = localStorage.getItem('authToken');
+  const token = sessionStorage.getItem('authToken'); // ✅ Only token in sessionStorage
   return token;
 };
 
 
 export const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
   const token = getAuthToken();
-  return {
+  
+  // Debug logging  
+  if (token) {
+   
+    // Check if token has Bearer prefix already
+    if (token.startsWith('Bearer ')) {
+      // console.warn('Token already has Bearer prefix!');
+    }
+    
+    // Validate JWT format (3 parts separated by dots)
+    const tokenParts = token.split('.');
+    
+    if (tokenParts.length !== 3) {
+      // console.error(' Invalid JWT format - should have 3 parts separated by dots');
+    }
+  } else {
+    // console.error(' No token found in localStorage');
+  }
+  
+  const headers: HeadersInit = {
     ...(withJson ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
+    
+  return headers;
 };
 
 // Make authenticated API request
@@ -37,7 +58,6 @@ export const apiRequest = async (
 return fetch(url,config)
 };
 
-// AUTHENTICATION FUNCTIONS (NEW) 
 
 // User interfaces
 export interface User {
@@ -84,7 +104,7 @@ export interface LoginResponse {
   };
 }
 
-// Login API - Google OAuth token exchange
+// Login API - Store token in sessionStorage, user in localStorage
 export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise<LoginResponse> => {
   const response = await fetch(`${BASE_URL}/users/login`, {
     method: 'POST',
@@ -98,7 +118,17 @@ export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise
     throw new Error(data.message || 'Login failed');
   }
 
-   if (data.data?.user) {
+  //  Store TOKEN in sessionStorage
+  if (data.data?.token) {
+    const tokenToStore = data.data.token.startsWith('Bearer ') 
+      ? data.data.token.substring(7) 
+      : data.data.token;
+    
+    sessionStorage.setItem('authToken', tokenToStore); // Token in sessionStorage
+  }
+
+  //  Store USER in localStorage (not sessionStorage)
+  if (data.data?.user) {
     localStorage.setItem('user', JSON.stringify({
       ...data.data.user,
       profile_pic: data.data.user.profile_pic || googlePayload.picture || ''
@@ -140,13 +170,12 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
 
 export const getUserProfileImage = (): string => {
   try {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem('user'); 
     if (!userStr) return '';
     
     const user = JSON.parse(userStr);
     return user.profile_pic || user.picture || '';
   } catch (error) {
-    // console.error('Error getting profile image:', error);
     return '';
   }
 };
@@ -158,7 +187,6 @@ export const getCurrentUser = (): User | null => {
     if (!userStr) return null;
     return JSON.parse(userStr);
   } catch (error) {
-    // console.error('Error getting current user:', error);
     return null;
   }
 };
@@ -582,18 +610,17 @@ export const updateSlot = async (
 
 // Updated logout function
 export const logoutUser = () => {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('user');
-  localStorage.removeItem('userRole');
-  // Remove old NavGurukul data if exists
-  localStorage.removeItem('googleUser');
+  sessionStorage.removeItem('authToken');
+  localStorage.removeItem('user'); 
+  localStorage.removeItem('userRole'); 
+  localStorage.removeItem('googleUser'); 
   localStorage.removeItem('roleAccess');
-  localStorage.removeItem('privileges');
+  localStorage.removeItem('privileges'); 
 };
 
 // Check if user is authenticated
 export const isAuthenticated = (): boolean => {
-  const token = getAuthToken();
+  const token = getAuthToken(); 
   const user = localStorage.getItem('user');
   return !!(token && user);
 };
@@ -965,7 +992,6 @@ export const getAllStatus = async (): Promise<CurrentStatus[]> => {
     return [];
   }
 }
-
 
 // create Student
 export const createStudent = async (studentData: any): Promise<any> => {
@@ -1729,15 +1755,32 @@ export const getMyAvailableSlots = async (date?: string): Promise<any> => {
   if (date) {
     url += `?date=${date}`;
   }
+   
+  const headers = getAuthHeaders();
   
   const response = await fetch(url, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers: headers,
   });
 
-  const data = await response.json();
+  // Get response body for debugging
+  const responseText = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    // console.error(' Failed to parse response as JSON');
+    throw new Error('Invalid response format from server');
+  }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      sessionStorage.removeItem('authToken'); 
+      localStorage.removeItem('user');
+      throw new Error('Session expired. Please login again.');
+    }
+    
     throw new Error(data.message || 'Failed to fetch available slots');
   }
 
@@ -1753,28 +1796,39 @@ export const getMyAvailableSlots = async (date?: string): Promise<any> => {
 };
 
 // Schedule interview meeting by students
-export interface ScheduleInterviewPayload {
-  student_id: number;
-  title: string;
-  slot_id: number;
-  description: string;
-  meeting_link: string;
-  google_event_id: string;
-  created_by: 'Student' | 'Admin';
-}
-
 export const scheduleInterview = async (payload: ScheduleInterviewPayload): Promise<any> => {
+  // console.log(Scheduling interview...');
+  // console.log(' Payload:', payload);
+  
+  const headers = getAuthHeaders();
+  // console.log(' Headers:', headers);
+  
   const response = await fetch(`${BASE_URL}/interview-schedule/create`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: headers,
     body: JSON.stringify(payload),
   });
 
-  // console.log("Scheduling response:", response);
-  const data = await response.json();
+  // console.log(' Schedule response status:', response.status);
+  
+  const responseText = await response.text();
+  // console.log(' Response body:', responseText);
+  
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    // console.error(' Failed to parse response as JSON');
+    throw new Error('Invalid response format from server');
+  }
 
-  // console.log("Scheduling response data:", data);
   if (!response.ok) {
+    if (response.status === 401) {
+      sessionStorage.removeItem('authToken');
+      localStorage.removeItem('user'); 
+      throw new Error('Session expired. Please login again.');
+    }
+    
     throw new Error(data.message || 'Failed to schedule interview');
   }
 
@@ -1782,25 +1836,6 @@ export const scheduleInterview = async (payload: ScheduleInterviewPayload): Prom
 };
 
 // Get scheduled interviews by date
-export interface ScheduledInterview {
-  id: number;
-  student_id: number;
-  slot_id: number;
-  title: string;
-  description: string;
-  meeting_link: string;
-  google_event_id: string;
-  created_by: 'Student' | 'Admin';
-  status: string;
-  start_time: string;
-  end_time: string;
-  date: string;
-  student_name?: string;
-  student_email?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export const getScheduledInterviews = async (date?: string): Promise<ScheduledInterview[]> => {
   let url = `${BASE_URL}/interview-schedule/`;
   
@@ -1808,14 +1843,29 @@ export const getScheduledInterviews = async (date?: string): Promise<ScheduledIn
     url += `?date=${date}`;
   }
   
+  const headers = getAuthHeaders();  
   const response = await fetch(url, {
     method: 'GET',
-    headers: getAuthHeaders(),
+    headers: headers,
   });
 
-  const data = await response.json();
+  const responseText = await response.text();
+  
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    // console.error(' Failed to parse response as JSON');
+    throw new Error('Invalid response format from server');
+  }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      sessionStorage.removeItem('authToken'); 
+      localStorage.removeItem('user'); 
+      throw new Error('Session expired. Please login again.');
+    }
+    
     throw new Error(data.message || 'Failed to fetch scheduled interviews');
   }
 
@@ -1852,10 +1902,8 @@ export const updateScheduledInterview = async (
     }
   );
 
-  // console.log("Rescheduling response:", response);
   const data = await response.json();
 
-  // console.log("Rescheduling response data:", data);
 
   if (!response.ok) {
     throw new Error(data.message || "Failed to reschedule interview");

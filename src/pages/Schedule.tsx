@@ -21,6 +21,7 @@ type SlotData = {
   date: string;
   start_time: string;
   end_time: string;
+  slot_type?: string; // Add this field
   interviewer_id?: number;
   interviewer_email?: string;
   interviewer_name?: string;
@@ -460,6 +461,9 @@ const Schedule = () => {
                           Date
                         </th>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                          Slot Type
+                        </th>
+                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Start Time
                         </th>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
@@ -487,6 +491,25 @@ const Schedule = () => {
                                 day: "numeric",
                                 year: "numeric",
                               })}
+                            </span>
+                          </td>
+
+                          {/* Slot Type */}
+                          <td className="p-4">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                slot.slot_type === "LR"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : slot.slot_type === "CFR"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {slot.slot_type === "LR"
+                                ? "Learning Round"
+                                : slot.slot_type === "CFR"
+                                ? "Cultural Fit Round"
+                                : slot.slot_type || "N/A"}
                             </span>
                           </td>
 
