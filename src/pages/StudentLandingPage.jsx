@@ -225,7 +225,9 @@ const StudentLandingPage = () => {
                 <Button 
                   variant="outline" 
                   className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-orange-500 text-orange-600 hover:bg-orange-50 w-full sm:w-auto"
-                  onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+                  onClick={() => {
+                    window.open("https://www.navgurukul.org/", "_blank");
+                  }}
                 >
                   {content[selectedLanguage].learnMoreText}
                 </Button>
