@@ -27,8 +27,20 @@ export default function StudentResult() {
     }
   }, []);
 
-  const handleBooking = (testId: number) => {
-    navigate(`/students/slot-booking/${testId}`);
+  const handleBooking = (testId: number, testName: string) => {
+    // Determine slot_type based on test name
+    let slotType: "LR" | "CFR" | undefined;
+    
+    if (testName === "Learning Round") {
+      slotType = "LR";
+    } else if (testName === "Culture Fit Round") {
+      slotType = "CFR";
+    }
+    
+    // Navigate with state containing slot_type
+    navigate(`/students/slot-booking/${testId}`, { 
+      state: { slot_type: slotType } 
+    });
   };
 
   const handleRetestNavigation = () => {
@@ -130,29 +142,36 @@ export default function StudentResult() {
                             : "-"}
                         </td>
                         <td className="px-4 py-2 border">
-                          {/* Retest button for failed screening test */}
-                          {test.name === "Screening Test" && test.status === "Fail" && (
-                            <Button 
-                              onClick={handleRetestNavigation}
-                              className="bg-orange-500 hover:bg-orange-600"
-                            >
-                              Retest
-                            </Button>
-                          )}
+                          {/* Action button for Screening Test */}
+                          {test.name === "Screening Test" &&
+                            (test.status === "Fail" ? (
+                              <Button
+                                onClick={handleRetestNavigation}
+                                className="bg-orange-500 hover:bg-orange-600"
+                              >
+                                Retest
+                              </Button>
+                            ) : (
+                              <p
+                                className="text-gray-600"
+                              >
+                                -
+                              </p>
+                            ))}
 
                           {/* Book/Reschedule button for passed tests */}
-                          {test.status === "Pass" && (
+                          {test.name !== "Screening Test" && test.status === "Pending" && (
                             <>
                               {isSlotBooked || isSlotCancelled ? (
-                                <Button 
-                                  onClick={() => handleBooking(test.id)}
+                                <Button
+                                  onClick={() => handleBooking(test.id, test.name)}
                                   variant="outline"
                                 >
                                   Reschedule
                                 </Button>
                               ) : (
-                                <Button 
-                                  onClick={() => handleBooking(test.id)}
+                                <Button
+                                  onClick={() => handleBooking(test.id, test.name)}
                                   className="bg-green-600 hover:bg-green-700"
                                 >
                                   Book Slot
@@ -160,18 +179,10 @@ export default function StudentResult() {
                               )}
                             </>
                           )}
-
-                          {/* View Result for completed tests */}
-                          {test.action === "view-result" && (
-                            <span className="text-gray-600">Result Ready</span>
-                          )}
-
-                          {/* No action available */}
-                          {test.status === "Pending" && test.name !== "Screening Test" && (
-                            <span className="text-gray-400 text-sm">Complete previous stage</span>
-                          )}
                         </td>
-                        <td className="px-4 py-2 border">{test.score || "-"}</td>
+                        <td className="px-4 py-2 border">
+                          {test.score || "-"}
+                        </td>
                       </tr>
                     );
                   })}

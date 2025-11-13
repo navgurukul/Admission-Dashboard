@@ -566,9 +566,10 @@ export const getSlotByUserId = async (user_id: number): Promise<Role> => {
   return data;
 };
 
+
 //  For getting the slots data by date:
-export const getSlotByDate = async (date: string): Promise<Role> => {
-  const response = await fetch(`${BASE_URL}/slots/date/?date=${date}`, {
+export const getSlotByDate = async (date: string, slotType: "LR" | "CFR"): Promise<Role> => {
+  const response = await fetch(`${BASE_URL}/slots/date/${date}/${slotType}`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -859,6 +860,21 @@ export const getStudentById = async (id: string): Promise<Student> => {
   try {
     const response = await axios.get<Student>(
       `${BASE_URL}/students/getStudentsById/${id}`,
+    );
+
+    return response.data; 
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.data?.message || "Failed to fetch student"
+    );
+  }
+};
+
+// Get Student By Email
+export const getStudentDataByEmail = async (email:string): Promise<Student> => {
+  try {
+    const response = await axios.get<Student>(
+      `${BASE_URL}/students/getByEmail/${email}`,
     );
 
     return response.data; 
@@ -1796,7 +1812,7 @@ export const getMyAvailableSlots = async (date?: string): Promise<any> => {
 };
 
 // Schedule interview meeting by students
-export const scheduleInterview = async (payload: ScheduleInterviewPayload): Promise<any> => {
+export const scheduleInterview = async (payload: any): Promise<any> => {
   // console.log(Scheduling interview...');
   // console.log(' Payload:', payload);
   
