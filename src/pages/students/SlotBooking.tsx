@@ -8,7 +8,7 @@ import {
   Loader2,
   Video,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useTests } from "../../utils/TestContext";
 import { useStudent } from "../../utils/StudentContext";
 import {
@@ -54,6 +54,7 @@ interface SlotData {
   interviewer_email?: string;
   interviewer_name?: string;
   scheduled_interview_id?: number; // ID of the scheduled interview record
+  slot_type?: "LR" | "CFR"; // Learning Round or Culture Fit Round
 }
 
 // ================== Component ==================
@@ -63,6 +64,10 @@ const SlotBooking: React.FC = () => {
   const { tests, updateSlot } = useTests();
   const { id: testIdParam } = useParams<{ id: string }>();
   const testId = Number(testIdParam);
+  const location = useLocation();
+
+  // Get slot_type from navigation state
+  const slotType = location.state?.slot_type as "LR" | "CFR" | undefined;
 
   // Get current user from API
   const currentUser = getCurrentUser();
@@ -140,7 +145,7 @@ const SlotBooking: React.FC = () => {
     try {
       const dateStr = formatDate(dateObj);
       
-      const response: any = await getSlotByDate(dateStr);
+      const response: any = await getSlotByDate(dateStr, slotType || "LR");
       console.log("Fetched timings response:", response);
       
       // Handle different response formats
@@ -324,6 +329,7 @@ const SlotBooking: React.FC = () => {
         topic_name: test.name,
         interviewer_email: selectedSlotDetails.interviewer_email,
         interviewer_name: selectedSlotDetails.interviewer_name,
+        // slot_type: slotType, // Add slot type from navigation
       };
 
       // Create Google Calendar event
@@ -349,6 +355,7 @@ const SlotBooking: React.FC = () => {
         meeting_link: bookedSlot.meet_link,
         google_event_id: bookedSlot.calendar_event_id,
         created_by: "Student" as const,
+        // slot_type: slotType || "LR", // Add slot_type to backend payload
       };
 
       console.log("Backend payload for scheduling interview:", backendPayload);
@@ -373,6 +380,7 @@ const SlotBooking: React.FC = () => {
         status: "Booked",
         scheduledTime: `${bookedSlot.on_date} ${bookedSlot.start_time}`,
         calendar_event_id: bookedSlot.calendar_event_id,
+        slot_type: slotType,
         meet_link: bookedSlot.meet_link,
       });
 
@@ -541,6 +549,7 @@ const SlotBooking: React.FC = () => {
         status: "Booked",
         scheduledTime: `${newBookedSlot.on_date} ${newBookedSlot.start_time}`,
         calendar_event_id: newBookedSlot.calendar_event_id,
+        slot_type: slotType,
         meet_link: newBookedSlot.meet_link,
       });
 
@@ -685,6 +694,11 @@ const SlotBooking: React.FC = () => {
             <div className="bg-orange-400 px-8 py-6 text-white">
               <h1 className="text-3xl font-bold mb-2">
                 {isRescheduling ? "Reschedule Interview Slot" : "Book Interview Slot"}
+                {slotType && (
+                  <span className="ml-3 text-2xl">
+                    ({slotType === "LR" ? "Learning Round" : "Culture Fit Round"})
+                  </span>
+                )}
               </h1>
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5" />
