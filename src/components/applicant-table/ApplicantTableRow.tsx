@@ -261,9 +261,9 @@ export const ApplicantTableRow = ({
             <DropdownMenuItem onClick={() => onViewDetails(applicant)}>
               View Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onViewComments(applicant)}>
+            {/* <DropdownMenuItem onClick={() => onViewComments(applicant)}>
               Comments
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

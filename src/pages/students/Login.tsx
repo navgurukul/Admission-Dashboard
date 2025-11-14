@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { User, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { getStudentDataByEmail } from "@/utils/api";
 
 type Student = {
   id: number;
@@ -50,6 +51,19 @@ export default function StudentLogin() {
       return () => clearTimeout(timer);
     }
   }, [googleLoading, renderGoogleSignInButton, isAuthenticated]);
+
+
+    // Fetch student data by email
+    const studentData = async (email: string) => {
+      try {
+        const data = await getStudentDataByEmail(email);
+        return data;
+      } catch (error) {
+        console.error("Error fetching student data:", error);
+        return null;
+      }
+    };
+
 
   // Handle Google authentication redirect for students
   useEffect(() => {
@@ -157,6 +171,10 @@ export default function StudentLogin() {
       localStorage.setItem("role", "student");
       localStorage.setItem("studentId", googleUser.id);
       localStorage.setItem("userRole", JSON.stringify("student"));
+
+      const student =  studentData(googleUser.email);
+
+      localStorage.setItem("studentData", JSON.stringify(student));
 
       toast({
         title: getContent().successMessage,

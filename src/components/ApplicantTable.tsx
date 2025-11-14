@@ -906,12 +906,12 @@ const ApplicantTable = () => {
         isOpen={!!applicantToView}
         onClose={() => setApplicantToView(null)}
       />
-      <ApplicantCommentsModal
+      {/* <ApplicantCommentsModal
         applicantId={applicantForComments?.id || ""}
         applicantName={applicantForComments?.name || ""}
         isOpen={!!applicantForComments}
         onClose={() => setApplicantForComments(null)}
-      />
+      /> */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
