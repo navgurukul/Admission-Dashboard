@@ -36,6 +36,7 @@ const AdminPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [phoneError, setPhoneError] = useState<string>("");
+  const [nameError, setNameError] = useState<string>("");
 
   const [addUserDialog, setAddUserDialog] = useState<{
     open: boolean;
@@ -132,6 +133,14 @@ const AdminPage: React.FC = () => {
     e: React.FormEvent<HTMLFormElement>
   ): Promise<void> => {
     e.preventDefault();
+    // Name validation: only letters, spaces, apostrophe and hyphen allowed
+    const nameTrim = addUserDialog.name.trim();
+    if (!/^[A-Za-z\s'-]+$/.test(nameTrim)) {
+      setNameError("Name can only contain letters, spaces.");
+      return;
+    } else {
+      setNameError("");
+    }
     
       if (!/^\d{10}$/.test(addUserDialog.phone.trim())) {
     console.error("Phone number must be exactly 10 digits");
@@ -679,6 +688,11 @@ const AdminPage: React.FC = () => {
                         className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200"
                         placeholder="Enter full name"
                       />
+                      {nameError && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {nameError}
+                        </p>
+                      )}
                     </div>
 
                     <div>
