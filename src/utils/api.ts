@@ -1941,3 +1941,22 @@ export const deleteInterviewSlot = async (slotId: number): Promise<void> => {
     throw new Error(data.message || 'Cannot delete booked slots or past date slots');
   }
 };
+
+// Upload profile image
+export const uploadProfileImage = async (file: File): Promise<{ key: string; url: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${BASE_URL}/media/upload-profile`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || 'Failed to upload image');
+  }
+
+  return result.data;
+};
