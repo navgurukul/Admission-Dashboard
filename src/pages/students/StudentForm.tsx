@@ -15,6 +15,7 @@ import {
   getAllStates,
   getDistrictsByState,
   getBlocksByDistrict,
+  uploadProfileImage,
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
@@ -60,6 +61,7 @@ const StudentForm: React.FC = () => {
 
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
+    imageUrl: "", // Store the uploaded image URL
     firstName: "",
     middleName: "",
     lastName: "",
@@ -88,7 +90,7 @@ const StudentForm: React.FC = () => {
   // Convert camelCase → snake_case before API call
   const mapFormDataToApi = (data: typeof formData) => {
     return {
-      image_url: data.profileImage || null,
+      image_url: data.imageUrl || null,
       first_name: data.firstName,
       middle_name: data.middleName,
       last_name: data.lastName,
@@ -388,24 +390,39 @@ const StudentForm: React.FC = () => {
         return;
       }
 
-      // Face detected - proceed with upload
-      const newFormData = {
-        ...formData,
-        profileImage: file,
-      };
-      setFormData(newFormData);
+      // Face detected - upload the image
+      try {
+        const uploadResult = await uploadProfileImage(file);
+        
+        // Update form data with uploaded image URL
+        const newFormData = {
+          ...formData,
+          profileImage: file,
+          imageUrl: uploadResult.url,
+        };
+        setFormData(newFormData);
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
 
-      // Show success toast
-      toast({
-        title: content.faceVerified || "Face Verified",
-        description: content.faceVerifiedMessage || "Image uploaded successfully!",
-      });
+        // Show success toast
+        toast({
+          title: content.faceVerified || "Face Verified",
+          description: content.faceVerifiedMessage || "Image uploaded successfully!",
+        });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: error instanceof Error ? error.message : "Failed to upload image. Please try again.",
+        });
+        // Clear the file input
+        e.target.value = "";
+      }
     }
   };
 
