@@ -21,9 +21,33 @@ export default function StudentResult() {
 
   // Load student from localStorage on mount
   useEffect(() => {
-    const savedStudent = localStorage.getItem("studentFormData");
-    if (savedStudent) {
-      setStudent(JSON.parse(savedStudent));
+    // Try multiple possible storage keys (registration form, API payload, normalized studentData)
+    const savedForm = localStorage.getItem("studentFormData");
+    if (savedForm) {
+      setStudent(JSON.parse(savedForm));
+      return;
+    }
+
+    const savedApiPayload = localStorage.getItem("studentData");
+    if (savedApiPayload) {
+      try {
+        const payload = JSON.parse(savedApiPayload);
+        // payload may be { student: { first_name, ... }, exam_sessions: [...] }
+        const profile = payload?.student ?? payload;
+        if (profile) {
+          setStudent({
+            firstName: profile.first_name || profile.firstName || "",
+            middleName: profile.middle_name || profile.middleName || "",
+            lastName: profile.last_name || profile.lastName || "",
+            email: profile.email || "",
+            whatsappNumber: profile.whatsapp_number || profile.whatsappNumber || profile.phone_number || "",
+            city: profile.city || "",
+          });
+          return;
+        }
+      } catch (e) {
+        console.error("Error parsing studentData from localStorage", e);
+      }
     }
   }, []);
 

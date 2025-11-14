@@ -9,29 +9,24 @@ const StudentProtectedRoute: React.FC<Props> = ({ children }) => {
   const location = useLocation();
   const path = location.pathname;
 
-  // ---------- Initialize localStorage defaults ----------
-  if (localStorage.getItem("testStarted") === null)
-    localStorage.setItem("testStarted", "false");
-  if (localStorage.getItem("testCompleted") === null)
-    localStorage.setItem("testCompleted", "false");
-  if (localStorage.getItem("allowRetest") === null)
-    localStorage.setItem("allowRetest", "false");
-  if (localStorage.getItem("registrationDone") === null)
-    localStorage.setItem("registrationDone", "false");
-
-  // ---------- Read stored values ----------
+  // Read once – do NOT set defaults here
   const studentId = localStorage.getItem("studentId");
   const testStarted = localStorage.getItem("testStarted") === "true";
   const testCompleted = localStorage.getItem("testCompleted") === "true";
   const allowRetest = localStorage.getItem("allowRetest") === "true";
   const registrationDone = localStorage.getItem("registrationDone") === "true";
 
-  // ---------- 1️ Not logged in → redirect to landing/login ----------
+  // 1️⃣ Not logged in → login
   if (!studentId) {
     return <Navigate to="/students" replace />;
   }
 
-  // ---------- 2️ Test completed, not retesting ----------
+  // 2️⃣ Trying to access test without registration or start
+  if (!registrationDone && path.startsWith("/students/test")) {
+    return <Navigate to="/students/details/instructions" replace />;
+  }
+
+  // 3️⃣ Test completed, no retest allowed → lock to final-result
   if (testCompleted && !allowRetest) {
     const allowedTestPaths = [
       "/students/test/start",
@@ -39,7 +34,6 @@ const StudentProtectedRoute: React.FC<Props> = ({ children }) => {
       "/students/test/result",
     ];
 
-    // If current path is NOT allowed → redirect to final result
     if (
       !allowedTestPaths.includes(path) &&
       !path.startsWith("/students/final-result")
@@ -48,21 +42,15 @@ const StudentProtectedRoute: React.FC<Props> = ({ children }) => {
     }
   }
 
-  // ---------- 3️ Retesting but trying to access final-result ----------
+  // 4️⃣ Retesting → cannot visit final-result
   if (allowRetest && path.startsWith("/students/final-result")) {
     return <Navigate to="/students/test/start" replace />;
   }
 
-  // ---------- 4️ Registration completed but trying to access instructions ----------
+  // 5️⃣ Registration done → cannot go back to instructions
   if (registrationDone && path.startsWith("/students/details/instructions")) {
     return <Navigate to="/students/test/start" replace />;
   }
-
-  // ---------- 5️ Trying to access test without starting or registration ----------
-  if (!testStarted && !allowRetest && !registrationDone && path.startsWith("/students/test")) {
-    return <Navigate to="/students/details/instructions" replace />;
-  }
-
 
   return <>{children}</>;
 };
