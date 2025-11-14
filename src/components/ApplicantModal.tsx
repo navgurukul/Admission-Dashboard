@@ -1064,14 +1064,14 @@ export function ApplicantModal({
         />
       )}
 
-      {showCommentsModal && (
+      {/* {showCommentsModal && (
         <ApplicantCommentsModal
           applicantId={currentApplicant.id || ""}
           applicantName={currentApplicant.name || ""}
           isOpen={showCommentsModal}
           onClose={() => setShowCommentsModal(false)}
         />
-      )}
+      )} */}
     </>
   );
 }

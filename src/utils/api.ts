@@ -512,7 +512,7 @@ export const submitFinalDecision = async (payload: any) => {
     `${BASE_URL}/students/submit/finalDecision`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify(payload),
     }
   );
