@@ -32,6 +32,7 @@ import {
   getAllStates,
   getBlocksByDistrict,
   getDistrictsByState,
+
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -1012,11 +1013,12 @@ export function ApplicantModal({
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="last_updated_by"
+                    field="last_status_updated_by"
                     displayValue={
-                      currentApplicant.last_updated_by || "Not provided"
+                    
+                      currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not provided"
                     }
-                    value={currentApplicant.last_updated_by}
+                    value={currentApplicant.final_decisions?.[0]?.last_status_updated_by}
                     onUpdate={handleUpdate}
                     disabled={true}
                   />
