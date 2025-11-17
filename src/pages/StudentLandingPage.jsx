@@ -125,33 +125,112 @@ const StudentLandingPage = () => {
     }
   }, [selectedLanguage]);
 
-  const handleNavigation = () => {
-  const studentId = localStorage.getItem("studentId");
-  const testStarted = localStorage.getItem("testStarted") === "true";
-  const testCompleted = localStorage.getItem("testCompleted") === "true";
-  const allowRetest = localStorage.getItem("allowRetest") === "true";
+  const handleNavigation = async () => {
+    const googleUser = localStorage.getItem("user");
+    const testStarted = localStorage.getItem("testStarted") === "true";
+    const testCompleted = localStorage.getItem("testCompleted") === "true";
+    const allowRetest = localStorage.getItem("allowRetest") === "true";
 
-  // Case 1: Not logged in
-  if (!studentId) {
-    navigate("/students/login");
-    return;
-  }
+    // Case 1: Not logged in
+    if (!googleUser) {
+      navigate("/students/login");
+      return;
+    }
 
-  // Case 2: Test already completed and retest not allowed
-  if (testCompleted && !allowRetest) {
-    navigate("/students/final-result");
-    return;
-  }
+    try {
+      // Try to get email from user data
+      const parsedUser = JSON.parse(googleUser);
+      const email = parsedUser.email;
 
-  // Case 3: Test in progress or retest allowed
-  if (testStarted || allowRetest) {
-    navigate("/students/test/start");
-    return;
-  }
+      if (email) {
+        // Import the API function dynamically
+        const { getCompleteStudentData } = await import("@/utils/api");
+        
+        // Fetch complete student data
+        const data = await getCompleteStudentData(email);
+        
+        // Get latest exam session
+        const examSessions = data.data.exam_sessions || [];
+        const latestExam = examSessions.length > 0 
+          ? examSessions.reduce((latest, current) => 
+              new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+            )
+          : null;
+        
+        if (latestExam) {
+          // Exam completed
+          if (latestExam.is_passed) {
+            // Get latest LR status
+            const lrRounds = data.data.interview_learner_round || [];
+            const latestLR = lrRounds.length > 0
+              ? lrRounds.reduce((latest, current) => 
+                  new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+                )
+              : null;
+            
+            // Check if LR is passed
+            const isLRPassed = latestLR?.learning_round_status?.includes("Pass");
+            
+            if (isLRPassed) {
+              // LR passed - check CFR status
+              const cfrRounds = data.data.interview_cultural_fit_round || [];
+              const latestCFR = cfrRounds.length > 0
+                ? cfrRounds.reduce((latest, current) => 
+                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+                  )
+                : null;
+              
+              // Show result page with CFR status
+              navigate("/students/final-result");
+              return;
+            } else {
+              // Exam passed - show result page to book LR or view status
+              navigate("/students/final-result");
+              return;
+            }
+          } else {
+            // Failed exam
+            if (allowRetest) {
+              navigate("/students/test/start");
+              return;
+            } else {
+              navigate("/students/final-result");
+              return;
+            }
+          }
+        } else {
+          // No exam session found
+          if (testCompleted && !allowRetest) {
+            navigate("/students/final-result");
+            return;
+          }
+          
+          if (testStarted || allowRetest) {
+            navigate("/students/test/start");
+            return;
+          }
+          
+          // Not started - go to instructions
+          navigate("/students/details/instructions");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching student data:", error);
+      
+      // Fallback to old logic if API fails
+      if (testCompleted && !allowRetest) {
+        navigate("/students/final-result");
+        return;
+      }
 
-  // Case 4: Logged in but not started
-  navigate("/students/details/instructions");
-};
+      if (testStarted || allowRetest) {
+        navigate("/students/test/start");
+        return;
+      }
+
+      navigate("/students/details/instructions");
+    }
+  };
 
 
 

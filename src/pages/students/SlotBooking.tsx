@@ -21,10 +21,9 @@ import {
 } from "../../utils/googleCalendar";
 import { 
   getSlotByDate, 
-  scheduleInterview, 
-  getCurrentUser ,
-  updateScheduledInterview
-
+  scheduleInterview,
+  updateScheduledInterview,
+  getCompleteStudentData
 } from "@/utils/api";
 
 // ================== Types ==================
@@ -69,15 +68,16 @@ const SlotBooking: React.FC = () => {
   // Get slot_type from navigation state
   const slotType = location.state?.slot_type as "LR" | "CFR" | undefined;
 
-  // Get current user from API
-  const currentUser = getCurrentUser();
-  const studentId = parseInt(localStorage.getItem("studentId"));
+  // Get student ID from localStorage (only ID needed for API calls)
+  const studentIdStr = localStorage.getItem("studentId");
+  const studentId = studentIdStr ? parseInt(studentIdStr) : null;
 
   const test = tests.find((t) => t.id === testId);
-  const currentStudent = student;
 
   // ---------- State ----------
   const [loading, setLoading] = useState(true);
+  const [currentStudent, setCurrentStudent] = useState<any>(null);
+  const [studentLoading, setStudentLoading] = useState(true);
   const [slot, setSlot] = useState<SlotData>({
     from: "",
     to: "",
@@ -151,7 +151,7 @@ const SlotBooking: React.FC = () => {
       // Handle different response formats
       const items = Array.isArray(response) 
         ? response 
-        : (response as any)?.data?.data || (response as any)?.data || [];
+        : (response as any)?.data || [];
 
       // Filter only available (not booked) slots
       const availableSlots: TimeSlot[] = items
@@ -160,7 +160,7 @@ const SlotBooking: React.FC = () => {
           id: s.id,
           start_time: s.start_time,
           end_time: s.end_time,
-          interviewer_id: s.interviewer_id,
+          interviewer_id: s.created_by || s.interviewer_id,
           interviewer_email: s.user_email,
           interviewer_name: s.user_name,
           is_booked: s.is_booked || false,
@@ -271,12 +271,32 @@ const SlotBooking: React.FC = () => {
 
   //  Slot Actions - Complete API Integration
   const handleSlotBooking = async () => {
-    if (!slot.id || !currentStudent || !test) {
+    console.log("Booking attempt - slot:", slot, "currentStudent:", currentStudent, "test:", test);
+    console.log("Available timings:", timings);
+    console.log("studentId:", studentId);
+    
+    if (!slot.id) {
       showNotificationMessage("Please select a slot to book", "error");
       return;
     }
 
-    if (!studentId) {
+    if (!currentStudent || !currentStudent.email) {
+      showNotificationMessage(
+        "Student information not found. Please login again.", 
+        "error"
+      );
+      return;
+    }
+
+    if (!test) {
+      showNotificationMessage(
+        "Test information not found. Please refresh the page.", 
+        "error"
+      );
+      return;
+    }
+
+    if (!studentId || isNaN(studentId)) {
       showNotificationMessage(
         "Student ID not found. Please login again.", 
         "error"
@@ -314,8 +334,8 @@ const SlotBooking: React.FC = () => {
         return;
       }
 
-      if (!currentStudent.email) {
-        showNotificationMessage("Student email not found", "error");
+      if (!currentStudent || !currentStudent.email) {
+        showNotificationMessage("Student email not found. Please login again.", "error");
         return;
       }
 
@@ -355,7 +375,7 @@ const SlotBooking: React.FC = () => {
         meeting_link: bookedSlot.meet_link,
         google_event_id: bookedSlot.calendar_event_id,
         created_by: "Student" as const,
-        // slot_type: slotType || "LR", // Add slot_type to backend payload
+        slot_type: slotType || "LR", // Add slot_type to backend payload
       };
 
       console.log("Backend payload for scheduling interview:", backendPayload);
@@ -379,9 +399,6 @@ const SlotBooking: React.FC = () => {
       updateSlot(testId, {
         status: "Booked",
         scheduledTime: `${bookedSlot.on_date} ${bookedSlot.start_time}`,
-        calendar_event_id: bookedSlot.calendar_event_id,
-        slot_type: slotType,
-        meet_link: bookedSlot.meet_link,
       });
 
       showNotificationMessage(
@@ -468,8 +485,8 @@ const SlotBooking: React.FC = () => {
         return;
       }
 
-      if (!currentStudent.email) {
-        showNotificationMessage("Student email not found", "error");
+      if (!currentStudent || !currentStudent.email) {
+        showNotificationMessage("Student email not found. Please login again.", "error");
         return;
       }
 
@@ -548,9 +565,6 @@ const SlotBooking: React.FC = () => {
       updateSlot(testId, {
         status: "Booked",
         scheduledTime: `${newBookedSlot.on_date} ${newBookedSlot.start_time}`,
-        calendar_event_id: newBookedSlot.calendar_event_id,
-        slot_type: slotType,
-        meet_link: newBookedSlot.meet_link,
       });
 
       showNotificationMessage(
@@ -593,6 +607,49 @@ const SlotBooking: React.FC = () => {
   };
 
   // ---------- Effects ----------
+  // Fetch student data from API
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      try {
+        setStudentLoading(true);
+        
+        // Try to get email from localStorage user object
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          const email = user.email;
+          
+          if (email) {
+            console.log("Fetching student data for email:", email);
+            const response = await getCompleteStudentData(email);
+            
+            if (response.success && response.data.student) {
+              const studentData = response.data.student;
+              console.log("Student data fetched from API:", studentData);
+              
+              setCurrentStudent({
+                firstName: studentData.first_name || studentData.firstName || '',
+                lastName: studentData.last_name || studentData.lastName || '',
+                email: studentData.email || '',
+                ...studentData
+              });
+            }
+          } else {
+            console.error("No email found in user data");
+          }
+        } else {
+          console.error("No user data in localStorage");
+        }
+      } catch (error) {
+        console.error("Failed to fetch student data:", error);
+      } finally {
+        setStudentLoading(false);
+      }
+    };
+
+    fetchStudentData();
+  }, []);
+
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -624,10 +681,13 @@ const SlotBooking: React.FC = () => {
   }, [testId]);
 
   // ---------- Conditions ----------
-  if (loading) {
+  if (loading || studentLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-orange-600 animate-spin" />
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-orange-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading student data...</p>
+        </div>
       </div>
     );
   }
@@ -703,10 +763,10 @@ const SlotBooking: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5" />
                 <span className="text-lg">
-                  {currentStudent.firstName} {currentStudent.lastName}
+                  {currentStudent?.firstName || ''} {currentStudent?.lastName || ''}
                 </span>
               </div>
-              <p className="text-sm mt-1 opacity-90">{currentStudent.email}</p>
+              <p className="text-sm mt-1 opacity-90">{currentStudent?.email || ''}</p>
               {isRescheduling && (
                 <div className="mt-3 bg-orange-500 bg-opacity-50 rounded-lg p-3">
                   <p className="text-sm font-semibold">
