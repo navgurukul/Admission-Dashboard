@@ -885,6 +885,32 @@ export const getStudentDataByEmail = async (email:string): Promise<Student> => {
   }
 };
 
+// Get Complete Student Data (student, exam_sessions, interview rounds, final decisions)
+export interface CompleteStudentData {
+  success: boolean;
+  message: string;
+  data: {
+    student: any;
+    exam_sessions: any[];
+    interview_learner_round: any[];
+    interview_cultural_fit_round: any[];
+    final_decisions: any[];
+  };
+}
+
+export const getCompleteStudentData = async (email: string): Promise<CompleteStudentData> => {
+  try {
+    const response = await axios.get<CompleteStudentData>(
+      `${BASE_URL}/students/getByEmail/${email}`,
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.data?.message || "Failed to fetch complete student data"
+    );
+  }
+};
+
 // update students
 export const updateStudent = async (id: string, payload: any): Promise<any> => {
   const response = await fetch(`${BASE_URL}/students/updateStudents/${id}`, {
@@ -1764,6 +1790,20 @@ export const searchStudentsApi = async (searchTerm: string): Promise<any> => {
 
 // Interview Scheduling APIs
 
+// Interface for scheduled interviews
+export interface ScheduledInterview {
+  id: number;
+  student_id: number;
+  slot_id: number;
+  title: string;
+  description: string;
+  meeting_link: string;
+  google_event_id?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Get available slots for interviewer by date 
 export const getMyAvailableSlots = async (date?: string): Promise<any> => {
   let url = `${BASE_URL}/slots/my-available-slots`;
@@ -1940,4 +1980,23 @@ export const deleteInterviewSlot = async (slotId: number): Promise<void> => {
     const data = await response.json();
     throw new Error(data.message || 'Cannot delete booked slots or past date slots');
   }
+};
+
+// Upload profile image
+export const uploadProfileImage = async (file: File): Promise<{ key: string; url: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${BASE_URL}/media/upload-profile`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.message || 'Failed to upload image');
+  }
+
+  return result.data;
 };

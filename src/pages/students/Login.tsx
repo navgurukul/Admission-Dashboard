@@ -53,11 +53,14 @@ export default function StudentLogin() {
   }, [googleLoading, renderGoogleSignInButton, isAuthenticated]);
 
 
-    // Fetch student data by email
+    // Fetch student data by email (normalize axios/REST shapes)
     const studentData = async (email: string) => {
       try {
         const data = await getStudentDataByEmail(email);
-        return data;
+        // getStudentDataByEmail returns axios response.data which itself
+        // often contains a `data` field with payload. Normalize both.
+        const payload = data?.data ?? data ?? null;
+        return payload?.student ?? null;
       } catch (error) {
         console.error("Error fetching student data:", error);
         return null;
@@ -81,122 +84,199 @@ export default function StudentLogin() {
       return;
     }
 
-    // Check if authToken and user are already stored by useGoogleAuth
-    let authToken = localStorage.getItem("authToken");
-    let storedUser = localStorage.getItem("user");
+    const processAuth = async () => {
+      // Check if authToken and user are already stored by useGoogleAuth
+      let authToken = localStorage.getItem("authToken");
+      let storedUser = localStorage.getItem("user");
 
-    // Always try to get Google credential first
-    const googleCredential = sessionStorage.getItem('google_credential');
+      // Always try to get Google credential first
+      const googleCredential = sessionStorage.getItem('google_credential');
 
-    // Check if this is a fresh login or page refresh
-    // Fresh login will have google_credential in sessionStorage
-    // Page refresh won't have it but will have authToken and user in localStorage
-    const isFreshLogin = googleCredential !== null;
-    const isExistingSession = authToken && storedUser && !isFreshLogin;
+      // Check if this is a fresh login or page refresh
+      // Fresh login will have google_credential in sessionStorage
+      // Page refresh won't have it but will have authToken and user in localStorage
+      const isFreshLogin = googleCredential !== null;
+      const isExistingSession = authToken && storedUser && !isFreshLogin;
 
-    // If existing session without fresh login, this is a page refresh
-    // Don't process authentication again
-    if (isExistingSession) {
-      console.log("⚠️ Existing session detected - skipping auto-navigation (page refresh)");
-      setHasProcessedAuth(true);
-      return;
-    }
+      // // If existing session without fresh login, this is a page refresh
+      // // Don't process authentication again
+      // if (isExistingSession) {
+      //   console.log("⚠️ Existing session detected - skipping auto-navigation (page refresh)");
+      //   setHasProcessedAuth(true);
+      //   return;
+      // }
 
-    // If not a fresh login and no existing session, something is wrong
-    if (!isFreshLogin && !authToken) {
-      console.log("⚠️ No fresh login and no existing session - this shouldn't happen");
-      setHasProcessedAuth(true);
-      return;
-    }
-
-    // Check if we need to use Google credential
-    if ((!authToken || authToken === "undefined") && googleCredential) {
-
-      // Store Google JWT as authToken
-      localStorage.setItem("authToken", googleCredential);
-      authToken = googleCredential;
-
-      // Parse Google token to verify it
-      try {
-        const tokenParts = googleCredential.split('.');
-        const payload = JSON.parse(atob(tokenParts[1]));
-      } catch (e) {
-        console.error("❌ Error parsing Google token:", e);
+      // If not a fresh login and no existing session, something is wrong
+      if (!isFreshLogin && !authToken) {
+        console.log("⚠️ No fresh login and no existing session - this shouldn't happen");
+        setHasProcessedAuth(true);
+        return;
       }
-    } else if (authToken && authToken !== "undefined") {
-      console.log("✅ Using backend token (Admin/User)");
-    } else {
-      console.error("❌ No valid token available - neither backend nor Google credential");
-    }
 
-    // Ensure student user data exists
-    if (googleUser && !storedUser) {
-      const studentUserData = {
-        id: googleUser.id,
-        name: googleUser.name,
-        email: googleUser.email,
-        profile_pic: googleUser.avatar,
-        user_role_id: 3,
-        role_name: "STUDENT"
-      };
-      localStorage.setItem("user", JSON.stringify(studentUserData));
-      console.log("✅ Stored student user data");
-    }
+      // Check if we need to use Google credential
+      if ((!authToken || authToken === "undefined") && googleCredential) {
 
-    // Determine user role and navigate accordingly
-    const userRole = googleUser.role_id;
-    const roleName = googleUser.role_name;
+        // Store Google JWT as authToken
+        localStorage.setItem("authToken", googleCredential);
+        authToken = googleCredential;
 
-    if (userRole === 1 || userRole === 2 || roleName === "ADMIN" || roleName === "USER") {
-      // Admin/User - Navigate to dashboard
-      console.log("✅ Admin/User detected - navigating to dashboard");
-      localStorage.setItem("role", roleName || "user");
-      localStorage.setItem("userRole", JSON.stringify(roleName));
+        // Parse Google token to verify it
+        try {
+          const tokenParts = googleCredential.split('.');
+          const payload = JSON.parse(atob(tokenParts[1]));
+        } catch (e) {
+          console.error("❌ Error parsing Google token:", e);
+        }
+      } else if (authToken && authToken !== "undefined") {
+        console.log("✅ Using backend token (Admin/User)");
+      } else {
+        console.error("❌ No valid token available - neither backend nor Google credential");
+      }
 
-      toast({
-        title: "Welcome!",
-        description: `Successfully signed in as ${googleUser.name}`,
-      });
+      // Ensure student user data exists
+      if (googleUser && !storedUser) {
+        const studentUserData = {
+          id: googleUser.id,
+          name: googleUser.name,
+          email: googleUser.email,
+          profile_pic: googleUser.avatar,
+          user_role_id: 3,
+          role_name: "STUDENT"
+        };
+        localStorage.setItem("user", JSON.stringify(studentUserData));
+        console.log("✅ Stored student user data");
+      }
 
-      // Mark as processed and clear the credential
-      setHasProcessedAuth(true);
-      sessionStorage.removeItem('google_credential');
+      // Determine user role and navigate accordingly
+      const userRole = googleUser.role_id;
+      const roleName = googleUser.role_name;
 
-      setTimeout(() => {
-        navigate("/");
-      }, 500);
-    } else {
-      // Student - Navigate to instructions
-      console.log("✅ Student detected - navigating to instructions");
-      localStorage.setItem("role", "student");
-      localStorage.setItem("studentId", googleUser.id);
-      localStorage.setItem("userRole", JSON.stringify("student"));
+      if (userRole === 1 || userRole === 2 || roleName === "ADMIN" || roleName === "USER") {
+        // Admin/User - Navigate to dashboard
+        console.log("✅ Admin/User detected - navigating to dashboard");
+        localStorage.setItem("role", roleName || "user");
+        localStorage.setItem("userRole", JSON.stringify(roleName));
 
-      const student =  studentData(googleUser.email);
-
-      localStorage.setItem("studentData", JSON.stringify(student));
-
-      toast({
-        title: getContent().successMessage,
-        description: (
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
-            <span>Welcome back, {googleUser.name}! 🎉</span>
-          </div>
-        ),
-        className: "bg-green-50 border-green-500 text-green-800",
-      });
-
-      // Mark as processed and clear the credential
-      setHasProcessedAuth(true);
-      sessionStorage.removeItem('google_credential');
-
-      setTimeout(() => {
-        navigate("/students/details/instructions", {
-          state: { googleEmail: googleUser.email }
+        toast({
+          title: "Welcome!",
+          description: `Successfully signed in as ${googleUser.name}`,
         });
-      }, 500);
-    }
+
+        // Mark as processed and clear the credential
+        setHasProcessedAuth(true);
+        sessionStorage.removeItem('google_credential');
+
+        setTimeout(() => {
+          navigate("/");
+        }, 500);
+      } else {
+        // Student - fetch student data and route based on progress
+        try {
+          const apiResponse = await getStudentDataByEmail(googleUser.email);
+
+          // Normalize payload: API usually returns { success, message, data: { student, exam_sessions, ... } }
+          const payload = apiResponse?.data ?? apiResponse ?? null;
+
+          // Persist the whole payload for later use
+          localStorage.setItem("studentData", JSON.stringify(payload));
+
+          // Extract student profile from payload
+          const profile = payload?.student ?? payload ?? null;
+
+          // student_id in API is `student_id` (not `id`)
+          const studentId = profile?.student_id ?? profile?.id ?? googleUser.id;
+          localStorage.setItem("studentId", String(studentId));
+
+          localStorage.setItem("role", "student");
+          localStorage.setItem("userRole", JSON.stringify("student"));
+
+          // Derive progress flags from payload
+          const registrationDone = Boolean(profile && profile.student_id && profile.dob && profile.gender);
+
+          // // instructionsDone isn't provided by API in this payload; keep false unless explicit
+          // const instructionsDone = Boolean(payload?.student?.instructions_done ?? payload?.student?.instructionsDone ?? false);
+
+          // testStarted: true if any exam_sessions exist
+          const examSessions = Array.isArray(payload?.exam_sessions) ? payload.exam_sessions : [];
+          const testStarted = examSessions.length > 0;
+
+          // testCompleted: true if any exam_session shows submitted_at or is_passed
+          const testCompleted = examSessions.some((s: any) => testStarted || Boolean(s.is_passed));
+
+          console.log("Derived Flags:", {
+            registrationDone,
+            testStarted,
+            // testCompleted
+          });
+
+          // allowRetest: default false; could be derived from payload.final_decisions or business rules
+          const allowRetest = Boolean(payload?.allow_retest ?? false);
+
+          // Persist flags for other hooks/pages
+          // localStorage.setItem("registrationDone", registrationDone ? "true" : "false");
+          localStorage.setItem("registrationDone", registrationDone ? "true" : "false");
+          localStorage.setItem("testStarted", testStarted ? "true" : "false");
+          localStorage.setItem("testCompleted", testStarted ? "true" : "false");
+          localStorage.setItem("allowRetest", allowRetest ? "true" : "false");
+
+          toast({
+            title: getContent().successMessage,
+            description: (
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <span>Welcome back, {googleUser.name}! 🎉</span>
+              </div>
+            ),
+            className: "bg-green-50 border-green-500 text-green-800",
+          });
+
+          // Mark as processed and clear the credential
+          setHasProcessedAuth(true);
+          sessionStorage.removeItem("google_credential");
+
+          // Route based on derived flags (order matters)
+ 
+            // if (!registrationDone) {
+            //   navigate("/students/details/registration", { state: { googleEmail: googleUser.email } });
+            //   return;
+            // }
+
+            console.log(registrationDone)
+
+            if (!registrationDone) {
+              navigate("/students/details/instructions", { state: { googleEmail: googleUser.email } });
+              return;
+            }
+
+            if (testStarted && !testCompleted) {
+              // If test already started (but not completed) send to start (which will forward to section)
+              navigate("/students/test/start");
+              return;
+            }
+
+            if (testCompleted && !allowRetest) {
+              navigate("/students/final-result");
+              return;
+            }
+
+            // Default fallback: instructions
+            navigate("/students/details/instructions", { state: { googleEmail: googleUser.email } });
+        
+        } catch (err) {
+          console.error("Error fetching student data:", err);
+          // If API fails, still set minimal student info and send to instructions
+          localStorage.setItem("studentData", JSON.stringify(null));
+          localStorage.setItem("studentId", String(googleUser.id));
+          localStorage.setItem("role", "student");
+          localStorage.setItem("userRole", JSON.stringify("student"));
+          setHasProcessedAuth(true);
+          sessionStorage.removeItem("google_credential");
+          navigate("/students/details/instructions", { state: { googleEmail: googleUser.email } });
+        }
+      }
+    };
+
+    void processAuth();
   }, [googleUser, isAuthenticated, navigate, hasProcessedAuth]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

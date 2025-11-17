@@ -41,7 +41,7 @@ const ScreeningResultPage: React.FC = () => {
       // Fetch fresh student data from API
       const response = await getStudentDataByEmail(currentUser.email);
 
-      if (!response?.data) {
+      if (!response) {
         toast({
           title: "Error",
           description: "Failed to fetch student data",
@@ -62,7 +62,7 @@ const ScreeningResultPage: React.FC = () => {
       // Navigate to final result page with API data
       navigate("/students/final-result", {
         state: {
-          studentData: response.data, // Pass the API data
+          studentData: response, // Pass the API data
           fromScreening: true,
         },
       });

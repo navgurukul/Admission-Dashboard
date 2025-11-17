@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -13,6 +14,12 @@ import { EditableCell } from "./EditableCell";
 import StatusDropdown from "./StatusDropdown";
 import StageDropdown from "./StageDropdown";
 import { CampusSelector } from "../CampusSelector";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ApplicantTableRowProps {
   applicant: any;
@@ -46,6 +53,8 @@ export const ApplicantTableRow = ({
   currentstatusList,
   questionSetList,
 }: ApplicantTableRowProps) => {
+  const [showImageModal, setShowImageModal] = useState(false);
+  
   const fullName =
     [applicant.first_name, applicant.middle_name, applicant.last_name]
       .filter(Boolean)
@@ -75,8 +84,11 @@ export const ApplicantTableRow = ({
 
       {/* Profile Image */}
       <TableCell className="w-12 px-2">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={applicant.image} alt={fullName} />
+        <Avatar 
+          className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
+          onClick={() => setShowImageModal(true)}
+        >
+          <AvatarImage src={applicant.image_url || applicant.image} alt={fullName} />
           <AvatarFallback className="text-xs">
             {getInitials(fullName)}
           </AvatarFallback>
@@ -267,6 +279,28 @@ export const ApplicantTableRow = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
+
+      {/* Image Preview Modal */}
+      <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{fullName}</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center items-center p-4">
+            {applicant.image_url || applicant.image ? (
+              <img
+                src={applicant.image_url || applicant.image}
+                alt={fullName}
+                className="max-w-full max-h-[500px] rounded-lg object-contain"
+              />
+            ) : (
+              <div className="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-4xl text-gray-400">{getInitials(fullName)}</span>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </TableRow>
   );
 };
