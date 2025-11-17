@@ -904,7 +904,10 @@ const ApplicantTable = () => {
       <ApplicantModal
         applicant={applicantToView}
         isOpen={!!applicantToView}
-        onClose={() => setApplicantToView(null)}
+        onClose={() => {
+          setApplicantToView(null);
+          refreshData(); // Refresh the table data when modal closes
+        }}
       />
       {/* <ApplicantCommentsModal
         applicantId={applicantForComments?.id || ""}
