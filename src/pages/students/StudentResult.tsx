@@ -87,23 +87,23 @@ export default function StudentResult() {
             // Build tests array using API data (keep all relevant rows and history)
             const updatedTests: TestRow[] = [];
 
-            // 1) Screening Test - latest
+            // 1) Screening Test - show ALL attempts, not just latest
             const examSessions = data.data.exam_sessions || [];
-            const latestExam =
-              examSessions.length > 0
-                ? examSessions.reduce((latest, current) =>
-                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                  )
-                : null;
-
-            if (latestExam) {
-              updatedTests.push({
-                id: 1,
-                name: "Screening Test",
-                status: latestExam.is_passed ? "Pass" : "Fail",
-                score: latestExam.obtained_marks ?? "-",
-                action: latestExam.is_passed ? "Completed" : "Failed",
-                slotBooking: { status: null, scheduledTime: latestExam.date_of_test || "" },
+            
+            if (examSessions.length > 0) {
+              // Sort by date oldest to newest
+              examSessions.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              
+              // Push each screening test attempt
+              examSessions.forEach((exam: any, index: number) => {
+                updatedTests.push({
+                  id: 100 + index,
+                  name: examSessions.length > 1 ? `Screening Test (Attempt ${index + 1})` : "Screening Test",
+                  status: exam.is_passed ? "Pass" : "Fail",
+                  score: exam.obtained_marks ?? "-",
+                  action: exam.is_passed ? "Completed" : "Failed",
+                  slotBooking: { status: null, scheduledTime: exam.date_of_test || "" },
+                });
               });
             }
 
@@ -142,8 +142,9 @@ if (latestLR) {
   else if (lrText.toLowerCase().includes("fail")) lrStatus = "Fail";
 }
 
-// If there are no LR attempts but screening passed, show a single pending LR row so student can book
-if (lrRounds.length === 0 && latestExam?.is_passed) {
+// If there are no LR attempts but ANY screening test was passed, show a single pending LR row so student can book
+const hasPassedScreening = examSessions.some((exam: any) => exam.is_passed);
+if (lrRounds.length === 0 && hasPassedScreening) {
   updatedTests.push({
     id: 2,
     name: "Learning Round",
@@ -206,10 +207,9 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
   });
 }
 
-// Finally, set tests context so UI renders
-            if (updatedTests.length > 0) {
-              setTests(updatedTests);
-            }
+// Finally, set tests context so UI renders - ALWAYS set, even if empty
+            console.log("Updated Tests Array:", updatedTests);
+            setTests(updatedTests);
           }
         } else {
           const savedForm = localStorage.getItem("studentFormData");
@@ -311,7 +311,8 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                   </tr>
                 </thead>
                 <tbody>
-                  {tests?.map((test: TestRow) => {
+                  {tests && tests.length > 0 ? (
+                    tests.map((test: TestRow) => {
                     const slotStatus = normalizeBooking(test.slotBooking?.status);
                     const isSlotBooked = slotStatus === "booked" || slotStatus === "pending";
                     const isSlotCancelled = slotStatus === "cancelled";
@@ -342,18 +343,17 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                             : "-"}
                         </td>
                         <td className="px-4 py-2 border">
-                          {/* Screening Test Actions */}
-                          {test.name === "Screening Test" &&
-                            (test.status === "Fail" ? (
+                          {/* Screening Test Actions - Only show Retest button for Fail */}
+                          {test.name.includes("Screening Test") ? (
+                            test.status === "Fail" ? (
                               <Button onClick={handleRetestNavigation} className="bg-orange-500 hover:bg-orange-600">
                                 Retest
                               </Button>
                             ) : (
                               <p className="text-gray-600">-</p>
-                            ))}
-
-                          {/* Book/Reschedule for LR & CFR */}
-                          {test.name !== "Screening Test" && (
+                            )
+                          ) : (
+                            /* Book/Reschedule for LR & CFR only */
                             <>
                               {test.status === "Pass" ? (
                                 <p className="text-gray-600">-</p>
@@ -380,7 +380,14 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                         <td className="px-4 py-2 border">{test.score ?? "-"}</td>
                       </tr>
                     );
-                  })}
+                  })
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                        No test data available
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
