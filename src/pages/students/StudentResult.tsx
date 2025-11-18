@@ -353,21 +353,26 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                             ))}
 
                           {/* Book/Reschedule for LR & CFR */}
-                          {test.name !== "Screening Test" && (test.status === "Pending" || test.status === "Fail" || test.status === "Pass") && (
+                          {test.name !== "Screening Test" && (
                             <>
-                              {isSlotBooked && !isSlotCancelled ? (
+                              {test.status === "Pass" ? (
+                                <p className="text-gray-600">-</p>
+                              ) : test.status === "Fail" ? (
                                 <Button onClick={() => handleBooking(test.id, test.name)} variant="outline">
                                   Reschedule
                                 </Button>
                               ) : (
-                                // If no slot booked yet, show Book Slot for pending status only
-                                test.status === "Pending" ? (
-                                  <Button onClick={() => handleBooking(test.id, test.name)} className="bg-green-600 hover:bg-green-700">
-                                    Book Slot
-                                  </Button>
-                                ) : (
-                                  <p className="text-gray-600">-</p>
-                                )
+                                <>
+                                  {isSlotBooked && !isSlotCancelled ? (
+                                    <Button onClick={() => handleBooking(test.id, test.name)} variant="outline">
+                                      Reschedule
+                                    </Button>
+                                  ) : (
+                                    <Button onClick={() => handleBooking(test.id, test.name)} className="bg-green-600 hover:bg-green-700">
+                                      Book Slot
+                                    </Button>
+                                  )}
+                                </>
                               )}
                             </>
                           )}
@@ -381,57 +386,6 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
             </div>
           </CardContent>
         </Card>
-
-        {/* Exam History - Show if multiple attempts */}
-        {completeData && completeData.data.exam_sessions?.length > 1 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Screening Test History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {completeData.data.exam_sessions
-                  .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .map((exam: any, index: number) => (
-                    <div
-                      key={exam.id}
-                      className={`p-4 rounded-lg border ${
-                        exam.is_passed ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-semibold text-gray-700">Attempt {completeData.data.exam_sessions.length - index}</span>
-                        <span
-                          className={`px-3 py-1 rounded text-sm font-medium ${
-                            exam.is_passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {exam.is_passed ? "Pass" : "Fail"}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Score:</span> {exam.obtained_marks} / {exam.total_marks}
-                        {exam.percentage > 0 && ` (${exam.percentage.toFixed(1)}%)`}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Date:</span>{" "}
-                        {new Date(exam.date_of_test).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                      {exam.exam_centre && (
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Exam Centre:</span> {exam.exam_centre}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Congratulations Message - Only show if Offer Sent */}
         {completeData?.data.final_decisions?.length > 0 && 
