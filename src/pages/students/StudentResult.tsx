@@ -455,7 +455,7 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                         </p>
                       </div>
                       
-                      {decision.joining_date && (
+                      {/* {decision.joining_date && (
                         <div className="rounded-lg p-3">
                           <p className="text-base">
                             <span className="font-semibold text-gray-700">Joining Date:</span>{" "}
@@ -468,7 +468,7 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                             </span>
                           </p>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   )
                 ))}
