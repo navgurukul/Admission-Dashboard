@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -17,6 +18,20 @@ interface Student {
   state: string;
 }
 
+type BookingStatus = string | null | undefined;
+
+type TestRow = {
+  id: number;
+  name: string;
+  status: "Pass" | "Fail" | "Pending" | string;
+  score: number | null | string;
+  action: string;
+  slotBooking?: {
+    status?: BookingStatus; // API values like 'pending', 'booked', 'cancelled'
+    scheduledTime?: string;
+  };
+};
+
 export default function StudentResult() {
   const [student, setStudent] = useState<Student | null>(null);
   const [completeData, setCompleteData] = useState<CompleteStudentData | null>(null);
@@ -25,35 +40,38 @@ export default function StudentResult() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Load student from localStorage and fetch complete data from API
+  // Helper: normalize booking status
+  const normalizeBooking = (val: any): BookingStatus => {
+    if (!val) return null;
+    return String(val).toLowerCase();
+  };
+
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
         setLoading(true);
-        
+
         // Get email from localStorage or googleUser
         const googleUser = localStorage.getItem("user");
         let email = "";
-        
+
         if (googleUser) {
           const parsedUser = JSON.parse(googleUser);
           email = parsedUser.email;
         }
-        
+
         if (!email) {
-          // Try to get from studentData
           const savedApiPayload = localStorage.getItem("studentData");
           if (savedApiPayload) {
             const payload = JSON.parse(savedApiPayload);
             email = payload?.student?.email || payload?.email || "";
           }
         }
-        
+
         if (email) {
-          // Fetch complete student data from API
           const data = await getCompleteStudentData(email);
           setCompleteData(data);
-          
+
           const profile = data.data.student;
           if (profile) {
             setStudent({
@@ -65,109 +83,135 @@ export default function StudentResult() {
               city: profile.city || "",
               state: profile.state || "",
             });
-            
-            // Update tests array based on API data
-            const updatedTests = [];
-            
-            // 1. Screening Test - Get latest exam session (by created_at or id)
+
+            // Build tests array using API data (keep all relevant rows and history)
+            const updatedTests: TestRow[] = [];
+
+            // 1) Screening Test - latest
             const examSessions = data.data.exam_sessions || [];
-            const latestExam = examSessions.length > 0 
-              ? examSessions.reduce((latest, current) => 
-                  new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                )
-              : null;
-            
+            const latestExam =
+              examSessions.length > 0
+                ? examSessions.reduce((latest, current) =>
+                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+                  )
+                : null;
+
             if (latestExam) {
               updatedTests.push({
                 id: 1,
                 name: "Screening Test",
                 status: latestExam.is_passed ? "Pass" : "Fail",
-                score: latestExam.obtained_marks,
+                score: latestExam.obtained_marks ?? "-",
                 action: latestExam.is_passed ? "Completed" : "Failed",
-                slotBooking: { status: null, scheduledTime: "" },
+                slotBooking: { status: null, scheduledTime: latestExam.date_of_test || "" },
               });
             }
-            
-            // 2. Learning Round - Get latest LR status
-            if (latestExam?.is_passed) {
-              const lrRounds = data.data.interview_learner_round || [];
-              const latestLR = lrRounds.length > 0
-                ? lrRounds.reduce((latest, current) => 
-                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                  )
-                : null;
-              
-              // Determine LR status
-              let lrStatus: "Pass" | "Fail" | "Pending" = "Pending";
-              if (latestLR) {
-                if (latestLR.learning_round_status?.includes("Pass")) {
-                  lrStatus = "Pass";
-                } else if (latestLR.learning_round_status?.includes("Fail")) {
-                  lrStatus = "Fail";
-                }
-              }
-              
-              updatedTests.push({
-                id: 2,
-                name: "Learning Round",
-                status: lrStatus,
-                score: null,
-                action: lrStatus === "Pending" ? "slot-book" : "Completed",
-                slotBooking: { 
-                  status: latestLR ? (lrStatus === "Pending" ? "Booked" : "Completed") : "Pending",
-                  scheduledTime: ""
-                },
-              });
-            }
-            
-            // 3. Cultural Fit Round - Only show if LR is passed
-            const lrRounds = data.data.interview_learner_round || [];
-            const latestLR = lrRounds.length > 0
-              ? lrRounds.reduce((latest, current) => 
-                  new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                )
-              : null;
-            
-            const isLRPassed = latestLR?.learning_round_status?.includes("Pass");
-            
-            if (isLRPassed) {
-              const cfrRounds = data.data.interview_cultural_fit_round || [];
-              const latestCFR = cfrRounds.length > 0
-                ? cfrRounds.reduce((latest, current) => 
-                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                  )
-                : null;
-              
-              // Determine CFR status
-              let cfrStatus: "Pass" | "Fail" | "Pending" = "Pending";
-              if (latestCFR) {
-                if (latestCFR.cultural_fit_status?.includes("Pass")) {
-                  cfrStatus = "Pass";
-                } else if (latestCFR.cultural_fit_status?.includes("Fail")) {
-                  cfrStatus = "Fail";
-                }
-              }
-              
-              updatedTests.push({
-                id: 3,
-                name: "Culture Fit Round",
-                status: cfrStatus,
-                score: null,
-                action: cfrStatus === "Pending" ? "slot-book" : "Completed",
-                slotBooking: { 
-                  status: latestCFR ? (cfrStatus === "Pending" ? "Booked" : "Completed") : "Pending",
-                  scheduledTime: ""
-                },
-              });
-            }
-            
-            // Update tests context
+
+            // 2) Learning Round - push ALL attempts
+const lrRounds = data.data.interview_learner_round || [];
+
+// sort oldest -> newest so Attempt 1 is oldest
+lrRounds.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+// Push each LR attempt as its own row (preserve history)
+lrRounds.forEach((lr: any, index: number) => {
+  const lrText = lr.learning_round_status || "";
+  let lrAttemptStatus: "Pass" | "Fail" | "Pending" = "Pending";
+  if (lrText.toLowerCase().includes("pass")) lrAttemptStatus = "Pass";
+  else if (lrText.toLowerCase().includes("fail")) lrAttemptStatus = "Fail";
+
+  updatedTests.push({
+    id: 200 + index,
+    name: `Learning Round (Attempt ${index + 1})`,
+    status: lrAttemptStatus,
+    score: null,
+    action: lrAttemptStatus === "Pending" ? "slot-book" : "Completed",
+    slotBooking: {
+      status: normalizeBooking(lr.booking_status),
+      scheduledTime: lr.scheduled_time || lr.scheduled_at || "",
+    },
+  });
+});
+
+// Determine latest LR status (used for CFR gating / placeholder)
+const latestLR = lrRounds.length ? lrRounds[lrRounds.length - 1] : null;
+let lrStatus: "Pass" | "Fail" | "Pending" = "Pending";
+if (latestLR) {
+  const lrText = latestLR.learning_round_status || "";
+  if (lrText.toLowerCase().includes("pass")) lrStatus = "Pass";
+  else if (lrText.toLowerCase().includes("fail")) lrStatus = "Fail";
+}
+
+// If there are no LR attempts but screening passed, show a single pending LR row so student can book
+if (lrRounds.length === 0 && latestExam?.is_passed) {
+  updatedTests.push({
+    id: 2,
+    name: "Learning Round",
+    status: lrStatus,
+    score: null,
+    action: "slot-book",
+    slotBooking: {
+      status: null,
+      scheduledTime: "",
+    },
+  });
+}
+
+// 3) Cultural Fit Round - push ALL attempts
+const cfrRounds = data.data.interview_cultural_fit_round || [];
+
+// sort oldest -> newest
+cfrRounds.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+// Push each CFR attempt as its own row (preserve history)
+cfrRounds.forEach((cfr: any, index: number) => {
+  const cfrText = cfr.cultural_fit_status || "";
+  let cfrAttemptStatus: "Pass" | "Fail" | "Pending" = "Pending";
+  if (cfrText.toLowerCase().includes("pass")) cfrAttemptStatus = "Pass";
+  else if (cfrText.toLowerCase().includes("fail")) cfrAttemptStatus = "Fail";
+
+  updatedTests.push({
+    id: 300 + index,
+    name: `Cultural Fit Round (Attempt ${index + 1})`,
+    status: cfrAttemptStatus,
+    score: null,
+    action: cfrAttemptStatus === "Pending" ? "slot-book" : "Completed",
+    slotBooking: {
+      status: normalizeBooking(cfr.booking_status),
+      scheduledTime: cfr.scheduled_time || cfr.scheduled_at || "",
+    },
+  });
+});
+
+// If LR passed and there are no CFR attempts yet, show a placeholder Pending CFR row so user can book
+const latestCFR = cfrRounds.length ? cfrRounds[cfrRounds.length - 1] : null;
+let cfrStatus: "Pass" | "Fail" | "Pending" = "Pending";
+if (latestCFR) {
+  const cfrText = latestCFR.cultural_fit_status || "";
+  if (cfrText.toLowerCase().includes("pass")) cfrStatus = "Pass";
+  else if (cfrText.toLowerCase().includes("fail")) cfrStatus = "Fail";
+}
+
+if (lrStatus === "Pass" && cfrRounds.length === 0) {
+  updatedTests.push({
+    id: 3,
+    name: "Culture Fit Round",
+    status: "Pending",
+    score: null,
+    action: "slot-book",
+    slotBooking: {
+      status: null,
+      scheduledTime: "",
+    },
+  });
+}
+
+// Finally, set tests context so UI renders
             if (updatedTests.length > 0) {
               setTests(updatedTests);
             }
           }
         } else {
-          // Fallback to localStorage if no email found
           const savedForm = localStorage.getItem("studentFormData");
           if (savedForm) {
             setStudent(JSON.parse(savedForm));
@@ -184,23 +228,18 @@ export default function StudentResult() {
         setLoading(false);
       }
     };
-    
+
     fetchStudentData();
   }, [setTests, toast]);
 
   const handleBooking = (testId: number, testName: string) => {
-    // Determine slot_type based on test name
     let slotType: "LR" | "CFR" | undefined;
-    
-    if (testName === "Learning Round") {
-      slotType = "LR";
-    } else if (testName === "Culture Fit Round") {
-      slotType = "CFR";
-    }
-    
-    // Navigate with state containing slot_type
-    navigate(`/students/slot-booking/${testId}`, { 
-      state: { slot_type: slotType } 
+
+    if (testName === "Learning Round") slotType = "LR";
+    else if (testName === "Culture Fit Round") slotType = "CFR";
+
+    navigate(`/students/slot-booking/${testId}`, {
+      state: { slot_type: slotType },
     });
   };
 
@@ -229,9 +268,7 @@ export default function StudentResult() {
         <header className="mb-6">
           <LogoutButton className="from-orange-400 to-red-500" />
           <h1 className="text-2xl font-bold">Student Results</h1>
-          <p className="text-gray-600">
-            Track your test results and interview slot booking status.
-          </p>
+          <p className="text-gray-600">Track your test results and interview slot booking status.</p>
         </header>
 
         {/* Student Details */}
@@ -241,18 +278,17 @@ export default function StudentResult() {
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-4">
             <p>
-              <span className="font-semibold">Name:</span> {student.firstName}{" "}
-              {student.middleName} {student.lastName}
+              <span className="font-semibold">Name:</span> {student?.firstName || "-"} {student?.middleName || ""}{" "}
+              {student?.lastName || ""}
             </p>
             <p>
-              <span className="font-semibold">Email:</span> {student.email}
+              <span className="font-semibold">Email:</span> {student?.email || "-"}
             </p>
             <p>
-              <span className="font-semibold">Phone Number:</span>{" "}
-              {student.whatsappNumber}
+              <span className="font-semibold">Phone Number:</span> {student?.whatsappNumber || "-"}
             </p>
             <p>
-              <span className="font-semibold">State:</span> {student.state || "-"}
+              <span className="font-semibold">State:</span> {student?.state || "-"}
             </p>
           </CardContent>
         </Card>
@@ -275,12 +311,10 @@ export default function StudentResult() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tests.map((test) => {
-                    // Get slot booking status
-                    const slotStatus = test.slotBooking?.status;
-                    const isSlotBooked = slotStatus === "Booked";
-                    const isSlotCancelled = slotStatus === "Cancelled";
-                    const hasSlotBooking = test.slotBooking !== undefined;
+                  {tests?.map((test: TestRow) => {
+                    const slotStatus = normalizeBooking(test.slotBooking?.status);
+                    const isSlotBooked = slotStatus === "booked" || slotStatus === "pending";
+                    const isSlotCancelled = slotStatus === "cancelled";
 
                     return (
                       <tr key={test.id} className="hover:bg-gray-50">
@@ -300,53 +334,45 @@ export default function StudentResult() {
                         </td>
                         <td className="px-4 py-2 border">
                           {test.slotBooking?.scheduledTime
-                            ? new Date(
-                                test.slotBooking.scheduledTime
-                              ).toLocaleString()
+                            ? new Date(test.slotBooking.scheduledTime).toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true
+                              })
                             : "-"}
                         </td>
                         <td className="px-4 py-2 border">
-                          {/* Action button for Screening Test */}
+                          {/* Screening Test Actions */}
                           {test.name === "Screening Test" &&
                             (test.status === "Fail" ? (
-                              <Button
-                                onClick={handleRetestNavigation}
-                                className="bg-orange-500 hover:bg-orange-600"
-                              >
+                              <Button onClick={handleRetestNavigation} className="bg-orange-500 hover:bg-orange-600">
                                 Retest
                               </Button>
                             ) : (
-                              <p
-                                className="text-gray-600"
-                              >
-                                -
-                              </p>
+                              <p className="text-gray-600">-</p>
                             ))}
 
-                          {/* Book/Reschedule button for passed tests */}
-                          {test.name !== "Screening Test" && test.status === "Pending" && (
+                          {/* Book/Reschedule for LR & CFR */}
+                          {test.name !== "Screening Test" && (test.status === "Pending" || test.status === "Fail" || test.status === "Pass") && (
                             <>
-                              {isSlotBooked || isSlotCancelled ? (
-                                <Button
-                                  onClick={() => handleBooking(test.id, test.name)}
-                                  variant="outline"
-                                >
+                              {isSlotBooked && !isSlotCancelled ? (
+                                <Button onClick={() => handleBooking(test.id, test.name)} variant="outline">
                                   Reschedule
                                 </Button>
                               ) : (
-                                <Button
-                                  onClick={() => handleBooking(test.id, test.name)}
-                                  className="bg-green-600 hover:bg-green-700"
-                                >
-                                  Book Slot
-                                </Button>
+                                // If no slot booked yet, show Book Slot for pending status only
+                                test.status === "Pending" ? (
+                                  <Button onClick={() => handleBooking(test.id, test.name)} className="bg-green-600 hover:bg-green-700">
+                                    Book Slot
+                                  </Button>
+                                ) : (
+                                  <p className="text-gray-600">-</p>
+                                )
                               )}
                             </>
                           )}
                         </td>
-                        <td className="px-4 py-2 border">
-                          {test.score || "-"}
-                        </td>
+                        <td className="px-4 py-2 border">{test.score ?? "-"}</td>
                       </tr>
                     );
                   })}
@@ -365,30 +391,26 @@ export default function StudentResult() {
             <CardContent>
               <div className="space-y-3">
                 {completeData.data.exam_sessions
-                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .map((exam, index) => (
-                    <div 
-                      key={exam.id} 
+                  .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .map((exam: any, index: number) => (
+                    <div
+                      key={exam.id}
                       className={`p-4 rounded-lg border ${
-                        exam.is_passed 
-                          ? "bg-green-50 border-green-200" 
-                          : "bg-red-50 border-red-200"
+                        exam.is_passed ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <span className="font-semibold text-gray-700">
-                          Attempt {completeData.data.exam_sessions.length - index}
-                        </span>
-                        <span className={`px-3 py-1 rounded text-sm font-medium ${
-                          exam.is_passed
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}>
+                        <span className="font-semibold text-gray-700">Attempt {completeData.data.exam_sessions.length - index}</span>
+                        <span
+                          className={`px-3 py-1 rounded text-sm font-medium ${
+                            exam.is_passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                          }`}
+                        >
                           {exam.is_passed ? "Pass" : "Fail"}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600">
-                        <span className="font-medium">Score:</span> {exam.obtained_marks} / {exam.total_marks} 
+                        <span className="font-medium">Score:</span> {exam.obtained_marks} / {exam.total_marks}
                         {exam.percentage > 0 && ` (${exam.percentage.toFixed(1)}%)`}
                       </p>
                       <p className="text-sm text-gray-600">
@@ -411,114 +433,10 @@ export default function StudentResult() {
           </Card>
         )}
 
-        {/* Interview History & Comments */}
-        {completeData && (completeData.data.interview_learner_round?.length > 0 || completeData.data.interview_cultural_fit_round?.length > 0) && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Interview History & Feedback</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Learning Round History */}
-              {completeData.data.interview_learner_round?.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-gray-800">Learning Round Attempts</h3>
-                  <div className="space-y-3">
-                    {completeData.data.interview_learner_round
-                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                      .map((round, index) => (
-                        <div 
-                          key={round.id} 
-                          className={`p-4 rounded-lg border ${
-                            round.learning_round_status?.includes("Pass") 
-                              ? "bg-green-50 border-green-200" 
-                              : "bg-red-50 border-red-200"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="font-semibold text-gray-700">
-                              Attempt {completeData.data.interview_learner_round.length - index}
-                            </span>
-                            <span className={`px-3 py-1 rounded text-sm font-medium ${
-                              round.learning_round_status?.includes("Pass")
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}>
-                              {round.learning_round_status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <span className="font-medium">Date:</span>{" "}
-                            {new Date(round.created_at).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </p>
-                          {round.comments && (
-                            <p className="text-sm text-gray-700 mt-2">
-                              <span className="font-medium">Feedback:</span> {round.comments}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Cultural Fit Round History */}
-              {completeData.data.interview_cultural_fit_round?.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-gray-800">Cultural Fit Round Attempts</h3>
-                  <div className="space-y-3">
-                    {completeData.data.interview_cultural_fit_round
-                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                      .map((round, index) => (
-                        <div 
-                          key={round.id} 
-                          className={`p-4 rounded-lg border ${
-                            round.cultural_fit_status?.includes("Pass") 
-                              ? "bg-green-50 border-green-200" 
-                              : "bg-red-50 border-red-200"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="font-semibold text-gray-700">
-                              Attempt {completeData.data.interview_cultural_fit_round.length - index}
-                            </span>
-                            <span className={`px-3 py-1 rounded text-sm font-medium ${
-                              round.cultural_fit_status?.includes("Pass")
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}>
-                              {round.cultural_fit_status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <span className="font-medium">Date:</span>{" "}
-                            {new Date(round.created_at).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </p>
-                          {round.comments && (
-                            <p className="text-sm text-gray-700 mt-2">
-                              <span className="font-medium">Feedback:</span> {round.comments}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {/* Congratulations Message - Only show if Offer Sent */}
         {completeData?.data.final_decisions?.length > 0 && 
          completeData.data.final_decisions
-           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+           .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
            ?.offer_letter_status?.toLowerCase() === "offer sent" && (
           <Card className="mt-6 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
             <CardHeader>
@@ -526,13 +444,14 @@ export default function StudentResult() {
             </CardHeader>
             <CardContent>
               {completeData.data.final_decisions
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .map((decision, index) => (
+                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .map((decision: any, index: number) => (
                   index === 0 && ( // Show only the latest decision
                     <div key={decision.id} className="space-y-4">
                       <div className="rounded-lg p-4">
                         <p className="text-lg text-center text-gray-800 leading-relaxed">
-                          🎊 Please check your email, your offer letter has been sent!
+                          🎊 Your offer letter has been sent successfully.
+                               Please check your registered email for details regarding the next steps.
                         </p>
                       </div>
                       
