@@ -51,7 +51,7 @@ export default function StudentResult() {
       try {
         setLoading(true);
 
-        // Get email from localStorage or googleUser
+        // Get email from  or googleUser
         const googleUser = localStorage.getItem("user");
         let email = "";
 
