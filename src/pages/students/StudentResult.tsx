@@ -87,23 +87,23 @@ export default function StudentResult() {
             // Build tests array using API data (keep all relevant rows and history)
             const updatedTests: TestRow[] = [];
 
-            // 1) Screening Test - latest
+            // 1) Screening Test - show ALL attempts, not just latest
             const examSessions = data.data.exam_sessions || [];
-            const latestExam =
-              examSessions.length > 0
-                ? examSessions.reduce((latest, current) =>
-                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                  )
-                : null;
-
-            if (latestExam) {
-              updatedTests.push({
-                id: 1,
-                name: "Screening Test",
-                status: latestExam.is_passed ? "Pass" : "Fail",
-                score: latestExam.obtained_marks ?? "-",
-                action: latestExam.is_passed ? "Completed" : "Failed",
-                slotBooking: { status: null, scheduledTime: latestExam.date_of_test || "" },
+            
+            if (examSessions.length > 0) {
+              // Sort by date oldest to newest
+              examSessions.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              
+              // Push each screening test attempt
+              examSessions.forEach((exam: any, index: number) => {
+                updatedTests.push({
+                  id: 100 + index,
+                  name: examSessions.length > 1 ? `Screening Test (Attempt ${index + 1})` : "Screening Test",
+                  status: exam.is_passed ? "Pass" : "Fail",
+                  score: exam.obtained_marks ?? "-",
+                  action: exam.is_passed ? "Completed" : "Failed",
+                  slotBooking: { status: null, scheduledTime: exam.date_of_test || "" },
+                });
               });
             }
 
@@ -142,8 +142,9 @@ if (latestLR) {
   else if (lrText.toLowerCase().includes("fail")) lrStatus = "Fail";
 }
 
-// If there are no LR attempts but screening passed, show a single pending LR row so student can book
-if (lrRounds.length === 0 && latestExam?.is_passed) {
+// If there are no LR attempts but ANY screening test was passed, show a single pending LR row so student can book
+const hasPassedScreening = examSessions.some((exam: any) => exam.is_passed);
+if (lrRounds.length === 0 && hasPassedScreening) {
   updatedTests.push({
     id: 2,
     name: "Learning Round",
@@ -206,10 +207,9 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
   });
 }
 
-// Finally, set tests context so UI renders
-            if (updatedTests.length > 0) {
-              setTests(updatedTests);
-            }
+// Finally, set tests context so UI renders - ALWAYS set, even if empty
+            console.log("Updated Tests Array:", updatedTests);
+            setTests(updatedTests);
           }
         } else {
           const savedForm = localStorage.getItem("studentFormData");
@@ -311,7 +311,8 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                   </tr>
                 </thead>
                 <tbody>
-                  {tests?.map((test: TestRow) => {
+                  {tests && tests.length > 0 ? (
+                    tests.map((test: TestRow) => {
                     const slotStatus = normalizeBooking(test.slotBooking?.status);
                     const isSlotBooked = slotStatus === "booked" || slotStatus === "pending";
                     const isSlotCancelled = slotStatus === "cancelled";
@@ -342,32 +343,36 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                             : "-"}
                         </td>
                         <td className="px-4 py-2 border">
-                          {/* Screening Test Actions */}
-                          {test.name === "Screening Test" &&
-                            (test.status === "Fail" ? (
+                          {/* Screening Test Actions - Only show Retest button for Fail */}
+                          {test.name.includes("Screening Test") ? (
+                            test.status === "Fail" ? (
                               <Button onClick={handleRetestNavigation} className="bg-orange-500 hover:bg-orange-600">
                                 Retest
                               </Button>
                             ) : (
                               <p className="text-gray-600">-</p>
-                            ))}
-
-                          {/* Book/Reschedule for LR & CFR */}
-                          {test.name !== "Screening Test" && (test.status === "Pending" || test.status === "Fail" || test.status === "Pass") && (
+                            )
+                          ) : (
+                            /* Book/Reschedule for LR & CFR only */
                             <>
-                              {isSlotBooked && !isSlotCancelled ? (
+                              {test.status === "Pass" ? (
+                                <p className="text-gray-600">-</p>
+                              ) : test.status === "Fail" ? (
                                 <Button onClick={() => handleBooking(test.id, test.name)} variant="outline">
                                   Reschedule
                                 </Button>
                               ) : (
-                                // If no slot booked yet, show Book Slot for pending status only
-                                test.status === "Pending" ? (
-                                  <Button onClick={() => handleBooking(test.id, test.name)} className="bg-green-600 hover:bg-green-700">
-                                    Book Slot
-                                  </Button>
-                                ) : (
-                                  <p className="text-gray-600">-</p>
-                                )
+                                <>
+                                  {isSlotBooked && !isSlotCancelled ? (
+                                    <Button onClick={() => handleBooking(test.id, test.name)} variant="outline">
+                                      Reschedule
+                                    </Button>
+                                  ) : (
+                                    <Button onClick={() => handleBooking(test.id, test.name)} className="bg-green-600 hover:bg-green-700">
+                                      Book Slot
+                                    </Button>
+                                  )}
+                                </>
                               )}
                             </>
                           )}
@@ -375,63 +380,19 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                         <td className="px-4 py-2 border">{test.score ?? "-"}</td>
                       </tr>
                     );
-                  })}
+                  })
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                        No test data available
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </CardContent>
         </Card>
-
-        {/* Exam History - Show if multiple attempts */}
-        {completeData && completeData.data.exam_sessions?.length > 1 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Screening Test History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {completeData.data.exam_sessions
-                  .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .map((exam: any, index: number) => (
-                    <div
-                      key={exam.id}
-                      className={`p-4 rounded-lg border ${
-                        exam.is_passed ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-semibold text-gray-700">Attempt {completeData.data.exam_sessions.length - index}</span>
-                        <span
-                          className={`px-3 py-1 rounded text-sm font-medium ${
-                            exam.is_passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {exam.is_passed ? "Pass" : "Fail"}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Score:</span> {exam.obtained_marks} / {exam.total_marks}
-                        {exam.percentage > 0 && ` (${exam.percentage.toFixed(1)}%)`}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Date:</span>{" "}
-                        {new Date(exam.date_of_test).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                      {exam.exam_centre && (
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Exam Centre:</span> {exam.exam_centre}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Congratulations Message - Only show if Offer Sent */}
         {completeData?.data.final_decisions?.length > 0 && 
@@ -455,7 +416,7 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                         </p>
                       </div>
                       
-                      {decision.joining_date && (
+                      {/* {decision.joining_date && (
                         <div className="rounded-lg p-3">
                           <p className="text-base">
                             <span className="font-semibold text-gray-700">Joining Date:</span>{" "}
@@ -468,7 +429,7 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                             </span>
                           </p>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   )
                 ))}
