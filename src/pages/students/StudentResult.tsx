@@ -208,7 +208,6 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
 }
 
 // Finally, set tests context so UI renders - ALWAYS set, even if empty
-            console.log("Updated Tests Array:", updatedTests);
             setTests(updatedTests);
           }
         } else {
@@ -317,6 +316,20 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                     const isSlotBooked = slotStatus === "booked" || slotStatus === "pending";
                     const isSlotCancelled = slotStatus === "cancelled";
 
+                    // Check if any attempt of the same type has passed
+                    const hasPassedAttempt = tests.some((t: TestRow) => {
+                      if (test.name.includes("Screening Test") && t.name.includes("Screening Test")) {
+                        return t.status === "Pass";
+                      }
+                      if (test.name.includes("Learning Round") && t.name.includes("Learning Round")) {
+                        return t.status === "Pass";
+                      }
+                      if (test.name.includes("Cultural Fit Round") && t.name.includes("Cultural Fit Round")) {
+                        return t.status === "Pass";
+                      }
+                      return false;
+                    });
+
                     return (
                       <tr key={test.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2 border">{test.name}</td>
@@ -345,7 +358,13 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                         <td className="px-4 py-2 border">
                           {/* Screening Test Actions - Only show Retest button for Fail */}
                           {test.name.includes("Screening Test") ? (
-                            test.status === "Fail" ? (
+                            test.status === "Pass" ? (
+                              <p className="text-gray-600">-</p>
+                            ) : hasPassedAttempt ? (
+                              <Button disabled className="bg-gray-300 text-gray-500 cursor-not-allowed">
+                                Retest
+                              </Button>
+                            ) : test.status === "Fail" ? (
                               <Button onClick={handleRetestNavigation} className="bg-orange-500 hover:bg-orange-600">
                                 Retest
                               </Button>
@@ -357,6 +376,10 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                             <>
                               {test.status === "Pass" ? (
                                 <p className="text-gray-600">-</p>
+                              ) : hasPassedAttempt ? (
+                                <Button disabled className="bg-gray-300 text-gray-500 cursor-not-allowed" variant="outline">
+                                  Reschedule
+                                </Button>
                               ) : test.status === "Fail" ? (
                                 <Button onClick={() => handleBooking(test.id, test.name)} variant="outline">
                                   Reschedule
