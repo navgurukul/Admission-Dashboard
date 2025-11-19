@@ -349,6 +349,9 @@ if (lrStatus === "Pass" && cfrRounds.length === 0) {
                         <td className="px-4 py-2 border">
                           {test.slotBooking?.scheduledTime
                             ? new Date(test.slotBooking.scheduledTime).toLocaleTimeString("en-US", {
+                                year:"numeric",
+                                month:"2-digit",
+                                day:"2-digit",
                                 hour: "2-digit",
                                 minute: "2-digit",
                                 hour12: true
