@@ -409,7 +409,7 @@ const Schedule = () => {
               <div className="flex items-center gap-4">
                 <div className="flex-1 max-w-xs">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Filter by Date (Optional)
+                    Filter by Date 
                   </label>
                   <input
                     type="date"
