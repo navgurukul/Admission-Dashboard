@@ -31,7 +31,6 @@ interface TimeSlot {
   date?: Date;
   startTime: string;
   endTime: string;
-  interviewer: string;
   slot_type: string;
 }
 
@@ -47,15 +46,16 @@ export function AddSlotsModal({
   onSuccess,
 }: AddSlotsModalProps) {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { date: undefined, startTime: "", endTime: "", interviewer: "", slot_type: "" },
+    { date: undefined, startTime: "", endTime: "", slot_type: "" },
   ]);
   const [loading, setLoading] = useState(false);
+  const [openPopovers, setOpenPopovers] = useState<Record<number, boolean>>({});
   const { toast } = useToast();
 
   const addTimeSlot = () => {
     setTimeSlots([
       ...timeSlots,
-      { date: undefined, startTime: "", endTime: "", interviewer: "", slot_type: "" },
+      { date: undefined, startTime: "", endTime: "", slot_type: "" },
     ]);
   };
 
@@ -167,7 +167,8 @@ export function AddSlotsModal({
   };
 
   const handleClose = () => {
-    setTimeSlots([{ date: undefined, startTime: "", endTime: "", interviewer: "", slot_type: "" }]);
+    setTimeSlots([{ date: undefined, startTime: "", endTime: "", slot_type: "" }]);
+    setOpenPopovers({});
     onClose();
   };
 
@@ -206,7 +207,10 @@ export function AddSlotsModal({
                 {/* Date Selection */}
                 <div className="space-y-2">
                   <Label>Select Date</Label>
-                  <Popover>
+                  <Popover 
+                    open={openPopovers[index]} 
+                    onOpenChange={(open) => setOpenPopovers(prev => ({ ...prev, [index]: open }))}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -223,9 +227,13 @@ export function AddSlotsModal({
                       <CalendarComponent
                         mode="single"
                         selected={slot.date}
-                        onSelect={(newDate) => updateTimeSlot(index, "date", newDate!)}
+                        onSelect={(newDate) => {
+                          if (newDate) {
+                            updateTimeSlot(index, "date", newDate);
+                            setOpenPopovers(prev => ({ ...prev, [index]: false }));
+                          }
+                        }}
                         initialFocus
-                        className={cn("p-3 pointer-events-auto")}
                         disabled={(date) => date < new Date()}
                       />
                     </PopoverContent>
