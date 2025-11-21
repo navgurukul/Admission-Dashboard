@@ -221,8 +221,9 @@ const AdminPage: React.FC = () => {
     }
 
     // Use trimmed username or fallback to email prefix
-    const finalUsername = usernameTrim || emailTrim.split("@")[0];
-    
+    const firstName = nameTrim.split(" ")[0].toLowerCase();
+    const finalUsername = usernameTrim || firstName;
+
     console.log("Creating user - Username field:", usernameTrim, "Final username:", finalUsername);
     
     const payload = {
