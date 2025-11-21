@@ -145,7 +145,7 @@ export function AddSlotsModal({
       }));
 
       await createSlotBookingTimes(slotsData);
-      console.log("Slots created via API", slotsData);
+      // console.log("Slots created via API", slotsData);
 
       toast({
         title: "Success",

@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
@@ -29,6 +36,7 @@ interface EditSlotModalProps {
     date: string;
     start_time: string;
     end_time: string;
+    slot_type:string;
   } | null;
 }
 
@@ -42,6 +50,7 @@ export function EditSlotModal({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [loading, setLoading] = useState(false);
+    const [slotType, setSlotType] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,6 +59,7 @@ export function EditSlotModal({
       setDate(new Date(slotData.date));
       setStartTime(slotData.start_time);
       setEndTime(slotData.end_time);
+      setSlotType(slotData.slot_type);
     }
   }, [slotData, isOpen]);
 
@@ -107,6 +117,7 @@ export function EditSlotModal({
         date: format(date, "yyyy-MM-dd"),
         start_time: startTime,
         end_time: endTime,
+        slot_type :slotType,
       };
 
       await updateSlot(slotData!.id, payload);
@@ -134,6 +145,7 @@ export function EditSlotModal({
     setDate(undefined);
     setStartTime("");
     setEndTime("");
+    setSlotType("");
     onClose();
   };
 
@@ -175,6 +187,19 @@ export function EditSlotModal({
                 />
               </PopoverContent>
             </Popover>
+          </div>
+
+           <div className="space-y-2">
+            <Label htmlFor="slot-type">Slot Type</Label>
+            <Select value={slotType} onValueChange={setSlotType}>
+              <SelectTrigger id="slot-type">
+                <SelectValue placeholder="Select slot type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LR">Learning Round (LR)</SelectItem>
+                <SelectItem value="CFR">Cultural Fit Round (CFR)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Time Fields */}

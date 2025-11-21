@@ -10,7 +10,8 @@ export function AdmissionsSidebar() {
   const { user: googleUser, signOut: googleSignOut } = useGoogleAuth();
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
-  
+    const location = useLocation();
+    
   // Get profile image and user from helper functions
   const profileImage = getUserProfileImage();
   const currentUser = getCurrentUser();
@@ -41,7 +42,6 @@ export function AdmissionsSidebar() {
     userInfo?.avatar;
   
   const roleId = currentUser?.user_role_id || googleUser?.role_id || 2;
-  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -49,13 +49,20 @@ export function AdmissionsSidebar() {
         googleSignOut();
       }
       logoutUser(); // This clears localStorage
-      window.location.href = "/students/login";
+      window.location.href = "/Admission-Dashboard/students/login";
     } catch (error) {
       console.error("Logout error:", error);
       // Force logout anyway
       logoutUser();
-      window.location.href = "/students/login";
+      window.location.href = "/Admission-Dashboard/students/login";
     }
+  };
+   // Check if current path is interview related
+  const isInterviewActive = (href: string) => {
+    if (href === "/interviews") {
+      return location.pathname === "/interviews" || location.pathname === "/schedule";
+    }
+    return location.pathname === href;
   };
 
   return (
@@ -140,10 +147,10 @@ export function AdmissionsSidebar() {
               <NavLink
                 key={item.href}
                 to={item.href}
-                className={({ isActive }) =>
+                className={() =>
                   cn(
                     "block p-2 rounded",
-                    isActive
+                    isInterviewActive(item.href)
                       ? "bg-gray-600 text-white"
                       : "text-gray-300 hover:bg-gray-700"
                   )

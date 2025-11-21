@@ -589,6 +589,7 @@ export const updateSlot = async (
   payload: {
     start_time: string;
     end_time: string;
+    slot_type:string;
     date: string;
   }
 ) => {

@@ -90,10 +90,10 @@ const Schedule = () => {
       setAllSlots(slots);
       setAvailableSlots(slots); // Show all by default
 
-      toast({
-        title: "Success",
-        description: `Loaded ${slots.length} available slots`,
-      });
+      // toast({
+      //   title: "Success",
+      //   description: `Loaded ${slots.length} available slots`,
+      // });
     } catch (error) {
       console.error("Error fetching slots:", error);
       toast({
@@ -390,7 +390,7 @@ const Schedule = () => {
                     <Plus className="w-4 h-4 mr-2" />
                     Add Slots
                   </Button>
-                  <Button
+                  {/* <Button
                     onClick={() => {
                       setIsDirectScheduleMode(true);
                       setSelectedSlotForScheduling(null);
@@ -400,7 +400,7 @@ const Schedule = () => {
                   >
                     <Video className="w-4 h-4 mr-2" />
                     Schedule
-                  </Button>
+                  </Button> */}
                   
                 </div>
               </div>
@@ -409,7 +409,7 @@ const Schedule = () => {
               <div className="flex items-center gap-4">
                 <div className="flex-1 max-w-xs">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Filter by Date (Optional)
+                    Filter by Date 
                   </label>
                   <input
                     type="date"
@@ -427,11 +427,11 @@ const Schedule = () => {
                     Clear Filter
                   </Button>
                 )}
-                <div className="mt-6 text-sm text-muted-foreground">
-                  {selectedDate
-                    ? `Showing slots for ${new Date(selectedDate).toLocaleDateString()}`
-                    : `Showing all ${availableSlots.length} slots`}
-                </div>
+                {/* <div className="mt-6 text-sm text-muted-foreground">
+                  {selectedDate && 
+                     `Showing slots for ${new Date(selectedDate).toLocaleDateString()}`}
+                     
+                </div> */}
               </div>
             </div>
 
@@ -648,7 +648,8 @@ const Schedule = () => {
         title="Delete Slot"
         description={
           slotToDelete
-            ? `Are you sure you want to delete this slot?\n\nDate: ${new Date(slotToDelete.date).toLocaleDateString()}\nTime: ${formatTime(slotToDelete.start_time)} - ${formatTime(slotToDelete.end_time)}\n\nThis action cannot be undone.`
+            ? `Are you sure you want to delete this slot?\n\nDate: ${new Date(slotToDelete.date).toLocaleDateString()}\nTime: ${formatTime(slotToDelete.start_time)} - ${formatTime(slotToDelete.end_time)}
+            Slot Type: ${slotToDelete.slot_type}\nThis action cannot be undone.`
             : ""
         }
         confirmText="Delete Slot"
