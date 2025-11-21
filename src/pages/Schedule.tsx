@@ -543,7 +543,7 @@ const Schedule = () => {
                           {/* Actions */}
                           <td className="p-4">
                             <div className="flex items-center gap-2">
-                              {!slot.is_booked && (
+                              {/* {!slot.is_booked && (
                                 <Button
                                   variant="default"
                                   size="sm"
@@ -555,7 +555,7 @@ const Schedule = () => {
                                 >
                                   <Video className="w-3 h-3 mr-1" />
                                 </Button>
-                              )}
+                              )} */}
 
                               <Button
                                 variant="outline"
@@ -649,7 +649,7 @@ const Schedule = () => {
         description={
           slotToDelete
             ? `Are you sure you want to delete this slot?\n\nDate: ${new Date(slotToDelete.date).toLocaleDateString()}\nTime: ${formatTime(slotToDelete.start_time)} - ${formatTime(slotToDelete.end_time)}
-            Slot Type: ${slotToDelete.slot_type}\nThis action cannot be undone.`
+            Slot Type: ${slotToDelete.slot_type}\nThis action cannot be revert.`
             : ""
         }
         confirmText="Delete Slot"
