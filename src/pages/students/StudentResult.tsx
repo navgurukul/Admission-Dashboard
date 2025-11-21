@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
-import { getCompleteStudentData, CompleteStudentData } from "@/utils/api";
+import { getCompleteStudentData, CompleteStudentData,getAllStates } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface Student {
@@ -17,16 +17,16 @@ interface Student {
   state: string;
 }
 
-type BookingStatus = string | null | undefined;
+type BookingStatus = "Pending" | "Booked" | "Cancelled" | "Completed" | null;
 
 type TestRow = {
   id: number;
   name: string;
-  status: "Pass" | "Fail" | "Pending" | string;
-  score: number | null | string;
+  status: "Pass" | "Fail" | "Pending" | "-";
+  score: number | null;
   action: string;
-  slotBooking?: {
-    status?: BookingStatus; // API values like 'pending', 'booked', 'cancelled'
+  slotBooking: {
+    status: BookingStatus;
     scheduledTime?: string;
   };
 };
@@ -37,6 +37,7 @@ export default function StudentResult() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [states, setStates] = useState<any[]>([]);
   const { tests, setTests } = useTests();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,8 +45,37 @@ export default function StudentResult() {
   // Helper: normalize booking status
   const normalizeBooking = (val: any): BookingStatus => {
     if (!val) return null;
-    return String(val).toLowerCase();
+    const normalized = String(val).toLowerCase();
+    if (normalized === 'pending') return 'Pending';
+    if (normalized === 'booked') return 'Booked';
+    if (normalized === 'cancelled') return 'Cancelled';
+    if (normalized === 'completed') return 'Completed';
+    return null;
   };
+
+  // Fetch states on mount
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const statesData = await getAllStates();
+        console.log("Fetched states:", statesData);
+        setStates(statesData || []);
+      } catch (error) {
+        console.error("Error fetching states:", error);
+        setStates([]);
+      }
+    };
+    fetchStates();
+  }, []);
+
+ const getStateByCodeId = async(codeId: string): Promise<string> => {
+  if (!codeId) return "";
+  const states = await getAllStates();
+  const match = states.data.find((s: any) => s.state_code === codeId );
+  return match?.state_name || "";
+};
+
+
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -75,6 +105,9 @@ export default function StudentResult() {
 
           const profile = data.data.student;
           if (profile) {
+            console.log("state:", profile.state);
+            const stateName = await getStateByCodeId(profile.state);
+            console.log("Mapped state name:", stateName);
             setStudent({
               firstName: profile.first_name || "",
               middleName: profile.middle_name || "",
@@ -83,7 +116,7 @@ export default function StudentResult() {
               whatsappNumber:
                 profile.whatsapp_number || profile.phone_number || "",
               city: profile.city || "",
-              state: profile.state || "",
+              state:  stateName || "",
             });
 
             // Build tests array using API data (keep all relevant rows and history)
@@ -360,8 +393,8 @@ export default function StudentResult() {
                         test.slotBooking?.status
                       );
                       const isSlotBooked =
-                        slotStatus === "booked" || slotStatus === "pending";
-                      const isSlotCancelled = slotStatus === "cancelled";
+                        slotStatus === "Booked" || slotStatus === "Pending";
+                      const isSlotCancelled = slotStatus === "Cancelled";
 
                       // Check if any attempt of the same type has passed
                       const hasPassedAttempt = tests.some((t: TestRow) => {
