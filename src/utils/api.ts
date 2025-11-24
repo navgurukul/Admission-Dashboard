@@ -894,7 +894,9 @@ export interface CompleteStudentData {
     student: any;
     exam_sessions: any[];
     interview_learner_round: any[];
+    interview_schedules_lr: any[];
     interview_cultural_fit_round: any[];
+    interview_schedules_cfr: any[];
     final_decisions: any[];
   };
 }
