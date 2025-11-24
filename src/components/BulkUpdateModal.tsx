@@ -246,20 +246,43 @@ export function BulkUpdateModal({
     if (updateData.currentWorkId !== "no_change") {
       payload.current_status_id = Number(updateData.currentWorkId);
     }
-    if (updateData.offerLetterStatus !== "no_change") {
-      payload.offer_letter_status = updateData.offerLetterStatus;
-    }
-    if (updateData.onboardedStatus !== "no_change") {
-      payload.onboarded_status = updateData.onboardedStatus;
-    }
-    if (updateData.joiningDate) {
-      payload.joining_date = updateData.joiningDate;
-    }
+    // Note: offer_letter_status, onboarded_status, joining_date, and final_notes
+    // are handled separately through submitFinalDecision API
 
     setLoading(true);
 
     try {
+      // First, update student fields (campus, location, qualifications, etc.)
       await bulkUpdateStudents(payload);
+
+      // If final decision fields are present, update them separately
+      if (updateData.finalNotes || updateData.offerLetterStatus !== "no_change" || 
+          updateData.onboardedStatus !== "no_change" || updateData.joiningDate) {
+        
+        // Update final decision for each student
+        const finalDecisionPromises = selectedApplicants.map(studentId => {
+          const finalDecisionPayload: any = {
+            student_id: Number(studentId),
+          };
+
+          if (updateData.finalNotes) {
+            finalDecisionPayload.final_notes = updateData.finalNotes;
+          }
+          if (updateData.offerLetterStatus !== "no_change") {
+            finalDecisionPayload.offer_letter_status = updateData.offerLetterStatus;
+          }
+          if (updateData.onboardedStatus !== "no_change") {
+            finalDecisionPayload.onboarded_status = updateData.onboardedStatus;
+          }
+          if (updateData.joiningDate) {
+            finalDecisionPayload.joining_date = updateData.joiningDate;
+          }
+
+          return submitFinalDecision(finalDecisionPayload);
+        });
+
+        await Promise.all(finalDecisionPromises);
+      }
 
       toast({
         title: "Success",
