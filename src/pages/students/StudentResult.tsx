@@ -4,8 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
-import { getCompleteStudentData, CompleteStudentData } from "@/utils/api";
+import {
+  getCompleteStudentData,
+  CompleteStudentData,
+  getAllStates,
+} from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import { OfferLetterCard } from "./OfferLetterCard";
 
 interface Student {
   firstName: string;
@@ -17,16 +22,16 @@ interface Student {
   state: string;
 }
 
-type BookingStatus = string | null | undefined;
+type BookingStatus = "Pending" | "Booked" | "Cancelled" | "Completed" | null;
 
 type TestRow = {
   id: number;
   name: string;
-  status: "Pass" | "Fail" | "Pending" | string;
-  score: number | null | string;
+  status: "Pass" | "Fail" | "Pending" | "-";
+  score: number | null;
   action: string;
-  slotBooking?: {
-    status?: BookingStatus; // API values like 'pending', 'booked', 'cancelled'
+  slotBooking: {
+    status: BookingStatus;
     scheduledTime?: string;
   };
 };
@@ -37,6 +42,7 @@ export default function StudentResult() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [states, setStates] = useState<any[]>([]);
   const { tests, setTests } = useTests();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,7 +50,34 @@ export default function StudentResult() {
   // Helper: normalize booking status
   const normalizeBooking = (val: any): BookingStatus => {
     if (!val) return null;
-    return String(val).toLowerCase();
+    const normalized = String(val).toLowerCase();
+    if (normalized === "pending") return "Pending";
+    if (normalized === "booked") return "Booked";
+    if (normalized === "cancelled") return "Cancelled";
+    if (normalized === "completed") return "Completed";
+    return null;
+  };
+
+  // Fetch states on mount
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const statesData = await getAllStates();
+        // console.log("Fetched states:", statesData);
+        setStates(statesData || []);
+      } catch (error) {
+        console.error("Error fetching states:", error);
+        setStates([]);
+      }
+    };
+    fetchStates();
+  }, []);
+
+  const getStateByCodeId = async (codeId: string): Promise<string> => {
+    if (!codeId) return "";
+    const states = await getAllStates();
+    const match = states.data.find((s: any) => s.state_code === codeId);
+    return match?.state_name || "";
   };
 
   useEffect(() => {
@@ -75,6 +108,9 @@ export default function StudentResult() {
 
           const profile = data.data.student;
           if (profile) {
+            // console.log("state:", profile.state);
+            const stateName = await getStateByCodeId(profile.state);
+            // console.log("Mapped state name:", stateName);
             setStudent({
               firstName: profile.first_name || "",
               middleName: profile.middle_name || "",
@@ -83,7 +119,7 @@ export default function StudentResult() {
               whatsappNumber:
                 profile.whatsapp_number || profile.phone_number || "",
               city: profile.city || "",
-              state: profile.state || "",
+              state: stateName || "",
             });
 
             // Build tests array using API data (keep all relevant rows and history)
@@ -114,7 +150,7 @@ export default function StudentResult() {
                       ? `Screening Test (Attempt ${index + 1})`
                       : "Screening Test",
                   status: screeningStatus,
-                  score: exam.obtained_marks ?? "-",
+                  score: exam.obtained_marks ?? null,
                   action: screeningStatus === "Pass" ? "Completed" : "Failed",
                   slotBooking: {
                     status: null,
@@ -124,17 +160,55 @@ export default function StudentResult() {
               });
             }
 
-            // 2) Learning Round - push ALL attempts
-            const lrRounds = data.data.interview_learner_round || [];
+            // Check if any screening test was passed
+            const hasPassedScreening = examSessions.some(
+              (exam: any) => exam.is_passed
+            );
 
-            // sort oldest -> newest so Attempt 1 is oldest
+            // Helper function to get booked slots from localStorage
+            const getLocalStorageBookedSlots = (slotType: "LR" | "CFR") => {
+              const bookedSlots: any[] = [];
+              // Check all localStorage keys for bookedSlot_ pattern
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith("bookedSlot_")) {
+                  try {
+                    const slotData = JSON.parse(
+                      localStorage.getItem(key) || "{}"
+                    );
+                    // Check if it's the correct type based on topic_name
+                    if (
+                      slotType === "LR" &&
+                      slotData.topic_name === "Learning Round"
+                    ) {
+                      bookedSlots.push({ ...slotData, localStorageKey: key });
+                    } else if (
+                      slotType === "CFR" &&
+                      slotData.topic_name === "Cultural Fit Round"
+                    ) {
+                      bookedSlots.push({ ...slotData, localStorageKey: key });
+                    }
+                  } catch (e) {
+                    console.error("Error parsing localStorage slot:", e);
+                  }
+                }
+              }
+              return bookedSlots;
+            };
+
+            // 2) Learning Round - Rows ONLY created from interview_learner_round
+            const lrRounds = data.data.interview_learner_round || [];
+            const lrSchedules = data.data.interview_schedules_lr || [];
+            const lrLocalSlots = getLocalStorageBookedSlots("LR");
+
+            // Sort completed rounds by creation date (oldest to newest)
             lrRounds.sort(
               (a: any, b: any) =>
                 new Date(a.created_at).getTime() -
                 new Date(b.created_at).getTime()
             );
 
-            // Push each LR attempt as its own row (preserve history)
+            // Push LR rounds - rows are ONLY created from interview_learner_round
             lrRounds.forEach((lr: any, index: number) => {
               const lrText = lr.learning_round_status || "";
               let lrAttemptStatus: "Pass" | "Fail" | "Pending" = "Pending";
@@ -143,24 +217,85 @@ export default function StudentResult() {
               else if (lrText.toLowerCase().includes("fail"))
                 lrAttemptStatus = "Fail";
 
+              // Match schedule by index (attempt number) - sorted by creation date
+              // Sort schedules by creation date to match with attempt number
+              const sortedLrSchedules = [...lrSchedules].sort(
+                (a: any, b: any) =>
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              );
+              
+              // Get the schedule for this attempt (index)
+              const matchingSchedule = sortedLrSchedules[index];
+
+              // Find matching localStorage slot for time/details
+              const matchingLocalSlot = lrLocalSlots.find(
+                (ls: any) => ls.scheduled_interview_id === matchingSchedule?.schedule_id
+              );
+
+              // Determine scheduled time from schedule or localStorage
+              let scheduledTime = "";
+              let slotStatus: BookingStatus = "Completed";
+
+              if (matchingSchedule) {
+                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
+                slotStatus =
+                  lrAttemptStatus === "Pending"
+                    ? normalizeBooking(
+                        matchingSchedule.slot_details?.status ||
+                          matchingSchedule.status
+                      )
+                    : "Completed";
+                // console.log(`LR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
+              } else if (matchingLocalSlot) {
+                scheduledTime = `${matchingLocalSlot.on_date}T${matchingLocalSlot.from}`;
+                slotStatus =
+                  lrAttemptStatus === "Pending"
+                    ? matchingLocalSlot.is_cancelled
+                      ? "Cancelled"
+                      : "Booked"
+                    : "Completed";
+                // console.log(`LR Attempt ${index + 1} scheduledTime from localStorage:`, scheduledTime);
+              } else {
+                scheduledTime = lr.scheduled_time || lr.scheduled_at || "";
+                // console.log(`LR Attempt ${index + 1} scheduledTime from interview_learner_round:`, scheduledTime);
+              }
+
+              // Check if time has passed
+              let hasTimePassed = false;
+              if (scheduledTime) {
+                const scheduledDateTime = new Date(scheduledTime);
+                hasTimePassed = scheduledDateTime < new Date();
+              }
+
               updatedTests.push({
                 id: 200 + index,
-                name: `Learning Round (Attempt ${index + 1})`,
+                name:
+                  lrRounds.length > 1
+                    ? `Learning Round (Attempt ${index + 1})`
+                    : "Learning Round",
                 status: lrAttemptStatus,
                 score: null,
                 action:
-                  lrAttemptStatus === "Pending" ? "slot-book" : "Completed",
+                  lrAttemptStatus === "Pass" || lrAttemptStatus === "Fail"
+                    ? "Completed"
+                    : hasTimePassed
+                    ? "Completed"
+                    : "slot-book",
                 slotBooking: {
-                  status: normalizeBooking(lr.booking_status),
-                  scheduledTime: lr.scheduled_time || lr.scheduled_at || "",
+                  status:
+                    lrAttemptStatus === "Pass" || lrAttemptStatus === "Fail"
+                      ? "Completed"
+                      : hasTimePassed
+                      ? "Completed"
+                      : slotStatus,
+                  scheduledTime: scheduledTime,
                 },
               });
             });
 
-            // Determine latest LR status (used for CFR gating / placeholder)
-            const latestLR = lrRounds.length
-              ? lrRounds[lrRounds.length - 1]
-              : null;
+            // Determine latest LR status (used for CFR gating)
+            const latestLR =
+              lrRounds.length > 0 ? lrRounds[lrRounds.length - 1] : null;
             let lrStatus: "Pass" | "Fail" | "Pending" = "Pending";
             if (latestLR) {
               const lrText = latestLR.learning_round_status || "";
@@ -168,15 +303,232 @@ export default function StudentResult() {
               else if (lrText.toLowerCase().includes("fail")) lrStatus = "Fail";
             }
 
-            // If there are no LR attempts but ANY screening test was passed, show a single pending LR row so student can book
-            const hasPassedScreening = examSessions.some(
-              (exam: any) => exam.is_passed
-            );
-            if (lrRounds.length === 0 && hasPassedScreening) {
+            // If screening passed but no LR rounds exist, create placeholder row
+            if (hasPassedScreening && lrRounds.length === 0) {
+              // Check if there's a booked slot in localStorage or API
+              let bookedSlotInfo: any = null;
+
+              if (lrLocalSlots.length > 0) {
+                bookedSlotInfo = lrLocalSlots[0];
+              } else if (lrSchedules.length > 0) {
+                bookedSlotInfo = lrSchedules[0];
+              }
+
+              let scheduledTime = "";
+              let slotStatus: BookingStatus = null;
+
+              if (bookedSlotInfo) {
+                if (bookedSlotInfo.on_date) {
+                  // localStorage slot
+                  scheduledTime = `${bookedSlotInfo.on_date}T${bookedSlotInfo.from}`;
+                  const scheduledDateTime = new Date(scheduledTime);
+                  const hasTimePassed = scheduledDateTime < new Date();
+                  slotStatus = hasTimePassed
+                    ? "Completed"
+                    : bookedSlotInfo.is_cancelled
+                    ? "Cancelled"
+                    : "Booked";
+                } else {
+                  // API schedule slot
+                  scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                  const scheduledDateTime = new Date(scheduledTime);
+                  const hasTimePassed = scheduledDateTime < new Date();
+                  slotStatus = hasTimePassed
+                    ? "Completed"
+                    : normalizeBooking(
+                        bookedSlotInfo.slot_details?.status ||
+                          bookedSlotInfo.status
+                      );
+                }
+              }
+
+              const hasTimePassed = scheduledTime
+                ? new Date(scheduledTime) < new Date()
+                : false;
+
               updatedTests.push({
                 id: 2,
                 name: "Learning Round",
-                status: lrStatus,
+                status: "Pending",
+                score: null,
+                action: hasTimePassed ? "Completed" : "slot-book",
+                slotBooking: {
+                  status: slotStatus,
+                  scheduledTime: scheduledTime,
+                },
+              });
+            }
+
+            // 3) Cultural Fit Round - Rows ONLY created from interview_cultural_fit_round
+            const cfrRounds = data.data.interview_cultural_fit_round || [];
+            const cfrSchedules = data.data.interview_schedules_cfr || [];
+            const cfrLocalSlots = getLocalStorageBookedSlots("CFR");
+
+            // Sort completed rounds by creation date (oldest to newest)
+            cfrRounds.sort(
+              (a: any, b: any) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+            );
+
+            // Push CFR rounds - rows are ONLY created from interview_cultural_fit_round
+            cfrRounds.forEach((cfr: any, index: number) => {
+              const cfrText = cfr.cultural_fit_status || "";
+              let cfrAttemptStatus: "Pass" | "Fail" | "Pending" = "Pending";
+              if (cfrText.toLowerCase().includes("pass"))
+                cfrAttemptStatus = "Pass";
+              else if (cfrText.toLowerCase().includes("fail"))
+                cfrAttemptStatus = "Fail";
+
+              // Match schedule by index (attempt number) - sorted by creation date
+              // Sort schedules by creation date to match with attempt number
+              const sortedCfrSchedules = [...cfrSchedules].sort(
+                (a: any, b: any) =>
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              );
+              
+              // Get the schedule for this attempt (index)
+              const matchingSchedule = sortedCfrSchedules[index];
+
+              // Find matching localStorage slot for time/details
+              const matchingLocalSlot = cfrLocalSlots.find(
+                (ls: any) => ls.scheduled_interview_id === matchingSchedule?.schedule_id
+              );
+
+              // Determine scheduled time from schedule or localStorage
+              let scheduledTime = "";
+              let slotStatus: BookingStatus = "Completed";
+
+              if (matchingSchedule) {
+                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
+                slotStatus =
+                  cfrAttemptStatus === "Pending"
+                    ? normalizeBooking(
+                        matchingSchedule.slot_details?.status ||
+                          matchingSchedule.status
+                      )
+                    : "Completed";
+                // console.log(`CFR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
+              } else if (matchingLocalSlot) {
+                scheduledTime = `${matchingLocalSlot.on_date}T${matchingLocalSlot.from}`;
+                slotStatus =
+                  cfrAttemptStatus === "Pending"
+                    ? matchingLocalSlot.is_cancelled
+                      ? "Cancelled"
+                      : "Booked"
+                    : "Completed";
+                // console.log(`CFR Attempt ${index + 1} scheduledTime from localStorage:`, scheduledTime);
+              } else {
+                scheduledTime = cfr.scheduled_time || cfr.scheduled_at || "";
+                // console.log(`CFR Attempt ${index + 1} scheduledTime from interview_cultural_fit_round:`, scheduledTime);
+              }
+
+              // Check if time has passed
+              let hasTimePassed = false;
+              if (scheduledTime) {
+                const scheduledDateTime = new Date(scheduledTime);
+                hasTimePassed = scheduledDateTime < new Date();
+              }
+
+              updatedTests.push({
+                id: 300 + index,
+                name:
+                  cfrRounds.length > 1
+                    ? `Cultural Fit Round (Attempt ${index + 1})`
+                    : "Cultural Fit Round",
+                status: cfrAttemptStatus,
+                score: null,
+                action:
+                  cfrAttemptStatus === "Pass" || cfrAttemptStatus === "Fail"
+                    ? "Completed"
+                    : hasTimePassed
+                    ? "Completed"
+                    : "slot-book",
+                slotBooking: {
+                  status:
+                    cfrAttemptStatus === "Pass" || cfrAttemptStatus === "Fail"
+                      ? "Completed"
+                      : hasTimePassed
+                      ? "Completed"
+                      : slotStatus,
+                  scheduledTime: scheduledTime,
+                },
+              });
+            });
+
+            // Determine latest CFR status
+            const latestCFR =
+              cfrRounds.length > 0 ? cfrRounds[cfrRounds.length - 1] : null;
+            let cfrStatus: "Pass" | "Fail" | "Pending" = "Pending";
+            if (latestCFR) {
+              const cfrText = latestCFR.cultural_fit_status || "";
+              if (cfrText.toLowerCase().includes("pass")) cfrStatus = "Pass";
+              else if (cfrText.toLowerCase().includes("fail"))
+                cfrStatus = "Fail";
+            }
+
+            // If latest LR passed and no CFR rounds exist, create placeholder row
+            if (lrStatus === "Pass" && cfrRounds.length === 0) {
+              // Check if there's a booked slot in localStorage or API
+              let bookedSlotInfo: any = null;
+
+              if (cfrLocalSlots.length > 0) {
+                bookedSlotInfo = cfrLocalSlots[0];
+              } else if (cfrSchedules.length > 0) {
+                bookedSlotInfo = cfrSchedules[0];
+              }
+
+              let scheduledTime = "";
+              let slotStatus: BookingStatus = null;
+
+              if (bookedSlotInfo) {
+                if (bookedSlotInfo.on_date) {
+                  // localStorage slot
+                  scheduledTime = `${bookedSlotInfo.on_date}T${bookedSlotInfo.from}`;
+                  const scheduledDateTime = new Date(scheduledTime);
+                  const hasTimePassed = scheduledDateTime < new Date();
+                  slotStatus = hasTimePassed
+                    ? "Completed"
+                    : bookedSlotInfo.is_cancelled
+                    ? "Cancelled"
+                    : "Booked";
+                } else {
+                  // API schedule slot
+                  scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                  const scheduledDateTime = new Date(scheduledTime);
+                  const hasTimePassed = scheduledDateTime < new Date();
+                  slotStatus = hasTimePassed
+                    ? "Completed"
+                    : normalizeBooking(
+                        bookedSlotInfo.slot_details?.status ||
+                          bookedSlotInfo.status
+                      );
+                }
+              }
+
+              const hasTimePassed = scheduledTime
+                ? new Date(scheduledTime) < new Date()
+                : false;
+
+              updatedTests.push({
+                id: 3,
+                name: "Cultural Fit Round",
+                status: "Pending",
+                score: null,
+                action: hasTimePassed ? "Completed" : "slot-book",
+                slotBooking: {
+                  status: slotStatus,
+                  scheduledTime: scheduledTime,
+                },
+              });
+            }
+
+            // If latest LR failed, create new LR placeholder for rebooking
+            if (lrStatus === "Fail") {
+              updatedTests.push({
+                id: 200 + lrRounds.length,
+                name: `Learning Round (Attempt ${lrRounds.length + 1})`,
+                status: "Pending",
                 score: null,
                 action: "slot-book",
                 slotBooking: {
@@ -186,55 +538,11 @@ export default function StudentResult() {
               });
             }
 
-            // 3) Cultural Fit Round - push ALL attempts
-            const cfrRounds = data.data.interview_cultural_fit_round || [];
-
-            // sort oldest -> newest
-            cfrRounds.sort(
-              (a: any, b: any) =>
-                new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime()
-            );
-
-            // Push each CFR attempt as its own row (preserve history)
-            cfrRounds.forEach((cfr: any, index: number) => {
-              const cfrText = cfr.cultural_fit_status || "";
-              let cfrAttemptStatus: "Pass" | "Fail" | "Pending" = "Pending";
-              if (cfrText.toLowerCase().includes("pass"))
-                cfrAttemptStatus = "Pass";
-              else if (cfrText.toLowerCase().includes("fail"))
-                cfrAttemptStatus = "Fail";
-
+            // If latest CFR failed, create new CFR placeholder for rebooking
+            if (cfrStatus === "Fail") {
               updatedTests.push({
-                id: 300 + index,
-                name: `Cultural Fit Round (Attempt ${index + 1})`,
-                status: cfrAttemptStatus,
-                score: null,
-                action:
-                  cfrAttemptStatus === "Pending" ? "slot-book" : "Completed",
-                slotBooking: {
-                  status: normalizeBooking(cfr.booking_status),
-                  scheduledTime: cfr.scheduled_time || cfr.scheduled_at || "",
-                },
-              });
-            });
-
-            // If LR passed and there are no CFR attempts yet, show a placeholder Pending CFR row so user can book
-            const latestCFR = cfrRounds.length
-              ? cfrRounds[cfrRounds.length - 1]
-              : null;
-            let cfrStatus: "Pass" | "Fail" | "Pending" = "Pending";
-            if (latestCFR) {
-              const cfrText = latestCFR.cultural_fit_status || "";
-              if (cfrText.toLowerCase().includes("pass")) cfrStatus = "Pass";
-              else if (cfrText.toLowerCase().includes("fail"))
-                cfrStatus = "Fail";
-            }
-
-            if (lrStatus === "Pass" && cfrRounds.length === 0) {
-              updatedTests.push({
-                id: 3,
-                name: "Culture Fit Round",
+                id: 300 + cfrRounds.length,
+                name: `Cultural Fit Round (Attempt ${cfrRounds.length + 1})`,
                 status: "Pending",
                 score: null,
                 action: "slot-book",
@@ -272,8 +580,12 @@ export default function StudentResult() {
   const handleBooking = (testId: number, testName: string) => {
     let slotType: "LR" | "CFR" | undefined;
 
-    if (testName === "Learning Round") slotType = "LR";
-    else if (testName === "Culture Fit Round") slotType = "CFR";
+    if (testName.includes("Learning Round")) slotType = "LR";
+    else if (
+      testName.includes("Cultural Fit Round") ||
+      testName.includes("Culture Fit Round")
+    )
+      slotType = "CFR";
 
     navigate(`/students/slot-booking/${testId}`, {
       state: { slot_type: slotType },
@@ -331,10 +643,26 @@ export default function StudentResult() {
             </p>
             <p>
               <span className="font-semibold">State:</span>{" "}
-              {student?.state || "-"}
+              {student?.state
+                ? student.state
+                    .toLowerCase()
+                    .replace(/\b\w/g, (c) => c.toUpperCase())
+                : "-"}
             </p>
           </CardContent>
         </Card>
+
+        {/* Congratulations Message - Only show if Offer Sent */}
+        {completeData?.data.final_decisions?.length > 0 &&
+          completeData.data.final_decisions
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime()
+            )[0]
+            ?.offer_letter_status?.toLowerCase() === "offer sent" && (
+            <OfferLetterCard student={completeData.data.student} />
+          )}
 
         {/* Test Results & Slot Booking */}
         <Card>
@@ -356,12 +684,21 @@ export default function StudentResult() {
                 <tbody>
                   {tests && tests.length > 0 ? (
                     tests.map((test: TestRow) => {
-                      const slotStatus = normalizeBooking(
-                        test.slotBooking?.status
-                      );
+                      const slotStatus = test.slotBooking?.status;
                       const isSlotBooked =
-                        slotStatus === "booked" || slotStatus === "pending";
-                      const isSlotCancelled = slotStatus === "cancelled";
+                        slotStatus === "Booked" || slotStatus === "Pending";
+                      const isSlotCompleted = slotStatus === "Completed";
+                      const isSlotCancelled = slotStatus === "Cancelled";
+
+                      // Check if scheduled time has passed
+                      let hasTimePassed = false;
+                      if (test.slotBooking?.scheduledTime) {
+                        const scheduledDateTime = new Date(
+                          test.slotBooking.scheduledTime
+                        );
+                        const now = new Date();
+                        hasTimePassed = scheduledDateTime < now;
+                      }
 
                       // Check if any attempt of the same type has passed
                       const hasPassedAttempt = tests.some((t: TestRow) => {
@@ -406,7 +743,7 @@ export default function StudentResult() {
                             {test.slotBooking?.scheduledTime
                               ? new Date(
                                   test.slotBooking.scheduledTime
-                                ).toLocaleTimeString("en-US", {
+                                ).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",
                                   day: "2-digit",
@@ -441,17 +778,29 @@ export default function StudentResult() {
                             ) : (
                               /* Book/Reschedule for LR & CFR only */
                               <>
-                                {test.status === "Pass" ? (
+                                {/* If completed (Pass/Fail), show nothing */}
+                                {test.action === "Completed" ? (
                                   <p className="text-gray-600">-</p>
                                 ) : hasPassedAttempt ? (
+                                  /* If another attempt passed, disable button */
                                   <Button
                                     disabled
                                     className="bg-gray-300 text-gray-500 cursor-not-allowed"
                                     variant="outline"
                                   >
-                                    Reschedule
+                                    {isSlotBooked ? "Reschedule" : "Book Slot"}
                                   </Button>
-                                ) : test.status === "Fail" ? (
+                                ) : hasTimePassed && !isSlotCompleted ? (
+                                  /* If time passed but not completed, disable (awaiting result) */
+                                  <Button
+                                    disabled
+                                    className="bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    variant="outline"
+                                  >
+                                    Interview Completed
+                                  </Button>
+                                ) : isSlotBooked && !isSlotCancelled ? (
+                                  /* If slot is booked and time not passed, show Reschedule */
                                   <Button
                                     onClick={() =>
                                       handleBooking(test.id, test.name)
@@ -461,27 +810,15 @@ export default function StudentResult() {
                                     Reschedule
                                   </Button>
                                 ) : (
-                                  <>
-                                    {isSlotBooked && !isSlotCancelled ? (
-                                      <Button
-                                        onClick={() =>
-                                          handleBooking(test.id, test.name)
-                                        }
-                                        variant="outline"
-                                      >
-                                        Reschedule
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        onClick={() =>
-                                          handleBooking(test.id, test.name)
-                                        }
-                                        className="bg-green-600 hover:bg-green-700"
-                                      >
-                                        Book Slot
-                                      </Button>
-                                    )}
-                                  </>
+                                  /* Default: Show Book Slot */
+                                  <Button
+                                    onClick={() =>
+                                      handleBooking(test.id, test.name)
+                                    }
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    Book Slot
+                                  </Button>
                                 )}
                               </>
                             )}
@@ -507,61 +844,6 @@ export default function StudentResult() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Congratulations Message - Only show if Offer Sent */}
-        {completeData?.data.final_decisions?.length > 0 &&
-          completeData.data.final_decisions
-            .sort(
-              (a: any, b: any) =>
-                new Date(b.created_at).getTime() -
-                new Date(a.created_at).getTime()
-            )[0]
-            ?.offer_letter_status?.toLowerCase() === "offer sent" && (
-            <Card className="mt-6 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-              <CardHeader>
-                <CardTitle className="text-green-800">
-                  🎉 Congratulations!
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {completeData.data.final_decisions
-                  .sort(
-                    (a: any, b: any) =>
-                      new Date(b.created_at).getTime() -
-                      new Date(a.created_at).getTime()
-                  )
-                  .map(
-                    (decision: any, index: number) =>
-                      index === 0 && ( // Show only the latest decision
-                        <div key={decision.id} className="space-y-4">
-                          <div className="rounded-lg p-4">
-                            <p className="text-lg text-center text-gray-800 leading-relaxed">
-                              🎊 Your offer letter has been sent successfully.
-                              Please check your registered email for details
-                              regarding the next steps.
-                            </p>
-                          </div>
-
-                          {/* {decision.joining_date && (
-                        <div className="rounded-lg p-3">
-                          <p className="text-base">
-                            <span className="font-semibold text-gray-700">Joining Date:</span>{" "}
-                            <span className="text-green-700 font-semibold">
-                              {new Date(decision.joining_date).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </span>
-                          </p>
-                        </div>
-                      )} */}
-                        </div>
-                      )
-                  )}
-              </CardContent>
-            </Card>
-          )}
       </div>
     </div>
   );

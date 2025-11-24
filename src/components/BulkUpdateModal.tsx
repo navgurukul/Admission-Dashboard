@@ -24,7 +24,8 @@ import {
   getStudentById,
   bulkUpdateStudents
 } from "@/utils/api";
-import { Input } from "@/components/ui/input"; 
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CampusOption {
   id: number;
@@ -67,7 +68,6 @@ export function BulkUpdateModal({
   onClose,
   onSuccess,
 }: BulkUpdateModalProps) {
-  // ---------- Expanded update payload ----------
   const [updateData, setUpdateData] = useState({
     stageId: "no_change",
     statusId: "no_change",
@@ -76,7 +76,6 @@ export function BulkUpdateModal({
     district: "no_change",
     block: "no_change",
     city: "",
-    // NEW fields
     castId: "no_change",
     qualificationId: "no_change",
     currentWorkId: "no_change",
@@ -86,13 +85,11 @@ export function BulkUpdateModal({
     finalNotes: "",
   });
 
-
   const [statusOptions, setStatusOptions] = useState<Status[]>([]);
   const [campusOptions, setCampusOptions] = useState<CampusOption[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // New location & state data
   const [stateOptions, setStateOptions] = useState<StateOption[]>([]);
   const [districtOptions, setDistrictOptions] = useState<DistrictOption[]>([]);
   const [blockOptions, setBlockOptions] = useState<BlockOption[]>([]);
@@ -101,16 +98,13 @@ export function BulkUpdateModal({
   const [qualificationOptions, setQualificationOptions] = useState<{ value: string; label: string }[]>([]);
   const [currentWorkOptions, setCurrentWorkOptions] = useState<{ value: string; label: string }[]>([]);
 
-  // Fetch stages and campuses when modal opens, plus states and the new dropdowns
   useEffect(() => {
     if (isOpen) {
-  
       fetchCampuses();
       fetchStates();
-      fetchDropdowns(); // NEW
+      fetchDropdowns();
     }
   }, [isOpen]);
-
 
   const fetchCampuses = async () => {
     try {
@@ -135,7 +129,6 @@ export function BulkUpdateModal({
     }
   };
 
-  // NEW: fetch cast / qualification / current work options
   const fetchDropdowns = async () => {
     try {
       const [castsRes, qualsRes, statusRes] = await Promise.all([
@@ -168,8 +161,6 @@ export function BulkUpdateModal({
       console.error("Error fetching dropdowns:", err);
     }
   };
-
-  // ---------- Dependent dropdowns ----------
 
   const handleStateChange = async (stateCode: string) => {
     setUpdateData((prev) => ({ ...prev, state: stateCode, district: "no_change", block: "no_change" }));
@@ -206,112 +197,132 @@ export function BulkUpdateModal({
     }
   };
 
-const handleBulkUpdate = async () => {
-  const isNoChange =
-    updateData.stageId === "no_change" &&
-    updateData.campusId === "no_change" &&
-    updateData.state === "no_change" &&
-    updateData.district === "no_change" &&
-    updateData.block === "no_change" &&
-    updateData.castId === "no_change" &&
-    updateData.qualificationId === "no_change" &&
-    updateData.currentWorkId === "no_change" &&
-    updateData.offerLetterStatus === "no_change" &&
-    updateData.onboardedStatus === "no_change" &&
-    !updateData.joiningDate &&
-    !updateData.finalNotes;
+  const handleBulkUpdate = async () => {
+    const isNoChange =
+      updateData.stageId === "no_change" &&
+      updateData.campusId === "no_change" &&
+      updateData.state === "no_change" &&
+      updateData.district === "no_change" &&
+      updateData.block === "no_change" &&
+      updateData.castId === "no_change" &&
+      updateData.qualificationId === "no_change" &&
+      updateData.currentWorkId === "no_change" &&
+      updateData.offerLetterStatus === "no_change" &&
+      updateData.onboardedStatus === "no_change" &&
+      !updateData.joiningDate &&
+      !updateData.finalNotes;
 
-  if (isNoChange) {
-    toast({
-      title: "Error",
-      description: "Please select the field to update.",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (isNoChange) {
+      toast({
+        title: "Error",
+        description: "Please select the field to update.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  // Build bulk update payload
-  const payload: any = {
-    student_ids: selectedApplicants.map(id => Number(id)),
+    const payload: any = {
+      student_ids: selectedApplicants.map(id => Number(id)),
+    };
+
+    if (updateData.campusId !== "no_change") {
+      payload.campus_id = updateData.campusId === "unassigned" ? null : Number(updateData.campusId);
+    }
+    if (updateData.state !== "no_change") {
+      payload.state = updateData.state;
+    }
+    if (updateData.district !== "no_change") {
+      payload.district = updateData.district;
+    }
+    if (updateData.block !== "no_change") {
+      payload.block = updateData.block;
+    }
+    if (updateData.castId !== "no_change") {
+      payload.cast_id = Number(updateData.castId);
+    }
+    if (updateData.qualificationId !== "no_change") {
+      payload.qualification_id = Number(updateData.qualificationId);
+    }
+    if (updateData.currentWorkId !== "no_change") {
+      payload.current_status_id = Number(updateData.currentWorkId);
+    }
+    // Note: offer_letter_status, onboarded_status, joining_date, and final_notes
+    // are handled separately through submitFinalDecision API
+
+    setLoading(true);
+
+    try {
+      // First, update student fields (campus, location, qualifications, etc.)
+      await bulkUpdateStudents(payload);
+
+      // If final decision fields are present, update them separately
+      if (updateData.finalNotes || updateData.offerLetterStatus !== "no_change" || 
+          updateData.onboardedStatus !== "no_change" || updateData.joiningDate) {
+        
+        // Update final decision for each student
+        const finalDecisionPromises = selectedApplicants.map(studentId => {
+          const finalDecisionPayload: any = {
+            student_id: Number(studentId),
+          };
+
+          if (updateData.finalNotes) {
+            finalDecisionPayload.final_notes = updateData.finalNotes;
+          }
+          if (updateData.offerLetterStatus !== "no_change") {
+            finalDecisionPayload.offer_letter_status = updateData.offerLetterStatus;
+          }
+          if (updateData.onboardedStatus !== "no_change") {
+            finalDecisionPayload.onboarded_status = updateData.onboardedStatus;
+          }
+          if (updateData.joiningDate) {
+            finalDecisionPayload.joining_date = updateData.joiningDate;
+          }
+
+          return submitFinalDecision(finalDecisionPayload);
+        });
+
+        await Promise.all(finalDecisionPromises);
+      }
+
+      toast({
+        title: "Success",
+        description: `Updated ${selectedApplicants.length} applicant(s) successfully.`,
+      });
+
+      onSuccess();
+      onClose();
+
+      setUpdateData({
+        stageId: "no_change",
+        statusId: "no_change",
+        campusId: "no_change",
+        state: "no_change",
+        district: "no_change",
+        block: "no_change",
+        city: "",
+        castId: "no_change",
+        qualificationId: "no_change",
+        currentWorkId: "no_change",
+        offerLetterStatus: "no_change",
+        onboardedStatus: "no_change",
+        joiningDate: "",
+        finalNotes: "",
+      });
+    } catch (err: any) {
+      console.error("Bulk update failure:", err);
+      toast({
+        title: "Update Failed",
+        description: err?.message || "Bulk update failed. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-
-  // Add only the fields that are being changed
-  if (updateData.campusId !== "no_change") {
-    payload.campus_id = updateData.campusId === "unassigned" ? null : Number(updateData.campusId);
-  }
-  if (updateData.state !== "no_change") {
-    payload.state = updateData.state;
-  }
-  if (updateData.district !== "no_change") {
-    payload.district = updateData.district;
-  }
-  if (updateData.block !== "no_change") {
-    payload.block = updateData.block;
-  }
-  if (updateData.castId !== "no_change") {
-    payload.cast_id = Number(updateData.castId);
-  }
-  if (updateData.qualificationId !== "no_change") {
-    payload.qualification_id = Number(updateData.qualificationId);
-  }
-  if (updateData.currentWorkId !== "no_change") {
-    payload.current_status_id = Number(updateData.currentWorkId);
-  }
-  if (updateData.offerLetterStatus !== "no_change") {
-    payload.offer_letter_status = updateData.offerLetterStatus;
-  }
-  if (updateData.onboardedStatus !== "no_change") {
-    payload.onboarded_status = updateData.onboardedStatus;
-  }
-  if (updateData.joiningDate) {
-    payload.joining_date = updateData.joiningDate;
-  }
-
-  setLoading(true);
-
-  try {
-    await bulkUpdateStudents(payload);
-
-    toast({
-      title: "Success",
-      description: `Updated ${selectedApplicants.length} applicant(s) successfully.`,
-    });
-
-    onSuccess();
-    onClose();
-
-    // Reset form
-    setUpdateData({
-      stageId: "no_change",
-      statusId: "no_change",
-      campusId: "no_change",
-      state: "no_change",
-      district: "no_change",
-      block: "no_change",
-      city: "",
-      castId: "no_change",
-      qualificationId: "no_change",
-      currentWorkId: "no_change",
-      offerLetterStatus: "no_change",
-      onboardedStatus: "no_change",
-      joiningDate: "",
-      finalNotes: "",
-    });
-  } catch (err: any) {
-    console.error("Bulk update failure:", err);
-    toast({
-      title: "Update Failed",
-      description: err?.message || "Bulk update failed. Please try again.",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -319,203 +330,34 @@ const handleBulkUpdate = async () => {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="bg-muted/50 p-3 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              Update selected fields for {selectedApplicants.length} applicant(s). Leave fields as “No change” to keep them unchanged.
+        <div className="space-y-6">
+          {/* Info Banner */}
+          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+            <p className="text-sm text-blue-800">
+              Update selected fields for {selectedApplicants.length} applicant(s). Fields set to "No change" will remain unchanged.
             </p>
           </div>
 
-
-          {/* Status Dropdown */}
-          {statusOptions.length > 0 && updateData.stageId !== "no_change" && (
+          {/* Campus Assignment Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Campus Assignment</h3>
             <div>
-              <Label>Status</Label>
+              <Label>Campus</Label>
               <Select
-                value={updateData.statusId}
+                value={updateData.campusId}
                 onValueChange={(val) =>
-                  setUpdateData((prev) => ({ ...prev, statusId: val }))
+                  setUpdateData((prev) => ({ ...prev, campusId: val }))
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Select campus" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="no_change">No change</SelectItem>
-                  {statusOptions.map((status) => (
-                    <SelectItem key={status.id} value={String(status.id)}>
-                      {status.status_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* Campus Dropdown */}
-          <div>
-            <Label>Campus (Optional)</Label>
-            <Select
-              value={updateData.campusId}
-              onValueChange={(val) =>
-                setUpdateData((prev) => ({ ...prev, campusId: val }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select campus" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no_change">No change</SelectItem>
-                <SelectItem value="unassigned">Not assigned</SelectItem>
-                {campusOptions.map((campus) => (
-                  <SelectItem key={campus.id} value={String(campus.id)}>
-                    {campus.campus_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* ---------- New: Location fields ---------- */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label>State (Optional)</Label>
-              <Select
-                value={updateData.state}
-                onValueChange={(val) => handleStateChange(val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select state" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  {stateOptions.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Changing state will reset district and block selections.
-              </p>
-            </div>
-
-            <div>
-              <Label>District (Optional)</Label>
-              <Select
-                value={updateData.district}
-                onValueChange={(val) => handleDistrictChange(val)}
-                disabled={updateData.state === "no_change" || districtOptions.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select district" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  {districtOptions.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>
-                      {d.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Changing district will reset the block selection.
-              </p>
-            </div>
-
-            <div>
-              <Label>Block (Optional)</Label>
-              <Select
-                value={updateData.block}
-                onValueChange={(val) =>
-                  setUpdateData((prev) => ({ ...prev, block: val }))
-                }
-                disabled={updateData.district === "no_change" || blockOptions.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select block" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  {blockOptions.map((b) => (
-                    <SelectItem key={b.value} value={b.value}>
-                      {b.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Block options depend on the selected district.
-              </p>
-            </div>
-
-            
-          </div>
-
-          {/* ---------- New: Personal fields (Caste / Qualification / Current Work) ---------- */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <Label>Caste</Label>
-              <Select
-                value={(updateData as any).castId}
-                onValueChange={(val) =>
-                  setUpdateData((prev) => ({ ...prev, castId: val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select caste" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  {castOptions.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Qualification</Label>
-              <Select
-                value={(updateData as any).qualificationId}
-                onValueChange={(val) =>
-                  setUpdateData((prev) => ({ ...prev, qualificationId: val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select qualification" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  {qualificationOptions.map((q) => (
-                    <SelectItem key={q.value} value={q.value}>
-                      {q.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Current Work</Label>
-              <Select
-                value={(updateData as any).currentWorkId}
-                onValueChange={(val) =>
-                  setUpdateData((prev) => ({ ...prev, currentWorkId: val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select current work" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  {currentWorkOptions.map((w) => (
-                    <SelectItem key={w.value} value={w.value}>
-                      {w.label}
+                  <SelectItem value="unassigned">Not assigned</SelectItem>
+                  {campusOptions.map((campus) => (
+                    <SelectItem key={campus.id} value={String(campus.id)}>
+                      {campus.campus_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -523,138 +365,224 @@ const handleBulkUpdate = async () => {
             </div>
           </div>
 
-          {/* ---------- New: Offer / Final status ---------- */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Offer Letter Status</Label>
-              <Select
-                value={updateData.offerLetterStatus}
-                onValueChange={(val) =>
-                  setUpdateData((prev) => ({ ...prev, offerLetterStatus: val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select offer status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  <SelectItem value="Offer Pending">Offer Pending</SelectItem>
-                  {/* <SelectItem value="Offer Sent">Offer Sent</SelectItem> */}
-                  <SelectItem value="Offer Accepted">Offer Accepted</SelectItem>
-                  <SelectItem value="Offer Declined">Offer Declined</SelectItem>
-                  <SelectItem value="Waitlisted">Waitlisted</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Location Details Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Location Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>State</Label>
+                <Select
+                  value={updateData.state}
+                  onValueChange={(val) => handleStateChange(val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    {stateOptions.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <Label>Onboarded Status</Label>
-              <Select
-                value={updateData.onboardedStatus}
-                onValueChange={(val) =>
-                  setUpdateData((prev) => ({ ...prev, onboardedStatus: val }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select onboarded status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  <SelectItem value="Onboarded">Onboarded</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div>
+                <Label>District</Label>
+                <Select
+                  value={updateData.district}
+                  onValueChange={(val) => handleDistrictChange(val)}
+                  disabled={updateData.state === "no_change" || districtOptions.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select district" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    {districtOptions.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div>
-            <Label>Joining Date</Label>
-            <Input
-              type="date"
-              value={updateData.joiningDate}
-              onChange={(e: any) =>
-                setUpdateData((prev) => ({ ...prev, joiningDate: e.target.value }))
-              }
-            />
-          </div>
-
-          <div>
-            <Label>Final Notes</Label>
-            <textarea
-              value={updateData.finalNotes}
-              onChange={(e) =>
-                setUpdateData((prev) => ({ ...prev, finalNotes: e.target.value }))
-              }
-              rows={3}
-              className="w-full border p-2 rounded"
-              placeholder="Optional final notes"
-            />
-          </div>
-
-          {/* Summary */}
-          <div className="flex items-center justify-center py-2">
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <span>Bulk Update</span>
-              <ArrowRight className="w-4 h-4" />
-              <span className="font-medium">
-                {(() => {
-                  const parts: string[] = [];
-                  if (updateData.statusId !== "no_change") {
-                    const label =
-                      statusOptions.find((s) => String(s.id) === updateData.statusId)
-                        ?.status_name || updateData.statusId;
-                    parts.push(`Status: ${label}`);
+              <div>
+                <Label>Block</Label>
+                <Select
+                  value={updateData.block}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, block: val }))
                   }
-                  if (updateData.campusId !== "no_change") {
-                    const label =
-                      campusOptions.find((c) => String(c.id) === updateData.campusId)
-                        ?.campus_name || updateData.campusId;
-                    parts.push(`Campus: ${label}`);
-                  }
-                  if (updateData.state !== "no_change") {
-                    parts.push(`State: ${stateOptions.find(s => s.value === updateData.state)?.label || updateData.state}`);
-                  }
-                  if (updateData.district !== "no_change") {
-                    parts.push(`District: ${districtOptions.find(d => d.value === updateData.district)?.label || updateData.district}`);
-                  }
-                  if (updateData.block !== "no_change") {
-                    parts.push(`Block: ${blockOptions.find(b => b.value === updateData.block)?.label || updateData.block}`);
-                  }
-         
-                  if (updateData.offerLetterStatus !== "no_change") parts.push(`Offer: ${updateData.offerLetterStatus}`);
-                  if (updateData.onboardedStatus !== "no_change") parts.push(`Onboarded: ${updateData.onboardedStatus}`);
-                  if (updateData.joiningDate) parts.push(`Joining: ${updateData.joiningDate}`);
-                  if (updateData.finalNotes) parts.push(`Notes: ${updateData.finalNotes.slice(0, 30)}${updateData.finalNotes.length > 30 ? "..." : ""}`);
-                  return parts.length ? parts.join(", ") : "Select fields to update";
-                })()}
-              </span>
+                  disabled={updateData.district === "no_change" || blockOptions.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select block" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    {blockOptions.map((b) => (
+                      <SelectItem key={b.value} value={b.value}>
+                        {b.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Personal Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Caste</Label>
+                <Select
+                  value={updateData.castId}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, castId: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select caste" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    {castOptions.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Qualification</Label>
+                <Select
+                  value={updateData.qualificationId}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, qualificationId: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select qualification" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    {qualificationOptions.map((q) => (
+                      <SelectItem key={q.value} value={q.value}>
+                        {q.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Current Work</Label>
+                <Select
+                  value={updateData.currentWorkId}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, currentWorkId: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select current work" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    {currentWorkOptions.map((w) => (
+                      <SelectItem key={w.value} value={w.value}>
+                        {w.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Onboarding Status Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Onboarding Status</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Offer Letter Status</Label>
+                <Select
+                  value={updateData.offerLetterStatus}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, offerLetterStatus: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select offer status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    <SelectItem value="Offer Pending">Offer Pending</SelectItem>
+                    <SelectItem value="Offer Accepted">Offer Accepted</SelectItem>
+                    <SelectItem value="Offer Declined">Offer Declined</SelectItem>
+                    <SelectItem value="Waitlisted">Waitlisted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Onboarded Status</Label>
+                <Select
+                  value={updateData.onboardedStatus}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, onboardedStatus: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select onboarded status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_change">No change</SelectItem>
+                    <SelectItem value="Onboarded">Onboarded</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label>Joining Date</Label>
+              <Input
+                type="date"
+                value={updateData.joiningDate}
+                onChange={(e) =>
+                  setUpdateData((prev) => ({ ...prev, joiningDate: e.target.value }))
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Final Notes</Label>
+              <Textarea
+                value={updateData.finalNotes}
+                onChange={(e) =>
+                  setUpdateData((prev) => ({ ...prev, finalNotes: e.target.value }))
+                }
+                rows={3}
+                placeholder="Add any additional notes (optional)"
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <Button
               onClick={handleBulkUpdate}
-              disabled={
-                loading ||
-                (
-                  updateData.stageId === "no_change" &&
-                  updateData.campusId === "no_change" &&
-                  updateData.state === "no_change" &&
-                  updateData.district === "no_change" &&
-                  updateData.block === "no_change" &&
-            
-                  (updateData as any).castId === "no_change" &&
-                  (updateData as any).qualificationId === "no_change" &&
-                  (updateData as any).currentWorkId === "no_change" &&
-                  updateData.offerLetterStatus === "no_change" &&
-                  updateData.onboardedStatus === "no_change" &&
-                  !updateData.joiningDate &&
-                  !updateData.finalNotes
-                )
-              }
+              disabled={loading}
             >
               {loading ? (
                 <>
