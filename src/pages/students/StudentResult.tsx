@@ -63,7 +63,7 @@ export default function StudentResult() {
     const fetchStates = async () => {
       try {
         const statesData = await getAllStates();
-        console.log("Fetched states:", statesData);
+        // console.log("Fetched states:", statesData);
         setStates(statesData || []);
       } catch (error) {
         console.error("Error fetching states:", error);
@@ -108,9 +108,9 @@ export default function StudentResult() {
 
           const profile = data.data.student;
           if (profile) {
-            console.log("state:", profile.state);
+            // console.log("state:", profile.state);
             const stateName = await getStateByCodeId(profile.state);
-            console.log("Mapped state name:", stateName);
+            // console.log("Mapped state name:", stateName);
             setStudent({
               firstName: profile.first_name || "",
               middleName: profile.middle_name || "",
@@ -217,14 +217,19 @@ export default function StudentResult() {
               else if (lrText.toLowerCase().includes("fail"))
                 lrAttemptStatus = "Fail";
 
-              // Find matching schedule for time/details
-              const matchingSchedule = lrSchedules.find(
-                (s: any) => s.schedule_id === lr.schedule_id
+              // Match schedule by index (attempt number) - sorted by creation date
+              // Sort schedules by creation date to match with attempt number
+              const sortedLrSchedules = [...lrSchedules].sort(
+                (a: any, b: any) =>
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
               );
+              
+              // Get the schedule for this attempt (index)
+              const matchingSchedule = sortedLrSchedules[index];
 
               // Find matching localStorage slot for time/details
               const matchingLocalSlot = lrLocalSlots.find(
-                (ls: any) => ls.scheduled_interview_id === lr.schedule_id
+                (ls: any) => ls.scheduled_interview_id === matchingSchedule?.schedule_id
               );
 
               // Determine scheduled time from schedule or localStorage
@@ -240,6 +245,7 @@ export default function StudentResult() {
                           matchingSchedule.status
                       )
                     : "Completed";
+                // console.log(`LR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
               } else if (matchingLocalSlot) {
                 scheduledTime = `${matchingLocalSlot.on_date}T${matchingLocalSlot.from}`;
                 slotStatus =
@@ -248,8 +254,10 @@ export default function StudentResult() {
                       ? "Cancelled"
                       : "Booked"
                     : "Completed";
+                // console.log(`LR Attempt ${index + 1} scheduledTime from localStorage:`, scheduledTime);
               } else {
                 scheduledTime = lr.scheduled_time || lr.scheduled_at || "";
+                // console.log(`LR Attempt ${index + 1} scheduledTime from interview_learner_round:`, scheduledTime);
               }
 
               // Check if time has passed
@@ -372,14 +380,19 @@ export default function StudentResult() {
               else if (cfrText.toLowerCase().includes("fail"))
                 cfrAttemptStatus = "Fail";
 
-              // Find matching schedule for time/details
-              const matchingSchedule = cfrSchedules.find(
-                (s: any) => s.schedule_id === cfr.schedule_id
+              // Match schedule by index (attempt number) - sorted by creation date
+              // Sort schedules by creation date to match with attempt number
+              const sortedCfrSchedules = [...cfrSchedules].sort(
+                (a: any, b: any) =>
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
               );
+              
+              // Get the schedule for this attempt (index)
+              const matchingSchedule = sortedCfrSchedules[index];
 
               // Find matching localStorage slot for time/details
               const matchingLocalSlot = cfrLocalSlots.find(
-                (ls: any) => ls.scheduled_interview_id === cfr.schedule_id
+                (ls: any) => ls.scheduled_interview_id === matchingSchedule?.schedule_id
               );
 
               // Determine scheduled time from schedule or localStorage
@@ -395,6 +408,7 @@ export default function StudentResult() {
                           matchingSchedule.status
                       )
                     : "Completed";
+                // console.log(`CFR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
               } else if (matchingLocalSlot) {
                 scheduledTime = `${matchingLocalSlot.on_date}T${matchingLocalSlot.from}`;
                 slotStatus =
@@ -403,8 +417,10 @@ export default function StudentResult() {
                       ? "Cancelled"
                       : "Booked"
                     : "Completed";
+                // console.log(`CFR Attempt ${index + 1} scheduledTime from localStorage:`, scheduledTime);
               } else {
                 scheduledTime = cfr.scheduled_time || cfr.scheduled_at || "";
+                // console.log(`CFR Attempt ${index + 1} scheduledTime from interview_cultural_fit_round:`, scheduledTime);
               }
 
               // Check if time has passed

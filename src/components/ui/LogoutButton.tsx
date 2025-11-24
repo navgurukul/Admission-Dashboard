@@ -20,17 +20,8 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ className }) => {
       console.error("Google sign out error:", error);
     }
 
-    // Clear all student-related data
-    localStorage.removeItem("studentId");
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("googleUser");
-    localStorage.removeItem("roleAccess");
-    // localStorage.removeItem("testStarted");
-    // localStorage.removeItem("testCompleted");
-    // localStorage.removeItem("allowRetest");
-    // localStorage.removeItem("registrationDone");
+    // Clear all localStorage completely
+    localStorage.clear();
 
     // Redirect to login page
     navigate("/students/login", { replace: true });
