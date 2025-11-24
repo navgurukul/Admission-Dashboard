@@ -938,9 +938,8 @@ export const bulkUpdateStudents = async (payload: {
   current_status_id?: number;
   qualification_id?: number;
   cast_id?: number;
-  offer_letter_status?: string;
-  onboarded_status?: string;
-  joining_date?: string;
+  // Note: Final decision fields (offer_letter_status, onboarded_status, joining_date, final_note)
+  // should be updated using submitFinalDecision API instead
 }): Promise<any> => {
   const response = await fetch(`${BASE_URL}/students/bulk-update`, {
     method: "PUT",
