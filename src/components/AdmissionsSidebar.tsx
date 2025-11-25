@@ -54,7 +54,7 @@ export function AdmissionsSidebar() {
       console.error("Logout error:", error);
       // Force logout anyway
       logoutUser();
-      window.location.href = "/Admission-Dashboard/students/login";
+      window.location.href = "/students/login";
     }
   };
    // Check if current path is interview related
