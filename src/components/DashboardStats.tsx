@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
+
 interface DashboardMetrics {
   totalApplicants: number;
   activeApplications: number;

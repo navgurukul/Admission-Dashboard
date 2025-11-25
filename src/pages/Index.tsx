@@ -25,7 +25,7 @@ const Index = () => {
 
           {/* Stats Cards */}
           <div className="mb-8">
-            <DashboardStats />
+            <DashboardStats  />
           </div>
 
           {/* Applicants Table */}
