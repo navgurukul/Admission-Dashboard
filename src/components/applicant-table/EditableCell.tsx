@@ -183,29 +183,41 @@ export function EditableCell({
     }
   };
 
-  const getCurrentDropdownValue = () => {
-    if (value !== null && value !== undefined) {
-      return String(value);
-    }
-    return "none";
-  };
-
   const isEditing =
     editingCell?.id === applicant.id && editingCell?.field === field;
   const normalizedOptions = normalizeOptions(options);
   const isDropdownField = normalizedOptions.length > 0;
 
+  const getCurrentDropdownValue = () => {
+    // Priority: 1. value prop, 2. Try to match displayValue with options, 3. "none"
+    if (value !== null && value !== undefined) {
+      return String(value);
+    }
+    
+    // Try to match displayValue with option names (for cases like gender where value isn't passed)
+    if (displayValue && normalizedOptions.length > 0) {
+      const matchedOption = normalizedOptions.find(
+        opt => opt.name.toLowerCase() === String(displayValue).toLowerCase()
+      );
+      if (matchedOption) {
+        return matchedOption.id;
+      }
+    }
+    
+    return "none";
+  };
+
   if (isDropdownField) {
+    const currentValue = getCurrentDropdownValue();
+
     return (
       <Select
-        value={getCurrentDropdownValue()}
+        value={currentValue}
         onValueChange={(val) => !disabled && handleDirectDropdownChange(val)}
         disabled={isUpdating || disabled}
       >
         <SelectTrigger className="h-8 text-xs border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring">
-          <SelectValue placeholder="Select option">
-            {isUpdating ? "Updating..." : displayValue || "Select option"}
-          </SelectValue>
+          <SelectValue placeholder="Select option" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="none">

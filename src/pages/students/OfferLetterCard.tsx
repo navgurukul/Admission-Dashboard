@@ -11,7 +11,7 @@ export function OfferLetterCard({ student }) {
 
         <div className="flex-1">
           <h2 className="text-2xl font-semibold text-gray-900">
-            Congratulations, {student.firstName}!
+            Congratulations, {student.first_name}!
           </h2>
 
           <p className="text-sm text-gray-700 mt-1">
