@@ -24,6 +24,7 @@ import { BulkUpdateModal } from "./BulkUpdateModal";
 import { ApplicantModal } from "./ApplicantModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 import CSVImportModal from "./CSVImportModal";
+import { BulkOfferResultsModal } from "./BulkOfferResultsModal";
 import { useToast } from "@/hooks/use-toast";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
@@ -39,6 +40,7 @@ import {
   getAllQuestionSets,
   searchStudentsApi,
   getFilterStudent,
+  sendBulkOfferLetters,
 } from "@/utils/api";
 import {
   AlertDialog,
@@ -51,6 +53,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { tr } from "date-fns/locale";
 
 const ApplicantTable = () => {
   // Modals
@@ -58,6 +61,8 @@ const ApplicantTable = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
+  const [showBulkOfferResults, setShowBulkOfferResults] = useState(false);
+  const [bulkOfferResults, setBulkOfferResults] = useState<any>(null);
 
   // Applicant Modals
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
@@ -226,10 +231,11 @@ const ApplicantTable = () => {
         setIsSearching(true);
         const results = await searchStudentsApi(searchTerm.trim());
         setSearchResults(results || []);
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Search error:", error);
         toast({
           title: "Search Error",
-          description: "Unable to fetch search results.",
+          description: error?.message || error?.toString() || "Unable to fetch search results. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -325,7 +331,7 @@ const ApplicantTable = () => {
       try {
         const results = await searchStudentsApi(searchTerm.trim());
         setSearchResults(results || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error refreshing search results:", error);
       }
     }
@@ -335,8 +341,14 @@ const ApplicantTable = () => {
         const apiParams = transformFiltersToAPI(filters);
         const results = await getFilterStudent(apiParams);
         setFilteredStudents(results || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error refreshing filtered data:", error);
+        toast({
+          title: "Refresh Error",
+          description: error?.message || "Failed to refresh filtered data.",
+          variant: "destructive",
+          duration: 5000,
+        });
       }
     }
     // Otherwise, refetch regular paginated data
@@ -344,7 +356,7 @@ const ApplicantTable = () => {
       setCurrentPage(1);
       refetchStudents();
     }
-  }, [searchTerm, hasActiveFilters, filters, refetchStudents]);
+  }, [searchTerm, hasActiveFilters, filters, refetchStudents, toast]);
 
   // Bulk actions
   const handleBulkDelete = async () => {
@@ -353,6 +365,7 @@ const ApplicantTable = () => {
         title: "No Selection",
         description: "Please select applicants to delete",
         variant: "destructive",
+        duration: 5000,
       });
       return;
     }
@@ -361,15 +374,17 @@ const ApplicantTable = () => {
       toast({
         title: "Applicants Deleted",
         description: "Successfully deleted selected applicants",
+        duration: 5000,
       });
       setSelectedRows([]);
       refreshData();
-    } catch (error) {
-      // console.error("Error deleting applicants:", error);
+    } catch (error: any) {
+      console.error("Error deleting applicants:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete applicants",
+        title: "Delete Error",
+        description: error?.message || error?.toString() || "Failed to delete applicants. Please try again.",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
@@ -380,9 +395,104 @@ const ApplicantTable = () => {
         title: "No Selection",
         description: "Please select applicants to send offer letters to",
         variant: "destructive",
+        duration: 5000,
       });
     }
   };
+
+  const handleSendBulkOfferLetters = async ()=>{
+    if(selectedRows.length === 0){
+      toast({
+        title: "No Selection",
+        description: "Please select at least one student to send offer letters",
+        variant: "destructive",
+        duration: 5000,
+      });
+      return;
+    }
+    
+    try {
+      const studentIds = selectedRows.map(id => Number(id));
+      const result = await sendBulkOfferLetters(studentIds);
+      
+      // Check if we have results
+      if (!result) {
+        throw new Error("No response from server");
+      }
+
+      // Categorize results
+      const categorized = {
+        sent: [] as any[],
+        alreadySent: [] as any[],
+        noEmail: [] as any[],
+        alreadyOnboarded: [] as any[],
+        notFound: [] as any[],
+        otherErrors: [] as any[],
+      };
+
+      if (result.results && Array.isArray(result.results)) {
+        result.results.forEach((item: any) => {
+          const studentName = item.student_name || item.name || `Student #${item.student_id || 'Unknown'}`;
+          const errorMsg = (item.error || item.message || "").toLowerCase();
+          
+          const studentData = {
+            ...item,
+            displayName: studentName,
+            errorMessage: item.error || item.message || "Unknown error"
+          };
+
+          if (item.success) {
+            categorized.sent.push(studentData);
+          } else if (errorMsg.includes("email") || errorMsg.includes("e-mail") || errorMsg.includes("does not have an email")) {
+            categorized.noEmail.push(studentData);
+          } else if (errorMsg.includes("already sent") || errorMsg.includes("already has offer letter")) {
+            categorized.alreadySent.push(studentData);
+          } else if (errorMsg.includes("onboarded") || errorMsg.includes("onboard")) {
+            categorized.alreadyOnboarded.push(studentData);
+          } else if (errorMsg.includes("not found") || errorMsg.includes("does not exist")) {
+            categorized.notFound.push(studentData);
+          } else {
+            categorized.otherErrors.push(studentData);
+          }
+        });
+      }
+
+      // Set results and show modal
+      setBulkOfferResults({
+        summary: result.summary,
+        categorized: categorized
+      });
+      setShowBulkOfferResults(true);
+      
+      // Refresh data and clear selection
+      refreshData();
+      setSelectedRows([]);
+      
+    } catch(error: any) {
+      console.error("Error sending bulk offer letters:", error);
+      
+      // Parse error message for better UX
+      let errorMessage = "Failed to send offer letters. Please try again.";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.toString && typeof error.toString === 'function') {
+        errorMessage = error.toString();
+      }
+      
+      // Check for network errors
+      if (errorMessage.toLowerCase().includes("fetch") || errorMessage.toLowerCase().includes("network")) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      }
+      
+      toast({
+        title: "❌ Error Sending Offer Letters",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
+  }
 
   // Transform filter state to API query parameters
   const transformFiltersToAPI = (filterState: any) => {
@@ -697,7 +807,8 @@ const ApplicantTable = () => {
             <BulkActions
               selectedRowsCount={selectedRows.length}
               onBulkUpdate={() => setShowBulkUpdate(true)}
-              onSendOfferLetters={handleSendOfferLetters}
+              // onBulkUpdate={handleBulkUpdate}
+              onSendOfferLetters={handleSendBulkOfferLetters}
               onBulkDelete={() => setShowDeleteConfirm(true)}
             />
             <TableActions
@@ -939,6 +1050,11 @@ const ApplicantTable = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <BulkOfferResultsModal
+        isOpen={showBulkOfferResults}
+        onClose={() => setShowBulkOfferResults(false)}
+        results={bulkOfferResults}
+      />
     </Card>
   );
 };

@@ -2000,3 +2000,20 @@ export const uploadProfileImage = async (file: File): Promise<{ key: string; url
 
   return result.data;
 };
+
+export const sendBulkOfferLetters = async (studentIds:number[])=>{
+  try {
+    const response =  await fetch(`${BASE_URL}/students/sendBulkOfferLetters`,{
+      method:"POST",
+      headers : getAuthHeaders(),
+      body:JSON.stringify({student_ids:studentIds})
+    })
+    const data = await response.json();
+    if(!response.ok){
+      throw new Error(data.message || "Failed to send offer letters")
+    }
+    return data;
+  } catch (error){
+  throw error;
+  }
+}
