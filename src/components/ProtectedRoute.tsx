@@ -47,7 +47,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!allowed) {
     // Redirect unauthorized users to login page
-    return <Navigate to="/Admission-Dashboard/students/login" replace />;
+    return <Navigate to="/students/login" replace />;
   }
 
   return <>{children}</>;
