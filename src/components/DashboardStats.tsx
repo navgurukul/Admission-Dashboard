@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import {getStudents,getFilterStudent,getAllStages} from "@/utils/api"
 
 interface DashboardMetrics {
   totalApplicants: number;
@@ -28,29 +29,40 @@ export function DashboardStats() {
         return;
       }
 
-      const data: any[] = []; 
+      // Fetch all stages to get the stage IDs
+      const stages = await getAllStages();
+      const finalDecisionStage = stages.find(
+        (stage: any) => stage.stage_name === "Final Decision"
+      );
+      const onboardedStage = stages.find(
+        (stage: any) => stage.stage_name === "Onboarded"
+      );
+      const finalDecisionStageId = finalDecisionStage?.id;
+      const onboardedStageId = onboardedStage?.id;
 
-      const totalApplicants = data.length;
+      // Fetch total students - just get first page to get total count
+      const studentsResponse = await getStudents(1, 10);
+      const totalApplicants = studentsResponse?.totalCount || 0;
 
-      const activeApplications = data.filter(
-        (applicant) =>
-          (applicant.lr_status && applicant.lr_status.trim() !== "") ||
-          (applicant.cfr_status && applicant.cfr_status.trim() !== "")
-      ).length;
+      // Fetch active applications - students at "Final Decision" stage using stage_id
+      let activeApplications = 0;
+      if (finalDecisionStageId) {
+        const finalDecisionResponse = await getFilterStudent({ 
+          stage_id: finalDecisionStageId 
+        });
+        activeApplications = finalDecisionResponse?.length || 0;
+      }
 
-      const interviewsScheduled = data.filter(
-        (applicant) =>
-          applicant.offer_letter_status &&
-          applicant.offer_letter_status.trim() !== ""
-      ).length;
+      // Fetch onboarded students - filter by Onboarded stage using stage_id
+      let successfullyOnboarded = 0;
+      if (onboardedStageId) {
+        const onboardedResponse = await getFilterStudent({ 
+          stage_id: onboardedStageId 
+        });
+        successfullyOnboarded = onboardedResponse?.length || 0;
+      }
 
-      const successfullyOnboarded = data.filter(
-        (applicant) =>
-          applicant.joining_status &&
-          (applicant.joining_status.toLowerCase().includes("joined") ||
-            applicant.joining_status.toLowerCase().includes("onboarded"))
-      ).length;
-
+      const interviewsScheduled = 0;
       setMetrics({
         totalApplicants,
         activeApplications,
@@ -72,8 +84,8 @@ export function DashboardStats() {
     {
       title: "Total Applicants",
       value: loading ? "..." : metrics.totalApplicants.toLocaleString(),
-      change: "+12%",
-      changeType: "increase" as const,
+      // change: "+12%",
+      // changeType: "increase" as const,
       icon: Users,
       color: "text-primary",
       bgColor: "bg-primary/10",
@@ -81,26 +93,26 @@ export function DashboardStats() {
     {
       title: "Active Applications",
       value: loading ? "..." : metrics.activeApplications.toLocaleString(),
-      change: "+8%",
-      changeType: "increase" as const,
+      // change: "+8%",
+      // changeType: "increase" as const,
       icon: Clock,
       color: "text-status-pending",
       bgColor: "bg-status-pending/10",
     },
-    {
-      title: "Interviews Scheduled",
-      value: loading ? "..." : metrics.interviewsScheduled.toLocaleString(),
-      change: "+24%",
-      changeType: "increase" as const,
-      icon: TrendingUp,
-      color: "text-status-prospect",
-      bgColor: "bg-status-prospect/10",
-    },
+    // {
+    //   title: "Interviews Scheduled",
+    //   value: loading ? "..." : metrics.interviewsScheduled.toLocaleString(),
+    //   // change: "+24%",
+    //   // changeType: "increase" as const,
+    //   icon: TrendingUp,
+    //   color: "text-status-prospect",
+    //   bgColor: "bg-status-prospect/10",
+    // },
     {
       title: "Successfully Onboarded",
       value: loading ? "..." : metrics.successfullyOnboarded.toLocaleString(),
-      change: "+16%",
-      changeType: "increase" as const,
+      // change: "+16%",
+      // changeType: "increase" as const,
       icon: CheckCircle,
       color: "text-status-active",
       bgColor: "bg-status-active/10",
@@ -108,7 +120,7 @@ export function DashboardStats() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {stats.map((stat) => (
         <div
           key={stat.title}
@@ -120,7 +132,7 @@ export function DashboardStats() {
                 {stat.title}
               </p>
               <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-              <div className="flex items-center mt-2">
+              {/* <div className="flex items-center mt-2">
                 <span
                   className={`text-xs font-medium ${
                     stat.changeType === "increase"
@@ -133,7 +145,7 @@ export function DashboardStats() {
                 <span className="text-xs text-muted-foreground ml-1">
                   from last month
                 </span>
-              </div>
+              </div> */}
             </div>
             <div
               className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}
