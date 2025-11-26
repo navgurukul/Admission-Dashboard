@@ -321,11 +321,11 @@ const AdminPage: React.FC = () => {
       });
 
       setDeleteConfirm({ open: false, userId: null, userName: "" });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting user:", err);
       toast({
         title: "Delete Failed",
-        description: "Failed to delete user. Please try again.",
+        description: err.details || err.message || "Failed to delete user. Please try again.",
         variant: "destructive",
       });
       setDeleteConfirm({ open: false, userId: null, userName: "" });

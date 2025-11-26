@@ -268,7 +268,9 @@ export const deleteUser = async (id: string): Promise<void> => {
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete user');
+    const error = new Error(data.message || 'Failed to delete user');
+    (error as any).details = data.error || data.message;
+    throw error;
   }
 };
 
