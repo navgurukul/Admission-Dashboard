@@ -983,13 +983,15 @@ export function ApplicantModal({
                       )[0] ||
                       ""
                     }
-                    onChange={(e) => setJoiningDate(e.target.value)}
-                    onBlur={async () => {
+                    onChange={async (e) => {
+                      const selectedDate = e.target.value;
+                      setJoiningDate(selectedDate);
+                      
                       try {
-                        // Only update if user changed
+                        // Call API immediately when date changes
                         await handleFinalDecisionUpdate(
                           "joining_date",
-                          joiningDate || null
+                          selectedDate || null
                         );
 
                         // Immediately sync
@@ -998,7 +1000,7 @@ export function ApplicantModal({
                           final_decisions: [
                             {
                               ...(prev.final_decisions?.[0] || {}),
-                              joining_date: joiningDate,
+                              joining_date: selectedDate,
                             },
                           ],
                         }));
