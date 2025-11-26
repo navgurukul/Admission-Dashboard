@@ -209,6 +209,12 @@ export function EditableCell({
 
   if (isDropdownField) {
     const currentValue = getCurrentDropdownValue();
+    // Hide "Select" option for offer_letter_status and onboarded_status if value exists
+    const shouldHideSelectOption = 
+      (field === "offer_letter_status") && 
+      currentValue !== "none" && 
+      currentValue !== null && 
+      currentValue !== undefined;
 
     return (
       <Select
@@ -220,9 +226,11 @@ export function EditableCell({
           <SelectValue placeholder="Select option" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">
-            <span className="text-muted-foreground">Select</span>
-          </SelectItem>
+          {!shouldHideSelectOption && (
+            <SelectItem value="none">
+              <span className="text-muted-foreground">Select</span>
+            </SelectItem>
+          )}
           {normalizedOptions.map((opt) => (
             <SelectItem key={opt.id} value={opt.id}>
               {opt.name}
