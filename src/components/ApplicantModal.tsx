@@ -1014,11 +1014,11 @@ export function ApplicantModal({
 
               {/* Notes */}
               <div className="space-y-4 md:col-span-2">
-                <h3 className="text-lg font-semibold">Final Notes</h3>
+               
                 <div className="grid grid-cols-3 gap-4">
                   <div className="mb-4">
                     <label className="text-sm font-medium text-muted-foreground">
-                      Note
+                      Final Note
                     </label>
                     <EditableCell
                       applicant={currentApplicant}
