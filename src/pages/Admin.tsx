@@ -220,20 +220,20 @@ const AdminPage: React.FC = () => {
       return;
     }
 
-    // Use trimmed username or fallback to email prefix
-    const firstName = nameTrim.split(" ")[0].toLowerCase();
-    const finalUsername = usernameTrim || firstName;
-
-    console.log("Creating user - Username field:", usernameTrim, "Final username:", finalUsername);
+    // console.log("Creating user - Username field:", usernameTrim);
     
-    const payload = {
+    const payload: any = {
       name: nameTrim,
       mobile: addUserDialog.phone.trim(),
       email: emailTrim,
       mail_id: emailTrim,
-      user_name: finalUsername,
       user_role_id: parseInt(addUserDialog.selectedRoleId),
     };
+
+    // Only include user_name if username is provided
+    if (usernameTrim) {
+      payload.user_name = usernameTrim;
+    }
 
     // If editing, show confirmation dialog
     if (addUserDialog.editId) {
@@ -252,11 +252,8 @@ const AdminPage: React.FC = () => {
         setSearchResults([]);
       }
 
-      // Move to last page after adding
-      const res = await getAllUsers(1, ROWS_PER_PAGE);
-      const totalPagesCalculated = Math.ceil((res?.total || 0) / ROWS_PER_PAGE);
-      setPage(totalPagesCalculated);
-      await fetchUsers(totalPagesCalculated);
+      // Reset to page 1 - useEffect will fetch automatically
+      setPage(1);
 
       toast({
         title: "User Created",
@@ -324,11 +321,11 @@ const AdminPage: React.FC = () => {
       });
 
       setDeleteConfirm({ open: false, userId: null, userName: "" });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting user:", err);
       toast({
         title: "Delete Failed",
-        description: "Failed to delete user. Please try again.",
+        description: err.details || err.message || "Failed to delete user. Please try again.",
         variant: "destructive",
       });
       setDeleteConfirm({ open: false, userId: null, userName: "" });
