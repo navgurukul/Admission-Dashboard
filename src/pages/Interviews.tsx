@@ -184,7 +184,7 @@ const Interviews = () => {
                     onClick={handleSchedules}
                   >
                     <Calendar className="w-4 h-4 mr-2" />
-                    Schedule Interview
+                    Manage Available Slots
                   </Button>
                 </div>
               </div>
