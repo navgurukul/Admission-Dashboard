@@ -252,11 +252,8 @@ const AdminPage: React.FC = () => {
         setSearchResults([]);
       }
 
-      // Move to last page after adding
-      const res = await getAllUsers(1, ROWS_PER_PAGE);
-      const totalPagesCalculated = Math.ceil((res?.total || 0) / ROWS_PER_PAGE);
-      setPage(totalPagesCalculated);
-      await fetchUsers(totalPagesCalculated);
+      // Reset to page 1 - useEffect will fetch automatically
+      setPage(1);
 
       toast({
         title: "User Created",
