@@ -355,7 +355,7 @@ export function AdvancedFilterModal({
       nameKey, 'name', 'title', 'label', 
       'school_name', 'religion_name', 'current_status_name',
       'qualification_name',
-      'campus_name', 'partner_name', 'district_name'
+      'campus_name', 'district_name'
     ];
     
     for (const key of possibleKeys) {
@@ -505,7 +505,7 @@ export function AdvancedFilterModal({
             </div> */}
           </div>
 
-          {/* Location Filters - State, District, Partner, Campus */}
+          {/* Location Filters - State, District, Campus */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
             <div>
               <h3 className="font-semibold text-sm mb-2">State</h3>
@@ -571,7 +571,7 @@ export function AdvancedFilterModal({
             </div>
 
             {/* Partner */}
-            <div>
+            {/* <div>
               <h3 className="font-semibold text-sm mb-2">Partner</h3>
               <Select
                 value={filters.partner?.[0] || "all"}
@@ -598,7 +598,7 @@ export function AdvancedFilterModal({
               <p className="text-xs text-muted-foreground mt-1">
                 {availableOptions.partners.length} partners available
               </p>
-            </div>
+            </div> */}
 
             {/* Campus */}
             <div>
