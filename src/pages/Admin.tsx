@@ -220,20 +220,20 @@ const AdminPage: React.FC = () => {
       return;
     }
 
-    // Use trimmed username or fallback to email prefix
-    const firstName = nameTrim.split(" ")[0].toLowerCase();
-    const finalUsername = usernameTrim || firstName;
-
-    console.log("Creating user - Username field:", usernameTrim, "Final username:", finalUsername);
+    // console.log("Creating user - Username field:", usernameTrim);
     
-    const payload = {
+    const payload: any = {
       name: nameTrim,
       mobile: addUserDialog.phone.trim(),
       email: emailTrim,
       mail_id: emailTrim,
-      user_name: finalUsername,
       user_role_id: parseInt(addUserDialog.selectedRoleId),
     };
+
+    // Only include user_name if username is provided
+    if (usernameTrim) {
+      payload.user_name = usernameTrim;
+    }
 
     // If editing, show confirmation dialog
     if (addUserDialog.editId) {
