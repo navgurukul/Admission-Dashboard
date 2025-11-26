@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { EditableCell } from "./applicant-table/EditableCell";
+import { useToast } from "@/hooks/use-toast";
 import {
   getAllCasts,
   updateStudent,
@@ -32,7 +33,7 @@ import {
   getAllStates,
   getBlocksByDistrict,
   getDistrictsByState,
-
+  getAllStages
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -53,6 +54,7 @@ export function ApplicantModal({
   isOpen,
   onClose,
 }: ApplicantModalProps) {
+  const { toast } = useToast();
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
@@ -63,6 +65,7 @@ export function ApplicantModal({
   const [schools, setSchools] = useState<any[]>([]);
   const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [joiningDate, setJoiningDate] = useState("");
+  const [stages, setStages] = useState<any[]>([]);
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
@@ -210,6 +213,7 @@ export function ApplicantModal({
           schoolRes,
           campusRes,
           questionSetRes,
+          stagesRes,
         ] = await Promise.all([
           getAllCasts(),
           getAllQualification(),
@@ -217,6 +221,7 @@ export function ApplicantModal({
           getAllSchools(),
           getCampusesApi(),
           getAllQuestionSets(),
+          getAllStages(),
         ]);
 
         setCampus(
@@ -259,6 +264,10 @@ export function ApplicantModal({
             label: qs.name,
           }))
         );
+        setStages((stagesRes || []).map((s: any) => ({
+          id: s.id,
+          name: s.stage_name,
+        })));
       } catch (err) {
         // console.error("Failed to load dropdown data", err);
       }
@@ -377,6 +386,31 @@ export function ApplicantModal({
       } else {
         payload[field] = value;
       }
+
+      // Determine stage_id based on offer_letter_status and onboarded_status
+      let offerLetterStatus = payload.offer_letter_status;
+      let onboardedStatus = payload.onboarded_status;
+
+      // Find stage IDs by name
+      const finalDecisionStage = stages.find(s => s.name === "Final Decision");
+      const onboardedStage = stages.find(s => s.name === "Onboarded");
+
+      let newStageId = payload.stage_id; // Keep existing stage by default
+
+      if (offerLetterStatus != null && onboardedStatus != null) {
+        // Both offer letter and onboarded exist -> stage 5 (Onboarded)
+        newStageId = onboardedStage?.id || 5;
+      } else if (offerLetterStatus != null && onboardedStatus == null) {
+        // Only offer letter exists -> stage 4 (Final Decision)
+        newStageId = finalDecisionStage?.id || 4;
+      } else if (onboardedStatus != null) {
+        // Only onboarded exists -> stage 5 (Onboarded)
+        newStageId = onboardedStage?.id || 5;
+      }
+      // else: keep existing stage (newStageId remains payload.stage_id)
+
+      payload.stage_id = newStageId;
+
       await submitFinalDecision(payload);
 
       // Update local state immediately
@@ -387,6 +421,7 @@ export function ApplicantModal({
             ...existingDecision,
             [field]: value,
             joining_date: field === "joining_date" ? value : currentJoiningDate,
+            stage_id: newStageId,
           },
         ],
       }));
@@ -979,51 +1014,54 @@ export function ApplicantModal({
               <div className="space-y-4 md:col-span-2">
                 <h3 className="text-lg font-semibold">Final Notes</h3>
                 <div className="grid grid-cols-3 gap-4">
-                <div className="mb-4">
-                  <label className="text-sm font-medium text-muted-foreground"> 
-                    Note
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="final_notes"
-                    value={
-                      currentApplicant.final_decisions?.[0]?.final_notes || ""
-                    }
-                    displayValue={
-                      currentApplicant.final_decisions?.[0]?.final_notes ||
-                      "No final note"
-                    }
-                    renderInput={({ value, onChange }) => (
-                      <textarea
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        rows={4}
-                        className="border rounded px-2 py-1 w-full resize-none"
-                        placeholder="Enter final notes here..."
-                      />
-                    )}
-                    onUpdate={async (value) => {
-                      await handleFinalDecisionUpdate("final_notes", value);
-                    }}
-                  />
+                  <div className="mb-4">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Note
+                    </label>
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="final_notes"
+                      value={
+                        currentApplicant.final_decisions?.[0]?.final_notes || ""
+                      }
+                      displayValue={
+                        currentApplicant.final_decisions?.[0]?.final_notes ||
+                        "No final note"
+                      }
+                      renderInput={({ value, onChange }) => (
+                        <textarea
+                          value={value}
+                          onChange={(e) => onChange(e.target.value)}
+                          rows={4}
+                          className="border rounded px-2 py-1 w-full resize-none"
+                          placeholder="Enter final notes here..."
+                        />
+                      )}
+                      onUpdate={async (value) => {
+                        await handleFinalDecisionUpdate("final_notes", value);
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Last Updated By
+                    </label>
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="last_status_updated_by"
+                      displayValue={
+                        currentApplicant.final_decisions?.[0]
+                          ?.last_status_updated_by || "Not provided"
+                      }
+                      value={
+                        currentApplicant.final_decisions?.[0]
+                          ?.last_status_updated_by
+                      }
+                      onUpdate={handleUpdate}
+                      disabled={true}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground"> 
-                    Last Updated By
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="last_status_updated_by"
-                    displayValue={
-                    
-                      currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not provided"
-                    }
-                    value={currentApplicant.final_decisions?.[0]?.last_status_updated_by}
-                    onUpdate={handleUpdate}
-                    disabled={true}
-                  />
-                </div>
-              </div>
               </div>
 
               {/* Timestamps */}
