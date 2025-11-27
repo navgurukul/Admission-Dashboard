@@ -604,17 +604,17 @@ export function AdvancedFilterModal({
             <div>
               <h3 className="font-semibold text-sm mb-2">Campus</h3>
               <Select
-                value={filters.partner?.[1] || "all"}
+                value={filters.partner?.[0] || "all"}
                 onValueChange={(value) => {
                   if (value === "all") {
                     setFilters((prev) => ({
                       ...prev,
-                      partner: prev.partner.length > 0 ? [prev.partner[0]] : [],
+                      partner: [],
                     }));
                   } else {
                     setFilters((prev) => ({
                       ...prev,
-                      partner: prev.partner.length > 0 ? [prev.partner[0], value] : [value],
+                      partner: [value],
                     }));
                   }
                 }}

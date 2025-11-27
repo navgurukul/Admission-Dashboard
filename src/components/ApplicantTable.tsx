@@ -509,7 +509,7 @@ const ApplicantTable = () => {
         return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
       };
 
-      if (filterState.dateRange.type === "application") {
+      if (filterState.dateRange.type === "application" || filterState.dateRange.type === "applicant") {
         apiParams.created_at_from = formatDate(filterState.dateRange.from);
         apiParams.created_at_to = formatDate(filterState.dateRange.to);
       } else if (filterState.dateRange.type === "lastUpdate") {
@@ -533,8 +533,8 @@ const ApplicantTable = () => {
     }
 
     // Campus ID
-    if (filterState.partner?.length > 1 && filterState.partner[1] !== "all") {
-      apiParams.campus_id = filterState.partner[1];
+    if (filterState.partner?.length && filterState.partner[0] !== "all") {
+      apiParams.campus_id = filterState.partner[0];
     }
 
     // School ID
@@ -580,7 +580,7 @@ const ApplicantTable = () => {
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
       (newFilters.currentStatus?.length &&
         newFilters.currentStatus[0] !== "all") ||
-      (newFilters.partner?.length > 1 && newFilters.partner[1] !== "all") ||
+      (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
@@ -641,7 +641,7 @@ const ApplicantTable = () => {
       currentStatus: [],
       state: undefined,
       gender: undefined,
-      dateRange: { type: "application", from: undefined, to: undefined },
+      dateRange: { type: "applicant" as const, from: undefined, to: undefined },
     });
     setHasActiveFilters(false);
     setFilteredStudents([]);
