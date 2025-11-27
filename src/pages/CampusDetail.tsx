@@ -54,6 +54,8 @@ const CampusDetail = () => {
     market: [],
     dateRange: { type: "application" }
   });
+  const [hasActiveFilters, setHasActiveFilters] = useState(false);
+  const [filteredStudentsData, setFilteredStudentsData] = useState<any[]>([]);
 
   // Fetch campus details
   useEffect(() => {
@@ -77,6 +79,9 @@ const CampusDetail = () => {
   useEffect(() => {
     if (!id) return;
     
+    // Skip if we have active filters - those are handled separately
+    if (hasActiveFilters) return;
+    
     setLoading(true);
     setError(null);
     
@@ -84,6 +89,7 @@ const CampusDetail = () => {
       try {
         const studentsData = await getFilterStudent({ campus_id: Number(id) });
         setStudents(studentsData || []);
+        setFilteredStudentsData([]);
         
         // If on overview tab, calculate school capacities from student data
         if (activeTab === "overview") {
@@ -124,12 +130,14 @@ const CampusDetail = () => {
     };
 
     fetchStudents();
-  }, [id, activeTab]);
+  }, [id, activeTab, hasActiveFilters]);
 
-  const paginatedStudents = students.slice((studentPage - 1) * rowsPerPage, studentPage * rowsPerPage);
-  const totalStudentPages = Math.ceil(students.length / rowsPerPage);
-  const startIdx = students.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
-  const endIdx = Math.min(studentPage * rowsPerPage, students.length);
+  // Use filtered data if filters are active, otherwise use all students
+  const displayStudents = hasActiveFilters ? filteredStudentsData : students;
+  const paginatedStudents = displayStudents.slice((studentPage - 1) * rowsPerPage, studentPage * rowsPerPage);
+  const totalStudentPages = Math.ceil(displayStudents.length / rowsPerPage);
+  const startIdx = displayStudents.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
+  const endIdx = Math.min(studentPage * rowsPerPage, displayStudents.length);
 
   // Filtered students based on search and filters
   const filteredStudents = paginatedStudents.filter(student => {
@@ -219,8 +227,58 @@ const CampusDetail = () => {
                 <AdvancedFilterModal
                   isOpen={showFilterModal}
                   onClose={() => setShowFilterModal(false)}
-                  onApplyFilters={f => setFilters(f)}
+                  onApplyFilters={async (f) => {
+                    setFilters(f);
+                    
+                    // Build API params from filters
+                    const apiParams: any = { campus_id: Number(id) };
+                    
+                    if (f.partner?.length && f.partner[0] !== "all") {
+                      apiParams.school_id = f.partner[0];
+                    }
+                    if (f.stage_id) {
+                      apiParams.stage_id = f.stage_id;
+                    }
+                    if (f.qualification?.length && f.qualification[0] !== "all") {
+                      apiParams.qualification_id = f.qualification[0];
+                    }
+                    if (f.school?.length && f.school[0] !== "all") {
+                      apiParams.school_id = f.school[0];
+                    }
+                    if (f.currentStatus?.length && f.currentStatus[0] !== "all") {
+                      apiParams.current_status_id = f.currentStatus[0];
+                    }
+                    if (f.state && f.state !== "all") {
+                      apiParams.state = f.state;
+                    }
+                    if (f.district?.length && f.district[0] !== "all") {
+                      apiParams.district = f.district[0];
+                    }
+                    
+                    // Check if any filters are applied
+                    const hasFilters = Object.keys(apiParams).length > 1; // More than just campus_id
+                    
+                    if (hasFilters) {
+                      setHasActiveFilters(true);
+                      setLoading(true);
+                      try {
+                        const results = await getFilterStudent(apiParams);
+                        setFilteredStudentsData(results || []);
+                      } catch (error) {
+                        console.error("Error fetching filtered students:", error);
+                        setError("Failed to fetch filtered students");
+                      } finally {
+                        setLoading(false);
+                      }
+                    } else {
+                      setHasActiveFilters(false);
+                      setFilteredStudentsData([]);
+                    }
+                    
+                    setStudentPage(1);
+                  }}
                   currentFilters={filters}
+                  students={students}
                 />
                 {loading ? (
                   <p>Loading students...</p>
@@ -275,7 +333,7 @@ const CampusDetail = () => {
                         </select>
                       </div>
                       <span className="text-sm">
-                        {startIdx}-{endIdx} of {students.length}
+                        {startIdx}-{endIdx} of {displayStudents.length}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
