@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {createStudentExamSubmission} from "@/utils/api";
+import { createStudentExamSubmission } from "@/utils/api";
 
 const STORAGE_KEY = "student_test_progress";
 
@@ -19,7 +19,7 @@ interface Question {
   id: number;
   question: string;
   options: string[];
-  difficulty_level:number;
+  difficulty_level: number;
   answer: number; // store the index of the correct option
 }
 
@@ -40,7 +40,7 @@ const TestPage: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({}); // store selected option index
   const [timeLeft, setTimeLeft] = useState<number | null>(
-    stateDuration || null
+    stateDuration || null,
   );
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -71,7 +71,7 @@ const TestPage: React.FC = () => {
           currentIndex: 0,
           examStartTime: Date.now(),
           duration: stateDuration,
-        })
+        }),
       );
     }
   }, [stateQuestions, stateDuration]);
@@ -86,7 +86,7 @@ const TestPage: React.FC = () => {
 
     const timer = setInterval(
       () => setTimeLeft((t) => (t !== null ? t - 1 : 0)),
-      1000
+      1000,
     );
     return () => clearInterval(timer);
   }, [timeLeft]);
@@ -99,7 +99,7 @@ const TestPage: React.FC = () => {
       const parsed = JSON.parse(stored);
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ ...parsed, answers, currentIndex })
+        JSON.stringify({ ...parsed, answers, currentIndex }),
       );
     }
   }, [answers, currentIndex, timeLeft]);
@@ -113,93 +113,102 @@ const TestPage: React.FC = () => {
     setShowConfirm(true);
   };
 
- const submitTest = async () => {
-  setShowConfirm(false);
+  const submitTest = async () => {
+    setShowConfirm(false);
 
-  // Get student ID from localStorage
-  const studentId = localStorage.getItem("studentId");
-  if (!studentId) {
-    console.error("Student ID not found");
-    alert("Error: Student ID not found. Please log in again.");
-    return;
-  }
+    // Get student ID from localStorage
+    const studentId = localStorage.getItem("studentId");
+    if (!studentId) {
+      console.error("Student ID not found");
+      alert("Error: Student ID not found. Please log in again.");
+      return;
+    }
 
-  // Prepare answers in the API format
-  const formattedAnswers = questions.map((q) => ({
-    question_id: q.id,
-    selected_answer: answers[q.id] !== undefined ? [answers[q.id]] : [],
-  }));
+    // Prepare answers in the API format
+    const formattedAnswers = questions.map((q) => ({
+      question_id: q.id,
+      selected_answer: answers[q.id] !== undefined ? [answers[q.id]] : [],
+    }));
 
-  const submissionData = {
-    student_id: Number(studentId),
-    answers: formattedAnswers,
-  };
+    const submissionData = {
+      student_id: Number(studentId),
+      answers: formattedAnswers,
+    };
 
-  try {
-    // Submit exam to API
-    const response = await createStudentExamSubmission(submissionData);
-    
-    console.log("Exam submission response:", response);
+    try {
+      // Submit exam to API
+      const response = await createStudentExamSubmission(submissionData);
 
-    // Extract data from API response
-    const { exam_session, summary } = response.data;
-    const score = exam_session.obtained_marks;
-    const totalPossibleScore = exam_session.total_marks;
-    const passed = exam_session.is_passed;
+      console.log("Exam submission response:", response);
 
-    console.log("totalPossibleScore",totalPossibleScore,"Score:", score, "Passed:", passed, "Summary:", summary);
-    localStorage.removeItem(STORAGE_KEY);
+      // Extract data from API response
+      const { exam_session, summary } = response.data;
+      const score = exam_session.obtained_marks;
+      const totalPossibleScore = exam_session.total_marks;
+      const passed = exam_session.is_passed;
 
-    // Update tests context
-    setTests((prev) => {
-      const index = prev.findIndex((t) => t.name === "Screening Test");
-      if (index !== -1) {
-        const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          score,
-          status: passed ? "Pass" : "Fail",
-          action: "Completed",
-        };
-        return updated;
-      } else {
-        return [
-          ...prev,
-          {
-            id: Date.now(),
-            name: "Screening Test",
+      console.log(
+        "totalPossibleScore",
+        totalPossibleScore,
+        "Score:",
+        score,
+        "Passed:",
+        passed,
+        "Summary:",
+        summary,
+      );
+      localStorage.removeItem(STORAGE_KEY);
+
+      // Update tests context
+      setTests((prev) => {
+        const index = prev.findIndex((t) => t.name === "Screening Test");
+        if (index !== -1) {
+          const updated = [...prev];
+          updated[index] = {
+            ...updated[index],
             score,
             status: passed ? "Pass" : "Fail",
             action: "Completed",
-            slotBooking: { status: null },
-          },
-        ];
-      }
-    });
+          };
+          return updated;
+        } else {
+          return [
+            ...prev,
+            {
+              id: Date.now(),
+              name: "Screening Test",
+              score,
+              status: passed ? "Pass" : "Fail",
+              action: "Completed",
+              slotBooking: { status: null },
+            },
+          ];
+        }
+      });
 
-    localStorage.setItem("testStarted", "false");
-    localStorage.setItem("testCompleted", "true");
-    localStorage.setItem("allowRetest", "false");
+      localStorage.setItem("testStarted", "false");
+      localStorage.setItem("testCompleted", "true");
+      localStorage.setItem("allowRetest", "false");
 
-    // Navigate to result page with API response data
-    navigate("/students/test/result", {
-      state: { 
-        score, 
-        total: totalPossibleScore,
-        apiResponse: response.data,
-        summary: summary,
-        isPassed: passed,
-      },
-    });
-  } catch (error) {
-    console.error("Error submitting exam:", error);
-    alert("Failed to submit exam. Please try again.");
-    setShowConfirm(false);
-  }
-};
+      // Navigate to result page with API response data
+      navigate("/students/test/result", {
+        state: {
+          score,
+          total: totalPossibleScore,
+          apiResponse: response.data,
+          summary: summary,
+          isPassed: passed,
+        },
+      });
+    } catch (error) {
+      console.error("Error submitting exam:", error);
+      alert("Failed to submit exam. Please try again.");
+      setShowConfirm(false);
+    }
+  };
 
-
-  if (timeLeft === null || questions.length === 0) {yg
+  if (timeLeft === null || questions.length === 0) {
+    yg;
     return (
       <div className="text-center mt-10 text-lg font-semibold">
         Loading test...

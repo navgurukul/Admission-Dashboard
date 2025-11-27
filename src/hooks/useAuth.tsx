@@ -1,10 +1,8 @@
+import { createContext, useContext, useState, useEffect } from "react";
+import { useToast } from "./use-toast";
+import { useGoogleAuth } from "./useGoogleAuth";
 
-
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useToast } from './use-toast';
-import { useGoogleAuth } from './useGoogleAuth';
-
- interface AuthUser {
+interface AuthUser {
   id: string;
   email: string;
   name?: string;
@@ -30,22 +28,21 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser| null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  
-  const { 
-    user: googleUser, 
-    isAuthenticated: googleAuthenticated, 
+
+  const {
+    user: googleUser,
+    isAuthenticated: googleAuthenticated,
     loading: googleLoading,
     getUserRole,
     hasRole: googleHasRole,
-    signOut: googleLogout 
+    signOut: googleLogout,
   } = useGoogleAuth();
 
   useEffect(() => {
-    
     const syncAuthState = () => {
       if (googleUser && googleAuthenticated) {
         const localUser: AuthUser = {
@@ -53,13 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: googleUser.email,
           name: googleUser.name,
           avatar: googleUser.avatar,
-          role: getUserRole(), 
+          role: getUserRole(),
           role_id: googleUser.role_id,
           role_name: googleUser.role_name,
-          
         };
-
-   
       } else {
         setUser(null);
         setSession(null);
@@ -76,26 +70,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Use  logout function
       await googleLogout();
-      
+
       // Clear local state
       setUser(null);
       setSession(null);
-      
+
       toast({
         title: "Signed out successfully",
         description: "You have been logged out from all systems.",
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       toast({
         title: "Logout Error",
         description: "There was an issue signing you out. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
-  const getUserInfo = ():AuthUser | null => {
+  const getUserInfo = (): AuthUser | null => {
     return user;
   };
 
@@ -104,8 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hasRole = (role: string): boolean => {
     return googleHasRole(role);
   };
-
-  
 
   const contextValue: AuthContextType = {
     user,
@@ -116,13 +108,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     userRole,
     hasRole,
-    
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }
 

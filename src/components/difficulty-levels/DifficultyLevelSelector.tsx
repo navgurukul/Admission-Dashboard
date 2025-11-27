@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { useDifficultyLevels } from '@/hooks/useDifficultyLevels';
+import React, { useEffect, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useDifficultyLevels } from "@/hooks/useDifficultyLevels";
 
 interface DifficultyLevelSelectorProps {
   value?: string;
@@ -18,21 +24,28 @@ export function DifficultyLevelSelector({
   placeholder = "Select difficulty level",
   showActiveOnly = true,
   className,
-  disabled = false
+  disabled = false,
 }: DifficultyLevelSelectorProps) {
-  const { difficultyLevels, loading, fetchDifficultyLevels, difficultyLevelUtils } = useDifficultyLevels();
+  const {
+    difficultyLevels,
+    loading,
+    fetchDifficultyLevels,
+    difficultyLevelUtils,
+  } = useDifficultyLevels();
 
   useEffect(() => {
     fetchDifficultyLevels();
   }, [fetchDifficultyLevels]);
 
   // Filter levels based on showActiveOnly prop
-  const filteredLevels = showActiveOnly 
-    ? difficultyLevels.filter(level => level.status)
+  const filteredLevels = showActiveOnly
+    ? difficultyLevels.filter((level) => level.status)
     : difficultyLevels;
 
   // Sort levels by name
-  const sortedLevels = filteredLevels.sort((a, b) => a.name.localeCompare(b.name));
+  const sortedLevels = filteredLevels.sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
@@ -54,7 +67,7 @@ export function DifficultyLevelSelector({
               <div className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: level.color || '#3B82F6' }}
+                  style={{ backgroundColor: level.color || "#3B82F6" }}
                 />
                 <span>{level.name}</span>
                 {!level.status && (
@@ -77,8 +90,16 @@ interface DifficultyLevelBadgeProps {
   className?: string;
 }
 
-export function DifficultyLevelBadge({ levelId, className }: DifficultyLevelBadgeProps) {
-  const { difficultyLevels, loading, fetchDifficultyLevels, difficultyLevelUtils } = useDifficultyLevels();
+export function DifficultyLevelBadge({
+  levelId,
+  className,
+}: DifficultyLevelBadgeProps) {
+  const {
+    difficultyLevels,
+    loading,
+    fetchDifficultyLevels,
+    difficultyLevelUtils,
+  } = useDifficultyLevels();
   const [level, setLevel] = useState<any>(null);
 
   useEffect(() => {
@@ -87,7 +108,9 @@ export function DifficultyLevelBadge({ levelId, className }: DifficultyLevelBadg
 
   useEffect(() => {
     if (difficultyLevels.length > 0) {
-      const foundLevel = difficultyLevels.find(l => l.id.toString() === levelId.toString());
+      const foundLevel = difficultyLevels.find(
+        (l) => l.id.toString() === levelId.toString(),
+      );
       setLevel(foundLevel || null);
     }
   }, [difficultyLevels, levelId]);
@@ -101,14 +124,14 @@ export function DifficultyLevelBadge({ levelId, className }: DifficultyLevelBadg
   }
 
   return (
-    <Badge 
-      className={`${difficultyLevelUtils.getDifficultyColor(level.name)} ${className || ''}`}
+    <Badge
+      className={`${difficultyLevelUtils.getDifficultyColor(level.name)} ${className || ""}`}
       variant="secondary"
     >
       <div className="flex items-center gap-1">
         <div
           className="w-2 h-2 rounded-full"
-          style={{ backgroundColor: level.color || '#3B82F6' }}
+          style={{ backgroundColor: level.color || "#3B82F6" }}
         />
         {level.name}
       </div>
@@ -123,12 +146,17 @@ interface DifficultyLevelDisplayProps {
   className?: string;
 }
 
-export function DifficultyLevelDisplay({ 
-  levelId, 
-  showDescription = false, 
-  className 
+export function DifficultyLevelDisplay({
+  levelId,
+  showDescription = false,
+  className,
 }: DifficultyLevelDisplayProps) {
-  const { difficultyLevels, loading, fetchDifficultyLevels, difficultyLevelUtils } = useDifficultyLevels();
+  const {
+    difficultyLevels,
+    loading,
+    fetchDifficultyLevels,
+    difficultyLevelUtils,
+  } = useDifficultyLevels();
   const [level, setLevel] = useState<any>(null);
 
   useEffect(() => {
@@ -137,24 +165,26 @@ export function DifficultyLevelDisplay({
 
   useEffect(() => {
     if (difficultyLevels.length > 0) {
-      const foundLevel = difficultyLevels.find(l => l.id.toString() === levelId.toString());
+      const foundLevel = difficultyLevels.find(
+        (l) => l.id.toString() === levelId.toString(),
+      );
       setLevel(foundLevel || null);
     }
   }, [difficultyLevels, levelId]);
 
   if (loading || !level) {
     return (
-      <div className={`text-muted-foreground ${className || ''}`}>
+      <div className={`text-muted-foreground ${className || ""}`}>
         Loading...
       </div>
     );
   }
 
   return (
-    <div className={`flex items-center gap-2 ${className || ''}`}>
+    <div className={`flex items-center gap-2 ${className || ""}`}>
       <div
         className="w-4 h-4 rounded-full"
-        style={{ backgroundColor: level.color || '#3B82F6' }}
+        style={{ backgroundColor: level.color || "#3B82F6" }}
       />
       <div>
         <span className="font-medium">{level.name}</span>

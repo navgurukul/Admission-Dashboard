@@ -78,7 +78,6 @@ export function QuestionFilters({
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
               <SelectItem value="MCQ">Multiple Choice</SelectItem>
-          
             </SelectContent>
           </Select>
         </div>

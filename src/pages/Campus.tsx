@@ -55,10 +55,12 @@ const CampusPage: React.FC = () => {
     if (showLoader) setLoading(true);
     try {
       const data = await getCampusesApi();
-      console.log("campus Data",data)
+      console.log("campus Data", data);
       setCampuses(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred",
+      );
     } finally {
       if (showLoader) setLoading(false);
     }
@@ -71,12 +73,15 @@ const CampusPage: React.FC = () => {
 
   // Filter + pagination
   const filteredCampuses = campuses.filter((c) =>
-    c.campus_name.toLowerCase().includes(search.toLowerCase())
+    c.campus_name.toLowerCase().includes(search.toLowerCase()),
   );
   const totalPages = Math.ceil(filteredCampuses.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredCampuses.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredCampuses.slice(
+    indexOfFirstItem,
+    indexOfLastItem,
+  );
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
@@ -90,10 +95,11 @@ const CampusPage: React.FC = () => {
   const handleAddCampus = async (e: React.FormEvent) => {
     e.preventDefault();
 
-     const isDuplicate = campuses.some(
-      (campus) => campus.campus_name.toLowerCase() === newCampus.toLowerCase().trim()
+    const isDuplicate = campuses.some(
+      (campus) =>
+        campus.campus_name.toLowerCase() === newCampus.toLowerCase().trim(),
     );
-    
+
     if (isDuplicate) {
       toast({
         title: "Duplicate Campus",
@@ -107,9 +113,12 @@ const CampusPage: React.FC = () => {
       await createCampusApi(newCampus);
       setAddDialog(false);
       setNewCampus("");
-      toast({ title: "Campus Added", description: "Campus has been successfully added." });
-      await fetchCampuses(false); 
-      setCurrentPage(1); 
+      toast({
+        title: "Campus Added",
+        description: "Campus has been successfully added.",
+      });
+      await fetchCampuses(false);
+      setCurrentPage(1);
     } catch (err) {
       toast({
         title: "Error",
@@ -128,8 +137,11 @@ const CampusPage: React.FC = () => {
       await updateCampusApi(id, campus_name);
       setEditDialog(false);
       setSelectedCampus(null);
-      toast({ title: "Campus Updated", description: `Campus "${campus_name}" updated successfully.` });
-      await fetchCampuses(false); 
+      toast({
+        title: "Campus Updated",
+        description: `Campus "${campus_name}" updated successfully.`,
+      });
+      await fetchCampuses(false);
     } catch (err) {
       toast({
         title: "Error",
@@ -148,8 +160,11 @@ const CampusPage: React.FC = () => {
       await deleteCampusApi(id);
       setDeleteDialog(false);
       setSelectedCampus(null);
-      toast({ title: "Campus Deleted", description: `Campus "${campus_name}" has been deleted.` });
-      await fetchCampuses(false); 
+      toast({
+        title: "Campus Deleted",
+        description: `Campus "${campus_name}" has been deleted.`,
+      });
+      await fetchCampuses(false);
       setCurrentPage(1);
     } catch (err) {
       toast({
@@ -161,7 +176,6 @@ const CampusPage: React.FC = () => {
       setActionLoading(false);
     }
   };
-
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
@@ -220,9 +234,14 @@ const CampusPage: React.FC = () => {
                       ) : (
                         currentItems.map((campus, index) => (
                           <TableRow key={campus.id}>
-                            <TableCell>{indexOfFirstItem + index + 1}</TableCell>
+                            <TableCell>
+                              {indexOfFirstItem + index + 1}
+                            </TableCell>
                             <TableCell className="font-medium">
-                              <Link to={`/campus/${campus.id}`} className="text-primary hover:underline">
+                              <Link
+                                to={`/campus/${campus.id}`}
+                                className="text-primary hover:underline"
+                              >
                                 {campus.campus_name}
                               </Link>
                             </TableCell>
@@ -301,7 +320,9 @@ const CampusPage: React.FC = () => {
             onSubmit={handleAddCampus}
             className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200"
           >
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">Add Campus</h2>
+            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+              Add Campus
+            </h2>
             <input
               type="text"
               placeholder="Enter campus name"
@@ -311,10 +332,17 @@ const CampusPage: React.FC = () => {
               required
             />
             <div className="flex justify-end gap-2 mt-6">
-              <button type="button" className="px-4 py-2 bg-gray-300 text-gray-700 rounded" onClick={() => setAddDialog(false)}>
+              <button
+                type="button"
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                onClick={() => setAddDialog(false)}
+              >
                 Cancel
               </button>
-              <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-orange-500 text-white rounded"
+              >
                 Add
               </button>
             </div>
@@ -334,7 +362,9 @@ const CampusPage: React.FC = () => {
             }}
             className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200"
           >
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">Update Campus</h2>
+            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+              Update Campus
+            </h2>
             <input
               type="text"
               placeholder="Enter campus name"
@@ -344,10 +374,21 @@ const CampusPage: React.FC = () => {
               required
             />
             <div className="flex justify-end gap-2 mt-6">
-              <button type="button" className="px-4 py-2 bg-gray-300 text-gray-700 rounded" onClick={() => { setEditDialog(false); setSelectedCampus(null); }}>
+              <button
+                type="button"
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                onClick={() => {
+                  setEditDialog(false);
+                  setSelectedCampus(null);
+                }}
+              >
                 Cancel
               </button>
-              <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded" disabled={actionLoading}>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-orange-500 text-white rounded"
+                disabled={actionLoading}
+              >
                 {actionLoading ? "Updating..." : "Update"}
               </button>
             </div>
@@ -359,17 +400,34 @@ const CampusPage: React.FC = () => {
       {deleteDialog && selectedCampus && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-red-200">
-            <h2 className="text-lg font-semibold text-red-600 mb-4">Confirm Deletion</h2>
-            <p>Are you sure you want to delete <strong>{selectedCampus.campus_name}</strong>?</p>
+            <h2 className="text-lg font-semibold text-red-600 mb-4">
+              Confirm Deletion
+            </h2>
+            <p>
+              Are you sure you want to delete{" "}
+              <strong>{selectedCampus.campus_name}</strong>?
+            </p>
             <div className="flex justify-end gap-2 mt-6">
-              <button className="px-4 py-2 bg-gray-300 text-gray-700 rounded" onClick={() => { setDeleteDialog(false); setSelectedCampus(null); }}>
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                onClick={() => {
+                  setDeleteDialog(false);
+                  setSelectedCampus(null);
+                }}
+              >
                 Cancel
               </button>
-              <button className="px-4 py-2 bg-red-600 text-white rounded" onClick={() => {
-                handleDeleteCampus(selectedCampus.id, selectedCampus.campus_name);
-                setDeleteDialog(false);
-                setSelectedCampus(null);
-              }}>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded"
+                onClick={() => {
+                  handleDeleteCampus(
+                    selectedCampus.id,
+                    selectedCampus.campus_name,
+                  );
+                  setDeleteDialog(false);
+                  setSelectedCampus(null);
+                }}
+              >
                 Delete
               </button>
             </div>

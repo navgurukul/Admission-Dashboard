@@ -1,7 +1,20 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Loader2, Calendar, Clock, User, Mail, FileText } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  X,
+  Loader2,
+  Calendar,
+  Clock,
+  User,
+  Mail,
+  FileText,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -34,7 +47,7 @@ interface ScheduleInterviewModalProps {
     date: string,
     startTime: string,
     endTime: string,
-    topicName: string
+    topicName: string,
   ) => Promise<void>;
   isLoading: boolean;
 }
@@ -53,7 +66,7 @@ export const ScheduleInterviewModal = ({
   const [studentName, setStudentName] = useState("");
   const [topicName, setTopicName] = useState("");
   const [interviewerEmail, setInterviewerEmail] = useState("");
-  
+
   // New states for date and slot selection
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
@@ -62,17 +75,17 @@ export const ScheduleInterviewModal = ({
 
   // Get unique dates from available slots
   const availableDates = Array.from(
-    new Set(allAvailableSlots.filter(s => !s.is_booked).map(s => s.date))
+    new Set(allAvailableSlots.filter((s) => !s.is_booked).map((s) => s.date)),
   ).sort();
 
   // Get slots for selected date
   const slotsForSelectedDate = selectedDate
-    ? allAvailableSlots.filter(s => s.date === selectedDate && !s.is_booked)
+    ? allAvailableSlots.filter((s) => s.date === selectedDate && !s.is_booked)
     : [];
 
   // Get selected slot details
   const currentSlot = isDirectScheduleMode
-    ? slotsForSelectedDate.find(s => s.id === selectedSlotId)
+    ? slotsForSelectedDate.find((s) => s.id === selectedSlotId)
     : slotData;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,7 +107,8 @@ export const ScheduleInterviewModal = ({
       return;
     }
 
-    const finalInterviewerEmail = interviewerEmail || slotToUse.interviewer_email || "";
+    const finalInterviewerEmail =
+      interviewerEmail || slotToUse.interviewer_email || "";
     if (!finalInterviewerEmail) {
       alert("Please enter interviewer email");
       return;
@@ -111,7 +125,7 @@ export const ScheduleInterviewModal = ({
         slotToUse.date,
         slotToUse.start_time,
         slotToUse.end_time,
-        topicName
+        topicName,
       );
 
       // Reset form
@@ -131,7 +145,11 @@ export const ScheduleInterviewModal = ({
     const [hour, minute] = time.split(":");
     const date = new Date();
     date.setHours(parseInt(hour), parseInt(minute));
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
   };
 
   const formatDate = (dateStr: string) =>
@@ -162,7 +180,7 @@ export const ScheduleInterviewModal = ({
                 <Calendar className="w-5 h-5 mr-2 text-blue-600" />
                 Select Date & Slot
               </h3>
-              
+
               {/* Date Picker */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -206,7 +224,8 @@ export const ScheduleInterviewModal = ({
                         <div className="flex items-center gap-2 mb-1">
                           <Clock className="w-4 h-4 text-gray-500" />
                           <span className="font-medium text-sm">
-                            {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                            {formatTime(slot.start_time)} -{" "}
+                            {formatTime(slot.end_time)}
                           </span>
                         </div>
                         {slot.interviewer_name && (
@@ -239,7 +258,8 @@ export const ScheduleInterviewModal = ({
                   <Clock className="w-4 h-4 text-gray-500" />
                   <span className="font-medium">Time:</span>
                   <span>
-                    {formatTime(currentSlot.start_time)} - {formatTime(currentSlot.end_time)}
+                    {formatTime(currentSlot.start_time)} -{" "}
+                    {formatTime(currentSlot.end_time)}
                   </span>
                 </div>
                 {currentSlot.interviewer_name && (
@@ -372,7 +392,13 @@ export const ScheduleInterviewModal = ({
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="flex-1 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex-1 py-3"
+            >
               Cancel
             </Button>
             <Button

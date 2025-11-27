@@ -1,18 +1,16 @@
-
-
-import { useState, useEffect,useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from './use-toast';
-import { loginWithGoogle, GoogleAuthPayload } from '@/utils/api';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "./use-toast";
+import { loginWithGoogle, GoogleAuthPayload } from "@/utils/api";
 
 interface GoogleUser {
   id: string;
   email: string;
   name: string;
   avatar: string;
-  provider: 'google';
+  provider: "google";
   role_id?: number | null;
-  role?: any | null;  
+  role?: any | null;
   profile_pic?: string | null;
   role_name?: string | null;
 }
@@ -23,15 +21,15 @@ interface GoogleAuthState {
 }
 
 // Google OAuth Configuration
-const GOOGLE_CLIENT_ID = '654022633429-fv4rgcs654a0f9r0464tl6o8jvjk3dco.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID =
+  "654022633429-fv4rgcs654a0f9r0464tl6o8jvjk3dco.apps.googleusercontent.com";
 
 interface UseGoogleAuthOptions {
   skipAutoNavigation?: boolean;
 }
 
 export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
-
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [authState, setAuthState] = useState<GoogleAuthState>({
     user: null,
     loading: true,
@@ -43,15 +41,19 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
   // Initialize Google OAuth
   useEffect(() => {
     const initializeGoogleAuth = () => {
-      if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
+      if (
+        document.querySelector(
+          'script[src="https://accounts.google.com/gsi/client"]',
+        )
+      ) {
         if (window.google) {
           initializeGoogleOAuth();
         }
         return;
       }
 
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
@@ -61,7 +63,7 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
       };
 
       script.onerror = () => {
-        console.error('Failed to load Google OAuth script');
+        console.error("Failed to load Google OAuth script");
         setAuthState({
           user: null,
           loading: false,
@@ -83,7 +85,7 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
           // Check for existing session after Google is initialized
           checkExistingSession();
         } catch (error) {
-          console.error('Error initializing Google OAuth:', error);
+          console.error("Error initializing Google OAuth:", error);
           setAuthState({
             user: null,
             loading: false,
@@ -97,63 +99,62 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
   }, []);
 
   // Restore session from localStorage
-const checkExistingSession = () => {
-  const storedUser = localStorage.getItem('user');
-const authToken = sessionStorage.getItem('authToken');
-   
-  if (storedUser && authToken) {
-    try {
-      const apiUser = JSON.parse(storedUser);
+  const checkExistingSession = () => {
+    const storedUser = localStorage.getItem("user");
+    const authToken = sessionStorage.getItem("authToken");
 
-      const googleUser: GoogleUser = {
-        id: apiUser.id.toString(),
-        email: apiUser.email,
-        name: apiUser.name,
-        avatar: apiUser.profile_pic || '', 
-        provider: 'google',
-        role_id:  apiUser.user_role_id,
-        role: apiUser.role,
-        role_name: apiUser.role_name,
-        profile_pic: apiUser.profile_pic,
-      };
+    if (storedUser && authToken) {
+      try {
+        const apiUser = JSON.parse(storedUser);
 
-      setAuthState({
-        user: googleUser,
-        isAuthenticated: true,
-        loading: false,
-        
-      });
-    } catch (error) {
-      console.error('Error parsing stored user:', error);
-      localStorage.removeItem('user');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userRole');
+        const googleUser: GoogleUser = {
+          id: apiUser.id.toString(),
+          email: apiUser.email,
+          name: apiUser.name,
+          avatar: apiUser.profile_pic || "",
+          provider: "google",
+          role_id: apiUser.user_role_id,
+          role: apiUser.role,
+          role_name: apiUser.role_name,
+          profile_pic: apiUser.profile_pic,
+        };
+
+        setAuthState({
+          user: googleUser,
+          isAuthenticated: true,
+          loading: false,
+        });
+      } catch (error) {
+        console.error("Error parsing stored user:", error);
+        localStorage.removeItem("user");
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("userRole");
+        setAuthState({
+          user: null,
+          loading: false,
+          isAuthenticated: false,
+        });
+      }
+    } else {
       setAuthState({
         user: null,
         loading: false,
         isAuthenticated: false,
       });
     }
-  } else {
-    setAuthState({
-      user: null,
-      loading: false,
-      isAuthenticated: false,
-    });
-  }
-};
+  };
 
   // Handle Google Sign In
   const handleGoogleSignIn = async (response: any) => {
     try {
-      setAuthState(prev => ({ ...prev, loading: true }));
+      setAuthState((prev) => ({ ...prev, loading: true }));
 
-      const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      const payload = JSON.parse(atob(response.credential.split(".")[1]));
       // console.log('Google JWT payload:', payload);
 
       // Store Google's JWT credential for students (who don't get backend token)
       const googleJWT = response.credential;
-      sessionStorage.setItem('google_credential', googleJWT);
+      sessionStorage.setItem("google_credential", googleJWT);
 
       const googleAuthPayload: GoogleAuthPayload = {
         iss: payload.iss,
@@ -182,26 +183,26 @@ const authToken = sessionStorage.getItem('authToken');
         // });
 
         // Store token only if it exists and is not undefined
-        if (token && token !== 'undefined') {
-          sessionStorage.setItem('authToken', token);
+        if (token && token !== "undefined") {
+          sessionStorage.setItem("authToken", token);
           // console.log(' Backend token stored successfully');
         } else {
           // console.warn(' Backend did not provide token for user:', apiUser?.email);
           // Don't store undefined - let student login page handle it
         }
 
-        localStorage.setItem('user', JSON.stringify(apiUser));
+        localStorage.setItem("user", JSON.stringify(apiUser));
 
         if (apiUser.role_name) {
-          localStorage.setItem('userRole', JSON.stringify(apiUser.role_name));
+          localStorage.setItem("userRole", JSON.stringify(apiUser.role_name));
         }
 
         const googleUser: GoogleUser = {
           id: apiUser.id.toString(),
           email: apiUser.email,
           name: apiUser.name,
-          avatar: apiUser.profile_pic || payload.picture || '',
-          provider: 'google',
+          avatar: apiUser.profile_pic || payload.picture || "",
+          provider: "google",
           role_id: apiUser.user_role_id,
           // role: apiUser.role,
           role_name: apiUser.role_name,
@@ -235,13 +236,11 @@ const authToken = sessionStorage.getItem('authToken');
           }
         }
       } else {
-        throw new Error(loginResponse.message || 'Login failed');
+        throw new Error(loginResponse.message || "Login failed");
       }
-
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
 
-     
       setAuthState({
         user: null,
         loading: false,
@@ -250,7 +249,10 @@ const authToken = sessionStorage.getItem('authToken');
 
       toast({
         title: "Sign In Failed",
-        description: error instanceof Error ? error.message : "Failed to sign in. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to sign in. Please try again.",
         variant: "destructive",
       });
     }
@@ -262,16 +264,16 @@ const authToken = sessionStorage.getItem('authToken');
       try {
         window.google.accounts.id.disableAutoSelect();
       } catch (error) {
-        console.error('Error disabling Google auto select:', error);
+        console.error("Error disabling Google auto select:", error);
       }
     }
-    
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('googleUser');
-    localStorage.removeItem('roleAccess');
-    
+
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("googleUser");
+    localStorage.removeItem("roleAccess");
+
     setAuthState({
       user: null,
       loading: false,
@@ -285,24 +287,24 @@ const authToken = sessionStorage.getItem('authToken');
   };
 
   // Render Google Sign In Button
-const renderGoogleSignInButton = useCallback((elementId: string) => {
-  if (window.google) {
-    try {
-      const element = document.getElementById(elementId);
-      if (element) {
-        window.google.accounts.id.renderButton(element, {
-          theme: "outline",
-          size: "large",
-          text: "continue_with",
-          shape: "rectangular",
-          width: 250,
-        });
+  const renderGoogleSignInButton = useCallback((elementId: string) => {
+    if (window.google) {
+      try {
+        const element = document.getElementById(elementId);
+        if (element) {
+          window.google.accounts.id.renderButton(element, {
+            theme: "outline",
+            size: "large",
+            text: "continue_with",
+            shape: "rectangular",
+            width: 250,
+          });
+        }
+      } catch (error) {
+        console.error("Error rendering Google button:", error);
       }
-    } catch (error) {
-      console.error("Error rendering Google button:", error);
     }
-  }
-}, []);
+  }, []);
 
   const getUserRole = () => {
     return authState.user?.role?.name || null;
@@ -335,5 +337,3 @@ declare global {
     };
   }
 }
-
-

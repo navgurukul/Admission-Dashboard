@@ -55,7 +55,7 @@ export function EditableCell({
   showActionButtons = true,
   disabled,
   renderInput,
-  tooltipMessage
+  tooltipMessage,
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -97,14 +97,18 @@ export function EditableCell({
       return;
     }
 
-    if (field === "email" && cellValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellValue)) {
-    toast({
-      title: "Invalid Email",
-      description: "Please enter a valid email address",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (
+      field === "email" &&
+      cellValue &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellValue)
+    ) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!editingCell || isUpdating) return;
 
@@ -193,27 +197,27 @@ export function EditableCell({
     if (value !== null && value !== undefined) {
       return String(value);
     }
-    
+
     // Try to match displayValue with option names (for cases like gender where value isn't passed)
     if (displayValue && normalizedOptions.length > 0) {
       const matchedOption = normalizedOptions.find(
-        opt => opt.name.toLowerCase() === String(displayValue).toLowerCase()
+        (opt) => opt.name.toLowerCase() === String(displayValue).toLowerCase(),
       );
       if (matchedOption) {
         return matchedOption.id;
       }
     }
-    
+
     return "none";
   };
 
   if (isDropdownField) {
     const currentValue = getCurrentDropdownValue();
     // Hide "Select" option for offer_letter_status and onboarded_status if value exists
-    const shouldHideSelectOption = 
-      (field === "offer_letter_status") && 
-      currentValue !== "none" && 
-      currentValue !== null && 
+    const shouldHideSelectOption =
+      field === "offer_letter_status" &&
+      currentValue !== "none" &&
+      currentValue !== null &&
       currentValue !== undefined;
 
     return (
@@ -298,15 +302,20 @@ export function EditableCell({
           startCellEdit(applicant.id, field, value ?? displayValue);
         }
       }}
-      title={disabled && tooltipMessage ? tooltipMessage : disabled ? "Editing disabled" : "Click to edit"}
->
+      title={
+        disabled && tooltipMessage
+          ? tooltipMessage
+          : disabled
+            ? "Editing disabled"
+            : "Click to edit"
+      }
+    >
       <span className="flex-1 whitespace-pre-wrap break-words">
         {isUpdating ? "Updating..." : displayValue || "Click to add"}
       </span>
       {showPencil && !isUpdating && (
         <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
       )}
-   
     </div>
   );
 }

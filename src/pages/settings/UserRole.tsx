@@ -61,7 +61,7 @@ export default function UserRole() {
     if (!newRole.name.trim()) return;
 
     const exists = roles.some(
-      (role) => role.name.toLowerCase() === newRole.name.trim().toLowerCase()
+      (role) => role.name.toLowerCase() === newRole.name.trim().toLowerCase(),
     );
     if (exists) {
       toast({
@@ -122,34 +122,34 @@ export default function UserRole() {
   };
 
   // Save edited role
-const handleEditRole = async (updatedRole: UserRole) => {
-  try {
-    const updated = await updateRole(Number(updatedRole.id), {
-      name: updatedRole.name,
-      status: true, // if your backend requires it
-    });
+  const handleEditRole = async (updatedRole: UserRole) => {
+    try {
+      const updated = await updateRole(Number(updatedRole.id), {
+        name: updatedRole.name,
+        status: true, // if your backend requires it
+      });
 
-    setRoles((prevRoles) =>
-      prevRoles.map((role) =>
-        role.id === updated.id ? { ...role, ...updated } : role
-      )
-    );
+      setRoles((prevRoles) =>
+        prevRoles.map((role) =>
+          role.id === updated.id ? { ...role, ...updated } : role,
+        ),
+      );
 
-    setEditingRole(null);
+      setEditingRole(null);
 
-    toast({
-      title: "Role Updated",
-      description: `Role "${updated.name}" has been updated successfully.`,
-    });
-  } catch (err: any) {
-    console.error("Failed to update role:", err);
-    toast({
-      title: "Error",
-      description: err.message || "Failed to update role",
-      variant: "destructive",
-    });
-  }
-};
+      toast({
+        title: "Role Updated",
+        description: `Role "${updated.name}" has been updated successfully.`,
+      });
+    } catch (err: any) {
+      console.error("Failed to update role:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update role",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div style={{ display: "flex", gap: "2rem" }}>
@@ -157,30 +157,42 @@ const handleEditRole = async (updatedRole: UserRole) => {
       <div className="space-y-6" style={{ flex: 1 }}>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">User Roles</h2>
-          <p className="text-gray-600">Manage user roles and their permissions</p>
+          <p className="text-gray-600">
+            Manage user roles and their permissions
+          </p>
         </div>
 
         {/* Add New Role */}
         <Card>
           <CardHeader>
             <CardTitle>Add New Role</CardTitle>
-            <CardDescription>Create a new user role with specific permissions</CardDescription>
+            <CardDescription>
+              Create a new user role with specific permissions
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Role Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Role Name
+                </label>
                 <Input
                   value={newRole.name}
-                  onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewRole({ ...newRole, name: e.target.value })
+                  }
                   placeholder="Enter role name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
                 <Input
                   value={newRole.description}
-                  onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
+                  onChange={(e) =>
+                    setNewRole({ ...newRole, description: e.target.value })
+                  }
                   placeholder="Enter role description"
                 />
               </div>

@@ -43,11 +43,13 @@ Your Client ID is already configured, but ensure these settings:
 ### 4. Configure Environment Variables
 
 1. Create a `.env` file in the root directory:
+
    ```bash
    cp .env.example .env
    ```
 
 2. Open `.env` and add your API Key:
+
    ```env
    VITE_GOOGLE_CLIENT_ID=203783247002-0mludsk4hhfttgehkb35mclfslhgps12.apps.googleusercontent.com
    VITE_GOOGLE_API_KEY=your_actual_api_key_here
@@ -58,6 +60,7 @@ Your Client ID is already configured, but ensure these settings:
 ### 5. Test the Integration
 
 1. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -80,20 +83,24 @@ Your Client ID is already configured, but ensure these settings:
 ## Troubleshooting
 
 ### Error: "The API key doesn't exist"
+
 - Make sure you've added the API key in the `.env` file
 - Restart the development server after adding environment variables
 
 ### Error: "Access blocked: This app's request is invalid"
+
 - Check that your OAuth Client ID is properly configured
 - Ensure authorized JavaScript origins and redirect URIs are added
 - Make sure the Google Calendar API is enabled in your project
 
 ### Error: "Sign-in failed"
+
 - Clear browser cache and cookies
 - Try signing in with a different browser
 - Check that your Google account has Calendar access enabled
 
 ### Google Meet link not appearing
+
 - Ensure the user has granted Calendar permissions
 - Check browser console for any errors
 - Verify that conferenceDataVersion parameter is set to 1 in the API call

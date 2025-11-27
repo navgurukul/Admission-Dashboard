@@ -39,7 +39,7 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       "school_id",
       "exam_centre",
       "date_of_test",
-    ].includes(f.name)
+    ].includes(f.name),
   );
 
   if (isScreening) {
@@ -61,7 +61,6 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       ? {
           learning_round_status: row.learning_round_status,
           comments: row.comments,
-      
         }
       : {
           student_id: studentId,
@@ -73,7 +72,6 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       ? {
           cultural_fit_status: row.cultural_fit_status,
           comments: row.comments,
-         
         }
       : {
           student_id: studentId,
@@ -101,13 +99,13 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
 const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
   if (field.type === "select") {
     return (
-      <Select 
-        value={row[field.name] || "CLEAR_SELECTION"} 
+      <Select
+        value={row[field.name] || "CLEAR_SELECTION"}
         onValueChange={(val) => {
           // Convert CLEAR_SELECTION back to empty string
           const actualValue = val === "CLEAR_SELECTION" ? "" : val;
           updateRow(field.name, actualValue);
-        }} 
+        }}
         disabled={!isEditable}
       >
         <SelectTrigger
@@ -149,8 +147,6 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
   }
 };
 
-
-
 export function InlineSubform({
   title,
   initialData,
@@ -165,19 +161,27 @@ export function InlineSubform({
 
   useEffect(() => {
     // Only update if the initialData actually changed (different length or ids)
-    const currentIds = rows.map(r => r.id).filter(Boolean).sort();
-    const newIds = initialData.map(r => r.id).filter(Boolean).sort();
-    
+    const currentIds = rows
+      .map((r) => r.id)
+      .filter(Boolean)
+      .sort();
+    const newIds = initialData
+      .map((r) => r.id)
+      .filter(Boolean)
+      .sort();
+
     // Check if IDs are different or if we have new data
     const idsChanged = JSON.stringify(currentIds) !== JSON.stringify(newIds);
-    
+
     if (idsChanged || rows.length === 0) {
       setRows(initialData.map((r) => ({ ...r })));
     }
   }, [initialData]);
 
   const editableFieldsMap = useMemo(() => {
-    return rows.map((row) => new Set(getEditableFields(row, fields).map(f => f.name)));
+    return rows.map(
+      (row) => new Set(getEditableFields(row, fields).map((f) => f.name)),
+    );
   }, [rows, fields]);
 
   const updateRow = (index: number, field: string, value: any) => {
@@ -209,11 +213,11 @@ export function InlineSubform({
     if (!row.id) {
       // Conditional validation based on status
       const status = row.status;
-      
-      for (let field of editableFields) {
+
+      for (const field of editableFields) {
         const fieldValue = row[field.name];
         const isEmpty = !fieldValue || fieldValue.toString().trim() === "";
-        
+
         // Skip validation for specific fields based on status
         if (field.name === "school_id") {
           // If status is "Screening Test Fail", school_id is NOT mandatory
@@ -221,12 +225,12 @@ export function InlineSubform({
             continue; // Skip validation for this field
           }
         }
-        
+
         // If status is "Created Student Without Exam", ALL fields are non-mandatory
         if (status === "Created Student Without Exam") {
           continue; // Skip validation for all fields
         }
-        
+
         // For all other cases, validate required fields
         if (isEmpty) {
           toast({
@@ -327,7 +331,8 @@ export function InlineSubform({
             {rows.map((row, idx) => (
               <tr key={idx} className="border-b hover:bg-gray-50">
                 {fields.map((f) => {
-                  const isEditable = row.isEditing && editableFieldsMap[idx].has(f.name);
+                  const isEditable =
+                    row.isEditing && editableFieldsMap[idx].has(f.name);
                   return (
                     <td
                       key={f.name}
@@ -338,13 +343,17 @@ export function InlineSubform({
                       }`}
                     >
                       {!isEditable && f.type === "readonly" ? (
-                        <p className="p-1 bg-gray-100 rounded">{getDisplayValue(row, f)}</p>
+                        <p className="p-1 bg-gray-100 rounded">
+                          {getDisplayValue(row, f)}
+                        </p>
                       ) : (
                         <EditableCell
                           row={row}
                           field={f}
                           isEditable={isEditable}
-                          updateRow={(fieldName, value) => updateRow(idx, fieldName, value)}
+                          updateRow={(fieldName, value) =>
+                            updateRow(idx, fieldName, value)
+                          }
                         />
                       )}
                     </td>

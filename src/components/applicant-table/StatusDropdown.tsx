@@ -10,12 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { updateStudent } from "@/utils/api";
 
 interface StatusDropdownProps {
-  applicant?: any;  // make optional
+  applicant?: any; // make optional
   onUpdate: () => void;
 }
 
 export const STAGE_STATUS_MAP = {
-  Sourcing:[
+  Sourcing: [
     "Enrollment Key Generated",
     "Basic Details Entered",
     "Duplicate",
@@ -53,8 +53,7 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const currentStatus = useMemo(() => {
     if (currentStage === "screening" && applicant.exam_sessions?.[0]) {
       return (
-        applicant.exam_sessions[0].status ||
-        STAGE_DEFAULT_STATUS["screening"]
+        applicant.exam_sessions[0].status || STAGE_DEFAULT_STATUS["screening"]
       );
     }
     return (
@@ -64,9 +63,10 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   }, [applicant, currentStage]);
 
   const availableStatuses = useMemo(() => {
-    return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
+    return (
+      STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || []
+    );
   }, [currentStage]);
-  
 
   const handleStatusChange = async (newStatus: string) => {
     try {

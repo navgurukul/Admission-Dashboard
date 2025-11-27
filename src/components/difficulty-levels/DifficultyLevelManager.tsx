@@ -1,19 +1,19 @@
-import React, { useState,useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -23,27 +23,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
   Search,
   Filter,
-  RefreshCw
-} from 'lucide-react';
-import { useDifficultyLevels } from '@/hooks/useDifficultyLevels';
-import { type CreateDifficultyLevelData, type UpdateDifficultyLevelData } from '@/utils/difficultyLevelAPI';
+  RefreshCw,
+} from "lucide-react";
+import { useDifficultyLevels } from "@/hooks/useDifficultyLevels";
+import {
+  type CreateDifficultyLevelData,
+  type UpdateDifficultyLevelData,
+} from "@/utils/difficultyLevelAPI";
 
 interface DifficultyLevelFormData {
   name: string;
@@ -56,14 +59,14 @@ export function DifficultyLevelManager() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingLevel, setEditingLevel] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [showActiveOnly, setShowActiveOnly] = useState(false);
-  
+
   const [formData, setFormData] = useState<DifficultyLevelFormData>({
-    name: '',
-    description: '',
-    color: '#3B82F6',
-    status: true
+    name: "",
+    description: "",
+    color: "#3B82F6",
+    status: true,
   });
 
   const {
@@ -75,63 +78,68 @@ export function DifficultyLevelManager() {
     deleteDifficultyLevel,
     toggleDifficultyLevelStatus,
     fetchDifficultyLevels,
-    difficultyLevelUtils
+    difficultyLevelUtils,
   } = useDifficultyLevels();
 
-useEffect(() => {
-    console.log('Difficulty Levels Data:', difficultyLevels);
-    console.log('Is Array:', Array.isArray(difficultyLevels));
-    if (difficultyLevels && typeof difficultyLevels === 'object') {
-      console.log('Object keys:', Object.keys(difficultyLevels));
+  useEffect(() => {
+    console.log("Difficulty Levels Data:", difficultyLevels);
+    console.log("Is Array:", Array.isArray(difficultyLevels));
+    if (difficultyLevels && typeof difficultyLevels === "object") {
+      console.log("Object keys:", Object.keys(difficultyLevels));
     }
   }, [difficultyLevels]);
 
   // Better way to handle the API response structure
   const getLevelsArray = (): DifficultyLevel[] => {
-  if (!difficultyLevels) return [];
-  
-  // Direct access to the nested array structure
-  if (difficultyLevels.data && 
-      difficultyLevels.data.data && 
-      Array.isArray(difficultyLevels.data.data)) {
-    return difficultyLevels.data.data;
-  }
-  
-  return [];
-};
+    if (!difficultyLevels) return [];
 
-const levelsArray = getLevelsArray();
-console.log('Levels array:', levelsArray);
-console.log('Number of levels:', levelsArray.length);
+    // Direct access to the nested array structure
+    if (
+      difficultyLevels.data &&
+      difficultyLevels.data.data &&
+      Array.isArray(difficultyLevels.data.data)
+    ) {
+      return difficultyLevels.data.data;
+    }
 
-// Filter difficulty levels based on search and status
-const filteredLevels = levelsArray.filter(level => {
-  console.log('Processing level:', level);
-  
-  const matchesSearch = 
-    level.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (level.description && level.description.toLowerCase().includes(searchTerm.toLowerCase()));
-  
-  const matchesStatus = !showActiveOnly || level.status;
-  
-  return matchesSearch && matchesStatus;
-});
+    return [];
+  };
 
-console.log('Filtered levels:', filteredLevels);
+  const levelsArray = getLevelsArray();
+  console.log("Levels array:", levelsArray);
+  console.log("Number of levels:", levelsArray.length);
 
+  // Filter difficulty levels based on search and status
+  const filteredLevels = levelsArray.filter((level) => {
+    console.log("Processing level:", level);
+
+    const matchesSearch =
+      level.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (level.description &&
+        level.description.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesStatus = !showActiveOnly || level.status;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  console.log("Filtered levels:", filteredLevels);
 
   // Handle form input changes
-  const handleFormChange = (field: keyof DifficultyLevelFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleFormChange = (
+    field: keyof DifficultyLevelFormData,
+    value: any,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   // Reset form
   const resetForm = () => {
     setFormData({
-      name: '',
-      description: '',
-      color: '#3B82F6',
-      status: true
+      name: "",
+      description: "",
+      color: "#3B82F6",
+      status: true,
     });
   };
 
@@ -142,14 +150,14 @@ console.log('Filtered levels:', filteredLevels);
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         color: formData.color,
-        status: formData.status
+        status: formData.status,
       };
 
       await createDifficultyLevel(createData);
       setIsCreateDialogOpen(false);
       resetForm();
     } catch (error) {
-      console.error('Error creating difficulty level:', error);
+      console.error("Error creating difficulty level:", error);
     }
   };
 
@@ -162,7 +170,7 @@ console.log('Filtered levels:', filteredLevels);
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
         color: formData.color,
-        status: formData.status
+        status: formData.status,
       };
 
       await updateDifficultyLevel(editingLevel.id, updateData);
@@ -170,7 +178,7 @@ console.log('Filtered levels:', filteredLevels);
       setEditingLevel(null);
       resetForm();
     } catch (error) {
-      console.error('Error updating difficulty level:', error);
+      console.error("Error updating difficulty level:", error);
     }
   };
 
@@ -179,7 +187,7 @@ console.log('Filtered levels:', filteredLevels);
     try {
       await deleteDifficultyLevel(id);
     } catch (error) {
-      console.error('Error deleting difficulty level:', error);
+      console.error("Error deleting difficulty level:", error);
     }
   };
 
@@ -188,7 +196,7 @@ console.log('Filtered levels:', filteredLevels);
     try {
       await toggleDifficultyLevelStatus(id, currentStatus);
     } catch (error) {
-      console.error('Error toggling difficulty level status:', error);
+      console.error("Error toggling difficulty level status:", error);
     }
   };
 
@@ -197,9 +205,9 @@ console.log('Filtered levels:', filteredLevels);
     setEditingLevel(level);
     setFormData({
       name: level.name,
-      description: level.description || '',
-      color: level.color || '#3B82F6',
-      status: level.status
+      description: level.description || "",
+      color: level.color || "#3B82F6",
+      status: level.status,
     });
     setIsEditDialogOpen(true);
   };
@@ -216,13 +224,14 @@ console.log('Filtered levels:', filteredLevels);
     resetForm();
   };
 
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Difficulty Levels</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Difficulty Levels
+          </h1>
           <p className="text-muted-foreground">
             Manage difficulty levels for questions and assessments
           </p>
@@ -233,10 +242,15 @@ console.log('Filtered levels:', filteredLevels);
             onClick={fetchDifficultyLevels}
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />
@@ -253,7 +267,7 @@ console.log('Filtered levels:', filteredLevels);
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => handleFormChange('name', e.target.value)}
+                    onChange={(e) => handleFormChange("name", e.target.value)}
                     placeholder="e.g., Easy, Medium, Hard"
                   />
                 </div>
@@ -262,7 +276,9 @@ console.log('Filtered levels:', filteredLevels);
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => handleFormChange('description', e.target.value)}
+                    onChange={(e) =>
+                      handleFormChange("description", e.target.value)
+                    }
                     placeholder="Optional description..."
                     rows={3}
                   />
@@ -274,12 +290,16 @@ console.log('Filtered levels:', filteredLevels);
                       id="color"
                       type="color"
                       value={formData.color}
-                      onChange={(e) => handleFormChange('color', e.target.value)}
+                      onChange={(e) =>
+                        handleFormChange("color", e.target.value)
+                      }
                       className="w-16 h-10"
                     />
                     <Input
                       value={formData.color}
-                      onChange={(e) => handleFormChange('color', e.target.value)}
+                      onChange={(e) =>
+                        handleFormChange("color", e.target.value)
+                      }
                       placeholder="#3B82F6"
                     />
                   </div>
@@ -288,7 +308,9 @@ console.log('Filtered levels:', filteredLevels);
                   <Switch
                     id="status"
                     checked={formData.status}
-                    onCheckedChange={(checked) => handleFormChange('status', checked)}
+                    onCheckedChange={(checked) =>
+                      handleFormChange("status", checked)
+                    }
                   />
                   <Label htmlFor="status">Active</Label>
                 </div>
@@ -343,21 +365,21 @@ console.log('Filtered levels:', filteredLevels);
       {/* Difficulty Levels Table */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            Difficulty Levels ({filteredLevels.length})
-          </CardTitle>
+          <CardTitle>Difficulty Levels ({filteredLevels.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading difficulty levels...</p>
+              <p className="text-muted-foreground">
+                Loading difficulty levels...
+              </p>
             </div>
           ) : filteredLevels.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                {searchTerm || showActiveOnly 
-                  ? 'No difficulty levels found matching your criteria' 
-                  : 'No difficulty levels found. Create your first one!'}
+                {searchTerm || showActiveOnly
+                  ? "No difficulty levels found matching your criteria"
+                  : "No difficulty levels found. Create your first one!"}
               </p>
             </div>
           ) : (
@@ -372,21 +394,25 @@ console.log('Filtered levels:', filteredLevels);
                 </TableRow>
               </TableHeader>
               <TableBody>
-               
-
                 {filteredLevels.length > 0 && (
-  <div>
-    <h3>Debug - Levels Found:</h3>
-    {filteredLevels.map(level => (
-      <div key={level.id} style={{border: '1px solid #ccc', margin: '5px', padding: '10px'}}>
-        <p>ID: {level.id}</p>
-        <p>Name: {level.name}</p>
-        <p>Status: {level.status ? 'Active' : 'Inactive'}</p>
-      </div>
-    ))}
-  </div>
-)}
-
+                  <div>
+                    <h3>Debug - Levels Found:</h3>
+                    {filteredLevels.map((level) => (
+                      <div
+                        key={level.id}
+                        style={{
+                          border: "1px solid #ccc",
+                          margin: "5px",
+                          padding: "10px",
+                        }}
+                      >
+                        <p>ID: {level.id}</p>
+                        <p>Name: {level.name}</p>
+                        <p>Status: {level.status ? "Active" : "Inactive"}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </TableBody>
             </Table>
           )}
@@ -405,7 +431,7 @@ console.log('Filtered levels:', filteredLevels);
               <Input
                 id="edit-name"
                 value={formData.name}
-                onChange={(e) => handleFormChange('name', e.target.value)}
+                onChange={(e) => handleFormChange("name", e.target.value)}
                 placeholder="e.g., Easy, Medium, Hard"
               />
             </div>
@@ -414,7 +440,9 @@ console.log('Filtered levels:', filteredLevels);
               <Textarea
                 id="edit-description"
                 value={formData.description}
-                onChange={(e) => handleFormChange('description', e.target.value)}
+                onChange={(e) =>
+                  handleFormChange("description", e.target.value)
+                }
                 placeholder="Optional description..."
                 rows={3}
               />
@@ -426,12 +454,12 @@ console.log('Filtered levels:', filteredLevels);
                   id="edit-color"
                   type="color"
                   value={formData.color}
-                  onChange={(e) => handleFormChange('color', e.target.value)}
+                  onChange={(e) => handleFormChange("color", e.target.value)}
                   className="w-16 h-10"
                 />
                 <Input
                   value={formData.color}
-                  onChange={(e) => handleFormChange('color', e.target.value)}
+                  onChange={(e) => handleFormChange("color", e.target.value)}
                   placeholder="#3B82F6"
                 />
               </div>
@@ -440,7 +468,9 @@ console.log('Filtered levels:', filteredLevels);
               <Switch
                 id="edit-status"
                 checked={formData.status}
-                onCheckedChange={(checked) => handleFormChange('status', checked)}
+                onCheckedChange={(checked) =>
+                  handleFormChange("status", checked)
+                }
               />
               <Label htmlFor="edit-status">Active</Label>
             </div>
@@ -458,4 +488,3 @@ console.log('Filtered levels:', filteredLevels);
     </div>
   );
 }
-

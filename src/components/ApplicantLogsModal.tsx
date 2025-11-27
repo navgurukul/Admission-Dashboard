@@ -1,7 +1,11 @@
-
 import { useQuery } from "@tanstack/react-query";
 // import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,39 +18,39 @@ interface ApplicantLogsModalProps {
   onClose: () => void;
 }
 
-export const ApplicantLogsModal = ({ 
-  applicantId, 
-  applicantName, 
-  isOpen, 
-  onClose 
+export const ApplicantLogsModal = ({
+  applicantId,
+  applicantName,
+  isOpen,
+  onClose,
 }: ApplicantLogsModalProps) => {
   const { data: logs, isLoading } = useQuery({
-    queryKey: ['system-logs', applicantId],
+    queryKey: ["system-logs", applicantId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('system_logs')
-        .select('*')
-        .eq('entity_id', applicantId)
-        .order('created_at', { ascending: false });
-      
+        .from("system_logs")
+        .select("*")
+        .eq("entity_id", applicantId)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data;
     },
-    enabled: isOpen
+    enabled: isOpen,
   });
 
   const getActionColor = (actionType: string) => {
     switch (actionType) {
-      case 'comment_added':
-        return 'bg-blue-100 text-blue-800';
-      case 'comment_deleted':
-        return 'bg-red-100 text-red-800';
-      case 'status_updated':
-        return 'bg-green-100 text-green-800';
-      case 'stage_updated':
-        return 'bg-purple-100 text-purple-800';
+      case "comment_added":
+        return "bg-blue-100 text-blue-800";
+      case "comment_deleted":
+        return "bg-red-100 text-red-800";
+      case "status_updated":
+        return "bg-green-100 text-green-800";
+      case "stage_updated":
+        return "bg-purple-100 text-purple-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -59,7 +63,7 @@ export const ApplicantLogsModal = ({
             Activity Log for {applicantName}
           </DialogTitle>
         </DialogHeader>
-        
+
         <ScrollArea className="flex-1">
           <div className="space-y-4">
             {isLoading ? (
@@ -75,11 +79,11 @@ export const ApplicantLogsModal = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Badge className={getActionColor(log.action_type)}>
-                          {log.action_type.replace('_', ' ').toUpperCase()}
+                          {log.action_type.replace("_", " ").toUpperCase()}
                         </Badge>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <User className="h-3 w-3" />
-                          {log.user_name || 'System'}
+                          {log.user_name || "System"}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">

@@ -1,17 +1,31 @@
-
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Tag } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Edit, Trash2, Tag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 export function TagManagement() {
   const [tags, setTags] = useState([]);
@@ -20,9 +34,9 @@ export function TagManagement() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(null);
   const [formData, setFormData] = useState({
-    slug: '',
-    display_name: '',
-    description: ''
+    slug: "",
+    display_name: "",
+    description: "",
   });
 
   const { toast } = useToast();
@@ -35,19 +49,19 @@ export function TagManagement() {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('question_tags')
-        .select('*')
-        .order('display_name');
+        .from("question_tags")
+        .select("*")
+        .order("display_name");
 
       if (error) throw error;
 
       setTags(data || []);
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      console.error("Error fetching tags:", error);
       toast({
         title: "Error",
         description: "Failed to fetch tags",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -57,37 +71,37 @@ export function TagManagement() {
   const generateSlug = (displayName) => {
     return displayName
       .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '');
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
   };
 
   const handleCreateTag = async () => {
     try {
       const slug = generateSlug(formData.display_name);
-      
-      const { error } = await supabase
-        .from('question_tags')
-        .insert([{
+
+      const { error } = await supabase.from("question_tags").insert([
+        {
           slug,
           display_name: formData.display_name,
-          description: formData.description || null
-        }]);
+          description: formData.description || null,
+        },
+      ]);
 
       if (error) throw error;
 
       toast({
         title: "Tag Created",
-        description: "The tag has been created successfully"
+        description: "The tag has been created successfully",
       });
 
       setShowCreateDialog(false);
-      setFormData({ slug: '', display_name: '', description: '' });
+      setFormData({ slug: "", display_name: "", description: "" });
       fetchTags();
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to create tag",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -95,28 +109,28 @@ export function TagManagement() {
   const handleEditTag = async () => {
     try {
       const { error } = await supabase
-        .from('question_tags')
+        .from("question_tags")
         .update({
           display_name: formData.display_name,
-          description: formData.description || null
+          description: formData.description || null,
         })
-        .eq('id', editingTag.id);
+        .eq("id", editingTag.id);
 
       if (error) throw error;
 
       toast({
         title: "Tag Updated",
-        description: "The tag has been updated successfully"
+        description: "The tag has been updated successfully",
       });
 
       setEditingTag(null);
-      setFormData({ slug: '', display_name: '', description: '' });
+      setFormData({ slug: "", display_name: "", description: "" });
       fetchTags();
     } catch (error) {
       toast({
         title: "Error",
         description: error.message || "Failed to update tag",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -125,29 +139,29 @@ export function TagManagement() {
     try {
       // Check if tag is used in any questions
       const { data: questionsWithTag } = await supabase
-        .from('questions')
-        .select('id')
-        .contains('tags', [tags.find(t => t.id === tagId)?.slug]);
+        .from("questions")
+        .select("id")
+        .contains("tags", [tags.find((t) => t.id === tagId)?.slug]);
 
       if (questionsWithTag && questionsWithTag.length > 0) {
         toast({
           title: "Cannot Delete Tag",
           description: `This tag is used in ${questionsWithTag.length} question(s). Remove it from all questions first.`,
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
       const { error } = await supabase
-        .from('question_tags')
+        .from("question_tags")
         .delete()
-        .eq('id', tagId);
+        .eq("id", tagId);
 
       if (error) throw error;
 
       toast({
         title: "Tag Deleted",
-        description: "The tag has been deleted successfully"
+        description: "The tag has been deleted successfully",
       });
 
       setShowDeleteDialog(null);
@@ -156,7 +170,7 @@ export function TagManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete tag",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -166,13 +180,13 @@ export function TagManagement() {
     setFormData({
       slug: tag.slug,
       display_name: tag.display_name,
-      description: tag.description || ''
+      description: tag.description || "",
     });
   };
 
   const openCreateDialog = () => {
     setShowCreateDialog(true);
-    setFormData({ slug: '', display_name: '', description: '' });
+    setFormData({ slug: "", display_name: "", description: "" });
   };
 
   if (loading) {
@@ -188,7 +202,7 @@ export function TagManagement() {
             Manage topic tags used to categorize questions
           </p>
         </div>
-        
+
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button onClick={openCreateDialog}>
@@ -206,7 +220,9 @@ export function TagManagement() {
                 <Input
                   id="display_name"
                   value={formData.display_name}
-                  onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, display_name: e.target.value })
+                  }
                   placeholder="e.g., HTML Basics"
                 />
               </div>
@@ -215,16 +231,24 @@ export function TagManagement() {
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   placeholder="Brief description of this topic..."
                   rows={3}
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCreateDialog(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateTag} disabled={!formData.display_name.trim()}>
+                <Button
+                  onClick={handleCreateTag}
+                  disabled={!formData.display_name.trim()}
+                >
                   Create Tag
                 </Button>
               </div>
@@ -262,15 +286,15 @@ export function TagManagement() {
                   </Button>
                 </div>
               </div>
-              
+
               {tag.description && (
                 <p className="text-sm text-muted-foreground mb-2">
                   {tag.description}
                 </p>
               )}
-              
+
               <p className="text-xs text-muted-foreground">
-                Created: {format(new Date(tag.created_at), 'MMM dd, yyyy')}
+                Created: {format(new Date(tag.created_at), "MMM dd, yyyy")}
               </p>
             </CardContent>
           </Card>
@@ -289,7 +313,9 @@ export function TagManagement() {
               <Input
                 id="edit_display_name"
                 value={formData.display_name}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, display_name: e.target.value })
+                }
               />
             </div>
             <div>
@@ -297,7 +323,9 @@ export function TagManagement() {
               <Textarea
                 id="edit_description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 rows={3}
               />
             </div>
@@ -305,7 +333,10 @@ export function TagManagement() {
               <Button variant="outline" onClick={() => setEditingTag(null)}>
                 Cancel
               </Button>
-              <Button onClick={handleEditTag} disabled={!formData.display_name.trim()}>
+              <Button
+                onClick={handleEditTag}
+                disabled={!formData.display_name.trim()}
+              >
                 Update Tag
               </Button>
             </div>
@@ -314,18 +345,21 @@ export function TagManagement() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!showDeleteDialog} onOpenChange={() => setShowDeleteDialog(null)}>
+      <AlertDialog
+        open={!!showDeleteDialog}
+        onOpenChange={() => setShowDeleteDialog(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Tag</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the tag "{showDeleteDialog?.display_name}"? 
-              This action cannot be undone.
+              Are you sure you want to delete the tag "
+              {showDeleteDialog?.display_name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => handleDeleteTag(showDeleteDialog.id)}
               className="bg-red-600 hover:bg-red-700"
             >

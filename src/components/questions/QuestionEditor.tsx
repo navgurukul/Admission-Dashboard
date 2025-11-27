@@ -54,7 +54,7 @@ export function QuestionEditor({
     if (!question) return;
 
     const level = difficultyLevels.find(
-      (lvl) => lvl.id === question.difficulty_level
+      (lvl) => lvl.id === question.difficulty_level,
     );
 
     setFormData({
@@ -81,7 +81,7 @@ export function QuestionEditor({
 
   const updateQuestionText = (
     lang: "english" | "hindi" | "marathi",
-    value: string
+    value: string,
   ) =>
     setFormData((prev) => ({
       ...prev,
@@ -211,7 +211,7 @@ export function QuestionEditor({
             onValueChange={(v) => {
               updateField("difficulty_level", v);
               const level = difficultyLevels.find(
-                (lvl) => lvl.id.toString() === v
+                (lvl) => lvl.id.toString() === v,
               );
               if (level) updateField("points", level.points);
             }}

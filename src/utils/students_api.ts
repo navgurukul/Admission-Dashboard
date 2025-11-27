@@ -1,12 +1,10 @@
 // src/api/questionApi.ts
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ;
-
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Stub for exam duration (e.g., 30 minutes = 1800 seconds)
 export const getExamDuration = async () => {
   return 1800; // change this to any duration you want
 };
-
 
 export const getQuestions = async () => {
   // Simulate API delay
@@ -33,15 +31,3 @@ export const getQuestions = async () => {
     },
   ];
 };
-
-
-
-
-
-
-
-
-
-
-
-

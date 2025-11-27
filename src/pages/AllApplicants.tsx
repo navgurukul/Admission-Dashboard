@@ -1,4 +1,3 @@
-
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import ApplicantTable from "@/components/ApplicantTable";
 
@@ -6,7 +5,7 @@ const AllApplicants = () => {
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      
+
       <main className="md:ml-64 overflow-auto h-screen">
         <div className="p-4 md:p-8 pt-16 md:pt-8">
           <div className="mb-8">

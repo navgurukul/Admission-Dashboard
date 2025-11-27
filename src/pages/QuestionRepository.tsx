@@ -53,10 +53,9 @@ export default function QuestionRepository() {
     refetch,
   } = useQuestions(filters, searchTerm);
 
-  useEffect(() => {
-  }, [questions]);
+  useEffect(() => {}, [questions]);
 
-  const handleImportComplete = () => {    
+  const handleImportComplete = () => {
     refetch();
     toast({
       title: "Import Successful",
@@ -64,7 +63,6 @@ export default function QuestionRepository() {
     });
     setActiveTab("list");
   };
-
 
   const handleCreateQuestion = () => {
     setSelectedQuestion(null);
@@ -271,7 +269,10 @@ export default function QuestionRepository() {
                 <CardTitle>Question Sets</CardTitle>
               </CardHeader>
               <CardContent>
-                <QuestionSetManager allQuestions={questions}  difficultyLevels={difficultyLevels}/>
+                <QuestionSetManager
+                  allQuestions={questions}
+                  difficultyLevels={difficultyLevels}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -312,9 +313,7 @@ export default function QuestionRepository() {
                 <CardTitle>Bulk Import Questions</CardTitle>
               </CardHeader>
               <CardContent>
-                <QuestionBulkImport
-                  onImportComplete={handleImportComplete}
-                />
+                <QuestionBulkImport onImportComplete={handleImportComplete} />
               </CardContent>
             </Card>
           </TabsContent>

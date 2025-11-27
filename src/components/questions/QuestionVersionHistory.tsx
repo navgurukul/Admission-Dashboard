@@ -1,17 +1,18 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { History, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { History, Eye } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface QuestionVersionHistoryProps {
   questionId: string;
 }
 
-export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryProps) {
+export function QuestionVersionHistory({
+  questionId,
+}: QuestionVersionHistoryProps) {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVersion, setSelectedVersion] = useState(null);
@@ -24,19 +25,21 @@ export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryPro
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('question_versions')
-        .select(`
+        .from("question_versions")
+        .select(
+          `
           *,
           profiles:edited_by(display_name)
-        `)
-        .eq('question_id', questionId)
-        .order('version_number', { ascending: false });
+        `,
+        )
+        .eq("question_id", questionId)
+        .order("version_number", { ascending: false });
 
       if (error) throw error;
 
       setVersions(data || []);
     } catch (error) {
-      console.error('Error fetching version history:', error);
+      console.error("Error fetching version history:", error);
     } finally {
       setLoading(false);
     }
@@ -62,10 +65,10 @@ export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryPro
         <div className="space-y-3">
           <h3 className="font-medium">Version History</h3>
           {versions.map((version) => (
-            <Card 
+            <Card
               key={version.id}
               className={`cursor-pointer transition-colors ${
-                selectedVersion?.id === version.id ? 'ring-2 ring-primary' : ''
+                selectedVersion?.id === version.id ? "ring-2 ring-primary" : ""
               }`}
               onClick={() => setSelectedVersion(version)}
             >
@@ -77,14 +80,17 @@ export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryPro
                         Version {version.version_number}
                       </Badge>
                       <Badge className="bg-blue-100 text-blue-800">
-                        {version.question_type.replace('_', ' ')}
+                        {version.question_type.replace("_", " ")}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(version.edited_at), 'MMM dd, yyyy HH:mm')}
+                      {format(
+                        new Date(version.edited_at),
+                        "MMM dd, yyyy HH:mm",
+                      )}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      by {version.profiles?.display_name || 'Unknown User'}
+                      by {version.profiles?.display_name || "Unknown User"}
                     </p>
                     {version.change_summary && (
                       <p className="text-sm mt-2">{version.change_summary}</p>
@@ -111,9 +117,11 @@ export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryPro
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Question Text</h4>
-                  <div 
+                  <div
                     className="prose prose-sm max-w-none p-3 bg-muted/30 rounded-lg"
-                    dangerouslySetInnerHTML={{ __html: selectedVersion.question_text }}
+                    dangerouslySetInnerHTML={{
+                      __html: selectedVersion.question_text,
+                    }}
                   />
                 </div>
 
@@ -121,7 +129,7 @@ export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryPro
                   <div>
                     <h4 className="font-medium mb-1">Type</h4>
                     <p className="text-sm text-muted-foreground">
-                      {selectedVersion.question_type.replace('_', ' ')}
+                      {selectedVersion.question_type.replace("_", " ")}
                     </p>
                   </div>
                   <div>
@@ -149,17 +157,19 @@ export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryPro
                     <h4 className="font-medium mb-2">Options</h4>
                     <div className="space-y-2">
                       {selectedVersion.options.map((option, index) => (
-                        <div 
-                          key={option.id} 
+                        <div
+                          key={option.id}
                           className={`p-2 rounded text-sm ${
-                            selectedVersion.correct_answer === option.id 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-muted/30'
+                            selectedVersion.correct_answer === option.id
+                              ? "bg-green-100 text-green-800"
+                              : "bg-muted/30"
                           }`}
                         >
                           {option.text}
                           {selectedVersion.correct_answer === option.id && (
-                            <Badge variant="outline" className="ml-2">Correct</Badge>
+                            <Badge variant="outline" className="ml-2">
+                              Correct
+                            </Badge>
                           )}
                         </div>
                       ))}
@@ -171,8 +181,12 @@ export function QuestionVersionHistory({ questionId }: QuestionVersionHistoryPro
                   <div>
                     <h4 className="font-medium mb-2">Tags</h4>
                     <div className="flex flex-wrap gap-1">
-                      {selectedVersion.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
+                      {selectedVersion.tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-xs"
+                        >
                           {tag}
                         </Badge>
                       ))}

@@ -1,12 +1,24 @@
 import { useState, useEffect } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Calendar, Clock, Plus, Users, Video, Trash2, Edit } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Plus,
+  Users,
+  Video,
+  Trash2,
+  Edit,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddSlotsModal } from "@/components/AddSlotsModal";
 import { EditSlotModal } from "@/components/EditSlotModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
-import { getMyAvailableSlots, scheduleInterview, deleteInterviewSlot } from "@/utils/api";
+import {
+  getMyAvailableSlots,
+  scheduleInterview,
+  deleteInterviewSlot,
+} from "@/utils/api";
 import {
   initClient,
   signIn,
@@ -33,14 +45,15 @@ type SlotData = {
 const Schedule = () => {
   const [isAddSlotsModalOpen, setIsAddSlotsModalOpen] = useState(false);
   const [isEditSlotModalOpen, setIsEditSlotModalOpen] = useState(false);
-  const [selectedSlotForEdit, setSelectedSlotForEdit] = useState<SlotData | null>(null);
+  const [selectedSlotForEdit, setSelectedSlotForEdit] =
+    useState<SlotData | null>(null);
   const { toast } = useToast();
 
   // Add state for admin scheduling
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedSlotForScheduling, setSelectedSlotForScheduling] =
     useState<SlotData | null>(null);
-  
+
   // Add new state for direct scheduling without slot selection
   const [isDirectScheduleMode, setIsDirectScheduleMode] = useState(false);
   const [isGoogleSignedIn, setIsGoogleSignedIn] = useState(false);
@@ -140,7 +153,7 @@ const Schedule = () => {
     date: string,
     startTime: string,
     endTime: string,
-    topicName: string
+    topicName: string,
   ) => {
     try {
       setSchedulingInProgress(true);
@@ -253,7 +266,7 @@ const Schedule = () => {
     try {
       setIsDeletingSlot(true);
       await deleteInterviewSlot(slotToDelete.id);
-      
+
       toast({
         title: "Success",
         description: "Slot deleted successfully",
@@ -282,7 +295,9 @@ const Schedule = () => {
     return slotDate === today;
   });
 
-  const availableTodayCount = todaySlots.filter((slot) => !slot.is_booked).length;
+  const availableTodayCount = todaySlots.filter(
+    (slot) => !slot.is_booked,
+  ).length;
   const bookedTodayCount = todaySlots.filter((slot) => slot.is_booked).length;
 
   const formatTime = (timeString: string): string => {
@@ -306,7 +321,7 @@ const Schedule = () => {
       acc[date].push(slot);
       return acc;
     },
-    {} as Record<string, SlotData[]>
+    {} as Record<string, SlotData[]>,
   );
 
   return (
@@ -401,7 +416,6 @@ const Schedule = () => {
                     <Video className="w-4 h-4 mr-2" />
                     Schedule
                   </Button> */}
-                  
                 </div>
               </div>
 
@@ -409,7 +423,7 @@ const Schedule = () => {
               <div className="flex items-center gap-4">
                 <div className="flex-1 max-w-xs">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Filter by Date 
+                    Filter by Date
                   </label>
                   <input
                     type="date"
@@ -501,15 +515,15 @@ const Schedule = () => {
                                 slot.slot_type === "LR"
                                   ? "bg-blue-100 text-blue-800"
                                   : slot.slot_type === "CFR"
-                                  ? "bg-purple-100 text-purple-800"
-                                  : "bg-gray-100 text-gray-800"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : "bg-gray-100 text-gray-800"
                               }`}
                             >
                               {slot.slot_type === "LR"
                                 ? "Learning Round"
                                 : slot.slot_type === "CFR"
-                                ? "Cultural Fit Round"
-                                : slot.slot_type || "N/A"}
+                                  ? "Cultural Fit Round"
+                                  : slot.slot_type || "N/A"}
                             </span>
                           </td>
 

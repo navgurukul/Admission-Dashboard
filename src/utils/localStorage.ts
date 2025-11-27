@@ -31,7 +31,7 @@ export interface ApplicantData {
   updated_at: string;
 }
 
-const STORAGE_KEY = 'admission_dashboard_applicants';
+const STORAGE_KEY = "admission_dashboard_applicants";
 
 // Generate a unique ID
 const generateId = (): string => {
@@ -48,10 +48,14 @@ export const getApplicants = (): ApplicantData[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     const data = stored ? JSON.parse(stored) : [];
-    console.log('getApplicants called, found', data.length, 'applicants in localStorage');
+    console.log(
+      "getApplicants called, found",
+      data.length,
+      "applicants in localStorage",
+    );
     return data;
   } catch (error) {
-    console.error('Error reading from localStorage:', error);
+    console.error("Error reading from localStorage:", error);
     return [];
   }
 };
@@ -60,37 +64,54 @@ export const getApplicants = (): ApplicantData[] => {
 export const saveApplicants = (applicants: ApplicantData[]): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(applicants));
-    console.log('saveApplicants: saved', applicants.length, 'applicants to localStorage');
+    console.log(
+      "saveApplicants: saved",
+      applicants.length,
+      "applicants to localStorage",
+    );
   } catch (error) {
-    console.error('Error saving to localStorage:', error);
+    console.error("Error saving to localStorage:", error);
   }
 };
 
 // Add new applicants
-export const addApplicants = (newApplicants: Omit<ApplicantData, 'id' | 'created_at' | 'updated_at'>[]): ApplicantData[] => {
+export const addApplicants = (
+  newApplicants: Omit<ApplicantData, "id" | "created_at" | "updated_at">[],
+): ApplicantData[] => {
   const existingApplicants = getApplicants();
   const timestamp = getCurrentTimestamp();
-  
-  const applicantsToAdd = newApplicants.map(applicant => ({
+
+  const applicantsToAdd = newApplicants.map((applicant) => ({
     ...applicant,
     id: generateId(),
     created_at: timestamp,
     updated_at: timestamp,
   }));
-  
+
   const updatedApplicants = [...existingApplicants, ...applicantsToAdd];
-  console.log('addApplicants: adding', newApplicants.length, 'applicants to', existingApplicants.length, 'existing =', updatedApplicants.length, 'total');
+  console.log(
+    "addApplicants: adding",
+    newApplicants.length,
+    "applicants to",
+    existingApplicants.length,
+    "existing =",
+    updatedApplicants.length,
+    "total",
+  );
   saveApplicants(updatedApplicants);
   return updatedApplicants;
 };
 
 // Update an applicant
-export const updateApplicant = (id: string, updates: Partial<ApplicantData>): ApplicantData[] => {
+export const updateApplicant = (
+  id: string,
+  updates: Partial<ApplicantData>,
+): ApplicantData[] => {
   const applicants = getApplicants();
-  const updatedApplicants = applicants.map(applicant => 
-    applicant.id === id 
+  const updatedApplicants = applicants.map((applicant) =>
+    applicant.id === id
       ? { ...applicant, ...updates, updated_at: getCurrentTimestamp() }
-      : applicant
+      : applicant,
   );
   saveApplicants(updatedApplicants);
   return updatedApplicants;
@@ -99,18 +120,23 @@ export const updateApplicant = (id: string, updates: Partial<ApplicantData>): Ap
 // Delete applicants by IDs
 export const deleteApplicants = (ids: string[]): ApplicantData[] => {
   const applicants = getApplicants();
-  const updatedApplicants = applicants.filter(applicant => !ids.includes(applicant.id));
+  const updatedApplicants = applicants.filter(
+    (applicant) => !ids.includes(applicant.id),
+  );
   saveApplicants(updatedApplicants);
   return updatedApplicants;
 };
 
 // Bulk update applicants
-export const bulkUpdateApplicants = (ids: string[], updates: Partial<ApplicantData>): ApplicantData[] => {
+export const bulkUpdateApplicants = (
+  ids: string[],
+  updates: Partial<ApplicantData>,
+): ApplicantData[] => {
   const applicants = getApplicants();
-  const updatedApplicants = applicants.map(applicant => 
+  const updatedApplicants = applicants.map((applicant) =>
     ids.includes(applicant.id)
       ? { ...applicant, ...updates, updated_at: getCurrentTimestamp() }
-      : applicant
+      : applicant,
   );
   saveApplicants(updatedApplicants);
   return updatedApplicants;
@@ -119,10 +145,10 @@ export const bulkUpdateApplicants = (ids: string[], updates: Partial<ApplicantDa
 // Get applicant by ID
 export const getApplicantById = (id: string): ApplicantData | null => {
   const applicants = getApplicants();
-  return applicants.find(applicant => applicant.id === id) || null;
+  return applicants.find((applicant) => applicant.id === id) || null;
 };
 
 // Clear all data (for testing/reset)
 export const clearAllData = (): void => {
   localStorage.removeItem(STORAGE_KEY);
-}; 
+};

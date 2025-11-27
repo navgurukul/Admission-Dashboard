@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from "react";
-import {AdmissionsSidebar} from "@/components/AdmissionsSidebar"; 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Edit, Trash2, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getAllCasts, createCast, updateCast, deleteCast } from "@/utils/api"; 
+import { getAllCasts, createCast, updateCast, deleteCast } from "@/utils/api";
 
 type Cast = {
   id: string;
@@ -28,8 +34,8 @@ export default function Caste() {
   }, []);
 
   useEffect(() => {
-    console.log('Castes state updated:', castes);
-    console.log('Castes length:', castes.length);
+    console.log("Castes state updated:", castes);
+    console.log("Castes length:", castes.length);
   }, [castes]);
 
   const fetchCastes = async () => {
@@ -54,7 +60,8 @@ export default function Caste() {
       setCastes([]);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch castes",
+        description:
+          error instanceof Error ? error.message : "Failed to fetch castes",
         variant: "destructive",
       });
     } finally {
@@ -71,7 +78,13 @@ export default function Caste() {
       });
       return;
     }
-    if (Array.isArray(castes) && castes.some(cast => cast.cast_name.toLowerCase() === newCaste.cast_name.toLowerCase())) {
+    if (
+      Array.isArray(castes) &&
+      castes.some(
+        (cast) =>
+          cast.cast_name.toLowerCase() === newCaste.cast_name.toLowerCase(),
+      )
+    ) {
       toast({
         title: "Error",
         description: "A cast with this name already exists",
@@ -82,7 +95,9 @@ export default function Caste() {
     try {
       setCreating(true);
       const createdCast = await createCast({ cast_name: newCaste.cast_name });
-      setCastes(Array.isArray(castes) ? [...castes, createdCast] : [createdCast]);
+      setCastes(
+        Array.isArray(castes) ? [...castes, createdCast] : [createdCast],
+      );
       setNewCaste({ cast_name: "" });
       toast({
         title: "Success",
@@ -91,7 +106,8 @@ export default function Caste() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create cast",
+        description:
+          error instanceof Error ? error.message : "Failed to create cast",
         variant: "destructive",
       });
     } finally {
@@ -113,10 +129,14 @@ export default function Caste() {
       });
       return;
     }
-    if (Array.isArray(castes) && castes.some(cast =>
-      cast.id !== editingCaste.id &&
-      cast.cast_name.toLowerCase() === editCaste.cast_name.toLowerCase()
-    )) {
+    if (
+      Array.isArray(castes) &&
+      castes.some(
+        (cast) =>
+          cast.id !== editingCaste.id &&
+          cast.cast_name.toLowerCase() === editCaste.cast_name.toLowerCase(),
+      )
+    ) {
       toast({
         title: "Error",
         description: "A cast with this name already exists",
@@ -125,8 +145,16 @@ export default function Caste() {
       return;
     }
     try {
-      const updatedCast = await updateCast(editingCaste.id, { cast_name: editCaste.cast_name });
-      setCastes(Array.isArray(castes) ? castes.map(cast => cast.id === editingCaste.id ? updatedCast : cast) : [updatedCast]);
+      const updatedCast = await updateCast(editingCaste.id, {
+        cast_name: editCaste.cast_name,
+      });
+      setCastes(
+        Array.isArray(castes)
+          ? castes.map((cast) =>
+              cast.id === editingCaste.id ? updatedCast : cast,
+            )
+          : [updatedCast],
+      );
       setEditingCaste(null);
       setEditCaste({ cast_name: "" });
       toast({
@@ -136,7 +164,8 @@ export default function Caste() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update cast",
+        description:
+          error instanceof Error ? error.message : "Failed to update cast",
         variant: "destructive",
       });
     }
@@ -148,7 +177,9 @@ export default function Caste() {
     }
     try {
       await deleteCast(id);
-      setCastes(Array.isArray(castes) ? castes.filter(cast => cast.id !== id) : []);
+      setCastes(
+        Array.isArray(castes) ? castes.filter((cast) => cast.id !== id) : [],
+      );
       toast({
         title: "Success",
         description: "Cast deleted successfully",
@@ -156,7 +187,8 @@ export default function Caste() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete cast",
+        description:
+          error instanceof Error ? error.message : "Failed to delete cast",
         variant: "destructive",
       });
     }
@@ -168,7 +200,9 @@ export default function Caste() {
       <div className="space-y-6" style={{ flex: 1 }}>
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Caste Management</h2>
-          <p className="text-gray-600">Manage caste categories and classifications</p>
+          <p className="text-gray-600">
+            Manage caste categories and classifications
+          </p>
         </div>
 
         {/* Add New Caste */}
@@ -180,21 +214,30 @@ export default function Caste() {
           <CardContent>
             <div className="flex gap-4">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Caste Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Caste Name
+                </label>
                 <Input
                   value={newCaste.cast_name}
                   onChange={(e) => setNewCaste({ cast_name: e.target.value })}
                   placeholder="Enter caste name"
                   disabled={creating}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newCaste.cast_name.trim() && !creating) {
+                    if (
+                      e.key === "Enter" &&
+                      newCaste.cast_name.trim() &&
+                      !creating
+                    ) {
                       handleAddCaste();
                     }
                   }}
                 />
               </div>
               <div className="flex items-end">
-                <Button onClick={handleAddCaste} disabled={creating || !newCaste.cast_name.trim()}>
+                <Button
+                  onClick={handleAddCaste}
+                  disabled={creating || !newCaste.cast_name.trim()}
+                >
                   {creating ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
@@ -213,7 +256,9 @@ export default function Caste() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Existing Castes</CardTitle>
-                <CardDescription>Manage current caste categories</CardDescription>
+                <CardDescription>
+                  Manage current caste categories
+                </CardDescription>
               </div>
               <Button
                 variant="outline"
@@ -221,7 +266,9 @@ export default function Caste() {
                 onClick={fetchCastes}
                 disabled={loading}
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
             </div>
@@ -232,25 +279,33 @@ export default function Caste() {
                 <Loader2 className="w-6 h-6 animate-spin mr-2" />
                 <span>Loading castes...</span>
               </div>
-            ) : (!Array.isArray(castes) || castes.length === 0) ? (
+            ) : !Array.isArray(castes) || castes.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 No castes found. Create your first caste above.
               </div>
             ) : (
               <div className="space-y-4">
                 {castes.map((caste) => (
-                  <div key={caste.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div
+                    key={caste.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
                     {editingCaste?.id === caste.id ? (
                       <div className="flex items-center gap-4 flex-1">
                         <div className="flex-1">
                           <Input
                             value={editCaste.cast_name}
-                            onChange={(e) => setEditCaste({ cast_name: e.target.value })}
+                            onChange={(e) =>
+                              setEditCaste({ cast_name: e.target.value })
+                            }
                             placeholder="Cast name"
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' && editCaste.cast_name.trim()) {
+                              if (
+                                e.key === "Enter" &&
+                                editCaste.cast_name.trim()
+                              ) {
                                 handleUpdateCaste();
-                              } else if (e.key === 'Escape') {
+                              } else if (e.key === "Escape") {
                                 setEditingCaste(null);
                                 setEditCaste({ cast_name: "" });
                               }
@@ -276,17 +331,24 @@ export default function Caste() {
                     ) : (
                       <>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{caste.cast_name}</h3>
+                          <h3 className="font-semibold text-gray-900">
+                            {caste.cast_name}
+                          </h3>
                           <div className="flex gap-2 mt-2">
-                            <span className={`px-2 py-1 text-xs rounded ${
-                              caste.status ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                            }`}>
+                            <span
+                              className={`px-2 py-1 text-xs rounded ${
+                                caste.status
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
                               {caste.status ? "Active" : "Inactive"}
                             </span>
                           </div>
                           {caste.created_at && (
                             <p className="text-xs text-gray-500 mt-1">
-                              Created: {new Date(caste.created_at).toLocaleDateString()}
+                              Created:{" "}
+                              {new Date(caste.created_at).toLocaleDateString()}
                             </p>
                           )}
                         </div>

@@ -73,7 +73,7 @@ const StudentRoutes: React.FC = () => {
         path="slot-booking/:id"
         element={
           // <StudentProtectedRoute>
-            <SlotBooking />
+          <SlotBooking />
           // </StudentProtectedRoute>
         }
       />
@@ -81,15 +81,15 @@ const StudentRoutes: React.FC = () => {
         path="offer-letter"
         element={
           // <StudentProtectedRoute>
-            <OfferLetterPage />
-          // </StudentProtectedRoute> 
+          <OfferLetterPage />
+          // </StudentProtectedRoute>
         }
       />
       <Route
         path="whatsapp-redirect"
         element={
           // <StudentProtectedRoute>
-            <WhatsAppRedirect />
+          <WhatsAppRedirect />
           // </StudentProtectedRoute>
         }
       />

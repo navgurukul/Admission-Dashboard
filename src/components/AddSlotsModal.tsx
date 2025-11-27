@@ -69,7 +69,7 @@ export function AddSlotsModal({
   const updateTimeSlot = (
     index: number,
     field: keyof TimeSlot,
-    value: string | Date
+    value: string | Date,
   ) => {
     const newSlots = [...timeSlots];
     newSlots[index][field] = value as any;
@@ -91,7 +91,7 @@ export function AddSlotsModal({
     }
 
     const invalidSlots = timeSlots.some(
-      (slot) => !slot.startTime || !slot.endTime || !slot.slot_type
+      (slot) => !slot.startTime || !slot.endTime || !slot.slot_type,
     );
     if (invalidSlots) {
       toast({
@@ -167,7 +167,9 @@ export function AddSlotsModal({
   };
 
   const handleClose = () => {
-    setTimeSlots([{ date: undefined, startTime: "", endTime: "", slot_type: "" }]);
+    setTimeSlots([
+      { date: undefined, startTime: "", endTime: "", slot_type: "" },
+    ]);
     setOpenPopovers({});
     onClose();
   };
@@ -207,20 +209,26 @@ export function AddSlotsModal({
                 {/* Date Selection */}
                 <div className="space-y-2">
                   <Label>Select Date</Label>
-                  <Popover 
-                    open={openPopovers[index]} 
-                    onOpenChange={(open) => setOpenPopovers(prev => ({ ...prev, [index]: open }))}
+                  <Popover
+                    open={openPopovers[index]}
+                    onOpenChange={(open) =>
+                      setOpenPopovers((prev) => ({ ...prev, [index]: open }))
+                    }
                   >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal",
-                          !slot.date && "text-muted-foreground"
+                          !slot.date && "text-muted-foreground",
                         )}
                       >
                         <Calendar className="mr-2 h-4 w-4" />
-                        {slot.date ? format(slot.date, "PPP") : <span>Pick a date</span>}
+                        {slot.date ? (
+                          format(slot.date, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -230,7 +238,10 @@ export function AddSlotsModal({
                         onSelect={(newDate) => {
                           if (newDate) {
                             updateTimeSlot(index, "date", newDate);
-                            setOpenPopovers(prev => ({ ...prev, [index]: false }));
+                            setOpenPopovers((prev) => ({
+                              ...prev,
+                              [index]: false,
+                            }));
                           }
                         }}
                         initialFocus
@@ -260,14 +271,18 @@ export function AddSlotsModal({
                   <Label htmlFor={`slot-type-${index}`}>Slot Type</Label>
                   <Select
                     value={slot.slot_type}
-                    onValueChange={(value) => updateTimeSlot(index, "slot_type", value)}
+                    onValueChange={(value) =>
+                      updateTimeSlot(index, "slot_type", value)
+                    }
                   >
                     <SelectTrigger id={`slot-type-${index}`}>
                       <SelectValue placeholder="Select slot type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="LR">Learning Round (LR)</SelectItem>
-                      <SelectItem value="CFR">Cultural Fit Round (CFR)</SelectItem>
+                      <SelectItem value="CFR">
+                        Cultural Fit Round (CFR)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
