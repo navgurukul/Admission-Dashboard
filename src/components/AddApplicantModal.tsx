@@ -223,7 +223,7 @@ export function AddApplicantModal({
   useEffect(() => {
     if (formData.question_set_id && questionSetList.length > 0) {
       const selectedQuestionSet = questionSetList.find(
-        (set) => set.id === Number(formData.question_set_id)
+        (set) => set.id === Number(formData.question_set_id),
       );
       if (selectedQuestionSet) {
         setFormData((prev) => ({
@@ -375,7 +375,9 @@ export function AddApplicantModal({
   // Handle block selection - update formData with both code and label
   useEffect(() => {
     if (selectedBlock) {
-      const selectedBlockOption = blockOptions.find((b) => b.value === selectedBlock);
+      const selectedBlockOption = blockOptions.find(
+        (b) => b.value === selectedBlock,
+      );
       setFormData((prev) => ({
         ...prev,
         block: selectedBlockOption?.label || selectedBlock,
@@ -437,37 +439,46 @@ export function AddApplicantModal({
 
     console.log(screeningFields);
     const hasAnyScreeningData = Object.values(screeningFields).some(
-      (value) => value !== "" && value !== null && value !== undefined
+      (value) => value !== "" && value !== null && value !== undefined,
     );
 
     if (hasAnyScreeningData) {
       // If any screening field is filled, validate all required screening fields
       if (!formData.status) {
-        newErrors.status = "Screening status is required when filling screening details";
+        newErrors.status =
+          "Screening status is required when filling screening details";
       }
 
       if (!formData.question_set_id) {
-        newErrors.question_set_id = "Question set is required when filling screening details";
+        newErrors.question_set_id =
+          "Question set is required when filling screening details";
       }
 
       if (!formData.exam_centre || !formData.exam_centre.trim()) {
-        newErrors.exam_centre = "Exam centre is required when filling screening details";
+        newErrors.exam_centre =
+          "Exam centre is required when filling screening details";
       }
 
       if (!formData.date_of_test) {
-        newErrors.date_of_test = "Date of test is required when filling screening details";
+        newErrors.date_of_test =
+          "Date of test is required when filling screening details";
       }
 
       if (!formData.obtained_marks || formData.obtained_marks === "") {
-        newErrors.obtained_marks = "Obtained marks is required when filling screening details";
+        newErrors.obtained_marks =
+          "Obtained marks is required when filling screening details";
       } else if (Number(formData.obtained_marks) < 0) {
         newErrors.obtained_marks = "Obtained marks cannot be negative";
-      } else if (formData.total_marks && Number(formData.obtained_marks) > Number(formData.total_marks)) {
+      } else if (
+        formData.total_marks &&
+        Number(formData.obtained_marks) > Number(formData.total_marks)
+      ) {
         newErrors.obtained_marks = "Obtained marks cannot exceed total marks";
       }
 
       if (!formData.qualifying_school_id) {
-        newErrors.qualifying_school_id = "Qualifying school is required when filling screening details";
+        newErrors.qualifying_school_id =
+          "Qualifying school is required when filling screening details";
       }
     }
 
@@ -478,14 +489,21 @@ export function AddApplicantModal({
   const handleSubmit = async () => {
     if (!validateForm()) {
       // Check if screening validation failed
-      const hasScreeningErrors = Object.keys(errors).some(key => 
-        ['status', 'question_set_id', 'exam_centre', 'date_of_test', 'obtained_marks', 'qualifying_school_id'].includes(key)
+      const hasScreeningErrors = Object.keys(errors).some((key) =>
+        [
+          "status",
+          "question_set_id",
+          "exam_centre",
+          "date_of_test",
+          "obtained_marks",
+          "qualifying_school_id",
+        ].includes(key),
       );
-      
+
       toast({
         title: "Validation Error",
-        description: hasScreeningErrors 
-          ? "Please complete all required screening fields or leave the section empty" 
+        description: hasScreeningErrors
+          ? "Please complete all required screening fields or leave the section empty"
           : "Please fill all required Basic section fields",
         variant: "destructive",
       });
@@ -506,10 +524,10 @@ export function AddApplicantModal({
         email: formData.email || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
-        state: formData.stateCode || null,       // Send code instead of label
+        state: formData.stateCode || null, // Send code instead of label
         city: formData.city || null,
         district: formData.districtCode || null, // Send code instead of label
-        block: formData.blockCode || null,       // Send code instead of label
+        block: formData.blockCode || null, // Send code instead of label
         pin_code: formData.pin_code || null,
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
         qualification_id: formData.qualification_id
@@ -573,12 +591,12 @@ export function AddApplicantModal({
           campusList?.find(
             (c) =>
               Number(c.id) ===
-              Number(response?.data?.campus_id || response?.campus_id)
+              Number(response?.data?.campus_id || response?.campus_id),
           )?.campus_name || "",
         school_id: response?.data?.school_id || response?.school_id,
         school:
           schoolList?.find(
-            (s) => s.id === (response?.data?.school_id || response?.school_id)
+            (s) => s.id === (response?.data?.school_id || response?.school_id),
           )?.school_name || "",
         gender: response?.data?.gender || response?.gender,
         qualification_id:
@@ -587,7 +605,7 @@ export function AddApplicantModal({
           qualificationList?.find(
             (q) =>
               q.id ===
-              (response?.data?.qualification_id || response?.qualification_id)
+              (response?.data?.qualification_id || response?.qualification_id),
           )?.qualification_name || "",
         current_status_id:
           response?.data?.current_status_id || response?.current_status_id,
@@ -595,7 +613,8 @@ export function AddApplicantModal({
           currentstatusList?.find(
             (c) =>
               c.id ===
-              (response?.data?.current_status_id || response?.current_status_id)
+              (response?.data?.current_status_id ||
+                response?.current_status_id),
           )?.current_status_name || "",
         status: formData.status,
         obtained_marks: formData.obtained_marks,
@@ -690,8 +709,8 @@ export function AddApplicantModal({
                         isCurrent
                           ? "bg-orange-500 border-orange-500 text-white"
                           : isCompleted
-                          ? "bg-orange-500 border-orange-500 text-white"
-                          : "border-gray-300 text-gray-400"
+                            ? "bg-orange-500 border-orange-500 text-white"
+                            : "border-gray-300 text-gray-400",
                       )}
                     >
                       {isCompleted ? (
@@ -704,7 +723,7 @@ export function AddApplicantModal({
                       <div
                         className={cn(
                           "w-6 sm:w-12 h-0.5 mx-1 sm:mx-2",
-                          isCompleted ? "bg-orange-400" : "bg-orange-300"
+                          isCompleted ? "bg-orange-400" : "bg-orange-300",
                         )}
                       />
                     )}
@@ -922,17 +941,23 @@ export function AddApplicantModal({
                             district: "",
                             block: "",
                           }));
-                          setShowLocationWarning({ district: false, block: false });
+                          setShowLocationWarning({
+                            district: false,
+                            block: false,
+                          });
                         } else {
                           // Show warning if district or block has values
                           if (selectedDistrict || formData.block) {
-                            setShowLocationWarning({ 
-                              district: !!selectedDistrict, 
-                              block: !!formData.block 
+                            setShowLocationWarning({
+                              district: !!selectedDistrict,
+                              block: !!formData.block,
                             });
                             // Clear warning after 3 seconds
                             setTimeout(() => {
-                              setShowLocationWarning({ district: false, block: false });
+                              setShowLocationWarning({
+                                district: false,
+                                block: false,
+                              });
                             }, 3000);
                           }
                           setSelectedState(value);
@@ -971,17 +996,23 @@ export function AddApplicantModal({
                             block: "",
                           }));
                           setBlockOptions([]);
-                          setShowLocationWarning({ district: false, block: false });
+                          setShowLocationWarning({
+                            district: false,
+                            block: false,
+                          });
                         } else {
                           // Show warning if block has value
                           if (selectedBlock) {
-                            setShowLocationWarning({ 
-                              district: false, 
-                              block: true 
+                            setShowLocationWarning({
+                              district: false,
+                              block: true,
                             });
                             // Clear warning after 3 seconds
                             setTimeout(() => {
-                              setShowLocationWarning({ district: false, block: false });
+                              setShowLocationWarning({
+                                district: false,
+                                block: false,
+                              });
                             }, 3000);
                           }
                           setSelectedDistrict(value);
@@ -993,14 +1024,18 @@ export function AddApplicantModal({
                       }}
                       disabled={!selectedState || isLoadingDistricts}
                     >
-                      <SelectTrigger className={showLocationWarning.district ? "border-red-500" : ""}>
+                      <SelectTrigger
+                        className={
+                          showLocationWarning.district ? "border-red-500" : ""
+                        }
+                      >
                         <SelectValue
                           placeholder={
                             isLoadingDistricts
                               ? "Loading districts..."
                               : !selectedState
-                              ? "Select state first"
-                              : "Select district"
+                                ? "Select state first"
+                                : "Select district"
                           }
                         />
                       </SelectTrigger>
@@ -1043,7 +1078,11 @@ export function AddApplicantModal({
                       onValueChange={setSelectedBlock}
                       disabled={!selectedDistrict || isLoadingBlocks}
                     >
-                      <SelectTrigger className={showLocationWarning.block ? "border-red-500" : ""}>
+                      <SelectTrigger
+                        className={
+                          showLocationWarning.block ? "border-red-500" : ""
+                        }
+                      >
                         {isLoadingBlocks ? (
                           <div className="flex items-center">
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1101,7 +1140,10 @@ export function AddApplicantModal({
                     <Select
                       value={formData.cast_id ? String(formData.cast_id) : ""}
                       onValueChange={(value) =>
-                        handleInputChange("cast_id", value === "none" ? "" : value)
+                        handleInputChange(
+                          "cast_id",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
                       <SelectTrigger>
@@ -1136,7 +1178,10 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("qualification_id", value === "none" ? "" : value)
+                        handleInputChange(
+                          "qualification_id",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
                       <SelectTrigger>
@@ -1171,7 +1216,10 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("current_status_id", value === "none" ? "" : value)
+                        handleInputChange(
+                          "current_status_id",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
                       <SelectTrigger>
@@ -1201,7 +1249,10 @@ export function AddApplicantModal({
                         formData.campus_id ? String(formData.campus_id) : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("campus_id", value === "none" ? "" : value)
+                        handleInputChange(
+                          "campus_id",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
                       <SelectTrigger>
@@ -1234,7 +1285,10 @@ export function AddApplicantModal({
                         formData.religion_id ? String(formData.religion_id) : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("religion_id", value === "none" ? "" : value)
+                        handleInputChange(
+                          "religion_id",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
                       <SelectTrigger>
@@ -1285,7 +1339,8 @@ export function AddApplicantModal({
                 </h3>
                 <p className="text-sm text-gray-600 mb-4 bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
                   <AlertCircle className="w-4 h-4 inline mr-1 text-blue-600" />
-                  <strong>Note:</strong> If you fill any field in this section, all screening fields are required.
+                  <strong>Note:</strong> If you fill any field in this section,
+                  all screening fields are required.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
@@ -1302,10 +1357,15 @@ export function AddApplicantModal({
                     <Select
                       value={formData.status}
                       onValueChange={(value) =>
-                        handleInputChange("status", value === "none" ? "" : value)
+                        handleInputChange(
+                          "status",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
-                      <SelectTrigger className={errors.status ? "border-red-500" : ""}>
+                      <SelectTrigger
+                        className={errors.status ? "border-red-500" : ""}
+                      >
                         <SelectValue placeholder="Select screening status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1349,10 +1409,17 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("question_set_id", value === "none" ? "" : value)
+                        handleInputChange(
+                          "question_set_id",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
-                      <SelectTrigger className={errors.question_set_id ? "border-red-500" : ""}>
+                      <SelectTrigger
+                        className={
+                          errors.question_set_id ? "border-red-500" : ""
+                        }
+                      >
                         <SelectValue placeholder="Select question set" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1369,7 +1436,9 @@ export function AddApplicantModal({
                       </SelectContent>
                     </Select>
                     {errors.question_set_id && (
-                      <p className="text-xs text-red-500">{errors.question_set_id}</p>
+                      <p className="text-xs text-red-500">
+                        {errors.question_set_id}
+                      </p>
                     )}
                   </div>
 
@@ -1393,7 +1462,9 @@ export function AddApplicantModal({
                       className={errors.exam_centre ? "border-red-500" : ""}
                     />
                     {errors.exam_centre && (
-                      <p className="text-xs text-red-500">{errors.exam_centre}</p>
+                      <p className="text-xs text-red-500">
+                        {errors.exam_centre}
+                      </p>
                     )}
                   </div>
 
@@ -1417,7 +1488,9 @@ export function AddApplicantModal({
                       className={errors.date_of_test ? "border-red-500" : ""}
                     />
                     {errors.date_of_test && (
-                      <p className="text-xs text-red-500">{errors.date_of_test}</p>
+                      <p className="text-xs text-red-500">
+                        {errors.date_of_test}
+                      </p>
                     )}
                   </div>
 
@@ -1467,7 +1540,9 @@ export function AddApplicantModal({
                       className={errors.obtained_marks ? "border-red-500" : ""}
                     />
                     {errors.obtained_marks && (
-                      <p className="text-xs text-red-500">{errors.obtained_marks}</p>
+                      <p className="text-xs text-red-500">
+                        {errors.obtained_marks}
+                      </p>
                     )}
                   </div>
 
@@ -1488,10 +1563,17 @@ export function AddApplicantModal({
                           : ""
                       }
                       onValueChange={(value) =>
-                        handleInputChange("qualifying_school_id", value === "none" ? "" : value)
+                        handleInputChange(
+                          "qualifying_school_id",
+                          value === "none" ? "" : value,
+                        )
                       }
                     >
-                      <SelectTrigger className={errors.qualifying_school_id ? "border-red-500" : ""}>
+                      <SelectTrigger
+                        className={
+                          errors.qualifying_school_id ? "border-red-500" : ""
+                        }
+                      >
                         <SelectValue placeholder="Select qualifying school" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1508,7 +1590,9 @@ export function AddApplicantModal({
                       </SelectContent>
                     </Select>
                     {errors.qualifying_school_id && (
-                      <p className="text-xs text-red-500">{errors.qualifying_school_id}</p>
+                      <p className="text-xs text-red-500">
+                        {errors.qualifying_school_id}
+                      </p>
                     )}
                   </div>
                 </div>

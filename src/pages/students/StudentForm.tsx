@@ -99,9 +99,9 @@ const StudentForm: React.FC = () => {
       phone_number: data.alternateNumber,
       email: data.email,
       gender: data.gender,
-      state: data.stateCode,      // Send code as state
+      state: data.stateCode, // Send code as state
       district: data.districtCode, // Send code as district
-      block: data.blockCode,       // Send code as block
+      block: data.blockCode, // Send code as block
       city: data.city,
       pin_code: data.pinCode,
       school_medium: data.schoolMedium,
@@ -245,7 +245,7 @@ const StudentForm: React.FC = () => {
       }
     } else if (googleEmail) {
       // If no saved form data but Google email exists, set it
-      setFormData(prev => ({ ...prev, email: googleEmail }));
+      setFormData((prev) => ({ ...prev, email: googleEmail }));
     }
 
     // Fetch initial data
@@ -293,11 +293,11 @@ const StudentForm: React.FC = () => {
       }
     };
     fetchReligions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [location.state?.googleEmail]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     let newFormData = { ...formData, [name]: value };
@@ -323,7 +323,7 @@ const StudentForm: React.FC = () => {
     // Handle district change
     if (name === "districtCode") {
       const selectedDistrict = districts.find(
-        (district) => district.district_code === value
+        (district) => district.district_code === value,
       );
       newFormData = {
         ...newFormData,
@@ -372,7 +372,9 @@ const StudentForm: React.FC = () => {
       // Show loading toast
       toast({
         title: content.verifying || "Verifying...",
-        description: content.verifyingMessage || "Please wait while we verify the image...",
+        description:
+          content.verifyingMessage ||
+          "Please wait while we verify the image...",
       });
 
       // Verify if image contains human face
@@ -383,7 +385,9 @@ const StudentForm: React.FC = () => {
         toast({
           variant: "destructive",
           title: content.noFaceDetected || "No Face Detected",
-          description: content.noFaceMessage || "Please upload an image with a clear human face.",
+          description:
+            content.noFaceMessage ||
+            "Please upload an image with a clear human face.",
         });
         // Clear the file input
         e.target.value = "";
@@ -393,7 +397,7 @@ const StudentForm: React.FC = () => {
       // Face detected - upload the image
       try {
         const uploadResult = await uploadProfileImage(file);
-        
+
         // Update form data with uploaded image URL
         const newFormData = {
           ...formData,
@@ -411,14 +415,18 @@ const StudentForm: React.FC = () => {
         // Show success toast
         toast({
           title: content.faceVerified || "Face Verified",
-          description: content.faceVerifiedMessage || "Image uploaded successfully!",
+          description:
+            content.faceVerifiedMessage || "Image uploaded successfully!",
         });
       } catch (error) {
         console.error("Error uploading image:", error);
         toast({
           variant: "destructive",
           title: "Upload Failed",
-          description: error instanceof Error ? error.message : "Failed to upload image. Please try again.",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to upload image. Please try again.",
         });
         // Clear the file input
         e.target.value = "";
@@ -499,11 +507,7 @@ const StudentForm: React.FC = () => {
       });
     }
 
-    if (
-      !formData.stateCode ||
-      !formData.districtCode ||
-      !formData.pinCode
-    ) {
+    if (!formData.stateCode || !formData.districtCode || !formData.pinCode) {
       return toast({
         title: "Address Required",
         description: "Please fill all required address fields.",
@@ -530,16 +534,19 @@ const StudentForm: React.FC = () => {
       const studentFormResponseData = await createStudent(apiPayload);
 
       console.log("Student API Response:", studentFormResponseData);
-      
+
       // Store registration status
       localStorage.setItem("registrationDone", "true");
-      
+
       // Store the complete API response
-      localStorage.setItem("studentApiResponse", JSON.stringify(studentFormResponseData));
-      
+      localStorage.setItem(
+        "studentApiResponse",
+        JSON.stringify(studentFormResponseData),
+      );
+
       // Store form data
       localStorage.setItem("studentFormData", JSON.stringify(formData));
-      
+
       // Extract and store studentId from response
       // Handle different possible response structures
       let studentId = null;
@@ -550,7 +557,7 @@ const StudentForm: React.FC = () => {
       } else if (studentFormResponseData?.student?.id) {
         studentId = studentFormResponseData.student.id;
       }
-      
+
       if (studentId) {
         localStorage.setItem("studentId", studentId.toString());
         console.log("Student ID stored:", studentId);
@@ -567,7 +574,10 @@ const StudentForm: React.FC = () => {
       navigate("/students/test/start");
     } catch (error) {
       console.error("Error creating student:", error);
-      const errorMessage = error instanceof Error ? error.message : "Something went wrong while creating student.";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while creating student.";
       toast({
         title: "Registration Failed",
         description: errorMessage,
@@ -634,7 +644,8 @@ const StudentForm: React.FC = () => {
           cityExample: "उदा. मुंबई",
           pinCodeExample: "उदा. 400001",
           verifying: "सत्यापन हो रहा है...",
-          verifyingMessage: "कृपया प्रतीक्षा करें जबकि हम छवि सत्यापित करते हैं...",
+          verifyingMessage:
+            "कृपया प्रतीक्षा करें जबकि हम छवि सत्यापित करते हैं...",
           noFaceDetected: "कोई चेहरा नहीं मिला",
           noFaceMessage: "कृपया स्पष्ट मानव चेहरे वाली छवि अपलोड करें।",
           faceVerified: "चेहरा सत्यापित",
@@ -686,7 +697,8 @@ const StudentForm: React.FC = () => {
           cityExample: "उदा. पुणे",
           pinCodeExample: "उदा. 411001",
           verifying: "पडताळणी करत आहे...",
-          verifyingMessage: "कृपया प्रतीक्षा करा जेव्हा आम्ही प्रतिमा सत्यापित करतो...",
+          verifyingMessage:
+            "कृपया प्रतीक्षा करा जेव्हा आम्ही प्रतिमा सत्यापित करतो...",
           noFaceDetected: "चेहरा सापडला नाही",
           noFaceMessage: "कृपया स्पष्ट मानवी चेहऱ्याची प्रतिमा अपलोड करा.",
           faceVerified: "चेहरा सत्यापित",
@@ -931,7 +943,9 @@ const StudentForm: React.FC = () => {
                 onChange={handleInputChange}
                 disabled={!!location.state?.googleEmail}
                 className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-                  location.state?.googleEmail ? 'bg-gray-100 cursor-not-allowed' : ''
+                  location.state?.googleEmail
+                    ? "bg-gray-100 cursor-not-allowed"
+                    : ""
                 }`}
                 placeholder={content.enterEmail}
               />
@@ -1007,8 +1021,8 @@ const StudentForm: React.FC = () => {
                     {loadingStates.districts
                       ? content.loading
                       : !formData.stateCode
-                      ? "Select state first"
-                      : content.selectDistrict}
+                        ? "Select state first"
+                        : content.selectDistrict}
                   </option>
                   {Array.isArray(districts) &&
                     districts.map((district) => (
@@ -1053,8 +1067,8 @@ const StudentForm: React.FC = () => {
                     {loadingStates.blocks
                       ? content.loading
                       : !formData.districtCode
-                      ? "Select district first"
-                      : content.selectBlock}
+                        ? "Select district first"
+                        : content.selectBlock}
                   </option>
                   {Array.isArray(blocks) &&
                     blocks.map((block) => (
@@ -1082,7 +1096,6 @@ const StudentForm: React.FC = () => {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.pinCode}
@@ -1318,6 +1331,3 @@ const StudentForm: React.FC = () => {
 };
 
 export default StudentForm;
-
-
-

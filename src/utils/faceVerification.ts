@@ -1,4 +1,4 @@
-import * as faceapi from '@vladmandic/face-api';
+import * as faceapi from "@vladmandic/face-api";
 
 let modelsLoaded = false;
 
@@ -9,7 +9,7 @@ export const loadFaceDetectionModels = async (): Promise<void> => {
   if (modelsLoaded) return;
 
   try {
-    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+    const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model";
 
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
@@ -17,10 +17,10 @@ export const loadFaceDetectionModels = async (): Promise<void> => {
     ]);
 
     modelsLoaded = true;
-    console.log('Face detection models loaded successfully');
+    console.log("Face detection models loaded successfully");
   } catch (error) {
-    console.error('Error loading face detection models:', error);
-    throw new Error('Failed to load face detection models');
+    console.error("Error loading face detection models:", error);
+    throw new Error("Failed to load face detection models");
   }
 };
 
@@ -45,7 +45,7 @@ export const detectHumanFace = async (imageFile: File): Promise<boolean> => {
     // Return true if at least one face is detected
     return detections.length > 0;
   } catch (error) {
-    console.error('Error detecting face:', error);
+    console.error("Error detecting face:", error);
     return false;
   }
 };
@@ -60,11 +60,11 @@ const createImageElement = (file: File): Promise<HTMLImageElement> => {
 
     reader.onload = (e) => {
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = () => reject(new Error("Failed to load image"));
       img.src = e.target?.result as string;
     };
 
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
 };

@@ -5,48 +5,46 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Get auth token from sessionStorage ONLY
 export const getAuthToken = (): string | null => {
-  const token = sessionStorage.getItem('authToken'); // ✅ Only token in sessionStorage
+  const token = sessionStorage.getItem("authToken"); // ✅ Only token in sessionStorage
   return token;
 };
 
-
 export const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
   const token = getAuthToken();
-  
-  // Debug logging  
+
+  // Debug logging
   if (token) {
-   
     // Check if token has Bearer prefix already
-    if (token.startsWith('Bearer ')) {
+    if (token.startsWith("Bearer ")) {
       // console.warn('Token already has Bearer prefix!');
     }
-    
+
     // Validate JWT format (3 parts separated by dots)
-    const tokenParts = token.split('.');
-    
+    const tokenParts = token.split(".");
+
     if (tokenParts.length !== 3) {
       // console.error(' Invalid JWT format - should have 3 parts separated by dots');
     }
   } else {
     // console.error(' No token found in localStorage');
   }
-  
+
   const headers: HeadersInit = {
-    ...(withJson ? { 'Content-Type': 'application/json' } : {}),
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(withJson ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
-    
+
   return headers;
 };
 
 // Make authenticated API request
 export const apiRequest = async (
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<Response> => {
   const url = `${BASE_URL}${endpoint}`;
   const headers = getAuthHeaders();
-  
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -55,13 +53,12 @@ export const apiRequest = async (
     },
   };
 
-return fetch(url,config)
+  return fetch(url, config);
 };
-
 
 // User interfaces
 export interface User {
-   id: number;
+  id: number;
   name: string;
   email: string;
   mobile?: string;
@@ -92,7 +89,6 @@ export interface GoogleAuthPayload {
   iat: number;
   exp: number;
   picture: string;
-  
 }
 
 export interface LoginResponse {
@@ -105,9 +101,11 @@ export interface LoginResponse {
 }
 
 // Login API - Store token in sessionStorage, user in localStorage
-export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise<LoginResponse> => {
+export const loginWithGoogle = async (
+  googlePayload: GoogleAuthPayload,
+): Promise<LoginResponse> => {
   const response = await fetch(`${BASE_URL}/users/login`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(googlePayload),
   });
@@ -115,41 +113,49 @@ export const loginWithGoogle = async (googlePayload: GoogleAuthPayload): Promise
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Login failed');
+    throw new Error(data.message || "Login failed");
   }
 
   //  Store TOKEN in sessionStorage
   if (data.data?.token) {
-    const tokenToStore = data.data.token.startsWith('Bearer ') 
-      ? data.data.token.substring(7) 
+    const tokenToStore = data.data.token.startsWith("Bearer ")
+      ? data.data.token.substring(7)
       : data.data.token;
-    
-    sessionStorage.setItem('authToken', tokenToStore); // Token in sessionStorage
+
+    sessionStorage.setItem("authToken", tokenToStore); // Token in sessionStorage
   }
 
   //  Store USER in localStorage (not sessionStorage)
   if (data.data?.user) {
-    localStorage.setItem('user', JSON.stringify({
-      ...data.data.user,
-      profile_pic: data.data.user.profile_pic || googlePayload.picture || ''
-    }));
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        ...data.data.user,
+        profile_pic: data.data.user.profile_pic || googlePayload.picture || "",
+      }),
+    );
   }
 
   return data;
 };
 
-
 // Get all users (with pagination)
-export const getAllUsers = async (page: number = 1, limit: number = 10): Promise<{users: User[], total: number}> => {
-  const response = await fetch(`${BASE_URL}/users?page=${page}&limit=${limit}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+export const getAllUsers = async (
+  page: number = 1,
+  limit: number = 10,
+): Promise<{ users: User[]; total: number }> => {
+  const response = await fetch(
+    `${BASE_URL}/users?page=${page}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    },
+  );
 
   const result = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.message || 'Failed to fetch users');
+    throw new Error(result.message || "Failed to fetch users");
   }
 
   // API returns {success, message, data: {data: User[], total, totalPages}}
@@ -159,31 +165,29 @@ export const getAllUsers = async (page: number = 1, limit: number = 10): Promise
     ...user,
     role_id: user.user_role_id,
   }));
-  
+
   return {
     users,
-    total: result.data?.total || 0
+    total: result.data?.total || 0,
   };
-  
 };
-
 
 export const getUserProfileImage = (): string => {
   try {
-    const userStr = localStorage.getItem('user'); 
-    if (!userStr) return '';
-    
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return "";
+
     const user = JSON.parse(userStr);
-    return user.profile_pic || user.picture || '';
+    return user.profile_pic || user.picture || "";
   } catch (error) {
-    return '';
+    return "";
   }
 };
 
 // Get current user data for profile image
 export const getCurrentUser = (): User | null => {
   try {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem("user");
     if (!userStr) return null;
     return JSON.parse(userStr);
   } catch (error) {
@@ -194,14 +198,14 @@ export const getCurrentUser = (): User | null => {
 // Get user by ID
 export const getUserById = async (id: string): Promise<User> => {
   const response = await fetch(`${BASE_URL}/users/${id}`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch user');
+    throw new Error(data.message || "Failed to fetch user");
   }
 
   return data;
@@ -218,7 +222,7 @@ export interface OnboardUserData {
 
 export const onboardUser = async (userData: OnboardUserData): Promise<User> => {
   const response = await fetch(`${BASE_URL}/users/onboard`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(userData),
   });
@@ -226,24 +230,26 @@ export const onboardUser = async (userData: OnboardUserData): Promise<User> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to onboard user');
+    throw new Error(data.message || "Failed to onboard user");
   }
 
   return data;
 };
-
 
 export interface UpdateUserData {
   name?: string;
   mobile?: string;
   email?: string;
   status?: boolean;
- user_role_id?: number;  
+  user_role_id?: number;
 }
 
-export const updateUser = async (id: string, userData: UpdateUserData): Promise<User> => {
+export const updateUser = async (
+  id: string,
+  userData: UpdateUserData,
+): Promise<User> => {
   const response = await fetch(`${BASE_URL}/users/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(userData),
   });
@@ -251,7 +257,7 @@ export const updateUser = async (id: string, userData: UpdateUserData): Promise<
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update user');
+    throw new Error(data.message || "Failed to update user");
   }
 
   return data;
@@ -259,16 +265,15 @@ export const updateUser = async (id: string, userData: UpdateUserData): Promise<
 
 // Delete user
 export const deleteUser = async (id: string): Promise<void> => {
-  
   const response = await fetch(`${BASE_URL}/users/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: getAuthHeaders(),
-    body: JSON.stringify(id)
+    body: JSON.stringify(id),
   });
 
   if (!response.ok) {
     const data = await response.json();
-    const error = new Error(data.message || 'Failed to delete user');
+    const error = new Error(data.message || "Failed to delete user");
     (error as any).details = data.error || data.message;
     throw error;
   }
@@ -276,16 +281,18 @@ export const deleteUser = async (id: string): Promise<void> => {
 
 //search user
 export const searchUsers = async (query: string): Promise<User[]> => {
-  
-  const response = await fetch(`${BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${BASE_URL}/users/search?q=${encodeURIComponent(query)}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    },
+  );
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to search users');
+    throw new Error(data.message || "Failed to search users");
   }
 
   return data.data || [];
@@ -293,11 +300,11 @@ export const searchUsers = async (query: string): Promise<User[]> => {
 
 export const bulkUploadStudents = async (file: File) => {
   const formData = new FormData();
-  formData.append("file", file); 
+  formData.append("file", file);
 
-   const res = await fetch(
+  const res = await fetch(
     "https://dev-new-admissions.navgurukul.org/api/v1/students/bulkUploadStudents",
-    { method: "POST", body: formData }
+    { method: "POST", body: formData },
   );
 
   if (!res.ok) {
@@ -307,7 +314,6 @@ export const bulkUploadStudents = async (file: File) => {
 
   return res.json();
 };
-
 
 export interface CreateRoleData {
   name: string;
@@ -320,27 +326,24 @@ export interface ApiResponse<T> {
   };
 }
 
-
-
 // Delete delete
 export const deleteStudent = async (id: string): Promise<void> => {
   const response = await fetch(`${BASE_URL}/students/deleteStudents/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: getAuthHeaders(),
-    body: JSON.stringify(id)
+    body: JSON.stringify(id),
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete student');
+    throw new Error(data.message || "Failed to delete student");
   }
 };
-
 
 // Create role
 export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/createRoles`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(roleData),
   });
@@ -348,7 +351,7 @@ export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to create role');
+    throw new Error(data.message || "Failed to create role");
   }
 
   return data.data as Role;
@@ -357,17 +360,16 @@ export const createRole = async (roleData: CreateRoleData): Promise<Role> => {
 // Get all roles
 export const getAllRolesNew = async (): Promise<Role[]> => {
   const response = await fetch(`${BASE_URL}/roles/getRoles`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch roles');
+    throw new Error(data.message || "Failed to fetch roles");
   }
 
-  
   // Handle different response formats
   return data.data?.data || [];
 };
@@ -375,14 +377,14 @@ export const getAllRolesNew = async (): Promise<Role[]> => {
 // Get role by ID
 export const getRoleById = async (id: string): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/getRoleById/${id}`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch role');
+    throw new Error(data.message || "Failed to fetch role");
   }
 
   return data;
@@ -391,7 +393,7 @@ export const getRoleById = async (id: string): Promise<Role> => {
 // Update role
 export const updateRole = async (
   id: string | number,
-  roleData: { name: string; status?: boolean }
+  roleData: { name: string; status?: boolean },
 ): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/roles/updateRole/${id}`, {
     method: "PUT",
@@ -429,157 +431,130 @@ export const deleteRole = async (id: string | number): Promise<void> => {
 
 // Learning Round APIs
 export const submitLearningRound = async (row: any) => {
-  return fetch(
-    `${BASE_URL}/students/submit/learningRoundFeedback`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(row),
-    }
-  );
+  return fetch(`${BASE_URL}/students/submit/learningRoundFeedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row),
+  });
 };
 
 export const updateLearningRound = async (id: number, row: any) => {
-  return fetch(
-   `${BASE_URL}/students/update/learningRoundFeedback/${id}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(row),
-    }
-  );
+  return fetch(`${BASE_URL}/students/update/learningRoundFeedback/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row),
+  });
 };
 
 // screening round Round APIs
 export const submitScreeningRound = async (row: any) => {
-  return fetch(
-    `${BASE_URL}/students/submit/screeningRoundFeedback`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(row),
-    }
-  );
+  return fetch(`${BASE_URL}/students/submit/screeningRoundFeedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row),
+  });
 };
 
 export const updateScreeningRound = async (id: number, row: any) => {
-  return fetch(
-    `${BASE_URL}/students/update/screeningRoundFeedback/${id}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(row),
-    }
-  );
+  return fetch(`${BASE_URL}/students/update/screeningRoundFeedback/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row),
+  });
 };
-
 
 // Cultural Fit APIs
 export const submitCulturalFit = async (row: any) => {
-  return fetch(
-   `${BASE_URL}/students/submit/culturalFitRoundFeedback`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(row),
-    }
-  );
+  return fetch(`${BASE_URL}/students/submit/culturalFitRoundFeedback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row),
+  });
 };
 
 export const updateCulturalFit = async (id: number, row: any) => {
-  return fetch(
-    `${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(row),
-    }
-  );
+  return fetch(`${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(row),
+  });
 };
 
 // Map to dynamically select API based on type
 export const API_MAP: Record<
   string,
-  { submit: (row: any) => Promise<any>; update: (id: number, row: any) => Promise<any> }
+  {
+    submit: (row: any) => Promise<any>;
+    update: (id: number, row: any) => Promise<any>;
+  }
 > = {
   learning: { submit: submitLearningRound, update: updateLearningRound },
   cultural: { submit: submitCulturalFit, update: updateCulturalFit },
   screening: { submit: submitScreeningRound, update: updateScreeningRound },
 };
 
-// update 
+// update
 export const submitFinalDecision = async (payload: any) => {
   // console.log("payload",payload)
-  return fetch(
-    `${BASE_URL}/students/submit/finalDecision`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    }
-  );
+  return fetch(`${BASE_URL}/students/submit/finalDecision`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
 };
-
-
 
 // Slot booking for students side
 
-// creation 
+// creation
 export const createStudentSlotBooking = async (payload: any) => {
   // console.log("payload",payload)
-  return fetch(
-  
-    `${BASE_URL}/book-slot`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }
-  );
+  return fetch(`${BASE_URL}/book-slot`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 };
 
 // For creating single and multiple slots.
 export const createSlotBookingTimes = async (payload: any) => {
   // console.log("payload",payload)
-  return fetch(
-  
-    `${BASE_URL}/slots/createSlots`,
-    {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    }
-  );
+  return fetch(`${BASE_URL}/slots/createSlots`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
 };
 
 // get Slot Booking by user id
 export const getSlotByUserId = async (user_id: number): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/slots/${user_id}`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch slot');
+    throw new Error(data.message || "Failed to fetch slot");
   }
 
   return data;
 };
 
-
 //  For getting the slots data by date:
-export const getSlotByDate = async (date: string, slotType: "LR" | "CFR"): Promise<Role> => {
+export const getSlotByDate = async (
+  date: string,
+  slotType: "LR" | "CFR",
+): Promise<Role> => {
   const response = await fetch(`${BASE_URL}/slots/date/${date}/${slotType}`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch slot');
+    throw new Error(data.message || "Failed to fetch slot");
   }
 
   return data;
@@ -591,12 +566,12 @@ export const updateSlot = async (
   payload: {
     start_time: string;
     end_time: string;
-    slot_type:string;
+    slot_type: string;
     date: string;
-  }
+  },
 ) => {
   const response = await fetch(`${BASE_URL}/slots/update/${slotId}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
   });
@@ -604,28 +579,26 @@ export const updateSlot = async (
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update slot');
+    throw new Error(data.message || "Failed to update slot");
   }
 
   return data;
 };
 
-
-
 // Updated logout function
 export const logoutUser = () => {
-  sessionStorage.removeItem('authToken');
-  localStorage.removeItem('user'); 
-  localStorage.removeItem('userRole'); 
-  localStorage.removeItem('googleUser'); 
-  localStorage.removeItem('roleAccess');
-  localStorage.removeItem('privileges'); 
+  sessionStorage.removeItem("authToken");
+  localStorage.removeItem("user");
+  localStorage.removeItem("userRole");
+  localStorage.removeItem("googleUser");
+  localStorage.removeItem("roleAccess");
+  localStorage.removeItem("privileges");
 };
 
 // Check if user is authenticated
 export const isAuthenticated = (): boolean => {
-  const token = getAuthToken(); 
-  const user = localStorage.getItem('user');
+  const token = getAuthToken();
+  const user = localStorage.getItem("user");
   return !!(token && user);
 };
 
@@ -638,9 +611,11 @@ export interface Cast {
 }
 
 // Create Cast
-export const createCast = async (castData: { cast_name: string }): Promise<Cast> => {
+export const createCast = async (castData: {
+  cast_name: string;
+}): Promise<Cast> => {
   const response = await fetch(`${BASE_URL}/casts/createCast`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(castData),
   });
@@ -648,7 +623,7 @@ export const createCast = async (castData: { cast_name: string }): Promise<Cast>
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to create cast');
+    throw new Error(data.message || "Failed to create cast");
   }
 
   return data;
@@ -657,18 +632,16 @@ export const createCast = async (castData: { cast_name: string }): Promise<Cast>
 // Get All Casts
 export const getAllCasts = async (): Promise<Cast[]> => {
   const response = await fetch(`${BASE_URL}/casts/getCasts`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch casts');
+    throw new Error(data.message || "Failed to fetch casts");
   }
 
- 
-  
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     return data.data.data;
@@ -679,7 +652,6 @@ export const getAllCasts = async (): Promise<Cast[]> => {
   } else if (Array.isArray(data)) {
     return data;
   } else {
-   
     return [];
   }
 };
@@ -687,23 +659,26 @@ export const getAllCasts = async (): Promise<Cast[]> => {
 // Get Cast By ID
 export const getCastById = async (id: string): Promise<Cast> => {
   const response = await fetch(`${BASE_URL}/casts/getCastById/${id}`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch cast');
+    throw new Error(data.message || "Failed to fetch cast");
   }
 
   return data;
 };
 
 // Update Cast
-export const updateCast = async (id: string, castData: { cast_name: string }): Promise<Cast> => {
+export const updateCast = async (
+  id: string,
+  castData: { cast_name: string },
+): Promise<Cast> => {
   const response = await fetch(`${BASE_URL}/casts/updateCast/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(castData),
   });
@@ -711,7 +686,7 @@ export const updateCast = async (id: string, castData: { cast_name: string }): P
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update cast');
+    throw new Error(data.message || "Failed to update cast");
   }
 
   return data;
@@ -719,7 +694,6 @@ export const updateCast = async (id: string, castData: { cast_name: string }): P
 
 // Delete Cast
 export const deleteCast = async (id: string): Promise<void> => {
-  
   const headers = getAuthHeaders();
 
   // Remove content-type if no body
@@ -727,19 +701,17 @@ export const deleteCast = async (id: string): Promise<void> => {
     delete headers["Content-Type"];
   }
 
-
   const response = await fetch(`${BASE_URL}/casts/deleteCast/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: getAuthHeaders(),
-    body: JSON.stringify(id)
+    body: JSON.stringify(id),
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete cast');
+    throw new Error(data.message || "Failed to delete cast");
   }
 };
-
 
 export interface Religion {
   id: number;
@@ -750,9 +722,11 @@ export interface Religion {
 }
 
 // Create Religion
-export const createReligion = async (religionData: { religion_name: string }): Promise<Religion> => {
+export const createReligion = async (religionData: {
+  religion_name: string;
+}): Promise<Religion> => {
   const response = await fetch(`${BASE_URL}/religions/createReligion`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(religionData),
   });
@@ -760,7 +734,7 @@ export const createReligion = async (religionData: { religion_name: string }): P
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to create religion');
+    throw new Error(data.message || "Failed to create religion");
   }
 
   return data;
@@ -769,24 +743,21 @@ export const createReligion = async (religionData: { religion_name: string }): P
 // Get All Religions
 export const getAllReligions = async (): Promise<Religion[]> => {
   const response = await fetch(`${BASE_URL}/religions/getReligions`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch religions');
+    throw new Error(data.message || "Failed to fetch religions");
   }
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-  
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-
     return data.data;
   } else if (data && data.religions && Array.isArray(data.religions)) {
-  
     return data.religions;
   } else if (Array.isArray(data)) {
     return data;
@@ -797,13 +768,13 @@ export const getAllReligions = async (): Promise<Religion[]> => {
   }
 };
 
-
-
-
 // Update Religion
-export const updateReligion = async (id: string, religionData: { religion_name: string }): Promise<Religion> => {
+export const updateReligion = async (
+  id: string,
+  religionData: { religion_name: string },
+): Promise<Religion> => {
   const response = await fetch(`${BASE_URL}/religions/updateReligion/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(religionData),
   });
@@ -811,7 +782,7 @@ export const updateReligion = async (id: string, religionData: { religion_name: 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update religion');
+    throw new Error(data.message || "Failed to update religion");
   }
 
   return data;
@@ -820,13 +791,13 @@ export const updateReligion = async (id: string, religionData: { religion_name: 
 // Delete Religion
 export const deleteReligion = async (id: string): Promise<void> => {
   const response = await fetch(`${BASE_URL}/religions/deleteReligion/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete religion');
+    throw new Error(data.message || "Failed to delete religion");
   }
 };
 
@@ -837,7 +808,7 @@ export const getStudents = async (page, limit) => {
     {
       method: "GET",
       headers: getAuthHeaders(),
-    }
+    },
   );
 
   const dataParsed = await response.json();
@@ -852,7 +823,8 @@ export const getStudents = async (page, limit) => {
   return {
     data: students,
     totalCount: Number(pagination.total) || students.length,
-    totalPages: Number(pagination.totalPages) || Math.ceil(students.length / limit),
+    totalPages:
+      Number(pagination.totalPages) || Math.ceil(students.length / limit),
     page: pagination.page || page,
     limit: pagination.limit || limit,
   };
@@ -865,25 +837,27 @@ export const getStudentById = async (id: string): Promise<Student> => {
       `${BASE_URL}/students/getStudentsById/${id}`,
     );
 
-    return response.data; 
+    return response.data;
   } catch (error: any) {
     throw new Error(
-      error?.response?.data?.message || "Failed to fetch student"
+      error?.response?.data?.message || "Failed to fetch student",
     );
   }
 };
 
 // Get Student By Email
-export const getStudentDataByEmail = async (email:string): Promise<Student> => {
+export const getStudentDataByEmail = async (
+  email: string,
+): Promise<Student> => {
   try {
     const response = await axios.get<Student>(
       `${BASE_URL}/students/getByEmail/${email}`,
     );
 
-    return response.data; 
+    return response.data;
   } catch (error: any) {
     throw new Error(
-      error?.response?.data?.message || "Failed to fetch student"
+      error?.response?.data?.message || "Failed to fetch student",
     );
   }
 };
@@ -903,7 +877,9 @@ export interface CompleteStudentData {
   };
 }
 
-export const getCompleteStudentData = async (email: string): Promise<CompleteStudentData> => {
+export const getCompleteStudentData = async (
+  email: string,
+): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByEmail/${email}`,
@@ -911,7 +887,7 @@ export const getCompleteStudentData = async (email: string): Promise<CompleteStu
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error?.response?.data?.message || "Failed to fetch complete student data"
+      error?.response?.data?.message || "Failed to fetch complete student data",
     );
   }
 };
@@ -968,37 +944,31 @@ export interface Qualification {
   updated_at: string;
 }
 
-
 export const getAllQualification = async (): Promise<Qualification[]> => {
   const response = await fetch(`${BASE_URL}/qualifications/getQualifications`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch qualification');
+    throw new Error(data.message || "Failed to fetch qualification");
   }
-  
+
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-   
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-   
     return data.data;
   } else if (data && data.religions && Array.isArray(data.religions)) {
-  
     return data.religions;
   } else if (Array.isArray(data)) {
-   
     return data;
   } else {
     return [];
   }
 };
-
 
 // get All Status(ep working,student...)
 export interface CurrentStatus {
@@ -1010,39 +980,39 @@ export interface CurrentStatus {
 }
 
 export const getAllStatus = async (): Promise<CurrentStatus[]> => {
-  const response = await fetch(`${BASE_URL}/current-statuses/currentallstatuses`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${BASE_URL}/current-statuses/currentallstatuses`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    },
+  );
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch statuses');
+    throw new Error(data.message || "Failed to fetch statuses");
   }
 
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-
     return data.data;
   } else if (data && data.statuses && Array.isArray(data.statuses)) {
-   
     return data.statuses;
   } else if (Array.isArray(data)) {
-  
     return data;
   } else {
-    console.error('Data structure:', JSON.stringify(data, null, 2));
+    console.error("Data structure:", JSON.stringify(data, null, 2));
     return [];
   }
-}
+};
 
 // create Student
 export const createStudent = async (studentData: any): Promise<any> => {
   const response = await fetch(`${BASE_URL}/students/createStudent`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(studentData),
   });
@@ -1050,11 +1020,11 @@ export const createStudent = async (studentData: any): Promise<any> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to create student');
+    throw new Error(data.message || "Failed to create student");
   }
 
-    if (data?.data?.error === true) {
-    throw new Error(data.data.message || 'Validation failed');
+  if (data?.data?.error === true) {
+    throw new Error(data.data.message || "Validation failed");
   }
 
   return data;
@@ -1063,39 +1033,37 @@ export const createStudent = async (studentData: any): Promise<any> => {
 export const getFilterStudent = async (filters: any): Promise<any[]> => {
   const query = new URLSearchParams(filters).toString();
   const response = await fetch(`${BASE_URL}/students/filter?${query}`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch statuses');
+    throw new Error(data.message || "Failed to fetch statuses");
   }
 
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-
     return data.data;
   } else if (data && data.statuses && Array.isArray(data.statuses)) {
-   
     return data.statuses;
   } else if (Array.isArray(data)) {
-  
     return data;
   } else {
-    console.error('Data structure:', JSON.stringify(data, null, 2));
+    console.error("Data structure:", JSON.stringify(data, null, 2));
     return [];
   }
-}
-
+};
 
 // post student exam submission
-export const createStudentExamSubmission = async (submissionData: any): Promise<any> => {
+export const createStudentExamSubmission = async (
+  submissionData: any,
+): Promise<any> => {
   const response = await fetch(`${BASE_URL}/questions/submitExam`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(submissionData),
   });
@@ -1103,19 +1071,17 @@ export const createStudentExamSubmission = async (submissionData: any): Promise<
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to submit exam');
+    throw new Error(data.message || "Failed to submit exam");
   }
 
   return data;
 };
 
-
-
 // Questions (getQuestions, CreateQuestion)
 export interface Question {
   id: number;
   difficulty_level: number;
-  question_type: string; 
+  question_type: string;
   topic: number;
   language: string;
   english_text: string;
@@ -1135,16 +1101,16 @@ export interface Question {
   updated_at: string; // ISO date
 }
 
-
 export type CreateQuestionData = Omit<
-  Question, "id" | "created_at" | "updated_at"
+  Question,
+  "id" | "created_at" | "updated_at"
 >;
 
-
-export const createQuestion = async (questionData: CreateQuestionData
-): Promise<Question>  => {
+export const createQuestion = async (
+  questionData: CreateQuestionData,
+): Promise<Question> => {
   const response = await fetch(`${BASE_URL}/questions/createQuestions`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(questionData),
   });
@@ -1152,86 +1118,77 @@ export const createQuestion = async (questionData: CreateQuestionData
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to create questions');
+    throw new Error(data.message || "Failed to create questions");
   }
 
   return data.data as Question;
 };
 
-
-
 // Get questions
 export const getQuestions = async (): Promise<Question[]> => {
   const response = await fetch(`${BASE_URL}/questions/getQuestions`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch Questions');
+    throw new Error(data.message || "Failed to fetch Questions");
   }
   // Return the data array from the response
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
-
     return data.data;
   } else if (data && data.statuses && Array.isArray(data.statuses)) {
-   
     return data.statuses;
   } else if (Array.isArray(data)) {
-  
     return data;
   } else {
-    console.error('Data structure:', JSON.stringify(data, null, 2));
+    console.error("Data structure:", JSON.stringify(data, null, 2));
     return [];
   }
 };
 
 // delete question by id
-export const deleteQuestionbyId = async (id: number)=> {
+export const deleteQuestionbyId = async (id: number) => {
   const response = await fetch(`${BASE_URL}/questions/deleteQuestions/${id}`, {
-    method: 'DELETE',
-   
+    method: "DELETE",
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete question');
+    throw new Error(data.message || "Failed to delete question");
   }
 };
-
 
 // delete question by id
-export const getQuestionbyId = async (id: number)=> {
+export const getQuestionbyId = async (id: number) => {
   const response = await fetch(`${BASE_URL}/questions/getQuestionsById/${id}`, {
-    method: 'GET',
-   
+    method: "GET",
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete question');
+    throw new Error(data.message || "Failed to delete question");
   }
 };
-
 
 // Update Question
 export const updateQuestion = async (
   id: number,
-  questionData: Partial<CreateQuestionData>
+  questionData: Partial<CreateQuestionData>,
 ): Promise<Question> => {
   const response = await fetch(`${BASE_URL}/questions/updateQuestions/${id}`, {
-    method: "PUT",              
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(questionData),
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data.message || "Failed to update question");
+  if (!response.ok)
+    throw new Error(data.message || "Failed to update question");
 
   return data.data as Question;
 };
@@ -1239,9 +1196,9 @@ export const updateQuestion = async (
 // Sets
 interface QuestionSet {
   id: number;
-  name: string; 
+  name: string;
   description: string;
-  status: boolean; 
+  status: boolean;
   maximumMarks: number;
   created_at: string;
   updated_at: string;
@@ -1260,11 +1217,11 @@ export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
 interface QuestionSetMapping {
   question_set_id: number;
   question_id: number;
-  difficulty_level:number;
+  difficulty_level: number;
 }
 
 export const createQuestionSetMappings = async (
-  mappings: QuestionSetMapping[]
+  mappings: QuestionSetMapping[],
 ): Promise<any> => {
   try {
     const response = await axios.post(
@@ -1272,31 +1229,36 @@ export const createQuestionSetMappings = async (
       mappings,
       {
         headers: {
-          ...getAuthHeaders() as Record<string, string>, // force object type for axios
+          ...(getAuthHeaders() as Record<string, string>), // force object type for axios
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
-    console.error("Failed to create mappings:", error.response?.data || error.message);
+    console.error(
+      "Failed to create mappings:",
+      error.response?.data || error.message,
+    );
     throw error;
   }
 };
 
-
 // create test for students
-export const getRandomQuestions = async (language: "english" | "hindi" | "marathi" = "english") => {
+export const getRandomQuestions = async (
+  language: "english" | "hindi" | "marathi" = "english",
+) => {
   try {
     const response = await axios.get(`${BASE_URL}/questions/random-for-test`);
-    
-    const questions = response.data?.data?.map((q: any) => ({
-      id: q.id,
-      question: q[`${language}_text`],
-      options: q[`${language}_options`],
-      difficulty_level : q.difficulty_level,
-      answer: q.answer_key[0], // assuming first index in answer_key array is correct
-    })) || [];
+
+    const questions =
+      response.data?.data?.map((q: any) => ({
+        id: q.id,
+        question: q[`${language}_text`],
+        options: q[`${language}_options`],
+        difficulty_level: q.difficulty_level,
+        answer: q.answer_key[0], // assuming first index in answer_key array is correct
+      })) || [];
 
     // console.log("questions1",questions)
     return questions;
@@ -1319,30 +1281,32 @@ export const getQuestionsBySetType = async (setType: string) => {
 
 // delete question from set
 export const deleteQuestionFromSet = async (id: number) => {
-  const response = await fetch(`${BASE_URL}/questions/question-set-mappings/remove/${id}`, {
-    method: 'DELETE',
-  });
+  const response = await fetch(
+    `${BASE_URL}/questions/question-set-mappings/remove/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete question from set');
+    throw new Error(data.message || "Failed to delete question from set");
   }
 };
 
-
 export const bulkUploadQuestions = async (csvData: string): Promise<any> => {
-  const blob = new Blob([csvData], { type: 'text/csv' });
-  const file = new File([blob], 'questions.csv', { type: 'text/csv' });
+  const blob = new Blob([csvData], { type: "text/csv" });
+  const file = new File([blob], "questions.csv", { type: "text/csv" });
 
   const formData = new FormData();
-  formData.append('file', file);
-  formData.append('uploadType', 'bulk');
-  formData.append('timestamp', new Date().toISOString());
+  formData.append("file", file);
+  formData.append("uploadType", "bulk");
+  formData.append("timestamp", new Date().toISOString());
 
   const authHeaders = getAuthHeaders();
   const headers = { ...authHeaders };
-  delete headers['Content-Type'];
-  delete headers['content-type'];
+  delete headers["Content-Type"];
+  delete headers["content-type"];
 
   const response = await fetch(`${BASE_URL}/questions/bulkUpload`, {
     method: "POST",
@@ -1368,9 +1332,11 @@ export interface Stage {
 }
 
 // Create Stage
-export const createStage = async (stageData: { stage_name: string }): Promise<Stage> => {
+export const createStage = async (stageData: {
+  stage_name: string;
+}): Promise<Stage> => {
   const response = await fetch(`${BASE_URL}/stages/createStage`, {
-    method: 'POST',
+    method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(stageData),
   });
@@ -1378,7 +1344,7 @@ export const createStage = async (stageData: { stage_name: string }): Promise<St
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to create stage');
+    throw new Error(data.message || "Failed to create stage");
   }
 
   return data;
@@ -1387,14 +1353,14 @@ export const createStage = async (stageData: { stage_name: string }): Promise<St
 // Get All Stages
 export const getAllStages = async (): Promise<Stage[]> => {
   const response = await fetch(`${BASE_URL}/stages/getStages`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch stages');
+    throw new Error(data.message || "Failed to fetch stages");
   }
 
   // Handle multiple response formats like in casts/religions
@@ -1414,23 +1380,26 @@ export const getAllStages = async (): Promise<Stage[]> => {
 // Get Stage By ID
 export const getStageById = async (id: string): Promise<Stage> => {
   const response = await fetch(`${BASE_URL}/stages/getStageById/${id}`, {
-    method: 'GET',
+    method: "GET",
     headers: getAuthHeaders(),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch stage');
+    throw new Error(data.message || "Failed to fetch stage");
   }
 
   return data;
 };
 
 // Update Stage
-export const updateStage = async (id: string, stageData: { stage_name: string; status: boolean }): Promise<Stage> => {
+export const updateStage = async (
+  id: string,
+  stageData: { stage_name: string; status: boolean },
+): Promise<Stage> => {
   const response = await fetch(`${BASE_URL}/stages/updateStage/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(stageData),
   });
@@ -1438,7 +1407,7 @@ export const updateStage = async (id: string, stageData: { stage_name: string; s
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to update stage');
+    throw new Error(data.message || "Failed to update stage");
   }
 
   return data;
@@ -1447,17 +1416,16 @@ export const updateStage = async (id: string, stageData: { stage_name: string; s
 // Delete Stage
 export const deleteStage = async (id: string): Promise<void> => {
   const response = await fetch(`${BASE_URL}/stages/deleteStage/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: getAuthHeaders(),
-    body: JSON.stringify(id)
+    body: JSON.stringify(id),
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Failed to delete stage');
+    throw new Error(data.message || "Failed to delete stage");
   }
 };
-
 
 // CurrentStatus interface
 export interface CurrentStatus {
@@ -1470,15 +1438,18 @@ export interface CurrentStatus {
 
 // Get All Current Statuses
 export const getAllStatuses = async (): Promise<CurrentStatus[]> => {
-  const response = await fetch(`${BASE_URL}/current-statuses/currentallstatuses`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+  const response = await fetch(
+    `${BASE_URL}/current-statuses/currentallstatuses`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    },
+  );
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch statuses');
+    throw new Error(data.message || "Failed to fetch statuses");
   }
 
   // Handle different possible shapes of the response, like nested data etc.
@@ -1495,10 +1466,10 @@ export const getAllStatuses = async (): Promise<CurrentStatus[]> => {
   }
 };
 
-
-
 // Get all campuses
-export const getCampusesApi = async (): Promise<{ id: number; campus_name: string }[]> => {
+export const getCampusesApi = async (): Promise<
+  { id: number; campus_name: string }[]
+> => {
   const response = await fetch(`${BASE_URL}/campuses/getCampuses`);
   const data = await response.json();
 
@@ -1507,11 +1478,26 @@ export const getCampusesApi = async (): Promise<{ id: number; campus_name: strin
     campusesData = data;
   } else if (data.data && Array.isArray(data.data)) {
     campusesData = data.data;
-  } else if (data.data && typeof data.data === 'object' && data.data.data && Array.isArray(data.data.data)) {
+  } else if (
+    data.data &&
+    typeof data.data === "object" &&
+    data.data.data &&
+    Array.isArray(data.data.data)
+  ) {
     campusesData = data.data.data;
-  } else if (data.data && typeof data.data === 'object' && data.data.campuses && Array.isArray(data.data.campuses)) {
+  } else if (
+    data.data &&
+    typeof data.data === "object" &&
+    data.data.campuses &&
+    Array.isArray(data.data.campuses)
+  ) {
     campusesData = data.data.campuses;
-  } else if (data.data && typeof data.data === 'object' && data.data.result && Array.isArray(data.data.result)) {
+  } else if (
+    data.data &&
+    typeof data.data === "object" &&
+    data.data.result &&
+    Array.isArray(data.data.result)
+  ) {
     campusesData = data.data.result;
   } else if (data.campuses && Array.isArray(data.campuses)) {
     campusesData = data.campuses;
@@ -1523,22 +1509,21 @@ export const getCampusesApi = async (): Promise<{ id: number; campus_name: strin
 
   return campusesData.map((item: any) => ({
     id: item.id || item.campus_id,
-    campus_name: item.campus_name || item.name || item.campusName || item.campus || "", 
+    campus_name:
+      item.campus_name || item.name || item.campusName || item.campus || "",
   }));
 };
 
-
 // Get campus by ID
-export const getCampusById = async (id:number)=>{
-  const response = await fetch(`${BASE_URL}/campuses/getCampusById/${id}`,{
+export const getCampusById = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/campuses/getCampusById/${id}`, {
     method: "GET",
     headers: getAuthHeaders(),
-  })
+  });
 
   if (!response.ok) throw new Error("Failed to fetch campus by ID");
   return response.json();
-
-}
+};
 
 // Create campus
 export const createCampusApi = async (campusName: string) => {
@@ -1550,7 +1535,9 @@ export const createCampusApi = async (campusName: string) => {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to create campus: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to create campus: ${response.status} ${response.statusText}`,
+    );
   }
 
   return response.json();
@@ -1573,7 +1560,7 @@ export const deleteCampusApi = async (id: number) => {
   const response = await fetch(`${BASE_URL}/campuses/deleteCampus/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
-    body: JSON.stringify({id})
+    body: JSON.stringify({ id }),
   });
 
   if (!response.ok) throw new Error("Failed to delete campus");
@@ -1582,24 +1569,20 @@ export const deleteCampusApi = async (id: number) => {
 
 //  Create School
 export const createSchool = async (schoolName: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/schools/createSchool`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-    
-      body: JSON.stringify({ school_name: schoolName }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to create school: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    return await response.json();
-  } catch (error) {
-    throw error;
+  const response = await fetch(`${BASE_URL}/schools/createSchool`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+
+    body: JSON.stringify({ school_name: schoolName }),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to create school: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
+  return await response.json();
 };
-
-
 
 interface School {
   id: number;
@@ -1615,11 +1598,26 @@ export const getAllSchools = async (): Promise<School[]> => {
     schoolsData = data;
   } else if (data.data && Array.isArray(data.data)) {
     schoolsData = data.data;
-  } else if (data.data && typeof data.data === 'object' && data.data.data && Array.isArray(data.data.data)) {
+  } else if (
+    data.data &&
+    typeof data.data === "object" &&
+    data.data.data &&
+    Array.isArray(data.data.data)
+  ) {
     schoolsData = data.data.data;
-  } else if (data.data && typeof data.data === 'object' && data.data.schools && Array.isArray(data.data.schools)) {
+  } else if (
+    data.data &&
+    typeof data.data === "object" &&
+    data.data.schools &&
+    Array.isArray(data.data.schools)
+  ) {
     schoolsData = data.data.schools;
-  } else if (data.data && typeof data.data === 'object' && data.data.result && Array.isArray(data.data.result)) {
+  } else if (
+    data.data &&
+    typeof data.data === "object" &&
+    data.data.result &&
+    Array.isArray(data.data.result)
+  ) {
     schoolsData = data.data.result;
   } else if (data.schools && Array.isArray(data.schools)) {
     schoolsData = data.schools;
@@ -1637,106 +1635,86 @@ export const getAllSchools = async (): Promise<School[]> => {
 
 //  Update School
 export const updateSchool = async (id: number, updatedName: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/schools/updateSchool/${id}`, {
-      method: "PUT",
-      headers:getAuthHeaders(),
-      body: JSON.stringify({ school_name: updatedName }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to update school: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    return await response.json();
-  } catch (error) {
-    throw error;
+  const response = await fetch(`${BASE_URL}/schools/updateSchool/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ school_name: updatedName }),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to update school: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
+  return await response.json();
 };
 
 //  Delete School
 export const deleteSchool = async (id: number) => {
-  try {
-    const response = await fetch(`${BASE_URL}/schools/deleteSchool/${id}`, {
-      method: "DELETE",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(id)
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to delete school: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    return await response.json();
-  } catch (error) {
-    // console.error("Error deleting school:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/schools/deleteSchool/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(id),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to delete school: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
+  return await response.json();
 };
 
 // state and district api
 export const getAllStates = async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/states/getAll`, {
-      method: "GET",
-    });
-    if (!response.ok) throw new Error(`Failed to fetch states`);
-    return await response.json();
-  } catch (error) {
-    // console.error("Error fetching states:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/states/getAll`, {
+    method: "GET",
+  });
+  if (!response.ok) throw new Error(`Failed to fetch states`);
+  return await response.json();
 };
 
 //  Get districts by state_code
 export const getDistrictsByState = async (stateCode: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/states/getByState/${stateCode}`, {
-      method: "GET",
-    });
-    if (!response.ok) throw new Error(`Failed to fetch districts for ${stateCode}`);
-    return await response.json();
-  } catch (error) {
-    // console.error("Error fetching districts:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/states/getByState/${stateCode}`, {
+    method: "GET",
+  });
+  if (!response.ok)
+    throw new Error(`Failed to fetch districts for ${stateCode}`);
+  return await response.json();
 };
 
 //  Get blocks by district_code
 export const getBlocksByDistrict = async (districtCode: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/districts/getByDistrict/${districtCode}`, {
+  const response = await fetch(
+    `${BASE_URL}/districts/getByDistrict/${districtCode}`,
+    {
       method: "GET",
-    });
-    if (!response.ok) throw new Error(`Failed to fetch blocks for ${districtCode}`);
-    return await response.json();
-  } catch (error) {
-    // console.error("Error fetching blocks:", error);
-    throw error;
-  }
+    },
+  );
+  if (!response.ok)
+    throw new Error(`Failed to fetch blocks for ${districtCode}`);
+  return await response.json();
 };
 
 // Get all stages
 export const getStagesApi = async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/stages/getStages`, {
-      method: "GET",
-    });
+  const response = await fetch(`${BASE_URL}/stages/getStages`, {
+    method: "GET",
+  });
 
-    if (!response.ok) throw new Error("Failed to fetch stages");
-    const data = await response.json();
+  if (!response.ok) throw new Error("Failed to fetch stages");
+  const data = await response.json();
 
-    // Handle possible nested response formats
-    if (data?.data && Array.isArray(data.data)) {
-      return data.data;
-    } else if (Array.isArray(data)) {
-      return data;
-    } else if (data?.stages && Array.isArray(data.stages)) {
-      return data.stages;
-    } else {
-      return [];
-    }
-  } catch (error) {
-    console.error("Error fetching stages:", error);
-    throw error;
+  // Handle possible nested response formats
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else if (data?.stages && Array.isArray(data.stages)) {
+    return data.stages;
+  } else {
+    return [];
   }
 };
 
@@ -1747,7 +1725,8 @@ export const getStatusesByStageId = async (stageId: number | string) => {
       method: "GET",
     });
 
-    if (!response.ok) throw new Error(`Failed to fetch statuses for stage ${stageId}`);
+    if (!response.ok)
+      throw new Error(`Failed to fetch statuses for stage ${stageId}`);
     const data = await response.json();
 
     // Handle common response shapes
@@ -1772,7 +1751,7 @@ export const searchStudentsApi = async (searchTerm: string): Promise<any> => {
     {
       method: "GET",
       headers: getAuthHeaders(),
-    }
+    },
   );
 
   const data = await response.json();
@@ -1808,18 +1787,18 @@ export interface ScheduledInterview {
   updated_at: string;
 }
 
-// Get available slots for interviewer by date 
+// Get available slots for interviewer by date
 export const getMyAvailableSlots = async (date?: string): Promise<any> => {
   let url = `${BASE_URL}/slots/my-available-slots`;
-  
+
   if (date) {
     url += `?date=${date}`;
   }
-   
+
   const headers = getAuthHeaders();
-  
+
   const response = await fetch(url, {
-    method: 'GET',
+    method: "GET",
     headers: headers,
   });
 
@@ -1831,17 +1810,17 @@ export const getMyAvailableSlots = async (date?: string): Promise<any> => {
     data = JSON.parse(responseText);
   } catch (e) {
     // console.error(' Failed to parse response as JSON');
-    throw new Error('Invalid response format from server');
+    throw new Error("Invalid response format from server");
   }
 
   if (!response.ok) {
     if (response.status === 401) {
-      sessionStorage.removeItem('authToken'); 
-      localStorage.removeItem('user');
-      throw new Error('Session expired. Please login again.');
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      throw new Error("Session expired. Please login again.");
     }
-    
-    throw new Error(data.message || 'Failed to fetch available slots');
+
+    throw new Error(data.message || "Failed to fetch available slots");
   }
 
   if (data?.data && Array.isArray(data.data)) {
@@ -1859,74 +1838,76 @@ export const getMyAvailableSlots = async (date?: string): Promise<any> => {
 export const scheduleInterview = async (payload: any): Promise<any> => {
   // console.log(Scheduling interview...');
   // console.log(' Payload:', payload);
-  
+
   const headers = getAuthHeaders();
   // console.log(' Headers:', headers);
-  
+
   const response = await fetch(`${BASE_URL}/interview-schedule/create`, {
-    method: 'POST',
+    method: "POST",
     headers: headers,
     body: JSON.stringify(payload),
   });
 
   // console.log(' Schedule response status:', response.status);
-  
+
   const responseText = await response.text();
   // console.log(' Response body:', responseText);
-  
+
   let data;
   try {
     data = JSON.parse(responseText);
   } catch (e) {
     // console.error(' Failed to parse response as JSON');
-    throw new Error('Invalid response format from server');
+    throw new Error("Invalid response format from server");
   }
 
   if (!response.ok) {
     if (response.status === 401) {
-      sessionStorage.removeItem('authToken');
-      localStorage.removeItem('user'); 
-      throw new Error('Session expired. Please login again.');
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      throw new Error("Session expired. Please login again.");
     }
-    
-    throw new Error(data.message || 'Failed to schedule interview');
+
+    throw new Error(data.message || "Failed to schedule interview");
   }
 
   return data;
 };
 
 // Get scheduled interviews by date
-export const getScheduledInterviews = async (date?: string): Promise<ScheduledInterview[]> => {
+export const getScheduledInterviews = async (
+  date?: string,
+): Promise<ScheduledInterview[]> => {
   let url = `${BASE_URL}/interview-schedule/`;
-  
+
   if (date) {
     url += `?date=${date}`;
   }
-  
-  const headers = getAuthHeaders();  
+
+  const headers = getAuthHeaders();
   const response = await fetch(url, {
-    method: 'GET',
+    method: "GET",
     headers: headers,
   });
 
   const responseText = await response.text();
-  
+
   let data;
   try {
     data = JSON.parse(responseText);
   } catch (e) {
     // console.error(' Failed to parse response as JSON');
-    throw new Error('Invalid response format from server');
+    throw new Error("Invalid response format from server");
   }
 
   if (!response.ok) {
     if (response.status === 401) {
-      sessionStorage.removeItem('authToken'); 
-      localStorage.removeItem('user'); 
-      throw new Error('Session expired. Please login again.');
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      throw new Error("Session expired. Please login again.");
     }
-    
-    throw new Error(data.message || 'Failed to fetch scheduled interviews');
+
+    throw new Error(data.message || "Failed to fetch scheduled interviews");
   }
 
   if (data?.data && Array.isArray(data.data)) {
@@ -1948,22 +1929,21 @@ export const updateScheduledInterview = async (
     description: string;
     meeting_link: string;
     google_event_id?: string;
-  }
+  },
 ): Promise<any> => {
   // console.log("Rescheduling interview ID:", scheduledInterviewId);
   // console.log("Reschedule payload:", payload);
-  
+
   const response = await fetch(
     `${BASE_URL}/interview-schedule/${scheduledInterviewId}/reschedule`,
     {
       method: "PUT",
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
-    }
+    },
   );
 
   const data = await response.json();
-
 
   if (!response.ok) {
     throw new Error(data.message || "Failed to reschedule interview");
@@ -1975,49 +1955,49 @@ export const updateScheduledInterview = async (
 // Delete interview slot
 export const deleteInterviewSlot = async (slotId: number): Promise<void> => {
   const response = await fetch(`${BASE_URL}/slots/${slotId}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: getAuthHeaders(),
-    body: JSON.stringify(slotId)
+    body: JSON.stringify(slotId),
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || 'Cannot delete booked slots or past date slots');
+    throw new Error(
+      data.message || "Cannot delete booked slots or past date slots",
+    );
   }
 };
 
 // Upload profile image
-export const uploadProfileImage = async (file: File): Promise<{ key: string; url: string }> => {
+export const uploadProfileImage = async (
+  file: File,
+): Promise<{ key: string; url: string }> => {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
 
   const response = await fetch(`${BASE_URL}/media/upload-profile`, {
-    method: 'POST',
+    method: "POST",
     body: formData,
   });
 
   const result = await response.json();
 
   if (!response.ok || !result.success) {
-    throw new Error(result.message || 'Failed to upload image');
+    throw new Error(result.message || "Failed to upload image");
   }
 
   return result.data;
 };
 
-export const sendBulkOfferLetters = async (studentIds:number[])=>{
-  try {
-    const response =  await fetch(`${BASE_URL}/students/sendBulkOfferLetters`,{
-      method:"POST",
-      headers : getAuthHeaders(),
-      body:JSON.stringify({student_ids:studentIds})
-    })
-    const data = await response.json();
-    if(!response.ok){
-      throw new Error(data.message || "Failed to send offer letters")
-    }
-    return data;
-  } catch (error){
-  throw error;
+export const sendBulkOfferLetters = async (studentIds: number[]) => {
+  const response = await fetch(`${BASE_URL}/students/sendBulkOfferLetters`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ student_ids: studentIds }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to send offer letters");
   }
-}
+  return data;
+};

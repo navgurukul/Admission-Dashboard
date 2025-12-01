@@ -56,35 +56,35 @@ const FinalDecisions = () => {
 
   // Filter for Final Decisions stage using new stage field
   const getFinalDecisionApplicants = (data: ApplicantData[]) => {
-    return data.filter(applicant => {
-      return applicant.stage === 'decision';
+    return data.filter((applicant) => {
+      return applicant.stage === "decision";
     });
   };
 
   const fetchApplicants = async () => {
     try {
       setLoading(true);
-      
+
       if (!googleUser) {
-        console.warn('No active session, skipping data fetch');
+        console.warn("No active session, skipping data fetch");
         setApplicants([]);
         return;
       }
 
       const { data, error } = await supabase
-        .from('admission_dashboard')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("admission_dashboard")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error("Supabase error:", error);
         throw error;
       }
 
       const finalDecisionApplicants = getFinalDecisionApplicants(data || []);
       setApplicants(finalDecisionApplicants);
     } catch (error) {
-      console.error('Error fetching applicants:', error);
+      console.error("Error fetching applicants:", error);
       toast({
         title: "Error",
         description: "Failed to load applicants data",
@@ -101,48 +101,57 @@ const FinalDecisions = () => {
 
     // Set up real-time subscription
     const channel = supabase
-      .channel('final_decisions_page_changes')
+      .channel("final_decisions_page_changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'admission_dashboard'
+          event: "*",
+          schema: "public",
+          table: "admission_dashboard",
         },
         (payload) => {
-          console.log('Real-time update received:', payload);
+          console.log("Real-time update received:", payload);
           fetchApplicants();
-        }
+        },
       )
       .subscribe();
 
     return () => {
-      console.log('Cleaning up final decisions page subscription');
+      console.log("Cleaning up final decisions page subscription");
       supabase.removeChannel(channel);
     };
   }, []);
 
-  const filteredApplicants = applicants.filter(applicant =>
-    (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     applicant.unique_number?.toLowerCase().includes(searchQuery.toLowerCase())) ?? false
+  const filteredApplicants = applicants.filter(
+    (applicant) =>
+      (applicant.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        applicant.mobile_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        applicant.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        applicant.unique_number
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase())) ??
+      false,
   );
 
   const getStatusDisplay = (status: string | null): string => {
     switch (status) {
-      case 'offer_pending': return 'Offer Letter Pending';
-      case 'offer_sent': return 'Offer Letter Sent';
-      case 'offer_rejected': return 'Offer Rejected';
-      case 'offer_accepted': return 'Offer Accepted';
-      default: return 'Pending';
+      case "offer_pending":
+        return "Offer Letter Pending";
+      case "offer_sent":
+        return "Offer Letter Sent";
+      case "offer_rejected":
+        return "Offer Rejected";
+      case "offer_accepted":
+        return "Offer Accepted";
+      default:
+        return "Pending";
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      
+
       <main className="md:ml-64 overflow-auto h-screen">
         <div className="p-4 md:p-8 pt-16 md:pt-8">
           <div className="mb-8">
@@ -158,8 +167,16 @@ const FinalDecisions = () => {
             <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Offers Sent</p>
-                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.status === 'offer_sent').length}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Offers Sent
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {
+                      filteredApplicants.filter(
+                        (a) => a.status === "offer_sent",
+                      ).length
+                    }
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-status-pending/10 rounded-lg flex items-center justify-center">
                   <Mail className="w-6 h-6 text-status-pending" />
@@ -170,8 +187,16 @@ const FinalDecisions = () => {
             <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Offers Accepted</p>
-                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.status === 'offer_accepted').length}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Offers Accepted
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {
+                      filteredApplicants.filter(
+                        (a) => a.status === "offer_accepted",
+                      ).length
+                    }
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-status-active/10 rounded-lg flex items-center justify-center">
                   <UserCheck className="w-6 h-6 text-status-active" />
@@ -182,8 +207,18 @@ const FinalDecisions = () => {
             <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Successfully Onboarded</p>
-                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.joining_status === 'Joined' || a.joining_status === 'joined').length}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Successfully Onboarded
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {
+                      filteredApplicants.filter(
+                        (a) =>
+                          a.joining_status === "Joined" ||
+                          a.joining_status === "joined",
+                      ).length
+                    }
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                   <UserCheck className="w-6 h-6 text-primary" />
@@ -194,8 +229,18 @@ const FinalDecisions = () => {
             <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Pending Responses</p>
-                  <p className="text-2xl font-bold text-foreground">{filteredApplicants.filter(a => a.status === 'offer_sent' && (!a.joining_status || a.joining_status === 'pending')).length}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Pending Responses
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {
+                      filteredApplicants.filter(
+                        (a) =>
+                          a.status === "offer_sent" &&
+                          (!a.joining_status || a.joining_status === "pending"),
+                      ).length
+                    }
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-status-pending/10 rounded-lg flex items-center justify-center">
                   <Clock className="w-6 h-6 text-status-pending" />
@@ -207,7 +252,9 @@ const FinalDecisions = () => {
           <div className="bg-card rounded-xl shadow-soft border border-border overflow-hidden">
             <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-foreground">Final Decision Pipeline</h2>
+                <h2 className="text-xl font-semibold text-foreground">
+                  Final Decision Pipeline
+                </h2>
                 <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
                   Send Offer Letters
                 </Button>
@@ -229,17 +276,30 @@ const FinalDecisions = () => {
               <table className="w-full">
                 <thead className="bg-muted/30 sticky top-0">
                   <tr>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Applicant</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Status</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Allotted School</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Joining Status</th>
-                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">Actions</th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                      Applicant
+                    </th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                      Status
+                    </th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                      Allotted School
+                    </th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                      Joining Status
+                    </th>
+                    <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      <td
+                        colSpan={5}
+                        className="py-12 text-center text-muted-foreground"
+                      >
                         <div className="flex flex-col items-center space-y-2">
                           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                           <span>Loading applicants...</span>
@@ -248,26 +308,45 @@ const FinalDecisions = () => {
                     </tr>
                   ) : filteredApplicants.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                      <td
+                        colSpan={5}
+                        className="py-12 text-center text-muted-foreground"
+                      >
                         <div className="flex flex-col items-center space-y-2">
                           <UserCheck className="w-8 h-8 opacity-50" />
-                          <span>{searchQuery ? 'No applicants found matching your search' : 'No applicants in final decisions stage'}</span>
+                          <span>
+                            {searchQuery
+                              ? "No applicants found matching your search"
+                              : "No applicants in final decisions stage"}
+                          </span>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     filteredApplicants.map((applicant) => (
-                      <tr key={applicant.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+                      <tr
+                        key={applicant.id}
+                        className="border-b border-border hover:bg-muted/20 transition-colors"
+                      >
                         <td className="p-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                               <span className="text-primary text-sm font-medium">
-                                {applicant.name ? applicant.name.split(' ').map(n => n[0]).join('') : '?'}
+                                {applicant.name
+                                  ? applicant.name
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                  : "?"}
                               </span>
                             </div>
                             <div>
-                              <p className="font-medium text-foreground">{applicant.name || 'No Name'}</p>
-                              <p className="text-sm text-muted-foreground">{applicant.mobile_no}</p>
+                              <p className="font-medium text-foreground">
+                                {applicant.name || "No Name"}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {applicant.mobile_no}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -277,16 +356,19 @@ const FinalDecisions = () => {
                           </span>
                         </td>
                         <td className="p-4 text-sm text-foreground">
-                          {applicant.allotted_school || 'Not Assigned'}
+                          {applicant.allotted_school || "Not Assigned"}
                         </td>
                         <td className="p-4">
                           <span className="text-sm text-foreground">
-                            {applicant.joining_status || 'Pending'}
+                            {applicant.joining_status || "Pending"}
                           </span>
                         </td>
                         <td className="p-4">
                           <Button variant="outline" size="sm">
-                            {applicant.status === 'offer_sent' && !applicant.joining_status ? "Send Reminder" : "View Details"}
+                            {applicant.status === "offer_sent" &&
+                            !applicant.joining_status
+                              ? "Send Reminder"
+                              : "View Details"}
                           </Button>
                         </td>
                       </tr>
@@ -299,7 +381,8 @@ const FinalDecisions = () => {
             {/* Show total count */}
             <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
               <p className="text-sm text-muted-foreground">
-                Showing {filteredApplicants.length} of {applicants.length} applicants
+                Showing {filteredApplicants.length} of {applicants.length}{" "}
+                applicants
               </p>
             </div>
           </div>

@@ -1,4 +1,3 @@
-
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { DashboardStats } from "@/components/DashboardStats";
 import ApplicantTable from "@/components/ApplicantTable";
@@ -9,7 +8,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <AdmissionsSidebar />
-      
+
       {/* Main Content */}
       <main className="md:ml-64 overflow-auto h-screen">
         <div className="p-4 md:p-8 pt-16 md:pt-8">
@@ -19,7 +18,8 @@ const Index = () => {
               Admissions Dashboard
             </h1>
             <p className="text-muted-foreground">
-              Track and manage applicant progress through Navgurukul's admission process
+              Track and manage applicant progress through Navgurukul's admission
+              process
             </p>
           </div>
 

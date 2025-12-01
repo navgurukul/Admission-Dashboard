@@ -36,7 +36,7 @@ interface EditSlotModalProps {
     date: string;
     start_time: string;
     end_time: string;
-    slot_type:string;
+    slot_type: string;
   } | null;
 }
 
@@ -50,7 +50,7 @@ export function EditSlotModal({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [loading, setLoading] = useState(false);
-    const [slotType, setSlotType] = useState("");
+  const [slotType, setSlotType] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -117,7 +117,7 @@ export function EditSlotModal({
         date: format(date, "yyyy-MM-dd"),
         start_time: startTime,
         end_time: endTime,
-        slot_type :slotType,
+        slot_type: slotType,
       };
 
       await updateSlot(slotData!.id, payload);
@@ -169,7 +169,7 @@ export function EditSlotModal({
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
+                    !date && "text-muted-foreground",
                   )}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
@@ -189,7 +189,7 @@ export function EditSlotModal({
             </Popover>
           </div>
 
-           <div className="space-y-2">
+          <div className="space-y-2">
             <Label htmlFor="slot-type">Slot Type</Label>
             <Select value={slotType} onValueChange={setSlotType}>
               <SelectTrigger id="slot-type">

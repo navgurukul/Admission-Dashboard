@@ -139,7 +139,6 @@ export function QuestionList({
                     {question.version_number && (
                       <span>Version: {question.version_number}</span>
                     )}
-          
                   </div>
                 </div>
 
@@ -153,16 +152,16 @@ export function QuestionList({
                     <Edit className="w-4 h-4" />
                   </Button>
 
-                   <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(question.id)}
-                      title="Delete Permanently"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(question.id)}
+                    title="Delete Permanently"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+
                   {/* {question.status ? (
                     <Button
                       variant="ghost"

@@ -14,7 +14,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
   // Get allowedRoles for current path from navigation
-  const currentNavItem = navigation.find(item => item.href === location.pathname);
+  const currentNavItem = navigation.find(
+    (item) => item.href === location.pathname,
+  );
   const allowedRoles = currentNavItem?.allowedRoles;
 
   useEffect(() => {

@@ -67,7 +67,7 @@ const ApplicantTable = () => {
   // Applicant Modals
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
   const [applicantForComments, setApplicantForComments] = useState<any | null>(
-    null
+    null,
   );
 
   // Option lists
@@ -182,11 +182,11 @@ const ApplicantTable = () => {
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id
+        (s) => s.id === student.current_status_id,
       );
       const religion = religionList.find((r) => r.id === student.religion_id);
       const questionSet = questionSetList.find(
-        (q) => q.id === student.question_set_id
+        (q) => q.id === student.question_set_id,
       );
 
       return {
@@ -235,7 +235,10 @@ const ApplicantTable = () => {
         console.error("Search error:", error);
         toast({
           title: "Search Error",
-          description: error?.message || error?.toString() || "Unable to fetch search results. Please try again.",
+          description:
+            error?.message ||
+            error?.toString() ||
+            "Unable to fetch search results. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -266,11 +269,11 @@ const ApplicantTable = () => {
       const school = schoolList.find((s) => s.id === student.school_id);
       const campus = campusList.find((c) => c.id === student.campus_id);
       const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id
+        (s) => s.id === student.current_status_id,
       );
       const religion = religionList.find((r) => r.id === student.religion_id);
       const questionSet = questionSetList.find(
-        (q) => q.id === student.question_set_id
+        (q) => q.id === student.question_set_id,
       );
 
       return {
@@ -313,7 +316,7 @@ const ApplicantTable = () => {
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
     setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id],
     );
   }, []);
 
@@ -321,7 +324,7 @@ const ApplicantTable = () => {
     setSelectedRows((prev) =>
       prev.length === filteredApplicants.length
         ? []
-        : filteredApplicants.map((a) => a.id)
+        : filteredApplicants.map((a) => a.id),
     );
   }, [filteredApplicants]);
 
@@ -382,7 +385,10 @@ const ApplicantTable = () => {
       console.error("Error deleting applicants:", error);
       toast({
         title: "Delete Error",
-        description: error?.message || error?.toString() || "Failed to delete applicants. Please try again.",
+        description:
+          error?.message ||
+          error?.toString() ||
+          "Failed to delete applicants. Please try again.",
         variant: "destructive",
         duration: 5000,
       });
@@ -400,8 +406,8 @@ const ApplicantTable = () => {
     }
   };
 
-  const handleSendBulkOfferLetters = async ()=>{
-    if(selectedRows.length === 0){
+  const handleSendBulkOfferLetters = async () => {
+    if (selectedRows.length === 0) {
       toast({
         title: "No Selection",
         description: "Please select at least one student to send offer letters",
@@ -410,11 +416,11 @@ const ApplicantTable = () => {
       });
       return;
     }
-    
+
     try {
-      const studentIds = selectedRows.map(id => Number(id));
+      const studentIds = selectedRows.map((id) => Number(id));
       const result = await sendBulkOfferLetters(studentIds);
-      
+
       // Check if we have results
       if (!result) {
         throw new Error("No response from server");
@@ -432,24 +438,40 @@ const ApplicantTable = () => {
 
       if (result.results && Array.isArray(result.results)) {
         result.results.forEach((item: any) => {
-          const studentName = item.student_name || item.name || `Student #${item.student_id || 'Unknown'}`;
+          const studentName =
+            item.student_name ||
+            item.name ||
+            `Student #${item.student_id || "Unknown"}`;
           const errorMsg = (item.error || item.message || "").toLowerCase();
-          
+
           const studentData = {
             ...item,
             displayName: studentName,
-            errorMessage: item.error || item.message || "Unknown error"
+            errorMessage: item.error || item.message || "Unknown error",
           };
 
           if (item.success) {
             categorized.sent.push(studentData);
-          } else if (errorMsg.includes("email") || errorMsg.includes("e-mail") || errorMsg.includes("does not have an email")) {
+          } else if (
+            errorMsg.includes("email") ||
+            errorMsg.includes("e-mail") ||
+            errorMsg.includes("does not have an email")
+          ) {
             categorized.noEmail.push(studentData);
-          } else if (errorMsg.includes("already sent") || errorMsg.includes("already has offer letter")) {
+          } else if (
+            errorMsg.includes("already sent") ||
+            errorMsg.includes("already has offer letter")
+          ) {
             categorized.alreadySent.push(studentData);
-          } else if (errorMsg.includes("onboarded") || errorMsg.includes("onboard")) {
+          } else if (
+            errorMsg.includes("onboarded") ||
+            errorMsg.includes("onboard")
+          ) {
             categorized.alreadyOnboarded.push(studentData);
-          } else if (errorMsg.includes("not found") || errorMsg.includes("does not exist")) {
+          } else if (
+            errorMsg.includes("not found") ||
+            errorMsg.includes("does not exist")
+          ) {
             categorized.notFound.push(studentData);
           } else {
             categorized.otherErrors.push(studentData);
@@ -460,31 +482,34 @@ const ApplicantTable = () => {
       // Set results and show modal
       setBulkOfferResults({
         summary: result.summary,
-        categorized: categorized
+        categorized: categorized,
       });
       setShowBulkOfferResults(true);
-      
+
       // Refresh data and clear selection
       refreshData();
       setSelectedRows([]);
-      
-    } catch(error: any) {
+    } catch (error: any) {
       console.error("Error sending bulk offer letters:", error);
-      
+
       // Parse error message for better UX
       let errorMessage = "Failed to send offer letters. Please try again.";
-      
+
       if (error?.message) {
         errorMessage = error.message;
-      } else if (error?.toString && typeof error.toString === 'function') {
+      } else if (error?.toString && typeof error.toString === "function") {
         errorMessage = error.toString();
       }
-      
+
       // Check for network errors
-      if (errorMessage.toLowerCase().includes("fetch") || errorMessage.toLowerCase().includes("network")) {
-        errorMessage = "Network error. Please check your connection and try again.";
+      if (
+        errorMessage.toLowerCase().includes("fetch") ||
+        errorMessage.toLowerCase().includes("network")
+      ) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
       }
-      
+
       toast({
         title: "❌ Error Sending Offer Letters",
         description: errorMessage,
@@ -492,7 +517,7 @@ const ApplicantTable = () => {
         duration: 5000,
       });
     }
-  }
+  };
 
   // Transform filter state to API query parameters
   const transformFiltersToAPI = (filterState: any) => {
@@ -509,7 +534,10 @@ const ApplicantTable = () => {
         return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
       };
 
-      if (filterState.dateRange.type === "application" || filterState.dateRange.type === "applicant") {
+      if (
+        filterState.dateRange.type === "application" ||
+        filterState.dateRange.type === "applicant"
+      ) {
         apiParams.created_at_from = formatDate(filterState.dateRange.from);
         apiParams.created_at_to = formatDate(filterState.dateRange.to);
       } else if (filterState.dateRange.type === "lastUpdate") {
@@ -715,7 +743,7 @@ const ApplicantTable = () => {
             const s = String(value);
             return s.includes(",") ? `"${s}"` : s;
           })
-          .join(",")
+          .join(","),
       ),
     ].join("\n");
 
@@ -725,7 +753,7 @@ const ApplicantTable = () => {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `applicants_${new Date().toISOString().split("T")[0]}.csv`
+      `applicants_${new Date().toISOString().split("T")[0]}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -799,8 +827,8 @@ const ApplicantTable = () => {
               {searchTerm
                 ? `${filteredApplicants.length} applicants found (search)`
                 : hasActiveFilters
-                ? `${filteredApplicants.length} applicants found (filtered)`
-                : `${totalStudents} total applicants`}
+                  ? `${filteredApplicants.length} applicants found (filtered)`
+                  : `${totalStudents} total applicants`}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 mt-2 md:mt-0">

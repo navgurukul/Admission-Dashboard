@@ -1,6 +1,8 @@
 // Modern Google Calendar Integration using Google Identity Services (GIS)
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "203783247002-amrp0mkp58jna7mhcf368vcn0ilnq7hd.apps.googleusercontent.com";
+const CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  "203783247002-amrp0mkp58jna7mhcf368vcn0ilnq7hd.apps.googleusercontent.com";
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
 const SCOPES = "https://www.googleapis.com/auth/calendar.events";
 
@@ -22,13 +24,17 @@ export const initClient = (): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     // Check if API_KEY is configured
     if (!API_KEY || API_KEY === "") {
-      reject(new Error("Google API Key is not configured. Please add VITE_GOOGLE_API_KEY in .env file."));
+      reject(
+        new Error(
+          "Google API Key is not configured. Please add VITE_GOOGLE_API_KEY in .env file.",
+        ),
+      );
       return;
     }
 
     try {
       // Load Google Identity Services script
-      if (typeof window === 'undefined') {
+      if (typeof window === "undefined") {
         reject(new Error("Window object not available"));
         return;
       }
@@ -42,8 +48,8 @@ export const initClient = (): Promise<boolean> => {
       }
 
       // Load the Google Identity Services script
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
       script.onload = () => {
@@ -65,30 +71,25 @@ export const initClient = (): Promise<boolean> => {
 
 // Initialize the token client for OAuth
 const initTokenClient = () => {
-  try {
-    const google = (window as any).google;
-    if (!google) {
-      throw new Error("Google Identity Services not loaded");
-    }
-
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (response: any) => {
-        if (response.error) {
-          // console.error("Token client error:", response);
-          throw new Error(response.error);
-        }
-        accessToken = response.access_token;
-        // console.log("Access token received successfully");
-      },
-    });
-
-    // console.log("Token client initialized successfully");
-  } catch (error) {
-    // console.error("Error initializing token client:", error);
-    throw error;
+  const google = (window as any).google;
+  if (!google) {
+    throw new Error("Google Identity Services not loaded");
   }
+
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (response: any) => {
+      if (response.error) {
+        // console.error("Token client error:", response);
+        throw new Error(response.error);
+      }
+      accessToken = response.access_token;
+      // console.log("Access token received successfully");
+    },
+  });
+
+  // console.log("Token client initialized successfully");
 };
 
 // Request access token (triggers sign-in popup)
@@ -96,7 +97,9 @@ export const signIn = async (): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     try {
       if (!tokenClient) {
-        throw new Error("Token client not initialized. Please refresh the page.");
+        throw new Error(
+          "Token client not initialized. Please refresh the page.",
+        );
       }
 
       // console.log("Requesting access token...");
@@ -105,7 +108,13 @@ export const signIn = async (): Promise<boolean> => {
       tokenClient.callback = (response: any) => {
         if (response.error) {
           console.error("Sign-in error:", response);
-          reject(new Error(response.error_description || response.error || "Failed to sign in"));
+          reject(
+            new Error(
+              response.error_description ||
+                response.error ||
+                "Failed to sign in",
+            ),
+          );
           return;
         }
 
@@ -115,7 +124,7 @@ export const signIn = async (): Promise<boolean> => {
       };
 
       // Request access token - this opens the popup
-      tokenClient.requestAccessToken({ prompt: 'select_account' });
+      tokenClient.requestAccessToken({ prompt: "select_account" });
     } catch (error: any) {
       console.error("Error during sign-in:", error);
       reject(error);
@@ -125,7 +134,9 @@ export const signIn = async (): Promise<boolean> => {
 
 // Check if user is signed in
 export const isSignedIn = (): boolean => {
-  return accessToken !== null && accessToken !== undefined && accessToken !== "";
+  return (
+    accessToken !== null && accessToken !== undefined && accessToken !== ""
+  );
 };
 
 // Sign out
@@ -165,7 +176,9 @@ export const createCalendarEvent = async (eventDetails: {
     }
 
     // Build attendees list
-    const attendeesList = eventDetails.attendees || [eventDetails.attendeeEmail];
+    const attendeesList = eventDetails.attendees || [
+      eventDetails.attendeeEmail,
+    ];
     const uniqueAttendees = [...new Set(attendeesList.filter(Boolean))];
 
     const event = {
@@ -179,7 +192,7 @@ export const createCalendarEvent = async (eventDetails: {
         dateTime: eventDetails.endDateTime,
         timeZone: "Asia/Kolkata",
       },
-      attendees: uniqueAttendees.map(email => ({ email })), // Add all attendees
+      attendees: uniqueAttendees.map((email) => ({ email })), // Add all attendees
       conferenceData: {
         createRequest: {
           requestId: `meet-${Date.now()}`,
@@ -206,13 +219,15 @@ export const createCalendarEvent = async (eventDetails: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(event),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Calendar API error:", errorData);
-      throw new Error(errorData.error?.message || "Failed to create calendar event");
+      throw new Error(
+        errorData.error?.message || "Failed to create calendar event",
+      );
     }
 
     const result = await response.json();
@@ -246,13 +261,15 @@ export const deleteCalendarEvent = async (eventId: string) => {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Calendar API error:", errorData);
-      throw new Error(errorData.error?.message || "Failed to delete calendar event");
+      throw new Error(
+        errorData.error?.message || "Failed to delete calendar event",
+      );
     }
 
     // console.log("Calendar event deleted successfully");
@@ -264,7 +281,9 @@ export const deleteCalendarEvent = async (eventId: string) => {
 };
 
 // Format date and time for calendar
-export const formatDateTimeForCalendar = (date: string, time: string): string => {
- 
+export const formatDateTimeForCalendar = (
+  date: string,
+  time: string,
+): string => {
   return `${date}T${time}:00+05:30`;
 };

@@ -1,7 +1,12 @@
-
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { User } from "lucide-react";
@@ -9,35 +14,39 @@ import { User } from "lucide-react";
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user: googleUser, isAuthenticated, loading: googleLoading, renderGoogleSignInButton } = useGoogleAuth();
+  const {
+    user: googleUser,
+    isAuthenticated,
+    loading: googleLoading,
+    renderGoogleSignInButton,
+  } = useGoogleAuth();
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   // Check if user is already authenticated
 
-// console.log("AUTH.TSX")
+  // console.log("AUTH.TSX")
   // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
     if (googleButtonRef.current && !googleLoading) {
       // Small delay to ensure Google script is fully loaded
       const timer = setTimeout(() => {
-        renderGoogleSignInButton('google-signin-button');
+        renderGoogleSignInButton("google-signin-button");
       }, 100);
 
       return () => clearTimeout(timer);
     }
-  },[ googleLoading]);
+  }, [googleLoading]);
 
   useEffect(() => {
-  if (!isAuthenticated) return;
-  if (!googleUser || googleUser.role_id === undefined) return;
+    if (!isAuthenticated) return;
+    if (!googleUser || googleUser.role_id === undefined) return;
 
-  if (googleUser.role_id === 1 || googleUser.role_id === 2 ) {
-    // console.log("FROM AUTH.TSX 17", googleUser.role_id);
-    navigate("/");
-    return;
-  }
-}, [googleUser, isAuthenticated, navigate]);
-
+    if (googleUser.role_id === 1 || googleUser.role_id === 2) {
+      // console.log("FROM AUTH.TSX 17", googleUser.role_id);
+      navigate("/");
+      return;
+    }
+  }, [googleUser, isAuthenticated, navigate]);
 
   // Show loading state while checking authentication
   if (googleLoading) {
@@ -63,7 +72,9 @@ export default function Auth() {
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <User className="w-6 h-6 text-primary-foreground" />
             </div>
-            <CardTitle className="text-2xl font-bold">Admission Dashboard</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Admission Dashboard
+            </CardTitle>
           </div>
           <CardDescription>
             Sign in with your Google account to continue

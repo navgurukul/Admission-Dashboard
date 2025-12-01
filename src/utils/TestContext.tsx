@@ -1,5 +1,11 @@
 // src/context/TestsContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 export interface SlotBooking {
   status: "Pending" | "Booked" | "Cancelled" | "Completed" | null;
@@ -29,9 +35,7 @@ export const TestsProvider = ({ children }: { children: ReactNode }) => {
   const [tests, setTests] = useState<Test[]>(() => {
     // Load initial state from localStorage if available
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [
-
-];
+    return stored ? JSON.parse(stored) : [];
   });
 
   // Persist to localStorage whenever tests change
@@ -42,8 +46,8 @@ export const TestsProvider = ({ children }: { children: ReactNode }) => {
   const updateSlot = (id: number, slot: Partial<SlotBooking>) =>
     setTests((prev) =>
       prev.map((t) =>
-        t.id === id ? { ...t, slotBooking: { ...t.slotBooking, ...slot } } : t
-      )
+        t.id === id ? { ...t, slotBooking: { ...t.slotBooking, ...slot } } : t,
+      ),
     );
 
   return (
@@ -59,10 +63,7 @@ export const useTests = () => {
   return ctx;
 };
 
-
-
-
-// for refrence 
+// for refrence
 //  {
 //       id: 1,
 //       name: "Screening Test",

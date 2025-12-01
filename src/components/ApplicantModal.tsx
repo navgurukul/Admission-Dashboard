@@ -33,7 +33,7 @@ import {
   getAllStates,
   getBlocksByDistrict,
   getDistrictsByState,
-  getAllStages
+  getAllStages,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -109,7 +109,7 @@ export function ApplicantModal({
 
     // Try to find the state_code by matching the name
     const stateOption = stateOptions.find(
-      (opt) => opt.label.toUpperCase() === value.toUpperCase()
+      (opt) => opt.label.toUpperCase() === value.toUpperCase(),
     );
 
     return stateOption ? stateOption.value : value;
@@ -126,7 +126,7 @@ export function ApplicantModal({
 
     // Try to find the district_code by matching the name
     const districtOption = districtOptions.find(
-      (opt) => opt.label.toUpperCase() === value.toUpperCase()
+      (opt) => opt.label.toUpperCase() === value.toUpperCase(),
     );
 
     return districtOption ? districtOption.value : value;
@@ -187,7 +187,7 @@ export function ApplicantModal({
             }
             if (updated.district) {
               const districtCode = getDistrictCodeFromNameOrCode(
-                updated.district
+                updated.district,
               );
               setSelectedDistrict(districtCode);
             }
@@ -228,46 +228,48 @@ export function ApplicantModal({
           (campusRes || []).map((c: any) => ({
             value: c.id.toString(),
             label: c.campus_name,
-          }))
+          })),
         );
 
         setSchools(
           (schoolRes || []).map((c: any) => ({
             value: c.id.toString(),
             label: c.school_name,
-          }))
+          })),
         );
 
         setCastes(
           (casteRes || []).map((c: any) => ({
             value: c.id.toString(),
             label: c.cast_name,
-          }))
+          })),
         );
 
         setQualifications(
           (qualRes || []).map((q: any) => ({
             value: q.id.toString(),
             label: q.qualification_name,
-          }))
+          })),
         );
 
         setCurrentWorks(
           (workRes || []).map((w: any) => ({
             value: w.id.toString(),
             label: w.current_status_name,
-          }))
+          })),
         );
         setQuestionSets(
           (questionSetRes || []).map((qs: any) => ({
             value: qs.id.toString(),
             label: qs.name,
-          }))
+          })),
         );
-        setStages((stagesRes || []).map((s: any) => ({
-          id: s.id,
-          name: s.stage_name,
-        })));
+        setStages(
+          (stagesRes || []).map((s: any) => ({
+            id: s.id,
+            name: s.stage_name,
+          })),
+        );
       } catch (err) {
         // console.error("Failed to load dropdown data", err);
       }
@@ -388,12 +390,14 @@ export function ApplicantModal({
       }
 
       // Determine stage_id based on offer_letter_status and onboarded_status
-      let offerLetterStatus = payload.offer_letter_status;
-      let onboardedStatus = payload.onboarded_status;
+      const offerLetterStatus = payload.offer_letter_status;
+      const onboardedStatus = payload.onboarded_status;
 
       // Find stage IDs by name
-      const finalDecisionStage = stages.find(s => s.name === "Final Decision");
-      const onboardedStage = stages.find(s => s.name === "Onboarded");
+      const finalDecisionStage = stages.find(
+        (s) => s.name === "Final Decision",
+      );
+      const onboardedStage = stages.find((s) => s.name === "Onboarded");
 
       let newStageId = payload.stage_id; // Keep existing stage by default
 
@@ -481,7 +485,7 @@ export function ApplicantModal({
   const getLabel = (
     options: { value: string; label: string }[],
     id: any,
-    defaultLabel = "Not provided"
+    defaultLabel = "Not provided",
   ) => {
     return (
       options.find((o) => o.value === id?.toString())?.label || defaultLabel
@@ -726,7 +730,7 @@ export function ApplicantModal({
                     value={currentApplicant.qualification_id}
                     displayValue={getLabel(
                       qualifications,
-                      currentApplicant.qualification_id
+                      currentApplicant.qualification_id,
                     )}
                     onUpdate={handleUpdate}
                     options={qualifications}
@@ -743,7 +747,7 @@ export function ApplicantModal({
                       currentWorks.find(
                         (w) =>
                           w.value ===
-                          currentApplicant.current_status_id?.toString()
+                          currentApplicant.current_status_id?.toString(),
                       )?.label || "Not provided"
                     }
                     onUpdate={handleUpdate}
@@ -759,7 +763,7 @@ export function ApplicantModal({
                     field="state"
                     displayValue={getLabel(
                       stateOptions,
-                      currentApplicant.state
+                      currentApplicant.state,
                     )}
                     value={currentApplicant.state}
                     onUpdate={handleStateChange}
@@ -904,7 +908,7 @@ export function ApplicantModal({
                       field="campus_id"
                       displayValue={getLabel(
                         campus,
-                        currentApplicant.campus_id
+                        currentApplicant.campus_id,
                       )}
                       onUpdate={handleUpdate}
                       options={campus}
@@ -939,7 +943,7 @@ export function ApplicantModal({
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "offer_letter_status",
-                          value
+                          value,
                         );
                       }}
                     />
@@ -962,7 +966,7 @@ export function ApplicantModal({
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
-                          value
+                          value,
                         );
                       }}
                     />
@@ -979,19 +983,19 @@ export function ApplicantModal({
                     value={
                       joiningDate ||
                       currentApplicant.final_decisions?.[0]?.joining_date?.split(
-                        "T"
+                        "T",
                       )[0] ||
                       ""
                     }
                     onChange={async (e) => {
                       const selectedDate = e.target.value;
                       setJoiningDate(selectedDate);
-                      
+
                       try {
                         // Call API immediately when date changes
                         await handleFinalDecisionUpdate(
                           "joining_date",
-                          selectedDate || null
+                          selectedDate || null,
                         );
 
                         // Immediately sync
@@ -1014,7 +1018,6 @@ export function ApplicantModal({
 
               {/* Notes */}
               <div className="space-y-4 md:col-span-2">
-               
                 <div className="grid grid-cols-3 gap-4">
                   <div className="mb-4">
                     <label className="text-sm font-medium text-muted-foreground">

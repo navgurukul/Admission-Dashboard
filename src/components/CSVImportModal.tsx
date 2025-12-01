@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,19 +66,18 @@ const CSVImportModal = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
-  
   useEffect(() => {
-  if (isOpen) {
-    // Reset modal state each time it opens
-    setCsvFile(null);
-    setData([]);
-    setError(null);
-    setShowSuccess(false);
-    setSuccessCount(0);
-    setUploadProgress(0);
-    setIsProcessing(false);
-  }
-}, [isOpen]);
+    if (isOpen) {
+      // Reset modal state each time it opens
+      setCsvFile(null);
+      setData([]);
+      setError(null);
+      setShowSuccess(false);
+      setSuccessCount(0);
+      setUploadProgress(0);
+      setIsProcessing(false);
+    }
+  }, [isOpen]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
@@ -120,25 +119,28 @@ const CSVImportModal = ({
           processCSVData(results.data); // this will update successCount
         },
         error: (err) => {
-          setError("Something went wrong while uploading your CSV file. Please check it and try again.");
+          setError(
+            "Something went wrong while uploading your CSV file. Please check it and try again.",
+          );
           setIsProcessing(false);
         },
       });
     } catch (error: any) {
-    console.error("Upload failed:", error);
-    // Display API error message or fallback
-    const customMsg = error &&  "Something went wrong while uploading your CSV file. Please check it and try again.";
-    setError(customMsg);
-    setIsProcessing(false);
+      console.error("Upload failed:", error);
+      // Display API error message or fallback
+      const customMsg =
+        error &&
+        "Something went wrong while uploading your CSV file. Please check it and try again.";
+      setError(customMsg);
+      setIsProcessing(false);
 
-    // toast({
-    //   title: "Upload Failed",
-    //   description: customMsg,
-    //   variant: "destructive",
-    // });
-  }
-};
-
+      // toast({
+      //   title: "Upload Failed",
+      //   description: customMsg,
+      //   variant: "destructive",
+      // });
+    }
+  };
 
   const parseNumericValue = (value: string | undefined): number | null => {
     if (!value || value.trim() === "") return null;
@@ -224,9 +226,9 @@ const CSVImportModal = ({
       onClose();
     } catch (error) {
       console.error("Import error:", error);
-      
+
       setError(
-        error instanceof Error ? error.message : "Unknown error occurred"
+        error instanceof Error ? error.message : "Unknown error occurred",
       );
     } finally {
       setIsProcessing(false);

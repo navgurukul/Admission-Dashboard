@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  getQuestions, 
-  createQuestion as apiCreateQuestion, 
-  updateQuestion as updateQuestionApi, 
-  deleteQuestionbyId 
+import {
+  getQuestions,
+  createQuestion as apiCreateQuestion,
+  updateQuestion as updateQuestionApi,
+  deleteQuestionbyId,
 } from "@/utils/api";
 import { difficultyLevelAPI } from "@/utils/difficultyLevelAPI";
 
@@ -22,7 +22,9 @@ export interface DifficultyLevel {
 export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [difficultyLevels, setDifficultyLevels] = useState<DifficultyLevel[]>([]);
+  const [difficultyLevels, setDifficultyLevels] = useState<DifficultyLevel[]>(
+    [],
+  );
   const { toast } = useToast();
 
   // Fetch difficulty levels once
@@ -52,7 +54,9 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   // Helper: get difficulty label by id
   const getDifficultyLabel = (level: number | string) => {
     const lvl = difficultyLevels.find(
-      (l) => l.id === Number(level) || l.name.toLowerCase() === String(level).toLowerCase()
+      (l) =>
+        l.id === Number(level) ||
+        l.name.toLowerCase() === String(level).toLowerCase(),
     );
     return lvl ? lvl.name.toLowerCase() : "unknown";
   };
@@ -153,8 +157,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
 
   useEffect(() => {
     fetchQuestions();
-  }, [filters, searchTerm]); 
-
+  }, [filters, searchTerm]);
 
   // console.log(difficultyLevels)
   return {

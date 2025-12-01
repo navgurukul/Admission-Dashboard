@@ -31,7 +31,12 @@ export default function StudentLogin() {
   const navigate = useNavigate();
   const { toast } = useToast();
   // All users (Admin, User, Student) login from this page
-  const { user: googleUser, isAuthenticated, loading: googleLoading, renderGoogleSignInButton } = useGoogleAuth({ skipAutoNavigation: true });
+  const {
+    user: googleUser,
+    isAuthenticated,
+    loading: googleLoading,
+    renderGoogleSignInButton,
+  } = useGoogleAuth({ skipAutoNavigation: true });
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
@@ -46,27 +51,25 @@ export default function StudentLogin() {
   useEffect(() => {
     if (googleButtonRef.current && !googleLoading && !isAuthenticated) {
       const timer = setTimeout(() => {
-        renderGoogleSignInButton('google-signin-button-student');
+        renderGoogleSignInButton("google-signin-button-student");
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [googleLoading, renderGoogleSignInButton, isAuthenticated]);
 
-
-    // Fetch student data by email (normalize axios/REST shapes)
-    const studentData = async (email: string) => {
-      try {
-        const data = await getStudentDataByEmail(email);
-        // getStudentDataByEmail returns axios response.data which itself
-        // often contains a `data` field with payload. Normalize both.
-        const payload = data?.data ?? data ?? null;
-        return payload?.student ?? null;
-      } catch (error) {
-        console.error("Error fetching student data:", error);
-        return null;
-      }
-    };
-
+  // Fetch student data by email (normalize axios/REST shapes)
+  const studentData = async (email: string) => {
+    try {
+      const data = await getStudentDataByEmail(email);
+      // getStudentDataByEmail returns axios response.data which itself
+      // often contains a `data` field with payload. Normalize both.
+      const payload = data?.data ?? data ?? null;
+      return payload?.student ?? null;
+    } catch (error) {
+      console.error("Error fetching student data:", error);
+      return null;
+    }
+  };
 
   // Handle Google authentication redirect for students
   useEffect(() => {
@@ -87,10 +90,10 @@ export default function StudentLogin() {
     const processAuth = async () => {
       // Check if authToken and user are already stored by useGoogleAuth
       let authToken = localStorage.getItem("authToken");
-      let storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user");
 
       // Always try to get Google credential first
-      const googleCredential = sessionStorage.getItem('google_credential');
+      const googleCredential = sessionStorage.getItem("google_credential");
 
       // Check if this is a fresh login or page refresh
       // Fresh login will have google_credential in sessionStorage
@@ -108,21 +111,22 @@ export default function StudentLogin() {
 
       // If not a fresh login and no existing session, something is wrong
       if (!isFreshLogin && !authToken) {
-        console.log("⚠️ No fresh login and no existing session - this shouldn't happen");
+        console.log(
+          "⚠️ No fresh login and no existing session - this shouldn't happen",
+        );
         setHasProcessedAuth(true);
         return;
       }
 
       // Check if we need to use Google credential
       if ((!authToken || authToken === "undefined") && googleCredential) {
-
         // Store Google JWT as authToken
         localStorage.setItem("authToken", googleCredential);
         authToken = googleCredential;
 
         // Parse Google token to verify it
         try {
-          const tokenParts = googleCredential.split('.');
+          const tokenParts = googleCredential.split(".");
           const payload = JSON.parse(atob(tokenParts[1]));
         } catch (e) {
           console.error("❌ Error parsing Google token:", e);
@@ -130,7 +134,9 @@ export default function StudentLogin() {
       } else if (authToken && authToken !== "undefined") {
         console.log("✅ Using backend token (Admin/User)");
       } else {
-        console.error("❌ No valid token available - neither backend nor Google credential");
+        console.error(
+          "❌ No valid token available - neither backend nor Google credential",
+        );
       }
 
       // Ensure student user data exists
@@ -141,7 +147,7 @@ export default function StudentLogin() {
           email: googleUser.email,
           profile_pic: googleUser.avatar,
           user_role_id: 3,
-          role_name: "STUDENT"
+          role_name: "STUDENT",
         };
         localStorage.setItem("user", JSON.stringify(studentUserData));
         console.log("✅ Stored student user data");
@@ -151,7 +157,12 @@ export default function StudentLogin() {
       const userRole = googleUser.role_id;
       const roleName = googleUser.role_name;
 
-      if (userRole === 1 || userRole === 2 || roleName === "ADMIN" || roleName === "USER") {
+      if (
+        userRole === 1 ||
+        userRole === 2 ||
+        roleName === "ADMIN" ||
+        roleName === "USER"
+      ) {
         // Admin/User - Navigate to dashboard
         console.log("✅ Admin/User detected - navigating to dashboard");
         localStorage.setItem("role", roleName || "user");
@@ -164,7 +175,7 @@ export default function StudentLogin() {
 
         // Mark as processed and clear the credential
         setHasProcessedAuth(true);
-        sessionStorage.removeItem('google_credential');
+        sessionStorage.removeItem("google_credential");
 
         setTimeout(() => {
           navigate("/");
@@ -191,17 +202,23 @@ export default function StudentLogin() {
           localStorage.setItem("userRole", JSON.stringify("student"));
 
           // Derive progress flags from payload
-          const registrationDone = Boolean(profile && profile.student_id && profile.dob && profile.gender);
+          const registrationDone = Boolean(
+            profile && profile.student_id && profile.dob && profile.gender,
+          );
 
           // // instructionsDone isn't provided by API in this payload; keep false unless explicit
           // const instructionsDone = Boolean(payload?.student?.instructions_done ?? payload?.student?.instructionsDone ?? false);
 
           // testStarted: true if any exam_sessions exist
-          const examSessions = Array.isArray(payload?.exam_sessions) ? payload.exam_sessions : [];
+          const examSessions = Array.isArray(payload?.exam_sessions)
+            ? payload.exam_sessions
+            : [];
           const testStarted = examSessions.length > 0;
 
           // testCompleted: true if any exam_session shows submitted_at or is_passed
-          const testCompleted = examSessions.some((s: any) => testStarted || Boolean(s.is_passed));
+          const testCompleted = examSessions.some(
+            (s: any) => testStarted || Boolean(s.is_passed),
+          );
 
           console.log("Derived Flags:", {
             registrationDone,
@@ -214,7 +231,10 @@ export default function StudentLogin() {
 
           // Persist flags for other hooks/pages
           // localStorage.setItem("registrationDone", registrationDone ? "true" : "false");
-          localStorage.setItem("registrationDone", registrationDone ? "true" : "false");
+          localStorage.setItem(
+            "registrationDone",
+            registrationDone ? "true" : "false",
+          );
           localStorage.setItem("testStarted", testStarted ? "true" : "false");
           localStorage.setItem("testCompleted", testStarted ? "true" : "false");
           localStorage.setItem("allowRetest", allowRetest ? "true" : "false");
@@ -235,33 +255,36 @@ export default function StudentLogin() {
           sessionStorage.removeItem("google_credential");
 
           // Route based on derived flags (order matters)
- 
-            // if (!registrationDone) {
-            //   navigate("/students/details/registration", { state: { googleEmail: googleUser.email } });
-            //   return;
-            // }
 
-            console.log(registrationDone)
+          // if (!registrationDone) {
+          //   navigate("/students/details/registration", { state: { googleEmail: googleUser.email } });
+          //   return;
+          // }
 
-            if (!registrationDone) {
-              navigate("/students/details/instructions", { state: { googleEmail: googleUser.email } });
-              return;
-            }
+          console.log(registrationDone);
 
-            if (testStarted && !testCompleted) {
-              // If test already started (but not completed) send to start (which will forward to section)
-              navigate("/students/test/start");
-              return;
-            }
+          if (!registrationDone) {
+            navigate("/students/details/instructions", {
+              state: { googleEmail: googleUser.email },
+            });
+            return;
+          }
 
-            if (testCompleted && !allowRetest) {
-              navigate("/students/final-result");
-              return;
-            }
+          if (testStarted && !testCompleted) {
+            // If test already started (but not completed) send to start (which will forward to section)
+            navigate("/students/test/start");
+            return;
+          }
 
-            // Default fallback: instructions
-            navigate("/students/details/instructions", { state: { googleEmail: googleUser.email } });
-        
+          if (testCompleted && !allowRetest) {
+            navigate("/students/final-result");
+            return;
+          }
+
+          // Default fallback: instructions
+          navigate("/students/details/instructions", {
+            state: { googleEmail: googleUser.email },
+          });
         } catch (err) {
           console.error("Error fetching student data:", err);
           // If API fails, still set minimal student info and send to instructions
@@ -271,7 +294,9 @@ export default function StudentLogin() {
           localStorage.setItem("userRole", JSON.stringify("student"));
           setHasProcessedAuth(true);
           sessionStorage.removeItem("google_credential");
-          navigate("/students/details/instructions", { state: { googleEmail: googleUser.email } });
+          navigate("/students/details/instructions", {
+            state: { googleEmail: googleUser.email },
+          });
         }
       }
     };
@@ -284,26 +309,25 @@ export default function StudentLogin() {
   };
 
   const content = {
-  english: {
-    title: "Login",
-    description: "Sign in with your Google account to continue.",
-    successMessage: "Login Successful!",
-    failureMessage: "Login Failed. Please try again.",
-  },
-  hindi: {
-    title: "लॉगिन",
-    description: "जारी रखने के लिए अपने Google खाते से साइन इन करें।",
-    successMessage: "लॉगिन सफल!",
-    failureMessage: "लॉगिन विफल। कृपया पुनः प्रयास करें।",
-  },
-  marathi: {
-    title: "लॉगिन",
-    description: "सुरू ठेवण्यासाठी आपल्या Google खात्याने साइन इन करा.",
-    successMessage: "लॉगिन यशस्वी!",
-    failureMessage: "लॉगिन अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
-  },
-};
-
+    english: {
+      title: "Login",
+      description: "Sign in with your Google account to continue.",
+      successMessage: "Login Successful!",
+      failureMessage: "Login Failed. Please try again.",
+    },
+    hindi: {
+      title: "लॉगिन",
+      description: "जारी रखने के लिए अपने Google खाते से साइन इन करें।",
+      successMessage: "लॉगिन सफल!",
+      failureMessage: "लॉगिन विफल। कृपया पुनः प्रयास करें।",
+    },
+    marathi: {
+      title: "लॉगिन",
+      description: "सुरू ठेवण्यासाठी आपल्या Google खात्याने साइन इन करा.",
+      successMessage: "लॉगिन यशस्वी!",
+      failureMessage: "लॉगिन अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+    },
+  };
 
   const getContent = () => {
     const lang = localStorage.getItem("selectedLanguage") || "english";
@@ -323,7 +347,6 @@ export default function StudentLogin() {
     setLoading(true);
 
     try {
-
       const data: LoginResponse = {
         success: true,
         student: {
@@ -384,8 +407,6 @@ export default function StudentLogin() {
           <CardDescription>{getContent().description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-  
-
           {/* Google Sign In Button */}
           <div
             id="google-signin-button-student"

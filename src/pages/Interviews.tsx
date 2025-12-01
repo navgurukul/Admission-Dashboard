@@ -49,7 +49,7 @@ const Interviews = () => {
     try {
       setLoading(true);
       setSelectedDate(date);
-      
+
       // If date is empty, fetch all interviews
       if (!date) {
         const data = await getScheduledInterviews();
@@ -90,7 +90,7 @@ const Interviews = () => {
           today.getMonth(),
           today.getDate(),
           parseInt(hours),
-          parseInt(minutes)
+          parseInt(minutes),
         );
       } else {
         // ISO format
@@ -162,7 +162,6 @@ const Interviews = () => {
                 <div className="flex flex-col gap-4 md:flex-row md:items-center">
                   <div className="flex items-center gap-2">
                     Select Date
-                    
                     <input
                       type="date"
                       value={selectedDate}
@@ -277,7 +276,7 @@ const Interviews = () => {
                             {/* <Calendar className="w-4 h-4 text-muted-foreground" /> */}
                             <span className="text-sm text-foreground">
                               {formatDate(
-                                interview.date || interview.start_time
+                                interview.date || interview.start_time,
                               )}
                             </span>
                           </div>

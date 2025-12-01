@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,7 +27,7 @@ import {
   updateStudent,
   submitFinalDecision,
   getStudentById,
-  bulkUpdateStudents
+  bulkUpdateStudents,
 } from "@/utils/api";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -94,9 +99,15 @@ export function BulkUpdateModal({
   const [districtOptions, setDistrictOptions] = useState<DistrictOption[]>([]);
   const [blockOptions, setBlockOptions] = useState<BlockOption[]>([]);
 
-  const [castOptions, setCastOptions] = useState<{ value: string; label: string }[]>([]);
-  const [qualificationOptions, setQualificationOptions] = useState<{ value: string; label: string }[]>([]);
-  const [currentWorkOptions, setCurrentWorkOptions] = useState<{ value: string; label: string }[]>([]);
+  const [castOptions, setCastOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [qualificationOptions, setQualificationOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [currentWorkOptions, setCurrentWorkOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -141,21 +152,21 @@ export function BulkUpdateModal({
         (castsRes || []).map((c: any) => ({
           value: String(c.id),
           label: c.cast_name || c.name || `#${c.id}`,
-        }))
+        })),
       );
 
       setQualificationOptions(
         (qualsRes || []).map((q: any) => ({
           value: String(q.id),
           label: q.qualification_name || q.name || `#${q.id}`,
-        }))
+        })),
       );
 
       setCurrentWorkOptions(
         (statusRes || []).map((s: any) => ({
           value: String(s.id),
           label: s.current_status_name || s.name || `#${s.id}`,
-        }))
+        })),
       );
     } catch (err) {
       console.error("Error fetching dropdowns:", err);
@@ -163,7 +174,12 @@ export function BulkUpdateModal({
   };
 
   const handleStateChange = async (stateCode: string) => {
-    setUpdateData((prev) => ({ ...prev, state: stateCode, district: "no_change", block: "no_change" }));
+    setUpdateData((prev) => ({
+      ...prev,
+      state: stateCode,
+      district: "no_change",
+      block: "no_change",
+    }));
     setDistrictOptions([]);
     setBlockOptions([]);
 
@@ -181,7 +197,11 @@ export function BulkUpdateModal({
   };
 
   const handleDistrictChange = async (districtCode: string) => {
-    setUpdateData((prev) => ({ ...prev, district: districtCode, block: "no_change" }));
+    setUpdateData((prev) => ({
+      ...prev,
+      district: districtCode,
+      block: "no_change",
+    }));
     setBlockOptions([]);
 
     try {
@@ -222,11 +242,14 @@ export function BulkUpdateModal({
     }
 
     const payload: any = {
-      student_ids: selectedApplicants.map(id => Number(id)),
+      student_ids: selectedApplicants.map((id) => Number(id)),
     };
 
     if (updateData.campusId !== "no_change") {
-      payload.campus_id = updateData.campusId === "unassigned" ? null : Number(updateData.campusId);
+      payload.campus_id =
+        updateData.campusId === "unassigned"
+          ? null
+          : Number(updateData.campusId);
     }
     if (updateData.state !== "no_change") {
       payload.state = updateData.state;
@@ -256,11 +279,14 @@ export function BulkUpdateModal({
       await bulkUpdateStudents(payload);
 
       // If final decision fields are present, update them separately
-      if (updateData.finalNotes || updateData.offerLetterStatus !== "no_change" || 
-          updateData.onboardedStatus !== "no_change" || updateData.joiningDate) {
-        
+      if (
+        updateData.finalNotes ||
+        updateData.offerLetterStatus !== "no_change" ||
+        updateData.onboardedStatus !== "no_change" ||
+        updateData.joiningDate
+      ) {
         // Update final decision for each student
-        const finalDecisionPromises = selectedApplicants.map(studentId => {
+        const finalDecisionPromises = selectedApplicants.map((studentId) => {
           const finalDecisionPayload: any = {
             student_id: Number(studentId),
           };
@@ -269,7 +295,8 @@ export function BulkUpdateModal({
             finalDecisionPayload.final_notes = updateData.finalNotes;
           }
           if (updateData.offerLetterStatus !== "no_change") {
-            finalDecisionPayload.offer_letter_status = updateData.offerLetterStatus;
+            finalDecisionPayload.offer_letter_status =
+              updateData.offerLetterStatus;
           }
           if (updateData.onboardedStatus !== "no_change") {
             finalDecisionPayload.onboarded_status = updateData.onboardedStatus;
@@ -334,13 +361,16 @@ export function BulkUpdateModal({
           {/* Info Banner */}
           <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
             <p className="text-sm text-blue-800">
-              Update selected fields for {selectedApplicants.length} applicant(s). Fields set to "No change" will remain unchanged.
+              Update selected fields for {selectedApplicants.length}{" "}
+              applicant(s). Fields set to "No change" will remain unchanged.
             </p>
           </div>
 
           {/* Campus Assignment Section */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Campus Assignment</h3>
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">
+              Campus Assignment
+            </h3>
             <div>
               <Label>Campus</Label>
               <Select
@@ -367,7 +397,9 @@ export function BulkUpdateModal({
 
           {/* Location Details Section */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Location Details</h3>
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">
+              Location Details
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>State</Label>
@@ -394,7 +426,10 @@ export function BulkUpdateModal({
                 <Select
                   value={updateData.district}
                   onValueChange={(val) => handleDistrictChange(val)}
-                  disabled={updateData.state === "no_change" || districtOptions.length === 0}
+                  disabled={
+                    updateData.state === "no_change" ||
+                    districtOptions.length === 0
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select district" />
@@ -417,7 +452,10 @@ export function BulkUpdateModal({
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, block: val }))
                   }
-                  disabled={updateData.district === "no_change" || blockOptions.length === 0}
+                  disabled={
+                    updateData.district === "no_change" ||
+                    blockOptions.length === 0
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select block" />
@@ -437,7 +475,9 @@ export function BulkUpdateModal({
 
           {/* Personal Information Section */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Personal Information</h3>
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">
+              Personal Information
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Caste</Label>
@@ -509,14 +549,19 @@ export function BulkUpdateModal({
 
           {/* Onboarding Status Section */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Onboarding Status</h3>
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">
+              Onboarding Status
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Offer Letter Status</Label>
                 <Select
                   value={updateData.offerLetterStatus}
                   onValueChange={(val) =>
-                    setUpdateData((prev) => ({ ...prev, offerLetterStatus: val }))
+                    setUpdateData((prev) => ({
+                      ...prev,
+                      offerLetterStatus: val,
+                    }))
                   }
                 >
                   <SelectTrigger>
@@ -525,8 +570,12 @@ export function BulkUpdateModal({
                   <SelectContent>
                     <SelectItem value="no_change">No change</SelectItem>
                     <SelectItem value="Offer Pending">Offer Pending</SelectItem>
-                    <SelectItem value="Offer Accepted">Offer Accepted</SelectItem>
-                    <SelectItem value="Offer Declined">Offer Declined</SelectItem>
+                    <SelectItem value="Offer Accepted">
+                      Offer Accepted
+                    </SelectItem>
+                    <SelectItem value="Offer Declined">
+                      Offer Declined
+                    </SelectItem>
                     <SelectItem value="Waitlisted">Waitlisted</SelectItem>
                   </SelectContent>
                 </Select>
@@ -557,7 +606,10 @@ export function BulkUpdateModal({
                 type="date"
                 value={updateData.joiningDate}
                 onChange={(e) =>
-                  setUpdateData((prev) => ({ ...prev, joiningDate: e.target.value }))
+                  setUpdateData((prev) => ({
+                    ...prev,
+                    joiningDate: e.target.value,
+                  }))
                 }
               />
             </div>
@@ -567,7 +619,10 @@ export function BulkUpdateModal({
               <Textarea
                 value={updateData.finalNotes}
                 onChange={(e) =>
-                  setUpdateData((prev) => ({ ...prev, finalNotes: e.target.value }))
+                  setUpdateData((prev) => ({
+                    ...prev,
+                    finalNotes: e.target.value,
+                  }))
                 }
                 rows={3}
                 placeholder="Add any additional notes (optional)"
@@ -580,10 +635,7 @@ export function BulkUpdateModal({
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button
-              onClick={handleBulkUpdate}
-              disabled={loading}
-            >
+            <Button onClick={handleBulkUpdate} disabled={loading}>
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />

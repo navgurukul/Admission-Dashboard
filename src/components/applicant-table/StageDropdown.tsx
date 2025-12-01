@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 export const STAGE_OPTIONS = [
   { value: "screening", label: "Screening" },
-//   { value: "sourcing", label: "Sourcing" },
+  //   { value: "sourcing", label: "Sourcing" },
 ];
 
 export const STAGE_STATUS_MAP: Record<string, string[]> = {

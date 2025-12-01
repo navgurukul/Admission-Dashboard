@@ -1,12 +1,11 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Clock, Award } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Clock, Award } from "lucide-react";
 
 interface QuestionPreviewProps {
   question: any;
@@ -15,7 +14,7 @@ interface QuestionPreviewProps {
 export function QuestionPreview({ question }: QuestionPreviewProps) {
   const renderQuestionContent = () => {
     switch (question.question_type) {
-      case 'multiple_choice':
+      case "multiple_choice":
         return (
           <div className="space-y-3">
             <RadioGroup>
@@ -31,45 +30,47 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
           </div>
         );
 
-      case 'true_false':
+      case "true_false":
         return (
           <RadioGroup>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="true" id="true" />
-              <Label htmlFor="true" className="font-normal">True</Label>
+              <Label htmlFor="true" className="font-normal">
+                True
+              </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="false" id="false" />
-              <Label htmlFor="false" className="font-normal">False</Label>
+              <Label htmlFor="false" className="font-normal">
+                False
+              </Label>
             </div>
           </RadioGroup>
         );
 
-      case 'short_answer':
-        return (
-          <Input placeholder="Enter your answer..." disabled />
-        );
+      case "short_answer":
+        return <Input placeholder="Enter your answer..." disabled />;
 
-      case 'long_answer':
+      case "long_answer":
         return (
-          <Textarea 
-            placeholder="Enter your detailed answer..." 
-            rows={4} 
-            disabled 
+          <Textarea
+            placeholder="Enter your detailed answer..."
+            rows={4}
+            disabled
           />
         );
 
-      case 'coding':
+      case "coding":
         return (
-          <Textarea 
-            placeholder="Write your code here..." 
-            rows={8} 
-            className="font-mono text-sm" 
-            disabled 
+          <Textarea
+            placeholder="Write your code here..."
+            rows={8}
+            className="font-mono text-sm"
+            disabled
           />
         );
 
-      case 'fill_in_blank':
+      case "fill_in_blank":
         return (
           <div className="space-y-2">
             <div dangerouslySetInnerHTML={{ __html: question.question_text }} />
@@ -86,10 +87,14 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "easy":
+        return "bg-green-100 text-green-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "hard":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -102,13 +107,11 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
             {question.difficulty_level}
           </Badge>
           <Badge variant="outline">
-            {question.question_type.replace('_', ' ')}
+            {question.question_type.replace("_", " ")}
           </Badge>
-          <Badge variant="outline">
-            {question.language}
-          </Badge>
+          <Badge variant="outline">{question.language}</Badge>
         </div>
-        
+
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {question.time_limit_seconds && (
             <div className="flex items-center gap-1">
@@ -130,9 +133,11 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Question Text */}
-          {question.question_type !== 'fill_in_blank' && (
+          {question.question_type !== "fill_in_blank" && (
             <div className="prose prose-sm max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: question.question_text }} />
+              <div
+                dangerouslySetInnerHTML={{ __html: question.question_text }}
+              />
             </div>
           )}
 
@@ -143,7 +148,7 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
           {question.tags && question.tags.length > 0 && (
             <div className="pt-4 border-t">
               <div className="flex flex-wrap gap-2">
-                {question.tags.map(tag => (
+                {question.tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="text-xs">
                     {tag}
                   </Badge>
@@ -158,7 +163,9 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
       {question.explanation && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-green-700">Explanation</CardTitle>
+            <CardTitle className="text-lg text-green-700">
+              Explanation
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="prose prose-sm max-w-none text-green-800">
@@ -171,19 +178,29 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
       {/* Correct Answer (Admin View Only) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg text-blue-700">Correct Answer</CardTitle>
+          <CardTitle className="text-lg text-blue-700">
+            Correct Answer
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="bg-blue-50 p-3 rounded-lg">
-            {question.question_type === 'multiple_choice' && question.options && (
-              <div>
-                {question.options.find(opt => opt.id === question.correct_answer)?.text || 'No correct answer set'}
-              </div>
+            {question.question_type === "multiple_choice" &&
+              question.options && (
+                <div>
+                  {question.options.find(
+                    (opt) => opt.id === question.correct_answer,
+                  )?.text || "No correct answer set"}
+                </div>
+              )}
+            {question.question_type === "true_false" && (
+              <div>{question.correct_answer === "true" ? "True" : "False"}</div>
             )}
-            {question.question_type === 'true_false' && (
-              <div>{question.correct_answer === 'true' ? 'True' : 'False'}</div>
-            )}
-            {['short_answer', 'long_answer', 'coding', 'fill_in_blank'].includes(question.question_type) && (
+            {[
+              "short_answer",
+              "long_answer",
+              "coding",
+              "fill_in_blank",
+            ].includes(question.question_type) && (
               <div className="whitespace-pre-wrap font-mono text-sm">
                 {question.correct_answer}
               </div>

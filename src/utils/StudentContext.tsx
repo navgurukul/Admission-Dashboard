@@ -20,7 +20,9 @@ const StudentContext = createContext<StudentContextType>({
   setStudent: () => {},
 });
 
-export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const StudentProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [student, setStudent] = useState<Student | null>(null);
 
   useEffect(() => {

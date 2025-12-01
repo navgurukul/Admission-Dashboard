@@ -1,9 +1,13 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -18,11 +22,11 @@ interface ApplicantCommentsModalProps {
   onClose: () => void;
 }
 
-export const ApplicantCommentsModal = ({ 
-  applicantId, 
-  applicantName, 
-  isOpen, 
-  onClose 
+export const ApplicantCommentsModal = ({
+  applicantId,
+  applicantName,
+  isOpen,
+  onClose,
 }: ApplicantCommentsModalProps) => {
   const [newComment, setNewComment] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -35,7 +39,7 @@ export const ApplicantCommentsModal = ({
       if (googleUser) {
         setCurrentUser({
           id: googleUser.id,
-          name: googleUser.name || googleUser.email || 'Unknown User'
+          name: googleUser.name || googleUser.email || "Unknown User",
         });
       }
     };
@@ -43,52 +47,48 @@ export const ApplicantCommentsModal = ({
   }, [googleUser]);
 
   const { data: comments, refetch } = useQuery({
-    queryKey: ['applicant-comments', applicantId],
+    queryKey: ["applicant-comments", applicantId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('applicant_comments')
-        .select('*')
-        .eq('applicant_id', applicantId)
-        .order('created_at', { ascending: false });
-      
+        .from("applicant_comments")
+        .select("*")
+        .eq("applicant_id", applicantId)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data;
     },
-    enabled: isOpen
+    enabled: isOpen,
   });
 
   const addCommentMutation = useMutation({
     mutationFn: async (commentText: string) => {
-      if (!currentUser) throw new Error('User not authenticated');
-      
-      const { error } = await supabase
-        .from('applicant_comments')
-        .insert({
-          applicant_id: applicantId,
-          user_id: currentUser.id,
-          user_name: currentUser.name,
-          comment_text: commentText
-        });
-      
+      if (!currentUser) throw new Error("User not authenticated");
+
+      const { error } = await supabase.from("applicant_comments").insert({
+        applicant_id: applicantId,
+        user_id: currentUser.id,
+        user_name: currentUser.name,
+        comment_text: commentText,
+      });
+
       if (error) throw error;
 
       // Add to system logs
-      await supabase
-        .from('system_logs')
-        .insert({
-          user_id: currentUser.id,
-          user_name: currentUser.name,
-          action_type: 'comment_added',
-          entity_type: 'applicant',
-          entity_id: applicantId,
-          description: `Added comment to applicant ${applicantName}`,
-          metadata: { comment_text: commentText }
-        });
+      await supabase.from("system_logs").insert({
+        user_id: currentUser.id,
+        user_name: currentUser.name,
+        action_type: "comment_added",
+        entity_type: "applicant",
+        entity_id: applicantId,
+        description: `Added comment to applicant ${applicantName}`,
+        metadata: { comment_text: commentText },
+      });
     },
     onSuccess: () => {
       toast({
         title: "Comment Added",
-        description: "Your comment has been successfully added"
+        description: "Your comment has been successfully added",
       });
       setNewComment("");
       refetch();
@@ -97,38 +97,36 @@ export const ApplicantCommentsModal = ({
       toast({
         title: "Error",
         description: "Failed to add comment",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
       const { error } = await supabase
-        .from('applicant_comments')
+        .from("applicant_comments")
         .delete()
-        .eq('id', commentId);
-      
+        .eq("id", commentId);
+
       if (error) throw error;
 
       // Add to system logs
       if (currentUser) {
-        await supabase
-          .from('system_logs')
-          .insert({
-            user_id: currentUser.id,
-            user_name: currentUser.name,
-            action_type: 'comment_deleted',
-            entity_type: 'applicant',
-            entity_id: applicantId,
-            description: `Deleted comment from applicant ${applicantName}`
-          });
+        await supabase.from("system_logs").insert({
+          user_id: currentUser.id,
+          user_name: currentUser.name,
+          action_type: "comment_deleted",
+          entity_type: "applicant",
+          entity_id: applicantId,
+          description: `Deleted comment from applicant ${applicantName}`,
+        });
       }
     },
     onSuccess: () => {
       toast({
         title: "Comment Deleted",
-        description: "Comment has been successfully deleted"
+        description: "Comment has been successfully deleted",
       });
       refetch();
     },
@@ -136,9 +134,9 @@ export const ApplicantCommentsModal = ({
       toast({
         title: "Error",
         description: "Failed to delete comment",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const handleAddComment = () => {
@@ -156,7 +154,7 @@ export const ApplicantCommentsModal = ({
             Comments for {applicantName}
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="flex-1 overflow-auto space-y-4">
           {comments?.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
@@ -174,7 +172,9 @@ export const ApplicantCommentsModal = ({
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium">{comment.user_name}</p>
+                        <p className="text-sm font-medium">
+                          {comment.user_name}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(comment.created_at).toLocaleString()}
                         </p>
@@ -208,12 +208,12 @@ export const ApplicantCommentsModal = ({
             className="min-h-[80px]"
           />
           <div className="flex justify-end">
-            <Button 
+            <Button
               onClick={handleAddComment}
               disabled={!newComment.trim() || addCommentMutation.isPending}
             >
               <Send className="h-4 w-4 mr-2" />
-              {addCommentMutation.isPending ? 'Adding...' : 'Add Comment'}
+              {addCommentMutation.isPending ? "Adding..." : "Add Comment"}
             </Button>
           </div>
         </div>

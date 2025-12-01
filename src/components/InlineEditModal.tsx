@@ -1,9 +1,20 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Save, X, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,36 +47,41 @@ interface InlineEditModalProps {
 const STAGE_STATUS_OPTIONS = {
   contact: [],
   screening: [
-    { value: 'pending', label: 'Pending' },
-    { value: 'pass', label: 'Pass' },
-    { value: 'fail', label: 'Fail' }
+    { value: "pending", label: "Pending" },
+    { value: "pass", label: "Pass" },
+    { value: "fail", label: "Fail" },
   ],
   interviews: [
-    { value: 'pending', label: 'Pending' },
-    { value: 'booked', label: 'Booked' },
-    { value: 'rescheduled', label: 'Rescheduled' },
-    { value: 'lr_qualified', label: 'LR Qualified' },
-    { value: 'lr_failed', label: 'LR Failed' },
-    { value: 'offer_pending', label: 'Offer Pending' },
-    { value: 'cfr_failed', label: 'CFR Failed' }
+    { value: "pending", label: "Pending" },
+    { value: "booked", label: "Booked" },
+    { value: "rescheduled", label: "Rescheduled" },
+    { value: "lr_qualified", label: "LR Qualified" },
+    { value: "lr_failed", label: "LR Failed" },
+    { value: "offer_pending", label: "Offer Pending" },
+    { value: "cfr_failed", label: "CFR Failed" },
   ],
   decision: [
-    { value: 'offer_pending', label: 'Offer Pending' },
-    { value: 'offer_sent', label: 'Offer Sent' },
-    { value: 'offer_rejected', label: 'Offer Rejected' },
-    { value: 'offer_accepted', label: 'Offer Accepted' }
-  ]
+    { value: "offer_pending", label: "Offer Pending" },
+    { value: "offer_sent", label: "Offer Sent" },
+    { value: "offer_rejected", label: "Offer Rejected" },
+    { value: "offer_accepted", label: "Offer Accepted" },
+  ],
 };
 
-export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: InlineEditModalProps) {
+export function InlineEditModal({
+  applicant,
+  isOpen,
+  onClose,
+  onSuccess,
+}: InlineEditModalProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    mobile_no: '',
-    whatsapp_number: '',
-    city: '',
-    stage: 'contact',
-    status: 'none',
-    campus: 'none'
+    name: "",
+    mobile_no: "",
+    whatsapp_number: "",
+    city: "",
+    stage: "contact",
+    status: "none",
+    campus: "none",
   });
   const [originalData, setOriginalData] = useState(formData);
   const [campusOptions, setCampusOptions] = useState<CampusOption[]>([]);
@@ -77,13 +93,13 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
   useEffect(() => {
     if (applicant && isOpen) {
       const data = {
-        name: applicant.name || '',
-        mobile_no: applicant.mobile_no || '',
-        whatsapp_number: applicant.whatsapp_number || '',
-        city: applicant.city || '',
-        stage: applicant.stage || 'contact',
-        status: applicant.status || 'none',
-        campus: applicant.campus || 'none'
+        name: applicant.name || "",
+        mobile_no: applicant.mobile_no || "",
+        whatsapp_number: applicant.whatsapp_number || "",
+        city: applicant.city || "",
+        stage: applicant.stage || "contact",
+        status: applicant.status || "none",
+        campus: applicant.campus || "none",
       };
       setFormData(data);
       setOriginalData(data);
@@ -104,27 +120,27 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
   const fetchCampusOptions = async () => {
     try {
       const { data, error } = await supabase
-        .from('campus_options')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+        .from("campus_options")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
 
       if (error) throw error;
       setCampusOptions(data || []);
     } catch (error) {
-      console.error('Error fetching campus options:', error);
+      console.error("Error fetching campus options:", error);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleStageChange = (stage: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      stage, 
-      status: stage === 'contact' ? 'none' : 'pending'
+    setFormData((prev) => ({
+      ...prev,
+      stage,
+      status: stage === "contact" ? "none" : "pending",
     }));
   };
 
@@ -134,18 +150,18 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('admission_dashboard')
+        .from("admission_dashboard")
         .update({
           name: formData.name || null,
           mobile_no: formData.mobile_no,
           whatsapp_number: formData.whatsapp_number || null,
           city: formData.city || null,
           stage: formData.stage,
-          status: formData.status === 'none' ? null : formData.status,
-          campus: formData.campus === 'none' ? null : formData.campus,
-          last_updated: new Date().toISOString()
+          status: formData.status === "none" ? null : formData.status,
+          campus: formData.campus === "none" ? null : formData.campus,
+          last_updated: new Date().toISOString(),
         })
-        .eq('id', applicant.id);
+        .eq("id", applicant.id);
 
       if (error) throw error;
 
@@ -165,7 +181,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error updating applicant:', error);
+      console.error("Error updating applicant:", error);
       toast({
         title: "Error",
         description: "Failed to update applicant",
@@ -181,18 +197,18 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
 
     try {
       const { error } = await supabase
-        .from('admission_dashboard')
+        .from("admission_dashboard")
         .update({
           name: originalData.name || null,
           mobile_no: originalData.mobile_no,
           whatsapp_number: originalData.whatsapp_number || null,
           city: originalData.city || null,
           stage: originalData.stage,
-          status: originalData.status === 'none' ? null : originalData.status,
-          campus: originalData.campus === 'none' ? null : originalData.campus,
-          last_updated: new Date().toISOString()
+          status: originalData.status === "none" ? null : originalData.status,
+          campus: originalData.campus === "none" ? null : originalData.campus,
+          last_updated: new Date().toISOString(),
         })
-        .eq('id', applicant.id);
+        .eq("id", applicant.id);
 
       if (error) throw error;
 
@@ -209,7 +225,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
 
       onSuccess();
     } catch (error) {
-      console.error('Error undoing changes:', error);
+      console.error("Error undoing changes:", error);
       toast({
         title: "Error",
         description: "Failed to undo changes",
@@ -218,14 +234,18 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
     }
   };
 
-  const availableStatuses = STAGE_STATUS_OPTIONS[formData.stage as keyof typeof STAGE_STATUS_OPTIONS] || [];
+  const availableStatuses =
+    STAGE_STATUS_OPTIONS[formData.stage as keyof typeof STAGE_STATUS_OPTIONS] ||
+    [];
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Quick Edit - {applicant?.name || 'Applicant'}</DialogTitle>
+            <DialogTitle>
+              Quick Edit - {applicant?.name || "Applicant"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -234,7 +254,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Enter name"
               />
             </div>
@@ -244,7 +264,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
               <Input
                 id="mobile"
                 value={formData.mobile_no}
-                onChange={(e) => handleInputChange('mobile_no', e.target.value)}
+                onChange={(e) => handleInputChange("mobile_no", e.target.value)}
                 placeholder="Enter mobile number"
                 required
               />
@@ -255,7 +275,9 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
               <Input
                 id="whatsapp"
                 value={formData.whatsapp_number}
-                onChange={(e) => handleInputChange('whatsapp_number', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("whatsapp_number", e.target.value)
+                }
                 placeholder="Enter WhatsApp number"
               />
             </div>
@@ -265,7 +287,7 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
               <Input
                 id="city"
                 value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
+                onChange={(e) => handleInputChange("city", e.target.value)}
                 placeholder="Enter city"
               />
             </div>
@@ -288,12 +310,15 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
             {availableStatuses.length > 0 && (
               <div>
                 <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => handleInputChange("status", value)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableStatuses.map(status => (
+                    {availableStatuses.map((status) => (
                       <SelectItem key={status.value} value={status.value}>
                         {status.label}
                       </SelectItem>
@@ -305,7 +330,10 @@ export function InlineEditModal({ applicant, isOpen, onClose, onSuccess }: Inlin
 
             <div>
               <Label>Campus</Label>
-              <Select value={formData.campus} onValueChange={(value) => handleInputChange('campus', value)}>
+              <Select
+                value={formData.campus}
+                onValueChange={(value) => handleInputChange("campus", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select campus" />
                 </SelectTrigger>

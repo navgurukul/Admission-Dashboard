@@ -21,7 +21,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 
 // 🔹 API methods from api.ts
-import { getAllSchools, createSchool, updateSchool, deleteSchool } from "@/utils/api";
+import {
+  getAllSchools,
+  createSchool,
+  updateSchool,
+  deleteSchool,
+} from "@/utils/api";
 
 interface School {
   id: number;
@@ -44,51 +49,57 @@ const SchoolPage = () => {
   const [updatedSchoolName, setUpdatedSchoolName] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
-
-
   const formatErrorMessage = (error: Error): string => {
     const errorMessage = error.message.toLowerCase();
-    
+
     // Duplicate value errors
-    if (errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
-      return 'This school name already exists. Please use a different name.';
+    if (
+      errorMessage.includes("duplicate") ||
+      errorMessage.includes("already exists")
+    ) {
+      return "This school name already exists. Please use a different name.";
     }
-    
+
     // Server errors (500)
-    if (errorMessage.includes('500') || errorMessage.includes('internal server error')) {
-      return 'Server is temporarily unavailable. Please try again later.';
+    if (
+      errorMessage.includes("500") ||
+      errorMessage.includes("internal server error")
+    ) {
+      return "Server is temporarily unavailable. Please try again later.";
     }
-    
+
     // Network errors
-    if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-      return 'Network error. Please check your connection and try again.';
+    if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+      return "Network error. Please check your connection and try again.";
     }
-    
-    return 'An error occurred. Please try again.';
+
+    return "An error occurred. Please try again.";
   };
 
   // Fetch schools
   useEffect(() => {
-  const fetchSchools = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getAllSchools();
-      setSchools(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchSchools = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAllSchools();
+        setSchools(data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchSchools();
-}, []);
+    fetchSchools();
+  }, []);
 
   //  Filter & pagination
- const filteredSchools = schools.filter(
-  (school) => (school.school_name || "").toLowerCase().includes(search.toLowerCase())
-);
+  const filteredSchools = schools.filter((school) =>
+    (school.school_name || "").toLowerCase().includes(search.toLowerCase()),
+  );
 
   const totalPages = Math.ceil(filteredSchools.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -107,14 +118,16 @@ const SchoolPage = () => {
   const handleAddSchool = async (e: React.FormEvent) => {
     e.preventDefault();
 
-     const isDuplicate = schools.some(
-      school => school.school_name.toLowerCase() === newSchool.toLowerCase().trim()
+    const isDuplicate = schools.some(
+      (school) =>
+        school.school_name.toLowerCase() === newSchool.toLowerCase().trim(),
     );
-    
+
     if (isDuplicate) {
       toast({
         title: "Duplicate School",
-        description: "This school name already exists. Please use a different name.",
+        description:
+          "This school name already exists. Please use a different name.",
         variant: "destructive",
       });
       return;
@@ -128,7 +141,7 @@ const SchoolPage = () => {
         // created_at: new Date().toISOString(),
       };
 
-      setSchools((prev) => [...prev,newSchoolData]);
+      setSchools((prev) => [...prev, newSchoolData]);
       setNewSchool("");
       setAddDialog(false);
 
@@ -148,11 +161,10 @@ const SchoolPage = () => {
 
   //  Update School
   const handleUpdateSchool = async (id: number, updatedName: string) => {
-        
-      try {
-      await updateSchool(id,updatedName);
+    try {
+      await updateSchool(id, updatedName);
       setSchools((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, school_name: updatedName } : s))
+        prev.map((s) => (s.id === id ? { ...s, school_name: updatedName } : s)),
       );
 
       toast({
@@ -160,7 +172,7 @@ const SchoolPage = () => {
         description: `School "${updatedName}" updated successfully.`,
       });
     } catch (error) {
-      const errorMessage = formatErrorMessage(error as Error)
+      const errorMessage = formatErrorMessage(error as Error);
       toast({
         title: "Error updating school",
         description: errorMessage,
@@ -180,7 +192,7 @@ const SchoolPage = () => {
         description: `School ${school_name} has been deleted.`,
       });
     } catch (error) {
-     const errorMessage = formatErrorMessage(error as Error);
+      const errorMessage = formatErrorMessage(error as Error);
       toast({
         title: "Error deleting school",
         description: errorMessage,
@@ -247,9 +259,11 @@ const SchoolPage = () => {
                       ) : (
                         currentItems.map((school, index) => (
                           <TableRow key={school.id}>
-                            <TableCell>{indexOfFirstItem + index + 1}</TableCell>
+                            <TableCell>
+                              {indexOfFirstItem + index + 1}
+                            </TableCell>
                             <TableCell className="font-medium text-orange-600">
-                              {school.school_name|| "N/A"}
+                              {school.school_name || "N/A"}
                             </TableCell>
                             <TableCell className="text-right space-x-2">
                               <Button
@@ -325,7 +339,9 @@ const SchoolPage = () => {
             onSubmit={handleAddSchool}
             className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200"
           >
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">Add School</h2>
+            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+              Add School
+            </h2>
             <input
               type="text"
               placeholder="Enter school name"
@@ -357,7 +373,9 @@ const SchoolPage = () => {
       {editDialog && selectedSchool && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200">
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">Update School</h2>
+            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+              Update School
+            </h2>
             <input
               type="text"
               placeholder="Enter school name"
@@ -397,7 +415,9 @@ const SchoolPage = () => {
       {deleteDialog && selectedSchool && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-red-200">
-            <h2 className="text-lg font-semibold text-red-600 mb-4">Confirm Deletion</h2>
+            <h2 className="text-lg font-semibold text-red-600 mb-4">
+              Confirm Deletion
+            </h2>
             <p>
               Are you sure you want to delete{" "}
               <strong>{selectedSchool.school_name}</strong>?
@@ -415,7 +435,10 @@ const SchoolPage = () => {
               <button
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
                 onClick={() => {
-                  handleDeleteSchool(selectedSchool.id, selectedSchool.school_name);
+                  handleDeleteSchool(
+                    selectedSchool.id,
+                    selectedSchool.school_name,
+                  );
                   setDeleteDialog(false);
                   setSelectedSchool(null);
                 }}

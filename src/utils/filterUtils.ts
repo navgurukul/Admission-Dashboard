@@ -1,13 +1,12 @@
-import { 
-  getAllStates, 
-  getDistrictsByState, 
-  getCampusesApi, 
-  getAllSchools, 
-  getAllReligions, 
+import {
+  getAllStates,
+  getDistrictsByState,
+  getCampusesApi,
+  getAllSchools,
+  getAllReligions,
   getAllQualification,
   Qualification,
-  getAllStatuses
-
+  getAllStatuses,
 } from "./api";
 
 // Types for filter data
@@ -63,7 +62,7 @@ export const getStatesList = async (): Promise<State[]> => {
 
   try {
     const response = await getAllStates();
-    
+
     // Handle different response formats
     let statesData: any[] = [];
     if (Array.isArray(response)) {
@@ -89,14 +88,16 @@ export const getStatesList = async (): Promise<State[]> => {
 };
 
 // Get districts by state with caching
-export const getDistrictsList = async (stateCode: string): Promise<District[]> => {
+export const getDistrictsList = async (
+  stateCode: string,
+): Promise<District[]> => {
   if (cache.districts.has(stateCode)) {
     return cache.districts.get(stateCode)!;
   }
 
   try {
     const response = await getDistrictsByState(stateCode);
-    
+
     let districtsData: any[] = [];
     if (Array.isArray(response)) {
       districtsData = response;
@@ -178,13 +179,13 @@ export const getQualificationsList = async (): Promise<Qualification[]> => {
   try {
     const qualifications = await getAllQualification();
     cache.qualifications = qualifications;
-    return qualifications;            
+    return qualifications;
   } catch (error) {
     // console.error("Error fetching qualifications:", error);
     return [];
   }
 };
-   
+
 // Get statuses with caching
 export const getStatusesList = async (): Promise<CurrentStatus[]> => {
   if (cache.statuses) {
@@ -202,51 +203,55 @@ export const getStatusesList = async (): Promise<CurrentStatus[]> => {
 };
 
 // Extract unique values from students data
-export const extractUniqueValues = (students: any[], fieldName: string, fallbackFields: string[] = []): string[] => {
+export const extractUniqueValues = (
+  students: any[],
+  fieldName: string,
+  fallbackFields: string[] = [],
+): string[] => {
   if (!students || students.length === 0) return [];
-  
+
   const allFields = [fieldName, ...fallbackFields];
   const values = new Set<string>();
-  
+
   students.forEach((student) => {
-    if (!student || typeof student !== 'object') return;
-    
+    if (!student || typeof student !== "object") return;
+
     for (const field of allFields) {
       const value = student[field];
-      if (value && typeof value === 'string' && value.trim() !== '') {
+      if (value && typeof value === "string" && value.trim() !== "") {
         values.add(value.trim());
         break;
       }
     }
   });
-  
+
   return Array.from(values).sort();
 };
 
 // Extract partners from students
 export const getPartnersFromStudents = (students: any[]): string[] => {
-  return extractUniqueValues(students, 'partner', [
-    'partner_name', 
-    'partnerName',
-    'partner_organization'
+  return extractUniqueValues(students, "partner", [
+    "partner_name",
+    "partnerName",
+    "partner_organization",
   ]);
 };
 
 // Extract districts/cities from students
 export const getDistrictsFromStudents = (students: any[]): string[] => {
-  return extractUniqueValues(students, 'district', [
-    'city', 
-    'district_name', 
-    'city_name',
-    'location'
+  return extractUniqueValues(students, "district", [
+    "city",
+    "district_name",
+    "city_name",
+    "location",
   ]);
 };
 
 // Extract states from students
 export const getStatesFromStudents = (students: any[]): string[] => {
-  return extractUniqueValues(students, 'state', [
-    'state_name',
-    'current_state'
+  return extractUniqueValues(students, "state", [
+    "state_name",
+    "current_state",
   ]);
 };
 

@@ -1,6 +1,18 @@
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Users, Handshake, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -22,7 +34,7 @@ const students = [
     kitneDinLaenge: "",
     qualification: "Class 10th",
     partnerName: "Akanksha Foundation",
-    campus: ""
+    campus: "",
   },
   {
     id: 2,
@@ -39,7 +51,7 @@ const students = [
     kitneDinLaenge: "",
     qualification: "Graduate",
     partnerName: "jojopulli@gmail",
-    campus: ""
+    campus: "",
   },
   {
     id: 3,
@@ -56,7 +68,7 @@ const students = [
     kitneDinLaenge: "",
     qualification: "Graduate",
     partnerName: "katha",
-    campus: ""
+    campus: "",
   },
   {
     id: 4,
@@ -73,8 +85,8 @@ const students = [
     kitneDinLaenge: "",
     qualification: "Class 12th",
     partnerName: "United way of Hyderabad",
-    campus: ""
-  }
+    campus: "",
+  },
 ];
 
 const donors = [
@@ -86,7 +98,7 @@ const donors = [
   { id: 6, name: "LTI" },
   { id: 7, name: "DxC ( EIT)" },
   { id: 8, name: "ACL" },
-  { id: 9, name: "Macquarie" }
+  { id: 9, name: "Macquarie" },
 ];
 
 // Sample options for dropdowns
@@ -103,14 +115,16 @@ const campusOptions = [
 ];
 
 const genderOptions = [
-  { value: '', label: 'Select...' },
-  { value: 'Male', label: 'Male' },
-  { value: 'Female', label: 'Female' },
-  { value: 'Other', label: 'Other' },
+  { value: "", label: "Select..." },
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+  { value: "Other", label: "Other" },
 ];
 
 // Calculate unique partners from students array
-const uniquePartners = Array.from(new Set(students.map(s => s.partnerName).filter(Boolean)));
+const uniquePartners = Array.from(
+  new Set(students.map((s) => s.partnerName).filter(Boolean)),
+);
 
 const Donor = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,10 +133,11 @@ const Donor = () => {
   // For dropdowns, you might want to manage state per row in a real app
 
   // Filter students by name, email, or partner name
-  const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.partnerName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredStudents = students.filter(
+    (s) =>
+      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.partnerName.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -133,8 +148,12 @@ const Donor = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
           <div className="bg-card rounded-xl p-6 shadow-soft border border-border flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Total Students</p>
-              <p className="text-2xl font-bold text-foreground">{students.length}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">
+                Total Students
+              </p>
+              <p className="text-2xl font-bold text-foreground">
+                {students.length}
+              </p>
             </div>
             <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
               <Users className="w-6 h-6 text-primary" />
@@ -142,8 +161,12 @@ const Donor = () => {
           </div>
           <div className="bg-card rounded-xl p-6 shadow-soft border border-border flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Total Donors</p>
-              <p className="text-2xl font-bold text-foreground">{donors.length}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">
+                Total Donors
+              </p>
+              <p className="text-2xl font-bold text-foreground">
+                {donors.length}
+              </p>
             </div>
             <div className="w-12 h-12 bg-status-prospect/10 rounded-lg flex items-center justify-center">
               <Handshake className="w-6 h-6 text-status-prospect" />
@@ -151,8 +174,12 @@ const Donor = () => {
           </div>
           <div className="bg-card rounded-xl p-6 shadow-soft border border-border flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Unique Partners</p>
-              <p className="text-2xl font-bold text-foreground">{uniquePartners.length}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">
+                Unique Partners
+              </p>
+              <p className="text-2xl font-bold text-foreground">
+                {uniquePartners.length}
+              </p>
             </div>
             <div className="w-12 h-12 bg-status-active/10 rounded-lg flex items-center justify-center">
               <Users className="w-6 h-6 text-status-active" />
@@ -168,50 +195,61 @@ const Donor = () => {
               <Input
                 placeholder="Search by name, email, or partner..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-10"
               />
             </div>
-            <Button variant="outline" size="sm" className="h-10 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 flex items-center gap-2"
+            >
               <Filter className="w-4 h-4" />
               Filter
             </Button>
           </div>
-         <Dialog open={donorDialogOpen} onOpenChange={setDonorDialogOpen}>
-           <DialogTrigger asChild>
-             <Button variant="outline" className="px-6 py-2 rounded font-semibold">Donor List</Button>
-           </DialogTrigger>
-           <DialogContent>
-             <DialogTitle>Donors Name</DialogTitle>
-             <Table>
-               <TableHeader>
-                 <TableRow>
-                   <TableHead className="w-16">S.No</TableHead>
-                   <TableHead>Name</TableHead>
-                 </TableRow>
-               </TableHeader>
-               <TableBody>
-                 {donors.map((donor, idx) => (
-                   <TableRow key={donor.id}>
-                     <TableCell>{idx + 1}</TableCell>
-                     <TableCell>
-                       <button
-                         className="text-red-600 font-medium hover:underline focus:outline-none"
-                         onClick={() => {
-                           setSelectedDonor(donor.name);
-                           setDonorDialogOpen(false);
-                         }}
-                       >
-                         {donor.name}
-                       </button>
-                     </TableCell>
-                   </TableRow>
-                 ))}
-               </TableBody>
-             </Table>
-             <div className="text-xs text-muted-foreground mt-2 text-right">Rows per page: 10 &nbsp; 1-{donors.length} of {donors.length}</div>
-           </DialogContent>
-         </Dialog>
+          <Dialog open={donorDialogOpen} onOpenChange={setDonorDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="px-6 py-2 rounded font-semibold"
+              >
+                Donor List
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogTitle>Donors Name</DialogTitle>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">S.No</TableHead>
+                    <TableHead>Name</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {donors.map((donor, idx) => (
+                    <TableRow key={donor.id}>
+                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell>
+                        <button
+                          className="text-red-600 font-medium hover:underline focus:outline-none"
+                          onClick={() => {
+                            setSelectedDonor(donor.name);
+                            setDonorDialogOpen(false);
+                          }}
+                        >
+                          {donor.name}
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="text-xs text-muted-foreground mt-2 text-right">
+                Rows per page: 10 &nbsp; 1-{donors.length} of {donors.length}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         {/* Student Data Table - dashboard style */}
         <div className="bg-card rounded-xl shadow-soft border border-border overflow-x-auto">
@@ -236,23 +274,38 @@ const Donor = () => {
             </TableHeader>
             <TableBody>
               {filteredStudents.map((s, idx) => (
-                <TableRow key={s.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+                <TableRow
+                  key={s.id}
+                  className="border-b border-border hover:bg-muted/20 transition-colors"
+                >
                   <TableCell className="p-4">{s.name}</TableCell>
                   <TableCell className="p-4">{s.number}</TableCell>
                   <TableCell className="p-4">{s.altNumber}</TableCell>
                   <TableCell className="p-4">{s.email}</TableCell>
                   <TableCell className="p-4">
                     <select className="border rounded px-2 py-1 text-sm w-full">
-                      {genderOptions.map(opt => (
-                        <option key={opt.value} value={opt.value} selected={s.gender === opt.value}>{opt.label}</option>
+                      {genderOptions.map((opt) => (
+                        <option
+                          key={opt.value}
+                          value={opt.value}
+                          selected={s.gender === opt.value}
+                        >
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </TableCell>
                   <TableCell className="p-4">{s.joinedDate}</TableCell>
                   <TableCell className="p-4">
                     <select className="border rounded px-2 py-1 text-sm w-full">
-                      {stageOptions.map(opt => (
-                        <option key={opt.value} value={opt.value} selected={s.stage === opt.value}>{opt.label}</option>
+                      {stageOptions.map((opt) => (
+                        <option
+                          key={opt.value}
+                          value={opt.value}
+                          selected={s.stage === opt.value}
+                        >
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </TableCell>
@@ -264,8 +317,14 @@ const Donor = () => {
                   <TableCell className="p-4">{s.partnerName}</TableCell>
                   <TableCell className="p-4">
                     <select className="border rounded px-2 py-1 text-sm w-full">
-                      {campusOptions.map(opt => (
-                        <option key={opt.value} value={opt.value} selected={s.campus === opt.value}>{opt.label}</option>
+                      {campusOptions.map((opt) => (
+                        <option
+                          key={opt.value}
+                          value={opt.value}
+                          selected={s.campus === opt.value}
+                        >
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </TableCell>
@@ -273,11 +332,14 @@ const Donor = () => {
               ))}
             </TableBody>
           </Table>
-          <div className="text-xs text-muted-foreground mt-2 text-right p-4">Rows per page: 10 &nbsp; 1-{filteredStudents.length} of {filteredStudents.length}</div>
+          <div className="text-xs text-muted-foreground mt-2 text-right p-4">
+            Rows per page: 10 &nbsp; 1-{filteredStudents.length} of{" "}
+            {filteredStudents.length}
+          </div>
         </div>
       </main>
     </div>
   );
 };
 
-export default Donor; 
+export default Donor;

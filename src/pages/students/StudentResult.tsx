@@ -39,7 +39,7 @@ type TestRow = {
 export default function StudentResult() {
   const [student, setStudent] = useState<Student | null>(null);
   const [completeData, setCompleteData] = useState<CompleteStudentData | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [states, setStates] = useState<any[]>([]);
@@ -133,7 +133,7 @@ export default function StudentResult() {
               examSessions.sort(
                 (a: any, b: any) =>
                   new Date(a.created_at).getTime() -
-                  new Date(b.created_at).getTime()
+                  new Date(b.created_at).getTime(),
               );
 
               // Push each screening test attempt
@@ -162,7 +162,7 @@ export default function StudentResult() {
 
             // Check if any screening test was passed
             const hasPassedScreening = examSessions.some(
-              (exam: any) => exam.is_passed
+              (exam: any) => exam.status && String(exam.status).toLowerCase().includes("pass"),
             );
 
             // Helper function to get booked slots from localStorage
@@ -174,7 +174,7 @@ export default function StudentResult() {
                 if (key && key.startsWith("bookedSlot_")) {
                   try {
                     const slotData = JSON.parse(
-                      localStorage.getItem(key) || "{}"
+                      localStorage.getItem(key) || "{}",
                     );
                     // Check if it's the correct type based on topic_name
                     if (
@@ -205,7 +205,7 @@ export default function StudentResult() {
             lrRounds.sort(
               (a: any, b: any) =>
                 new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime()
+                new Date(b.created_at).getTime(),
             );
 
             // Push LR rounds - rows are ONLY created from interview_learner_round
@@ -221,15 +221,17 @@ export default function StudentResult() {
               // Sort schedules by creation date to match with attempt number
               const sortedLrSchedules = [...lrSchedules].sort(
                 (a: any, b: any) =>
-                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                  new Date(a.created_at).getTime() -
+                  new Date(b.created_at).getTime(),
               );
-              
+
               // Get the schedule for this attempt (index)
               const matchingSchedule = sortedLrSchedules[index];
 
               // Find matching localStorage slot for time/details
               const matchingLocalSlot = lrLocalSlots.find(
-                (ls: any) => ls.scheduled_interview_id === matchingSchedule?.schedule_id
+                (ls: any) =>
+                  ls.scheduled_interview_id === matchingSchedule?.schedule_id,
               );
 
               // Determine scheduled time from schedule or localStorage
@@ -242,7 +244,7 @@ export default function StudentResult() {
                   lrAttemptStatus === "Pending"
                     ? normalizeBooking(
                         matchingSchedule.slot_details?.status ||
-                          matchingSchedule.status
+                          matchingSchedule.status,
                       )
                     : "Completed";
                 // console.log(`LR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
@@ -279,15 +281,15 @@ export default function StudentResult() {
                   lrAttemptStatus === "Pass" || lrAttemptStatus === "Fail"
                     ? "Completed"
                     : hasTimePassed
-                    ? "Completed"
-                    : "slot-book",
+                      ? "Completed"
+                      : "slot-book",
                 slotBooking: {
                   status:
                     lrAttemptStatus === "Pass" || lrAttemptStatus === "Fail"
                       ? "Completed"
                       : hasTimePassed
-                      ? "Completed"
-                      : slotStatus,
+                        ? "Completed"
+                        : slotStatus,
                   scheduledTime: scheduledTime,
                 },
               });
@@ -326,8 +328,8 @@ export default function StudentResult() {
                   slotStatus = hasTimePassed
                     ? "Completed"
                     : bookedSlotInfo.is_cancelled
-                    ? "Cancelled"
-                    : "Booked";
+                      ? "Cancelled"
+                      : "Booked";
                 } else {
                   // API schedule slot
                   scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
@@ -337,7 +339,7 @@ export default function StudentResult() {
                     ? "Completed"
                     : normalizeBooking(
                         bookedSlotInfo.slot_details?.status ||
-                          bookedSlotInfo.status
+                          bookedSlotInfo.status,
                       );
                 }
               }
@@ -368,7 +370,7 @@ export default function StudentResult() {
             cfrRounds.sort(
               (a: any, b: any) =>
                 new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime()
+                new Date(b.created_at).getTime(),
             );
 
             // Push CFR rounds - rows are ONLY created from interview_cultural_fit_round
@@ -384,15 +386,17 @@ export default function StudentResult() {
               // Sort schedules by creation date to match with attempt number
               const sortedCfrSchedules = [...cfrSchedules].sort(
                 (a: any, b: any) =>
-                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                  new Date(a.created_at).getTime() -
+                  new Date(b.created_at).getTime(),
               );
-              
+
               // Get the schedule for this attempt (index)
               const matchingSchedule = sortedCfrSchedules[index];
 
               // Find matching localStorage slot for time/details
               const matchingLocalSlot = cfrLocalSlots.find(
-                (ls: any) => ls.scheduled_interview_id === matchingSchedule?.schedule_id
+                (ls: any) =>
+                  ls.scheduled_interview_id === matchingSchedule?.schedule_id,
               );
 
               // Determine scheduled time from schedule or localStorage
@@ -405,7 +409,7 @@ export default function StudentResult() {
                   cfrAttemptStatus === "Pending"
                     ? normalizeBooking(
                         matchingSchedule.slot_details?.status ||
-                          matchingSchedule.status
+                          matchingSchedule.status,
                       )
                     : "Completed";
                 // console.log(`CFR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
@@ -442,15 +446,15 @@ export default function StudentResult() {
                   cfrAttemptStatus === "Pass" || cfrAttemptStatus === "Fail"
                     ? "Completed"
                     : hasTimePassed
-                    ? "Completed"
-                    : "slot-book",
+                      ? "Completed"
+                      : "slot-book",
                 slotBooking: {
                   status:
                     cfrAttemptStatus === "Pass" || cfrAttemptStatus === "Fail"
                       ? "Completed"
                       : hasTimePassed
-                      ? "Completed"
-                      : slotStatus,
+                        ? "Completed"
+                        : slotStatus,
                   scheduledTime: scheduledTime,
                 },
               });
@@ -490,8 +494,8 @@ export default function StudentResult() {
                   slotStatus = hasTimePassed
                     ? "Completed"
                     : bookedSlotInfo.is_cancelled
-                    ? "Cancelled"
-                    : "Booked";
+                      ? "Cancelled"
+                      : "Booked";
                 } else {
                   // API schedule slot
                   scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
@@ -501,7 +505,7 @@ export default function StudentResult() {
                     ? "Completed"
                     : normalizeBooking(
                         bookedSlotInfo.slot_details?.status ||
-                          bookedSlotInfo.status
+                          bookedSlotInfo.status,
                       );
                 }
               }
@@ -658,7 +662,7 @@ export default function StudentResult() {
             .sort(
               (a: any, b: any) =>
                 new Date(b.created_at).getTime() -
-                new Date(a.created_at).getTime()
+                new Date(a.created_at).getTime(),
             )[0]
             ?.offer_letter_status?.toLowerCase() === "offer sent" && (
             <OfferLetterCard student={completeData.data.student} />
@@ -694,7 +698,7 @@ export default function StudentResult() {
                       let hasTimePassed = false;
                       if (test.slotBooking?.scheduledTime) {
                         const scheduledDateTime = new Date(
-                          test.slotBooking.scheduledTime
+                          test.slotBooking.scheduledTime,
                         );
                         const now = new Date();
                         hasTimePassed = scheduledDateTime < now;
@@ -732,8 +736,8 @@ export default function StudentResult() {
                                 test.status === "Pass"
                                   ? "bg-green-100 text-green-700"
                                   : test.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : "bg-red-100 text-red-700"
+                                    ? "bg-yellow-100 text-yellow-700"
+                                    : "bg-red-100 text-red-700"
                               }`}
                             >
                               {test.status}
@@ -742,7 +746,7 @@ export default function StudentResult() {
                           <td className="px-4 py-2 border">
                             {test.slotBooking?.scheduledTime
                               ? new Date(
-                                  test.slotBooking.scheduledTime
+                                  test.slotBooking.scheduledTime,
                                 ).toLocaleString("en-US", {
                                   year: "numeric",
                                   month: "2-digit",

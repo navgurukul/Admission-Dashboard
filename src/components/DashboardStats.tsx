@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import {getStudents,getFilterStudent,getAllStages} from "@/utils/api"
+import { getStudents, getFilterStudent, getAllStages } from "@/utils/api";
 
 interface DashboardMetrics {
   totalApplicants: number;
@@ -32,10 +32,10 @@ export function DashboardStats() {
       // Fetch all stages to get the stage IDs
       const stages = await getAllStages();
       const finalDecisionStage = stages.find(
-        (stage: any) => stage.stage_name === "Final Decision"
+        (stage: any) => stage.stage_name === "Final Decision",
       );
       const onboardedStage = stages.find(
-        (stage: any) => stage.stage_name === "Onboarded"
+        (stage: any) => stage.stage_name === "Onboarded",
       );
       const finalDecisionStageId = finalDecisionStage?.id;
       const onboardedStageId = onboardedStage?.id;
@@ -47,8 +47,8 @@ export function DashboardStats() {
       // Fetch active applications - students at "Final Decision" stage using stage_id
       let activeApplications = 0;
       if (finalDecisionStageId) {
-        const finalDecisionResponse = await getFilterStudent({ 
-          stage_id: finalDecisionStageId 
+        const finalDecisionResponse = await getFilterStudent({
+          stage_id: finalDecisionStageId,
         });
         activeApplications = finalDecisionResponse?.length || 0;
       }
@@ -56,8 +56,8 @@ export function DashboardStats() {
       // Fetch onboarded students - filter by Onboarded stage using stage_id
       let successfullyOnboarded = 0;
       if (onboardedStageId) {
-        const onboardedResponse = await getFilterStudent({ 
-          stage_id: onboardedStageId 
+        const onboardedResponse = await getFilterStudent({
+          stage_id: onboardedStageId,
         });
         successfullyOnboarded = onboardedResponse?.length || 0;
       }

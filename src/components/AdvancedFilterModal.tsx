@@ -15,11 +15,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { CalendarIcon, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { getFilterStudent,getAllStages } from "@/utils/api"
+import { getFilterStudent, getAllStages } from "@/utils/api";
 import {
   getStatesList,
   getDistrictsList,
@@ -32,7 +36,7 @@ import {
   getDistrictsFromStudents,
   getStatesFromStudents,
   State,
-  District
+  District,
 } from "@/utils/filterUtils";
 
 interface FilterState {
@@ -113,67 +117,70 @@ export function AdvancedFilterModal({
   const [isLoading, setIsLoading] = useState({
     states: false,
     districts: false,
-    general: false
+    general: false,
   });
 
   const { toast } = useToast();
-  
+
   // Use ref to track if initial load is done
   const isInitialLoadDone = useRef(false);
   const prevIsOpen = useRef(isOpen);
 
   // State change handler - wrapped in useCallback to prevent recreating on every render
-  const handleStateChange = useCallback(async (selectedState: string, updateFilters = true) => {
-    // console.log(" State Selected:", selectedState);
-    
-    if (updateFilters) {
-      setFilters((prev) => ({
-        ...prev,
-        state: selectedState === "all" ? undefined : selectedState,
-        district: [], // Reset district when state changes
-      }));
-    }
+  const handleStateChange = useCallback(
+    async (selectedState: string, updateFilters = true) => {
+      // console.log(" State Selected:", selectedState);
 
-    if (selectedState === "all") {
-      setAvailableDistricts([]);
-      return;
-    }
-
-    setIsLoading(prev => ({ ...prev, districts: true }));
-
-    try {
-      // Find state code from available states
-      const stateObj = availableStates.find(s => s.name === selectedState);
-      const stateCode = stateObj?.state_code || stateObj?.id;
-
-      let districts: District[] = [];
-      
-      if (stateCode && stateCode !== selectedState) {
-        // Get districts from API using state code
-        districts = await getDistrictsList(stateCode);
-      } else {
-        // Fallback: filter districts from students data
-        const studentDistricts = availableOptions.districts;
-        districts = studentDistricts.map(district => ({
-          id: district,
-          name: district
+      if (updateFilters) {
+        setFilters((prev) => ({
+          ...prev,
+          state: selectedState === "all" ? undefined : selectedState,
+          district: [], // Reset district when state changes
         }));
       }
 
-      // console.log(" Districts loaded:", {
-      //   state: selectedState,
-      //   stateCode,
-      //   districts: districts.length
-      // });
+      if (selectedState === "all") {
+        setAvailableDistricts([]);
+        return;
+      }
 
-      setAvailableDistricts(districts);
-    } catch (error) {
-      // console.error("Error loading districts:", error);
-      setAvailableDistricts([]);
-    } finally {
-      setIsLoading(prev => ({ ...prev, districts: false }));
-    }
-  }, [availableStates, availableOptions.districts]);
+      setIsLoading((prev) => ({ ...prev, districts: true }));
+
+      try {
+        // Find state code from available states
+        const stateObj = availableStates.find((s) => s.name === selectedState);
+        const stateCode = stateObj?.state_code || stateObj?.id;
+
+        let districts: District[] = [];
+
+        if (stateCode && stateCode !== selectedState) {
+          // Get districts from API using state code
+          districts = await getDistrictsList(stateCode);
+        } else {
+          // Fallback: filter districts from students data
+          const studentDistricts = availableOptions.districts;
+          districts = studentDistricts.map((district) => ({
+            id: district,
+            name: district,
+          }));
+        }
+
+        // console.log(" Districts loaded:", {
+        //   state: selectedState,
+        //   stateCode,
+        //   districts: districts.length
+        // });
+
+        setAvailableDistricts(districts);
+      } catch (error) {
+        // console.error("Error loading districts:", error);
+        setAvailableDistricts([]);
+      } finally {
+        setIsLoading((prev) => ({ ...prev, districts: false }));
+      }
+    },
+    [availableStates, availableOptions.districts],
+  );
 
   // Load all filter data when modal opens - optimized to prevent freezing
   useEffect(() => {
@@ -190,15 +197,15 @@ export function AdvancedFilterModal({
       }
 
       prevIsOpen.current = isOpen;
-      
-      setIsLoading(prev => ({ ...prev, general: true }));
+
+      setIsLoading((prev) => ({ ...prev, general: true }));
       setFilters(currentFilters);
 
       try {
         // Load data from APIs in parallel
         const [
           apiStates,
-          apiCampuses, 
+          apiCampuses,
           apiSchools,
           apiReligions,
           apiQualifications,
@@ -211,7 +218,7 @@ export function AdvancedFilterModal({
           getReligionsList(),
           getQualificationsList(),
           getStatusesList(),
-          getAllStages()
+          getAllStages(),
         ]);
 
         // Extract data from students
@@ -221,8 +228,8 @@ export function AdvancedFilterModal({
 
         // Combine API states with states from students
         const allStates = [...apiStates];
-        statesFromStudents.forEach(stateName => {
-          if (!allStates.find(s => s.name === stateName)) {
+        statesFromStudents.forEach((stateName) => {
+          if (!allStates.find((s) => s.name === stateName)) {
             allStates.push({ id: stateName, name: stateName });
           }
         });
@@ -230,9 +237,12 @@ export function AdvancedFilterModal({
         // Use provided lists or API data
         const finalCampuses = campusList.length > 0 ? campusList : apiCampuses;
         const finalSchools = schoolList.length > 0 ? schoolList : apiSchools;
-        const finalReligions = religionList.length > 0 ? religionList : apiReligions;
-        const finalQualifications = qualificationList.length > 0 ? qualificationList : apiQualifications;
-        const finalStatuses = currentstatusList.length > 0 ? currentstatusList : apiStatuses;
+        const finalReligions =
+          religionList.length > 0 ? religionList : apiReligions;
+        const finalQualifications =
+          qualificationList.length > 0 ? qualificationList : apiQualifications;
+        const finalStatuses =
+          currentstatusList.length > 0 ? currentstatusList : apiStatuses;
 
         setAvailableOptions({
           partners: partnersFromStudents,
@@ -242,18 +252,17 @@ export function AdvancedFilterModal({
           qualifications: finalQualifications,
           currentStatuses: finalStatuses,
           campuses: finalCampuses,
-          stages : apiStages,
+          stages: apiStages,
         });
 
         setAvailableStates(allStates);
 
         // Load districts for current state if selected
-        if (currentFilters.state && currentFilters.state !== 'all') {
+        if (currentFilters.state && currentFilters.state !== "all") {
           await handleStateChange(currentFilters.state, false);
         }
 
         isInitialLoadDone.current = true;
-
       } catch (error) {
         // console.error(" Error loading filter data:", error);
         toast({
@@ -262,18 +271,18 @@ export function AdvancedFilterModal({
           variant: "destructive",
         });
       } finally {
-        setIsLoading(prev => ({ ...prev, general: false }));
+        setIsLoading((prev) => ({ ...prev, general: false }));
       }
     };
 
     loadFilterData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen]); // Only depend on isOpen to prevent infinite loops and freezing
 
   const resetFilters = () => {
     setFilters({
       stage: "all",
-      stage_id:undefined,
+      stage_id: undefined,
       status: "all",
       examMode: "all",
       interviewMode: "all",
@@ -347,36 +356,46 @@ export function AdvancedFilterModal({
   //     : [];
 
   // Helper function to get display name
-  const getDisplayName = (item: any, nameKey: string = 'name', fallbackPrefix: string = 'Item') => {
+  const getDisplayName = (
+    item: any,
+    nameKey: string = "name",
+    fallbackPrefix: string = "Item",
+  ) => {
     if (!item) return `${fallbackPrefix}`;
-    if (typeof item === 'string') return item;
-    
+    if (typeof item === "string") return item;
+
     const possibleKeys = [
-      nameKey, 'name', 'title', 'label', 
-      'school_name', 'religion_name', 'current_status_name',
-      'qualification_name',
-      'campus_name', 'district_name'
+      nameKey,
+      "name",
+      "title",
+      "label",
+      "school_name",
+      "religion_name",
+      "current_status_name",
+      "qualification_name",
+      "campus_name",
+      "district_name",
     ];
-    
+
     for (const key of possibleKeys) {
-      if (item[key] && typeof item[key] === 'string') {
+      if (item[key] && typeof item[key] === "string") {
         return item[key];
       }
     }
-    
+
     return item.id ? `${fallbackPrefix} ${item.id}` : `${fallbackPrefix}`;
   };
 
   // Helper function to get value
-  const getValue = (item: any, valueKey: string = 'id') => {
-    if (!item) return '';
-    if (typeof item === 'string') return item;
-    
+  const getValue = (item: any, valueKey: string = "id") => {
+    if (!item) return "";
+    if (typeof item === "string") return item;
+
     if (item[valueKey]) return String(item[valueKey]);
-    if(item.stage_id) return String (item.stage_id);
+    if (item.stage_id) return String(item.stage_id);
     if (item.id) return String(item.id);
     if (item.value) return String(item.value);
-    
+
     return String(item);
   };
 
@@ -387,7 +406,11 @@ export function AdvancedFilterModal({
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Filter className="w-5 h-5" />
             Advanced Filters
-            {isLoading.general && <span className="text-sm text-muted-foreground">(Loading...)</span>}
+            {isLoading.general && (
+              <span className="text-sm text-muted-foreground">
+                (Loading...)
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -400,23 +423,33 @@ export function AdvancedFilterModal({
                 value={filters.stage_id ? String(filters.stage_id) : "all"}
                 onValueChange={(value) => {
                   if (value === "all") {
-                    setFilters((prev) => ({ ...prev, stage: "all", stage_id: undefined, status: "all" }));
+                    setFilters((prev) => ({
+                      ...prev,
+                      stage: "all",
+                      stage_id: undefined,
+                      status: "all",
+                    }));
                     return;
                   }
-                  
+
                   const selectedStage = availableOptions.stages.find(
-                    (s: any) => String(s.stage_id) === String(value) || String(s.id) === String(value)
+                    (s: any) =>
+                      String(s.stage_id) === String(value) ||
+                      String(s.id) === String(value),
                   );
-                                    
+
                   if (selectedStage) {
-                    const stageName = selectedStage.stage_name || selectedStage.name || String(value);
+                    const stageName =
+                      selectedStage.stage_name ||
+                      selectedStage.name ||
+                      String(value);
                     const stageId = selectedStage.stage_id || selectedStage.id;
-                                        
-                    setFilters((prev) => ({ 
-                      ...prev, 
-                      stage: stageName, 
-                      stage_id: Number(stageId), 
-                      status: "all" 
+
+                    setFilters((prev) => ({
+                      ...prev,
+                      stage: stageName,
+                      stage_id: Number(stageId),
+                      status: "all",
                     }));
                   }
                 }}
@@ -431,7 +464,8 @@ export function AdvancedFilterModal({
 
                   {availableOptions.stages.map((stage: any) => {
                     const stageId = stage.stage_id || stage.id;
-                    const stageName = stage.stage_name || stage.name || `Stage ${stageId}`;
+                    const stageName =
+                      stage.stage_name || stage.name || `Stage ${stageId}`;
                     return (
                       <SelectItem key={stageId} value={String(stageId)}>
                         {stageName}
@@ -545,14 +579,22 @@ export function AdvancedFilterModal({
                     district: value === "all" ? [] : [value],
                   }))
                 }
-                disabled={!filters.state || filters.state === 'all' || isLoading.districts}
+                disabled={
+                  !filters.state ||
+                  filters.state === "all" ||
+                  isLoading.districts
+                }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={
-                    !filters.state || filters.state === 'all' 
-                      ? "Select state first" 
-                      : isLoading.districts ? "Loading districts..." : "Select district"
-                  } />
+                  <SelectValue
+                    placeholder={
+                      !filters.state || filters.state === "all"
+                        ? "Select state first"
+                        : isLoading.districts
+                          ? "Loading districts..."
+                          : "Select district"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Districts</SelectItem>
@@ -621,13 +663,17 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select campus"} />
+                  <SelectValue
+                    placeholder={
+                      isLoading.general ? "Loading..." : "Select campus"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Campuses</SelectItem>
                   {availableOptions.campuses.map((campus) => (
                     <SelectItem key={getValue(campus)} value={getValue(campus)}>
-                      {getDisplayName(campus, 'campus_name', 'Campus')}
+                      {getDisplayName(campus, "campus_name", "Campus")}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -653,13 +699,17 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select school"} />
+                  <SelectValue
+                    placeholder={
+                      isLoading.general ? "Loading..." : "Select school"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Schools</SelectItem>
                   {availableOptions.schools.map((school) => (
                     <SelectItem key={getValue(school)} value={getValue(school)}>
-                      {getDisplayName(school, 'school_name', 'School')}
+                      {getDisplayName(school, "school_name", "School")}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -671,9 +721,7 @@ export function AdvancedFilterModal({
 
             {/* Qualification */}
             <div>
-              <h3 className="font-semibold text-sm mb-2">
-                Qualification
-              </h3>
+              <h3 className="font-semibold text-sm mb-2">Qualification</h3>
               <Select
                 value={filters.qualification?.[0] || "all"}
                 onValueChange={(value) =>
@@ -684,19 +732,31 @@ export function AdvancedFilterModal({
                 }
                 disabled={isLoading.general}
               >
-                <SelectTrigger className={`w-full ${!filters.qualification?.length || filters.qualification[0] === 'all' ? 'border-red-300' : ''}`}>
-                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select qualification"} />
+                <SelectTrigger
+                  className={`w-full ${!filters.qualification?.length || filters.qualification[0] === "all" ? "border-red-300" : ""}`}
+                >
+                  <SelectValue
+                    placeholder={
+                      isLoading.general ? "Loading..." : "Select qualification"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Qualifications</SelectItem>
                   {availableOptions.qualifications.map((qualification) => (
-                    <SelectItem key={getValue(qualification)} value={getValue(qualification)}>
-                      {getDisplayName(qualification, 'qualification_name', 'Qualification')}
+                    <SelectItem
+                      key={getValue(qualification)}
+                      value={getValue(qualification)}
+                    >
+                      {getDisplayName(
+                        qualification,
+                        "qualification_name",
+                        "Qualification",
+                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-             
             </div>
 
             {/* Current Status */}
@@ -713,13 +773,17 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select status"} />
+                  <SelectValue
+                    placeholder={
+                      isLoading.general ? "Loading..." : "Select status"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Statuses</SelectItem>
                   {availableOptions.currentStatuses.map((status) => (
                     <SelectItem key={getValue(status)} value={getValue(status)}>
-                      {getDisplayName(status, 'current_status_name', 'Status')}
+                      {getDisplayName(status, "current_status_name", "Status")}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -742,7 +806,11 @@ export function AdvancedFilterModal({
                   onClick={() => {
                     setFilters((prev) => ({
                       ...prev,
-                      dateRange: { ...prev.dateRange, from: undefined, to: undefined },
+                      dateRange: {
+                        ...prev.dateRange,
+                        from: undefined,
+                        to: undefined,
+                      },
                     }));
                   }}
                   className="h-7 text-xs"
@@ -758,7 +826,7 @@ export function AdvancedFilterModal({
                 <Select
                   value={filters.dateRange.type}
                   onValueChange={(
-                    value: "applicant" | "lastUpdate" | "interview"
+                    value: "applicant" | "lastUpdate" | "interview",
                   ) =>
                     setFilters((prev) => ({
                       ...prev,
@@ -770,7 +838,9 @@ export function AdvancedFilterModal({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    <SelectItem value="applicant">Applicant Creation Date</SelectItem>
+                    <SelectItem value="applicant">
+                      Applicant Creation Date
+                    </SelectItem>
                     {/* <SelectItem value="lastUpdate">Last Update</SelectItem>
                     <SelectItem value="interview">Interview Date</SelectItem> */}
                   </SelectContent>
@@ -786,9 +856,9 @@ export function AdvancedFilterModal({
                 </Label>
                 <Popover modal={true}>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className={`w-full justify-start ${filters.dateRange.from && !filters.dateRange.to ? 'border-red-300' : ''}`}
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start ${filters.dateRange.from && !filters.dateRange.to ? "border-red-300" : ""}`}
                     >
                       <CalendarIcon className="mr-2 h-3 w-3" />
                       {filters.dateRange.from
@@ -803,11 +873,11 @@ export function AdvancedFilterModal({
                       onSelect={(date) => {
                         setFilters((prev) => ({
                           ...prev,
-                          dateRange: { 
-                            ...prev.dateRange, 
+                          dateRange: {
+                            ...prev.dateRange,
                             from: date,
                             // Auto-set end date to same as start date by default
-                            to: date 
+                            to: date,
                           },
                         }));
                       }}
@@ -816,7 +886,9 @@ export function AdvancedFilterModal({
                   </PopoverContent>
                 </Popover>
                 {filters.dateRange.from && !filters.dateRange.to && (
-                  <p className="text-xs text-red-500 mt-1">Please select end date</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    Please select end date
+                  </p>
                 )}
               </div>
 
@@ -829,16 +901,16 @@ export function AdvancedFilterModal({
                 </Label>
                 <Popover modal={true}>
                   <PopoverTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className={`w-full justify-start ${filters.dateRange.to && !filters.dateRange.from ? 'border-red-300' : ''}`}
+                    <Button
+                      variant="outline"
+                      className={`w-full justify-start ${filters.dateRange.to && !filters.dateRange.from ? "border-red-300" : ""}`}
                       disabled={!filters.dateRange.from}
                     >
                       <CalendarIcon className="mr-2 h-3 w-3" />
                       {filters.dateRange.to
                         ? format(filters.dateRange.to, "PP")
-                        : filters.dateRange.from 
-                          ? "Pick end date" 
+                        : filters.dateRange.from
+                          ? "Pick end date"
                           : "Select start first"}
                     </Button>
                   </PopoverTrigger>
@@ -853,17 +925,23 @@ export function AdvancedFilterModal({
                         }));
                       }}
                       disabled={(date) =>
-                        filters.dateRange.from ? date <= filters.dateRange.from : true
+                        filters.dateRange.from
+                          ? date <= filters.dateRange.from
+                          : true
                       }
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
                 {!filters.dateRange.from && (
-                  <p className="text-xs text-muted-foreground mt-1">Select start date first</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select start date first
+                  </p>
                 )}
                 {filters.dateRange.to && !filters.dateRange.from && (
-                  <p className="text-xs text-red-500 mt-1">Please select start date</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    Please select start date
+                  </p>
                 )}
               </div>
             </div>
@@ -872,11 +950,21 @@ export function AdvancedFilterModal({
 
         {/* Bottom actions */}
         <div className="flex justify-between pt-4 border-t mt-4">
-          <Button variant="outline" onClick={resetFilters} size="sm" disabled={isLoading.general}>
+          <Button
+            variant="outline"
+            onClick={resetFilters}
+            size="sm"
+            disabled={isLoading.general}
+          >
             Reset All
           </Button>
           <div className="space-x-2">
-            <Button variant="outline" onClick={onClose} size="sm" disabled={isLoading.general}>
+            <Button
+              variant="outline"
+              onClick={onClose}
+              size="sm"
+              disabled={isLoading.general}
+            >
               Cancel
             </Button>
             <Button

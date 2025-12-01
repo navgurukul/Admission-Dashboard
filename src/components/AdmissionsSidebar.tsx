@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { navigation } from "@/components/ui/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getUserProfileImage, getCurrentUser, logoutUser } from '@/utils/api';
+import { getUserProfileImage, getCurrentUser, logoutUser } from "@/utils/api";
 
 export function AdmissionsSidebar() {
   const { user: googleUser, signOut: googleSignOut } = useGoogleAuth();
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
-    const location = useLocation();
-    
+  const location = useLocation();
+
   // Get profile image and user from helper functions
   const profileImage = getUserProfileImage();
   const currentUser = getCurrentUser();
@@ -23,24 +23,16 @@ export function AdmissionsSidebar() {
 
   const getInitials = (email: string) =>
     email.split("@")[0].slice(0, 2).toUpperCase();
-  
+
   const getUserDisplayName = () =>
-    currentUser?.name ||
-    googleUser?.name ||
-    userInfo?.name ||
-    "User";
-  
+    currentUser?.name || googleUser?.name || userInfo?.name || "User";
+
   const getUserEmail = () =>
-    currentUser?.email ||
-    googleUser?.email || 
-    userInfo?.email || 
-    "No email";
-  
+    currentUser?.email || googleUser?.email || userInfo?.email || "No email";
+
   const getUserAvatar = () =>
-    profileImage ||
-    googleUser?.avatar || 
-    userInfo?.avatar;
-  
+    profileImage || googleUser?.avatar || userInfo?.avatar;
+
   const roleId = currentUser?.user_role_id || googleUser?.role_id || 2;
 
   const handleLogout = async () => {
@@ -57,10 +49,12 @@ export function AdmissionsSidebar() {
       window.location.href = "/students/login";
     }
   };
-   // Check if current path is interview related
+  // Check if current path is interview related
   const isInterviewActive = (href: string) => {
     if (href === "/interviews") {
-      return location.pathname === "/interviews" || location.pathname === "/schedule";
+      return (
+        location.pathname === "/interviews" || location.pathname === "/schedule"
+      );
     }
     return location.pathname === href;
   };
@@ -90,7 +84,7 @@ export function AdmissionsSidebar() {
         className={cn(
           "fixed top-0 left-0 h-full w-64 bg-gradient-sidebar z-50 flex flex-col border-r border-sidebar-medium transition-transform duration-300 ease-in-out",
           "md:translate-x-0 md:rounded-none md:shadow-none",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         {/* Close Button - Mobile */}
@@ -113,23 +107,24 @@ export function AdmissionsSidebar() {
                 className="w-16 h-16 rounded-full object-cover border-2 border-white/20"
                 onError={(e) => {
                   // Fallback to initials if image fails to load
-                  e.currentTarget.style.display = 'none';
-                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = 'flex';
+                  e.currentTarget.style.display = "none";
+                  const fallback = e.currentTarget
+                    .nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "flex";
                 }}
               />
             ) : null}
-            
+
             {/* Fallback Avatar with Initials */}
-            <div 
+            <div
               className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center"
-              style={{ display: getUserAvatar() ? 'none' : 'flex' }}
+              style={{ display: getUserAvatar() ? "none" : "flex" }}
             >
               <span className="text-white text-xl font-semibold">
                 {getUserEmail() ? getInitials(getUserEmail()) : "U"}
               </span>
             </div>
-            
+
             <div>
               <h3 className="text-lg font-semibold text-sidebar-text">
                 {getUserDisplayName()}
@@ -152,7 +147,7 @@ export function AdmissionsSidebar() {
                     "block p-2 rounded",
                     isInterviewActive(item.href)
                       ? "bg-gray-600 text-white"
-                      : "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-300 hover:bg-gray-700",
                   )
                 }
                 onClick={(event) => {
