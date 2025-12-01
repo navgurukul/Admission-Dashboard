@@ -162,7 +162,7 @@ export default function StudentResult() {
 
             // Check if any screening test was passed
             const hasPassedScreening = examSessions.some(
-              (exam: any) => exam.is_passed,
+              (exam: any) => exam.status && String(exam.status).toLowerCase().includes("pass"),
             );
 
             // Helper function to get booked slots from localStorage
