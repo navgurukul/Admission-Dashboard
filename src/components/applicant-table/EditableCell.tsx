@@ -127,7 +127,9 @@ export function EditableCell({
       await updateStudent(applicant.id, payload);
       toast({ title: "Success", description: "Field updated successfully" });
       setEditingCell(null);
-      onUpdate && onUpdate(payload[field]); // Pass updated value
+      if (onUpdate) {
+        onUpdate(payload[field]); // Pass updated value
+      }
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
@@ -174,7 +176,9 @@ export function EditableCell({
       await updateStudent(applicant.id, payload);
       toast({ title: "Success", description: "Field updated successfully" });
       setCellValue(payload[field]);
-      onUpdate && onUpdate(payload[field]); // Pass updated value
+      if (onUpdate) {
+        onUpdate(payload[field]); // Pass updated value
+      }
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({

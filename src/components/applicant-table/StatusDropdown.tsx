@@ -36,21 +36,10 @@ export const STAGE_DEFAULT_STATUS = {
 
 const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const { toast } = useToast();
-
-  // Guard: if applicant not ready, render nothing
-  if (!applicant) {
-    return (
-      <Select disabled>
-        <SelectTrigger className="w-full h-8 text-xs bg-gray-100 border border-gray-300">
-          <SelectValue placeholder="Loading status..." />
-        </SelectTrigger>
-      </Select>
-    );
-  }
-
-  const currentStage = applicant.stage || "screening";
+  const currentStage = applicant?.stage || "screening";
 
   const currentStatus = useMemo(() => {
+    if (!applicant) return "";
     if (currentStage === "screening" && applicant.exam_sessions?.[0]) {
       return (
         applicant.exam_sessions[0].status || STAGE_DEFAULT_STATUS["screening"]
@@ -67,6 +56,17 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
       STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || []
     );
   }, [currentStage]);
+
+  // Guard: if applicant not ready, render nothing
+  if (!applicant) {
+    return (
+      <Select disabled>
+        <SelectTrigger className="w-full h-8 text-xs bg-gray-100 border border-gray-300">
+          <SelectValue placeholder="Loading status..." />
+        </SelectTrigger>
+      </Select>
+    );
+  }
 
   const handleStatusChange = async (newStatus: string) => {
     try {

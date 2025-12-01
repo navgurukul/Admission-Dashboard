@@ -71,30 +71,25 @@ export const initClient = (): Promise<boolean> => {
 
 // Initialize the token client for OAuth
 const initTokenClient = () => {
-  try {
-    const google = (window as any).google;
-    if (!google) {
-      throw new Error("Google Identity Services not loaded");
-    }
-
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (response: any) => {
-        if (response.error) {
-          // console.error("Token client error:", response);
-          throw new Error(response.error);
-        }
-        accessToken = response.access_token;
-        // console.log("Access token received successfully");
-      },
-    });
-
-    // console.log("Token client initialized successfully");
-  } catch (error) {
-    // console.error("Error initializing token client:", error);
-    throw error;
+  const google = (window as any).google;
+  if (!google) {
+    throw new Error("Google Identity Services not loaded");
   }
+
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (response: any) => {
+      if (response.error) {
+        // console.error("Token client error:", response);
+        throw new Error(response.error);
+      }
+      accessToken = response.access_token;
+      // console.log("Access token received successfully");
+    },
+  });
+
+  // console.log("Token client initialized successfully");
 };
 
 // Request access token (triggers sign-in popup)

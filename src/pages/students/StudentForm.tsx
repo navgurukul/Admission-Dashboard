@@ -293,7 +293,7 @@ const StudentForm: React.FC = () => {
       }
     };
     fetchReligions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [location.state?.googleEmail]);
 
   const handleInputChange = (

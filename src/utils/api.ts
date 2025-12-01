@@ -1569,23 +1569,19 @@ export const deleteCampusApi = async (id: number) => {
 
 //  Create School
 export const createSchool = async (schoolName: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/schools/createSchool`, {
-      method: "POST",
-      headers: getAuthHeaders(),
+  const response = await fetch(`${BASE_URL}/schools/createSchool`, {
+    method: "POST",
+    headers: getAuthHeaders(),
 
-      body: JSON.stringify({ school_name: schoolName }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to create school: ${response.status} ${response.statusText} - ${errorText}`,
-      );
-    }
-    return await response.json();
-  } catch (error) {
-    throw error;
+    body: JSON.stringify({ school_name: schoolName }),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to create school: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
+  return await response.json();
 };
 
 interface School {
@@ -1639,115 +1635,86 @@ export const getAllSchools = async (): Promise<School[]> => {
 
 //  Update School
 export const updateSchool = async (id: number, updatedName: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/schools/updateSchool/${id}`, {
-      method: "PUT",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ school_name: updatedName }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to update school: ${response.status} ${response.statusText} - ${errorText}`,
-      );
-    }
-    return await response.json();
-  } catch (error) {
-    throw error;
+  const response = await fetch(`${BASE_URL}/schools/updateSchool/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ school_name: updatedName }),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to update school: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
+  return await response.json();
 };
 
 //  Delete School
 export const deleteSchool = async (id: number) => {
-  try {
-    const response = await fetch(`${BASE_URL}/schools/deleteSchool/${id}`, {
-      method: "DELETE",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(id),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to delete school: ${response.status} ${response.statusText} - ${errorText}`,
-      );
-    }
-    return await response.json();
-  } catch (error) {
-    // console.error("Error deleting school:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/schools/deleteSchool/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(id),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Failed to delete school: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
+  return await response.json();
 };
 
 // state and district api
 export const getAllStates = async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/states/getAll`, {
-      method: "GET",
-    });
-    if (!response.ok) throw new Error(`Failed to fetch states`);
-    return await response.json();
-  } catch (error) {
-    // console.error("Error fetching states:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/states/getAll`, {
+    method: "GET",
+  });
+  if (!response.ok) throw new Error(`Failed to fetch states`);
+  return await response.json();
 };
 
 //  Get districts by state_code
 export const getDistrictsByState = async (stateCode: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/states/getByState/${stateCode}`, {
-      method: "GET",
-    });
-    if (!response.ok)
-      throw new Error(`Failed to fetch districts for ${stateCode}`);
-    return await response.json();
-  } catch (error) {
-    // console.error("Error fetching districts:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/states/getByState/${stateCode}`, {
+    method: "GET",
+  });
+  if (!response.ok)
+    throw new Error(`Failed to fetch districts for ${stateCode}`);
+  return await response.json();
 };
 
 //  Get blocks by district_code
 export const getBlocksByDistrict = async (districtCode: string) => {
-  try {
-    const response = await fetch(
-      `${BASE_URL}/districts/getByDistrict/${districtCode}`,
-      {
-        method: "GET",
-      },
-    );
-    if (!response.ok)
-      throw new Error(`Failed to fetch blocks for ${districtCode}`);
-    return await response.json();
-  } catch (error) {
-    // console.error("Error fetching blocks:", error);
-    throw error;
-  }
+  const response = await fetch(
+    `${BASE_URL}/districts/getByDistrict/${districtCode}`,
+    {
+      method: "GET",
+    },
+  );
+  if (!response.ok)
+    throw new Error(`Failed to fetch blocks for ${districtCode}`);
+  return await response.json();
 };
 
 // Get all stages
 export const getStagesApi = async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/stages/getStages`, {
-      method: "GET",
-    });
+  const response = await fetch(`${BASE_URL}/stages/getStages`, {
+    method: "GET",
+  });
 
-    if (!response.ok) throw new Error("Failed to fetch stages");
-    const data = await response.json();
+  if (!response.ok) throw new Error("Failed to fetch stages");
+  const data = await response.json();
 
-    // Handle possible nested response formats
-    if (data?.data && Array.isArray(data.data)) {
-      return data.data;
-    } else if (Array.isArray(data)) {
-      return data;
-    } else if (data?.stages && Array.isArray(data.stages)) {
-      return data.stages;
-    } else {
-      return [];
-    }
-  } catch (error) {
-    console.error("Error fetching stages:", error);
-    throw error;
+  // Handle possible nested response formats
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else if (data?.stages && Array.isArray(data.stages)) {
+    return data.stages;
+  } else {
+    return [];
   }
 };
 
@@ -2023,18 +1990,14 @@ export const uploadProfileImage = async (
 };
 
 export const sendBulkOfferLetters = async (studentIds: number[]) => {
-  try {
-    const response = await fetch(`${BASE_URL}/students/sendBulkOfferLetters`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ student_ids: studentIds }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to send offer letters");
-    }
-    return data;
-  } catch (error) {
-    throw error;
+  const response = await fetch(`${BASE_URL}/students/sendBulkOfferLetters`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ student_ids: studentIds }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to send offer letters");
   }
+  return data;
 };

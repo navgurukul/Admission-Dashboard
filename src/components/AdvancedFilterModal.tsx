@@ -276,7 +276,7 @@ export function AdvancedFilterModal({
     };
 
     loadFilterData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen]); // Only depend on isOpen to prevent infinite loops and freezing
 
   const resetFilters = () => {

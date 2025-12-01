@@ -191,7 +191,7 @@ const SlotBooking: React.FC = () => {
       // Clear new slot selection when date changes during reschedule
       setNewSlot({ from: "", to: "", id: null, is_cancelled: true });
     }
-    // eslint-disable-next-line
+     
   }, [selectedDate]);
 
   // ---------- Google Calendar Integration ----------
@@ -707,7 +707,7 @@ const SlotBooking: React.FC = () => {
     window.addEventListener("storage", loadSlotFromLocalStorage);
     return () =>
       window.removeEventListener("storage", loadSlotFromLocalStorage);
-    // eslint-disable-next-line
+     
   }, [testId]);
 
   // ---------- Conditions ----------

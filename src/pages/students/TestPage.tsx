@@ -208,7 +208,6 @@ const TestPage: React.FC = () => {
   };
 
   if (timeLeft === null || questions.length === 0) {
-    yg;
     return (
       <div className="text-center mt-10 text-lg font-semibold">
         Loading test...
