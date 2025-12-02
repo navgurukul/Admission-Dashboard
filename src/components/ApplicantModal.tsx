@@ -597,6 +597,44 @@ export function ApplicantModal({
       throw new Error("screening update API not available");
     });
 
+  const isStageDisabled = (applicant: any, stage: string) => {
+    // Get status from exam_sessions for screening (more reliable)
+    const screeningStatus = applicant?.exam_sessions?.[0]?.status || "";
+    const learningStatus =
+      applicant?.interview_learner_round?.[0]?.learning_round_status || "";
+    const cfrStatus =
+      applicant?.interview_cultural_fit_round?.[0]?.cultural_fit_status || "";
+
+    // Check if screening passed
+    // "Created Student Without Exam" should also be considered as passed
+    const screeningPassed =
+      screeningStatus.toLowerCase().includes("pass") ||
+      screeningStatus === "Created Student Without Exam";
+
+    // Check if learning round passed
+    const learningPassed = learningStatus.toLowerCase().includes("pass");
+
+    // Check if CFR passed
+    const cfrPassed = cfrStatus.toLowerCase().includes("pass");
+
+    if (stage === "LR") {
+      // Learning Round is disabled if Screening did NOT pass
+      return !screeningPassed;
+    }
+
+    if (stage === "CFR") {
+      // CFR is disabled if Screening did NOT pass OR Learning Round did NOT pass
+      return !screeningPassed || !learningPassed;
+    }
+
+    if (stage === "OFFER") {
+      // Offer Letter is disabled if any of the stages did NOT pass
+      return !screeningPassed || !learningPassed || !cfrPassed;
+    }
+
+    return false;
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -842,6 +880,7 @@ export function ApplicantModal({
                       name: "learning_round_status",
                       label: "Status *",
                       type: "select",
+                      disabled: isStageDisabled(currentApplicant, "LR"),
                       options: [
                         {
                           value: "Learner Round Pass",
@@ -855,11 +894,18 @@ export function ApplicantModal({
                         { value: "No Show", label: "No Show" },
                       ],
                     },
-                    { name: "comments", label: "Comments *", type: "text" },
+                    {
+                      name: "comments",
+                      label: "Comments *",
+                      type: "text",
+                      disabled: isStageDisabled(currentApplicant, "LR"),
+                    },
                   ]}
                   submitApi={API_MAP.learning.submit}
                   updateApi={API_MAP.learning.update}
                   onSave={handleUpdate}
+                  disabled={isStageDisabled(currentApplicant, "LR")}
+                  disabledReason=" Student need to pass Screening Round"
                 />
               </div>
               <div className="col-span-full w-full">
@@ -874,6 +920,7 @@ export function ApplicantModal({
                       name: "cultural_fit_status",
                       label: "Status *",
                       type: "select",
+                      disabled: isStageDisabled(currentApplicant, "CFR"),
                       options: [
                         {
                           value: "Cultural Fit Interview Pass",
@@ -887,11 +934,18 @@ export function ApplicantModal({
                         { value: "No Show", label: "No Show" },
                       ],
                     },
-                    { name: "comments", label: "Comments *", type: "text" },
+                    {
+                      name: "comments",
+                      label: "Comments *",
+                      type: "text",
+                      disabled: isStageDisabled(currentApplicant, "CFR"),
+                    },
                   ]}
                   submitApi={API_MAP.cultural.submit}
                   updateApi={API_MAP.cultural.update}
                   onSave={handleUpdate}
+                  disabled={isStageDisabled(currentApplicant, "CFR")}
+                  disabledReason="Student need to pass Learning Round"
                 />
               </div>
 
@@ -940,6 +994,7 @@ export function ApplicantModal({
                           label: "Selected but not joined",
                         },
                       ]}
+                      disabled={isStageDisabled(currentApplicant, "OFFER")}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "offer_letter_status",
