@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,49 +11,53 @@ interface OfferTemplateListProps {
   onEditTemplate: (templateId: string) => void;
 }
 
-export const OfferTemplateList = ({ onEditTemplate }: OfferTemplateListProps) => {
+export const OfferTemplateList = ({
+  onEditTemplate,
+}: OfferTemplateListProps) => {
   const { toast } = useToast();
 
-  const { data: templates, isLoading, refetch } = useQuery({
-    queryKey: ['offer-templates'],
+  const {
+    data: templates,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["offer-templates"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('offer_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('updated_at', { ascending: false });
-      
+        .from("offer_templates")
+        .select("*")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false });
+
       if (error) throw error;
       return data;
-    }
+    },
   });
 
   const handleDuplicate = async (template: any) => {
     try {
-      const { error } = await supabase
-        .from('offer_templates')
-        .insert({
-          name: `${template.name} (Copy)`,
-          template_type: template.template_type,
-          language: template.language,
-          program_type: template.program_type,
-          html_content: template.html_content,
-          version_number: 1
-        });
+      const { error } = await supabase.from("offer_templates").insert({
+        name: `${template.name} (Copy)`,
+        template_type: template.template_type,
+        language: template.language,
+        program_type: template.program_type,
+        html_content: template.html_content,
+        version_number: 1,
+      });
 
       if (error) throw error;
-      
+
       toast({
         title: "Template duplicated",
-        description: "Template has been successfully duplicated"
+        description: "Template has been successfully duplicated",
       });
-      
+
       refetch();
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to duplicate template",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -62,23 +65,23 @@ export const OfferTemplateList = ({ onEditTemplate }: OfferTemplateListProps) =>
   const handleDelete = async (templateId: string) => {
     try {
       const { error } = await supabase
-        .from('offer_templates')
+        .from("offer_templates")
         .update({ is_active: false })
-        .eq('id', templateId);
+        .eq("id", templateId);
 
       if (error) throw error;
-      
+
       toast({
         title: "Template deleted",
-        description: "Template has been successfully deleted"
+        description: "Template has been successfully deleted",
       });
-      
+
       refetch();
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to delete template",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -103,7 +106,7 @@ export const OfferTemplateList = ({ onEditTemplate }: OfferTemplateListProps) =>
                   <Edit className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="ghost" 
+                  variant="ghost"
                   size="sm"
                   onClick={() => handleDuplicate(template)}
                 >
@@ -123,7 +126,9 @@ export const OfferTemplateList = ({ onEditTemplate }: OfferTemplateListProps) =>
             <div className="space-y-2">
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">{template.template_type}</Badge>
-                <Badge variant="outline">{template.language.toUpperCase()}</Badge>
+                <Badge variant="outline">
+                  {template.language.toUpperCase()}
+                </Badge>
                 {template.program_type && (
                   <Badge>{template.program_type}</Badge>
                 )}

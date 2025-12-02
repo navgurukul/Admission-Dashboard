@@ -55,8 +55,8 @@ const ScreeningResultPage: React.FC = () => {
         prev.map((t) =>
           t.name === "Screening Test"
             ? { ...t, status: status === "pass" ? "Pass" : "Fail", score }
-            : t
-        )
+            : t,
+        ),
       );
 
       // Navigate to final result page with API data

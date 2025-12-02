@@ -63,10 +63,13 @@ export function QuestionPicker({
   };
 
   const difficultyMap = Array.isArray(difficultyLevel)
-    ? difficultyLevel.reduce((acc, d) => {
-        acc[d.id] = d;
-        return acc;
-      }, {} as Record<number, { id: number; name: string; points: number }>)
+    ? difficultyLevel.reduce(
+        (acc, d) => {
+          acc[d.id] = d;
+          return acc;
+        },
+        {} as Record<number, { id: number; name: string; points: number }>,
+      )
     : {};
 
   const getDifficultyColor = (diffId: number) => {
@@ -125,7 +128,7 @@ export function QuestionPicker({
             value={difficultyFilter ?? ""}
             onChange={(e) =>
               setDifficultyFilter(
-                e.target.value ? Number(e.target.value) : null
+                e.target.value ? Number(e.target.value) : null,
               )
             }
             className="border rounded px-2 py-1"
@@ -160,7 +163,7 @@ export function QuestionPicker({
 
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-semibold ${getDifficultyColor(
-                      diff?.id
+                      diff?.id,
                     )}`}
                   >
                     {diff?.name || "Unknown"}

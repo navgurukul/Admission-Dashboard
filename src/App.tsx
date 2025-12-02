@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,7 +30,7 @@ import Caste from "./pages/settings/Caste";
 import Religion from "./pages/settings/Religion";
 import Qualification from "./pages/settings/Qualification";
 // import Questions from "./pages/settings/Questions";
-import StudentRoutes  from "./routes/StudentRoutes";
+import StudentRoutes from "./routes/StudentRoutes";
 import { StudentProvider } from "./utils/StudentContext.tsx";
 import { TestsProvider } from "./utils/TestContext.tsx";
 import Index from "./pages/Index";
@@ -41,49 +40,185 @@ const queryClient = new QueryClient();
 const App = () => (
   <StudentProvider>
     <TestsProvider>
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <Routes>
-          {/* Redirect /auth to /students/login - All users login from same page */}
-          <Route path="/auth" element={<Navigate to="/students/login" replace />} />
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          <Route path="/applicants" element={<ProtectedRoute><AllApplicants /></ProtectedRoute>} />
-          <Route path="/interviews" element={<ProtectedRoute><Interviews /></ProtectedRoute>} />
-          <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-          <Route path="/sourcing" element={<ProtectedRoute><Sourcing /></ProtectedRoute>} />
-          <Route path="/screening" element={<ProtectedRoute><Screening /></ProtectedRoute>} />
-          <Route path="/interview-rounds" element={<ProtectedRoute><InterviewRounds /></ProtectedRoute>} />
-          <Route path="/decisions" element={<ProtectedRoute><FinalDecisions /></ProtectedRoute>} />
-          <Route path="/partners" element={<ProtectedRoute><PartnerPage /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-          <Route path="/owner" element={<ProtectedRoute><OwnerPage /></ProtectedRoute>} />
-          <Route path="/donor" element={<ProtectedRoute><Donor /></ProtectedRoute>} />
-          <Route path="/offer-letters" element={<ProtectedRoute><OfferLetters /></ProtectedRoute>} />
-          <Route path="/campus" element={<ProtectedRoute><Campus /></ProtectedRoute>} />
-          <Route path="/campus/:id" element={<ProtectedRoute><CampusDetail /></ProtectedRoute>} />
-          <Route path="/school" element={<ProtectedRoute><School /></ProtectedRoute>} />
-          <Route path="/school/:id" element={<ProtectedRoute><SchoolStages /></ProtectedRoute>} />
-            <Route path="questions" element={<ProtectedRoute><QuestionRepository /></ProtectedRoute>} />
-          {/* Settings Routes */}
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>}>
-            <Route path="user-role" element={<UserRole />} />
-            <Route path="caste" element={<Caste />} />
-            <Route path="religion" element={<Religion />} />
-            <Route path="qualification" element={<Qualification />} />
-            <Route index element={<UserRole />} />
-          </Route>
-          {/* Custom student redirect route */}
-          <Route path="/students/*" element={<StudentRoutes />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-  </TestsProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AuthProvider>
+            <Routes>
+              {/* Redirect /auth to /students/login - All users login from same page */}
+              <Route
+                path="/auth"
+                element={<Navigate to="/students/login" replace />}
+              />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/applicants"
+                element={
+                  <ProtectedRoute>
+                    <AllApplicants />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interviews"
+                element={
+                  <ProtectedRoute>
+                    <Interviews />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedule"
+                element={
+                  <ProtectedRoute>
+                    <Schedule />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sourcing"
+                element={
+                  <ProtectedRoute>
+                    <Sourcing />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/screening"
+                element={
+                  <ProtectedRoute>
+                    <Screening />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interview-rounds"
+                element={
+                  <ProtectedRoute>
+                    <InterviewRounds />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/decisions"
+                element={
+                  <ProtectedRoute>
+                    <FinalDecisions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners"
+                element={
+                  <ProtectedRoute>
+                    <PartnerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/owner"
+                element={
+                  <ProtectedRoute>
+                    <OwnerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/donor"
+                element={
+                  <ProtectedRoute>
+                    <Donor />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/offer-letters"
+                element={
+                  <ProtectedRoute>
+                    <OfferLetters />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/campus"
+                element={
+                  <ProtectedRoute>
+                    <Campus />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/campus/:id"
+                element={
+                  <ProtectedRoute>
+                    <CampusDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/school"
+                element={
+                  <ProtectedRoute>
+                    <School />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/school/:id"
+                element={
+                  <ProtectedRoute>
+                    <SchoolStages />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="questions"
+                element={
+                  <ProtectedRoute>
+                    <QuestionRepository />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Settings Routes */}
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="user-role" element={<UserRole />} />
+                <Route path="caste" element={<Caste />} />
+                <Route path="religion" element={<Religion />} />
+                <Route path="qualification" element={<Qualification />} />
+                <Route index element={<UserRole />} />
+              </Route>
+              {/* Custom student redirect route */}
+              <Route path="/students/*" element={<StudentRoutes />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </TestsProvider>
   </StudentProvider>
 );
 

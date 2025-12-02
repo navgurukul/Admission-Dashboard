@@ -38,7 +38,7 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ className }) => {
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Logout</span>
-        </button> 
+        </button>
       ) : (
         <div className="bg-white shadow-xl rounded-2xl p-4 border border-gray-100 flex flex-col items-center space-y-3 animate-fade-in">
           <p className="text-gray-700 text-sm font-medium">

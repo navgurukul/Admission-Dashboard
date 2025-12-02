@@ -81,7 +81,9 @@ export function BulkOfferResultsModal({
                       <li key={idx} className="text-muted-foreground">
                         ✓ {student.displayName}
                         {student.email && (
-                          <span className="text-xs ml-2 text-muted-foreground">({student.email})</span>
+                          <span className="text-xs ml-2 text-muted-foreground">
+                            ({student.email})
+                          </span>
                         )}
                       </li>
                     ))}
@@ -101,7 +103,9 @@ export function BulkOfferResultsModal({
                       <li key={idx} className="text-amber-700">
                         • {student.displayName}
                         {student.email && (
-                          <span className="text-xs ml-2">({student.email})</span>
+                          <span className="text-xs ml-2">
+                            ({student.email})
+                          </span>
                         )}
                       </li>
                     ))}
@@ -117,14 +121,18 @@ export function BulkOfferResultsModal({
                     Already Sent ({categorized.alreadySent.length})
                   </h4>
                   <ul className="space-y-1 text-sm">
-                    {categorized.alreadySent.map((student: any, idx: number) => (
-                      <li key={idx} className="text-blue-700">
-                        • {student.displayName}
-                        {student.email && (
-                          <span className="text-xs ml-2">({student.email})</span>
-                        )}
-                      </li>
-                    ))}
+                    {categorized.alreadySent.map(
+                      (student: any, idx: number) => (
+                        <li key={idx} className="text-blue-700">
+                          • {student.displayName}
+                          {student.email && (
+                            <span className="text-xs ml-2">
+                              ({student.email})
+                            </span>
+                          )}
+                        </li>
+                      ),
+                    )}
                   </ul>
                 </div>
               )}
@@ -137,14 +145,18 @@ export function BulkOfferResultsModal({
                     Already Onboarded ({categorized.alreadyOnboarded.length})
                   </h4>
                   <ul className="space-y-1 text-sm">
-                    {categorized.alreadyOnboarded.map((student: any, idx: number) => (
-                      <li key={idx} className="text-purple-700">
-                        • {student.displayName}
-                        {student.email && (
-                          <span className="text-xs ml-2">({student.email})</span>
-                        )}
-                      </li>
-                    ))}
+                    {categorized.alreadyOnboarded.map(
+                      (student: any, idx: number) => (
+                        <li key={idx} className="text-purple-700">
+                          • {student.displayName}
+                          {student.email && (
+                            <span className="text-xs ml-2">
+                              ({student.email})
+                            </span>
+                          )}
+                        </li>
+                      ),
+                    )}
                   </ul>
                 </div>
               )}
@@ -161,7 +173,9 @@ export function BulkOfferResultsModal({
                       <li key={idx} className="text-red-700">
                         • {student.displayName}
                         {student.email && (
-                          <span className="text-xs ml-2">({student.email})</span>
+                          <span className="text-xs ml-2">
+                            ({student.email})
+                          </span>
                         )}
                       </li>
                     ))}
@@ -177,18 +191,22 @@ export function BulkOfferResultsModal({
                     Other Errors ({categorized.otherErrors.length})
                   </h4>
                   <ul className="space-y-2 text-sm">
-                    {categorized.otherErrors.map((student: any, idx: number) => (
-                      <li key={idx} className="text-red-700">
-                        • {student.displayName}
-                        {student.email && (
-                          <span className="text-xs ml-2">({student.email})</span>
-                        )}
-                        <br />
-                        <span className="text-xs text-red-600 ml-3">
-                          {student.errorMessage}
-                        </span>
-                      </li>
-                    ))}
+                    {categorized.otherErrors.map(
+                      (student: any, idx: number) => (
+                        <li key={idx} className="text-red-700">
+                          • {student.displayName}
+                          {student.email && (
+                            <span className="text-xs ml-2">
+                              ({student.email})
+                            </span>
+                          )}
+                          <br />
+                          <span className="text-xs text-red-600 ml-3">
+                            {student.errorMessage}
+                          </span>
+                        </li>
+                      ),
+                    )}
                   </ul>
                 </div>
               )}

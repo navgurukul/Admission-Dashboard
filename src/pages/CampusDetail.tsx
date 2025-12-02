@@ -2,7 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AdmissionsSidebar } from "../components/AdmissionsSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter } from "lucide-react";
@@ -18,7 +25,7 @@ interface FilterState {
   district: string[];
   market: string[];
   dateRange: {
-    type: 'application' | 'lastUpdate' | 'interview';
+    type: "application" | "lastUpdate" | "interview";
     from?: Date;
     to?: Date;
   };
@@ -52,13 +59,15 @@ const CampusDetail = () => {
     partner: [],
     district: [],
     market: [],
-    dateRange: { type: "application" }
+    dateRange: { type: "application" },
   });
+  const [hasActiveFilters, setHasActiveFilters] = useState(false);
+  const [filteredStudentsData, setFilteredStudentsData] = useState<any[]>([]);
 
   // Fetch campus details
   useEffect(() => {
     if (!id) return;
-    
+
     const fetchCampusDetails = async () => {
       try {
         const response = await getCampusById(Number(id));
@@ -76,41 +85,50 @@ const CampusDetail = () => {
   // Fetch students data (used for both overview and student tabs)
   useEffect(() => {
     if (!id) return;
-    
+
+    // Skip if we have active filters - those are handled separately
+    if (hasActiveFilters) return;
+
     setLoading(true);
     setError(null);
-    
+
     const fetchStudents = async () => {
       try {
         const studentsData = await getFilterStudent({ campus_id: Number(id) });
         setStudents(studentsData || []);
-        
+        setFilteredStudentsData([]);
+
         // If on overview tab, calculate school capacities from student data
         if (activeTab === "overview") {
           const schoolMap = new Map<string, number>();
           let notAllottedCount = 0;
-          
+
           studentsData.forEach((student: any) => {
             if (student.school_name) {
-              schoolMap.set(student.school_name, (schoolMap.get(student.school_name) || 0) + 1);
+              schoolMap.set(
+                student.school_name,
+                (schoolMap.get(student.school_name) || 0) + 1,
+              );
             } else {
               notAllottedCount++;
             }
           });
-          
-          const schoolData = Array.from(schoolMap.entries()).map(([name, count]) => ({
-            name: name,
-            capacity: count
-          }));
-          
+
+          const schoolData = Array.from(schoolMap.entries()).map(
+            ([name, count]) => ({
+              name: name,
+              capacity: count,
+            }),
+          );
+
           // Add "Not Allotted Schools" if there are students without school
           if (notAllottedCount > 0) {
             schoolData.push({
               name: "Not Allotted Schools",
-              capacity: notAllottedCount
+              capacity: notAllottedCount,
             });
           }
-          
+
           setPrograms(schoolData);
         }
       } catch (err) {
@@ -124,26 +142,38 @@ const CampusDetail = () => {
     };
 
     fetchStudents();
-  }, [id, activeTab]);
+  }, [id, activeTab, hasActiveFilters]);
 
-  const paginatedStudents = students.slice((studentPage - 1) * rowsPerPage, studentPage * rowsPerPage);
-  const totalStudentPages = Math.ceil(students.length / rowsPerPage);
-  const startIdx = students.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
-  const endIdx = Math.min(studentPage * rowsPerPage, students.length);
+  // Use filtered data if filters are active, otherwise use all students
+  const displayStudents = hasActiveFilters ? filteredStudentsData : students;
+  const paginatedStudents = displayStudents.slice(
+    (studentPage - 1) * rowsPerPage,
+    studentPage * rowsPerPage,
+  );
+  const totalStudentPages = Math.ceil(displayStudents.length / rowsPerPage);
+  const startIdx =
+    displayStudents.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
+  const endIdx = Math.min(studentPage * rowsPerPage, displayStudents.length);
 
   // Filtered students based on search and filters
-  const filteredStudents = paginatedStudents.filter(student => {
+  const filteredStudents = paginatedStudents.filter((student) => {
     const search = searchTerm.toLowerCase();
     const matchesSearch =
-      (student.first_name && student.first_name.toLowerCase().includes(search)) ||
+      (student.first_name &&
+        student.first_name.toLowerCase().includes(search)) ||
       (student.last_name && student.last_name.toLowerCase().includes(search)) ||
       (student.email && student.email.toLowerCase().includes(search)) ||
       (student.phone_number && student.phone_number.includes(search));
-    
+
     let matchesFilters = true;
-    if (filters.stage !== "all" && student.stage_name !== filters.stage) matchesFilters = false;
-    if (filters.status !== "all" && student.current_status_name !== filters.status) matchesFilters = false;
-    
+    if (filters.stage !== "all" && student.stage_name !== filters.stage)
+      matchesFilters = false;
+    if (
+      filters.status !== "all" &&
+      student.current_status_name !== filters.status
+    )
+      matchesFilters = false;
+
     return matchesSearch && matchesFilters;
   });
 
@@ -151,13 +181,17 @@ const CampusDetail = () => {
     <div className="flex min-h-screen bg-gray-50">
       <AdmissionsSidebar />
       <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 md:ml-64">
-        <h2 className="text-3xl font-bold text-center mb-6">{campusName} Campus</h2>
+        <h2 className="text-3xl font-bold text-center mb-6">
+          {campusName} Campus
+        </h2>
         <div className="flex justify-center mb-6 gap-2">
-          {TABS.map(tab => (
+          {TABS.map((tab) => (
             <Button
               key={tab.key}
               variant={activeTab === tab.key ? "default" : "outline"}
-              className={activeTab === tab.key ? "bg-orange-500 text-white" : ""}
+              className={
+                activeTab === tab.key ? "bg-orange-500 text-white" : ""
+              }
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.label}
@@ -171,13 +205,15 @@ const CampusDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {activeTab === "overview" && (
-              loading ? (
+            {activeTab === "overview" &&
+              (loading ? (
                 <p>Loading...</p>
               ) : error ? (
                 <p className="text-red-500">{error}</p>
               ) : programs.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No school data available</p>
+                <p className="text-center text-muted-foreground py-8">
+                  No school data available
+                </p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -197,8 +233,7 @@ const CampusDetail = () => {
                     ))}
                   </TableBody>
                 </Table>
-              )
-            )}
+              ))}
             {activeTab === "student" && (
               <>
                 <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
@@ -207,11 +242,16 @@ const CampusDetail = () => {
                     <Input
                       placeholder="Search by name, email, or mobile..."
                       value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 h-9"
                     />
                   </div>
-                  <Button variant="outline" size="sm" className="h-9" onClick={() => setShowFilterModal(true)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9"
+                    onClick={() => setShowFilterModal(true)}
+                  >
                     <Filter className="w-4 h-4 mr-2" />
                     Filter
                   </Button>
@@ -219,41 +259,168 @@ const CampusDetail = () => {
                 <AdvancedFilterModal
                   isOpen={showFilterModal}
                   onClose={() => setShowFilterModal(false)}
-                  onApplyFilters={f => setFilters(f)}
+                  onApplyFilters={async (f) => {
+                    setFilters(f);
+
+                    // Build API params from filters
+                    const apiParams: any = { campus_id: Number(id) };
+
+                    if (f.partner?.length && f.partner[0] !== "all") {
+                      apiParams.school_id = f.partner[0];
+                    }
+                    if (f.stage_id) {
+                      apiParams.stage_id = f.stage_id;
+                    }
+                    if (
+                      f.qualification?.length &&
+                      f.qualification[0] !== "all"
+                    ) {
+                      apiParams.qualification_id = f.qualification[0];
+                    }
+                    if (f.school?.length && f.school[0] !== "all") {
+                      apiParams.school_id = f.school[0];
+                    }
+                    if (
+                      f.currentStatus?.length &&
+                      f.currentStatus[0] !== "all"
+                    ) {
+                      apiParams.current_status_id = f.currentStatus[0];
+                    }
+                    if (f.state && f.state !== "all") {
+                      apiParams.state = f.state;
+                    }
+                    if (f.district?.length && f.district[0] !== "all") {
+                      apiParams.district = f.district[0];
+                    }
+
+                    // Check if any filters are applied
+                    const hasFilters = Object.keys(apiParams).length > 1; // More than just campus_id
+
+                    if (hasFilters) {
+                      setHasActiveFilters(true);
+                      setLoading(true);
+                      try {
+                        const results = await getFilterStudent(apiParams);
+                        setFilteredStudentsData(results || []);
+                      } catch (error) {
+                        console.error(
+                          "Error fetching filtered students:",
+                          error,
+                        );
+                        setError("Failed to fetch filtered students");
+                      } finally {
+                        setLoading(false);
+                      }
+                    } else {
+                      setHasActiveFilters(false);
+                      setFilteredStudentsData([]);
+                    }
+
+                    setStudentPage(1);
+                  }}
                   currentFilters={filters}
+                  students={students}
                 />
                 {loading ? (
                   <p>Loading students...</p>
                 ) : error ? (
                   <p className="text-red-500">{error}</p>
                 ) : filteredStudents.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No students found</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    No students found
+                  </p>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredStudents.map((student, idx) => (
-                        <div key={student.id} className="bg-card rounded-xl p-6 shadow-soft border border-border">
+                        <div
+                          key={student.id}
+                          className="bg-card rounded-xl p-6 shadow-soft border border-border"
+                        >
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <p className="text-lg font-bold text-foreground mb-1">
-                                {`${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() || "No Name"}
+                                {`${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() ||
+                                  "No Name"}
                               </p>
-                              <p className="text-xs text-muted-foreground">{student.email || "No email"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {student.email || "No email"}
+                              </p>
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <div><span className="font-medium text-muted-foreground">Number:</span> {student.phone_number || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">WhatsApp:</span> {student.whatsapp_number || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">Gender:</span> {student.gender || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">DOB:</span> {student.dob || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">State:</span> {student.state || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">District:</span> {student.district || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">Cast:</span> {student.cast_name || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">Religion:</span> {student.religion_name || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">Qualification:</span> {student.qualification_name || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">School:</span> {student.school_name || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">Stage:</span> {student.stage_name || student.stage || "N/A"}</div>
-                            <div><span className="font-medium text-muted-foreground">Current Work:</span> {student.current_status_name || "N/A"}</div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                Number:
+                              </span>{" "}
+                              {student.phone_number || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                WhatsApp:
+                              </span>{" "}
+                              {student.whatsapp_number || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                Gender:
+                              </span>{" "}
+                              {student.gender || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                DOB:
+                              </span>{" "}
+                              {student.dob || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                State:
+                              </span>{" "}
+                              {student.state || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                District:
+                              </span>{" "}
+                              {student.district || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                Cast:
+                              </span>{" "}
+                              {student.cast_name || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                Religion:
+                              </span>{" "}
+                              {student.religion_name || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                Qualification:
+                              </span>{" "}
+                              {student.qualification_name || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                School:
+                              </span>{" "}
+                              {student.school_name || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                Stage:
+                              </span>{" "}
+                              {student.stage_name || student.stage || "N/A"}
+                            </div>
+                            <div>
+                              <span className="font-medium text-muted-foreground">
+                                Current Work:
+                              </span>{" "}
+                              {student.current_status_name || "N/A"}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -264,23 +431,27 @@ const CampusDetail = () => {
                         <select
                           className="border rounded px-2 py-1 text-sm"
                           value={rowsPerPage}
-                          onChange={e => {
+                          onChange={(e) => {
                             setRowsPerPage(Number(e.target.value));
                             setStudentPage(1);
                           }}
                         >
-                          {[10, 20, 50, 100].map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
+                          {[10, 20, 50, 100].map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
                           ))}
                         </select>
                       </div>
                       <span className="text-sm">
-                        {startIdx}-{endIdx} of {students.length}
+                        {startIdx}-{endIdx} of {displayStudents.length}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
                           className="px-2 py-1 rounded border border-gray-200 bg-white text-sm disabled:opacity-50"
-                          onClick={() => setStudentPage(p => Math.max(1, p - 1))}
+                          onClick={() =>
+                            setStudentPage((p) => Math.max(1, p - 1))
+                          }
                           disabled={studentPage === 1}
                           aria-label="Previous page"
                         >
@@ -288,7 +459,11 @@ const CampusDetail = () => {
                         </button>
                         <button
                           className="px-2 py-1 rounded border border-gray-200 bg-white text-sm disabled:opacity-50"
-                          onClick={() => setStudentPage(p => Math.min(totalStudentPages, p + 1))}
+                          onClick={() =>
+                            setStudentPage((p) =>
+                              Math.min(totalStudentPages, p + 1),
+                            )
+                          }
                           disabled={studentPage === totalStudentPages}
                           aria-label="Next page"
                         >

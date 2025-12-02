@@ -10,12 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { updateStudent } from "@/utils/api";
 
 interface StatusDropdownProps {
-  applicant?: any;  // make optional
+  applicant?: any; // make optional
   onUpdate: () => void;
 }
 
 export const STAGE_STATUS_MAP = {
-  Sourcing:[
+  Sourcing: [
     "Enrollment Key Generated",
     "Basic Details Entered",
     "Duplicate",
@@ -36,6 +36,26 @@ export const STAGE_DEFAULT_STATUS = {
 
 const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
   const { toast } = useToast();
+  const currentStage = applicant?.stage || "screening";
+
+  const currentStatus = useMemo(() => {
+    if (!applicant) return "";
+    if (currentStage === "screening" && applicant.exam_sessions?.[0]) {
+      return (
+        applicant.exam_sessions[0].status || STAGE_DEFAULT_STATUS["screening"]
+      );
+    }
+    return (
+      applicant.status ||
+      STAGE_DEFAULT_STATUS[currentStage as keyof typeof STAGE_DEFAULT_STATUS]
+    );
+  }, [applicant, currentStage]);
+
+  const availableStatuses = useMemo(() => {
+    return (
+      STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || []
+    );
+  }, [currentStage]);
 
   // Guard: if applicant not ready, render nothing
   if (!applicant) {
@@ -47,26 +67,6 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
       </Select>
     );
   }
-
-  const currentStage = applicant.stage || "screening";
-
-  const currentStatus = useMemo(() => {
-    if (currentStage === "screening" && applicant.exam_sessions?.[0]) {
-      return (
-        applicant.exam_sessions[0].status ||
-        STAGE_DEFAULT_STATUS["screening"]
-      );
-    }
-    return (
-      applicant.status ||
-      STAGE_DEFAULT_STATUS[currentStage as keyof typeof STAGE_DEFAULT_STATUS]
-    );
-  }, [applicant, currentStage]);
-
-  const availableStatuses = useMemo(() => {
-    return STAGE_STATUS_MAP[currentStage as keyof typeof STAGE_STATUS_MAP] || [];
-  }, [currentStage]);
-  
 
   const handleStatusChange = async (newStatus: string) => {
     try {

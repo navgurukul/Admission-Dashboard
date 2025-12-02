@@ -6,8 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Save, X, Database, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,47 +39,52 @@ export const PlaceholderManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingPlaceholder, setEditingPlaceholder] = useState<Placeholder | null>(null);
-  
+  const [editingPlaceholder, setEditingPlaceholder] =
+    useState<Placeholder | null>(null);
+
   const [formData, setFormData] = useState({
-    placeholder_key: '',
-    display_name: '',
-    description: '',
-    data_source: 'admission_dashboard',
-    field_mapping: '',
-    conditional_logic: ''
+    placeholder_key: "",
+    display_name: "",
+    description: "",
+    data_source: "admission_dashboard",
+    field_mapping: "",
+    conditional_logic: "",
   });
 
   const { data: placeholders, isLoading } = useQuery({
-    queryKey: ['all-placeholders'],
+    queryKey: ["all-placeholders"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('offer_placeholders')
-        .select('*')
-        .order('display_name');
-      
+        .from("offer_placeholders")
+        .select("*")
+        .order("display_name");
+
       if (error) throw error;
       return data as Placeholder[];
-    }
+    },
   });
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const saveData = {
         ...data,
-        field_mapping: data.field_mapping ? JSON.parse(data.field_mapping) : null,
-        conditional_logic: data.conditional_logic ? JSON.parse(data.conditional_logic) : null
+        field_mapping: data.field_mapping
+          ? JSON.parse(data.field_mapping)
+          : null,
+        conditional_logic: data.conditional_logic
+          ? JSON.parse(data.conditional_logic)
+          : null,
       };
-      
+
       if (editingPlaceholder) {
         const { error } = await supabase
-          .from('offer_placeholders')
+          .from("offer_placeholders")
           .update(saveData)
-          .eq('id', editingPlaceholder.id);
+          .eq("id", editingPlaceholder.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('offer_placeholders')
+          .from("offer_placeholders")
           .insert([saveData]);
         if (error) throw error;
       }
@@ -76,70 +92,76 @@ export const PlaceholderManagement = () => {
     onSuccess: () => {
       toast({
         title: "Success",
-        description: `Placeholder ${editingPlaceholder ? 'updated' : 'created'} successfully`
+        description: `Placeholder ${editingPlaceholder ? "updated" : "created"} successfully`,
       });
-      queryClient.invalidateQueries({ queryKey: ['all-placeholders'] });
-      queryClient.invalidateQueries({ queryKey: ['offer-placeholders'] });
+      queryClient.invalidateQueries({ queryKey: ["all-placeholders"] });
+      queryClient.invalidateQueries({ queryKey: ["offer-placeholders"] });
       resetForm();
     },
     onError: (error) => {
-      console.error('Save error:', error);
+      console.error("Save error:", error);
       toast({
         title: "Error",
         description: "Failed to save placeholder",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('offer_placeholders')
+        .from("offer_placeholders")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Placeholder deleted successfully"
+        description: "Placeholder deleted successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['all-placeholders'] });
-      queryClient.invalidateQueries({ queryKey: ['offer-placeholders'] });
+      queryClient.invalidateQueries({ queryKey: ["all-placeholders"] });
+      queryClient.invalidateQueries({ queryKey: ["offer-placeholders"] });
     },
     onError: (error) => {
-      console.error('Delete error:', error);
+      console.error("Delete error:", error);
       toast({
         title: "Error",
         description: "Failed to delete placeholder",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+    mutationFn: async ({
+      id,
+      is_active,
+    }: {
+      id: string;
+      is_active: boolean;
+    }) => {
       const { error } = await supabase
-        .from('offer_placeholders')
+        .from("offer_placeholders")
         .update({ is_active })
-        .eq('id', id);
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-placeholders'] });
-      queryClient.invalidateQueries({ queryKey: ['offer-placeholders'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["all-placeholders"] });
+      queryClient.invalidateQueries({ queryKey: ["offer-placeholders"] });
+    },
   });
 
   const resetForm = () => {
     setFormData({
-      placeholder_key: '',
-      display_name: '',
-      description: '',
-      data_source: 'admission_dashboard',
-      field_mapping: '',
-      conditional_logic: ''
+      placeholder_key: "",
+      display_name: "",
+      description: "",
+      data_source: "admission_dashboard",
+      field_mapping: "",
+      conditional_logic: "",
     });
     setEditingPlaceholder(null);
     setShowAddDialog(false);
@@ -149,10 +171,14 @@ export const PlaceholderManagement = () => {
     setFormData({
       placeholder_key: placeholder.placeholder_key,
       display_name: placeholder.display_name,
-      description: placeholder.description || '',
+      description: placeholder.description || "",
       data_source: placeholder.data_source,
-      field_mapping: placeholder.field_mapping ? JSON.stringify(placeholder.field_mapping, null, 2) : '',
-      conditional_logic: placeholder.conditional_logic ? JSON.stringify(placeholder.conditional_logic, null, 2) : ''
+      field_mapping: placeholder.field_mapping
+        ? JSON.stringify(placeholder.field_mapping, null, 2)
+        : "",
+      conditional_logic: placeholder.conditional_logic
+        ? JSON.stringify(placeholder.conditional_logic, null, 2)
+        : "",
     });
     setEditingPlaceholder(placeholder);
     setShowAddDialog(true);
@@ -163,11 +189,11 @@ export const PlaceholderManagement = () => {
       toast({
         title: "Validation Error",
         description: "Placeholder key and display name are required",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-    
+
     // Validate JSON fields
     if (formData.field_mapping) {
       try {
@@ -176,12 +202,12 @@ export const PlaceholderManagement = () => {
         toast({
           title: "Validation Error",
           description: "Field mapping must be valid JSON",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
     }
-    
+
     if (formData.conditional_logic) {
       try {
         JSON.parse(formData.conditional_logic);
@@ -189,73 +215,90 @@ export const PlaceholderManagement = () => {
         toast({
           title: "Validation Error",
           description: "Conditional logic must be valid JSON",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
     }
-    
+
     saveMutation.mutate(formData);
   };
 
-  const addPresetMapping = (type: 'allotted_school' | 'template_type') => {
-    let mapping = '';
-    let logic = '';
-    
-    if (type === 'allotted_school') {
-      setFormData(prev => ({
+  const addPresetMapping = (type: "allotted_school" | "template_type") => {
+    const mapping = "";
+    const logic = "";
+
+    if (type === "allotted_school") {
+      setFormData((prev) => ({
         ...prev,
-        placeholder_key: 'ALLOTTED_SCHOOL',
-        display_name: 'Allotted School',
-        description: 'School assigned based on student performance and preferences',
-        field_mapping: JSON.stringify({
-          "source_table": "admission_dashboard",
-          "source_field": "allotted_school",
-          "default_value": "Not Assigned"
-        }, null, 2),
-        conditional_logic: JSON.stringify({
-          "conditions": [
-            {
-              "if": "final_marks >= 18",
-              "then": "SOP",
-              "description": "Assign School of Programming for high performers"
-            },
-            {
-              "if": "final_marks < 18 && final_marks >= 15",
-              "then": "SOB", 
-              "description": "Assign School of Business for average performers"
-            },
-            {
-              "else": "General",
-              "description": "Default assignment"
-            }
-          ]
-        }, null, 2)
+        placeholder_key: "ALLOTTED_SCHOOL",
+        display_name: "Allotted School",
+        description:
+          "School assigned based on student performance and preferences",
+        field_mapping: JSON.stringify(
+          {
+            source_table: "admission_dashboard",
+            source_field: "allotted_school",
+            default_value: "Not Assigned",
+          },
+          null,
+          2,
+        ),
+        conditional_logic: JSON.stringify(
+          {
+            conditions: [
+              {
+                if: "final_marks >= 18",
+                then: "SOP",
+                description: "Assign School of Programming for high performers",
+              },
+              {
+                if: "final_marks < 18 && final_marks >= 15",
+                then: "SOB",
+                description: "Assign School of Business for average performers",
+              },
+              {
+                else: "General",
+                description: "Default assignment",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
       }));
-    } else if (type === 'template_type') {
-      setFormData(prev => ({
+    } else if (type === "template_type") {
+      setFormData((prev) => ({
         ...prev,
-        placeholder_key: 'TEMPLATE_TYPE',
-        display_name: 'Template Type',
-        description: 'Determines which template to use based on student data',
-        field_mapping: JSON.stringify({
-          "source_table": "admission_dashboard",
-          "logic_based": true
-        }, null, 2),
-        conditional_logic: JSON.stringify({
-          "template_selection": [
-            {
-              "if": "allotted_school === 'SOP'",
-              "template": "sop_offer_letter",
-              "description": "Use SOP offer letter template"
-            },
-            {
-              "if": "allotted_school === 'SOB'", 
-              "template": "sob_offer_letter",
-              "description": "Use SOB offer letter template"
-            }
-          ]
-        }, null, 2)
+        placeholder_key: "TEMPLATE_TYPE",
+        display_name: "Template Type",
+        description: "Determines which template to use based on student data",
+        field_mapping: JSON.stringify(
+          {
+            source_table: "admission_dashboard",
+            logic_based: true,
+          },
+          null,
+          2,
+        ),
+        conditional_logic: JSON.stringify(
+          {
+            template_selection: [
+              {
+                if: "allotted_school === 'SOP'",
+                template: "sop_offer_letter",
+                description: "Use SOP offer letter template",
+              },
+              {
+                if: "allotted_school === 'SOB'",
+                template: "sob_offer_letter",
+                description: "Use SOB offer letter template",
+              },
+            ],
+          },
+          null,
+          2,
+        ),
       }));
     }
   };
@@ -279,9 +322,13 @@ export const PlaceholderManagement = () => {
           <Card key={placeholder.id}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base">{placeholder.display_name}</CardTitle>
+                <CardTitle className="text-base">
+                  {placeholder.display_name}
+                </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge variant={placeholder.is_active ? "default" : "secondary"}>
+                  <Badge
+                    variant={placeholder.is_active ? "default" : "secondary"}
+                  >
                     {placeholder.is_active ? "Active" : "Inactive"}
                   </Badge>
                   {placeholder.field_mapping && (
@@ -306,14 +353,18 @@ export const PlaceholderManagement = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => 
+                    onClick={() =>
                       toggleActiveMutation.mutate({
                         id: placeholder.id,
-                        is_active: !placeholder.is_active
+                        is_active: !placeholder.is_active,
                       })
                     }
                   >
-                    {placeholder.is_active ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    {placeholder.is_active ? (
+                      <X className="h-4 w-4" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -340,12 +391,14 @@ export const PlaceholderManagement = () => {
                 )}
                 {placeholder.field_mapping && (
                   <div className="text-xs bg-blue-50 p-2 rounded">
-                    <strong>Field Mapping:</strong> {JSON.stringify(placeholder.field_mapping)}
+                    <strong>Field Mapping:</strong>{" "}
+                    {JSON.stringify(placeholder.field_mapping)}
                   </div>
                 )}
                 {placeholder.conditional_logic && (
                   <div className="text-xs bg-green-50 p-2 rounded">
-                    <strong>Conditional Logic:</strong> {JSON.stringify(placeholder.conditional_logic)}
+                    <strong>Conditional Logic:</strong>{" "}
+                    {JSON.stringify(placeholder.conditional_logic)}
                   </div>
                 )}
               </div>
@@ -358,26 +411,26 @@ export const PlaceholderManagement = () => {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingPlaceholder ? 'Edit Placeholder' : 'Add New Placeholder'}
+              {editingPlaceholder ? "Edit Placeholder" : "Add New Placeholder"}
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="flex gap-2 mb-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={() => addPresetMapping('allotted_school')}
+                onClick={() => addPresetMapping("allotted_school")}
               >
                 <Database className="h-4 w-4 mr-1" />
                 Allotted School Preset
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 size="sm"
-                onClick={() => addPresetMapping('template_type')}
+                onClick={() => addPresetMapping("template_type")}
               >
                 <Settings className="h-4 w-4 mr-1" />
                 Template Type Preset
@@ -389,47 +442,65 @@ export const PlaceholderManagement = () => {
               <Input
                 id="placeholder_key"
                 value={formData.placeholder_key}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  placeholder_key: e.target.value.toUpperCase().replace(/\s+/g, '_') 
-                }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    placeholder_key: e.target.value
+                      .toUpperCase()
+                      .replace(/\s+/g, "_"),
+                  }))
+                }
                 placeholder="STUDENT_NAME"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="display_name">Display Name</Label>
               <Input
                 id="display_name"
                 value={formData.display_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    display_name: e.target.value,
+                  }))
+                }
                 placeholder="Student Name"
               />
             </div>
-            
+
             <div>
               <Label htmlFor="data_source">Data Source</Label>
               <Select
                 value={formData.data_source}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, data_source: value }))}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, data_source: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admission_dashboard">Admission Dashboard</SelectItem>
+                  <SelectItem value="admission_dashboard">
+                    Admission Dashboard
+                  </SelectItem>
                   <SelectItem value="profiles">User Profiles</SelectItem>
                   <SelectItem value="custom">Custom Value</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 placeholder="Description of what this placeholder represents"
               />
             </div>
@@ -439,7 +510,12 @@ export const PlaceholderManagement = () => {
               <Textarea
                 id="field_mapping"
                 value={formData.field_mapping}
-                onChange={(e) => setFormData(prev => ({ ...prev, field_mapping: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    field_mapping: e.target.value,
+                  }))
+                }
                 placeholder='{"source_table": "admission_dashboard", "source_field": "allotted_school"}'
                 className="font-mono text-sm"
                 rows={4}
@@ -450,11 +526,18 @@ export const PlaceholderManagement = () => {
             </div>
 
             <div>
-              <Label htmlFor="conditional_logic">Conditional Logic (JSON)</Label>
+              <Label htmlFor="conditional_logic">
+                Conditional Logic (JSON)
+              </Label>
               <Textarea
                 id="conditional_logic"
                 value={formData.conditional_logic}
-                onChange={(e) => setFormData(prev => ({ ...prev, conditional_logic: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    conditional_logic: e.target.value,
+                  }))
+                }
                 placeholder='{"conditions": [{"if": "final_marks >= 18", "then": "SOP"}]}'
                 className="font-mono text-sm"
                 rows={6}
@@ -463,14 +546,14 @@ export const PlaceholderManagement = () => {
                 Optional: Define conditional logic for dynamic value assignment
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
               <Button onClick={handleSave} disabled={saveMutation.isPending}>
                 <Save className="h-4 w-4 mr-2" />
-                {saveMutation.isPending ? 'Saving...' : 'Save'}
+                {saveMutation.isPending ? "Saving..." : "Save"}
               </Button>
             </div>
           </div>

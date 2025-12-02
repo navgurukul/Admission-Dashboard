@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Code, Users, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-
 const slides = [
   {
     id: 1,
@@ -58,8 +57,8 @@ const content = {
     features: {
       realProjects: "Real Projects",
       community: "Community",
-      mentorship: "Mentorship"
-    }
+      mentorship: "Mentorship",
+    },
   },
   hindi: {
     heading: "सॉफ्टवेयर इंजीनियरिंग छात्रवृत्ति",
@@ -75,8 +74,8 @@ const content = {
     features: {
       realProjects: "वास्तविक परियोजनाएं",
       community: "समुदाय",
-      mentorship: "मार्गदर्शन"
-    }
+      mentorship: "मार्गदर्शन",
+    },
   },
   marathi: {
     heading: "सॉफ्टवेअर अभियांत्रिकी शिष्यवृत्ती",
@@ -92,13 +91,13 @@ const content = {
     features: {
       realProjects: "वास्तविक प्रकल्प",
       community: "समुदाय",
-      mentorship: "मार्गदर्शन"
-    }
+      mentorship: "मार्गदर्शन",
+    },
   },
 };
 const StudentLandingPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const { selectedLanguage, setSelectedLanguage } = useLanguage(); 
+  const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const navigate = useNavigate();
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -112,11 +111,9 @@ const StudentLandingPage = () => {
   useEffect(() => {
     const savedLang = localStorage.getItem("selectedLanguage");
     if (savedLang) {
-  setSelectedLanguage(savedLang);
-}
+      setSelectedLanguage(savedLang);
+    }
   }, [setSelectedLanguage]);
-
-
 
   // Save language on change
   useEffect(() => {
@@ -145,41 +142,51 @@ const StudentLandingPage = () => {
       if (email) {
         // Import the API function dynamically
         const { getCompleteStudentData } = await import("@/utils/api");
-        
+
         // Fetch complete student data
         const data = await getCompleteStudentData(email);
-        
+
         // Get latest exam session
         const examSessions = data.data.exam_sessions || [];
-        const latestExam = examSessions.length > 0 
-          ? examSessions.reduce((latest, current) => 
-              new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-            )
-          : null;
-        
+        const latestExam =
+          examSessions.length > 0
+            ? examSessions.reduce((latest, current) =>
+                new Date(current.created_at) > new Date(latest.created_at)
+                  ? current
+                  : latest,
+              )
+            : null;
+
         if (latestExam) {
           // Exam completed
           if (latestExam.is_passed) {
             // Get latest LR status
             const lrRounds = data.data.interview_learner_round || [];
-            const latestLR = lrRounds.length > 0
-              ? lrRounds.reduce((latest, current) => 
-                  new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                )
-              : null;
-            
+            const latestLR =
+              lrRounds.length > 0
+                ? lrRounds.reduce((latest, current) =>
+                    new Date(current.created_at) > new Date(latest.created_at)
+                      ? current
+                      : latest,
+                  )
+                : null;
+
             // Check if LR is passed
-            const isLRPassed = latestLR?.learning_round_status?.includes("Pass");
-            
+            const isLRPassed =
+              latestLR?.learning_round_status?.includes("Pass");
+
             if (isLRPassed) {
               // LR passed - check CFR status
               const cfrRounds = data.data.interview_cultural_fit_round || [];
-              const latestCFR = cfrRounds.length > 0
-                ? cfrRounds.reduce((latest, current) => 
-                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                  )
-                : null;
-              
+              const latestCFR =
+                cfrRounds.length > 0
+                  ? cfrRounds.reduce((latest, current) =>
+                      new Date(current.created_at) > new Date(latest.created_at)
+                        ? current
+                        : latest,
+                    )
+                  : null;
+
               // Show result page with CFR status
               navigate("/students/final-result");
               return;
@@ -204,19 +211,19 @@ const StudentLandingPage = () => {
             navigate("/students/final-result");
             return;
           }
-          
+
           if (testStarted || allowRetest) {
             navigate("/students/test/start");
             return;
           }
-          
+
           // Not started - go to instructions
           navigate("/students/details/instructions");
         }
       }
     } catch (error) {
       console.error("Error fetching student data:", error);
-      
+
       // Fallback to old logic if API fails
       if (testCompleted && !allowRetest) {
         navigate("/students/final-result");
@@ -231,8 +238,6 @@ const StudentLandingPage = () => {
       navigate("/students/details/instructions");
     }
   };
-
-
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -261,7 +266,7 @@ const StudentLandingPage = () => {
             <option value="hindi">हिंदी</option>
             <option value="marathi">मराठी</option>
           </select>
-          
+
           <Button
             onClick={handleNavigation}
             size="sm"
@@ -283,26 +288,28 @@ const StudentLandingPage = () => {
                   {content[selectedLanguage].heading}
                 </span>
               </div>
-              
+
               <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
                 {content[selectedLanguage].subtitle}{" "}
-                <span className="text-orange-500">{content[selectedLanguage].title}</span>
+                <span className="text-orange-500">
+                  {content[selectedLanguage].title}
+                </span>
               </h1>
-              
+
               <p className="text-base md:text-lg lg:text-xl text-gray-600 leading-relaxed">
                 {content[selectedLanguage].description}
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
-                <Button 
+                <Button
                   onClick={handleNavigation}
                   className="bg-orange-500 hover:bg-orange-600 text-white group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full sm:w-auto"
                 >
                   {content[selectedLanguage].buttonText}
                   <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-orange-500 text-orange-600 hover:bg-orange-50 w-full sm:w-auto"
                   onClick={() => {
                     window.open("https://www.navgurukul.org/", "_blank");
@@ -311,7 +318,7 @@ const StudentLandingPage = () => {
                   {content[selectedLanguage].learnMoreText}
                 </Button>
               </div>
-              
+
               {/* <div className="grid grid-cols-3 gap-2 md:gap-4 pt-4 md:pt-8">
                 <div className="flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-2">
                   <Code className="w-4 h-4 md:w-5 md:h-5 text-orange-500 flex-shrink-0" />
@@ -327,7 +334,7 @@ const StudentLandingPage = () => {
                 </div>
               </div> */}
             </div>
-            
+
             {/* Right Section - Video Carousel */}
             <div className="relative order-1 md:order-2">
               <div className="absolute inset-0 bg-orange-500/5 rounded-2xl blur-3xl"></div>
@@ -343,8 +350,8 @@ const StudentLandingPage = () => {
                       selectedLanguage === "english"
                         ? slides[currentSlide].englishCaption
                         : selectedLanguage === "hindi"
-                        ? slides[currentSlide].hindiCaption
-                        : slides[currentSlide].marathiCaption
+                          ? slides[currentSlide].hindiCaption
+                          : slides[currentSlide].marathiCaption
                     }
                     className="w-full h-auto object-cover aspect-video"
                   />
@@ -355,8 +362,8 @@ const StudentLandingPage = () => {
                   {selectedLanguage === "english"
                     ? slides[currentSlide].englishCaption
                     : selectedLanguage === "hindi"
-                    ? slides[currentSlide].hindiCaption
-                    : slides[currentSlide].marathiCaption}
+                      ? slides[currentSlide].hindiCaption
+                      : slides[currentSlide].marathiCaption}
                 </div>
               </div>
             </div>
@@ -378,8 +385,3 @@ const StudentLandingPage = () => {
   );
 };
 export default StudentLandingPage;
-
-
-
-
-

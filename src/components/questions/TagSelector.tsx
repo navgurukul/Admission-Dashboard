@@ -1,22 +1,35 @@
-
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { X, Plus, Tag } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { X, Plus, Tag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TagSelectorProps {
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
 }
 
-export function TagSelector({ selectedTags = [], onTagsChange }: TagSelectorProps) {
+export function TagSelector({
+  selectedTags = [],
+  onTagsChange,
+}: TagSelectorProps) {
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
-  const [newTagName, setNewTagName] = useState('');
+  const [newTagName, setNewTagName] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Ensure selectedTags is always an array
@@ -30,16 +43,16 @@ export function TagSelector({ selectedTags = [], onTagsChange }: TagSelectorProp
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('question_tags')
-        .select('slug, display_name')
-        .order('display_name');
+        .from("question_tags")
+        .select("slug, display_name")
+        .order("display_name");
 
       if (error) throw error;
 
-      const tagSlugs = data?.map(tag => tag.slug) || [];
+      const tagSlugs = data?.map((tag) => tag.slug) || [];
       setAvailableTags(tagSlugs);
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      console.error("Error fetching tags:", error);
       setAvailableTags([]);
     } finally {
       setLoading(false);
@@ -54,41 +67,43 @@ export function TagSelector({ selectedTags = [], onTagsChange }: TagSelectorProp
   };
 
   const handleTagRemove = (tagSlug: string) => {
-    onTagsChange(safeTags.filter(tag => tag !== tagSlug));
+    onTagsChange(safeTags.filter((tag) => tag !== tagSlug));
   };
 
   const handleCreateTag = async () => {
     if (!newTagName.trim()) return;
 
     try {
-      const slug = newTagName.toLowerCase().replace(/\s+/g, '-');
-      
-      const { error } = await supabase
-        .from('question_tags')
-        .insert([{
+      const slug = newTagName.toLowerCase().replace(/\s+/g, "-");
+
+      const { error } = await supabase.from("question_tags").insert([
+        {
           slug,
-          display_name: newTagName.trim()
-        }]);
+          display_name: newTagName.trim(),
+        },
+      ]);
 
       if (error) throw error;
 
-      setAvailableTags(prev => [...prev, slug]);
+      setAvailableTags((prev) => [...prev, slug]);
       handleTagSelect(slug);
-      setNewTagName('');
+      setNewTagName("");
     } catch (error) {
-      console.error('Error creating tag:', error);
+      console.error("Error creating tag:", error);
     }
   };
 
-  const filteredTags = availableTags.filter(tag => 
-    !safeTags.includes(tag)
-  );
+  const filteredTags = availableTags.filter((tag) => !safeTags.includes(tag));
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {safeTags.map((tag) => (
-          <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+          <Badge
+            key={tag}
+            variant="secondary"
+            className="flex items-center gap-1"
+          >
             <Tag className="w-3 h-3" />
             {tag}
             <Button
@@ -131,7 +146,7 @@ export function TagSelector({ selectedTags = [], onTagsChange }: TagSelectorProp
                 </CommandGroup>
               </CommandList>
             </Command>
-            
+
             <div className="p-3 border-t">
               <div className="flex gap-2">
                 <Input
@@ -139,7 +154,7 @@ export function TagSelector({ selectedTags = [], onTagsChange }: TagSelectorProp
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       handleCreateTag();
                     }

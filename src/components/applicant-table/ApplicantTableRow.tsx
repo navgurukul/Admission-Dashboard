@@ -54,7 +54,7 @@ export const ApplicantTableRow = ({
   questionSetList,
 }: ApplicantTableRowProps) => {
   const [showImageModal, setShowImageModal] = useState(false);
-  
+
   const fullName =
     [applicant.first_name, applicant.middle_name, applicant.last_name]
       .filter(Boolean)
@@ -84,11 +84,14 @@ export const ApplicantTableRow = ({
 
       {/* Profile Image */}
       <TableCell className="w-12 px-2">
-        <Avatar 
+        <Avatar
           className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
           onClick={() => setShowImageModal(true)}
         >
-          <AvatarImage src={applicant.image_url || applicant.image} alt={fullName} />
+          <AvatarImage
+            src={applicant.image_url || applicant.image}
+            alt={fullName}
+          />
           <AvatarFallback className="text-xs">
             {getInitials(fullName)}
           </AvatarFallback>
@@ -108,14 +111,12 @@ export const ApplicantTableRow = ({
         </div>
       </TableCell>
 
-       <TableCell className="min-w-[120px] max-w-[220px] px-2">
+      <TableCell className="min-w-[120px] max-w-[220px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
             field="email"
-            displayValue={
-              applicant.email || "No Email"
-            }
+            displayValue={applicant.email || "No Email"}
             onUpdate={onUpdate}
             showPencil={true}
             showActionButtons={false}
@@ -153,7 +154,6 @@ export const ApplicantTableRow = ({
         </div>
       </TableCell>
 
-     
       {/* Gender - Simple text field */}
       <TableCell className="min-w-[80px] max-w-[100px] px-2">
         <div className="truncate">
@@ -230,7 +230,7 @@ export const ApplicantTableRow = ({
             //   campusList.find((s) => s.id === applicant.campus_id)
             //     ?.campus_name || "N/A"
             // }
-            displayValue={applicant.campus_name || "N/A" }
+            displayValue={applicant.campus_name || "N/A"}
             value={applicant.campus_id}
             onUpdate={onUpdate}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
@@ -295,7 +295,9 @@ export const ApplicantTableRow = ({
               />
             ) : (
               <div className="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-4xl text-gray-400">{getInitials(fullName)}</span>
+                <span className="text-4xl text-gray-400">
+                  {getInitials(fullName)}
+                </span>
               </div>
             )}
           </div>

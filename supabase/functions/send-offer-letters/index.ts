@@ -110,7 +110,7 @@ serve(async (req) => {
                 } else if (condition.else) {
                   value = condition.else;
                 }
-              
+              }
             }
             
             // Process template selection logic

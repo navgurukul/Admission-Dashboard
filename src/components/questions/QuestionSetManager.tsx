@@ -34,7 +34,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             created_at: s.created_at,
             updated_at: s.updated_at,
           };
-        })
+        }),
       );
 
       setSets(setsWithQuestions);
@@ -49,12 +49,12 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
       // Find newly added
       const added = selected.filter(
-        (q) => !prevSelected.some((p) => p.id === q.id)
+        (q) => !prevSelected.some((p) => p.id === q.id),
       );
 
       // Find removed
       const removed = prevSelected.filter(
-        (p) => !selected.some((q) => q.id === p.id)
+        (p) => !selected.some((q) => q.id === p.id),
       );
 
       // Add new mappings
@@ -78,14 +78,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
       if (removed.length > 0) {
         for (const q of removed) {
-          await deleteQuestionFromSet(q.id); 
+          await deleteQuestionFromSet(q.id);
         }
       }
       // Update local state
       setSets((prev) =>
         prev.map((s) =>
-          s.id === activeSet.id ? { ...s, questions: selected } : s
-        )
+          s.id === activeSet.id ? { ...s, questions: selected } : s,
+        ),
       );
 
       toast({

@@ -1,12 +1,10 @@
 // src/api/questionApi.ts
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ;
-
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Stub for exam duration (e.g., 30 minutes = 1800 seconds)
 export const getExamDuration = async () => {
   return 1800; // change this to any duration you want
 };
-
 
 export const getQuestions = async () => {
   // Simulate API delay
@@ -78,9 +76,6 @@ export const uploadSignedOfferLetter = async (file: File): Promise<void> => {
   });
 };
 
-
-
-
 export const states = [
   { value: "Andhra Pradesh", label: "Andhra Pradesh" },
   { value: "Arunachal Pradesh", label: "Arunachal Pradesh" },
@@ -110,17 +105,18 @@ export const states = [
   { value: "Uttar Pradesh", label: "Uttar Pradesh" },
   { value: "Uttarakhand", label: "Uttarakhand" },
   { value: "West Bengal", label: "West Bengal" },
-  { value: "Andaman and Nicobar Islands", label: "Andaman and Nicobar Islands" },
+  {
+    value: "Andaman and Nicobar Islands",
+    label: "Andaman and Nicobar Islands",
+  },
   { value: "Chandigarh", label: "Chandigarh" },
-  { value: "Dadra and Nagar Haveli and Daman & Diu", label: "Dadra and Nagar Haveli and Daman & Diu" },
+  {
+    value: "Dadra and Nagar Haveli and Daman & Diu",
+    label: "Dadra and Nagar Haveli and Daman & Diu",
+  },
   { value: "Delhi", label: "Delhi" },
   { value: "Jammu and Kashmir", label: "Jammu and Kashmir" },
   { value: "Ladakh", label: "Ladakh" },
   { value: "Lakshadweep", label: "Lakshadweep" },
   { value: "Puducherry", label: "Puducherry" },
 ];
- 
-
-
-
-

@@ -1,19 +1,37 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Database, Trash2, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getApplicants, clearAllData, saveApplicants } from "@/utils/localStorage";
+import {
+  getApplicants,
+  clearAllData,
+  saveApplicants,
+} from "@/utils/localStorage";
 
 interface LocalStorageViewerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function LocalStorageViewer({ isOpen, onClose }: LocalStorageViewerProps) {
+export function LocalStorageViewer({
+  isOpen,
+  onClose,
+}: LocalStorageViewerProps) {
   const [localData, setLocalData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -30,7 +48,11 @@ export function LocalStorageViewer({ isOpen, onClose }: LocalStorageViewerProps)
   };
 
   const handleClearAll = () => {
-    if (confirm("Are you sure you want to clear all localStorage data? This action cannot be undone.")) {
+    if (
+      confirm(
+        "Are you sure you want to clear all localStorage data? This action cannot be undone.",
+      )
+    ) {
       clearAllData();
       setLocalData([]);
       toast({
@@ -51,11 +73,11 @@ export function LocalStorageViewer({ isOpen, onClose }: LocalStorageViewerProps)
     }
 
     const dataStr = JSON.stringify(localData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `localStorage_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `localStorage_backup_${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -155,7 +177,8 @@ export function LocalStorageViewer({ isOpen, onClose }: LocalStorageViewerProps)
             <Card>
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
-                  No data found in localStorage. Add some applicants to see them here.
+                  No data found in localStorage. Add some applicants to see them
+                  here.
                 </p>
               </CardContent>
             </Card>
@@ -182,18 +205,25 @@ export function LocalStorageViewer({ isOpen, onClose }: LocalStorageViewerProps)
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                       <div>City: {applicant.city || "N/A"}</div>
                       <div>Campus: {applicant.campus || "N/A"}</div>
-                      <div>Created: {new Date(applicant.created_at).toLocaleDateString()}</div>
-                      <div>Updated: {new Date(applicant.updated_at).toLocaleDateString()}</div>
+                      <div>
+                        Created:{" "}
+                        {new Date(applicant.created_at).toLocaleDateString()}
+                      </div>
+                      <div>
+                        Updated:{" "}
+                        {new Date(applicant.updated_at).toLocaleDateString()}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
-              
+
               {localData.length > 10 && (
                 <Card>
                   <CardContent className="pt-6">
                     <p className="text-center text-muted-foreground">
-                      Showing first 10 records. Total: {localData.length} records
+                      Showing first 10 records. Total: {localData.length}{" "}
+                      records
                     </p>
                   </CardContent>
                 </Card>
@@ -204,4 +234,4 @@ export function LocalStorageViewer({ isOpen, onClose }: LocalStorageViewerProps)
       </DialogContent>
     </Dialog>
   );
-} 
+}

@@ -1,7 +1,7 @@
 export type Language = "english" | "hindi" | "marathi";
 
 export interface Student {
-  id:number;
+  id: number;
   title: string;
   subtitle: string;
   chooseLanguage: string;

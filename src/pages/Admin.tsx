@@ -21,7 +21,7 @@ import {
   Role,
 } from "@/utils/api";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import {searchUsers} from "@/utils/api";
+import { searchUsers } from "@/utils/api";
 
 const ROWS_PER_PAGE = 10;
 
@@ -145,7 +145,7 @@ const AdminPage: React.FC = () => {
   }, [searchQuery]);
 
   const handleAddUserSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
+    e: React.FormEvent<HTMLFormElement>,
   ): Promise<void> => {
     e.preventDefault();
 
@@ -155,7 +155,8 @@ const AdminPage: React.FC = () => {
       setNameError("Name can only contain letters, spaces.");
       toast({
         title: "Invalid Name",
-        description: "Name can only contain letters, spaces, apostrophes, and hyphens.",
+        description:
+          "Name can only contain letters, spaces, apostrophes, and hyphens.",
         variant: "destructive",
       });
       return;
@@ -200,10 +201,13 @@ const AdminPage: React.FC = () => {
     // Username validation (optional, but if provided must be valid)
     const usernameTrim = addUserDialog.username.trim();
     if (usernameTrim && !/^[A-Za-z0-9_]+$/.test(usernameTrim)) {
-      setUsernameError("Username can only contain letters, numbers, and underscores");
+      setUsernameError(
+        "Username can only contain letters, numbers, and underscores",
+      );
       toast({
         title: "Invalid Username",
-        description: "Username can only contain letters, numbers, and underscores.",
+        description:
+          "Username can only contain letters, numbers, and underscores.",
         variant: "destructive",
       });
       return;
@@ -221,7 +225,7 @@ const AdminPage: React.FC = () => {
     }
 
     // console.log("Creating user - Username field:", usernameTrim);
-    
+
     const payload: any = {
       name: nameTrim,
       mobile: addUserDialog.phone.trim(),
@@ -265,7 +269,7 @@ const AdminPage: React.FC = () => {
       console.error("Error saving user:", err);
       toast({
         title: "Error",
-        description: addUserDialog.editId 
+        description: addUserDialog.editId
           ? "Failed to update user. Please try again."
           : "Failed to create user. Please try again.",
         variant: "destructive",
@@ -304,7 +308,7 @@ const AdminPage: React.FC = () => {
 
     try {
       await deleteUser(deleteConfirm.userId.toString());
-      
+
       // Refresh current state without changing page or search
       if (searchQuery.trim()) {
         // Re-run the search to get updated results
@@ -325,7 +329,10 @@ const AdminPage: React.FC = () => {
       console.error("Error deleting user:", err);
       toast({
         title: "Delete Failed",
-        description: err.details || err.message || "Failed to delete user. Please try again.",
+        description:
+          err.details ||
+          err.message ||
+          "Failed to delete user. Please try again.",
         variant: "destructive",
       });
       setDeleteConfirm({ open: false, userId: null, userName: "" });
@@ -387,12 +394,10 @@ const AdminPage: React.FC = () => {
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <AdmissionsSidebar />
-      
+
       {/* Main Content */}
       <div className="md:pl-64">
-        
         <main className="p-4 sm:p-6 lg:p-8">
-          
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -591,7 +596,9 @@ const AdminPage: React.FC = () => {
                                 <Pencil size={16} />
                               </button>
                               <button
-                                onClick={() => handleDeleteUser(user.id, user.name)}
+                                onClick={() =>
+                                  handleDeleteUser(user.id, user.name)
+                                }
                                 className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
                                 title="Delete User"
                               >
@@ -765,7 +772,9 @@ const AdminPage: React.FC = () => {
                           setAddUserDialog((d) => ({ ...d, name: val }));
                           // live validation: only letters, spaces, apostrophe, hyphen
                           if (val && !/^[A-Za-z\s'-]+$/.test(val)) {
-                            setNameError("Name can only contain letters, spaces.");
+                            setNameError(
+                              "Name can only contain letters, spaces.",
+                            );
                           } else {
                             setNameError("");
                           }
@@ -773,7 +782,9 @@ const AdminPage: React.FC = () => {
                         onBlur={() => {
                           const val = addUserDialog.name.trim();
                           if (val && !/^[A-Za-z\s'-]+$/.test(val)) {
-                            setNameError("Name can only contain letters, spaces.");
+                            setNameError(
+                              "Name can only contain letters, spaces.",
+                            );
                           } else {
                             setNameError("");
                           }
@@ -786,14 +797,14 @@ const AdminPage: React.FC = () => {
                         placeholder="Enter full name"
                       />
                       {nameError && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {nameError}
-                        </p>
+                        <p className="text-red-500 text-sm mt-1">{nameError}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                      </label>
                       <input
                         type="email"
                         required
@@ -804,21 +815,27 @@ const AdminPage: React.FC = () => {
                           // live validation
                           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                           if (!val) setEmailError("Email is required");
-                          else if (!emailRegex.test(val)) setEmailError("Please enter a valid email address");
+                          else if (!emailRegex.test(val))
+                            setEmailError("Please enter a valid email address");
                           else setEmailError("");
                         }}
                         onBlur={() => {
                           const val = addUserDialog.email.trim();
                           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                           if (!val) setEmailError("Email is required");
-                          else if (!emailRegex.test(val)) setEmailError("Please enter a valid email address");
+                          else if (!emailRegex.test(val))
+                            setEmailError("Please enter a valid email address");
                           else setEmailError("");
                         }}
                         disabled={!!addUserDialog.editId}
                         className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         placeholder="Enter email address"
                       />
-                      {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
+                      {emailError && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {emailError}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -835,9 +852,7 @@ const AdminPage: React.FC = () => {
 
                           // validation: sirf number aur max 10 digit
                           if (!/^\d{0,10}$/.test(value)) {
-                            setPhoneError(
-                              "Only numbers allowed, 10 digits"
-                            );
+                            setPhoneError("Only numbers allowed, 10 digits");
                           } else {
                             setPhoneError("");
                           }
@@ -868,7 +883,9 @@ const AdminPage: React.FC = () => {
                           setAddUserDialog((d) => ({ ...d, username: val }));
                           // live validation: only letters, numbers, underscores
                           if (val && !/^[A-Za-z0-9_]+$/.test(val)) {
-                            setUsernameError("Username can only contain letters, numbers, and underscores");
+                            setUsernameError(
+                              "Username can only contain letters, numbers, and underscores",
+                            );
                           } else {
                             setUsernameError("");
                           }
@@ -876,7 +893,9 @@ const AdminPage: React.FC = () => {
                         onBlur={() => {
                           const val = addUserDialog.username.trim();
                           if (val && !/^[A-Za-z0-9_]+$/.test(val)) {
-                            setUsernameError("Username can only contain letters, numbers, and underscores");
+                            setUsernameError(
+                              "Username can only contain letters, numbers, and underscores",
+                            );
                           } else {
                             setUsernameError("");
                           }
@@ -889,7 +908,9 @@ const AdminPage: React.FC = () => {
                         placeholder="Enter username (optional)"
                       />
                       {usernameError && (
-                        <p className="text-red-500 text-sm mt-1">{usernameError}</p>
+                        <p className="text-red-500 text-sm mt-1">
+                          {usernameError}
+                        </p>
                       )}
                     </div>
 
@@ -948,13 +969,20 @@ const AdminPage: React.FC = () => {
                       Confirm Delete
                     </h2>
                     <p className="text-gray-600">
-                      Are you sure you want to delete <strong>{deleteConfirm.userName}</strong>? 
-                      This action cannot be retrieved.
+                      Are you sure you want to delete{" "}
+                      <strong>{deleteConfirm.userName}</strong>? This action
+                      cannot be retrieved.
                     </p>
                   </div>
                   <div className="flex justify-end gap-3">
                     <button
-                      onClick={() => setDeleteConfirm({ open: false, userId: null, userName: "" })}
+                      onClick={() =>
+                        setDeleteConfirm({
+                          open: false,
+                          userId: null,
+                          userName: "",
+                        })
+                      }
                       className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
                       Cancel
@@ -979,12 +1007,15 @@ const AdminPage: React.FC = () => {
                       Confirm Update
                     </h2>
                     <p className="text-gray-600">
-                      Are you sure you want to update <strong>{updateConfirm.data?.name}</strong>?
+                      Are you sure you want to update{" "}
+                      <strong>{updateConfirm.data?.name}</strong>?
                     </p>
                   </div>
                   <div className="flex justify-end gap-3">
                     <button
-                      onClick={() => setUpdateConfirm({ open: false, data: null })}
+                      onClick={() =>
+                        setUpdateConfirm({ open: false, data: null })
+                      }
                       className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                     >
                       Cancel

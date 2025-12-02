@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,43 +5,68 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { RefreshCw, Search, Download } from "lucide-react";
 
 export const OfferHistoryPanel = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: offerHistory, isLoading, refetch } = useQuery({
-    queryKey: ['offer-history', searchTerm, statusFilter],
+  const {
+    data: offerHistory,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["offer-history", searchTerm, statusFilter],
     queryFn: async () => {
       let query = supabase
-        .from('offer_history')
-        .select(`
+        .from("offer_history")
+        .select(
+          `
           *,
           admission_dashboard(name, mobile_no, campus)
-        `)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .order("created_at", { ascending: false });
 
-      if (statusFilter !== 'all') {
-        query = query.eq('email_status', statusFilter);
+      if (statusFilter !== "all") {
+        query = query.eq("email_status", statusFilter);
       }
 
       const { data, error } = await query;
       if (error) throw error;
       return data;
-    }
+    },
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'sent': return 'default';
-      case 'delivered': return 'secondary';
-      case 'opened': return 'default';
-      case 'bounced': return 'destructive';
-      case 'failed': return 'destructive';
-      default: return 'outline';
+      case "sent":
+        return "default";
+      case "delivered":
+        return "secondary";
+      case "opened":
+        return "default";
+      case "bounced":
+        return "destructive";
+      case "failed":
+        return "destructive";
+      default:
+        return "outline";
     }
   };
 
@@ -106,7 +130,9 @@ export const OfferHistoryPanel = () => {
                 <TableRow key={record.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{record.admission_dashboard?.name}</p>
+                      <p className="font-medium">
+                        {record.admission_dashboard?.name}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {record.admission_dashboard?.mobile_no}
                       </p>
@@ -119,10 +145,9 @@ export const OfferHistoryPanel = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {record.sent_at ? 
-                      new Date(record.sent_at).toLocaleString() : 
-                      'Not sent'
-                    }
+                    {record.sent_at
+                      ? new Date(record.sent_at).toLocaleString()
+                      : "Not sent"}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
