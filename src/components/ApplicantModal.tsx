@@ -598,24 +598,29 @@ export function ApplicantModal({
     });
 
   const isStageDisabled = (applicant: any, stage: string) => {
-    // Get status from exam_sessions for screening (more reliable)
-    const screeningStatus = applicant?.exam_sessions?.[0]?.status || "";
-    const learningStatus =
-      applicant?.interview_learner_round?.[0]?.learning_round_status || "";
-    const cfrStatus =
-      applicant?.interview_cultural_fit_round?.[0]?.cultural_fit_status || "";
+    // Check if screening passed (check all sessions)
+    const examSessions = applicant?.exam_sessions || [];
+    const screeningPassed = examSessions.some((session: any) => {
+      const status = session?.status || "";
+      return (
+        status.toLowerCase().includes("pass") ||
+        status === "Created Student Without Exam"
+      );
+    });
 
-    // Check if screening passed
-    // "Created Student Without Exam" should also be considered as passed
-    const screeningPassed =
-      screeningStatus.toLowerCase().includes("pass") ||
-      screeningStatus === "Created Student Without Exam";
+    // Check if learning round passed (check all rounds)
+    const learnerRounds = applicant?.interview_learner_round || [];
+    const learningPassed = learnerRounds.some((round: any) => {
+      const status = round?.learning_round_status || "";
+      return status.toLowerCase().includes("pass");
+    });
 
-    // Check if learning round passed
-    const learningPassed = learningStatus.toLowerCase().includes("pass");
-
-    // Check if CFR passed
-    const cfrPassed = cfrStatus.toLowerCase().includes("pass");
+    // Check if CFR passed (check all rounds)
+    const cfrRounds = applicant?.interview_cultural_fit_round || [];
+    const cfrPassed = cfrRounds.some((round: any) => {
+      const status = round?.cultural_fit_status || "";
+      return status.toLowerCase().includes("pass");
+    });
 
     if (stage === "LR") {
       // Learning Round is disabled if Screening did NOT pass
