@@ -230,7 +230,12 @@ export function EditableCell({
         onValueChange={(val) => !disabled && handleDirectDropdownChange(val)}
         disabled={isUpdating || disabled}
       >
-        <SelectTrigger className="h-8 text-xs border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring">
+        <SelectTrigger 
+          className={`h-8 border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring ${
+            disabled ? '!opacity-100 !cursor-default [&>svg]:hidden' : ''
+          }`}
+          style={disabled ? { opacity: 1 } : {}}
+        >
           <SelectValue placeholder="Select option" />
         </SelectTrigger>
         <SelectContent>

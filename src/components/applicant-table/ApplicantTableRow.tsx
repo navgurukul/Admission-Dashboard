@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface ApplicantTableRowProps {
   applicant: any;
@@ -54,6 +55,7 @@ export const ApplicantTableRow = ({
   questionSetList,
 }: ApplicantTableRowProps) => {
   const [showImageModal, setShowImageModal] = useState(false);
+  const { hasEditAccess } = usePermissions();
 
   const fullName =
     [applicant.first_name, applicant.middle_name, applicant.last_name]
@@ -118,8 +120,9 @@ export const ApplicantTableRow = ({
             field="email"
             displayValue={applicant.email || "No Email"}
             onUpdate={onUpdate}
-            showPencil={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
+            disabled={!hasEditAccess}
           />
         </div>
       </TableCell>
@@ -134,8 +137,9 @@ export const ApplicantTableRow = ({
               applicant.phone_number || applicant.mobile_no || "No phone"
             }
             onUpdate={onUpdate}
-            showPencil={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
+            disabled={!hasEditAccess}
           />
         </div>
       </TableCell>
@@ -148,8 +152,9 @@ export const ApplicantTableRow = ({
             field="whatsapp_number"
             displayValue={applicant.whatsapp_number || "No WhatsApp"}
             onUpdate={onUpdate}
-            showPencil={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
+            disabled={!hasEditAccess}
           />
         </div>
       </TableCell>
@@ -169,6 +174,7 @@ export const ApplicantTableRow = ({
             onUpdate={onUpdate}
             showPencil={false}
             showActionButtons={false}
+            disabled={!hasEditAccess}
           />
         </div>
       </TableCell>
@@ -236,6 +242,8 @@ export const ApplicantTableRow = ({
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
             showPencil={false}
             showActionButtons={false}
+            disabled={!hasEditAccess}
+            tooltipMessage="Current stage update by student details"
           />
         </div>
       </TableCell>
