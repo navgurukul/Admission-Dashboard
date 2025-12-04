@@ -229,7 +229,17 @@ export function AdvancedFilterModal({
         // Combine API states with states from students
         const allStates = [...apiStates];
         statesFromStudents.forEach((stateName) => {
-          if (!allStates.find((s) => s.name === stateName)) {
+          // if (!allStates.find((s) => s.name === stateName)) {
+            
+          const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
+           
+          // Check if state already exists by name or code
+          const existsInApi = allStates.find(
+            (s) => s.name === stateName || s.state_code === stateName || s.id === stateName
+          );
+          
+          // Only add if it's not a state code and doesn't exist in API states
+          if (!isStateCode && !existsInApi) {
             allStates.push({ id: stateName, name: stateName });
           }
         });
@@ -549,9 +559,10 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select State">
+                  {/* <SelectValue placeholder="Select State">
                     {filters.state || "All States"}
-                  </SelectValue>
+                  </SelectValue> */}
+                  <SelectValue placeholder = "Select State"/>
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All States</SelectItem>
