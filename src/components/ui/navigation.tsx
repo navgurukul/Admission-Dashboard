@@ -52,14 +52,14 @@ export const navigation: NavigationItem[] = [
     href: "/campus",
     icon: School,
     component: CampusPage,
-    allowedRoles: [1, 2],
+    allowedRoles: [1],
   },
   {
     name: "School",
     href: "/school",
     icon: School,
     component: SchoolPage,
-    allowedRoles: [1, 2],
+    allowedRoles: [1],
   },
   // { name: "Owner", href: "/owner", icon: UserCheck, component: OwnerPage, allowedRoles: [1] },
   {
@@ -75,6 +75,6 @@ export const navigation: NavigationItem[] = [
     href: "/questions",
     icon: FileQuestion,
     component: QuestionRepository,
-    allowedRoles: [1, 2],
+    allowedRoles: [1],
   },
 ];

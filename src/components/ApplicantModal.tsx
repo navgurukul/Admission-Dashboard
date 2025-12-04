@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   getAllCasts,
   updateStudent,
@@ -55,9 +56,10 @@ export function ApplicantModal({
   onClose,
 }: ApplicantModalProps) {
   const { toast } = useToast();
+  const { hasEditAccess } = usePermissions();
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  // const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [castes, setCastes] = useState<any[]>([]);
   const [qualifications, setQualifications] = useState<any[]>([]);
@@ -453,9 +455,9 @@ export function ApplicantModal({
     setShowEditModal(true);
   };
 
-  const handleCommentsClick = () => {
-    setShowCommentsModal(true);
-  };
+  // const handleCommentsClick = () => {
+  //   setShowCommentsModal(true);
+  // };
 
   const handleEditSuccess = () => {
     setShowEditModal(false);
@@ -597,6 +599,49 @@ export function ApplicantModal({
       throw new Error("screening update API not available");
     });
 
+  const isStageDisabled = (applicant: any, stage: string) => {
+    // Check if screening passed (check all sessions)
+    const examSessions = applicant?.exam_sessions || [];
+    const screeningPassed = examSessions.some((session: any) => {
+      const status = session?.status || "";
+      return (
+        status.toLowerCase().includes("pass") ||
+        status === "Created Student Without Exam"
+      );
+    });
+
+    // Check if learning round passed (check all rounds)
+    const learnerRounds = applicant?.interview_learner_round || [];
+    const learningPassed = learnerRounds.some((round: any) => {
+      const status = round?.learning_round_status || "";
+      return status.toLowerCase().includes("pass");
+    });
+
+    // Check if CFR passed (check all rounds)
+    const cfrRounds = applicant?.interview_cultural_fit_round || [];
+    const cfrPassed = cfrRounds.some((round: any) => {
+      const status = round?.cultural_fit_status || "";
+      return status.toLowerCase().includes("pass");
+    });
+
+    if (stage === "LR") {
+      // Learning Round is disabled if Screening did NOT pass
+      return !screeningPassed;
+    }
+
+    if (stage === "CFR") {
+      // CFR is disabled if Screening did NOT pass OR Learning Round did NOT pass
+      return !screeningPassed || !learningPassed;
+    }
+
+    if (stage === "OFFER") {
+      // Offer Letter is disabled if any of the stages did NOT pass
+      return !screeningPassed || !learningPassed || !cfrPassed;
+    }
+
+    return false;
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -641,6 +686,7 @@ export function ApplicantModal({
                       currentApplicant?.first_name || "Not provided"
                     }
                     onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 <div>
@@ -654,6 +700,8 @@ export function ApplicantModal({
                       currentApplicant?.middle_name || "Not provided"
                     }
                     onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
+                  
                   />
                 </div>
                 <div>
@@ -665,6 +713,7 @@ export function ApplicantModal({
                     field="last_name"
                     displayValue={currentApplicant?.last_name || "Not provided"}
                     onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 <div>
@@ -676,6 +725,7 @@ export function ApplicantModal({
                     field="phone_number"
                     displayValue={currentApplicant.phone_number}
                     onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 <div>
@@ -689,6 +739,7 @@ export function ApplicantModal({
                       currentApplicant.whatsapp_number || "Not provided"
                     }
                     onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 <div>
@@ -705,6 +756,8 @@ export function ApplicantModal({
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
+                    
                   />
                 </div>
                 <div>
@@ -718,6 +771,7 @@ export function ApplicantModal({
                     displayValue={getLabel(castes, currentApplicant.cast_id)}
                     onUpdate={handleUpdate}
                     options={castes}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 <div>
@@ -734,6 +788,7 @@ export function ApplicantModal({
                     )}
                     onUpdate={handleUpdate}
                     options={qualifications}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 <div>
@@ -752,6 +807,7 @@ export function ApplicantModal({
                     }
                     onUpdate={handleUpdate}
                     options={currentWorks}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 <div>
@@ -768,6 +824,7 @@ export function ApplicantModal({
                     value={currentApplicant.state}
                     onUpdate={handleStateChange}
                     options={stateOptions}
+                    disabled={!hasEditAccess}
                   />
                 </div>
                 {/* <div>
@@ -796,7 +853,8 @@ export function ApplicantModal({
                     value={currentApplicant.district}
                     onUpdate={handleDistrictChange}
                     options={districtOptions}
-                    disabled={!selectedState || isLoadingDistricts}
+                    disabled={!hasEditAccess || !selectedState || isLoadingDistricts}
+                 
                   />
                 </div>
                 <div>
@@ -814,7 +872,7 @@ export function ApplicantModal({
                     value={currentApplicant.block}
                     onUpdate={handleUpdate}
                     options={blockOptions}
-                    disabled={!selectedDistrict || isLoadingBlocks}
+                    disabled={!hasEditAccess || !selectedDistrict || isLoadingBlocks}
                   />
                 </div>
               </div>
@@ -842,6 +900,7 @@ export function ApplicantModal({
                       name: "learning_round_status",
                       label: "Status *",
                       type: "select",
+                      disabled: isStageDisabled(currentApplicant, "LR"),
                       options: [
                         {
                           value: "Learner Round Pass",
@@ -855,11 +914,18 @@ export function ApplicantModal({
                         { value: "No Show", label: "No Show" },
                       ],
                     },
-                    { name: "comments", label: "Comments *", type: "text" },
+                    {
+                      name: "comments",
+                      label: "Comments *",
+                      type: "text",
+                      disabled: isStageDisabled(currentApplicant, "LR"),
+                    },
                   ]}
                   submitApi={API_MAP.learning.submit}
                   updateApi={API_MAP.learning.update}
                   onSave={handleUpdate}
+                  disabled={isStageDisabled(currentApplicant, "LR")}
+                  disabledReason=" Student need to pass Screening Round"
                 />
               </div>
               <div className="col-span-full w-full">
@@ -874,6 +940,7 @@ export function ApplicantModal({
                       name: "cultural_fit_status",
                       label: "Status *",
                       type: "select",
+                      disabled: isStageDisabled(currentApplicant, "CFR"),
                       options: [
                         {
                           value: "Cultural Fit Interview Pass",
@@ -887,11 +954,18 @@ export function ApplicantModal({
                         { value: "No Show", label: "No Show" },
                       ],
                     },
-                    { name: "comments", label: "Comments *", type: "text" },
+                    {
+                      name: "comments",
+                      label: "Comments *",
+                      type: "text",
+                      disabled: isStageDisabled(currentApplicant, "CFR"),
+                    },
                   ]}
                   submitApi={API_MAP.cultural.submit}
                   updateApi={API_MAP.cultural.update}
                   onSave={handleUpdate}
+                  disabled={isStageDisabled(currentApplicant, "CFR")}
+                  disabledReason="Student need to pass Learning Round"
                 />
               </div>
 
@@ -906,12 +980,14 @@ export function ApplicantModal({
                     <EditableCell
                       applicant={currentApplicant}
                       field="campus_id"
+                      value={currentApplicant.campus_id}
                       displayValue={getLabel(
                         campus,
                         currentApplicant.campus_id,
                       )}
                       onUpdate={handleUpdate}
                       options={campus}
+                      disabled={!hasEditAccess}
                     />
                   </div>
                   <div>
@@ -940,12 +1016,14 @@ export function ApplicantModal({
                           label: "Selected but not joined",
                         },
                       ]}
+                      disabled={   isStageDisabled(currentApplicant, "OFFER")}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "offer_letter_status",
                           value,
                         );
                       }}
+                
                     />
                   </div>
                   <div>
@@ -987,6 +1065,7 @@ export function ApplicantModal({
                       )[0] ||
                       ""
                     }
+                    disabled={!hasEditAccess}
                     onChange={async (e) => {
                       const selectedDate = e.target.value;
                       setJoiningDate(selectedDate);

@@ -10,6 +10,12 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Plus, Pencil, Save } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface RowField {
   name: string;
@@ -17,6 +23,7 @@ interface RowField {
   type: "text" | "select" | "component" | "readonly";
   options?: { value: string; label: string }[];
   component?: React.ComponentType<any>;
+  disabled?: boolean;
 }
 
 interface InlineSubformProps {
@@ -27,6 +34,8 @@ interface InlineSubformProps {
   submitApi: (payload: any) => Promise<any>;
   updateApi: (id: number | string, payload: any) => Promise<any>;
   onSave?: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 // Map payload based on round type
@@ -59,25 +68,25 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
   if ("learning_round_status" in row) {
     return row.id
       ? {
-          learning_round_status: row.learning_round_status,
-          comments: row.comments,
-        }
+        learning_round_status: row.learning_round_status,
+        comments: row.comments,
+      }
       : {
-          student_id: studentId,
-          learning_round_status: row.learning_round_status,
-          comments: row.comments,
-        };
+        student_id: studentId,
+        learning_round_status: row.learning_round_status,
+        comments: row.comments,
+      };
   } else if ("cultural_fit_status" in row) {
     return row.id
       ? {
-          cultural_fit_status: row.cultural_fit_status,
-          comments: row.comments,
-        }
+        cultural_fit_status: row.cultural_fit_status,
+        comments: row.comments,
+      }
       : {
-          student_id: studentId,
-          cultural_fit_status: row.cultural_fit_status,
-          comments: row.comments,
-        };
+        student_id: studentId,
+        cultural_fit_status: row.cultural_fit_status,
+        comments: row.comments,
+      };
   }
 
   return { ...row, student_id: studentId };
@@ -97,6 +106,8 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
 
 // Always-mounted editable cell component
 const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
+  const isDisabled = !isEditable || field.disabled;
+
   if (field.type === "select") {
     return (
       <Select
@@ -106,10 +117,10 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
           const actualValue = val === "CLEAR_SELECTION" ? "" : val;
           updateRow(field.name, actualValue);
         }}
-        disabled={!isEditable}
+        disabled={isDisabled}
       >
         <SelectTrigger
-          className={`w-full ${!isEditable ? "cursor-text pointer-events-none" : ""}`}
+          className={`w-full ${isDisabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}`}
         >
           <SelectValue placeholder={`Select ${field.label}`} />
         </SelectTrigger>
@@ -131,8 +142,8 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
       <field.component
         row={row}
         updateRow={(fName: string, val: any) => updateRow(fName, val)}
-        disabled={!isEditable}
-        className={!isEditable ? "cursor-text pointer-events-none" : ""}
+        disabled={isDisabled}
+        className={isDisabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}
       />
     );
   } else {
@@ -140,8 +151,8 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
       <Input
         value={row[field.name]}
         onChange={(e) => updateRow(field.name, e.target.value)}
-        disabled={!isEditable}
-        className={!isEditable ? "cursor-text" : ""}
+        disabled={isDisabled}
+        className={isDisabled ? "cursor-not-allowed opacity-50" : ""}
       />
     );
   }
@@ -155,6 +166,8 @@ export function InlineSubform({
   submitApi,
   updateApi,
   onSave,
+  disabled,
+  disabledReason,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
   const { toast } = useToast();
@@ -310,9 +323,32 @@ export function InlineSubform({
     <div className="space-y-3 border rounded-lg p-4">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-semibold">{title}</h3>
-        <Button size="sm" variant="outline" onClick={addRow}>
-          <Plus className="h-4 w-4 mr-1" /> Add Row
-        </Button>
+        {disabled ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-block">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={addRow}
+                    disabled={true}
+                    className="opacity-50 cursor-not-allowed"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add Row
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{disabledReason || "Action disabled"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <Button size="sm" variant="outline" onClick={addRow}>
+            <Plus className="h-4 w-4 mr-1" /> Add Row
+          </Button>
+        )}
       </div>
 
       <div className="overflow-x-auto">
@@ -336,11 +372,10 @@ export function InlineSubform({
                   return (
                     <td
                       key={f.name}
-                      className={`px-3 py-2 align-top ${
-                        f.name === "comments"
-                          ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]"
-                          : ""
-                      }`}
+                      className={`px-3 py-2 align-top ${f.name === "comments"
+                        ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]"
+                        : ""
+                        }`}
                     >
                       {!isEditable && f.type === "readonly" ? (
                         <p className="p-1 bg-gray-100 rounded">
