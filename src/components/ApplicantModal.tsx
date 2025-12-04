@@ -43,6 +43,12 @@ import StageDropdown, {
   STAGE_STATUS_MAP,
 } from "./applicant-table/StageDropdown";
 import { Value } from "@radix-ui/react-select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -977,77 +983,183 @@ export function ApplicantModal({
                     <label className="text-sm font-medium text-muted-foreground">
                       Campus
                     </label>
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="campus_id"
-                      value={currentApplicant.campus_id}
-                      displayValue={getLabel(
-                        campus,
-                        currentApplicant.campus_id,
-                      )}
-                      onUpdate={handleUpdate}
-                      options={campus}
-                      disabled={!hasEditAccess}
-                    />
+                    {isStageDisabled(currentApplicant, "OFFER") && 
+                     !currentApplicant.campus_id ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <EditableCell
+                                applicant={currentApplicant}
+                                field="campus_id"
+                                value={currentApplicant.campus_id}
+                                displayValue={getLabel(
+                                  campus,
+                                  currentApplicant.campus_id,
+                                )}
+                                onUpdate={handleUpdate}
+                                options={campus}
+                                disabled={true}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>All rounds should be passed</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <EditableCell
+                        applicant={currentApplicant}
+                        field="campus_id"
+                        value={currentApplicant.campus_id}
+                        displayValue={getLabel(
+                          campus,
+                          currentApplicant.campus_id,
+                        )}
+                        onUpdate={handleUpdate}
+                        options={campus}
+                        disabled={!hasEditAccess}
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Offer Letter Status
                     </label>
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="offer_letter_status"
-                      value={
-                        currentApplicant.final_decisions?.[0]
-                          ?.offer_letter_status
-                      }
-                      displayValue={
-                        currentApplicant.final_decisions?.[0]
-                          ?.offer_letter_status || "Not provided"
-                      }
-                      options={[
-                        { value: "Offer Pending", label: "Offer Pending" },
-                        { value: "Offer Sent", label: "Offer Sent" },
-                        { value: "Offer Accepted", label: "Offer Accepted" },
-                        { value: "Offer Declined", label: "Offer Declined" },
-                        { value: "Waitlisted", label: "Waitlisted" },
-                        {
-                          value: "Selected but not joined",
-                          label: "Selected but not joined",
-                        },
-                      ]}
-                      disabled={   isStageDisabled(currentApplicant, "OFFER")}
-                      onUpdate={async (value) => {
-                        await handleFinalDecisionUpdate(
-                          "offer_letter_status",
-                          value,
-                        );
-                      }}
-                
-                    />
+                    {isStageDisabled(currentApplicant, "OFFER") && 
+                     !currentApplicant.final_decisions?.[0]?.offer_letter_status ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <EditableCell
+                                applicant={currentApplicant}
+                                field="offer_letter_status"
+                                value={
+                                  currentApplicant.final_decisions?.[0]
+                                    ?.offer_letter_status
+                                }
+                                displayValue={
+                                  currentApplicant.final_decisions?.[0]
+                                    ?.offer_letter_status || "Not provided"
+                                }
+                                options={[
+                                  { value: "Offer Pending", label: "Offer Pending" },
+                                  { value: "Offer Sent", label: "Offer Sent" },
+                                  { value: "Offer Accepted", label: "Offer Accepted" },
+                                  { value: "Offer Declined", label: "Offer Declined" },
+                                  { value: "Waitlisted", label: "Waitlisted" },
+                                  {
+                                    value: "Selected but not joined",
+                                    label: "Selected but not joined",
+                                  },
+                                ]}
+                                disabled={true}
+                                onUpdate={async (value) => {
+                                  await handleFinalDecisionUpdate(
+                                    "offer_letter_status",
+                                    value,
+                                  );
+                                }}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>All rounds should be passed</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <EditableCell
+                        applicant={currentApplicant}
+                        field="offer_letter_status"
+                        value={
+                          currentApplicant.final_decisions?.[0]
+                            ?.offer_letter_status
+                        }
+                        displayValue={
+                          currentApplicant.final_decisions?.[0]
+                            ?.offer_letter_status || "Not provided"
+                        }
+                        options={[
+                          { value: "Offer Pending", label: "Offer Pending" },
+                          { value: "Offer Sent", label: "Offer Sent" },
+                          { value: "Offer Accepted", label: "Offer Accepted" },
+                          { value: "Offer Declined", label: "Offer Declined" },
+                          { value: "Waitlisted", label: "Waitlisted" },
+                          {
+                            value: "Selected but not joined",
+                            label: "Selected but not joined",
+                          },
+                        ]}
+                        disabled={!hasEditAccess}
+                        onUpdate={async (value) => {
+                          await handleFinalDecisionUpdate(
+                            "offer_letter_status",
+                            value,
+                          );
+                        }}
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Onboarded Status
                     </label>
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="onboarded_status"
-                      value={
-                        currentApplicant.final_decisions?.[0]?.onboarded_status
-                      }
-                      displayValue={
-                        currentApplicant.final_decisions?.[0]
-                          ?.onboarded_status || "Not provided"
-                      }
-                      options={[{ value: "Onboarded", label: "Onboarded" }]}
-                      onUpdate={async (value) => {
-                        await handleFinalDecisionUpdate(
-                          "onboarded_status",
-                          value,
-                        );
-                      }}
-                    />
+                    {isStageDisabled(currentApplicant, "OFFER") && 
+                     !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <EditableCell
+                                applicant={currentApplicant}
+                                field="onboarded_status"
+                                value={
+                                  currentApplicant.final_decisions?.[0]?.onboarded_status
+                                }
+                                displayValue={
+                                  currentApplicant.final_decisions?.[0]
+                                    ?.onboarded_status || "Not provided"
+                                }
+                                options={[{ value: "Onboarded", label: "Onboarded" }]}
+                                disabled={true}
+                                onUpdate={async (value) => {
+                                  await handleFinalDecisionUpdate(
+                                    "onboarded_status",
+                                    value,
+                                  );
+                                }}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>All rounds should be passed</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <EditableCell
+                        applicant={currentApplicant}
+                        field="onboarded_status"
+                        value={
+                          currentApplicant.final_decisions?.[0]?.onboarded_status
+                        }
+                        displayValue={
+                          currentApplicant.final_decisions?.[0]
+                            ?.onboarded_status || "Not provided"
+                        }
+                        options={[{ value: "Onboarded", label: "Onboarded" }]}
+                        disabled={!hasEditAccess}
+                        onUpdate={async (value) => {
+                          await handleFinalDecisionUpdate(
+                            "onboarded_status",
+                            value,
+                          );
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -1055,43 +1167,64 @@ export function ApplicantModal({
                   <label className="text-sm font-medium text-muted-foreground">
                     Joining Date
                   </label>
-                  <input
-                    type="date"
-                    className="border rounded px-2 py-1 w-full"
-                    value={
-                      joiningDate ||
-                      currentApplicant.final_decisions?.[0]?.joining_date?.split(
-                        "T",
-                      )[0] ||
-                      ""
-                    }
-                    disabled={!hasEditAccess}
-                    onChange={async (e) => {
-                      const selectedDate = e.target.value;
-                      setJoiningDate(selectedDate);
-
-                      try {
-                        // Call API immediately when date changes
-                        await handleFinalDecisionUpdate(
-                          "joining_date",
-                          selectedDate || null,
-                        );
-
-                        // Immediately sync
-                        setCurrentApplicant((prev) => ({
-                          ...prev,
-                          final_decisions: [
-                            {
-                              ...(prev.final_decisions?.[0] || {}),
-                              joining_date: selectedDate,
-                            },
-                          ],
-                        }));
-                      } catch (err) {
-                        // console.error("Failed to update joining date:", err);
+                  {(isStageDisabled(currentApplicant, "OFFER") && 
+                   !currentApplicant.final_decisions?.[0]?.joining_date) ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <input
+                              type="date"
+                              className="border rounded px-2 py-1 w-full cursor-not-allowed opacity-60"
+                              value=""
+                              disabled={true}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>All rounds should be passed</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <input
+                      type="date"
+                      className="border rounded px-2 py-1 w-full"
+                      value={
+                        joiningDate ||
+                        currentApplicant.final_decisions?.[0]?.joining_date?.split(
+                          "T",
+                        )[0] ||
+                        ""
                       }
-                    }}
-                  />
+                      disabled={!hasEditAccess}
+                      onChange={async (e) => {
+                        const selectedDate = e.target.value;
+                        setJoiningDate(selectedDate);
+
+                        try {
+                          // Call API immediately when date changes
+                          await handleFinalDecisionUpdate(
+                            "joining_date",
+                            selectedDate || null,
+                          );
+
+                          // Immediately sync
+                          setCurrentApplicant((prev) => ({
+                            ...prev,
+                            final_decisions: [
+                              {
+                                ...(prev.final_decisions?.[0] || {}),
+                                joining_date: selectedDate,
+                              },
+                            ],
+                          }));
+                        } catch (err) {
+                          // console.error("Failed to update joining date:", err);
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
