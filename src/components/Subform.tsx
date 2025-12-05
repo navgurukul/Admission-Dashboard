@@ -124,7 +124,7 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
         >
           <SelectValue placeholder={`Select ${field.label}`} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-w-[300px]">
           {/* Add clear selection option with a valid non-empty value */}
           <SelectItem value="CLEAR_SELECTION">
             <span className="text-gray-400">Selection</span>
@@ -147,6 +147,18 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
       />
     );
   } else {
+    // Use textarea for comments field
+    if (field.name === "comments") {
+      return (
+        <textarea
+          value={row[field.name] || ""}
+          onChange={(e) => updateRow(field.name, e.target.value)}
+          disabled={isDisabled}
+          className={`border rounded px-2 py-1 w-full min-h-[80px] resize-y ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+          placeholder="Enter comments..."
+        />
+      );
+    }
     return (
       <Input
         value={row[field.name]}
@@ -239,6 +251,11 @@ export function InlineSubform({
           }
         }
 
+        // Skip validation for audit_info field - it's always readonly and not mandatory
+        if (field.name === "audit_info") {
+          continue;
+        }
+
         // If status is "Created Student Without Exam", ALL fields are non-mandatory
         if (status === "Created Student Without Exam") {
           continue; // Skip validation for all fields
@@ -312,6 +329,64 @@ export function InlineSubform({
   };
 
   const getDisplayValue = (row: any, field: RowField) => {
+    // Handle audit_info field specially
+    if (field.name === "audit_info") {
+      const auditData = row[field.name];
+      if (!auditData || typeof auditData !== 'object') return "—";
+      
+      const formatTimestamp = (timestamp: string) => {
+        if (!timestamp) return "—";
+        try {
+          const date = new Date(timestamp);
+          return date.toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          });
+        } catch {
+          return timestamp;
+        }
+      };
+      
+      const created = formatTimestamp(auditData.created_at);
+      const updated = formatTimestamp(auditData.updated_at);
+      const updatedBy = auditData.last_updated_by || "—";
+      
+      return (
+        <div className="text-xs space-y-1">
+          <div><span className="font-medium">Created:</span> {created}</div>
+          <div><span className="font-medium">Updated:</span> {updated}</div>
+          <div><span className="font-medium">By:</span> {updatedBy}</div>
+        </div>
+      );
+    }
+    
+    // Format timestamp fields
+    if (field.name === "created_at" || field.name === "updated_at") {
+      if (!row[field.name]) return "—";
+      try {
+        const date = new Date(row[field.name]);
+        return date.toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      } catch {
+        return row[field.name];
+      }
+    }
+    
+    // Display last_updated_by as is
+    if (field.name === "last_updated_by") {
+      return row[field.name] || "—";
+    }
+    
     if (field.options) {
       const match = field.options.find((o) => o.value === row[field.name]);
       return match ? match.label : row[field.name] || "—";
@@ -367,20 +442,32 @@ export function InlineSubform({
             {rows.map((row, idx) => (
               <tr key={idx} className="border-b hover:bg-gray-50">
                 {fields.map((f) => {
+                  // Audit fields should always be readonly
+                  const isAuditField = ["created_at", "updated_at", "last_updated_by", "audit_info"].includes(f.name);
+                  const isStatusField = f.name === "status" || f.name.includes("status");
                   const isEditable =
-                    row.isEditing && editableFieldsMap[idx].has(f.name);
+                    row.isEditing && editableFieldsMap[idx].has(f.name) && !isAuditField;
                   return (
                     <td
                       key={f.name}
-                      className={`px-3 py-2 align-top ${f.name === "comments"
-                        ? "whitespace-pre-wrap break-words min-w-[150px] max-w-[250px]"
-                        : ""
-                        }`}
+                      className={`px-3 py-2 align-top ${
+                        f.name === "comments"
+                          ? "whitespace-pre-wrap break-words min-w-[250px] max-w-[400px]"
+                          : isAuditField
+                            ? "min-w-[200px]"
+                            : isStatusField
+                              ? "min-w-[220px]"
+                              : ""
+                      }`}
                     >
-                      {!isEditable && f.type === "readonly" ? (
-                        <p className="p-1 bg-gray-100 rounded">
+                      {!isEditable && (f.type === "readonly" || isAuditField) ? (
+                        <div className={`p-2 rounded ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>
                           {getDisplayValue(row, f)}
-                        </p>
+                        </div>
+                      ) : !isEditable && f.name === "comments" ? (
+                        <div className="p-2 rounded bg-gray-50 whitespace-pre-wrap break-words min-h-[80px]">
+                          {row[f.name] || "—"}
+                        </div>
                       ) : (
                         <EditableCell
                           row={row}
