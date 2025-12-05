@@ -532,7 +532,7 @@ export function AdvancedFilterModal({
                     filters.stage.toLowerCase() !== "sourcing" && 
                     (!filters.stage_status || filters.stage_status === "all")
                       ? "border-red-300"
-                      : "opacity-50"
+                      : ""
                   }`}
                 >
                   <SelectValue 
