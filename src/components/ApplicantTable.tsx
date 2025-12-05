@@ -108,7 +108,7 @@ const ApplicantTable = () => {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
   const { toast } = useToast();
 
@@ -994,6 +994,24 @@ const ApplicantTable = () => {
             Showing {showingStart} – {showingEnd} of {currentTotalCount}
           </p>
           <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">Rows:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setItemsPerPage(v);
+                  setCurrentPage(1); // reset to first page when page size changes
+                }}
+                className="border rounded px-2 py-1 bg-white text-sm"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={80}>80</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
