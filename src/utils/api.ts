@@ -433,7 +433,7 @@ export const deleteRole = async (id: string | number): Promise<void> => {
 export const submitLearningRound = async (row: any) => {
   return fetch(`${BASE_URL}/students/submit/learningRoundFeedback`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
 };
@@ -441,7 +441,7 @@ export const submitLearningRound = async (row: any) => {
 export const updateLearningRound = async (id: number, row: any) => {
   return fetch(`${BASE_URL}/students/update/learningRoundFeedback/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
 };
@@ -450,7 +450,7 @@ export const updateLearningRound = async (id: number, row: any) => {
 export const submitScreeningRound = async (row: any) => {
   return fetch(`${BASE_URL}/students/submit/screeningRoundFeedback`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
 };
@@ -458,7 +458,7 @@ export const submitScreeningRound = async (row: any) => {
 export const updateScreeningRound = async (id: number, row: any) => {
   return fetch(`${BASE_URL}/students/update/screeningRoundFeedback/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
 };
@@ -467,7 +467,7 @@ export const updateScreeningRound = async (id: number, row: any) => {
 export const submitCulturalFit = async (row: any) => {
   return fetch(`${BASE_URL}/students/submit/culturalFitRoundFeedback`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
 };
@@ -475,7 +475,7 @@ export const submitCulturalFit = async (row: any) => {
 export const updateCulturalFit = async (id: number, row: any) => {
   return fetch(`${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
 };
