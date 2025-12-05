@@ -427,6 +427,71 @@ export function AdvancedFilterModal({
     return String(item);
   };
 
+  // --- ADDED: helpers to build active filters and clear individual filter ---
+  const clearSingleFilter = (key: string) => {
+    setFilters((prev) => {
+      switch (key) {
+        case "stage":
+          return { ...prev, stage: "all", stage_id: undefined, stage_status: "all" };
+        case "stage_status":
+          return { ...prev, stage_status: "all" };
+        case "state":
+          setAvailableDistricts([]);
+          return { ...prev, state: undefined, district: [] };
+        case "district":
+          return { ...prev, district: [] };
+        case "partner":
+        case "campus":
+          return { ...prev, partner: [] };
+        case "school":
+          return { ...prev, school: [] };
+        case "religion":
+          return { ...prev, religion: [] };
+        case "qualification":
+          return { ...prev, qualification: [] };
+        case "currentStatus":
+          return { ...prev, currentStatus: [] };
+        case "dateRange":
+          return { ...prev, dateRange: { type: prev.dateRange.type } };
+        default:
+          return prev;
+      }
+    });
+  };
+
+  const activeFilters: { key: string; label: string }[] = [];
+  if (filters.stage && filters.stage !== "all")
+    activeFilters.push({ key: "stage", label: `Stage: ${filters.stage}` });
+  if (filters.stage_status && filters.stage_status !== "all")
+    activeFilters.push({ key: "stage_status", label: `Status: ${filters.stage_status}` });
+  if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}` });
+  if (filters.district?.length) activeFilters.push({ key: "district", label: `District: ${filters.district[0]}` });
+  if (filters.partner?.length) activeFilters.push({ key: "partner", label: `Campus: ${filters.partner[0]}` });
+  if (filters.school?.length)
+    activeFilters.push({
+      key: "school",
+      label: `School: ${getDisplayName(filters.school[0], "school_name", "School")}`,
+    });
+  if (filters.qualification?.length)
+    activeFilters.push({
+      key: "qualification",
+      label: `Qualification: ${getDisplayName(filters.qualification[0], "qualification_name", "Qualification")}`,
+    });
+  if (filters.currentStatus?.length)
+    activeFilters.push({
+      key: "currentStatus",
+      label: `Current: ${getDisplayName(filters.currentStatus[0], "current_status_name", "Status")}`,
+    });
+  if (filters.dateRange.from || filters.dateRange.to) {
+    const from = filters.dateRange.from ? format(filters.dateRange.from, "PP") : "";
+    const to = filters.dateRange.to ? format(filters.dateRange.to, "PP") : "";
+    activeFilters.push({
+      key: "dateRange",
+      label: `${filters.dateRange.type}: ${from}${from && to ? " - " : ""}${to}`,
+    });
+  }
+  // --- end added helpers ---
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
@@ -441,6 +506,27 @@ export function AdvancedFilterModal({
             )}
           </DialogTitle>
         </DialogHeader>
+
+        {/* --- ADDED: show active filter chips --- */}
+        {activeFilters.length > 0 && (
+          <div className="px-4">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {activeFilters.map((f) => (
+                <Button
+                  key={f.key}
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-full py-1 px-2 flex items-center gap-2 border"
+                  onClick={() => clearSingleFilter(f.key)}
+                >
+                  <span className="text-sm">{f.label}</span>
+                  <X className="w-3 h-3" />
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* --- end chips --- */}
 
         <div className="space-y-6">
           {/* Stage & Status & Modes */}

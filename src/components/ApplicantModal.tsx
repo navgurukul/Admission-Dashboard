@@ -117,7 +117,7 @@ export function ApplicantModal({
 
     // Try to find the state_code by matching the name
     const stateOption = stateOptions.find(
-      (opt) => opt.label.toUpperCase() === value.toUpperCase(),
+      (opt) => opt.label.toUpperCase() === value.toUpperCase()
     );
 
     return stateOption ? stateOption.value : value;
@@ -134,7 +134,7 @@ export function ApplicantModal({
 
     // Try to find the district_code by matching the name
     const districtOption = districtOptions.find(
-      (opt) => opt.label.toUpperCase() === value.toUpperCase(),
+      (opt) => opt.label.toUpperCase() === value.toUpperCase()
     );
 
     return districtOption ? districtOption.value : value;
@@ -195,7 +195,7 @@ export function ApplicantModal({
             }
             if (updated.district) {
               const districtCode = getDistrictCodeFromNameOrCode(
-                updated.district,
+                updated.district
               );
               setSelectedDistrict(districtCode);
             }
@@ -236,47 +236,47 @@ export function ApplicantModal({
           (campusRes || []).map((c: any) => ({
             value: c.id.toString(),
             label: c.campus_name,
-          })),
+          }))
         );
 
         setSchools(
           (schoolRes || []).map((c: any) => ({
             value: c.id.toString(),
             label: c.school_name,
-          })),
+          }))
         );
 
         setCastes(
           (casteRes || []).map((c: any) => ({
             value: c.id.toString(),
             label: c.cast_name,
-          })),
+          }))
         );
 
         setQualifications(
           (qualRes || []).map((q: any) => ({
             value: q.id.toString(),
             label: q.qualification_name,
-          })),
+          }))
         );
 
         setCurrentWorks(
           (workRes || []).map((w: any) => ({
             value: w.id.toString(),
             label: w.current_status_name,
-          })),
+          }))
         );
         setQuestionSets(
           (questionSetRes || []).map((qs: any) => ({
             value: qs.id.toString(),
             label: qs.name,
-          })),
+          }))
         );
         setStages(
           (stagesRes || []).map((s: any) => ({
             id: s.id,
             name: s.stage_name,
-          })),
+          }))
         );
       } catch (err) {
         // console.error("Failed to load dropdown data", err);
@@ -403,7 +403,7 @@ export function ApplicantModal({
 
       // Find stage IDs by name
       const finalDecisionStage = stages.find(
-        (s) => s.name === "Final Decision",
+        (s) => s.name === "Final Decision"
       );
       const onboardedStage = stages.find((s) => s.name === "Onboarded");
 
@@ -493,7 +493,7 @@ export function ApplicantModal({
   const getLabel = (
     options: { value: string; label: string }[],
     id: any,
-    defaultLabel = "Not provided",
+    defaultLabel = "Not provided"
   ) => {
     return (
       options.find((o) => o.value === id?.toString())?.label || defaultLabel
@@ -522,7 +522,7 @@ export function ApplicantModal({
     {
       name: "status",
       label: "Status *",
-      type: "select",
+      type: "select" as const,
       options: [
         { value: "Screening Test Pass", label: "Screening Test Pass" },
         { value: "Screening Test Fail", label: "Screening Test Fail" },
@@ -535,29 +535,29 @@ export function ApplicantModal({
     {
       name: "question_set_id",
       label: "Set Name *",
-      type: "select",
+      type: "select" as const,
       options: questionSets,
     },
     {
       name: "obtained_marks",
       label: "Obtained Marks *",
-      type: "readonly",
+      type: "readonly" as const,
     },
     {
       name: "school_id",
       label: "Qualifying School",
-      type: "select",
+      type: "select" as const,
       options: schools,
     },
     {
       name: "exam_centre",
       label: "Exam Centre *",
-      type: "readonly",
+      type: "readonly" as const,
     },
     {
       name: "date_of_test",
       label: "Date of Testing *",
-      type: "component",
+      type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
         return (
           <input
@@ -569,6 +569,11 @@ export function ApplicantModal({
           />
         );
       },
+    },
+    {
+      name: "audit_info",
+      label: "Audit Info",
+      type: "readonly" as const,
     },
   ];
 
@@ -587,6 +592,11 @@ export function ApplicantModal({
           : "",
       exam_centre: session.exam_centre || "",
       date_of_test: session.date_of_test?.split("T")[0] || "",
+      audit_info: {
+        created_at: session.created_at || "",
+        updated_at: session.updated_at || "",
+        last_updated_by: session.last_updated_by || "",
+      },
     })) || [];
 
   if (!applicant) return null;
@@ -648,6 +658,30 @@ export function ApplicantModal({
     return false;
   };
 
+  // Map learning round data with audit info
+  const initialLearningData = (
+    currentApplicant.interview_learner_round || []
+  ).map((round: any) => ({
+    ...round,
+    audit_info: {
+      created_at: round.created_at || "",
+      updated_at: round.updated_at || "",
+      last_updated_by: round.last_updated_by || "",
+    },
+  }));
+
+  // Map cultural fit round data with audit info
+  const initialCulturalData = (
+    currentApplicant.interview_cultural_fit_round || []
+  ).map((round: any) => ({
+    ...round,
+    audit_info: {
+      created_at: round.created_at || "",
+      updated_at: round.updated_at || "",
+      last_updated_by: round.last_updated_by || "",
+    },
+  }));
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -707,7 +741,6 @@ export function ApplicantModal({
                     }
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
-                  
                   />
                 </div>
                 <div>
@@ -763,7 +796,6 @@ export function ApplicantModal({
                     ]}
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
-                    
                   />
                 </div>
                 <div>
@@ -790,7 +822,7 @@ export function ApplicantModal({
                     value={currentApplicant.qualification_id}
                     displayValue={getLabel(
                       qualifications,
-                      currentApplicant.qualification_id,
+                      currentApplicant.qualification_id
                     )}
                     onUpdate={handleUpdate}
                     options={qualifications}
@@ -808,7 +840,7 @@ export function ApplicantModal({
                       currentWorks.find(
                         (w) =>
                           w.value ===
-                          currentApplicant.current_status_id?.toString(),
+                          currentApplicant.current_status_id?.toString()
                       )?.label || "Not provided"
                     }
                     onUpdate={handleUpdate}
@@ -825,7 +857,7 @@ export function ApplicantModal({
                     field="state"
                     displayValue={getLabel(
                       stateOptions,
-                      currentApplicant.state,
+                      currentApplicant.state
                     )}
                     value={currentApplicant.state}
                     onUpdate={handleStateChange}
@@ -859,8 +891,9 @@ export function ApplicantModal({
                     value={currentApplicant.district}
                     onUpdate={handleDistrictChange}
                     options={districtOptions}
-                    disabled={!hasEditAccess || !selectedState || isLoadingDistricts}
-                 
+                    disabled={
+                      !hasEditAccess || !selectedState || isLoadingDistricts
+                    }
                   />
                 </div>
                 <div>
@@ -878,7 +911,9 @@ export function ApplicantModal({
                     value={currentApplicant.block}
                     onUpdate={handleUpdate}
                     options={blockOptions}
-                    disabled={!hasEditAccess || !selectedDistrict || isLoadingBlocks}
+                    disabled={
+                      !hasEditAccess || !selectedDistrict || isLoadingBlocks
+                    }
                   />
                 </div>
               </div>
@@ -900,12 +935,12 @@ export function ApplicantModal({
                 <InlineSubform
                   title="Learning Round"
                   studentId={currentApplicant.id}
-                  initialData={currentApplicant.interview_learner_round || []}
+                  initialData={initialLearningData}
                   fields={[
                     {
                       name: "learning_round_status",
                       label: "Status *",
-                      type: "select",
+                      type: "select" as const,
                       disabled: isStageDisabled(currentApplicant, "LR"),
                       options: [
                         {
@@ -923,8 +958,13 @@ export function ApplicantModal({
                     {
                       name: "comments",
                       label: "Comments *",
-                      type: "text",
+                      type: "text" as const,
                       disabled: isStageDisabled(currentApplicant, "LR"),
+                    },
+                    {
+                      name: "audit_info",
+                      label: "Audit Info",
+                      type: "readonly" as const,
                     },
                   ]}
                   submitApi={API_MAP.learning.submit}
@@ -938,14 +978,12 @@ export function ApplicantModal({
                 <InlineSubform
                   title="Cultural Fit Round"
                   studentId={currentApplicant.id}
-                  initialData={
-                    currentApplicant.interview_cultural_fit_round || []
-                  }
+                  initialData={initialCulturalData}
                   fields={[
                     {
                       name: "cultural_fit_status",
                       label: "Status *",
-                      type: "select",
+                      type: "select" as const,
                       disabled: isStageDisabled(currentApplicant, "CFR"),
                       options: [
                         {
@@ -963,9 +1001,15 @@ export function ApplicantModal({
                     {
                       name: "comments",
                       label: "Comments *",
-                      type: "text",
-                      disabled: isStageDisabled(currentApplicant, "CFR"),
+                      type: "text" as const,
+                      disabled: isStageDisabled(currentApplicant, "LR"),
                     },
+              
+                    {
+                      name: "audit_info",
+                      label: "Audit Info",
+                      type: "readonly" as const,
+                    }
                   ]}
                   submitApi={API_MAP.cultural.submit}
                   updateApi={API_MAP.cultural.update}
@@ -983,8 +1027,8 @@ export function ApplicantModal({
                     <label className="text-sm font-medium text-muted-foreground">
                       Campus
                     </label>
-                    {isStageDisabled(currentApplicant, "OFFER") && 
-                     !currentApplicant.campus_id ? (
+                    {isStageDisabled(currentApplicant, "OFFER") &&
+                    !currentApplicant.campus_id ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -995,7 +1039,7 @@ export function ApplicantModal({
                                 value={currentApplicant.campus_id}
                                 displayValue={getLabel(
                                   campus,
-                                  currentApplicant.campus_id,
+                                  currentApplicant.campus_id
                                 )}
                                 onUpdate={handleUpdate}
                                 options={campus}
@@ -1015,7 +1059,7 @@ export function ApplicantModal({
                         value={currentApplicant.campus_id}
                         displayValue={getLabel(
                           campus,
-                          currentApplicant.campus_id,
+                          currentApplicant.campus_id
                         )}
                         onUpdate={handleUpdate}
                         options={campus}
@@ -1027,8 +1071,9 @@ export function ApplicantModal({
                     <label className="text-sm font-medium text-muted-foreground">
                       Offer Letter Status
                     </label>
-                    {isStageDisabled(currentApplicant, "OFFER") && 
-                     !currentApplicant.final_decisions?.[0]?.offer_letter_status ? (
+                    {isStageDisabled(currentApplicant, "OFFER") &&
+                    !currentApplicant.final_decisions?.[0]
+                      ?.offer_letter_status ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1045,10 +1090,19 @@ export function ApplicantModal({
                                     ?.offer_letter_status || "Not provided"
                                 }
                                 options={[
-                                  { value: "Offer Pending", label: "Offer Pending" },
+                                  {
+                                    value: "Offer Pending",
+                                    label: "Offer Pending",
+                                  },
                                   { value: "Offer Sent", label: "Offer Sent" },
-                                  { value: "Offer Accepted", label: "Offer Accepted" },
-                                  { value: "Offer Declined", label: "Offer Declined" },
+                                  {
+                                    value: "Offer Accepted",
+                                    label: "Offer Accepted",
+                                  },
+                                  {
+                                    value: "Offer Declined",
+                                    label: "Offer Declined",
+                                  },
                                   { value: "Waitlisted", label: "Waitlisted" },
                                   {
                                     value: "Selected but not joined",
@@ -1059,7 +1113,7 @@ export function ApplicantModal({
                                 onUpdate={async (value) => {
                                   await handleFinalDecisionUpdate(
                                     "offer_letter_status",
-                                    value,
+                                    value
                                   );
                                 }}
                               />
@@ -1097,7 +1151,7 @@ export function ApplicantModal({
                         onUpdate={async (value) => {
                           await handleFinalDecisionUpdate(
                             "offer_letter_status",
-                            value,
+                            value
                           );
                         }}
                       />
@@ -1107,8 +1161,8 @@ export function ApplicantModal({
                     <label className="text-sm font-medium text-muted-foreground">
                       Onboarded Status
                     </label>
-                    {isStageDisabled(currentApplicant, "OFFER") && 
-                     !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
+                    {isStageDisabled(currentApplicant, "OFFER") &&
+                    !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1117,18 +1171,21 @@ export function ApplicantModal({
                                 applicant={currentApplicant}
                                 field="onboarded_status"
                                 value={
-                                  currentApplicant.final_decisions?.[0]?.onboarded_status
+                                  currentApplicant.final_decisions?.[0]
+                                    ?.onboarded_status
                                 }
                                 displayValue={
                                   currentApplicant.final_decisions?.[0]
                                     ?.onboarded_status || "Not provided"
                                 }
-                                options={[{ value: "Onboarded", label: "Onboarded" }]}
+                                options={[
+                                  { value: "Onboarded", label: "Onboarded" },
+                                ]}
                                 disabled={true}
                                 onUpdate={async (value) => {
                                   await handleFinalDecisionUpdate(
                                     "onboarded_status",
-                                    value,
+                                    value
                                   );
                                 }}
                               />
@@ -1144,7 +1201,8 @@ export function ApplicantModal({
                         applicant={currentApplicant}
                         field="onboarded_status"
                         value={
-                          currentApplicant.final_decisions?.[0]?.onboarded_status
+                          currentApplicant.final_decisions?.[0]
+                            ?.onboarded_status
                         }
                         displayValue={
                           currentApplicant.final_decisions?.[0]
@@ -1155,7 +1213,7 @@ export function ApplicantModal({
                         onUpdate={async (value) => {
                           await handleFinalDecisionUpdate(
                             "onboarded_status",
-                            value,
+                            value
                           );
                         }}
                       />
@@ -1167,8 +1225,8 @@ export function ApplicantModal({
                   <label className="text-sm font-medium text-muted-foreground">
                     Joining Date
                   </label>
-                  {(isStageDisabled(currentApplicant, "OFFER") && 
-                   !currentApplicant.final_decisions?.[0]?.joining_date) ? (
+                  {isStageDisabled(currentApplicant, "OFFER") &&
+                  !currentApplicant.final_decisions?.[0]?.joining_date ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -1193,7 +1251,7 @@ export function ApplicantModal({
                       value={
                         joiningDate ||
                         currentApplicant.final_decisions?.[0]?.joining_date?.split(
-                          "T",
+                          "T"
                         )[0] ||
                         ""
                       }
@@ -1206,7 +1264,7 @@ export function ApplicantModal({
                           // Call API immediately when date changes
                           await handleFinalDecisionUpdate(
                             "joining_date",
-                            selectedDate || null,
+                            selectedDate || null
                           );
 
                           // Immediately sync
@@ -1230,53 +1288,65 @@ export function ApplicantModal({
 
               {/* Notes */}
               <div className="space-y-4 md:col-span-2">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="mb-4">
+                {/* Final Note - Full Width */}
+                <div className="w-full">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Final Note
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="final_notes"
+                    value={
+                      currentApplicant.final_decisions?.[0]?.final_notes || ""
+                    }
+                    displayValue={
+                      currentApplicant.final_decisions?.[0]?.final_notes ||
+                      "No final note"
+                    }
+                    renderInput={({ value, onChange }) => (
+                      <textarea
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        rows={4}
+                        className="border rounded px-2 py-1 w-full resize-none"
+                        placeholder="Enter final notes here..."
+                      />
+                    )}
+                    onUpdate={async (value) => {
+                      await handleFinalDecisionUpdate("final_notes", value);
+                    }}
+                  />
+                </div>
+
+                {/* Audit Information - Below Final Note */}
+                <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                  <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Final Note
+                      Created At
                     </label>
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="final_notes"
-                      value={
-                        currentApplicant.final_decisions?.[0]?.final_notes || ""
-                      }
-                      displayValue={
-                        currentApplicant.final_decisions?.[0]?.final_notes ||
-                        "No final note"
-                      }
-                      renderInput={({ value, onChange }) => (
-                        <textarea
-                          value={value}
-                          onChange={(e) => onChange(e.target.value)}
-                          rows={4}
-                          className="border rounded px-2 py-1 w-full resize-none"
-                          placeholder="Enter final notes here..."
-                        />
-                      )}
-                      onUpdate={async (value) => {
-                        await handleFinalDecisionUpdate("final_notes", value);
-                      }}
-                    />
+                    <p className="text-sm mt-1">
+                      {currentApplicant.final_decisions?.[0]?.created_at
+                        ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString()
+                        : "Not available"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Last Updated At
+                    </label>
+                    <p className="text-sm mt-1">
+                      {currentApplicant.final_decisions?.[0]?.updated_at
+                        ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString()
+                        : "Not available"}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Last Updated By
                     </label>
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="last_status_updated_by"
-                      displayValue={
-                        currentApplicant.final_decisions?.[0]
-                          ?.last_status_updated_by || "Not provided"
-                      }
-                      value={
-                        currentApplicant.final_decisions?.[0]
-                          ?.last_status_updated_by
-                      }
-                      onUpdate={handleUpdate}
-                      disabled={true}
-                    />
+                    <p className="text-sm mt-1">
+                      {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1332,3 +1402,5 @@ export function ApplicantModal({
     </>
   );
 }
+
+
