@@ -88,7 +88,7 @@ const ApplicantTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     stage: "all",
-    status: "all",
+    stage_status: "all",
     examMode: "all",
     interviewMode: "all",
     partner: [],
@@ -100,7 +100,7 @@ const ApplicantTable = () => {
     currentStatus: [],
     state: undefined,
     gender: undefined,
-    dateRange: { type: "application" as const, from: undefined, to: undefined },
+    dateRange: { type: "applicant" as const, from: undefined, to: undefined },
   });
 
   // Selected rows
@@ -342,6 +342,7 @@ const ApplicantTable = () => {
     else if (hasActiveFilters && filters) {
       try {
         const apiParams = transformFiltersToAPI(filters);
+        console.log("Refreshing filtered data with params:", apiParams);
         const results = await getFilterStudent(apiParams);
         setFilteredStudents(results || []);
       } catch (error: any) {
@@ -521,6 +522,7 @@ const ApplicantTable = () => {
 
   // Transform filter state to API query parameters
   const transformFiltersToAPI = (filterState: any) => {
+    console.log("Transforming filters to API params:", filterState);
     const apiParams: any = {};
 
     // Date range mapping based on type
@@ -552,6 +554,12 @@ const ApplicantTable = () => {
     if (filterState.stage_id) {
       apiParams.stage_id = filterState.stage_id;
     }
+    
+    // Stage Status
+    if (filterState.stage_status && filterState.stage_status !== "all") {
+      apiParams.stage_status = filterState.stage_status;
+    }
+    
     // Qualification ID
     if (
       filterState.qualification?.length &&
@@ -598,16 +606,16 @@ const ApplicantTable = () => {
 
   // Apply filters and fetch filtered students
   const handleApplyFilters = async (newFilters: any) => {
+    console.log("Applying filters:", newFilters);
     setFilters(newFilters);
 
     // Check if any meaningful filters are applied
     const hasFilters =
-      newFilters.stage_id ||
-      (newFilters.qualification?.length &&
-        newFilters.qualification[0] !== "all") ||
+      (newFilters.stage_id && newFilters.stage_id !== undefined) ||
+      (newFilters.stage_status && newFilters.stage_status !== "all") ||
+      (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
-      (newFilters.currentStatus?.length &&
-        newFilters.currentStatus[0] !== "all") ||
+      (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
@@ -657,7 +665,7 @@ const ApplicantTable = () => {
   const handleClearFilters = () => {
     setFilters({
       stage: "all",
-      status: "all",
+      stage_status: "all",
       examMode: "all",
       interviewMode: "all",
       partner: [],
