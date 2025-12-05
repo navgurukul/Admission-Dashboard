@@ -24,6 +24,7 @@ import { CalendarIcon, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { getFilterStudent, getAllStages } from "@/utils/api";
+import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 import {
   getStatesList,
   getDistrictsList,
@@ -42,7 +43,7 @@ import {
 interface FilterState {
   stage: string;
   stage_id?: number;
-  status: string;
+  stage_status: string;
   examMode: string;
   interviewMode: string;
   partner: string[];
@@ -229,7 +230,17 @@ export function AdvancedFilterModal({
         // Combine API states with states from students
         const allStates = [...apiStates];
         statesFromStudents.forEach((stateName) => {
-          if (!allStates.find((s) => s.name === stateName)) {
+          // if (!allStates.find((s) => s.name === stateName)) {
+            
+          const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
+           
+          // Check if state already exists by name or code
+          const existsInApi = allStates.find(
+            (s) => s.name === stateName || s.state_code === stateName || s.id === stateName
+          );
+          
+          // Only add if it's not a state code and doesn't exist in API states
+          if (!isStateCode && !existsInApi) {
             allStates.push({ id: stateName, name: stateName });
           }
         });
@@ -253,6 +264,7 @@ export function AdvancedFilterModal({
           currentStatuses: finalStatuses,
           campuses: finalCampuses,
           stages: apiStages,
+     
         });
 
         setAvailableStates(allStates);
@@ -283,7 +295,7 @@ export function AdvancedFilterModal({
     setFilters({
       stage: "all",
       stage_id: undefined,
-      status: "all",
+      stage_status: "all",
       examMode: "all",
       interviewMode: "all",
       partner: [],
@@ -341,8 +353,28 @@ export function AdvancedFilterModal({
       }
     }
 
-    // console.log(" Applying Filters:", filters);
-    onApplyFilters(filters);
+    // Validate stage status - mandatory for all stages except sourcing
+    if (filters.stage && filters.stage !== "all" && filters.stage.toLowerCase() !== "sourcing") {
+      if (!filters.stage_status || filters.stage_status === "all") {
+        toast({
+          title: "Stage Status Required",
+          description: `Please select a stage status for ${filters.stage} stage.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Create processed filters object without the old 'status' field
+    const processedFilters: any = {
+      ...filters,
+    };
+    
+    // Remove the old 'status' field if it exists
+    delete processedFilters.status;
+    
+    console.log("Current Filters:", processedFilters);
+    onApplyFilters(processedFilters);
     onClose();
     toast({
       title: "Filters Applied",
@@ -350,10 +382,6 @@ export function AdvancedFilterModal({
     });
   };
 
-  // const availableStatuses =
-  //   filters.stage && filters.stage !== "all"
-  //     ? STAGE_STATUS_MAP[filters.stage as keyof typeof STAGE_STATUS_MAP] || []
-  //     : [];
 
   // Helper function to get display name
   const getDisplayName = (
@@ -427,7 +455,7 @@ export function AdvancedFilterModal({
                       ...prev,
                       stage: "all",
                       stage_id: undefined,
-                      status: "all",
+                      stage_status: "all",
                     }));
                     return;
                   }
@@ -449,7 +477,7 @@ export function AdvancedFilterModal({
                       ...prev,
                       stage: stageName,
                       stage_id: Number(stageId),
-                      status: "all",
+                      stage_status: "all",
                     }));
                   }
                 }}
@@ -472,6 +500,61 @@ export function AdvancedFilterModal({
                       </SelectItem>
                     );
                   })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Stage Status */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">
+                Stage Status
+                {filters.stage && 
+                 filters.stage !== "all" && 
+                 filters.stage.toLowerCase() !== "sourcing" && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
+              </h3>
+              <Select
+                value={filters.stage_status || "all"}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({ ...prev, stage_status: value }))
+                }
+                disabled={
+                  !filters.stage || 
+                  filters.stage === "all" || 
+                  filters.stage.toLowerCase() === "sourcing"
+                }
+              >
+                <SelectTrigger 
+                  className={`w-full ${
+                    filters.stage && 
+                    filters.stage !== "all" && 
+                    filters.stage.toLowerCase() !== "sourcing" && 
+                    (!filters.stage_status || filters.stage_status === "all")
+                      ? "border-red-300"
+                      : ""
+                  }`}
+                >
+                  <SelectValue 
+                    placeholder={
+                      !filters.stage || filters.stage === "all"
+                        ? "Select stage first"
+                        : filters.stage.toLowerCase() === "sourcing"
+                          ? "Not applicable for Sourcing"
+                          : "Select status"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {filters.stage && 
+                   filters.stage !== "all" && 
+                   STAGE_STATUS_MAP[filters.stage.toLowerCase()] &&
+                   STAGE_STATUS_MAP[filters.stage.toLowerCase()].map((status: string) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -549,9 +632,10 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select State">
+                  {/* <SelectValue placeholder="Select State">
                     {filters.state || "All States"}
-                  </SelectValue>
+                  </SelectValue> */}
+                  <SelectValue placeholder = "Select State"/>
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All States</SelectItem>
