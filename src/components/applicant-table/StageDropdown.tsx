@@ -7,24 +7,35 @@ export const STAGE_OPTIONS = [
 
 export const STAGE_STATUS_MAP: Record<string, string[]> = {
   "": [""],
-  sourcing: [
-    "Enrollment Key Generated",
-    "Basic Details Entered",
-    "Duplicate",
-    "Unreachable",
-    "Became Disinterested",
-  ],
   screening: [
     "Screening Test Pass",
     "Screening Test Fail",
     "Created Student Without Exam",
   ],
+  interview: [
+    "Learner Round Pass",
+    "Learner Round Fail",
+    "Cultural Fit Interview Pass",
+    "Cultural Fit Interview Fail",
+  ],
+  "final decision": [
+    "Offer Pending",
+    "Offer Sent",
+    "Offer Accepted",
+    "Offer Declined",
+    "Waitlisted",
+    "Selected but not joined",
+  ],
+  "onboarded": ["Onboarded"],
 };
 
 export const STAGE_DEFAULT_STATUS: Record<string, string> = {
   "": "",
-  sourcing: "Enrollment Key Generated",
-  screening: "Screening Test Pass",
+  "sourcing": "Enrollment Key Generated",
+  "screening": "Screening Test Pass",
+  "final decision": "Final Decision",
+  "interview": "Learner Round Pass",
+  "onboarded": "Onboarded",
 };
 
 interface StageDropdownProps {

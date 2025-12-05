@@ -49,6 +49,7 @@ export function DashboardStats() {
       if (finalDecisionStageId) {
         const finalDecisionResponse = await getFilterStudent({
           stage_id: finalDecisionStageId,
+          stage_status:"Offer Sent"
         });
         activeApplications = finalDecisionResponse?.length || 0;
       }
@@ -58,6 +59,7 @@ export function DashboardStats() {
       if (onboardedStageId) {
         const onboardedResponse = await getFilterStudent({
           stage_id: onboardedStageId,
+          stage_status: "Onboarded",
         });
         successfullyOnboarded = onboardedResponse?.length || 0;
       }
