@@ -35,6 +35,7 @@ import {
   getBlocksByDistrict,
   getDistrictsByState,
   submitScreeningRound,
+  uploadProfileImage,
 } from "@/utils/api";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -116,8 +117,10 @@ export function AddApplicantModal({
     district: false,
     block: false,
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    image_url: "",
     first_name: "",
     middle_name: "",
     last_name: "",
@@ -153,6 +156,7 @@ export function AddApplicantModal({
 
   const resetForm = () => {
     setFormData({
+      image_url: "",
       first_name: "",
       middle_name: "",
       last_name: "",
@@ -192,6 +196,7 @@ export function AddApplicantModal({
     setBlockOptions([]);
     setActiveTab("basic");
     setErrors({});
+    setImagePreview(null);
   };
 
   useEffect(() => {
@@ -386,8 +391,51 @@ export function AddApplicantModal({
     }
   }, [selectedBlock, blockOptions]);
 
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        // Show loading toast
+        toast({
+          title: "Uploading...",
+          description: "Please wait while we upload the image...",
+        });
+
+        const uploadResult = await uploadProfileImage(file);
+
+        setFormData((prev) => ({
+          ...prev,
+          image_url: uploadResult.url,
+        }));
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        toast({
+          title: "Success",
+          description: "Image uploaded successfully!",
+        });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "Failed to upload image. Please try again.",
+        });
+        e.target.value = "";
+      }
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+
+    if (!formData.image_url) {
+      newErrors.image_url = "Profile image is required";
+    }
 
     if (!formData.first_name.trim()) {
       newErrors.first_name = "First name is required";
@@ -397,6 +445,12 @@ export function AddApplicantModal({
       newErrors.phone_number = "Mobile number is required";
     } else if (!/^\d{10}$/.test(formData.phone_number)) {
       newErrors.phone_number = "Mobile number must be 10 digits";
+    }
+
+    if (!formData.whatsapp_number.trim()) {
+      newErrors.whatsapp_number = "WhatsApp number is required";
+    } else if (!/^\d{10}$/.test(formData.whatsapp_number)) {
+      newErrors.whatsapp_number = "WhatsApp number must be 10 digits";
     }
 
     if (!formData.email.trim()) {
@@ -418,13 +472,47 @@ export function AddApplicantModal({
         newErrors.dob = "Date of birth cannot be today or in the future";
       }
     }
-    if (!formData.email || !formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = "Please enter a valid email address";
-      }
+
+    if (!selectedState) {
+      newErrors.state = "State is required";
+    }
+
+    if (!selectedDistrict) {
+      newErrors.district = "District is required";
+    }
+
+    if (!formData.block) {
+      newErrors.block = "Block is required";
+    }
+
+    if (!formData.pin_code.trim()) {
+      newErrors.pin_code = "PIN Code is required";
+    } else if (formData.pin_code.length !== 6) {
+      newErrors.pin_code = "PIN Code must be 6 digits";
+    }
+
+    if (!formData.cast_id) {
+      newErrors.cast_id = "Caste is required";
+    }
+
+    if (!formData.qualification_id) {
+      newErrors.qualification_id = "Qualification is required";
+    }
+
+    if (!formData.current_status_id) {
+      newErrors.current_status_id = "Current work is required";
+    }
+
+    if (!formData.campus_id) {
+      newErrors.campus_id = "Campus is required";
+    }
+
+    if (!formData.religion_id) {
+      newErrors.religion_id = "Religion is required";
+    }
+
+    if (!formData.communication_notes.trim()) {
+      newErrors.communication_notes = "Communication notes are required";
     }
 
     // Screening section validation: If any field is filled, all required fields must be filled
@@ -437,7 +525,6 @@ export function AddApplicantModal({
       qualifying_school_id: formData.qualifying_school_id,
     };
 
-    console.log(screeningFields);
     const hasAnyScreeningData = Object.values(screeningFields).some(
       (value) => value !== "" && value !== null && value !== undefined,
     );
@@ -483,13 +570,14 @@ export function AddApplicantModal({
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
       // Check if screening validation failed
-      const hasScreeningErrors = Object.keys(errors).some((key) =>
+      const hasScreeningErrors = Object.keys(formErrors).some((key) =>
         [
           "status",
           "question_set_id",
@@ -512,10 +600,10 @@ export function AddApplicantModal({
 
     setLoading(true);
     try {
-      console.log("Submitting form data:", formData);
+      // console.log("Submitting form data:", formData);
       // Step 1: Create student with basic details only
       const studentData = {
-        image_url: null,
+        image_url: formData.image_url || null,
         first_name: formData.first_name,
         middle_name: formData.middle_name,
         last_name: formData.last_name,
@@ -661,11 +749,23 @@ export function AddApplicantModal({
     switch (tabValue) {
       case "basic":
         return (
+          formData.image_url &&
           formData.first_name &&
           formData.phone_number &&
+          formData.whatsapp_number &&
           formData.gender &&
           formData.dob &&
-          formData.email
+          formData.email &&
+          selectedState &&
+          selectedDistrict &&
+          formData.block &&
+          formData.pin_code &&
+          formData.cast_id &&
+          formData.qualification_id &&
+          formData.current_status_id &&
+          formData.campus_id &&
+          formData.religion_id &&
+          formData.communication_notes
         );
       case "screening":
         return !!formData.status;
@@ -760,9 +860,65 @@ export function AddApplicantModal({
             <TabsContent value="basic" className="space-y-4 sm:space-y-6">
               <div className="bg-gradient-to-r from-orange-50 to-indigo-50 p-4 sm:p-6 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <User className="w-5 h-5 mr-2 text-blue-600" />
-                  Applicant Information
+                  {/* <User className="w-5 h-5 mr-2 text-blue-600" /> */}
+                  {/* Applicant Information */}
                 </h3>
+
+                {/* Profile Image Upload */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative group">
+                    <div
+                      className={cn(
+                        "w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center",
+                        errors.image_url ? "border-red-500" : "border-white",
+                      )}
+                    >
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
+                      )}
+                    </div>
+                    <label
+                      htmlFor="profile-image"
+                      className="absolute bottom-0 right-0 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full shadow-md cursor-pointer transition-colors"
+                    >
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-full h-full"
+                        >
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                          <circle cx="12" cy="13" r="4" />
+                        </svg>
+                      </div>
+                      <input
+                        id="profile-image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  {errors.image_url && (
+                    <p className="text-red-500 text-xs flex items-center mt-2">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {errors.image_url}
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="first_name" className="text-sm font-medium">
@@ -802,7 +958,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last_name" className="text-sm font-medium">
-                      Last Name
+                      Last Name 
                     </Label>
                     <Input
                       id="last_name"
@@ -811,6 +967,7 @@ export function AddApplicantModal({
                         handleInputChange("last_name", e.target.value)
                       }
                       placeholder="Enter last name"
+                      className={errors.last_name ? "border-red-500" : ""}
                     />
                   </div>
                   <div className="space-y-2">
@@ -836,7 +993,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp" className="text-sm font-medium">
-                      WhatsApp Number
+                      WhatsApp Number *
                     </Label>
                     <Input
                       id="whatsapp"
@@ -846,7 +1003,16 @@ export function AddApplicantModal({
                       }
                       placeholder="Enter WhatsApp number"
                       maxLength={10}
+                      className={
+                        errors.whatsapp_number ? "border-red-500" : ""
+                      }
                     />
+                    {errors.whatsapp_number && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.whatsapp_number}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium">
@@ -926,7 +1092,7 @@ export function AddApplicantModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="state" className="text-sm font-medium">
-                      State
+                      State *
                     </Label>
                     <Select
                       value={selectedState}
@@ -980,10 +1146,16 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.state && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.state}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="district" className="text-sm font-medium">
-                      District
+                      District *
                     </Label>
                     <Select
                       value={selectedDistrict}
@@ -1055,6 +1227,12 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.district && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.district}
+                      </p>
+                    )}
                   </div>
                   {/* <div className="space-y-2">
                     <Label htmlFor="city" className="text-sm font-medium">
@@ -1071,7 +1249,7 @@ export function AddApplicantModal({
                   </div> */}
                   <div className="space-y-2">
                     <Label htmlFor="block" className="text-sm font-medium">
-                      Block
+                      Block *
                     </Label>
                     <Select
                       value={selectedBlock}
@@ -1106,10 +1284,16 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.block && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.block}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="pin_code" className="text-sm font-medium">
-                      PIN Code
+                      PIN Code *
                     </Label>
                     <Input
                       type="text"
@@ -1122,7 +1306,14 @@ export function AddApplicantModal({
                       maxLength={6}
                       pattern="[0-9]{6}"
                       inputMode="numeric"
+                      className={errors.pin_code ? "border-red-500" : ""}
                     />
+                    {errors.pin_code && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.pin_code}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1135,7 +1326,7 @@ export function AddApplicantModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="caste_id" className="text-sm font-medium">
-                      Caste
+                      Caste *
                     </Label>
                     <Select
                       value={formData.cast_id ? String(formData.cast_id) : ""}
@@ -1162,6 +1353,12 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.cast_id && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.cast_id}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1169,7 +1366,7 @@ export function AddApplicantModal({
                       htmlFor="qualification_id"
                       className="text-sm font-medium"
                     >
-                      Qualification
+                      Qualification *
                     </Label>
                     <Select
                       value={
@@ -1200,6 +1397,12 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.qualification_id && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.qualification_id}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1207,7 +1410,7 @@ export function AddApplicantModal({
                       htmlFor="current_work"
                       className="text-sm font-medium"
                     >
-                      Current Work
+                      Current Work *
                     </Label>
                     <Select
                       value={
@@ -1238,11 +1441,17 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.current_status_id && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.current_status_id}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="campus_id" className="text-sm font-medium">
-                      Campus
+                      Campus *
                     </Label>
                     <Select
                       value={
@@ -1271,6 +1480,12 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.campus_id && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.campus_id}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1278,7 +1493,7 @@ export function AddApplicantModal({
                       htmlFor="religion_id"
                       className="text-sm font-medium"
                     >
-                      Religion
+                      Religion *
                     </Label>
                     <Select
                       value={
@@ -1307,6 +1522,12 @@ export function AddApplicantModal({
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.religion_id && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.religion_id}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1315,7 +1536,7 @@ export function AddApplicantModal({
                     htmlFor="communication_notes"
                     className="text-sm font-medium"
                   >
-                    Communication Notes
+                    Communication Notes *
                   </Label>
                   <Textarea
                     id="communication_notes"
@@ -1325,8 +1546,18 @@ export function AddApplicantModal({
                     }
                     placeholder="Enter communication notes"
                     rows={3}
-                    className="resize-none"
+                    className={
+                      errors.communication_notes
+                        ? "resize-none border-red-500"
+                        : "resize-none"
+                    }
                   />
+                  {errors.communication_notes && (
+                    <p className="text-red-500 text-xs flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      {errors.communication_notes}
+                    </p>
+                  )}
                 </div>
               </div>
             </TabsContent>
