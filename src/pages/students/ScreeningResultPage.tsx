@@ -101,13 +101,13 @@ const ScreeningResultPage: React.FC = () => {
 
             <p className="text-gray-700 mb-4">
               You can send us a mail on{" "}
-              <a href="mailto:hi@navgurukul.org" className="text-blue-500">
-                hi@navgurukul.org
+              <a href="mailto:admissions@navgurukul.org" className="text-blue-500">
+                admissions@navgurukul.org
               </a>
               .
             </p>
 
-            <div className="flex flex-col md:flex-row gap-4 mt-6 w-full justify-center">
+            {/* <div className="flex flex-col md:flex-row gap-4 mt-6 w-full justify-center">
               <a
                 href="https://navgurukul.org"
                 target="_blank"
@@ -124,7 +124,7 @@ const ScreeningResultPage: React.FC = () => {
               >
                 START CODING NOW
               </a>
-            </div>
+            </div> */}
 
             {/* Button to go to results/dashboard */}
             <button
