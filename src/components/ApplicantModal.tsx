@@ -916,6 +916,18 @@ export function ApplicantModal({
                     }
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Pincode
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="pin_code"
+                    displayValue={currentApplicant.pin_code || "Not provided"}
+                    onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
+                  />
+                </div>
               </div>
             </div>
 
@@ -1004,7 +1016,7 @@ export function ApplicantModal({
                       type: "text" as const,
                       disabled: isStageDisabled(currentApplicant, "LR"),
                     },
-              
+
                     {
                       name: "audit_info",
                       label: "Audit Info",
@@ -1028,7 +1040,7 @@ export function ApplicantModal({
                       Campus
                     </label>
                     {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.campus_id ? (
+                      !currentApplicant.campus_id ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1072,8 +1084,8 @@ export function ApplicantModal({
                       Offer Letter Status
                     </label>
                     {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.final_decisions?.[0]
-                      ?.offer_letter_status ? (
+                      !currentApplicant.final_decisions?.[0]
+                        ?.offer_letter_status ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1162,7 +1174,7 @@ export function ApplicantModal({
                       Onboarded Status
                     </label>
                     {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
+                      !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1226,7 +1238,7 @@ export function ApplicantModal({
                     Joining Date
                   </label>
                   {isStageDisabled(currentApplicant, "OFFER") &&
-                  !currentApplicant.final_decisions?.[0]?.joining_date ? (
+                    !currentApplicant.final_decisions?.[0]?.joining_date ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
