@@ -300,13 +300,25 @@ const StudentForm: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    let newFormData = { ...formData, [name]: value };
+
+    // For phone fields, strip non-digit characters and limit to 10 digits
+    let processedValue = value;
+    if (name === "whatsappNumber" || name === "alternateNumber") {
+      processedValue = value.replace(/\D/g, "").slice(0, 10);
+    }
+
+    // For pin code, allow only digits and limit to 6 digits
+    if (name === "pinCode") {
+      processedValue = value.replace(/\D/g, "").slice(0, 6);
+    }
+
+    let newFormData = { ...formData, [name]: processedValue };
     // Handle state change
     if (name === "stateCode") {
-      const selectedState = states.find((state) => state.state_code === value);
+      const selectedState = states.find((state) => state.state_code === processedValue);
       newFormData = {
         ...newFormData,
-        stateCode: value,
+        stateCode: processedValue,
         state: selectedState?.state_name || "",
         district: "",
         districtCode: "",
@@ -315,35 +327,35 @@ const StudentForm: React.FC = () => {
       };
       setDistricts([]);
       setBlocks([]);
-      if (value) {
-        fetchDistricts(value);
+      if (processedValue) {
+        fetchDistricts(processedValue);
       }
     }
 
     // Handle district change
     if (name === "districtCode") {
       const selectedDistrict = districts.find(
-        (district) => district.district_code === value,
+        (district) => district.district_code === processedValue,
       );
       newFormData = {
         ...newFormData,
-        districtCode: value,
+        districtCode: processedValue,
         district: selectedDistrict?.district_name || "",
         block: "",
         blockCode: "",
       };
       setBlocks([]);
-      if (value) {
-        fetchBlocks(value);
+      if (processedValue) {
+        fetchBlocks(processedValue);
       }
     }
 
     // Handle block change
     if (name === "blockCode") {
-      const selectedBlock = blocks.find((block) => block.block_code === value);
+      const selectedBlock = blocks.find((block) => block.block_code === processedValue);
       newFormData = {
         ...newFormData,
-        blockCode: value,
+        blockCode: processedValue,
         block: selectedBlock?.block_name || "",
       };
     }
@@ -353,7 +365,7 @@ const StudentForm: React.FC = () => {
 
     // Live email validation
     if (name === "email") {
-      if (!validateEmail(value)) {
+      if (!validateEmail(processedValue)) {
         setEmailError("Please enter a valid email address");
       } else {
         setEmailError("");
