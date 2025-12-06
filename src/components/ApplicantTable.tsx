@@ -604,10 +604,186 @@ const ApplicantTable = () => {
     return apiParams;
   };
 
-  // Apply filters and fetch filtered students
-  const handleApplyFilters = async (newFilters: any) => {
-    console.log("Applying filters:", newFilters);
-    setFilters(newFilters);
+  // Build readable tags for active filters to display above the search input
+  // Helper: resolve campus name when the value might be an id, index or name string
+  const resolveCampusName = (value: any) => {
+    if (value === null || value === undefined || value === "") return null;
+    // If already a non-numeric string, assume it's a name
+    if (typeof value === "string" && /\D/.test(value)) return value;
+
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric)) {
+      // Try match by id
+      const byId = campusList.find((c) => Number(c.id) === numeric);
+      if (byId) return byId.campus_name || byId.name || String(value);
+      // Try interpret as index into campusList
+      if (numeric >= 0 && numeric < campusList.length) {
+        return campusList[numeric]?.campus_name || campusList[numeric]?.name || String(value);
+      }
+    }
+
+    // Fallback to string representation
+    return String(value);
+  };
+
+  // Resolver: School name (id | index | name)
+  const resolveSchoolName = (value: any) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "string" && /\D/.test(value)) return value;
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric)) {
+      const byId = schoolList.find((s) => Number(s.id) === numeric);
+      if (byId) return byId.school_name || byId.name || String(value);
+      if (numeric >= 0 && numeric < schoolList.length) {
+        return schoolList[numeric]?.school_name || schoolList[numeric]?.name || String(value);
+      }
+    }
+    return String(value);
+  };
+
+  // Resolver: QuestionSet / Qualification name (id | index | name)
+  const resolveQuestionSetName = (value: any) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "string" && /\D/.test(value)) return value;
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric)) {
+      const byId = questionSetList.find((q) => Number(q.id) === numeric);
+      if (byId) return byId.name || String(value);
+      if (numeric >= 0 && numeric < questionSetList.length) {
+        return questionSetList[numeric]?.name || String(value);
+      }
+    }
+    return String(value);
+  };
+
+  // Resolver: Current status name (id | index | name)
+  const resolveCurrentStatusName = (value: any) => {
+    if (value === null || value === undefined || value === "") return null;
+    if (typeof value === "string" && /\D/.test(value)) return value;
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric)) {
+      const byId = currentstatusList.find((s) => Number(s.id) === numeric);
+      if (byId) return byId.current_status_name || byId.name || String(value);
+      if (numeric >= 0 && numeric < currentstatusList.length) {
+        return currentstatusList[numeric]?.current_status_name || currentstatusList[numeric]?.name || String(value);
+      }
+    }
+    return String(value);
+  };
+
+   const activeFilterTags = useMemo(() => {
+     const tags: { key: string; label: string }[] = [];
+
+    // Stage (supports stage_id or stage)
+    const stageId = (filters as any).stage_id ?? (filters as any).stage;
+    if (stageId && stageId !== "all") {
+      const stageObj = stageList.find((s) => s.id === stageId) as any;
+      tags.push({
+        key: `stage-${stageId}`,
+        label: `Stage: ${stageObj?.stage_name || stageObj?.name || stageId}`,
+      });
+    }
+
+    // Stage status
+    if ((filters as any).stage_status && (filters as any).stage_status !== "all") {
+      tags.push({
+        key: `stage_status-${(filters as any).stage_status}`,
+        label: `Stage Status: ${(filters as any).stage_status}`,
+      });
+    }
+
+    // Partner / Campus
+    if ((filters as any).partner?.length) {
+      const partners = (filters as any).partner.filter((p: any) => p !== "all");
+      partners.forEach((p: any) => {
+        const campus = campusList.find((c) => Number(c.id) === Number(p));
+        const campusLabel = campus?.campus_name || resolveCampusName(p) || p;
+        tags.push({
+          key: `partner-${p}`,
+          label: `Campus: ${campusLabel}`,
+        });
+      });
+    }
+
+    // School
+    if ((filters as any).school?.length) {
+      const schools = (filters as any).school.filter((s: any) => s !== "all");
+      schools.forEach((s: any) => {
+        const sch = schoolList.find((sc) => Number(sc.id) === Number(s));
+        const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
+        tags.push({
+          key: `school-${s}`,
+          label: `School: ${schoolLabel}`,
+        });
+      });
+    }
+
+    // Current Status
+    if ((filters as any).currentStatus?.length) {
+      const curr = (filters as any).currentStatus.filter((c: any) => c !== "all");
+      curr.forEach((c: any) => {
+        const cs = currentstatusList.find((st) => Number(st.id) === Number(c));
+        const csLabel = cs?.current_status_name || resolveCurrentStatusName(c) || c;
+        tags.push({
+          key: `currentStatus-${c}`,
+          label: `Current Status: ${csLabel}`,
+        });
+      });
+    }
+
+    // Qualification (try questionSetList lookup)
+    if ((filters as any).qualification?.length) {
+      const quals = (filters as any).qualification.filter((q: any) => q !== "all");
+      quals.forEach((q: any) => {
+        const qq = questionSetList.find((x) => Number(x.id) === Number(q));
+        const qualLabel = qq?.name || resolveQuestionSetName(q) || q;
+        tags.push({
+          key: `qualification-${q}`,
+          label: `Qualification: ${qualLabel}`,
+        });
+      });
+    }
+
+    // Religion
+    if ((filters as any).religion?.length) {
+      const rels = (filters as any).religion.filter((r: any) => r !== "all");
+      rels.forEach((r: any) => {
+        const rr = religionList.find((x) => x.id === r);
+        tags.push({
+          key: `religion-${r}`,
+          label: `Religion: ${rr?.religion_name || r}`,
+        });
+      });
+    }
+
+    // State / District / Gender
+    if ((filters as any).state && (filters as any).state !== "all") {
+      tags.push({ key: `state-${(filters as any).state}`, label: `State: ${(filters as any).state}` });
+    }
+    if ((filters as any).district?.length) {
+      const dists = (filters as any).district.filter((d: any) => d !== "all");
+      dists.forEach((d: any) => tags.push({ key: `district-${d}`, label: `District: ${d}` }));
+    }
+    if ((filters as any).gender && (filters as any).gender !== "all") {
+      tags.push({ key: `gender-${(filters as any).gender}`, label: `Gender: ${(filters as any).gender}` });
+    }
+
+    // Date range
+    if ((filters as any).dateRange?.from && (filters as any).dateRange?.to) {
+      const from = new Date((filters as any).dateRange.from).toLocaleDateString();
+      const to = new Date((filters as any).dateRange.to).toLocaleDateString();
+      const type = (filters as any).dateRange.type || "date";
+      tags.push({ key: `daterange-${from}-${to}`, label: `${type} ${from} → ${to}` });
+    }
+
+    return tags;
+   }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList]);
+  
+  // Use resolved campus name in applicant mapping too (handles API returning numeric/string)
+   // Apply filters and fetch filtered students
+   const handleApplyFilters = async (newFilters: any) => {
+     console.log("Applying filters:", newFilters);
+     setFilters(newFilters);
 
     // Check if any meaningful filters are applied
     const hasFilters =
@@ -868,17 +1044,30 @@ const ApplicantTable = () => {
 
       <CardContent className="flex-1 flex flex-col">
         <div className="mb-4 space-y-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search applicants..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+          {/* Selected filter tags shown above the search input */}
+          {activeFilterTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {activeFilterTags.map((t) => (
+                <span
+                  key={t.key}
+                  className="inline-flex items-center bg-muted px-2 py-1 rounded text-sm text-muted-foreground"
+                >
+                  {t.label}
+                </span>
+              ))}
+            </div>
+          )}
+           <div className="relative">
+             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+             <Input
+               type="search"
+               placeholder="Search applicants..."
+               className="pl-10"
+               value={searchTerm}
+               onChange={(e) => setSearchTerm(e.target.value)}
+             />
+           </div>
+         </div>
 
         <div className="flex-1 border rounded-md overflow-hidden">
           <div className="h-full overflow-auto">
