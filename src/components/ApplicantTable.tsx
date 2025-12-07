@@ -875,8 +875,10 @@ const ApplicantTable = () => {
       return;
     }
 
+    // सभी applicant fields को include करें
     const headers = [
       // Personal Information
+      "id",
       "first_name",
       "middle_name",
       "last_name",
@@ -885,6 +887,7 @@ const ApplicantTable = () => {
       "email",
       "phone_number",
       "whatsapp_number",
+      "mobile_no",
 
       // Address Information
       "state",
@@ -895,26 +898,41 @@ const ApplicantTable = () => {
 
       // Academic / School Information
       "school_medium",
-      // "qualification_name",
-      // "qualifying_school",
+      "school_name",
+      "school_id",
+      "qualification_name",
+      "qualifying_school",
+
+      // Campus
+      "campus_name",
+      "campus_id",
 
       // Caste / Religion
       "cast_name",
       "religion_name",
+      "religion_id",
 
       // Status Information
-      // "current_status_name",
-      // "lr_status",
-      // "lr_comments",
-      // "cfr_status",
-      // "cfr_comments",
-      // "decision_status",
-      // "offer_letter_status",
-      // "joining_status",
+      "current_status_name",
+      "current_status_id",
+      "stage_name",
+      "stage_id",
+      "lr_status",
+      "lr_comments",
+      "cfr_status",
+      "cfr_comments",
+      "decision_status",
+      "offer_letter_status",
+      "joining_status",
 
-      // Additional Notes
-      // "communication_notes",
-      // "final_notes",
+      // Additional Notes & Details
+      "communication_notes",
+      "final_notes",
+      "created_at",
+      "updated_at",
+      "question_set_name",
+      "question_set_id",
+      "maximumMarks",
     ];
 
     const csvContent = [
@@ -925,7 +943,11 @@ const ApplicantTable = () => {
             const value = applicant[header];
             if (value === null || value === undefined) return "";
             const s = String(value);
-            return s.includes(",") ? `"${s}"` : s;
+            // Special handling for fields with commas or quotes
+            if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+              return `"${s.replace(/"/g, '""')}"`;
+            }
+            return s;
           })
           .join(","),
       ),
@@ -945,8 +967,8 @@ const ApplicantTable = () => {
     document.body.removeChild(link);
 
     toast({
-      title: "Export Complete",
-      description: `Exported ${filteredApplicants.length} applicants to CSV`,
+      title: "✅ Export Complete",
+      description: `Exported ${filteredApplicants.length} applicants with all details to CSV`,
     });
   };
 
