@@ -129,7 +129,7 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
           <SelectItem value="CLEAR_SELECTION">
             <span className="text-gray-400">Selection</span>
           </SelectItem>
-          {field.options?.map((opt) => (
+          {field.options?.filter(opt => opt.value !== "").map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
             </SelectItem>
@@ -333,7 +333,7 @@ export function InlineSubform({
     if (field.name === "audit_info") {
       const auditData = row[field.name];
       if (!auditData || typeof auditData !== 'object') return "—";
-      
+
       const formatTimestamp = (timestamp: string) => {
         if (!timestamp) return "—";
         try {
@@ -350,11 +350,11 @@ export function InlineSubform({
           return timestamp;
         }
       };
-      
+
       const created = formatTimestamp(auditData.created_at);
       const updated = formatTimestamp(auditData.updated_at);
       const updatedBy = auditData.last_updated_by || "—";
-      
+
       return (
         <div className="text-xs space-y-1">
           <div><span className="font-medium">Created:</span> {created}</div>
@@ -363,7 +363,7 @@ export function InlineSubform({
         </div>
       );
     }
-    
+
     // Format timestamp fields
     if (field.name === "created_at" || field.name === "updated_at") {
       if (!row[field.name]) return "—";
@@ -381,12 +381,12 @@ export function InlineSubform({
         return row[field.name];
       }
     }
-    
+
     // Display last_updated_by as is
     if (field.name === "last_updated_by") {
       return row[field.name] || "—";
     }
-    
+
     if (field.options) {
       const match = field.options.find((o) => o.value === row[field.name]);
       return match ? match.label : row[field.name] || "—";
@@ -450,15 +450,14 @@ export function InlineSubform({
                   return (
                     <td
                       key={f.name}
-                      className={`px-3 py-2 align-top ${
-                        f.name === "comments"
+                      className={`px-3 py-2 align-top ${f.name === "comments"
                           ? "whitespace-pre-wrap break-words min-w-[250px] max-w-[400px]"
                           : isAuditField
                             ? "min-w-[200px]"
                             : isStatusField
                               ? "min-w-[220px]"
                               : ""
-                      }`}
+                        }`}
                     >
                       {!isEditable && (f.type === "readonly" || isAuditField) ? (
                         <div className={`p-2 rounded ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>

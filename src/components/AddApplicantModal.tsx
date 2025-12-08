@@ -350,12 +350,15 @@ export function AddApplicantModal({
       try {
         const blocksRes = await getBlocksByDistrict(selectedDistrict);
         const blocks = blocksRes?.data || blocksRes || [];
+        
+        // Use id as value and block_name as label
         const mappedBlocks = blocks.map((b: any) => ({
-          value: b.block_code,
-          label: b.block_name,
+          value: String(b.id), // Use id as value since block_code is not available
+          label: b.block_name, // Use block_name for display
         }));
+        
         setBlockOptions(mappedBlocks);
-        setSelectedBlock("");
+        setSelectedBlock(""); // Clear selected block when district changes
 
         setFormData((prev) => ({
           ...prev,
@@ -367,7 +370,6 @@ export function AddApplicantModal({
           blockCode: "",
         }));
       } catch (err) {
-        // console.error("Failed to fetch blocks:", err);
         setBlockOptions([]);
       } finally {
         setIsLoadingBlocks(false);
@@ -375,21 +377,7 @@ export function AddApplicantModal({
     };
 
     fetchBlocks();
-  }, [selectedDistrict, districtOptions]);
-
-  // Handle block selection - update formData with both code and label
-  useEffect(() => {
-    if (selectedBlock) {
-      const selectedBlockOption = blockOptions.find(
-        (b) => b.value === selectedBlock,
-      );
-      setFormData((prev) => ({
-        ...prev,
-        block: selectedBlockOption?.label || selectedBlock,
-        blockCode: selectedBlock,
-      }));
-    }
-  }, [selectedBlock, blockOptions]);
+  }, [selectedDistrict]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1253,12 +1241,31 @@ export function AddApplicantModal({
                     </Label>
                     <Select
                       value={selectedBlock}
-                      onValueChange={setSelectedBlock}
+                      onValueChange={(value) => {
+                        if (value === "none") {
+                          setSelectedBlock("");
+                          setFormData((prev) => ({
+                            ...prev,
+                            block: "",
+                            blockCode: "",
+                          }));
+                        } else {
+                          setSelectedBlock(value);
+                          const selectedBlockOption = blockOptions.find(
+                            (b) => b.value === value
+                          );
+                          setFormData((prev) => ({
+                            ...prev,
+                            block: selectedBlockOption?.label || value,
+                            blockCode: value,
+                          }));
+                        }
+                      }}
                       disabled={!selectedDistrict || isLoadingBlocks}
                     >
                       <SelectTrigger
                         className={
-                          showLocationWarning.block ? "border-red-500" : ""
+                          showLocationWarning.block || errors.block ? "border-red-500" : ""
                         }
                       >
                         {isLoadingBlocks ? (
@@ -1277,6 +1284,11 @@ export function AddApplicantModal({
                         )}
                       </SelectTrigger>
                       <SelectContent>
+                        {selectedBlock && (
+                          <SelectItem value="none" className="text-gray-400">
+                            Select block
+                          </SelectItem>
+                        )}
                         {blockOptions.map((block) => (
                           <SelectItem key={block.value} value={block.value}>
                             {block.label}
