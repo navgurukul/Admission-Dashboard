@@ -34,6 +34,7 @@ interface EditableCellProps {
     onChange: (val: any) => void;
   }) => JSX.Element;
   tooltipMessage?: string;
+  placeholder?: string;
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -58,6 +59,7 @@ export function EditableCell({
   disabled,
   renderInput,
   tooltipMessage,
+  placeholder = "Select option",
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -251,7 +253,7 @@ export function EditableCell({
             }`}
           style={disabled ? { opacity: 1 } : {}}
         >
-          <SelectValue placeholder="Select option" />
+          <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {!shouldHideSelectOption && (
