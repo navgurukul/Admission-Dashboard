@@ -493,7 +493,7 @@ export function ApplicantModal({
   const getLabel = (
     options: { value: string; label: string }[],
     id: any,
-    defaultLabel = "Not provided"
+    defaultLabel = ""
   ) => {
     return (
       options.find((o) => o.value === id?.toString())?.label || defaultLabel
@@ -723,7 +723,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="first_name"
                     displayValue={
-                      currentApplicant?.first_name || "Not provided"
+                      currentApplicant?.first_name || ""
                     }
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
@@ -737,7 +737,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="middle_name"
                     displayValue={
-                      currentApplicant?.middle_name || "Not provided"
+                      currentApplicant?.middle_name || ""
                     }
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
@@ -750,7 +750,7 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="last_name"
-                    displayValue={currentApplicant?.last_name || "Not provided"}
+                    displayValue={currentApplicant?.last_name || ""}
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
                   />
@@ -775,7 +775,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="whatsapp_number"
                     displayValue={
-                      currentApplicant.whatsapp_number || "Not provided"
+                      currentApplicant.whatsapp_number || ""
                     }
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
@@ -788,7 +788,7 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="gender"
-                    displayValue={currentApplicant.gender || "Not provided"}
+                    displayValue={currentApplicant.gender || ""}
                     options={[
                       { value: "male", label: "Male" },
                       { value: "female", label: "Female" },
@@ -841,7 +841,7 @@ export function ApplicantModal({
                         (w) =>
                           w.value ===
                           currentApplicant.current_status_id?.toString()
-                      )?.label || "Not provided"
+                      )?.label || ""
                     }
                     onUpdate={handleUpdate}
                     options={currentWorks}
@@ -923,9 +923,10 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="pin_code"
-                    displayValue={currentApplicant.pin_code || "Not provided"}
+                    displayValue={currentApplicant.pin_code || ""}
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
+
                   />
                 </div>
               </div>
@@ -1099,7 +1100,7 @@ export function ApplicantModal({
                                 }
                                 displayValue={
                                   currentApplicant.final_decisions?.[0]
-                                    ?.offer_letter_status || "Not provided"
+                                    ?.offer_letter_status || ""
                                 }
                                 options={[
                                   {
@@ -1146,7 +1147,7 @@ export function ApplicantModal({
                         }
                         displayValue={
                           currentApplicant.final_decisions?.[0]
-                            ?.offer_letter_status || "Not provided"
+                            ?.offer_letter_status || ""
                         }
                         options={[
                           { value: "Offer Pending", label: "Offer Pending" },
@@ -1188,7 +1189,7 @@ export function ApplicantModal({
                                 }
                                 displayValue={
                                   currentApplicant.final_decisions?.[0]
-                                    ?.onboarded_status || "Not provided"
+                                    ?.onboarded_status || ""
                                 }
                                 options={[
                                   { value: "Onboarded", label: "Onboarded" },
@@ -1218,7 +1219,7 @@ export function ApplicantModal({
                         }
                         displayValue={
                           currentApplicant.final_decisions?.[0]
-                            ?.onboarded_status || "Not provided"
+                            ?.onboarded_status || ""
                         }
                         options={[{ value: "Onboarded", label: "Onboarded" }]}
                         disabled={!hasEditAccess}
