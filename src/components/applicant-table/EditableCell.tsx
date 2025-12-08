@@ -38,10 +38,12 @@ interface EditableCellProps {
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
   if (!options) return [];
-  return options.map((opt) => ({
-    id: opt.id !== undefined ? String(opt.id) : String(opt.value ?? ""),
-    name: opt.name ?? opt.label ?? String(opt.value ?? ""),
-  }));
+  return options
+    .map((opt) => ({
+      id: opt.id !== undefined ? String(opt.id) : String(opt.value ?? ""),
+      name: opt.name ?? opt.label ?? String(opt.value ?? ""),
+    }))
+    .filter((opt) => opt.id !== "");
 }
 
 export function EditableCell({
@@ -230,10 +232,9 @@ export function EditableCell({
         onValueChange={(val) => !disabled && handleDirectDropdownChange(val)}
         disabled={isUpdating || disabled}
       >
-        <SelectTrigger 
-          className={`h-8 border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring ${
-            disabled ? '!opacity-100 !cursor-default [&>svg]:hidden' : ''
-          }`}
+        <SelectTrigger
+          className={`h-8 border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring ${disabled ? '!opacity-100 !cursor-default [&>svg]:hidden' : ''
+            }`}
           style={disabled ? { opacity: 1 } : {}}
         >
           <SelectValue placeholder="Select option" />
@@ -301,11 +302,10 @@ export function EditableCell({
 
   return (
     <div
-      className={`p-1 rounded min-h-[24px] flex items-center gap-2 group ${
-        disabled
+      className={`p-1 rounded min-h-[24px] flex items-center gap-2 group ${disabled
           ? "cursor-default opacity-70"
           : "cursor-pointer hover:bg-muted/50"
-      }`}
+        }`}
       onClick={() => {
         if (!disabled && !isUpdating) {
           startCellEdit(applicant.id, field, value ?? displayValue);
