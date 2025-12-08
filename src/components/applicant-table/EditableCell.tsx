@@ -34,6 +34,7 @@ interface EditableCellProps {
     onChange: (val: any) => void;
   }) => JSX.Element;
   tooltipMessage?: string;
+  placeholder?: string;
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -58,6 +59,7 @@ export function EditableCell({
   disabled,
   renderInput,
   tooltipMessage,
+  placeholder = "Select option",
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -89,11 +91,25 @@ export function EditableCell({
 
     if (
       (field === "phone_number" || field === "whatsapp_number") &&
+      cellValue &&
       !/^\d{10}$/.test(cellValue)
     ) {
       toast({
         title: "Invalid Mobile Number",
         description: "Mobile number must be exactly 10 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      field === "pin_code" &&
+      cellValue &&
+      !/^\d{6}$/.test(cellValue)
+    ) {
+      toast({
+        title: "Invalid Pincode",
+        description: "Pincode must be exactly 6 digits",
         variant: "destructive",
       });
       return;
@@ -237,7 +253,7 @@ export function EditableCell({
             }`}
           style={disabled ? { opacity: 1 } : {}}
         >
-          <SelectValue placeholder="Select option" />
+          <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {!shouldHideSelectOption && (
@@ -264,8 +280,31 @@ export function EditableCell({
           </div>
         ) : (
           <Input
+            type={
+              field === "phone_number" || 
+              field === "whatsapp_number" || 
+              field === "pin_code"
+                ? "tel"
+                : "text"
+            }
             value={cellValue ?? ""}
-            onChange={(e) => setCellValue(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // For phone/pincode fields, only allow digits
+              if (
+                field === "phone_number" || 
+                field === "whatsapp_number" || 
+                field === "pin_code"
+              ) {
+                // Only allow digits and limit length
+                const maxLength = field === "pin_code" ? 6 : 10;
+                if (/^\d*$/.test(value) && value.length <= maxLength) {
+                  setCellValue(value);
+                }
+              } else {
+                setCellValue(value);
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") saveCellEdit();
               if (e.key === "Escape") cancelCellEdit();
@@ -273,6 +312,20 @@ export function EditableCell({
             className="h-7 text-xs flex-1  min-w-0"
             autoFocus
             disabled={isUpdating || disabled}
+            maxLength={
+              field === "pin_code" 
+                ? 6 
+                : field === "phone_number" || field === "whatsapp_number"
+                ? 10
+                : undefined
+            }
+            inputMode={
+              field === "phone_number" || 
+              field === "whatsapp_number" || 
+              field === "pin_code"
+                ? "numeric"
+                : "text"
+            }
           />
         )}
         {showActionButtons && (
@@ -319,8 +372,17 @@ export function EditableCell({
             : "Click to edit"
       }
     >
-      <span className="flex-1 whitespace-pre-wrap break-words">
-        {isUpdating ? "Updating..." : displayValue || "Click to add"}
+      <span className="flex-1 whitespace-pre-wrap break-words text-sm">
+        {isUpdating 
+          ? "Updating..." 
+          : displayValue ? (
+              displayValue
+            ) : (
+              <span className="text-muted-foreground italic">
+                Not provided
+              </span>
+            )
+        }
       </span>
       {showPencil && !isUpdating && (
         <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />

@@ -343,10 +343,13 @@ export function ApplicantModal({
       try {
         const blocksRes = await getBlocksByDistrict(selectedDistrict);
         const blocks = blocksRes?.data || blocksRes || [];
+        
+        // Use id as value and block_name as label
         const mappedBlocks = blocks.map((b: any) => ({
-          value: b.block_code,
-          label: b.block_name,
+          value: String(b.id), // Use id as value since block_code is not available
+          label: b.block_name, // Use block_name for display
         }));
+        
         setBlockOptions(mappedBlocks);
       } catch (err) {
         // console.error("Failed to fetch blocks:", err);
@@ -493,7 +496,7 @@ export function ApplicantModal({
   const getLabel = (
     options: { value: string; label: string }[],
     id: any,
-    defaultLabel = "Not provided"
+    defaultLabel = ""
   ) => {
     return (
       options.find((o) => o.value === id?.toString())?.label || defaultLabel
@@ -506,6 +509,14 @@ export function ApplicantModal({
     setDistrictOptions([]);
     setBlockOptions([]);
 
+    // Clear district and block in the database when state changes
+    if (currentApplicant?.id) {
+      await updateStudent(currentApplicant.id, { 
+        district: null,
+        block: null
+      });
+    }
+
     await handleUpdate();
   };
 
@@ -513,7 +524,40 @@ export function ApplicantModal({
     setSelectedDistrict(value);
     setBlockOptions([]);
 
+    // Clear block in the database when district changes
+    if (currentApplicant?.id) {
+      await updateStudent(currentApplicant.id, { 
+        block: null
+      });
+    }
+
     await handleUpdate();
+  };
+
+  const handleBlockChange = async (value: string) => {
+    if (!currentApplicant?.id) return;
+    
+    try {
+      // Update block in database
+      await updateStudent(currentApplicant.id, { 
+        block: value
+      });
+      
+      // Refresh applicant data
+      await handleUpdate();
+      
+      toast({ 
+        title: "Success", 
+        description: "Block updated successfully" 
+      });
+    } catch (error) {
+      console.error("Failed to update block:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update block",
+        variant: "destructive",
+      });
+    }
   };
 
   const examSession = currentApplicant.exam_sessions?.[0] ?? null;
@@ -723,7 +767,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="first_name"
                     displayValue={
-                      currentApplicant?.first_name || "Not provided"
+                      currentApplicant?.first_name || ""
                     }
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
@@ -737,7 +781,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="middle_name"
                     displayValue={
-                      currentApplicant?.middle_name || "Not provided"
+                      currentApplicant?.middle_name || ""
                     }
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
@@ -750,7 +794,7 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="last_name"
-                    displayValue={currentApplicant?.last_name || "Not provided"}
+                    displayValue={currentApplicant?.last_name || ""}
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
                   />
@@ -775,7 +819,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="whatsapp_number"
                     displayValue={
-                      currentApplicant.whatsapp_number || "Not provided"
+                      currentApplicant.whatsapp_number || ""
                     }
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
@@ -788,7 +832,7 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="gender"
-                    displayValue={currentApplicant.gender || "Not provided"}
+                    displayValue={currentApplicant.gender || ""}
                     options={[
                       { value: "male", label: "Male" },
                       { value: "female", label: "Female" },
@@ -841,7 +885,7 @@ export function ApplicantModal({
                         (w) =>
                           w.value ===
                           currentApplicant.current_status_id?.toString()
-                      )?.label || "Not provided"
+                      )?.label || ""
                     }
                     onUpdate={handleUpdate}
                     options={currentWorks}
@@ -886,6 +930,8 @@ export function ApplicantModal({
                     displayValue={
                       isLoadingDistricts
                         ? "Loading..."
+                        : !selectedState
+                        ? ""
                         : getLabel(districtOptions, currentApplicant.district)
                     }
                     value={currentApplicant.district}
@@ -894,6 +940,7 @@ export function ApplicantModal({
                     disabled={
                       !hasEditAccess || !selectedState || isLoadingDistricts
                     }
+                    placeholder={!selectedState ? "Select state first" : "Select district"}
                   />
                 </div>
                 <div>
@@ -906,14 +953,17 @@ export function ApplicantModal({
                     displayValue={
                       isLoadingBlocks
                         ? "Loading..."
+                        : !selectedDistrict
+                        ? ""
                         : getLabel(blockOptions, currentApplicant.block)
                     }
                     value={currentApplicant.block}
-                    onUpdate={handleUpdate}
+                    onUpdate={handleBlockChange}
                     options={blockOptions}
                     disabled={
                       !hasEditAccess || !selectedDistrict || isLoadingBlocks
                     }
+                    placeholder={!selectedDistrict ? "Select district first" : "Select block"}
                   />
                 </div>
                 <div>
@@ -923,9 +973,10 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="pin_code"
-                    displayValue={currentApplicant.pin_code || "Not provided"}
+                    displayValue={currentApplicant.pin_code || ""}
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
+
                   />
                 </div>
               </div>
@@ -1099,7 +1150,7 @@ export function ApplicantModal({
                                 }
                                 displayValue={
                                   currentApplicant.final_decisions?.[0]
-                                    ?.offer_letter_status || "Not provided"
+                                    ?.offer_letter_status || ""
                                 }
                                 options={[
                                   {
@@ -1146,7 +1197,7 @@ export function ApplicantModal({
                         }
                         displayValue={
                           currentApplicant.final_decisions?.[0]
-                            ?.offer_letter_status || "Not provided"
+                            ?.offer_letter_status || ""
                         }
                         options={[
                           { value: "Offer Pending", label: "Offer Pending" },
@@ -1188,7 +1239,7 @@ export function ApplicantModal({
                                 }
                                 displayValue={
                                   currentApplicant.final_decisions?.[0]
-                                    ?.onboarded_status || "Not provided"
+                                    ?.onboarded_status || ""
                                 }
                                 options={[
                                   { value: "Onboarded", label: "Onboarded" },
@@ -1218,7 +1269,7 @@ export function ApplicantModal({
                         }
                         displayValue={
                           currentApplicant.final_decisions?.[0]
-                            ?.onboarded_status || "Not provided"
+                            ?.onboarded_status || ""
                         }
                         options={[{ value: "Onboarded", label: "Onboarded" }]}
                         disabled={!hasEditAccess}
