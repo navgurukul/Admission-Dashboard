@@ -258,7 +258,9 @@ export function EditableCell({
       currentValue !== undefined;
 
     // Use Combobox for fields with many options (searchable)
-    const useCombobox = normalizedOptions.length > 10;
+    // Also always use Combobox for location fields (state, district, block) for consistent UX
+    const locationFields = ['state', 'district', 'block'];
+    const useCombobox = normalizedOptions.length > 10 || locationFields.includes(field);
 
     if (useCombobox) {
       const comboboxOptions: ComboboxOption[] = normalizedOptions.map((opt) => ({
