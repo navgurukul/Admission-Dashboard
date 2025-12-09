@@ -49,8 +49,13 @@ const SchoolPage = () => {
   const [updatedSchoolName, setUpdatedSchoolName] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
-  const formatErrorMessage = (error: Error): string => {
-    const errorMessage = error.message.toLowerCase();
+  const formatErrorMessage = (error: any): string => {
+    // Check for nested API error response (e.g., error.data.message)
+    if (error?.data?.message) {
+      return error.data.message;
+    }
+
+    const errorMessage = (error?.message || "").toLowerCase();
 
     // Duplicate value errors
     if (
@@ -60,20 +65,12 @@ const SchoolPage = () => {
       return "This school name already exists. Please use a different name.";
     }
 
-    // Server errors (500)
-    if (
-      errorMessage.includes("500") ||
-      errorMessage.includes("internal server error")
-    ) {
-      return "Server is temporarily unavailable. Please try again later.";
-    }
-
     // Network errors
     if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
       return "Network error. Please check your connection and try again.";
     }
 
-    return "An error occurred. Please try again.";
+    return error?.data?.message || "An error occurred. Please try again.";
   };
 
   // Fetch schools
@@ -191,11 +188,27 @@ const SchoolPage = () => {
         title: "School Deleted",
         description: `School ${school_name} has been deleted.`,
       });
-    } catch (error) {
-      const errorMessage = formatErrorMessage(error as Error);
+    } catch (error: any) {
+      // Try multiple paths to get the error message
+      const fullErrorMessage = 
+        error?.data?.message || 
+        error?.response?.data?.message ||
+        error?.message ||
+        formatErrorMessage(error);
+      
+      // Split the error message at the colon to separate title and description
+      let title = "Unable to Delete School";
+      let description = fullErrorMessage;
+      
+      if (fullErrorMessage && fullErrorMessage.includes(":")) {
+        const parts = fullErrorMessage.split(":");
+        title = parts[0].trim();
+        description = parts.slice(1).join(":").trim();
+      }
+      
       toast({
-        title: "Error deleting school",
-        description: errorMessage,
+        title: title,
+        description: description,
         variant: "destructive",
       });
     }

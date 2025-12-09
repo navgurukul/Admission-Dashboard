@@ -1656,12 +1656,18 @@ export const deleteSchool = async (id: number) => {
     headers: getAuthHeaders(),
     body: JSON.stringify(id),
   });
+  
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Failed to delete school: ${response.status} ${response.statusText} - ${errorText}`,
-    );
+    // Parse the JSON response to get the actual error message
+    const errorData = await response.json();
+    
+    // Create an error object that includes the parsed data
+    const error: any = new Error(errorData?.message || 'Failed to delete school');
+    error.data = errorData?.data || errorData;
+    error.status = response.status;
+    throw error;
   }
+  
   return await response.json();
 };
 
