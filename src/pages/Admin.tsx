@@ -265,15 +265,31 @@ const AdminPage: React.FC = () => {
       });
 
       closeAddUserDialog();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving user:", err);
-      toast({
-        title: "Error",
-        description: addUserDialog.editId
-          ? "Failed to update user. Please try again."
-          : "Failed to create user. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Get error message from API response
+      const errorMessage = err?.error || 
+                          err?.response?.data?.error || 
+                          err?.message || 
+                          "Failed to create user.";
+      
+      // Check if user already exists
+      if (errorMessage.toLowerCase().includes('already exists')) {
+        setEmailError("User with this email already exists");
+        toast({
+          title: "User Already Exists",
+          description: "This email is already registered. Please use a different email.",
+          variant: "destructive",
+        });
+      } else {
+        // Show other errors
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -360,11 +376,21 @@ const AdminPage: React.FC = () => {
 
       setUpdateConfirm({ open: false, data: null });
       closeAddUserDialog();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating user:", err);
+      
+      // Extract error message from various possible locations
+      const errorMessage = err?.error || 
+                          err?.response?.data?.error || 
+                          err?.response?.data?.message || 
+                          err?.data?.error ||
+                          err?.data?.message || 
+                          err?.message || 
+                          "Failed to update user. Please try again.";
+      
       toast({
-        title: "Error",
-        description: "Failed to update user. Please try again.",
+        title: "Error Updating User",
+        description: errorMessage,
         variant: "destructive",
       });
       setUpdateConfirm({ open: false, data: null });
@@ -848,13 +874,17 @@ const AdminPage: React.FC = () => {
                         value={addUserDialog.phone}
                         onChange={(e) => {
                           const value = e.target.value;
-                          setAddUserDialog((d) => ({ ...d, phone: value }));
-
-                          // validation: sirf number aur max 10 digit
-                          if (!/^\d{0,10}$/.test(value)) {
-                            setPhoneError("Only numbers allowed, 10 digits");
-                          } else {
+                          
+                          // Only allow numbers and max 10 digits
+                          if (/^\d{0,10}$/.test(value)) {
+                            setAddUserDialog((d) => ({ ...d, phone: value }));
                             setPhoneError("");
+                          }
+                        }}
+                        onKeyPress={(e) => {
+                          // Prevent typing non-numeric characters
+                          if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
                           }
                         }}
                         className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
@@ -863,6 +893,7 @@ const AdminPage: React.FC = () => {
                             : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
                         }`}
                         placeholder="Enter 10-digit phone number"
+                        maxLength={10}
                       />
                       {phoneError && (
                         <p className="text-red-500 text-sm mt-1">
