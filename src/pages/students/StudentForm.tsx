@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/routes/LaunguageContext.tsx";
 import { useToast } from "@/hooks/use-toast";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
   getAllCasts,
   Cast,
@@ -980,131 +981,103 @@ const StudentForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.state}
               </label>
-              <div className="relative">
-                <select
-                  name="stateCode"
-                  value={formData.stateCode}
-                  onChange={handleInputChange}
-                  disabled={loadingStates.states}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {loadingStates.states
-                      ? content.loading
-                      : content.selectState}
-                  </option>
-                  {Array.isArray(states) &&
-                    states.map((state) => (
-                      <option key={state.state_code} value={state.state_code}>
-                        {state.state_name}
-                      </option>
-                    ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Combobox
+                options={states?.map((state) => ({
+                  value: state.state_code,
+                  label: state.state_name,
+                })) || []}
+                value={formData.stateCode}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'stateCode', value } } as any);
+                }}
+                placeholder={loadingStates.states ? content.loading : content.selectState}
+                searchPlaceholder="Search state..."
+                emptyText="No state found."
+                disabled={loadingStates.states}
+                className="h-12"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.district}
               </label>
-              <div className="relative">
-                <select
-                  name="districtCode"
-                  value={formData.districtCode}
-                  onChange={handleInputChange}
-                  disabled={loadingStates.districts || !formData.stateCode}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {loadingStates.districts
-                      ? content.loading
-                      : !formData.stateCode
-                        ? "Select state first"
-                        : content.selectDistrict}
-                  </option>
-                  {Array.isArray(districts) &&
-                    districts.map((district) => (
-                      <option
-                        key={district.district_code}
-                        value={district.district_code}
-                      >
-                        {district.district_name}
-                      </option>
-                    ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Combobox
+                options={districts?.map((district) => ({
+                  value: district.district_code,
+                  label: district.district_name,
+                })) || []}
+                value={formData.districtCode}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'districtCode', value } } as any);
+                }}
+                placeholder={
+                  loadingStates.districts
+                    ? content.loading
+                    : !formData.stateCode
+                    ? "Select state first"
+                    : content.selectDistrict
+                }
+                searchPlaceholder="Search district..."
+                emptyText="No district found."
+                disabled={loadingStates.districts || !formData.stateCode}
+                className="h-12"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.block}
               </label>
-              <div className="relative">
-                <select
-                  name="blockCode"
+              {blocks.length > 0 ? (
+                <Combobox
+                  options={blocks?.map((block) => ({
+                    value: block.block_code,
+                    label: block.block_name,
+                  })) || []}
                   value={formData.blockCode}
-                  onChange={handleInputChange}
-                  disabled={loadingStates.blocks || !formData.districtCode}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {loadingStates.blocks
+                  onValueChange={(value) => {
+                    handleInputChange({ target: { name: 'blockCode', value } } as any);
+                  }}
+                  placeholder={
+                    loadingStates.blocks
                       ? content.loading
                       : !formData.districtCode
-                        ? "Select district first"
-                        : content.selectBlock}
-                  </option>
-                  {Array.isArray(blocks) &&
-                    blocks.map((block) => (
-                      <option key={block.block_code} value={block.block_code}>
-                        {block.block_name}
-                      </option>
-                    ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+                      ? "Select district first"
+                      : content.selectBlock
+                  }
+                  searchPlaceholder="Search block..."
+                  emptyText="No block found."
+                  disabled={loadingStates.blocks || !formData.districtCode}
+                  className="h-12"
+                />
+              ) : (
+                <input
+                  type="text"
+                  name="blockCode"
+                  value={formData.block}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData((prev) => ({
+                      ...prev,
+                      block: value,
+                      blockCode: value,
+                    }));
+                    localStorage.setItem("studentFormData", JSON.stringify({
+                      ...formData,
+                      block: value,
+                      blockCode: value,
+                    }));
+                  }}
+                  placeholder={
+                    loadingStates.blocks
+                      ? content.loading
+                      : !formData.districtCode
+                      ? "Select district first"
+                      : "Enter block name"
+                  }
+                  disabled={!formData.districtCode || loadingStates.blocks}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                />
+              )}
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -1132,72 +1105,39 @@ const StudentForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.currentStatus}
               </label>
-              <div className="relative">
-                <select
-                  name="currentStatus"
-                  value={formData.currentStatus}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">{content.selectOption}</option>
-                  {statuses.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.current_status_name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Combobox
+                options={statuses?.map((item) => ({
+                  value: String(item.id),
+                  label: item.current_status_name,
+                })) || []}
+                value={formData.currentStatus}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'currentStatus', value } } as any);
+                }}
+                placeholder={content.selectOption}
+                searchPlaceholder="Search..."
+                emptyText="No option found."
+                className="h-12"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.maximumQualification}
               </label>
-              <div className="relative">
-                <select
-                  name="maximumQualification"
-                  value={formData.maximumQualification}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">{content.selectQualification}</option>
-                  {qualifications.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.qualification_name}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Combobox
+                options={qualifications?.map((item) => ({
+                  value: String(item.id),
+                  label: item.qualification_name,
+                })) || []}
+                value={formData.maximumQualification}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'maximumQualification', value } } as any);
+                }}
+                placeholder={content.selectQualification}
+                searchPlaceholder="Search..."
+                emptyText="No qualification found."
+                className="h-12"
+              />
             </div>
           </div>
 
@@ -1207,105 +1147,60 @@ const StudentForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.schoolMedium}
               </label>
-              <div className="relative">
-                <select
-                  name="schoolMedium"
-                  value={formData.schoolMedium}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">{content.selectMedium}</option>
-                  <option value="English">English</option>
-                  <option value="Hindi">Hindi</option>
-                  <option value="Marathi">Marathi</option>
-                  <option value="Other">Other</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Combobox
+                options={[
+                  { value: "English", label: "English" },
+                  { value: "Hindi", label: "Hindi" },
+                  { value: "Marathi", label: "Marathi" },
+                  { value: "Other", label: "Other" },
+                ]}
+                value={formData.schoolMedium}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'schoolMedium', value } } as any);
+                }}
+                placeholder={content.selectMedium}
+                searchPlaceholder="Search..."
+                emptyText="No medium found."
+                className="h-12"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.casteTribe}
               </label>
-              <div className="relative">
-                <select
-                  name="casteTribe"
-                  value={formData.casteTribe}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">{content.selectOption}</option>
-                  {casts.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.cast_name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Combobox
+                options={casts?.map((item) => ({
+                  value: String(item.id),
+                  label: item.cast_name,
+                })) || []}
+                value={formData.casteTribe}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'casteTribe', value } } as any);
+                }}
+                placeholder={content.selectOption}
+                searchPlaceholder="Search caste..."
+                emptyText="No caste found."
+                className="h-12"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.religion}
               </label>
-              <div className="relative">
-                <select
-                  name="religion"
-                  value={formData.religion}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="">{content.selectReligion}</option>
-                  {religions.map((religion) => (
-                    <option key={religion.id} value={religion.id}>
-                      {religion.religion_name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <Combobox
+                options={religions?.map((religion) => ({
+                  value: String(religion.id),
+                  label: religion.religion_name,
+                })) || []}
+                value={formData.religion}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'religion', value } } as any);
+                }}
+                placeholder={content.selectReligion}
+                searchPlaceholder="Search religion..."
+                emptyText="No religion found."
+                className="h-12"
+              />
             </div>
           </div>
         </div>
