@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
@@ -17,6 +17,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -39,6 +47,7 @@ import {
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import StageDropdown, {
   STAGE_STATUS_MAP,
 } from "./applicant-table/StageDropdown";
@@ -87,6 +96,11 @@ export function ApplicantModal({
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+  const [openComboboxes, setOpenComboboxes] = useState({
+    state: false,
+    district: false,
+    block: false,
+  });
 
   const [campus, setCampus] = useState<any[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -458,8 +472,6 @@ export function ApplicantModal({
     }
   };
 
-  if (!applicant || !currentApplicant) return null;
-
   const handleEditClick = () => {
     setShowEditModal(true);
   };
@@ -498,9 +510,14 @@ export function ApplicantModal({
     id: any,
     defaultLabel = ""
   ) => {
-    return (
-      options.find((o) => o.value === id?.toString())?.label || defaultLabel
-    );
+    // If no id provided, return default
+    if (!id) return defaultLabel;
+    
+    // Try to find matching option
+    const matchedOption = options.find((o) => o.value === id?.toString());
+    
+    // If found, return the label; otherwise return the id itself as fallback
+    return matchedOption?.label || id?.toString() || defaultLabel;
   };
 
   const handleStateChange = async (value: string) => {
@@ -560,7 +577,7 @@ export function ApplicantModal({
     }
   };
 
-  const examSession = currentApplicant.exam_sessions?.[0] ?? null;
+  const examSession = currentApplicant?.exam_sessions?.[0] ?? null;
 
   const screeningFields = [
     {
@@ -603,6 +620,7 @@ export function ApplicantModal({
       label: "Date of Testing *",
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
+        const today = new Date().toISOString().split('T')[0];
         return (
           <input
             type="date"
@@ -610,6 +628,7 @@ export function ApplicantModal({
             onChange={(e) => updateRow?.("date_of_test", e.target.value)}
             className="border p-1 rounded w-full"
             disabled={!!disabled}
+            max={today}
           />
         );
       },
@@ -621,29 +640,61 @@ export function ApplicantModal({
     },
   ];
 
-  const initialScreeningData =
-    currentApplicant.exam_sessions?.map((session) => ({
-      id: session.id,
-      status: session.status ?? currentApplicant.status ?? "",
-      question_set_id: session.question_set_id?.toString() || "",
-      obtained_marks:
-        session.obtained_marks !== null && session.obtained_marks !== undefined
-          ? session.obtained_marks.toString()
-          : "",
-      school_id:
-        session.school_id !== null && session.school_id !== undefined
-          ? session.school_id.toString()
-          : "",
-      exam_centre: session.exam_centre || "",
-      date_of_test: session.date_of_test?.split("T")[0] || "",
-      audit_info: {
-        created_at: session.created_at || "",
-        updated_at: session.updated_at || "",
-        last_updated_by: session.last_updated_by || "",
-      },
-    })) || [];
+  const initialScreeningData = useMemo(
+    () =>
+      currentApplicant?.exam_sessions?.map((session) => ({
+        id: session.id,
+        status: session.status ?? currentApplicant.status ?? "",
+        question_set_id: session.question_set_id?.toString() || "",
+        obtained_marks:
+          session.obtained_marks !== null && session.obtained_marks !== undefined
+            ? session.obtained_marks.toString()
+            : "",
+        school_id:
+          session.school_id !== null && session.school_id !== undefined
+            ? session.school_id.toString()
+            : "",
+        exam_centre: session.exam_centre || "",
+        date_of_test: session.date_of_test?.split("T")[0] || "",
+        audit_info: {
+          created_at: session.created_at || "",
+          updated_at: session.updated_at || "",
+          last_updated_by: session.last_updated_by || "",
+        },
+      })) || [],
+    [currentApplicant]
+  );
 
-  if (!applicant) return null;
+  // Map learning round data with audit info
+  const initialLearningData = useMemo(
+    () =>
+      (currentApplicant?.interview_learner_round || []).map((round: any) => ({
+        ...round,
+        audit_info: {
+          created_at: round.created_at || "",
+          updated_at: round.updated_at || "",
+          last_updated_by: round.last_updated_by || "",
+        },
+      })),
+    [currentApplicant]
+  );
+
+  // Map cultural fit round data with audit info
+  const initialCulturalData = useMemo(
+    () =>
+      (currentApplicant?.interview_cultural_fit_round || []).map((round: any) => ({
+        ...round,
+        audit_info: {
+          created_at: round.created_at || "",
+          updated_at: round.updated_at || "",
+          last_updated_by: round.last_updated_by || "",
+        },
+      })),
+    [currentApplicant]
+  );
+
+  // Early return AFTER all hooks
+  if (!applicant || !currentApplicant) return null;
 
   const screeningSubmit =
     API_MAP?.screening?.submit ??
@@ -702,36 +753,12 @@ export function ApplicantModal({
     return false;
   };
 
-  // Map learning round data with audit info
-  const initialLearningData = (
-    currentApplicant.interview_learner_round || []
-  ).map((round: any) => ({
-    ...round,
-    audit_info: {
-      created_at: round.created_at || "",
-      updated_at: round.updated_at || "",
-      last_updated_by: round.last_updated_by || "",
-    },
-  }));
-
-  // Map cultural fit round data with audit info
-  const initialCulturalData = (
-    currentApplicant.interview_cultural_fit_round || []
-  ).map((round: any) => ({
-    ...round,
-    audit_info: {
-      created_at: round.created_at || "",
-      updated_at: round.updated_at || "",
-      last_updated_by: round.last_updated_by || "",
-    },
-  }));
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <DialogTitle>Applicant Details</DialogTitle>
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <DialogTitle className="text-lg sm:text-xl">Applicant Details</DialogTitle>
             <div className="flex items-center gap-2">
               {/* <Button
                 variant="outline"
@@ -754,11 +781,11 @@ export function ApplicantModal({
             </div>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Personal Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Personal Information</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <h3 className="text-base sm:text-lg font-semibold">Personal Information</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     First Name
@@ -955,7 +982,7 @@ export function ApplicantModal({
                         ? "Loading..."
                         : !selectedDistrict
                         ? ""
-                        : getLabel(blockOptions, currentApplicant.block)
+                        : getLabel(blockOptions, currentApplicant.block, currentApplicant.block || "")
                     }
                     value={currentApplicant.block}
                     onUpdate={handleBlockChange}
@@ -980,6 +1007,43 @@ export function ApplicantModal({
                   />
                 </div>
               </div>
+              
+              {/* Timestamps for Personal Details */}
+              <div className="space-y-3 pt-4">
+                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Personal Details</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Created At
+                    </label>
+                    <p className="text-sm">
+                      {currentApplicant.created_at
+                        ? new Date(currentApplicant.created_at).toLocaleString()
+                        : "Not available"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Last Updated At
+                    </label>
+                    <p className="text-sm">
+                      {currentApplicant.updated_at
+                        ? new Date(currentApplicant.updated_at).toLocaleString()
+                        : "Not available"}
+                    </p>
+                  </div>
+                   <div>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Last Updated By
+                    </label>
+                    <p className="text-sm">
+                      {currentApplicant.updated_by
+                        ? currentApplicant.updated_by
+                        : "Not available"}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <InlineSubform
@@ -993,7 +1057,7 @@ export function ApplicantModal({
             />
 
             {/* Learning & Cultural Fit Rounds */}
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
               <div className="col-span-full w-full">
                 <InlineSubform
                   title="Learning Round"
@@ -1083,9 +1147,9 @@ export function ApplicantModal({
               </div>
 
               {/* Offer and Final Status */}
-              <div className="space-y-4 md:col-span-2">
-                <h3 className="text-lg font-semibold">Offer & Final Status</h3>
-                <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-4">
+                <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Campus
@@ -1284,7 +1348,7 @@ export function ApplicantModal({
                   </div>
                 </div>
 
-                <div>
+                <div className="w-full">
                   <label className="text-sm font-medium text-muted-foreground">
                     Joining Date
                   </label>
@@ -1310,7 +1374,7 @@ export function ApplicantModal({
                   ) : (
                     <input
                       type="date"
-                      className="border rounded px-2 py-1 w-full"
+                      className="border rounded px-2 py-1 w-full text-sm sm:text-base"
                       value={
                         joiningDate ||
                         currentApplicant.final_decisions?.[0]?.joining_date?.split(
@@ -1350,7 +1414,7 @@ export function ApplicantModal({
               </div>
 
               {/* Notes */}
-              <div className="space-y-4 md:col-span-2">
+              <div className="space-y-4">
                 {/* Final Note - Full Width */}
                 <div className="w-full">
                   <label className="text-sm font-medium text-muted-foreground">
@@ -1371,7 +1435,7 @@ export function ApplicantModal({
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         rows={4}
-                        className="border rounded px-2 py-1 w-full resize-none"
+                        className="border rounded px-2 py-1 w-full resize-y"
                         placeholder="Enter final notes here..."
                       />
                     )}
@@ -1382,61 +1446,37 @@ export function ApplicantModal({
                 </div>
 
                 {/* Audit Information - Below Final Note */}
-                <div className="grid grid-cols-3 gap-4 pt-2 border-t">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Created At
-                    </label>
-                    <p className="text-sm mt-1">
-                      {currentApplicant.final_decisions?.[0]?.created_at
-                        ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString()
-                        : "Not available"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Last Updated At
-                    </label>
-                    <p className="text-sm mt-1">
-                      {currentApplicant.final_decisions?.[0]?.updated_at
-                        ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString()
-                        : "Not available"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Last Updated By
-                    </label>
-                    <p className="text-sm mt-1">
-                      {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timestamps */}
-              <div className="space-y-4 md:col-span-2">
-                <h3 className="text-lg font-semibold">Timestamps</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Created At
-                    </label>
-                    <p className="text-sm">
-                      {currentApplicant.created_at
-                        ? new Date(currentApplicant.created_at).toLocaleString()
-                        : "Not available"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Last updated At
-                    </label>
-                    <p className="text-sm">
-                      {currentApplicant.updated_at
-                        ? new Date(currentApplicant.updated_at).toLocaleString()
-                        : "Not available"}
-                    </p>
+                <div className="space-y-3 pt-4">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Offer Letter</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Created At
+                      </label>
+                      <p className="text-sm mt-1">
+                        {currentApplicant.final_decisions?.[0]?.created_at
+                          ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString()
+                          : "Not available"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Last Updated At
+                      </label>
+                      <p className="text-sm mt-1">
+                        {currentApplicant.final_decisions?.[0]?.updated_at
+                          ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString()
+                          : "Not available"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Last Updated By
+                      </label>
+                      <p className="text-sm mt-1">
+                        {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

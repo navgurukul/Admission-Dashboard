@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
   CheckCircle2,
   Circle,
@@ -311,15 +312,16 @@ export function AddApplicantModal({
         }));
         setDistrictOptions(mappedDistricts);
 
+        // Find state label directly from the response data
+        const stateLabel = stateOptions.find((s) => s.value === selectedState)?.label || selectedState;
+        
         setFormData((prev) => ({
           ...prev,
           district: "",
           districtCode: "",
           block: "",
           blockCode: "",
-          state:
-            stateOptions.find((s) => s.value === selectedState)?.label ||
-            selectedState,
+          state: stateLabel,
           stateCode: selectedState,
         }));
       } catch (err) {
@@ -331,7 +333,7 @@ export function AddApplicantModal({
     };
 
     fetchDistricts();
-  }, [selectedState, stateOptions]);
+  }, [selectedState]); // Removed stateOptions from dependencies
 
   useEffect(() => {
     if (!selectedDistrict) {
@@ -360,11 +362,12 @@ export function AddApplicantModal({
         setBlockOptions(mappedBlocks);
         setSelectedBlock(""); // Clear selected block when district changes
 
+        // Find district label directly from the current districtOptions state
+        const districtLabel = districtOptions.find((d) => d.value === selectedDistrict)?.label || selectedDistrict;
+
         setFormData((prev) => ({
           ...prev,
-          district:
-            districtOptions.find((d) => d.value === selectedDistrict)?.label ||
-            selectedDistrict,
+          district: districtLabel,
           districtCode: selectedDistrict,
           block: "",
           blockCode: "",
@@ -377,7 +380,7 @@ export function AddApplicantModal({
     };
 
     fetchBlocks();
-  }, [selectedDistrict]);
+  }, [selectedDistrict]); // districtOptions not in dependencies - using current state value
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1046,23 +1049,22 @@ export function AddApplicantModal({
                     <Label htmlFor="gender" className="text-sm font-medium">
                       Gender *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={[
+                        { value: "male", label: "Male" },
+                        { value: "female", label: "Female" },
+                        { value: "other", label: "Other" },
+                      ]}
                       value={formData.gender}
-                      onValueChange={(value) =>
-                        handleInputChange("gender", value)
-                      }
-                    >
-                      <SelectTrigger
-                        className={errors.gender ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onValueChange={(value) => handleInputChange("gender", value)}
+                      placeholder="Select gender"
+                      searchPlaceholder="Search gender..."
+                      emptyText="No gender found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.gender && "border-red-500"
+                      )}
+                    />
                     {errors.gender && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1082,58 +1084,34 @@ export function AddApplicantModal({
                     <Label htmlFor="state" className="text-sm font-medium">
                       State *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={stateOptions}
                       value={selectedState}
                       onValueChange={(value) => {
-                        if (value === "none") {
-                          setSelectedState("");
-                          setSelectedDistrict("");
-                          setBlockOptions([]);
-                          setFormData((prev) => ({
-                            ...prev,
-                            state: "",
-                            district: "",
-                            block: "",
-                          }));
+                        if (selectedDistrict || formData.block) {
                           setShowLocationWarning({
-                            district: false,
-                            block: false,
+                            district: !!selectedDistrict,
+                            block: !!formData.block,
                           });
-                        } else {
-                          // Show warning if district or block has values
-                          if (selectedDistrict || formData.block) {
+                          setTimeout(() => {
                             setShowLocationWarning({
-                              district: !!selectedDistrict,
-                              block: !!formData.block,
+                              district: false,
+                              block: false,
                             });
-                            // Clear warning after 3 seconds
-                            setTimeout(() => {
-                              setShowLocationWarning({
-                                district: false,
-                                block: false,
-                              });
-                            }, 3000);
-                          }
-                          setSelectedState(value);
-                          setSelectedDistrict("");
-                          setBlockOptions([]);
+                          }, 3000);
                         }
+                        setSelectedState(value);
+                        setSelectedDistrict("");
+                        setBlockOptions([]);
                       }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none" className="text-gray-400">
-                          Select state
-                        </SelectItem>
-                        {stateOptions.map((state) => (
-                          <SelectItem key={state.value} value={state.value}>
-                            {state.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select state"
+                      searchPlaceholder="Search state..."
+                      emptyText="No state found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.state && "border-red-500"
+                      )}
+                    />
                     {errors.state && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1145,76 +1123,44 @@ export function AddApplicantModal({
                     <Label htmlFor="district" className="text-sm font-medium">
                       District *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={districtOptions}
                       value={selectedDistrict}
                       onValueChange={(value) => {
-                        if (value === "none") {
-                          setSelectedDistrict("");
-                          setFormData((prev) => ({
-                            ...prev,
-                            district: "",
-                            block: "",
-                          }));
-                          setBlockOptions([]);
+                        if (selectedBlock) {
                           setShowLocationWarning({
                             district: false,
-                            block: false,
+                            block: true,
                           });
-                        } else {
-                          // Show warning if block has value
-                          if (selectedBlock) {
+                          setTimeout(() => {
                             setShowLocationWarning({
                               district: false,
-                              block: true,
+                              block: false,
                             });
-                            // Clear warning after 3 seconds
-                            setTimeout(() => {
-                              setShowLocationWarning({
-                                district: false,
-                                block: false,
-                              });
-                            }, 3000);
-                          }
-                          setSelectedDistrict(value);
-                          setFormData((prev) => ({
-                            ...prev,
-                            block: "",
-                          }));
+                          }, 3000);
                         }
+                        setSelectedDistrict(value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          block: "",
+                        }));
                       }}
+                      placeholder={
+                        isLoadingDistricts
+                          ? "Loading districts..."
+                          : !selectedState
+                          ? "Select state first"
+                          : "Select district"
+                      }
+                      searchPlaceholder="Search district..."
+                      emptyText="No district found."
                       disabled={!selectedState || isLoadingDistricts}
-                    >
-                      <SelectTrigger
-                        className={
-                          showLocationWarning.district ? "border-red-500" : ""
-                        }
-                      >
-                        <SelectValue
-                          placeholder={
-                            isLoadingDistricts
-                              ? "Loading districts..."
-                              : !selectedState
-                                ? "Select state first"
-                                : "Select district"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedDistrict && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select district
-                          </SelectItem>
-                        )}
-                        {districtOptions.map((district) => (
-                          <SelectItem
-                            key={district.value}
-                            value={district.value}
-                          >
-                            {district.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        showLocationWarning.district && "border-red-500",
+                        errors.district && "border-red-500"
+                      )}
+                    />
                     {errors.district && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1239,63 +1185,62 @@ export function AddApplicantModal({
                     <Label htmlFor="block" className="text-sm font-medium">
                       Block *
                     </Label>
-                    <Select
-                      value={selectedBlock}
-                      onValueChange={(value) => {
-                        if (value === "none") {
-                          setSelectedBlock("");
-                          setFormData((prev) => ({
-                            ...prev,
-                            block: "",
-                            blockCode: "",
-                          }));
-                        } else {
+                    {blockOptions.length > 0 ? (
+                      // Show dropdown if blocks are available
+                      <Combobox
+                        options={blockOptions}
+                        value={selectedBlock}
+                        onValueChange={(value) => {
                           setSelectedBlock(value);
-                          const selectedBlockOption = blockOptions.find(
-                            (b) => b.value === value
-                          );
+                          const blockLabel = blockOptions.find((b) => b.value === value)?.label || value;
                           setFormData((prev) => ({
                             ...prev,
-                            block: selectedBlockOption?.label || value,
+                            block: blockLabel,
                             blockCode: value,
                           }));
+                        }}
+                        placeholder={
+                          isLoadingBlocks
+                            ? "Loading blocks..."
+                            : !selectedDistrict
+                            ? "Select district first"
+                            : "Select block"
                         }
-                      }}
-                      disabled={!selectedDistrict || isLoadingBlocks}
-                    >
-                      <SelectTrigger
+                        searchPlaceholder="Search block..."
+                        emptyText="No block found."
+                        disabled={!selectedDistrict || isLoadingBlocks}
+                        className={cn(
+                          "h-10 border shadow-sm hover:bg-accent",
+                          (showLocationWarning.block || errors.block) && "border-red-500"
+                        )}
+                      />
+                    ) : (
+                      // Show input field if no blocks available
+                      <Input
+                        id="block"
+                        value={formData.block}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            block: value,
+                            blockCode: value, // Use the input value as both label and code
+                          }));
+                          setSelectedBlock(value);
+                        }}
+                        placeholder={
+                          isLoadingBlocks
+                            ? "Loading blocks..."
+                            : !selectedDistrict
+                            ? "Select district first"
+                            : "Enter block name"
+                        }
+                        disabled={!selectedDistrict || isLoadingBlocks}
                         className={
-                          showLocationWarning.block || errors.block ? "border-red-500" : ""
+                          (showLocationWarning.block || errors.block) ? "border-red-500" : ""
                         }
-                      >
-                        {isLoadingBlocks ? (
-                          <div className="flex items-center">
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Loading blocks...
-                          </div>
-                        ) : (
-                          <SelectValue
-                            placeholder={
-                              !selectedDistrict
-                                ? "Select district first"
-                                : "Select block"
-                            }
-                          />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedBlock && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select block
-                          </SelectItem>
-                        )}
-                        {blockOptions.map((block) => (
-                          <SelectItem key={block.value} value={block.value}>
-                            {block.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      />
+                    )}
                     {errors.block && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1340,31 +1285,23 @@ export function AddApplicantModal({
                     <Label htmlFor="caste_id" className="text-sm font-medium">
                       Caste *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={casteList?.map((caste) => ({
+                        value: String(caste.id),
+                        label: caste.cast_name,
+                      })) || []}
                       value={formData.cast_id ? String(formData.cast_id) : ""}
                       onValueChange={(value) =>
-                        handleInputChange(
-                          "cast_id",
-                          value === "none" ? "" : value,
-                        )
+                        handleInputChange("cast_id", value === "none" ? "" : value)
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select caste" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.cast_id && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select caste
-                          </SelectItem>
-                        )}
-                        {casteList?.map((caste) => (
-                          <SelectItem key={caste.id} value={String(caste.id)}>
-                            {caste.cast_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select caste"
+                      searchPlaceholder="Search caste..."
+                      emptyText="No caste found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.cast_id && "border-red-500"
+                      )}
+                    />
                     {errors.cast_id && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1380,7 +1317,11 @@ export function AddApplicantModal({
                     >
                       Qualification *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={qualificationList?.map((q) => ({
+                        value: String(q.id),
+                        label: q.qualification_name,
+                      })) || []}
                       value={
                         formData.qualification_id
                           ? String(formData.qualification_id)
@@ -1389,26 +1330,17 @@ export function AddApplicantModal({
                       onValueChange={(value) =>
                         handleInputChange(
                           "qualification_id",
-                          value === "none" ? "" : value,
+                          value === "none" ? "" : value
                         )
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select qualification" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.qualification_id && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select qualification
-                          </SelectItem>
-                        )}
-                        {qualificationList?.map((q) => (
-                          <SelectItem key={q.id} value={String(q.id)}>
-                            {q.qualification_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select qualification"
+                      searchPlaceholder="Search qualification..."
+                      emptyText="No qualification found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.qualification_id && "border-red-500"
+                      )}
+                    />
                     {errors.qualification_id && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1424,7 +1356,11 @@ export function AddApplicantModal({
                     >
                       Current Work *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={currentstatusList?.map((work) => ({
+                        value: String(work.id),
+                        label: work.current_status_name,
+                      })) || []}
                       value={
                         formData.current_status_id
                           ? String(formData.current_status_id)
@@ -1433,26 +1369,17 @@ export function AddApplicantModal({
                       onValueChange={(value) =>
                         handleInputChange(
                           "current_status_id",
-                          value === "none" ? "" : value,
+                          value === "none" ? "" : value
                         )
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select current work" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.current_status_id && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select current work
-                          </SelectItem>
-                        )}
-                        {currentstatusList?.map((work) => (
-                          <SelectItem key={work.id} value={String(work.id)}>
-                            {work.current_status_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select current work"
+                      searchPlaceholder="Search current work..."
+                      emptyText="No current work found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.current_status_id && "border-red-500"
+                      )}
+                    />
                     {errors.current_status_id && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1465,33 +1392,28 @@ export function AddApplicantModal({
                     <Label htmlFor="campus_id" className="text-sm font-medium">
                       Campus *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={campusList?.map((q) => ({
+                        value: String(q.id),
+                        label: q.campus_name,
+                      })) || []}
                       value={
                         formData.campus_id ? String(formData.campus_id) : ""
                       }
                       onValueChange={(value) =>
                         handleInputChange(
                           "campus_id",
-                          value === "none" ? "" : value,
+                          value === "none" ? "" : value
                         )
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Campus" />
-                      </SelectTrigger>
-                      <SelectContent side="bottom" align="end">
-                        {formData.campus_id && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select Campus
-                          </SelectItem>
-                        )}
-                        {campusList?.map((q) => (
-                          <SelectItem key={q.id} value={String(q.id)}>
-                            {q.campus_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select Campus"
+                      searchPlaceholder="Search campus..."
+                      emptyText="No campus found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.campus_id && "border-red-500"
+                      )}
+                    />
                     {errors.campus_id && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1507,33 +1429,28 @@ export function AddApplicantModal({
                     >
                       Religion *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={religionList?.map((r) => ({
+                        value: String(r.id),
+                        label: r.religion_name,
+                      })) || []}
                       value={
                         formData.religion_id ? String(formData.religion_id) : ""
                       }
                       onValueChange={(value) =>
                         handleInputChange(
                           "religion_id",
-                          value === "none" ? "" : value,
+                          value === "none" ? "" : value
                         )
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select religion" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.religion_id && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select religion
-                          </SelectItem>
-                        )}
-                        {religionList?.map((r) => (
-                          <SelectItem key={r.id} value={String(r.id)}>
-                            {r.religion_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select religion"
+                      searchPlaceholder="Search religion..."
+                      emptyText="No religion found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.religion_id && "border-red-500"
+                      )}
+                    />
                     {errors.religion_id && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1597,37 +1514,27 @@ export function AddApplicantModal({
                         <span className="text-red-500 ml-1">*</span>
                       )}
                     </Label>
-                    <Select
+                    <Combobox
+                      options={[
+                        { value: "Screening Test Pass", label: "Screening Test Pass" },
+                        { value: "Screening Test Fail", label: "Screening Test Fail" },
+                        { value: "Created Student Without Exam", label: "Created Student Without Exam" },
+                      ]}
                       value={formData.status}
                       onValueChange={(value) =>
                         handleInputChange(
                           "status",
-                          value === "none" ? "" : value,
+                          value === "none" ? "" : value
                         )
                       }
-                    >
-                      <SelectTrigger
-                        className={errors.status ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select screening status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.status && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select screening status
-                          </SelectItem>
-                        )}
-                        <SelectItem value="Screening Test Pass">
-                          Screening Test Pass
-                        </SelectItem>
-                        <SelectItem value="Screening Test Fail">
-                          Screening Test Fail
-                        </SelectItem>
-                        <SelectItem value="Created Student Without Exam">
-                          Created Student Without Exam
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select screening status"
+                      searchPlaceholder="Search status..."
+                      emptyText="No status found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.status && "border-red-500"
+                      )}
+                    />
                     {errors.status && (
                       <p className="text-xs text-red-500">{errors.status}</p>
                     )}
@@ -1645,7 +1552,11 @@ export function AddApplicantModal({
                         <span className="text-red-500 ml-1">*</span>
                       )}
                     </Label>
-                    <Select
+                    <Combobox
+                      options={questionSetList?.map((set) => ({
+                        value: String(set.id),
+                        label: set.name,
+                      })) || []}
                       value={
                         formData.question_set_id
                           ? String(formData.question_set_id)
@@ -1654,30 +1565,17 @@ export function AddApplicantModal({
                       onValueChange={(value) =>
                         handleInputChange(
                           "question_set_id",
-                          value === "none" ? "" : value,
+                          value === "none" ? "" : value
                         )
                       }
-                    >
-                      <SelectTrigger
-                        className={
-                          errors.question_set_id ? "border-red-500" : ""
-                        }
-                      >
-                        <SelectValue placeholder="Select question set" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.question_set_id && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select question set
-                          </SelectItem>
-                        )}
-                        {questionSetList?.map((set) => (
-                          <SelectItem key={set.id} value={String(set.id)}>
-                            {set.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select question set"
+                      searchPlaceholder="Search question set..."
+                      emptyText="No question set found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.question_set_id && "border-red-500"
+                      )}
+                    />
                     {errors.question_set_id && (
                       <p className="text-xs text-red-500">
                         {errors.question_set_id}
@@ -1725,6 +1623,7 @@ export function AddApplicantModal({
                       id="date_of_test"
                       type="date"
                       value={formData.date_of_test}
+                      max={new Date().toISOString().split('T')[0]}
                       onChange={(e) =>
                         handleInputChange("date_of_test", e.target.value)
                       }
@@ -1799,7 +1698,11 @@ export function AddApplicantModal({
                         <span className="text-red-500 ml-1">*</span>
                       )}
                     </Label>
-                    <Select
+                    <Combobox
+                      options={schoolList?.map((school) => ({
+                        value: String(school.id),
+                        label: school.school_name,
+                      })) || []}
                       value={
                         formData.qualifying_school_id
                           ? String(formData.qualifying_school_id)
@@ -1808,30 +1711,17 @@ export function AddApplicantModal({
                       onValueChange={(value) =>
                         handleInputChange(
                           "qualifying_school_id",
-                          value === "none" ? "" : value,
+                          value === "none" ? "" : value
                         )
                       }
-                    >
-                      <SelectTrigger
-                        className={
-                          errors.qualifying_school_id ? "border-red-500" : ""
-                        }
-                      >
-                        <SelectValue placeholder="Select qualifying school" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.qualifying_school_id && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select qualifying school
-                          </SelectItem>
-                        )}
-                        {schoolList?.map((school) => (
-                          <SelectItem key={school.id} value={String(school.id)}>
-                            {school.school_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select qualifying school"
+                      searchPlaceholder="Search school..."
+                      emptyText="No school found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.qualifying_school_id && "border-red-500"
+                      )}
+                    />
                     {errors.qualifying_school_id && (
                       <p className="text-xs text-red-500">
                         {errors.qualifying_school_id}

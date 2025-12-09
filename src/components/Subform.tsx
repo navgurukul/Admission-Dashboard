@@ -120,11 +120,11 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
         disabled={isDisabled}
       >
         <SelectTrigger
-          className={`w-full ${isDisabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}`}
+          className={`w-full min-w-full text-sm whitespace-normal h-auto ${isDisabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}`}
         >
           <SelectValue placeholder={`Select ${field.label}`} />
         </SelectTrigger>
-        <SelectContent className="max-w-[300px]">
+        <SelectContent className="max-w-full w-full">
           {/* Add clear selection option with a valid non-empty value */}
           <SelectItem value="CLEAR_SELECTION">
             <span className="text-gray-400">Selection</span>
@@ -147,15 +147,15 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
       />
     );
   } else {
-    // Use textarea for comments field
-    if (field.name === "comments") {
+    // Use textarea for comments and note fields
+    if (field.name === "comments" || field.name === "note" || field.name === "notes") {
       return (
         <textarea
           value={row[field.name] || ""}
           onChange={(e) => updateRow(field.name, e.target.value)}
           disabled={isDisabled}
-          className={`border rounded px-2 py-1 w-full min-h-[80px] resize-y ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
-          placeholder="Enter comments..."
+          className={`border rounded px-2 py-1 w-full min-w-full min-h-[80px] resize-y ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+          placeholder={`Enter ${field.label || field.name}...`}
         />
       );
     }
@@ -164,7 +164,7 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
         value={row[field.name]}
         onChange={(e) => updateRow(field.name, e.target.value)}
         disabled={isDisabled}
-        className={isDisabled ? "cursor-not-allowed opacity-50" : ""}
+        className={`w-full min-w-full ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
       />
     );
   }
@@ -185,7 +185,7 @@ export function InlineSubform({
   const { toast } = useToast();
 
   useEffect(() => {
-    // Only update if the initialData actually changed (different length or ids)
+    // Only update if the initialData actually changed
     const currentIds = rows
       .map((r) => r.id)
       .filter(Boolean)
@@ -195,10 +195,25 @@ export function InlineSubform({
       .filter(Boolean)
       .sort();
 
-    // Check if IDs are different or if we have new data
+    // Check if IDs are different
     const idsChanged = JSON.stringify(currentIds) !== JSON.stringify(newIds);
 
-    if (idsChanged || rows.length === 0) {
+    // Check if audit info has changed for existing rows
+    const auditInfoChanged = initialData.some((newRow) => {
+      const existingRow = rows.find((r) => r.id === newRow.id);
+      if (!existingRow) return false;
+      
+      // Compare audit_info fields
+      const newAudit = newRow.audit_info || {};
+      const existingAudit = existingRow.audit_info || {};
+      
+      return (
+        newAudit.updated_at !== existingAudit.updated_at ||
+        newAudit.last_updated_by !== existingAudit.last_updated_by
+      );
+    });
+
+    if (idsChanged || rows.length === 0 || auditInfoChanged) {
       setRows(initialData.map((r) => ({ ...r })));
     }
   }, [initialData]);
@@ -356,10 +371,10 @@ export function InlineSubform({
       const updatedBy = auditData.last_updated_by || "—";
 
       return (
-        <div className="text-xs space-y-1">
-          <div><span className="font-medium">Created:</span> {created}</div>
-          <div><span className="font-medium">Updated:</span> {updated}</div>
-          <div><span className="font-medium">By:</span> {updatedBy}</div>
+        <div className="text-xs leading-tight">
+          <div className="mb-0.5"><span className="font-semibold">Created:</span> {created}</div>
+          <div className="mb-0.5"><span className="font-semibold">Updated:</span> {updated}</div>
+          <div><span className="font-semibold">By:</span> {updatedBy}</div>
         </div>
       );
     }
@@ -426,16 +441,16 @@ export function InlineSubform({
         )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto w-full">
+        <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
               {fields.map((f) => (
-                <th key={f.name} className="px-3 py-2 border-b">
+                <th key={f.name} className="px-3 py-2 border-b whitespace-nowrap">
                   {f.label}
                 </th>
               ))}
-              <th className="px-3 py-2 border-b text-right">Actions</th>
+              <th className="px-3 py-2 border-b text-right whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -445,26 +460,29 @@ export function InlineSubform({
                   // Audit fields should always be readonly
                   const isAuditField = ["created_at", "updated_at", "last_updated_by", "audit_info"].includes(f.name);
                   const isStatusField = f.name === "status" || f.name.includes("status");
+                  const isTextAreaField = f.name === "comments" || f.name === "note" || f.name === "notes";
                   const isEditable =
                     row.isEditing && editableFieldsMap[idx].has(f.name) && !isAuditField;
                   return (
                     <td
                       key={f.name}
-                      className={`px-3 py-2 align-top ${f.name === "comments"
-                          ? "whitespace-pre-wrap break-words min-w-[250px] max-w-[400px]"
-                          : isAuditField
-                            ? "min-w-[200px]"
-                            : isStatusField
-                              ? "min-w-[220px]"
-                              : ""
+                      className={`px-3 py-2 align-top ${isTextAreaField
+                          ? "whitespace-pre-wrap break-words w-full min-w-[250px] max-w-[400px]"
+                          : f.name === "audit_info"
+                            ? "w-auto min-w-[280px] max-w-[320px]"
+                            : isAuditField
+                              ? "w-auto min-w-[200px]"
+                              : isStatusField
+                                ? "w-auto min-w-[250px] max-w-[300px]"
+                                : "w-auto"
                         }`}
                     >
                       {!isEditable && (f.type === "readonly" || isAuditField) ? (
-                        <div className={`p-2 rounded ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>
+                        <div className={`p-2 rounded w-full break-words ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>
                           {getDisplayValue(row, f)}
                         </div>
-                      ) : !isEditable && f.name === "comments" ? (
-                        <div className="p-2 rounded bg-gray-50 whitespace-pre-wrap break-words min-h-[80px]">
+                      ) : !isEditable && (f.name === "comments" || f.name === "note" || f.name === "notes") ? (
+                        <div className="p-2 rounded bg-gray-50 whitespace-pre-wrap break-words max-w-[400px]">
                           {row[f.name] || "—"}
                         </div>
                       ) : (
@@ -480,7 +498,7 @@ export function InlineSubform({
                     </td>
                   );
                 })}
-                <td className="px-3 py-2 text-right">
+                <td className="px-3 py-2 text-right whitespace-nowrap">
                   {!row.isEditing ? (
                     <Button
                       size="icon"

@@ -93,7 +93,7 @@ export function DashboardStats() {
       bgColor: "bg-primary/10",
     },
     {
-      title: "Active Applications",
+      title: "Offer Letter Sent",
       value: loading ? "..." : metrics.activeApplications.toLocaleString(),
       // change: "+8%",
       // changeType: "increase" as const,
