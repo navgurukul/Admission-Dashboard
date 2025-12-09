@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 
 type Option = {
   id?: number | string;
@@ -68,6 +69,9 @@ export function EditableCell({
   const [cellValue, setCellValue] = useState<any>(value ?? displayValue ?? "");
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
+
+  // Memoize normalized options to prevent recalculation on every render
+  const normalizedOptions = useMemo(() => normalizeOptions(options), [options]);
 
   useEffect(() => {
     setCellValue(value ?? displayValue ?? "");
@@ -165,7 +169,8 @@ export function EditableCell({
     setCellValue("");
   };
 
-  const handleDirectDropdownChange = async (newValue: string) => {
+  // Memoize dropdown change handler to prevent recreation on each render
+  const handleDirectDropdownChange = useCallback(async (newValue: string) => {
     if (!applicant?.id) {
       console.error("Applicant ID is missing in EditableCell:", applicant);
       toast({
@@ -207,11 +212,10 @@ export function EditableCell({
     } finally {
       setIsUpdating(false);
     }
-  };
+  }, [applicant, field, isUpdating, onUpdate, toast]);
 
   const isEditing =
     editingCell?.id === applicant.id && editingCell?.field === field;
-  const normalizedOptions = normalizeOptions(options);
   const isDropdownField = normalizedOptions.length > 0;
 
   const getCurrentDropdownValue = () => {
@@ -233,6 +237,17 @@ export function EditableCell({
     return "none";
   };
 
+  // Memoize combobox options conversion
+  const comboboxOptions: ComboboxOption[] | null = useMemo(() => {
+    if (normalizedOptions.length > 10) {
+      return normalizedOptions.map((opt) => ({
+        value: opt.id,
+        label: opt.name,
+      }));
+    }
+    return null;
+  }, [normalizedOptions]);
+
   if (isDropdownField) {
     const currentValue = getCurrentDropdownValue();
     // Hide "Select" option for offer_letter_status and onboarded_status if value exists
@@ -241,6 +256,29 @@ export function EditableCell({
       currentValue !== "none" &&
       currentValue !== null &&
       currentValue !== undefined;
+
+    // Use Combobox for fields with many options (searchable)
+    const useCombobox = normalizedOptions.length > 10;
+
+    if (useCombobox) {
+      const comboboxOptions: ComboboxOption[] = normalizedOptions.map((opt) => ({
+        value: opt.id,
+        label: opt.name,
+      }));
+
+      return (
+        <Combobox
+          options={comboboxOptions}
+          value={currentValue === "none" ? "" : currentValue}
+          onValueChange={(val) => !disabled && handleDirectDropdownChange(val || "none")}
+          placeholder={placeholder || "Select option..."}
+          searchPlaceholder="Search..."
+          emptyText="No option found."
+          disabled={isUpdating || disabled}
+          className={disabled ? '!opacity-100 !cursor-default' : ''}
+        />
+      );
+    }
 
     return (
       <Select

@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
   CheckCircle2,
   Circle,
@@ -311,15 +312,16 @@ export function AddApplicantModal({
         }));
         setDistrictOptions(mappedDistricts);
 
+        // Find state label directly from the response data
+        const stateLabel = stateOptions.find((s) => s.value === selectedState)?.label || selectedState;
+        
         setFormData((prev) => ({
           ...prev,
           district: "",
           districtCode: "",
           block: "",
           blockCode: "",
-          state:
-            stateOptions.find((s) => s.value === selectedState)?.label ||
-            selectedState,
+          state: stateLabel,
           stateCode: selectedState,
         }));
       } catch (err) {
@@ -331,7 +333,7 @@ export function AddApplicantModal({
     };
 
     fetchDistricts();
-  }, [selectedState, stateOptions]);
+  }, [selectedState]); // Removed stateOptions from dependencies
 
   useEffect(() => {
     if (!selectedDistrict) {
@@ -360,11 +362,12 @@ export function AddApplicantModal({
         setBlockOptions(mappedBlocks);
         setSelectedBlock(""); // Clear selected block when district changes
 
+        // Find district label directly from the current districtOptions state
+        const districtLabel = districtOptions.find((d) => d.value === selectedDistrict)?.label || selectedDistrict;
+
         setFormData((prev) => ({
           ...prev,
-          district:
-            districtOptions.find((d) => d.value === selectedDistrict)?.label ||
-            selectedDistrict,
+          district: districtLabel,
           districtCode: selectedDistrict,
           block: "",
           blockCode: "",
@@ -377,7 +380,7 @@ export function AddApplicantModal({
     };
 
     fetchBlocks();
-  }, [selectedDistrict]);
+  }, [selectedDistrict]); // districtOptions not in dependencies - using current state value
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
