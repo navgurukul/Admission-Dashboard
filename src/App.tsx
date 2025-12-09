@@ -17,6 +17,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PartnerPage from "./pages/Partner";
 import AdminPage from "./pages/Admin";
+import AdminView from "./pages/AdminView";
 // import Student from "./pages/Student";
 import Donor from "./pages/Donor";
 import Campus from "./pages/Campus";
@@ -128,6 +129,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <AdminPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin-view"
+                element={
+                  <ProtectedRoute>
+                    <AdminView />
                   </ProtectedRoute>
                 }
               />
