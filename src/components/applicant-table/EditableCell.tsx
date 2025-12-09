@@ -393,7 +393,7 @@ export function EditableCell({
 
   return (
     <div
-      className={`p-1 rounded min-h-[24px] flex items-center gap-2 group ${disabled
+      className={`p-1 rounded min-h-[24px] flex items-center gap-2 group overflow-hidden ${disabled
           ? "cursor-default opacity-70"
           : "cursor-pointer hover:bg-muted/50"
         }`}
@@ -410,7 +410,7 @@ export function EditableCell({
             : "Click to edit"
       }
     >
-      <span className="flex-1 whitespace-pre-wrap break-words text-sm">
+      <span className="flex-1 whitespace-pre-wrap break-words text-sm max-w-full">
         {isUpdating 
           ? "Updating..." 
           : displayValue ? (

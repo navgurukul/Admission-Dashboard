@@ -120,7 +120,7 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
         disabled={isDisabled}
       >
         <SelectTrigger
-          className={`w-full min-w-full ${isDisabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}`}
+          className={`w-full min-w-full text-sm whitespace-normal h-auto ${isDisabled ? "cursor-not-allowed opacity-50 pointer-events-none" : ""}`}
         >
           <SelectValue placeholder={`Select ${field.label}`} />
         </SelectTrigger>
@@ -147,15 +147,15 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
       />
     );
   } else {
-    // Use textarea for comments field
-    if (field.name === "comments") {
+    // Use textarea for comments and note fields
+    if (field.name === "comments" || field.name === "note" || field.name === "notes") {
       return (
         <textarea
           value={row[field.name] || ""}
           onChange={(e) => updateRow(field.name, e.target.value)}
           disabled={isDisabled}
           className={`border rounded px-2 py-1 w-full min-w-full min-h-[80px] resize-y ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
-          placeholder="Enter comments..."
+          placeholder={`Enter ${field.label || field.name}...`}
         />
       );
     }
@@ -185,7 +185,7 @@ export function InlineSubform({
   const { toast } = useToast();
 
   useEffect(() => {
-    // Only update if the initialData actually changed (different length or ids)
+    // Only update if the initialData actually changed
     const currentIds = rows
       .map((r) => r.id)
       .filter(Boolean)
@@ -195,10 +195,25 @@ export function InlineSubform({
       .filter(Boolean)
       .sort();
 
-    // Check if IDs are different or if we have new data
+    // Check if IDs are different
     const idsChanged = JSON.stringify(currentIds) !== JSON.stringify(newIds);
 
-    if (idsChanged || rows.length === 0) {
+    // Check if audit info has changed for existing rows
+    const auditInfoChanged = initialData.some((newRow) => {
+      const existingRow = rows.find((r) => r.id === newRow.id);
+      if (!existingRow) return false;
+      
+      // Compare audit_info fields
+      const newAudit = newRow.audit_info || {};
+      const existingAudit = existingRow.audit_info || {};
+      
+      return (
+        newAudit.updated_at !== existingAudit.updated_at ||
+        newAudit.last_updated_by !== existingAudit.last_updated_by
+      );
+    });
+
+    if (idsChanged || rows.length === 0 || auditInfoChanged) {
       setRows(initialData.map((r) => ({ ...r })));
     }
   }, [initialData]);
@@ -445,28 +460,29 @@ export function InlineSubform({
                   // Audit fields should always be readonly
                   const isAuditField = ["created_at", "updated_at", "last_updated_by", "audit_info"].includes(f.name);
                   const isStatusField = f.name === "status" || f.name.includes("status");
+                  const isTextAreaField = f.name === "comments" || f.name === "note" || f.name === "notes";
                   const isEditable =
                     row.isEditing && editableFieldsMap[idx].has(f.name) && !isAuditField;
                   return (
                     <td
                       key={f.name}
-                      className={`px-3 py-2 align-top ${f.name === "comments"
-                          ? "whitespace-pre-wrap break-words w-full min-w-[250px]"
+                      className={`px-3 py-2 align-top ${isTextAreaField
+                          ? "whitespace-pre-wrap break-words w-full min-w-[250px] max-w-[400px]"
                           : f.name === "audit_info"
                             ? "w-auto min-w-[280px] max-w-[320px]"
                             : isAuditField
                               ? "w-auto min-w-[200px]"
                               : isStatusField
-                                ? "w-auto min-w-[220px]"
+                                ? "w-auto min-w-[250px] max-w-[300px]"
                                 : "w-auto"
                         }`}
                     >
                       {!isEditable && (f.type === "readonly" || isAuditField) ? (
-                        <div className={`p-2 rounded w-full ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>
+                        <div className={`p-2 rounded w-full break-words ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>
                           {getDisplayValue(row, f)}
                         </div>
-                      ) : !isEditable && f.name === "comments" ? (
-                        <div className="p-2 rounded bg-gray-50 whitespace-pre-wrap break-words min-h-[80px] w-full">
+                      ) : !isEditable && (f.name === "comments" || f.name === "note" || f.name === "notes") ? (
+                        <div className="p-2 rounded bg-gray-50 whitespace-pre-wrap break-words max-w-[400px]">
                           {row[f.name] || "—"}
                         </div>
                       ) : (

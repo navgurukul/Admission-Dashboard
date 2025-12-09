@@ -458,8 +458,6 @@ export function ApplicantModal({
     }
   };
 
-  if (!applicant || !currentApplicant) return null;
-
   const handleEditClick = () => {
     setShowEditModal(true);
   };
@@ -565,7 +563,7 @@ export function ApplicantModal({
     }
   };
 
-  const examSession = currentApplicant.exam_sessions?.[0] ?? null;
+  const examSession = currentApplicant?.exam_sessions?.[0] ?? null;
 
   const screeningFields = [
     {
@@ -626,29 +624,61 @@ export function ApplicantModal({
     },
   ];
 
-  const initialScreeningData =
-    currentApplicant.exam_sessions?.map((session) => ({
-      id: session.id,
-      status: session.status ?? currentApplicant.status ?? "",
-      question_set_id: session.question_set_id?.toString() || "",
-      obtained_marks:
-        session.obtained_marks !== null && session.obtained_marks !== undefined
-          ? session.obtained_marks.toString()
-          : "",
-      school_id:
-        session.school_id !== null && session.school_id !== undefined
-          ? session.school_id.toString()
-          : "",
-      exam_centre: session.exam_centre || "",
-      date_of_test: session.date_of_test?.split("T")[0] || "",
-      audit_info: {
-        created_at: session.created_at || "",
-        updated_at: session.updated_at || "",
-        last_updated_by: session.last_updated_by || "",
-      },
-    })) || [];
+  const initialScreeningData = useMemo(
+    () =>
+      currentApplicant?.exam_sessions?.map((session) => ({
+        id: session.id,
+        status: session.status ?? currentApplicant.status ?? "",
+        question_set_id: session.question_set_id?.toString() || "",
+        obtained_marks:
+          session.obtained_marks !== null && session.obtained_marks !== undefined
+            ? session.obtained_marks.toString()
+            : "",
+        school_id:
+          session.school_id !== null && session.school_id !== undefined
+            ? session.school_id.toString()
+            : "",
+        exam_centre: session.exam_centre || "",
+        date_of_test: session.date_of_test?.split("T")[0] || "",
+        audit_info: {
+          created_at: session.created_at || "",
+          updated_at: session.updated_at || "",
+          last_updated_by: session.last_updated_by || "",
+        },
+      })) || [],
+    [currentApplicant]
+  );
 
-  if (!applicant) return null;
+  // Map learning round data with audit info
+  const initialLearningData = useMemo(
+    () =>
+      (currentApplicant?.interview_learner_round || []).map((round: any) => ({
+        ...round,
+        audit_info: {
+          created_at: round.created_at || "",
+          updated_at: round.updated_at || "",
+          last_updated_by: round.last_updated_by || "",
+        },
+      })),
+    [currentApplicant]
+  );
+
+  // Map cultural fit round data with audit info
+  const initialCulturalData = useMemo(
+    () =>
+      (currentApplicant?.interview_cultural_fit_round || []).map((round: any) => ({
+        ...round,
+        audit_info: {
+          created_at: round.created_at || "",
+          updated_at: round.updated_at || "",
+          last_updated_by: round.last_updated_by || "",
+        },
+      })),
+    [currentApplicant]
+  );
+
+  // Early return AFTER all hooks
+  if (!applicant || !currentApplicant) return null;
 
   const screeningSubmit =
     API_MAP?.screening?.submit ??
@@ -706,30 +736,6 @@ export function ApplicantModal({
 
     return false;
   };
-
-  // Map learning round data with audit info
-  const initialLearningData = (
-    currentApplicant.interview_learner_round || []
-  ).map((round: any) => ({
-    ...round,
-    audit_info: {
-      created_at: round.created_at || "",
-      updated_at: round.updated_at || "",
-      last_updated_by: round.last_updated_by || "",
-    },
-  }));
-
-  // Map cultural fit round data with audit info
-  const initialCulturalData = (
-    currentApplicant.interview_cultural_fit_round || []
-  ).map((round: any) => ({
-    ...round,
-    audit_info: {
-      created_at: round.created_at || "",
-      updated_at: round.updated_at || "",
-      last_updated_by: round.last_updated_by || "",
-    },
-  }));
 
   return (
     <>
@@ -1413,7 +1419,7 @@ export function ApplicantModal({
                         value={value}
                         onChange={(e) => onChange(e.target.value)}
                         rows={4}
-                        className="border rounded px-2 py-1 w-full resize-none"
+                        className="border rounded px-2 py-1 w-full resize-y"
                         placeholder="Enter final notes here..."
                       />
                     )}
