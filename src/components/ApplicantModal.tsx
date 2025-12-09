@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
@@ -17,6 +17,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -39,6 +47,7 @@ import {
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import StageDropdown, {
   STAGE_STATUS_MAP,
 } from "./applicant-table/StageDropdown";
@@ -87,6 +96,11 @@ export function ApplicantModal({
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+  const [openComboboxes, setOpenComboboxes] = useState({
+    state: false,
+    district: false,
+    block: false,
+  });
 
   const [campus, setCampus] = useState<any[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -606,6 +620,7 @@ export function ApplicantModal({
       label: "Date of Testing *",
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
+        const today = new Date().toISOString().split('T')[0];
         return (
           <input
             type="date"
@@ -613,6 +628,7 @@ export function ApplicantModal({
             onChange={(e) => updateRow?.("date_of_test", e.target.value)}
             className="border p-1 rounded w-full"
             disabled={!!disabled}
+            max={today}
           />
         );
       },

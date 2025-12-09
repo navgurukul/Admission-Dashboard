@@ -1085,58 +1085,34 @@ export function AddApplicantModal({
                     <Label htmlFor="state" className="text-sm font-medium">
                       State *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={stateOptions}
                       value={selectedState}
                       onValueChange={(value) => {
-                        if (value === "none") {
-                          setSelectedState("");
-                          setSelectedDistrict("");
-                          setBlockOptions([]);
-                          setFormData((prev) => ({
-                            ...prev,
-                            state: "",
-                            district: "",
-                            block: "",
-                          }));
+                        if (selectedDistrict || formData.block) {
                           setShowLocationWarning({
-                            district: false,
-                            block: false,
+                            district: !!selectedDistrict,
+                            block: !!formData.block,
                           });
-                        } else {
-                          // Show warning if district or block has values
-                          if (selectedDistrict || formData.block) {
+                          setTimeout(() => {
                             setShowLocationWarning({
-                              district: !!selectedDistrict,
-                              block: !!formData.block,
+                              district: false,
+                              block: false,
                             });
-                            // Clear warning after 3 seconds
-                            setTimeout(() => {
-                              setShowLocationWarning({
-                                district: false,
-                                block: false,
-                              });
-                            }, 3000);
-                          }
-                          setSelectedState(value);
-                          setSelectedDistrict("");
-                          setBlockOptions([]);
+                          }, 3000);
                         }
+                        setSelectedState(value);
+                        setSelectedDistrict("");
+                        setBlockOptions([]);
                       }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select state" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none" className="text-gray-400">
-                          Select state
-                        </SelectItem>
-                        {stateOptions.map((state) => (
-                          <SelectItem key={state.value} value={state.value}>
-                            {state.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select state"
+                      searchPlaceholder="Search state..."
+                      emptyText="No state found."
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        errors.state && "border-red-500"
+                      )}
+                    />
                     {errors.state && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1148,76 +1124,44 @@ export function AddApplicantModal({
                     <Label htmlFor="district" className="text-sm font-medium">
                       District *
                     </Label>
-                    <Select
+                    <Combobox
+                      options={districtOptions}
                       value={selectedDistrict}
                       onValueChange={(value) => {
-                        if (value === "none") {
-                          setSelectedDistrict("");
-                          setFormData((prev) => ({
-                            ...prev,
-                            district: "",
-                            block: "",
-                          }));
-                          setBlockOptions([]);
+                        if (selectedBlock) {
                           setShowLocationWarning({
                             district: false,
-                            block: false,
+                            block: true,
                           });
-                        } else {
-                          // Show warning if block has value
-                          if (selectedBlock) {
+                          setTimeout(() => {
                             setShowLocationWarning({
                               district: false,
-                              block: true,
+                              block: false,
                             });
-                            // Clear warning after 3 seconds
-                            setTimeout(() => {
-                              setShowLocationWarning({
-                                district: false,
-                                block: false,
-                              });
-                            }, 3000);
-                          }
-                          setSelectedDistrict(value);
-                          setFormData((prev) => ({
-                            ...prev,
-                            block: "",
-                          }));
+                          }, 3000);
                         }
+                        setSelectedDistrict(value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          block: "",
+                        }));
                       }}
+                      placeholder={
+                        isLoadingDistricts
+                          ? "Loading districts..."
+                          : !selectedState
+                          ? "Select state first"
+                          : "Select district"
+                      }
+                      searchPlaceholder="Search district..."
+                      emptyText="No district found."
                       disabled={!selectedState || isLoadingDistricts}
-                    >
-                      <SelectTrigger
-                        className={
-                          showLocationWarning.district ? "border-red-500" : ""
-                        }
-                      >
-                        <SelectValue
-                          placeholder={
-                            isLoadingDistricts
-                              ? "Loading districts..."
-                              : !selectedState
-                                ? "Select state first"
-                                : "Select district"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedDistrict && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select district
-                          </SelectItem>
-                        )}
-                        {districtOptions.map((district) => (
-                          <SelectItem
-                            key={district.value}
-                            value={district.value}
-                          >
-                            {district.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        showLocationWarning.district && "border-red-500",
+                        errors.district && "border-red-500"
+                      )}
+                    />
                     {errors.district && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1242,63 +1186,62 @@ export function AddApplicantModal({
                     <Label htmlFor="block" className="text-sm font-medium">
                       Block *
                     </Label>
-                    <Select
-                      value={selectedBlock}
-                      onValueChange={(value) => {
-                        if (value === "none") {
-                          setSelectedBlock("");
-                          setFormData((prev) => ({
-                            ...prev,
-                            block: "",
-                            blockCode: "",
-                          }));
-                        } else {
+                    {blockOptions.length > 0 ? (
+                      // Show dropdown if blocks are available
+                      <Combobox
+                        options={blockOptions}
+                        value={selectedBlock}
+                        onValueChange={(value) => {
                           setSelectedBlock(value);
-                          const selectedBlockOption = blockOptions.find(
-                            (b) => b.value === value
-                          );
+                          const blockLabel = blockOptions.find((b) => b.value === value)?.label || value;
                           setFormData((prev) => ({
                             ...prev,
-                            block: selectedBlockOption?.label || value,
+                            block: blockLabel,
                             blockCode: value,
                           }));
+                        }}
+                        placeholder={
+                          isLoadingBlocks
+                            ? "Loading blocks..."
+                            : !selectedDistrict
+                            ? "Select district first"
+                            : "Select block"
                         }
-                      }}
-                      disabled={!selectedDistrict || isLoadingBlocks}
-                    >
-                      <SelectTrigger
+                        searchPlaceholder="Search block..."
+                        emptyText="No block found."
+                        disabled={!selectedDistrict || isLoadingBlocks}
+                        className={cn(
+                          "h-10 border shadow-sm hover:bg-accent",
+                          (showLocationWarning.block || errors.block) && "border-red-500"
+                        )}
+                      />
+                    ) : (
+                      // Show input field if no blocks available
+                      <Input
+                        id="block"
+                        value={formData.block}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            block: value,
+                            blockCode: value, // Use the input value as both label and code
+                          }));
+                          setSelectedBlock(value);
+                        }}
+                        placeholder={
+                          isLoadingBlocks
+                            ? "Loading blocks..."
+                            : !selectedDistrict
+                            ? "Select district first"
+                            : "Enter block name"
+                        }
+                        disabled={!selectedDistrict || isLoadingBlocks}
                         className={
-                          showLocationWarning.block || errors.block ? "border-red-500" : ""
+                          (showLocationWarning.block || errors.block) ? "border-red-500" : ""
                         }
-                      >
-                        {isLoadingBlocks ? (
-                          <div className="flex items-center">
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Loading blocks...
-                          </div>
-                        ) : (
-                          <SelectValue
-                            placeholder={
-                              !selectedDistrict
-                                ? "Select district first"
-                                : "Select block"
-                            }
-                          />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedBlock && (
-                          <SelectItem value="none" className="text-gray-400">
-                            Select block
-                          </SelectItem>
-                        )}
-                        {blockOptions.map((block) => (
-                          <SelectItem key={block.value} value={block.value}>
-                            {block.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      />
+                    )}
                     {errors.block && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1728,6 +1671,7 @@ export function AddApplicantModal({
                       id="date_of_test"
                       type="date"
                       value={formData.date_of_test}
+                      max={new Date().toISOString().split('T')[0]}
                       onChange={(e) =>
                         handleInputChange("date_of_test", e.target.value)
                       }
