@@ -161,14 +161,14 @@ const CampusPage: React.FC = () => {
       setDeleteDialog(false);
       setSelectedCampus(null);
       toast({
-        title: "Campus Deleted",
+        title: "Unable to Delete Campus",
         description: `Campus "${campus_name}" has been deleted.`,
       });
       await fetchCampuses(false);
       setCurrentPage(1);
     } catch (err) {
       toast({
-        title: "Error",
+        title: "Unable to Delete Campus",
         description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });

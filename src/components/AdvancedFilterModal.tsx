@@ -23,8 +23,8 @@ import {
 import { CalendarIcon, Filter, X } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { getFilterStudent, getAllStages } from "@/utils/api";
-import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
+import { getFilterStudent, getAllStages, getStatusesByStageId } from "@/utils/api";
+// import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 import {
   getStatesList,
   getDistrictsList,
@@ -115,6 +115,7 @@ export function AdvancedFilterModal({
 
   const [availableStates, setAvailableStates] = useState<State[]>([]);
   const [availableDistricts, setAvailableDistricts] = useState<District[]>([]);
+  const [stageStatuses, setStageStatuses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState({
     states: false,
     districts: false,
@@ -126,6 +127,39 @@ export function AdvancedFilterModal({
   // Use ref to track if initial load is done
   const isInitialLoadDone = useRef(false);
   const prevIsOpen = useRef(isOpen);
+  const districtsCache = useRef<Record<string, District[]>>({});
+
+  useEffect(() => {
+    const fetchStageStatuses = async () => {
+      if (!filters.stage_id || filters.stage === "all" || filters.stage.toLowerCase() === "sourcing") {
+        setStageStatuses([]);
+        setFilters((prev) => ({ ...prev, stage_status: "all" }));
+        return;
+      }
+
+      try {
+        setIsLoading((prev) => ({ ...prev, general: true }));
+        const response = await getStatusesByStageId(filters.stage_id);
+
+        // Extract data array from response
+        const statusesData = response?.data || response || [];
+
+        setStageStatuses(statusesData);
+      } catch (error) {
+        console.error("Error fetching stage statuses:", error);
+        setStageStatuses([]);
+        toast({
+          title: "Error",
+          description: "Failed to load stage statuses",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading((prev) => ({ ...prev, general: false }));
+      }
+    };
+
+    fetchStageStatuses();
+  }, [filters.stage_id, filters.stage, toast]); // Run when stage changes
 
   // State change handler - wrapped in useCallback to prevent recreating on every render
   const handleStateChange = useCallback(
@@ -369,11 +403,15 @@ export function AdvancedFilterModal({
     const processedFilters: any = {
       ...filters,
     };
-    
+    // Hide stage_status if stage is sourcing (since backend doesn't filter on it)
+    if (filters.stage && filters.stage.toLowerCase() === "sourcing") {
+      processedFilters.stage_status = "all";
+    }
+
     // Remove the old 'status' field if it exists
     delete processedFilters.status;
     
-    console.log("Current Filters:", processedFilters);
+    // console.log("Current Filters:", processedFilters);
     onApplyFilters(processedFilters);
     onClose();
     toast({
@@ -569,7 +607,7 @@ export function AdvancedFilterModal({
                 }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select stage" />
+                  <SelectValue placeholder="Select stage" className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Stages</SelectItem>
@@ -594,11 +632,11 @@ export function AdvancedFilterModal({
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">
                 Stage Status
-                {filters.stage && 
-                 filters.stage !== "all" && 
-                 filters.stage.toLowerCase() !== "sourcing" && (
-                  <span className="text-red-500 ml-1">*</span>
-                )}
+                {filters.stage &&
+                  filters.stage !== "all" &&
+                  filters.stage.toLowerCase() !== "sourcing" && (
+                    <span className="text-red-500 ml-1">*</span>
+                  )}
               </h3>
               <Select
                 value={filters.stage_status || "all"}
@@ -606,43 +644,53 @@ export function AdvancedFilterModal({
                   setFilters((prev) => ({ ...prev, stage_status: value }))
                 }
                 disabled={
-                  !filters.stage || 
-                  filters.stage === "all" || 
-                  filters.stage.toLowerCase() === "sourcing"
+                  !filters.stage ||
+                  filters.stage === "all" ||
+                  filters.stage.toLowerCase() === "sourcing" ||
+                  isLoading.general
                 }
               >
-                <SelectTrigger 
-                  className={`w-full ${
-                    filters.stage && 
-                    filters.stage !== "all" && 
-                    filters.stage.toLowerCase() !== "sourcing" && 
+                <SelectTrigger
+                  className={`w-full ${filters.stage &&
+                    filters.stage !== "all" &&
+                    filters.stage.toLowerCase() !== "sourcing" &&
                     (!filters.stage_status || filters.stage_status === "all")
-                      ? "border-red-300"
-                      : ""
-                  }`}
+                    ? "border-red-300"
+                    : ""
+                    }`}
                 >
-                  <SelectValue 
+                  <SelectValue
+                    className="truncate"
                     placeholder={
                       !filters.stage || filters.stage === "all"
                         ? "Select stage first"
                         : filters.stage.toLowerCase() === "sourcing"
                           ? "Not applicable for Sourcing"
-                          : "Select status"
+                          : isLoading.general
+                            ? "Loading statuses..."
+                            : stageStatuses.length === 0
+                              ? "No statuses available"
+                              : "Select status"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Statuses</SelectItem>
-                  {filters.stage && 
-                   filters.stage !== "all" && 
-                   STAGE_STATUS_MAP[filters.stage.toLowerCase()] &&
-                   STAGE_STATUS_MAP[filters.stage.toLowerCase()].map((status: string) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
+                  {stageStatuses.map((status: any) => (
+                    <SelectItem
+                      key={status.id || status.status_name}
+                      value={status.status_name || status.name}
+                    >
+                      {status.status_name || status.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {filters.stage && filters.stage.toLowerCase() === "sourcing" && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Status filtering not available for Sourcing stage
+                </p>
+              )}
             </div>
 
             {/* Exam Mode */}
@@ -757,6 +805,7 @@ export function AdvancedFilterModal({
               >
                 <SelectTrigger className="w-full">
                   <SelectValue
+                    className="truncate"
                     placeholder={
                       !filters.state || filters.state === "all"
                         ? "Select state first"
@@ -834,6 +883,7 @@ export function AdvancedFilterModal({
               >
                 <SelectTrigger className="w-full">
                   <SelectValue
+                    className="truncate"
                     placeholder={
                       isLoading.general ? "Loading..." : "Select campus"
                     }
@@ -870,6 +920,7 @@ export function AdvancedFilterModal({
               >
                 <SelectTrigger className="w-full">
                   <SelectValue
+                    className="truncate"
                     placeholder={
                       isLoading.general ? "Loading..." : "Select school"
                     }
@@ -906,6 +957,7 @@ export function AdvancedFilterModal({
                   className={`w-full ${!filters.qualification?.length || filters.qualification[0] === "all" ? "border-red-300" : ""}`}
                 >
                   <SelectValue
+                    className="truncate"
                     placeholder={
                       isLoading.general ? "Loading..." : "Select qualification"
                     }
@@ -944,6 +996,7 @@ export function AdvancedFilterModal({
               >
                 <SelectTrigger className="w-full">
                   <SelectValue
+                    className="truncate"
                     placeholder={
                       isLoading.general ? "Loading..." : "Select status"
                     }

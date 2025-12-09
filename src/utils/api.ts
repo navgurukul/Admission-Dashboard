@@ -1563,8 +1563,18 @@ export const deleteCampusApi = async (id: number) => {
     body: JSON.stringify({ id }),
   });
 
-  if (!response.ok) throw new Error("Failed to delete campus");
-  return response.json();
+  const result = await response.json();
+  
+  // Check if there's an error in the nested data object
+  if (result.data?.error) {
+    throw new Error(result.data.details || result.data.error || "Failed to delete campus");
+  }
+  
+  if (!response.ok) {
+    throw new Error(result.message || result.error || "Failed to delete campus");
+  }
+  
+  return result;
 };
 
 //  Create School
