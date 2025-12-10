@@ -1037,8 +1037,8 @@ export function ApplicantModal({
                       Last Updated By
                     </label>
                     <p className="text-sm">
-                      {currentApplicant.updated_by
-                        ? currentApplicant.updated_by
+                      {currentApplicant.last_updated_by
+                        ? currentApplicant.last_updated_by
                         : "Not available"}
                     </p>
                   </div>
