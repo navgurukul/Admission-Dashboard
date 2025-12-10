@@ -94,18 +94,18 @@ export function QuestionEditor({
     // Validate question type & difficulty
     if (!formData.question_type) {
       toast({
-        title: "Validation Error",
+        title: "Required field",
         description: "Select a question type",
-        variant: "destructive",
+        // variant: "destructive",
       });
       return;
     }
 
     if (!formData.difficulty_level) {
       toast({
-        title: "Validation Error",
+        title: "Required field",
         description: "Select difficulty level",
-        variant: "destructive",
+        // variant: "destructive",
       });
       return;
     }
@@ -113,27 +113,27 @@ export function QuestionEditor({
     // Validate question text
     if (!formData.question_text.english.trim()) {
       toast({
-        title: "Validation Error",
+        title: "Required field",
         description: "Enter question text in English",
-        variant: "destructive",
+        // variant: "destructive",
       });
       return;
     }
 
     if (!formData.question_text.hindi.trim()) {
       toast({
-        title: "Validation Error",
+        title: "Required field",
         description: "Enter question text in Hindi",
-        variant: "destructive",
+        // variant: "destructive",
       });
       return;
     }
 
     if (!formData.question_text.marathi.trim()) {
       toast({
-        title: "Validation Error",
+        title: "Required field",
         description: "Enter question text in Marathi",
-        variant: "destructive",
+        // variant: "destructive",
       });
       return;
     }
@@ -148,9 +148,9 @@ export function QuestionEditor({
 
       if (hasEmptyOption) {
         toast({
-          title: "Validation Error",
+          title: "Required field",
           description: "All MCQ options must be filled in all languages",
-          variant: "destructive",
+          // variant: "destructive",
         });
         return;
       }
@@ -161,9 +161,9 @@ export function QuestionEditor({
         formData.correct_answer === undefined
       ) {
         toast({
-          title: "Validation Error",
+          title: "Required field",
           description: "Select the correct answer",
-          variant: "destructive",
+          // variant: "destructive",
         });
         return;
       }
@@ -292,9 +292,9 @@ export function QuestionEditor({
 
       {/* Save / Cancel Buttons */}
       <div className="flex items-center justify-end gap-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        {/* <Button type="button" variant="outline" onClick={onCancel}>
           <X className="w-4 h-4 mr-2" /> Cancel
-        </Button>
+        </Button> */}
         <Button type="submit">
           <Save className="w-4 h-4 mr-2" />
           {question ? "Update Question" : "Create Question"}
