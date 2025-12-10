@@ -301,10 +301,17 @@ export const searchUsers = async (query: string): Promise<User[]> => {
 export const bulkUploadStudents = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
+  const headers = getAuthHeaders(false);
+  
+  // Create clean headers object with ONLY Authorization
+  const uploadHeaders: HeadersInit = {};
+  if (headers['Authorization']) {
+    uploadHeaders['Authorization'] = headers['Authorization'] as string;
+  }
 
   const res = await fetch(
-    "https://dev-new-admissions.navgurukul.org/api/v1/students/bulkUploadStudents",
-    { method: "POST", body: formData },
+  `${BASE_URL}/students/bulkUploadStudents`,
+    { method: "POST", body: formData, headers :uploadHeaders },
   );
 
   if (!res.ok) {
