@@ -12,10 +12,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertCircle } from "lucide-react";
-import { addApplicants } from "@/utils/localStorage";
 import { bulkUploadStudents } from "@/utils/api";
 import { Loader2 } from "lucide-react";
 
@@ -26,30 +25,48 @@ interface CSVImportModalProps {
 }
 
 interface ApplicantData {
-  mobile_no: string;
-  unique_number: string | null;
-  name: string | null;
-  city: string | null;
-  block: string | null;
-  caste: string | null;
-  gender: string | null;
-  qualification: string | null;
-  current_work: string | null;
-  qualifying_school: string | null;
+  // Personal Information
+  first_name: string;
+  middle_name: string | null;
+  last_name: string | null;
+  phone_number: string;
   whatsapp_number: string | null;
-  set_name: string | null;
+  email: string | null;
+  gender: string | null;
+  
+  // Location Information
+  state: string | null;
+  district: string | null;
+  block: string | null;
+  pin_code: string | null;
+  
+  // Education & Background
+  cast_id: string | null;
+  qualification_id: string | null;
+  current_status_id: string | null;
+  
+  // Screening Round
+  screening_status: string | null;
+  question_set_id: string | null;
+  obtained_marks: number | null;
+  school_id: string | null;
   exam_centre: string | null;
-  date_of_testing: string | null;
-  lr_status: string | null;
+  date_of_test: string | null;
+  
+  // Learning Round
+  learning_round_status: string | null;
   lr_comments: string | null;
-  cfr_status: string | null;
+  
+  // Cultural Fit Round
+  cultural_fit_status: string | null;
   cfr_comments: string | null;
-  final_marks: number | null;
+  
+  // Final Decision
+  campus_id: string | null;
   offer_letter_status: string | null;
-  allotted_school: string | null;
-  joining_status: string | null;
+  onboarded_status: string | null;
+  joining_date: string | null;
   final_notes: string | null;
-  triptis_notes: string | null;
 }
 
 const CSVImportModal = ({
@@ -142,6 +159,60 @@ const CSVImportModal = ({
     }
   };
 
+  const downloadSampleCSV = () => {
+    const sampleData = [
+      {
+        "First Name": "John",
+        "Middle Name": "Kumar",
+        "Last Name": "Sharma",
+        "Phone Number": "9876543210",
+        "WhatsApp Number": "9876543210",
+        "Email": "john.sharma@example.com",
+        "Gender": "male",
+        "State": "S-06",
+        "District": "D-06-01",
+        "Block": "1",
+        "Pincode": "110001",
+        "Cast ID": "1",
+        "Qualification ID": "1",
+        "Current Work ID": "1",
+        "Screening Status": "Screening Test Pass",
+        "Question Set ID": "1",
+        "Obtained Marks": "18",
+        "School ID": "1",
+        "Exam Centre": "Delhi Centre",
+        "Date of Test": "2025-01-15",
+        "Learning Round Status": "Learner Round Pass",
+        "LR Comments": "Good communication skills",
+        "Cultural Fit Status": "Cultural Fit Interview Pass",
+        "CFR Comments": "Positive attitude",
+        "Campus ID": "1",
+        "Offer Letter Status": "Offer Sent",
+        "Onboarded Status": "Onboarded",
+        "Joining Date": "2025-02-01",
+        "Final Notes": "Excellent candidate"
+      }
+    ];
+
+    const csv = Papa.unparse(sampleData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", "applicant_import_template.csv");
+    link.style.visibility = "hidden";
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Template Downloaded",
+      description: "Sample CSV template has been downloaded successfully.",
+    });
+  };
+
   const parseNumericValue = (value: string | undefined): number | null => {
     if (!value || value.trim() === "") return null;
 
@@ -178,40 +249,60 @@ const CSVImportModal = ({
       const processedData = data.map((row, index) => {
         // console.log(`Processing row ${index + 1}:`, row);
 
-        const processedRow = {
-          mobile_no: row["Mobile No."]?.toString() || "",
-          unique_number: row["Unique Number"]?.toString() || null, // if exists
-          name: row["Name"] || null,
-          city: row["City"] || null,
-          block: row["Block"] || null,
-          caste: row["Caste"] || null,
-          gender: row["Gender"] || null,
-          qualification: row["Qualification"] || null,
-          current_work: row["Current Work"] || null,
-          qualifying_school: row["Qualifying SOP/SOB"] || null,
-          whatsapp_number: row["WA NO."]?.toString() || null,
-          set_name: row["Set"] || null,
-          exam_centre: row["Offline Exam Centre"] || null,
-          date_of_testing: row["Date of Testing"] || null,
-          final_marks: parseNumericValue(row["Final Marks"]?.toString()),
-          // Optional fields (comment if not needed)
-          // lr_status: row["LR Status"] || null,
-          // lr_comments: row["LR Comments"] || null,
-          // cfr_status: row["CFR Status"] || null,
-          // cfr_comments: row["CFR Comments"] || null,
-          final_notes: row["Final Notes"] || null,
-          triptis_notes: row["Triptis Notes"] || null,
+        const processedRow: any = {
+          // Personal Information (Required)
+          first_name: row["First Name"] || row["first_name"] || "",
+          middle_name: row["Middle Name"] || row["middle_name"] || null,
+          last_name: row["Last Name"] || row["last_name"] || null,
+          phone_number: row["Phone Number"] || row["phone_number"] || row["Mobile No."]?.toString() || "",
+          whatsapp_number: row["WhatsApp Number"] || row["whatsapp_number"] || row["WA NO."]?.toString() || null,
+          email: row["Email"] || row["email"] || null,
+          gender: row["Gender"] || row["gender"] || null,
+          
+          // Location Information
+          state: row["State"] || row["state"] || null,
+          district: row["District"] || row["district"] || null,
+          block: row["Block"] || row["block"] || null,
+          pin_code: row["Pincode"] || row["pin_code"] || row["Pin Code"] || null,
+          
+          // Education & Background (IDs or Names)
+          cast_id: row["Cast ID"] || row["cast_id"] || row["Caste"] || null,
+          qualification_id: row["Qualification ID"] || row["qualification_id"] || row["Qualification"] || null,
+          current_status_id: row["Current Work ID"] || row["current_status_id"] || row["Current Work"] || null,
+          
+          // Screening Round
+          screening_status: row["Screening Status"] || row["screening_status"] || row["Status"] || null,
+          question_set_id: row["Question Set ID"] || row["question_set_id"] || row["Set Name"] || row["Set"] || null,
+          obtained_marks: parseNumericValue(row["Obtained Marks"]?.toString() || row["obtained_marks"]?.toString() || row["Final Marks"]?.toString()),
+          school_id: row["School ID"] || row["school_id"] || row["Qualifying School"] || row["Qualifying SOP/SOB"] || null,
+          exam_centre: row["Exam Centre"] || row["exam_centre"] || row["Offline Exam Centre"] || null,
+          date_of_test: row["Date of Test"] || row["date_of_test"] || row["Date of Testing"] || null,
+          
+          // Learning Round
+          learning_round_status: row["Learning Round Status"] || row["learning_round_status"] || row["LR Status"] || null,
+          lr_comments: row["LR Comments"] || row["lr_comments"] || null,
+          
+          // Cultural Fit Round
+          cultural_fit_status: row["Cultural Fit Status"] || row["cultural_fit_status"] || row["CFR Status"] || null,
+          cfr_comments: row["CFR Comments"] || row["cfr_comments"] || null,
+          
+          // Final Decision
+          campus_id: row["Campus ID"] || row["campus_id"] || row["Campus"] || null,
+          offer_letter_status: row["Offer Letter Status"] || row["offer_letter_status"] || null,
+          onboarded_status: row["Onboarded Status"] || row["onboarded_status"] || row["Joining Status"] || null,
+          joining_date: row["Joining Date"] || row["joining_date"] || null,
+          final_notes: row["Final Notes"] || row["final_notes"] || null,
         };
 
         // console.log(
-        //   `Processed row ${index + 1} final_marks:`,
-        //   processedRow.final_marks
+        //   `Processed row ${index + 1}:`,
+        //   processedRow
         // );
         return processedRow;
       });
 
-      // Save to localStorage first
-      addApplicants(processedData);
+      // Note: Data is already uploaded via bulkUploadStudents API
+      // No need to save to localStorage separately
 
       setSuccessCount(processedData.length);
       setShowSuccess(true);
@@ -241,12 +332,30 @@ const CSVImportModal = ({
         <DialogHeader>
           <DialogTitle>Import Applicants from CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple applicants at once. Duplicate
-            mobile numbers are now allowed.
+            Upload a CSV file to add multiple applicants at once. 
+            <br /><br />
+            <strong>Required columns:</strong> First Name, Phone Number
+            <br />
+            <strong>Optional columns:</strong> Middle Name, Last Name, WhatsApp Number, Email, Gender, State, District, Block, Pincode, Cast ID, Qualification ID, Current Work ID, Screening Status, Question Set ID, Obtained Marks, School ID, Exam Centre, Date of Test, Learning Round Status, LR Comments, Cultural Fit Status, CFR Comments, Campus ID, Offer Letter Status, Onboarded Status, Joining Date, Final Notes
+            <br /><br />
+            <em>Note: Column names are case-insensitive and support multiple formats.</em>
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={downloadSampleCSV}
+              className="text-xs flex items-center gap-2"
+            >
+              <Download className="h-3 w-3" />
+              Download Sample CSV
+            </Button>
+          </div>
+          
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="file" className="text-right">
               CSV File
