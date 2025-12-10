@@ -597,7 +597,7 @@ const SlotBooking: React.FC = () => {
       });
 
       showNotificationMessage(
-        "✅ Interview Rescheduled Successfully! New Google Meet link sent.",
+        "Interview Rescheduled Successfully! New Google Meet link sent.",
         "success",
       );
 
@@ -909,7 +909,7 @@ const SlotBooking: React.FC = () => {
               </div>
 
               {/* Selected Slot Info */}
-              {(slot.id || newSlot.id) && (
+              {((isRescheduling && newSlot.id) || (!isRescheduling && slot.id && slot.is_cancelled)) && (
                 <div className="mb-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-900 mb-2">
                     {isRescheduling ? "New Slot Selected:" : "Selected Slot:"}
@@ -952,7 +952,7 @@ const SlotBooking: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     <p className="text-sm text-green-700">
-                      ✓ Google account connected. Meet link will be created
+                      Google account connected. Meet link will be created
                       automatically.
                     </p>
                   </div>
@@ -1095,7 +1095,7 @@ const SlotBooking: React.FC = () => {
                     Join Google Meet
                   </a>
                   <p className="text-sm text-gray-600 mt-3">
-                    📧 Meeting link has been sent to your email and the
+                    Meeting link has been sent to your email and the
                     interviewer's email.
                   </p>
                 </div>
