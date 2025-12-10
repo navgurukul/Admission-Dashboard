@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
 import { getStudents, getFilterStudent, getAllStages } from "@/utils/api";
 
 interface DashboardMetrics {
@@ -19,6 +20,7 @@ export function DashboardStats() {
   });
   const [loading, setLoading] = useState(true);
   const { user: googleUser } = useGoogleAuth();
+  const { refreshTrigger } = useDashboardRefresh();
 
   const fetchMetrics = async () => {
     try {
@@ -80,7 +82,7 @@ export function DashboardStats() {
 
   useEffect(() => {
     fetchMetrics();
-  }, [googleUser]);
+  }, [googleUser, refreshTrigger]);
 
   const stats = [
     {
