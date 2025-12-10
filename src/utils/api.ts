@@ -1858,7 +1858,7 @@ export const scheduleInterview = async (payload: any): Promise<any> => {
   const headers = getAuthHeaders();
   // console.log(' Headers:', headers);
 
-  const response = await fetch(`${BASE_URL}/interview-schedule/create`, {
+  const response = await fetch(`${BASE_URL}/interview-schedules/create`, {
     method: "POST",
     headers: headers,
     body: JSON.stringify(payload),
@@ -1894,7 +1894,7 @@ export const scheduleInterview = async (payload: any): Promise<any> => {
 export const getScheduledInterviews = async (
   date?: string,
 ): Promise<ScheduledInterview[]> => {
-  let url = `${BASE_URL}/interview-schedule/`;
+  let url = `${BASE_URL}/interview-schedules/`;
 
   if (date) {
     url += `?date=${date}`;
@@ -1951,7 +1951,7 @@ export const updateScheduledInterview = async (
   // console.log("Reschedule payload:", payload);
 
   const response = await fetch(
-    `${BASE_URL}/interview-schedule/${scheduledInterviewId}/reschedule`,
+    `${BASE_URL}/interview-schedules/${scheduledInterviewId}/reschedule`,
     {
       method: "PUT",
       headers: getAuthHeaders(),
