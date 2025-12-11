@@ -2024,3 +2024,89 @@ export const sendBulkOfferLetters = async (studentIds: number[]) => {
   }
   return data;
 };
+
+// Get all interview schedules with pagination and filters (Admin)
+export interface InterviewScheduleResponse {
+  success: boolean;
+  message?: string;
+  data: any[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export const getAllInterviewSchedules = async (params: {
+  page?: number;
+  pageSize?: number;
+  slot_type?: 'LR' | 'CFR' | string;
+  date?: string;
+  search?: string;
+}): Promise<InterviewScheduleResponse> => {
+  const queryParams = new URLSearchParams();
+  
+  if (params.page) queryParams.append('page', params.page.toString());
+  if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+  if (params.slot_type) queryParams.append('slot_type', params.slot_type);
+  if (params.date) queryParams.append('date', params.date);
+  if (params.search) queryParams.append('search', params.search);
+
+  const response = await fetch(
+    `${BASE_URL}/interview-schedules/all?${queryParams.toString()}`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch interview schedules');
+  }
+
+  return data;
+};
+
+// Get all slots with pagination and filters (Admin)
+export interface SlotsResponse {
+  success: boolean;
+  message?: string;
+  data: any[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export const getAllSlots = async (params: {
+  page?: number;
+  pageSize?: number;
+  slot_type?: 'LR' | 'CFR' | string;
+  date?: string;
+  search?: string;
+}): Promise<SlotsResponse> => {
+  const queryParams = new URLSearchParams();
+  
+  if (params.page) queryParams.append('page', params.page.toString());
+  if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+  if (params.slot_type) queryParams.append('slot_type', params.slot_type);
+  if (params.date) queryParams.append('date', params.date);
+  if (params.search) queryParams.append('search', params.search);
+
+  const response = await fetch(
+    `${BASE_URL}/slots/?${queryParams.toString()}`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch slots');
+  }
+
+  return data;
+};

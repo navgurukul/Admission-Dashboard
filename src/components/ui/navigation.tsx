@@ -10,8 +10,10 @@ import {
   Shield,
   UserCheck,
   FileQuestion,
+  Eye,
 } from "lucide-react";
 import AdminPage from "@/pages/Admin";
+import AdminView from "@/pages/AdminView";
 // import OwnerPage from "@/pages/Owner";
 import Dashboard from "@/pages/Index";
 // import DonorPage from "@/pages/Donor";
@@ -36,6 +38,13 @@ export const navigation: NavigationItem[] = [
     href: "/admin",
     icon: Shield,
     component: AdminPage,
+    allowedRoles: [1],
+  },
+  {
+    name: "Admin View",
+    href: "/admin-view",
+    icon: Eye,
+    component: AdminView,
     allowedRoles: [1],
   },
   {
