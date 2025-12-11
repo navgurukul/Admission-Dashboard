@@ -40,6 +40,7 @@ import {
   getFilterStudent,
   sendBulkOfferLetters,
 } from "@/utils/api";
+import { exportApplicantsToCSV } from "@/utils/exportApplicants";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +53,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { tr } from "date-fns/locale";
+import { cp } from "fs";
 
 const ApplicantTable = () => {
   // Modals
@@ -68,6 +70,9 @@ const ApplicantTable = () => {
     null,
   );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Export loading state
+  const [isExporting, setIsExporting] = useState(false);
 
   // Selected rows
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -93,6 +98,8 @@ const ApplicantTable = () => {
     stageList,
     religionList,
     questionSetList,
+    qualificationList,
+    castList,
   } = useApplicantData(currentPage, itemsPerPage);
 
   // Map student data with related info
@@ -720,111 +727,38 @@ const ApplicantTable = () => {
     });
   };
 
-  const exportToCSV = () => {
-    if (!filteredApplicants.length) {
+  const exportToCSV = async (exportType: 'all' | 'filtered' = 'all') => {
+    // Prevent multiple simultaneous exports
+    if (isExporting) {
       toast({
-        title: "No Data",
-        description: "No applicants to export",
+        title: "Export in Progress",
+        description: "Please wait for the current export to complete",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
 
-    // सभी applicant fields को include करें
-    const headers = [
-      // Personal Information
-      "id",
-      "first_name",
-      "middle_name",
-      "last_name",
-      "dob",
-      "gender",
-      "email",
-      "phone_number",
-      "whatsapp_number",
-      "mobile_no",
-
-      // Address Information
-      "state",
-      "district",
-      "city",
-      "block",
-      "pin_code",
-
-      // Academic / School Information
-      "school_medium",
-      "school_name",
-      "school_id",
-      "qualification_name",
-      "qualifying_school",
-
-      // Campus
-      "campus_name",
-      "campus_id",
-
-      // Caste / Religion
-      "cast_name",
-      "religion_name",
-      "religion_id",
-
-      // Status Information
-      "current_status_name",
-      "current_status_id",
-      "stage_name",
-      "stage_id",
-      "lr_status",
-      "lr_comments",
-      "cfr_status",
-      "cfr_comments",
-      "decision_status",
-      "offer_letter_status",
-      "joining_status",
-
-      // Additional Notes & Details
-      "communication_notes",
-      "final_notes",
-      "created_at",
-      "updated_at",
-      "question_set_name",
-      "question_set_id",
-      "maximumMarks",
-    ];
-
-    const csvContent = [
-      headers.join(","),
-      ...filteredApplicants.map((applicant: any) =>
-        headers
-          .map((header) => {
-            const value = applicant[header];
-            if (value === null || value === undefined) return "";
-            const s = String(value);
-            // Special handling for fields with commas or quotes
-            if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-              return `"${s.replace(/"/g, '""')}"`;
-            }
-            return s;
-          })
-          .join(","),
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `applicants_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "✅ Export Complete",
-      description: `Exported ${filteredApplicants.length} applicants with all details to CSV`,
-    });
+    try {
+      setIsExporting(true);
+      await exportApplicantsToCSV({
+        schoolList,
+        campusList,
+        currentstatusList,
+        religionList,
+        questionSetList,
+        qualificationList,
+        castList,
+        filteredData: filteredApplicants, // Pass current filtered/searched data
+        exportType,
+        toast,
+      });
+    } catch (error) {
+      // Error already handled in the utility function
+      console.error("Export failed:", error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Calculate pagination based on current view (search, filter, or regular)
@@ -905,6 +839,10 @@ const ApplicantTable = () => {
               onExportCSV={exportToCSV}
               onShowFilters={() => setShowAdvancedFilters(true)}
               onAddApplicant={() => setShowAddModal(true)}
+              isExporting={isExporting}
+              hasActiveFilters={hasActiveFilters}
+              searchTerm={searchTerm}
+              filteredCount={filteredApplicants.length}
             />
             {hasActiveFilters && (
               <button

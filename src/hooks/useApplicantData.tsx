@@ -8,6 +8,8 @@ import {
   getAllStages,
   getAllReligions,
   getAllQuestionSets,
+  getAllQualification,
+  getAllCasts,
 } from "@/utils/api";
 
 export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
@@ -18,6 +20,8 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
   const [stageList, setStageList] = useState<any[]>([]);
   const [religionList, setReligionList] = useState<any[]>([]);
   const [questionSetList, setQuestionSetList] = useState<any[]>([]);
+  const [qualificationList, setQualificationList] = useState<any[]>([]);
+  const [castList, setCastList] = useState<any[]>([]);
 
   // Fetch students with server-side pagination
   const {
@@ -41,20 +45,24 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
     (studentsData as any)?.totalPages ||
     Math.max(1, Math.ceil(totalStudents / itemsPerPage));
 
-  // Fetch static options (campuses, schools, religions)
+  // Fetch static options (campuses, schools, religions, qualifications, casts)
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const [campuses, schools, religions] = await Promise.all([
+        const [campuses, schools, religions, qualifications, casts] = await Promise.all([
           getCampusesApi(),
           getAllSchools(),
           getAllReligions(),
+          getAllQualification(),
+          getAllCasts(),
         ]);
         setCampusList(campuses || []);
         setSchoolsList(schools || []);
         setReligionList(religions || []);
+        setQualificationList(qualifications || []);
+        setCastList(casts || []);
       } catch (error) {
-        console.error("Failed to fetch campuses/schools:", error);
+        console.error("Failed to fetch campuses/schools/options:", error);
       }
     };
     fetchOptions();
@@ -106,5 +114,7 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
     stageList,
     religionList,
     questionSetList,
+    qualificationList,
+    castList,
   };
 };

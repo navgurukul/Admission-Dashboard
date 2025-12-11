@@ -63,9 +63,6 @@ export const Pagination = ({
             <option value={50}>50</option>
             <option value={80}>80</option>
             <option value={100}>100</option>
-            <option value={200}>200</option>
-            <option value={500}>500</option>
-            <option value={totalStudents}>All</option>
           </select>
         </div>
         <button
