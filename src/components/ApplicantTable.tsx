@@ -26,6 +26,7 @@ import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 import CSVImportModal from "./CSVImportModal";
 import { BulkOfferResultsModal } from "./BulkOfferResultsModal";
 import { useToast } from "@/hooks/use-toast";
+import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
 import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
@@ -111,6 +112,7 @@ const ApplicantTable = () => {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
   const { toast } = useToast();
+  const { triggerRefresh } = useDashboardRefresh();
 
   // Fetch students with server-side pagination
   const {
@@ -142,7 +144,7 @@ const ApplicantTable = () => {
         setSchoolsList(schools || []);
         setReligionList(religions || []);
       } catch (error) {
-        // console.error("Failed to fetch campuses/schools:", error);
+        console.error("Failed to fetch campuses/schools:", error);
       }
     };
     fetchOptions();
@@ -158,7 +160,7 @@ const ApplicantTable = () => {
         setStageList(stages || []);
         setcurrentstatusList(statuses || []);
       } catch (error) {
-        // console.error("Failed to fetch stages/statuses:", error);
+        console.error("Failed to fetch stages/statuses:", error);
       }
     };
     fetchOptions();
@@ -170,7 +172,7 @@ const ApplicantTable = () => {
         const response = await getAllQuestionSets();
         setQuestionSetList(response || []);
       } catch (error) {
-        // console.error("Error fetching question sets:", error);
+        console.error("Error fetching question sets:", error);
       }
     };
     fetchQuestionSets();
@@ -329,6 +331,9 @@ const ApplicantTable = () => {
   }, [filteredApplicants]);
 
   const refreshData = useCallback(async () => {
+    // Trigger dashboard stats refresh
+    triggerRefresh();
+    
     // If searching, re-run the search to get updated data
     if (searchTerm.trim()) {
       try {
@@ -360,7 +365,7 @@ const ApplicantTable = () => {
       setCurrentPage(1);
       refetchStudents();
     }
-  }, [searchTerm, hasActiveFilters, filters, refetchStudents, toast]);
+  }, [searchTerm, hasActiveFilters, filters, refetchStudents, toast, triggerRefresh]);
 
   // Bulk actions
   const handleBulkDelete = async () => {

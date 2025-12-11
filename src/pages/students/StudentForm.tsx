@@ -36,8 +36,7 @@ interface District {
 interface Block {
   id: string;
   block_name: string;
-  block_code: string;
-  district_code: string;
+  district_code?: string; // Optional since it might not be in all responses
 }
 
 const StudentForm: React.FC = () => {
@@ -353,7 +352,7 @@ const StudentForm: React.FC = () => {
 
     // Handle block change
     if (name === "blockCode") {
-      const selectedBlock = blocks.find((block) => block.block_code === processedValue);
+      const selectedBlock = blocks.find((block) => String(block.id) === processedValue);
       newFormData = {
         ...newFormData,
         blockCode: processedValue,
@@ -1030,7 +1029,7 @@ const StudentForm: React.FC = () => {
               {blocks.length > 0 ? (
                 <Combobox
                   options={blocks?.map((block) => ({
-                    value: block.block_code,
+                    value: String(block.id), // Use id as value, like ApplicantModal
                     label: block.block_name,
                   })) || []}
                   value={formData.blockCode}
