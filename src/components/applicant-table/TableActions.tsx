@@ -9,13 +9,14 @@ import {
 
 interface TableActionsProps {
   onCSVImport: () => void;
-  onExportCSV: (exportType?: 'all' | 'filtered') => void;
+  onExportCSV: (exportType?: 'all' | 'filtered' | 'selected') => void;
   onShowFilters: () => void;
   onAddApplicant: () => void;
   isExporting?: boolean;
   hasActiveFilters?: boolean;
   searchTerm?: string;
   filteredCount?: number;
+  selectedCount?: number;
 }
 
 export const TableActions = ({
@@ -27,8 +28,13 @@ export const TableActions = ({
   hasActiveFilters = false,
   searchTerm = "",
   filteredCount = 0,
+  selectedCount = 0,
 }: TableActionsProps) => {
   const hasFiltersOrSearch = hasActiveFilters || searchTerm.trim().length > 0;
+  const hasSelection = selectedCount > 0;
+  
+  // Show dropdown if there are filters/search OR selections
+  const showDropdown = hasFiltersOrSearch || hasSelection;
 
   return (
     <>
@@ -37,8 +43,8 @@ export const TableActions = ({
         Import CSV
       </Button>
 
-      {/* Export button with dropdown when filters/search are active */}
-      {hasFiltersOrSearch ? (
+      {/* Export button with dropdown */}
+      {showDropdown ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -65,10 +71,18 @@ export const TableActions = ({
               <Download className="h-4 w-4 mr-2" />
               Export All Data
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onExportCSV('filtered')}>
-              <Download className="h-4 w-4 mr-2" />
-              Export {searchTerm.trim() ? 'Search' : 'Filtered'} Results ({filteredCount})
-            </DropdownMenuItem>
+            {hasFiltersOrSearch && (
+              <DropdownMenuItem onClick={() => onExportCSV('filtered')}>
+                <Download className="h-4 w-4 mr-2" />
+                Export {searchTerm.trim() ? 'Search' : 'Filtered'} Results ({filteredCount})
+              </DropdownMenuItem>
+            )}
+            {hasSelection && (
+              <DropdownMenuItem onClick={() => onExportCSV('selected')}>
+                <Download className="h-4 w-4 mr-2" />
+                Export Selected ({selectedCount})
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
