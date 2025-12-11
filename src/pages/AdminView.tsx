@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Calendar, Clock, User, MessageSquare, MapPin, AlertCircle, Filter, Mail, Link, Video } from "lucide-react";
+import { Calendar, Clock, AlertCircle, Video } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -15,316 +15,115 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getScheduledInterviews, getMyAvailableSlots, ScheduledInterview } from "@/utils/api";
-
-// Use the API type directly or extend it if needed for UI state
-interface UIInterview extends ScheduledInterview {
-  applicant_name?: string; // Optional if not directly available in ScheduledInterview yet
-  student_email?: string;
-  interviewer_name?: string;
-}
-
-interface Slot {
-  id: number;
-  start_time: string;
-  end_time: string;
-  date: string;
-  is_booked: boolean;
-  status: string;
-  created_by?: number;
-  created_by_name?: string;
-  slot_type?: string;
-}
+import { getAllSlots, getAllInterviewSchedules } from "@/utils/api";
 
 export default function AdminView() {
-  const [interviews, setInterviews] = useState<UIInterview[]>([]);
-  const [slots, setSlots] = useState<Slot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filteredInterviews, setFilteredInterviews] = useState<UIInterview[]>([]);
-  const [filteredSlots, setFilteredSlots] = useState<Slot[]>([]);
+  const [activeTab, setActiveTab] = useState("interviews");
+  const [interviews, setInterviews] = useState<any[]>([]);
+  const [slots, setSlots] = useState<any[]>([]);
+  const [interviewsLoading, setInterviewsLoading] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
 
   // Search and filter states for interviews
   const [interviewSearchTerm, setInterviewSearchTerm] = useState("");
   const [interviewDateFilter, setInterviewDateFilter] = useState("");
+  const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
 
   // Search and filter states for slots
   const [slotSearchTerm, setSlotSearchTerm] = useState("");
   const [slotDateFilter, setSlotDateFilter] = useState("");
+  const [slotTypeFilter, setSlotTypeFilter] = useState("");
 
   // Pagination states
   const [interviewCurrentPage, setInterviewCurrentPage] = useState(1);
   const [slotCurrentPage, setSlotCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [interviewTotalPages, setInterviewTotalPages] = useState(1);
+  const [interviewTotalCount, setInterviewTotalCount] = useState(0);
+  const [slotTotalPages, setSlotTotalPages] = useState(1);
+  const [slotTotalCount, setSlotTotalCount] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // Only fetch interviews when interviews tab is active
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (activeTab !== "interviews") return;
 
+    const timeoutId = setTimeout(() => {
+      fetchInterviews();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, interviewCurrentPage, interviewDateFilter, interviewSearchTerm, interviewSlotTypeFilter, itemsPerPage]);
+
+  // Only fetch slots when slots tab is active
   useEffect(() => {
-    applyInterviewFilters();
-    setInterviewCurrentPage(1);
-  }, [interviews, interviewDateFilter, interviewSearchTerm]);
+    if (activeTab !== "slots") return;
 
-  useEffect(() => {
-    applySlotFilters();
-    setSlotCurrentPage(1);
-  }, [slots, slotDateFilter, slotSearchTerm]);
+    const timeoutId = setTimeout(() => {
+      fetchSlots();
+    }, 500);
 
-  const fetchData = async () => {
-    setLoading(true);
-    await Promise.all([fetchInterviews(), fetchSlots()]);
-    setLoading(false);
-  };
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, slotCurrentPage, slotDateFilter, slotSearchTerm, slotTypeFilter, itemsPerPage]);
 
   const fetchInterviews = async () => {
     try {
-      const data = await getScheduledInterviews();
-      if (!data || data.length === 0) {
-        const dummyInterviews: UIInterview[] = [
-          {
-            id: 1,
-            student_id: 101,
-            slot_id: 201,
-            title: "LR (Learning Round)",
-            description: "Technical assessment and learning capabilities",
-            meeting_link: "https://meet.google.com/abc-defg-hij",
-            status: "scheduled",
-            created_at: "2025-12-10T10:00:00Z",
-            updated_at: "2025-12-10T10:00:00Z",
-            applicant_name: "Rahul Kumar",
-            student_email: "rahul.k@example.com",
-            interviewer_name: "Priya Sharma"
-          },
-          {
-            id: 2,
-            student_id: 102,
-            slot_id: 202,
-            title: "CFR (Culture Fit Round)",
-            description: "Cultural alignment and team fit discussion",
-            meeting_link: "https://meet.google.com/xyz-uvwx-yz",
-            status: "completed",
-            created_at: "2025-12-08T14:30:00Z",
-            updated_at: "2025-12-08T15:30:00Z",
-            applicant_name: "Priya Sharma",
-            student_email: "priya.s@example.com",
-            interviewer_name: "Amit Singh"
-          },
-          {
-            id: 3,
-            student_id: 103,
-            slot_id: 203,
-            title: "LR (Learning Round)",
-            description: "Problem solving and learning approach",
-            meeting_link: "",
-            status: "cancelled",
-            created_at: "2025-12-12T11:00:00Z",
-            updated_at: "2025-12-12T11:00:00Z",
-            applicant_name: "Amit Patel",
-            student_email: "amit.p@example.com",
-            interviewer_name: "Neha Gupta"
-          },
-          {
-            id: 4,
-            student_id: 104,
-            slot_id: 204,
-            title: "CFR (Culture Fit Round)",
-            description: "Values alignment and motivation discussion",
-            meeting_link: "https://meet.google.com/pqr-stuv-wxy",
-            status: "scheduled",
-            created_at: "2025-12-15T14:00:00Z",
-            updated_at: "2025-12-15T14:00:00Z",
-            applicant_name: "Sneha Reddy",
-            student_email: "sneha.r@example.com",
-            interviewer_name: "Rajesh Kumar"
-          }
-        ];
-        setInterviews(dummyInterviews);
+      setInterviewsLoading(true);
+      const response = await getAllInterviewSchedules({
+        page: interviewCurrentPage,
+        pageSize: itemsPerPage,
+        slot_type: interviewSlotTypeFilter && interviewSlotTypeFilter !== 'all' ? interviewSlotTypeFilter : undefined,
+        date: interviewDateFilter || undefined,
+        search: interviewSearchTerm || undefined,
+      });
+
+      if (response.success && response.data) {
+        setInterviews(response.data || []);
+        setInterviewTotalPages(response.totalPages || 1);
+        setInterviewTotalCount(response.total || 0);
       } else {
-        setInterviews(data);
+        setInterviews([]);
+        setInterviewTotalPages(1);
+        setInterviewTotalCount(0);
       }
     } catch (error) {
       console.error("Error fetching interviews:", error);
-      // Fallback to dummy data on error
-      const dummyInterviews: UIInterview[] = [
-        {
-          id: 1,
-          student_id: 101,
-          slot_id: 201,
-          title: "LR (Learning Round)",
-          description: "Technical assessment and learning capabilities",
-          meeting_link: "https://meet.google.com/abc-defg-hij",
-          status: "scheduled",
-          created_at: "2025-12-10T10:00:00Z",
-          updated_at: "2025-12-10T10:00:00Z",
-          applicant_name: "Rahul Kumar",
-          student_email: "rahul.k@example.com",
-          interviewer_name: "Priya Sharma"
-        },
-        {
-          id: 2,
-          student_id: 102,
-          slot_id: 202,
-          title: "CFR (Culture Fit Round)",
-          description: "Cultural alignment and team fit discussion",
-          meeting_link: "https://meet.google.com/xyz-uvwx-yz",
-          status: "completed",
-          created_at: "2025-12-08T14:30:00Z",
-          updated_at: "2025-12-08T15:30:00Z",
-          applicant_name: "Priya Sharma",
-          student_email: "priya.s@example.com",
-          interviewer_name: "Amit Singh"
-        }
-      ];
-      setInterviews(dummyInterviews);
+      setInterviews([]);
+      setInterviewTotalPages(1);
+      setInterviewTotalCount(0);
+    } finally {
+      setInterviewsLoading(false);
     }
   };
 
   const fetchSlots = async () => {
     try {
-      const data = await getMyAvailableSlots();
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        const dummySlots: Slot[] = [
-          {
-            id: 1,
-            start_time: "09:00:00",
-            end_time: "10:00:00",
-            date: "2025-12-15",
-            is_booked: false,
-            status: "available",
-            created_by: 1,
-            created_by_name: "Admin User",
-            slot_type: "LR (Learning Round)"
-          },
-          {
-            id: 2,
-            start_time: "14:00:00",
-            end_time: "15:00:00",
-            date: "2025-12-15",
-            is_booked: true,
-            status: "booked",
-            created_by: 1,
-            created_by_name: "Admin User",
-            slot_type: "CFR (Culture Fit Round)"
-          },
-          {
-            id: 3,
-            start_time: "11:00:00",
-            end_time: "12:00:00",
-            date: "2025-12-16",
-            is_booked: false,
-            status: "available",
-            created_by: 2,
-            created_by_name: "Priya Sharma",
-            slot_type: "LR (Learning Round)"
-          },
-          {
-            id: 4,
-            start_time: "16:00:00",
-            end_time: "17:00:00",
-            date: "2025-12-16",
-            is_booked: false,
-            status: "available",
-            created_by: 2,
-            created_by_name: "Amit Singh",
-            slot_type: "CFR (Culture Fit Round)"
-          }
-        ];
-        setSlots(dummySlots);
+      setSlotsLoading(true);
+      const response = await getAllSlots({
+        page: slotCurrentPage,
+        pageSize: itemsPerPage,
+        slot_type: slotTypeFilter && slotTypeFilter !== 'all' ? slotTypeFilter : undefined,
+        date: slotDateFilter || undefined,
+        search: slotSearchTerm || undefined,
+      });
+
+      if (response.success && response.data) {
+        setSlots(response.data || []);
+        setSlotTotalPages(response.totalPages || 1);
+        setSlotTotalCount(response.total || 0);
       } else {
-        setSlots(Array.isArray(data) ? data : []);
+        setSlots([]);
+        setSlotTotalPages(1);
+        setSlotTotalCount(0);
       }
     } catch (error) {
       console.error("Error fetching slots:", error);
-      // Fallback dummy data
-      const dummySlots: Slot[] = [
-        {
-          id: 1,
-          start_time: "09:00:00",
-          end_time: "10:00:00",
-          date: "2025-12-15",
-          is_booked: false,
-          status: "available",
-          created_by: 1,
-          created_by_name: "Admin User",
-          slot_type: "LR (Learning Round)"
-        },
-        {
-          id: 2,
-          start_time: "14:00:00",
-          end_time: "15:00:00",
-          date: "2025-12-15",
-          is_booked: true,
-          status: "booked",
-          created_by: 1,
-          created_by_name: "Admin User",
-          slot_type: "CFR (Culture Fit Round)"
-        }
-      ];
-      setSlots(dummySlots);
+      setSlots([]);
+      setSlotTotalPages(1);
+      setSlotTotalCount(0);
+    } finally {
+      setSlotsLoading(false);
     }
   };
-
-  const applyInterviewFilters = () => {
-    let filtered = [...interviews];
-
-    if (interviewSearchTerm) {
-      const searchLower = interviewSearchTerm.toLowerCase();
-      filtered = filtered.filter(interview => {
-        return (
-          interview.applicant_name?.toLowerCase().includes(searchLower) ||
-          interview.student_email?.toLowerCase().includes(searchLower) ||
-          interview.interviewer_name?.toLowerCase().includes(searchLower) ||
-          interview.title?.toLowerCase().includes(searchLower)
-        );
-      });
-    }
-
-    if (interviewDateFilter) {
-      filtered = filtered.filter(interview => {
-        return interview.created_at?.includes(interviewDateFilter);
-      });
-    }
-
-    setFilteredInterviews(filtered);
-  };
-
-  const applySlotFilters = () => {
-    let filtered = [...slots];
-
-    if (slotSearchTerm) {
-      const searchLower = slotSearchTerm.toLowerCase();
-      filtered = filtered.filter(slot => {
-        return (
-          slot.created_by_name?.toLowerCase().includes(searchLower) ||
-          slot.slot_type?.toLowerCase().includes(searchLower)
-        );
-      });
-    }
-
-    if (slotDateFilter) {
-      filtered = filtered.filter(slot =>
-        slot.date.includes(slotDateFilter)
-      );
-    }
-
-    setFilteredSlots(filtered);
-  };
-
-  // Pagination helpers
-  const getPaginatedData = <T,>(data: T[], currentPage: number): T[] => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return data.slice(startIndex, endIndex);
-  };
-
-  const getTotalPages = (dataLength: number): number => {
-    return Math.ceil(dataLength / itemsPerPage);
-  };
-
-  const paginatedInterviews = getPaginatedData(filteredInterviews, interviewCurrentPage);
-  const paginatedSlots = getPaginatedData(filteredSlots, slotCurrentPage);
-  const interviewTotalPages = getTotalPages(filteredInterviews.length);
-  const slotTotalPages = getTotalPages(filteredSlots.length);
 
   const getStatusBadge = (status: string) => {
     let colorClass = "bg-gray-500";
@@ -366,7 +165,7 @@ export default function AdminView() {
     <div className="flex min-h-screen bg-gray-50">
       <AdmissionsSidebar />
 
-      <div className="flex-1 md:ml-64">
+      <div className="flex-1 md:ml-64 min-w-0">
         <div className="p-6 md:p-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">Admin View</h1>
@@ -375,15 +174,15 @@ export default function AdminView() {
             </p>
           </div>
 
-          <Tabs defaultValue="interviews" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2 ">
-              <TabsTrigger 
+          <Tabs defaultValue="interviews" className="w-full" onValueChange={setActiveTab}>
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger
                 value="interviews"
                 className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
               >
                 Scheduled Interviews
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="slots"
                 className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
               >
@@ -399,14 +198,29 @@ export default function AdminView() {
                     <Calendar className="w-5 h-5" />
                     All Scheduled Interviews
                   </CardTitle>
-                  <div className="flex gap-3 items-center">
-                    <div className="max-w-md">
+                  <div className="flex gap-3 items-center flex-wrap">
+                    <div className="w-[300px]">
                       <Input
                         placeholder="Search by name, email, interviewer..."
                         value={interviewSearchTerm}
                         onChange={(e) => setInterviewSearchTerm(e.target.value)}
                         className="w-full"
                       />
+                    </div>
+                    <div className="w-40">
+                      <Select 
+                        value={interviewSlotTypeFilter}
+                        onValueChange={setInterviewSlotTypeFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Slot Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="LR">LR (Learning Round)</SelectItem>
+                          <SelectItem value="CFR">CFR (Culture Fit)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="w-48">
                       <Input
@@ -419,11 +233,11 @@ export default function AdminView() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {loading ? (
+                  {interviewsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
-                  ) : filteredInterviews.length === 0 ? (
+                  ) : interviews.length === 0 ? (
                     <div className="text-center py-12">
                       <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">
@@ -431,41 +245,43 @@ export default function AdminView() {
                       </p>
                     </div>
                   ) : (
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-auto max-h-[600px] w-full">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 bg-gray-50 z-10">
                           <TableRow className="bg-gray-50">
-                            <TableHead className="font-semibold">ID</TableHead>
-                            <TableHead className="font-semibold">Title</TableHead>
-                            <TableHead className="font-semibold">Applicant</TableHead>
-                            <TableHead className="font-semibold">Interviewer</TableHead>
-                            <TableHead className="font-semibold">Meeting Link</TableHead>
-                            <TableHead className="font-semibold">Date</TableHead>
-                            <TableHead className="font-semibold">Status</TableHead>
+                            <TableHead className="font-semibold min-w-[200px]">Applicant</TableHead>
+                            <TableHead className="font-semibold min-w-[200px]">Interviewer</TableHead>
+                            <TableHead className="font-semibold min-w-[150px]">Title</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
+                            <TableHead className="font-semibold min-w-[100px]">Meeting Link</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {paginatedInterviews.map((interview) => (
+                          {interviews.map((interview: any) => (
                             <TableRow key={interview.id} className="hover:bg-orange-50 transition-colors">
-                              <TableCell className="font-medium">#{interview.id}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <MessageSquare className="w-4 h-4 text-gray-500" />
-                                  {interview.title || "No Title"}
-                                </div>
-                                <div className="text-xs text-gray-400 mt-1 max-w-[200px] truncate">{interview.description}</div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="font-medium">{interview.applicant_name || "Unknown"}</div>
-                                <div className="text-xs text-gray-500">{interview.student_email}</div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4 text-gray-500" />
-                                  <span className="font-medium">{interview.interviewer_name || "Not Assigned"}</span>
+                              <TableCell className="min-w-[200px]">
+                                <div>
+                                  <div className="font-medium">{interview.student_name || "Unknown"}</div>
+                                  <div className="text-xs text-gray-500">{interview.student_email || "N/A"}</div>
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="min-w-[200px]">
+                                <div>
+                                  <div className="font-medium">{interview.interviewer_name || "Not Assigned"}</div>
+                                  <div className="text-xs text-gray-500">{interview.interviewer_email || "N/A"}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap min-w-[150px]">
+                                <span className="font-medium">{interview.title || "No Title"}</span>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap text-sm min-w-[120px]">
+                                {formatDate(interview.slot_date)}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap min-w-[120px]">
+                                {getStatusBadge(interview.status)}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap min-w-[100px]">
                                 {interview.meeting_link ? (
                                   <a
                                     href={interview.meeting_link}
@@ -474,19 +290,11 @@ export default function AdminView() {
                                     className="flex items-center gap-1 text-blue-600 hover:underline"
                                   >
                                     <Video className="w-4 h-4" />
-                                    Join
+                                    <span>Join</span>
                                   </a>
                                 ) : (
                                   <span className="text-gray-400 text-sm">No Link</span>
                                 )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-sm">
-                                  {formatDate(interview.created_at)}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {getStatusBadge(interview.status)}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -494,41 +302,45 @@ export default function AdminView() {
                       </Table>
                     </div>
                   )}
-                  {filteredInterviews.length > 0 && (
-                    <div className="flex items-center justify-between mt-4 px-2">
-                      <p className="text-sm text-gray-600">
-                        Showing {((interviewCurrentPage - 1) * itemsPerPage) + 1} to {Math.min(interviewCurrentPage * itemsPerPage, filteredInterviews.length)} of {filteredInterviews.length} interviews
+                  {interviewTotalCount > 0 && (
+                    <div className="flex justify-between items-center mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Showing {((interviewCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(interviewCurrentPage * itemsPerPage, interviewTotalCount)} of {interviewTotalCount}
                       </p>
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-muted-foreground">Rows:</label>
+                          <select
+                            value={itemsPerPage}
+                            onChange={(e) => {
+                              setItemsPerPage(Number(e.target.value));
+                              setInterviewCurrentPage(1);
+                            }}
+                            className="border rounded px-2 py-1 bg-white text-sm"
+                          >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </select>
+                        </div>
+                        <button
                           onClick={() => setInterviewCurrentPage(prev => Math.max(1, prev - 1))}
                           disabled={interviewCurrentPage === 1}
+                          className="px-3 py-1 rounded border bg-white disabled:opacity-50"
                         >
                           Previous
-                        </Button>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(interviewTotalPages, 5) }, (_, i) => i + 1).map(page => (
-                            <Button
-                              key={page}
-                              variant={page === interviewCurrentPage ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setInterviewCurrentPage(page)}
-                              className={page === interviewCurrentPage ? "bg-orange-500 hover:bg-orange-600" : ""}
-                            >
-                              {page}
-                            </Button>
-                          ))}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        </button>
+                        <span className="px-3 py-1 text-sm">
+                          Page {interviewCurrentPage} of {interviewTotalPages}
+                        </span>
+                        <button
                           onClick={() => setInterviewCurrentPage(prev => Math.min(interviewTotalPages, prev + 1))}
                           disabled={interviewCurrentPage === interviewTotalPages}
+                          className="px-3 py-1 rounded border bg-white disabled:opacity-50"
                         >
                           Next
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -544,14 +356,29 @@ export default function AdminView() {
                     <Clock className="w-5 h-5" />
                     All Created Slots
                   </CardTitle>
-                  <div className="flex gap-3 items-center">
-                    <div className="max-w-md">
+                  <div className="flex gap-3 items-center flex-wrap">
+                    <div className="w-[300px]">
                       <Input
-                        placeholder="Search by creator name, slot type..."
+                        placeholder="Search by creator name or email..."
                         value={slotSearchTerm}
                         onChange={(e) => setSlotSearchTerm(e.target.value)}
                         className="w-full"
                       />
+                    </div>
+                    <div className="w-40">
+                      <Select
+                        value={slotTypeFilter}
+                        onValueChange={setSlotTypeFilter}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Slot Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="LR">LR (Learning Round)</SelectItem>
+                          <SelectItem value="CFR">CFR (Culture Fit)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="w-48">
                       <Input
@@ -564,11 +391,11 @@ export default function AdminView() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {loading ? (
+                  {slotsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
-                  ) : filteredSlots.length === 0 ? (
+                  ) : slots.length === 0 ? (
                     <div className="text-center py-12">
                       <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">
@@ -576,45 +403,39 @@ export default function AdminView() {
                       </p>
                     </div>
                   ) : (
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-auto max-h-[600px]">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 bg-gray-50 z-10">
                           <TableRow className="bg-gray-50">
-                            <TableHead className="font-semibold">Created By</TableHead>
-                            <TableHead className="font-semibold">Slot type</TableHead>
-                            <TableHead className="font-semibold">Date</TableHead>
-                            <TableHead className="font-semibold">Time</TableHead>
-                            <TableHead className="font-semibold">Status</TableHead>
+                            <TableHead className="font-semibold min-w-[200px]">Created By</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Slot type</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
+                            <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {paginatedSlots.map((slot) => (
+                          {slots.map((slot: any) => (
                             <TableRow key={slot.id} className="hover:bg-orange-50 transition-colors">
-                                <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4 text-gray-500" />
-                                  <span className="font-medium">{slot.created_by_name || `User #${slot.created_by}`}</span>
+                              <TableCell className="min-w-[200px]">
+                                <div>
+                                  <div className="font-medium">{slot.user_name || `User #${slot.created_by}`}</div>
+                                  <div className="text-xs text-gray-500">{slot.user_email}</div>
                                 </div>
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="min-w-[120px]">
                                 <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
                                   {slot.slot_type || "Not Specified"}
                                 </Badge>
                               </TableCell>
-                              
-                              <TableCell className="font-medium">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-gray-500" />
-                                  {formatDate(slot.date)}
-                                </div>
+
+                              <TableCell className="font-medium whitespace-nowrap min-w-[120px]">
+                                {formatDate(slot.date)}
                               </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Clock className="w-4 h-4 text-gray-500" />
-                                  {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                                </div>
+                              <TableCell className="text-sm whitespace-nowrap min-w-[150px]">
+                                {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="min-w-[120px]">
                                 {getStatusBadge(slot.is_booked ? 'Booked' : 'Available')}
                               </TableCell>
                             </TableRow>
@@ -623,41 +444,45 @@ export default function AdminView() {
                       </Table>
                     </div>
                   )}
-                  {filteredSlots.length > 0 && (
-                    <div className="flex items-center justify-between mt-4 px-2">
-                      <p className="text-sm text-gray-600">
-                        Showing {((slotCurrentPage - 1) * itemsPerPage) + 1} to {Math.min(slotCurrentPage * itemsPerPage, filteredSlots.length)} of {filteredSlots.length} slots
+                  {slotTotalCount > 0 && (
+                    <div className="flex justify-between items-center mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Showing {((slotCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(slotCurrentPage * itemsPerPage, slotTotalCount)} of {slotTotalCount}
                       </p>
                       <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-muted-foreground">Rows:</label>
+                          <select
+                            value={itemsPerPage}
+                            onChange={(e) => {
+                              setItemsPerPage(Number(e.target.value));
+                              setSlotCurrentPage(1);
+                            }}
+                            className="border rounded px-2 py-1 bg-white text-sm"
+                          >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </select>
+                        </div>
+                        <button
                           onClick={() => setSlotCurrentPage(prev => Math.max(1, prev - 1))}
                           disabled={slotCurrentPage === 1}
+                          className="px-3 py-1 rounded border bg-white disabled:opacity-50"
                         >
                           Previous
-                        </Button>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(slotTotalPages, 5) }, (_, i) => i + 1).map(page => (
-                            <Button
-                              key={page}
-                              variant={page === slotCurrentPage ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setSlotCurrentPage(page)}
-                              className={page === slotCurrentPage ? "bg-orange-500 hover:bg-orange-600" : ""}
-                            >
-                              {page}
-                            </Button>
-                          ))}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        </button>
+                        <span className="px-3 py-1 text-sm">
+                          Page {slotCurrentPage} of {slotTotalPages}
+                        </span>
+                        <button
                           onClick={() => setSlotCurrentPage(prev => Math.min(slotTotalPages, prev + 1))}
                           disabled={slotCurrentPage === slotTotalPages}
+                          className="px-3 py-1 rounded border bg-white disabled:opacity-50"
                         >
                           Next
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   )}
