@@ -9,7 +9,8 @@ interface ExportOptions {
   qualificationList?: any[]; // for resolving qualification_id
   castList?: any[]; //  for resolving cast_id
   filteredData?: any[]; //filtered/searched data to export
-  exportType?: 'all' | 'filtered'; // 'all' = all data, 'filtered' = current filtered/searched data
+  selectedData?: any[]; //selected applicants data to export
+  exportType?: 'all' | 'filtered' | 'selected'; // 'all' = all data, 'filtered' = current filtered/searched data, 'selected' = selected rows only
   toast: (options: {
     title: string;
     description: string;
@@ -76,6 +77,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
     qualificationList = [],
     castList = [],
     filteredData = [],
+    selectedData = [],
     exportType = 'all', // Default: export all data
     toast,
   } = options;
@@ -88,9 +90,18 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
   try {
     let allStudents: any[] = [];
 
-    if (exportType === 'filtered' && filteredData.length > 0) {
+    if (exportType === 'selected' && selectedData.length > 0) {
+      // Export selected applicants
+    //   console.log(`Exporting ${selectedData.length} selected students...`);
+      allStudents = selectedData;
+      
+      toast({
+        title: "Preparing Export",
+        description: `Exporting ${selectedData.length} selected applicants...`,
+      });
+    } else if (exportType === 'filtered' && filteredData.length > 0) {
       // Export filtered/searched data
-      console.log(`Exporting ${filteredData.length} filtered/searched students...`);
+    //   console.log(`Exporting ${filteredData.length} filtered/searched students...`);
       allStudents = filteredData;
       
       toast({
@@ -99,23 +110,23 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       });
     } else {
       // Fetch ALL students from database
-      console.log("Fetching all students for export...");
+    //   console.log("Fetching all students for export...");
       
       toast({
         title: "Preparing Export",
-        description: "Fetching all applicants and location data from database...",
+        description: "Fetching all applicants...",
       });
 
       const allStudentsResponse = await getStudents(1, 100000);
       allStudents = allStudentsResponse.data || [];
-      console.log("Fetched all students for export:", allStudents.length);
+    //   console.log("Fetched all students for export:", allStudents.length);
     }
 
     // Fetch all states for lookup
     try {
       const statesResponse = await getAllStates();
       statesList = statesResponse?.data || statesResponse || [];
-      console.log("Fetched states:", statesList.length);
+      // console.log("Fetched states:", statesList.length);
     } catch (error) {
       console.error("Error fetching states:", error);
     }
@@ -129,7 +140,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       if (student.district) uniqueDistricts.add(student.district);
     });
 
-    console.log(`Fetching location data for ${uniqueStates.size} states and ${uniqueDistricts.size} districts...`);
+    // console.log(`Fetching location data for ${uniqueStates.size} states and ${uniqueDistricts.size} districts...`);
 
     // Fetch all districts in parallel (OPTIMIZED)
     const districtPromises = Array.from(uniqueStates).map(async (stateCode) => {
@@ -328,7 +339,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       const culturalFitRounds = applicant.interview_cultural_fit_round || [];
       const finalDecisions = applicant.final_decisions || [];
 
-       console.log(applicant)
+    //    console.log(applicant)
 
 
       const examSession =
@@ -435,6 +446,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
 
   toast({
     title: "✅ Export Complete",
-    description: `Exported ${dataToExport.length} applicants with all details to CSV`,
+    description: `Exported ${dataToExport.length} applicants with all details to CSV. Please wait a moment before trying again..`,
+    duration: 5000,
   });
 };
