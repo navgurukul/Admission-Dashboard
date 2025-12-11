@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -7,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -16,8 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
@@ -27,18 +26,16 @@ import CSVImportModal from "./CSVImportModal";
 import { BulkOfferResultsModal } from "./BulkOfferResultsModal";
 import { useToast } from "@/hooks/use-toast";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
+import { useApplicantData } from "@/hooks/useApplicantData";
+import { useApplicantFilters } from "@/hooks/useApplicantFilters";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
 import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
+import { ApplicantTableHeader } from "./applicant-table/ApplicantTableHeader";
+import { Pagination } from "./applicant-table/Pagination";
+import { SearchBar } from "./applicant-table/SearchBar";
 import {
-  getStudents,
-  getAllSchools,
-  getCampusesApi,
-  getAllStatuses,
-  getAllStages,
   deleteStudent,
-  getAllReligions,
-  getAllQuestionSets,
   searchStudentsApi,
   getFilterStudent,
   sendBulkOfferLetters,
@@ -70,39 +67,7 @@ const ApplicantTable = () => {
   const [applicantForComments, setApplicantForComments] = useState<any | null>(
     null,
   );
-
-  // Option lists
-  const [campusList, setCampusList] = useState<any[]>([]);
-  const [schoolList, setSchoolsList] = useState<any[]>([]);
-  const [currentstatusList, setcurrentstatusList] = useState<any[]>([]);
-  const [stageList, setStageList] = useState<any[]>([]);
-  const [religionList, setReligionList] = useState<any[]>([]);
-  const [questionSetList, setQuestionSetList] = useState<any[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
-  const [isFiltering, setIsFiltering] = useState(false);
-  const [hasActiveFilters, setHasActiveFilters] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  // Search & filters
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
-    stage: "all",
-    stage_status: "all",
-    examMode: "all",
-    interviewMode: "all",
-    partner: [],
-    district: [],
-    market: [],
-    school: [],
-    religion: [],
-    qualification: [],
-    currentStatus: [],
-    state: undefined,
-    gender: undefined,
-    dateRange: { type: "applicant" as const, from: undefined, to: undefined },
-  });
 
   // Selected rows
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -114,69 +79,21 @@ const ApplicantTable = () => {
   const { toast } = useToast();
   const { triggerRefresh } = useDashboardRefresh();
 
-  // Fetch students with server-side pagination
+  // Custom hook for data fetching
   const {
-    data: studentsData,
-    isLoading: isStudentsLoading,
-    refetch: refetchStudents,
-  } = useQuery({
-    queryKey: ["students", currentPage, itemsPerPage],
-    queryFn: () => getStudents(currentPage, itemsPerPage),
-    placeholderData: (previousData) => previousData,
-  });
-
-  const students = (studentsData as any)?.data || [];
-  const totalStudents = (studentsData as any)?.totalCount || 0;
-  const totalPagesFromAPI =
-    (studentsData as any)?.totalPages ||
-    Math.max(1, Math.ceil(totalStudents / itemsPerPage));
-
-  // Fetch static options
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const [campuses, schools, religions] = await Promise.all([
-          getCampusesApi(),
-          getAllSchools(),
-          getAllReligions(),
-        ]);
-        setCampusList(campuses || []);
-        setSchoolsList(schools || []);
-        setReligionList(religions || []);
-      } catch (error) {
-        console.error("Failed to fetch campuses/schools:", error);
-      }
-    };
-    fetchOptions();
-  }, []);
-
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const [stages, statuses] = await Promise.all([
-          getAllStages(),
-          getAllStatuses(),
-        ]);
-        setStageList(stages || []);
-        setcurrentstatusList(statuses || []);
-      } catch (error) {
-        console.error("Failed to fetch stages/statuses:", error);
-      }
-    };
-    fetchOptions();
-  }, []);
-
-  useEffect(() => {
-    const fetchQuestionSets = async () => {
-      try {
-        const response = await getAllQuestionSets();
-        setQuestionSetList(response || []);
-      } catch (error) {
-        console.error("Error fetching question sets:", error);
-      }
-    };
-    fetchQuestionSets();
-  }, []);
+    students,
+    totalStudents,
+    totalPagesFromAPI,
+    isStudentsLoading,
+    isStudentsFetching,
+    refetchStudents,
+    campusList,
+    schoolList,
+    currentstatusList,
+    stageList,
+    religionList,
+    questionSetList,
+  } = useApplicantData(currentPage, itemsPerPage);
 
   // Map student data with related info
   const applicantsToDisplay = useMemo(() => {
@@ -216,104 +133,37 @@ const ApplicantTable = () => {
     questionSetList,
   ]);
 
-  useEffect(() => {
-    const delayDebounce = setTimeout(async () => {
-      if (!searchTerm.trim()) {
-        setSearchResults([]);
-        setCurrentPage(1); // Reset to page 1 when search is cleared
-        return;
-      }
-
-      // Clear filters when search is performed
-      setHasActiveFilters(false);
-      setFilteredStudents([]);
-      setCurrentPage(1); // Reset to page 1 when searching
-
-      try {
-        setIsSearching(true);
-        const results = await searchStudentsApi(searchTerm.trim());
-        setSearchResults(results || []);
-      } catch (error: any) {
-        console.error("Search error:", error);
-        toast({
-          title: "Search Error",
-          description:
-            error?.message ||
-            error?.toString() ||
-            "Unable to fetch search results. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSearching(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounce);
-  }, [searchTerm]);
-
-  //  Use API search results if searching, otherwise show fetched students or filtered students
-  const filteredApplicants = useMemo(() => {
-    // Priority: 1. Search results 2. Filtered students 3. All students
-    let source;
-    if (searchTerm.trim()) {
-      source = searchResults;
-    } else if (hasActiveFilters) {
-      source = filteredStudents;
-    } else {
-      source = applicantsToDisplay;
-    }
-
-    return source.map((student) => {
-      // Handle both API response formats:
-      // 1. Regular API: returns IDs (campus_id, school_id, etc.)
-      // 2. Filter API: returns names directly (campus_name, school_name, etc.)
-
-      const school = schoolList.find((s) => s.id === student.school_id);
-      const campus = campusList.find((c) => c.id === student.campus_id);
-      const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id,
-      );
-      const religion = religionList.find((r) => r.id === student.religion_id);
-      const questionSet = questionSetList.find(
-        (q) => q.id === student.question_set_id,
-      );
-
-      return {
-        ...student,
-        name: `${student.first_name || ""} ${student.middle_name || ""} ${
-          student.last_name || ""
-        }`.trim(),
-        // Use the name from filter API if available, otherwise lookup by ID
-        school_name:
-          student.school_name || (school ? school.school_name : "N/A"),
-        campus_name:
-          student.campus_name || (campus ? campus.campus_name : "N/A"),
-        current_status_name:
-          student.current_status_name ||
-          (current_status ? current_status.current_status_name : "N/A"),
-        religion_name:
-          student.religion_name || (religion ? religion.religion_name : "N/A"),
-        question_set_name:
-          student.question_set_name || (questionSet ? questionSet.name : "N/A"),
-        maximumMarks: questionSet ? questionSet.maximumMarks : 0,
-        stage_name: student.stage_name || "N/A",
-      };
-    });
-  }, [
+  // Custom hook for filters and search
+  const {
     searchTerm,
+    setSearchTerm,
+    filters,
+    setFilters,
     searchResults,
-    hasActiveFilters,
+    setSearchResults,
+    isSearching,
     filteredStudents,
+    setFilteredStudents,
+    isFiltering,
+    setIsFiltering,
+    hasActiveFilters,
+    setHasActiveFilters,
+    filteredApplicants,
+  } = useApplicantFilters(
     applicantsToDisplay,
-    schoolList,
     campusList,
+    schoolList,
     currentstatusList,
     religionList,
-    questionSetList,
-  ]);
+    questionSetList
+  );
 
-  // Reset page when search term changes(its helpfull when seearch handle by backend API)
-  // useEffect(() => setCurrentPage(1), [searchTerm]);
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    if (searchTerm.trim() || hasActiveFilters) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, hasActiveFilters]);
 
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
@@ -356,7 +206,7 @@ const ApplicantTable = () => {
           title: "Refresh Error",
           description: error?.message || "Failed to refresh filtered data.",
           variant: "destructive",
-          duration: 5000,
+          duration: 2000,
         });
       }
     }
@@ -374,7 +224,7 @@ const ApplicantTable = () => {
         title: "No Selection",
         description: "Please select applicants to delete",
         variant: "destructive",
-        duration: 5000,
+        duration: 2000,
       });
       return;
     }
@@ -383,7 +233,7 @@ const ApplicantTable = () => {
       toast({
         title: "Applicants Deleted",
         description: "Successfully deleted selected applicants",
-        duration: 5000,
+        duration: 2000,
       });
       setSelectedRows([]);
       refreshData();
@@ -396,7 +246,7 @@ const ApplicantTable = () => {
           error?.toString() ||
           "Failed to delete applicants. Please try again.",
         variant: "destructive",
-        duration: 5000,
+        duration: 2000,
       });
     }
   };
@@ -407,7 +257,7 @@ const ApplicantTable = () => {
         title: "No Selection",
         description: "Please select applicants to send offer letters to",
         variant: "destructive",
-        duration: 5000,
+        duration: 2000,
       });
     }
   };
@@ -418,7 +268,7 @@ const ApplicantTable = () => {
         title: "No Selection",
         description: "Please select at least one student to send offer letters",
         variant: "destructive",
-        duration: 5000,
+        duration: 2000,
       });
       return;
     }
@@ -520,7 +370,7 @@ const ApplicantTable = () => {
         title: "❌ Error Sending Offer Letters",
         description: errorMessage,
         variant: "destructive",
-        duration: 5000,
+        duration: 2000,
       });
     }
   };
@@ -1084,86 +934,43 @@ const ApplicantTable = () => {
               ))}
             </div>
           )}
-           <div className="relative">
-             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-             <Input
-               type="search"
-               placeholder="Search applicants..."
-               className="pl-10"
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-             />
-           </div>
+           <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
          </div>
 
-        <div className="flex-1 border rounded-md overflow-hidden">
+        <div className="flex-1 border rounded-md overflow-hidden relative">
+          {/* Loading Overlay */}
+          {isStudentsFetching && !searchTerm.trim() && !hasActiveFilters && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  Loading applicants...
+                </p>
+              </div>
+            </div>
+          )}
+          
           <div className="h-full overflow-auto">
             <Table>
-              <TableHeader className="sticky top-0 bg-background z-10 border-b">
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-background z-10 w-12 px-2">
-                    <Checkbox
-                      checked={
-                        filteredApplicants.length > 0 &&
-                        selectedRows.length === filteredApplicants.length
-                      }
-                      onCheckedChange={handleSelectAllRows}
-                      aria-label="Select all applicants"
-                    />
-                  </TableHead>
-                  <TableHead className="font-bold w-12 px-3">Image</TableHead>
-                  <TableHead className="sticky left-12 bg-background z-10 min-w-[150px] px-3">
-                    Full Name
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[120px] max-w-[220px] px-3">
-                    Email
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[110px] max-w-[130px] px-3">
-                    Phone Number
-                  </TableHead>
-                  <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
-                    WhatsApp Number
-                  </TableHead>
-
-                  <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
-                    Gender
-                  </TableHead>
-                  {/* <TableHead className="font-bold min-w-[90px] max-w-[120px] px-3">
-                    City
-                  </TableHead> */}
-                  {/* <TableHead className="font-bold min-w-[100px] max-w-[140px] px-3">
-                    State
-                  </TableHead> */}
-
-                  {/* <TableHead className="font-bold w-24">Pin Code</TableHead> */}
-
-                  {/* School */}
-                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-                    Qualifying School
-                  </TableHead> */}
-
-                  {/* Campus */}
-                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-                    Campus
-                  </TableHead>
-
-                  <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-                    Current Stage
-                  </TableHead>
-                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-                    Religion
-                  </TableHead> */}
-
-                  {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-                    Is Passed
-                  </TableHead> */}
-
-                  <TableHead className="w-16 font-bold px-3">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+              <ApplicantTableHeader
+                selectedRows={selectedRows}
+                filteredApplicants={filteredApplicants}
+                handleSelectAllRows={handleSelectAllRows}
+              />
 
               <TableBody>
-                {isSearching || isFiltering ? (
+                {isStudentsFetching && !searchTerm.trim() && !hasActiveFilters ? (
+                  <TableRow>
+                    <TableCell colSpan={13} className="text-center py-8">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          Loading applicants...
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : isSearching || isFiltering ? (
                   <TableRow>
                     <TableCell colSpan={13} className="text-center py-6">
                       <span className="text-muted-foreground animate-pulse">
@@ -1204,50 +1011,20 @@ const ApplicantTable = () => {
           </div>
         </div>
 
-        {/* Pagination */}
-        <div className="flex justify-between items-center mt-4">
-          <p className="text-sm text-muted-foreground">
-            Showing {showingStart} – {showingEnd} of {currentTotalCount}
-          </p>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground">Rows:</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setItemsPerPage(v);
-                  setCurrentPage(1); // reset to first page when page size changes
-                }}
-                className="border rounded px-2 py-1 bg-white text-sm"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={80}>80</option>
-                <option value={100}>100</option>
-                <option value={currentTotalCount}>All</option>
-              </select>
-            </div>
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span className="px-3 py-1 text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
+          totalPages={totalPages}
+          showingStart={showingStart}
+          showingEnd={showingEnd}
+          currentTotalCount={currentTotalCount}
+          totalStudents={totalStudents}
+          isStudentsFetching={isStudentsFetching}
+          searchTerm={searchTerm}
+          hasActiveFilters={hasActiveFilters}
+        />
       </CardContent>
 
       {/* Modals */}
