@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { addApplicants } from "@/utils/localStorage";
@@ -154,7 +154,7 @@ const CSVImportModal = ({
         const denominator = parseFloat(parts[1]);
         if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
           const result = numerator / denominator;
-          console.log(`Converted ${trimmedValue} to ${result}`);
+          // console.log(`Converted ${trimmedValue} to ${result}`);
           return result;
         }
       }
@@ -235,6 +235,122 @@ const CSVImportModal = ({
     }
   };
 
+  const downloadTemplate = () => {
+    // Define the CSV headers based on the expected columns
+    const headers = [
+      "FirstName",
+      "MiddleName",
+      "LastName",
+      "Gender",
+      "DOB",
+      "Email",
+      "PhoneNumber",
+      "WhatsappNumber",
+      "State",
+      "City",
+      "District",
+      "Block",
+      "PinCode",
+      "Qualification",
+      "CurrentStatus",
+      // "PercentageIn10th",
+      // "MathMarksIn10th",
+      // "PercentageIn12th",
+      // "MathMarksIn12th",
+      "Cast",
+      "Religion",
+      "School",
+      "Campus",
+      "CommunicationNotes",
+      "QuestionSetName",
+      "ExamCentre",
+      "DateOfTest",
+      "ObtainedMarks",
+      "ExamStatus",
+      "ExamLastUpdatedByEmail",
+      "LearningRoundStatus",
+      "LearningRoundComments",
+      "LearningRoundLastUpdatedByEmail",
+      "CulturalFitStatus",
+      "CulturalFitComments",
+      "CulturalFitLastUpdatedByEmail",
+      "OfferLetterStatus",
+      "OnboardedStatus",
+      "FinalNotes",
+      "JoiningDate",
+      "OfferLetterSentByEmail",
+      "FinalStatusUpdatedByEmail",
+    ];
+
+    // Create sample row with example data
+    const sampleRow = [
+      "xyz",
+      "Kumar",
+      "Singh",
+      "Male",
+      "2005-01-15",
+      "A@example.com",
+      "1234567890",
+      "1234567890",
+      "Rajasthan",
+      "Jaipur",
+      "Jaipur",
+      "Mansarovar",
+      "302020",
+      "12th Pass",
+      "Student",
+      // "85.5",
+      // "90",
+      // "78.5",
+      // "85",
+      "General",
+      "Hindu",
+      "SOB",
+      "Kishanganj",
+      "Called on 01-Dec-2025",
+      "A",
+      "Jaipur Center",
+      "2025-11-15",
+      "28",
+      "Screening Test Pass",
+      "interviewer1@example.com",
+      "Learner Round Pass",
+      "Excellent problem-solving and logical thinking",
+      "interviewer1@example.com",
+      "Cultural Fit Interview Pass",
+      "Strong values alignment and team player",
+      "interviewer2@example.com",
+      "Offer Sent",
+      "Onboarded",
+      "Selected for January 2025 batch",
+      "2025-01-15",
+      "abc@navgurukul.org",
+      "abc@navgurukul.org",
+    ];
+
+    // Combine headers and sample row
+    const csvContent = [headers, sampleRow]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", "applicants_import_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Template Downloaded",
+      description: "CSV template has been downloaded successfully!",
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -247,6 +363,30 @@ const CSVImportModal = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {/* Download Template Button */}
+          <div className="flex justify-center">
+            <Button
+              onClick={downloadTemplate}
+              variant="outline"
+              className="flex items-center gap-2"
+              type="button"
+            >
+              <Download className="h-4 w-4" />
+              Download CSV Template
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or upload your file
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="file" className="text-right">
               CSV File

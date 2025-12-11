@@ -175,6 +175,11 @@ const ApplicantTable = () => {
     }
   }, [searchTerm, hasActiveFilters]);
 
+  // Clear selected rows when search term or filters change
+  useEffect(() => {
+    setSelectedRows([]);
+  }, [searchTerm, hasActiveFilters]);
+
   // Track if pagination/itemsPerPage is actively changing (not just data refresh)
   const [isPaginationChanging, setIsPaginationChanging] = useState(false);
 
@@ -750,7 +755,7 @@ const ApplicantTable = () => {
     });
   };
 
-  const exportToCSV = async (exportType: 'all' | 'filtered' = 'all') => {
+  const exportToCSV = async (exportType: 'all' | 'filtered' | 'selected' = 'all') => {
     // Prevent multiple simultaneous exports
     if (isExporting) {
       toast({
@@ -762,8 +767,28 @@ const ApplicantTable = () => {
       return;
     }
 
+    // Validate selection if export type is 'selected'
+    if (exportType === 'selected' && selectedRows.length === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select applicants to export",
+        variant: "destructive",
+        duration: 2000,
+      });
+      return;
+    }
+
     try {
       setIsExporting(true);
+      
+      // Get the full applicant data for selected rows if export type is 'selected'
+      let selectedApplicantsData: any[] = [];
+      if (exportType === 'selected') {
+        selectedApplicantsData = filteredApplicants.filter((applicant) =>
+          selectedRows.includes(applicant.id)
+        );
+      }
+
       await exportApplicantsToCSV({
         schoolList,
         campusList,
@@ -773,6 +798,7 @@ const ApplicantTable = () => {
         qualificationList,
         castList,
         filteredData: filteredApplicants, // Pass current filtered/searched data
+        selectedData: selectedApplicantsData, // Pass selected applicants data
         exportType,
         toast,
       });
@@ -866,6 +892,7 @@ const ApplicantTable = () => {
               hasActiveFilters={hasActiveFilters}
               searchTerm={searchTerm}
               filteredCount={filteredApplicants.length}
+              selectedCount={selectedRows.length}
             />
             {hasActiveFilters && (
               <button
