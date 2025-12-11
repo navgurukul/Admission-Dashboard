@@ -26,12 +26,14 @@ interface QuestionEditorProps {
   onSave: (questionData: any) => void;
   onCancel: () => void;
   difficultyLevels: DifficultyLevel[];
+  setSelectedQuestion?: (question: any) => void;
 }
 
 export function QuestionEditor({
   question,
   onSave,
   onCancel,
+  setSelectedQuestion,
   difficultyLevels,
 }: QuestionEditorProps) {
   const { toast } = useToast();
@@ -51,7 +53,10 @@ export function QuestionEditor({
   });
 
   useEffect(() => {
-    if (!question) return;
+    if (!question) {
+      setSelectedQuestion(null);
+      return;
+    }
 
     const level = difficultyLevels.find(
       (lvl) => lvl.id === question.difficulty_level,
@@ -292,9 +297,12 @@ export function QuestionEditor({
 
       {/* Save / Cancel Buttons */}
       <div className="flex items-center justify-end gap-4">
-        {/* <Button type="button" variant="outline" onClick={onCancel}>
+        {question && (
+           <Button type="button" variant="outline" onClick={onCancel}>
           <X className="w-4 h-4 mr-2" /> Cancel
-        </Button> */}
+        </Button>
+        )}
+
         <Button type="submit">
           <Save className="w-4 h-4 mr-2" />
           {question ? "Update Question" : "Create Question"}

@@ -16,7 +16,7 @@ interface FilterState {
   currentStatus: any[];
   state: any;
   gender: any;
-  dateRange: { type: "applicant" | string; from: any; to: any };
+  dateRange: { type: "applicant" | "lastUpdate" | "interview"; from: any; to: any };
 }
 
 export const useApplicantFilters = (
