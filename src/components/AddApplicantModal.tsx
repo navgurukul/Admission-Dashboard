@@ -580,11 +580,12 @@ export function AddApplicantModal({
       );
 
       toast({
-        title: "Validation Error",
+        title: "⚠️ Required Fields Missing",
         description: hasScreeningErrors
           ? "Please complete all required screening fields or leave the section empty"
           : "Please fill all required Basic section fields",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
