@@ -97,7 +97,7 @@ export function QuestionList({
   }
 
   return (
-    <div className="space-y-4 h-[600px] overflow-y-auto ">
+    <div className="space-y-4">
       {questions.map((question) => {
         const difficulty = getDifficultyLabel(question.difficulty_level);
         return (
