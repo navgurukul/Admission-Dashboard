@@ -74,6 +74,9 @@ const ApplicantTable = () => {
   // Export loading state
   const [isExporting, setIsExporting] = useState(false);
 
+  // Loading state for pagination/search/filter (NOT for data updates)
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
   // Selected rows
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
@@ -171,6 +174,26 @@ const ApplicantTable = () => {
       setCurrentPage(1);
     }
   }, [searchTerm, hasActiveFilters]);
+
+  // Track if pagination/itemsPerPage is actively changing (not just data refresh)
+  const [isPaginationChanging, setIsPaginationChanging] = useState(false);
+
+  // When pagination changes, set the flag
+  useEffect(() => {
+    if (!searchTerm.trim() && !hasActiveFilters) {
+      setIsPaginationChanging(true);
+    }
+  }, [currentPage, itemsPerPage]);
+
+  // When data finishes loading, clear the flag
+  useEffect(() => {
+    if (!isStudentsFetching && isPaginationChanging) {
+      setIsPaginationChanging(false);
+      setIsLoadingData(false);
+    } else if (isStudentsFetching && isPaginationChanging) {
+      setIsLoadingData(true);
+    }
+  }, [isStudentsFetching, isPaginationChanging]);
 
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
@@ -876,18 +899,6 @@ const ApplicantTable = () => {
          </div>
 
         <div className="flex-1 border rounded-md overflow-hidden relative">
-          {/* Loading Overlay */}
-          {isStudentsFetching && !searchTerm.trim() && !hasActiveFilters && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm font-medium text-muted-foreground">
-                  Loading applicants...
-                </p>
-              </div>
-            </div>
-          )}
-          
           <div className="h-full overflow-auto">
             <Table>
               <ApplicantTableHeader
@@ -897,23 +908,15 @@ const ApplicantTable = () => {
               />
 
               <TableBody>
-                {isStudentsFetching && !searchTerm.trim() && !hasActiveFilters ? (
+                {isSearching || isFiltering || isLoadingData ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-8">
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          Loading applicants...
+                    <TableCell colSpan={13} className="text-center py-12">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground">
+                          {isSearching ? "Searching applicants..." : isFiltering ? "Applying filters..." : "Loading data..."}
                         </span>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ) : isSearching || isFiltering ? (
-                  <TableRow>
-                    <TableCell colSpan={13} className="text-center py-6">
-                      <span className="text-muted-foreground animate-pulse">
-                        {isSearching ? "Searching..." : "Applying filters..."}
-                      </span>
                     </TableCell>
                   </TableRow>
                 ) : paginatedApplicants.length === 0 ? (
@@ -959,7 +962,6 @@ const ApplicantTable = () => {
           showingEnd={showingEnd}
           currentTotalCount={currentTotalCount}
           totalStudents={totalStudents}
-          isStudentsFetching={isStudentsFetching}
           searchTerm={searchTerm}
           hasActiveFilters={hasActiveFilters}
         />
