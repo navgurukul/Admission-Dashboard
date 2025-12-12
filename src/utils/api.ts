@@ -1213,7 +1213,10 @@ interface QuestionSet {
 
 // Get all question sets ...
 export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
-  const response = await fetch(`${BASE_URL}/questions/question-sets`);
+  const response = await fetch(`${BASE_URL}/questions/question-sets`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
   const json = await response.json();
 
   const dataArray = Array.isArray(json.data) ? json.data : [];
@@ -1224,7 +1227,7 @@ export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
 interface QuestionSetMapping {
   question_set_id: number;
   question_id: number;
-  difficulty_level: number;
+  difficulty_level: number; 
 }
 
 export const createQuestionSetMappings = async (
@@ -1256,7 +1259,11 @@ export const getRandomQuestions = async (
   language: "english" | "hindi" | "marathi" = "english",
 ) => {
   try {
-    const response = await axios.get(`${BASE_URL}/questions/random-for-test`);
+    const response = await axios.get(`${BASE_URL}/questions/random-for-test`,{
+      headers: {
+        ...(getAuthHeaders() as Record<string, string>), 
+      },  
+    });
 
     const questions =
       response.data?.data?.map((q: any) => ({
