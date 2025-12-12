@@ -968,12 +968,16 @@ export function AddApplicantModal({
                     </Label>
                     <Input
                       id="mobile"
+                      type="tel"
                       value={formData.phone_number}
-                      onChange={(e) =>
-                        handleInputChange("phone_number", e.target.value)
-                      }
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '');
+                        handleInputChange("phone_number", digitsOnly.slice(0, 10));
+                      }}
                       placeholder="Enter 10-digit phone number"
                       maxLength={10}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className={errors.phone_number ? "border-red-500" : ""}
                     />
                     {errors.phone_number && (
@@ -989,12 +993,16 @@ export function AddApplicantModal({
                     </Label>
                     <Input
                       id="whatsapp"
+                      type="tel"
                       value={formData.whatsapp_number}
-                      onChange={(e) =>
-                        handleInputChange("whatsapp_number", e.target.value)
-                      }
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '');
+                        handleInputChange("whatsapp_number", digitsOnly.slice(0, 10));
+                      }}
                       placeholder="Enter WhatsApp number"
                       maxLength={10}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className={
                         errors.whatsapp_number ? "border-red-500" : ""
                       }
@@ -1388,7 +1396,7 @@ export function AddApplicantModal({
                       </p>
                     )}
                   </div>
-
+{/* 
                   <div className="space-y-2">
                     <Label htmlFor="campus_id" className="text-sm font-medium">
                       Campus *
@@ -1421,7 +1429,7 @@ export function AddApplicantModal({
                         {errors.campus_id}
                       </p>
                     )}
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2">
                     <Label
