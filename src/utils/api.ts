@@ -1213,6 +1213,9 @@ interface QuestionSet {
 
 // Get all question sets ...
 export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
+  const response = await fetch(`${BASE_URL}/questions/question-sets`,{
+    headers: getAuthHeaders(),
+  });
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "GET",
     headers: getAuthHeaders(),
@@ -1305,6 +1308,70 @@ export const deleteQuestionFromSet = async (id: number) => {
   if (!response.ok) {
     const data = await response.json();
     throw new Error(data.message || "Failed to delete question from set");
+  }
+};
+
+// Create a question set
+export const createQuestionSet = async (data: {
+  name: string;
+  description: string;
+  maximumMarks: number;
+}): Promise<QuestionSet> => {
+  const response = await fetch(`${BASE_URL}/questions/question-sets`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.message || "Failed to create question set");
+  }
+
+  return json.data || json;
+};
+
+// Update a question set
+export const updateQuestionSet = async (
+  id: number,
+  data: {
+    name: string;
+    description: string;
+    maximumMarks: number;
+  }
+): Promise<QuestionSet> => {
+  const response = await fetch(
+    `${BASE_URL}/questions/question-sets/${id}`,
+    {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    }
+  );
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.message || "Failed to update question set");
+  }
+
+  return json.data || json;
+};
+
+// Delete a question set
+export const deleteQuestionSet = async (id: number): Promise<void> => {
+  const response = await fetch(
+    `${BASE_URL}/questions/question-sets/${id}`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to delete question set");
   }
 };
 
