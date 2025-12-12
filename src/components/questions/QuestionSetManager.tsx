@@ -1,9 +1,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ListChecks, Trash2, Plus, Edit, Download } from "lucide-react";
 import { QuestionPicker } from "./QuestionPicker";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   getAllQuestionSets,
   deleteQuestionFromSet,
@@ -22,6 +31,8 @@ import {
   deleteQuestionSet,
   createQuestionSet,
   updateQuestionSet,
+  setDefaultOnlineQuestionSet,
+  downloadQuestionSetPDF,
 } from "@/utils/api";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels }) {
@@ -34,7 +45,12 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    maximumMarks: 0,
+    maximumMarks: "" as any,
+  });
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [downloadFormData, setDownloadFormData] = useState({
+    selectedSet: "",
+    language: "English",
   });
 
 
@@ -54,6 +70,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               limit: s.maximumMarks,
               questions: mapped.data || [], // actual selected questions
               active: s.status,
+              is_default_online_set: s.is_default_online_set,
               created_at: s.created_at,
               updated_at: s.updated_at,
             };
@@ -65,6 +82,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               limit: s.maximumMarks,
               questions: [],
               active: s.status,
+              is_default_online_set: s.is_default_online_set,
               created_at: s.created_at,
               updated_at: s.updated_at,
             };
@@ -78,6 +96,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         limit: s.maximumMarks,
         questions: [],
         active: s.status,
+        is_default_online_set: s.is_default_online_set,
         created_at: s.created_at,
         updated_at: s.updated_at,
       }));
@@ -85,7 +104,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     setSets(setsWithQuestions);
   };
   useEffect(() => {
-    fetchSets();
+    fetchSets(true);
   }, []);
 
   const loadSetQuestions = async (setId: number) => {
@@ -149,14 +168,17 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       );
 
       toast({
-        title: "Questions updated",
-        description: `Added: ${added.length}, Removed: ${removed.length}`,
+        title: "✅ Questions Added Successfully",
+        description: `Added: ${added.length}`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
     } catch (err: any) {
       toast({
-        title: "Error",
-        description: err.message,
+        title: " Failed to Update Questions",
+        description: err.message || "An error occurred while updating questions. Please try again.",
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -181,7 +203,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const openAddModal = () => {
     setEditingSet(null);
-    setFormData({ name: "", description: "", maximumMarks: 0 });
+    setFormData({ name: "", description: "", maximumMarks:  "" as any });
     setIsModalOpen(true);
   };
 
@@ -196,20 +218,50 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   };
 
   const handleSubmit = async () => {
+    // Validation
+    if (!formData.name.trim()) {
+      toast({
+        title: "⚠️ Required Field Missing",
+        description: "Please enter a set name",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    if (formData.maximumMarks <= 0) {
+      toast({
+        title: "⚠️ Invalid Value",
+        description: "Maximum marks must be greater than 0",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
     try {
+      const payload = {
+        ...formData,
+        maximumMarks: parseInt(formData.maximumMarks) || 0,
+      };
+
       if (editingSet) {
         // Update existing set
-        await updateQuestionSet(editingSet.id, formData);
+        await updateQuestionSet(editingSet.id, payload);
         toast({
-          title: "Set updated",
-          description: "The question set has been updated successfully.",
+          title: "✅ Set Updated Successfully",
+          description: `"${formData.name}" has been updated successfully.`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } else {
         // Create new set
-        await createQuestionSet(formData);
+        await createQuestionSet(payload);
         toast({
-          title: "Set created",
-          description: "A new question set has been added.",
+          title: "✅ Set Created Successfully",
+          description: `"${formData.name}" has been added.`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       }
       setIsModalOpen(false);
@@ -217,42 +269,127 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       await fetchSets(false);
     } catch (err: any) {
       toast({
-        title: "Error",
-        description: err.message,
+        title: "❌ Operation Failed",
+        description: err.message || "An error occurred. Please try again.",
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
 
   const deleteSet = async (id: number) => {
+    const setToDelete = sets.find((s) => s.id === id);
+    
     try {
       await deleteQuestionSet(id);
       setSets((prev) => prev.filter((s) => s.id !== id));
       toast({
-        title: "Set deleted",
-        description: "The set has been removed successfully.",
-        variant: "destructive",
+        title: "✅ Set Deleted Successfully",
+        description: `"${setToDelete?.name || 'Set'}" has been removed.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
-      await fetchSets();
-    } catch (err) {
+      await fetchSets(false);
+    } catch (err: any) {
       toast({
-        title: "Error",
-        description: err.message,
+        title: "❌ Failed to Delete Set",
+        description: err.message || "Unable to delete the set. It may contain questions or be in use.",
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
 
+  const defaultSet = sets.find((s) => s.is_default_online_set);
+
+  const handleDownloadSubmit = async () => {
+    if (!downloadFormData.selectedSet) {
+      toast({
+        title: "⚠️ Required Field Missing",
+        description: "Please select a question set",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    try {
+      // Find the set ID from the selected set name
+      const selectedSet = sets.find((s) => s.name === downloadFormData.selectedSet);
+      if (!selectedSet) {
+        throw new Error("Selected set not found");
+      }
+
+      toast({
+        title: "⏳ Generating PDF...",
+        description: `Please wait while we generate the PDF`,
+        variant: "default",
+        className: "border-blue-500 bg-blue-50 text-blue-900",
+      });
+
+      // Call the API to download PDF
+      const pdfBlob = await downloadQuestionSetPDF(
+        selectedSet.id,
+        downloadFormData.language
+      );
+
+      // Create a download link and trigger download
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${downloadFormData.selectedSet}_${downloadFormData.language}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "✅ PDF Downloaded",
+        description: `${downloadFormData.selectedSet} in ${downloadFormData.language} has been downloaded`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+      setIsDownloadModalOpen(false);
+    } catch (err: any) {
+      toast({
+        title: "❌ Download Failed",
+        description: err.message || "Unable to download PDF. Please try again.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+    }
+  };
+
+  const openDownloadModal = () => {
+    setDownloadFormData({
+      selectedSet: "",
+      language: "English",
+    });
+    setIsDownloadModalOpen(true);
+  };
+
   return (
     <div className="flex flex-col h-[600px]">
-      <div className="flex justify-end gap-2 mb-4">
+      <div className="flex justify-end items-center gap-3 mb-4">
         <Button onClick={openAddModal} variant="outline">
           <Plus className="h-4 w-4 mr-2" />
           Add Set
         </Button>
+        <Button onClick={openDownloadModal} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Download PDF
+        </Button>
+        {defaultSet && (
+          <div className="flex items-center gap-2 border border-green-300 rounded-md px-3 py-1.5 bg-green-50">
+            <span className="text-sm font-medium text-green-700">Default Set:</span>
+            <span className="text-sm font-semibold text-green-800">
+              {defaultSet.name}
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-auto space-y-4 pr-2 [&::-webkit-scrollbar]:w-[6px] [&::-webkit-scrollbar-track]:bg-muted/30 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50">
+      <div className="flex-1 overflow-auto space-y-4 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {sets.length === 0 && (
           <p className="text-gray-500 text-sm">No question sets found. Click "Add Set" to create one.</p>
         )}
@@ -271,7 +408,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                     onClick={() => openEditModal(set)}
                     title="Edit set"
                   >
-                    <Edit className="h-4 w-4 text-blue-500" />
+                    <Edit className="h-4 w-4 text-black-500" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -296,17 +433,59 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               Updated: {new Date(set.updated_at).toLocaleDateString()}
             </p> */}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  await loadSetQuestions(set.id)
-                  setActiveSet(set)
-                }}
-              >
-                <ListChecks className="h-4 w-4 mr-2" />
-                Pick Questions
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    await loadSetQuestions(set.id)
+                    setActiveSet(set)
+                  }}
+                >
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  Pick Questions
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id={`default-${set.id}`}
+                    checked={set.is_default_online_set || false}
+                    className="rounded-none data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    onCheckedChange={async (checked) => {
+                      if (checked) {
+                        try {
+                          await setDefaultOnlineQuestionSet(set.id);
+                          setSets((prev) =>
+                            prev.map((s) => ({
+                              ...s,
+                              is_default_online_set: s.id === set.id,
+                            }))
+                          );
+                          toast({
+                            title: "✅ Default Set Updated",
+                            description: `"${set.name}" is now the default online test set.`,
+                            variant: "default",
+                            className: "border-green-500 bg-green-50 text-green-900",
+                          });
+                        } catch (err: any) {
+                          toast({
+                            title: "❌ Failed to Set Default",
+                            description: err.message || "Unable to set default online test set. Please try again.",
+                            variant: "destructive",
+                            className: "border-red-500 bg-red-50 text-red-900",
+                          });
+                        }
+                      }
+                    }}
+                  />
+                  <Label
+                    htmlFor={`default-${set.id}`}
+                    className="text-xs cursor-pointer whitespace-nowrap"
+                  >
+                    Mark Default
+                  </Label>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -370,11 +549,11 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    maximumMarks: parseInt(e.target.value) || 0,
+                    maximumMarks: e.target.value,
                   })
                 }
-                placeholder=" Enter Marks"
-                min="0"
+                placeholder="Enter Marks"
+                min="1"
               />
             </div>
           </div>
@@ -385,6 +564,67 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </Button>
             <Button onClick={handleSubmit}>
               {editingSet ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Download PDF Modal */}
+      <Dialog open={isDownloadModalOpen} onOpenChange={setIsDownloadModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Download Question Set PDF</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="set-select">Select Question Set</Label>
+              <Select
+                value={downloadFormData.selectedSet}
+                onValueChange={(value) =>
+                  setDownloadFormData({ ...downloadFormData, selectedSet: value })
+                }
+              >
+                <SelectTrigger id="set-select">
+                  <SelectValue placeholder="Choose a question set" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sets.map((set) => (
+                    <SelectItem key={set.id} value={set.name}>
+                      {set.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="language-select">Language</Label>
+              <Select
+                value={downloadFormData.language}
+                onValueChange={(value) =>
+                  setDownloadFormData({ ...downloadFormData, language: value })
+                }
+              >
+                <SelectTrigger id="language-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="Marathi">Marathi</SelectItem>
+                  <SelectItem value="Hindi">Hindi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDownloadModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleDownloadSubmit}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
             </Button>
           </DialogFooter>
         </DialogContent>
