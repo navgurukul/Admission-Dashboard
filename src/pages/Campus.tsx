@@ -133,27 +133,31 @@ const CampusPage: React.FC = () => {
 
   // Update campus
   const handleUpdateCampus = async (id: number, campus_name: string) => {
-    setActionLoading(true);
-    try {
-      await updateCampusApi(id, campus_name);
-      setEditDialog(false);
-      setSelectedCampus(null);
-      toast({
-        title: "Campus Updated",
-        description: `Campus "${campus_name}" updated successfully.`,
-        className: "border-l-4 border-l-blue-600",
-      });
-      await fetchCampuses(false);
-    } catch (err) {
-      toast({
-        title: "Unable to Update Campus",
-        description: err instanceof Error ? err.message : "An unexpected error occurred.",
-        variant: "destructive",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  // Get the old campus name before updating
+  const oldCampus = campuses.find(c => c.id === id);
+  const oldName = oldCampus?.campus_name || "";
+  
+  setActionLoading(true);
+  try {
+    await updateCampusApi(id, campus_name);
+    setEditDialog(false);
+    setSelectedCampus(null);
+    toast({
+      title: "Campus Updated",
+      description: `Campus name updated from "${oldName}" to "${campus_name}".`,
+      className: "border-l-4 border-l-blue-600",
+    });
+    await fetchCampuses(false);
+  } catch (err) {
+    toast({
+      title: "Unable to Update Campus",
+      description: err instanceof Error ? err.message : "An unexpected error occurred.",
+      variant: "destructive",
+    });
+  } finally {
+    setActionLoading(false);
+  }
+};
 
   // Delete campus
   const handleDeleteCampus = async (id: number, campus_name: string) => {

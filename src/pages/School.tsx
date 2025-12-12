@@ -158,26 +158,30 @@ const SchoolPage = () => {
 
   //  Update School
   const handleUpdateSchool = async (id: number, updatedName: string) => {
-    try {
-      await updateSchool(id, updatedName);
-      setSchools((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, school_name: updatedName } : s)),
-      );
+  // Get the old school name before updating
+  const oldSchool = schools.find(s => s.id === id);
+  const oldName = oldSchool?.school_name || "";
+  
+  try {
+    await updateSchool(id, updatedName);
+    setSchools((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, school_name: updatedName } : s)),
+    );
 
-      toast({
-        title: "School Updated",
-        description: `School name updated to "${updatedName}".`,
-        className: "border-l-4 border-l-blue-600",
-      });
-    } catch (error) {
-      const errorMessage = formatErrorMessage(error as Error);
-      toast({
-        title: "Unable to Update School",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  };
+    toast({
+      title: "School Updated",
+      description: `School name updated from "${oldName}" to "${updatedName}".`,
+      className: "border-l-4 border-l-blue-600",
+    });
+  } catch (error) {
+    const errorMessage = formatErrorMessage(error as Error);
+    toast({
+      title: "Unable to Update School",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  }
+};
 
   // Delete School
   const handleDeleteSchool = async (id: number, school_name: string) => {
