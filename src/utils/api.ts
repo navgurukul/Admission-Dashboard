@@ -1394,6 +1394,30 @@ export const setDefaultOnlineQuestionSet = async (id: number): Promise<QuestionS
   return json.data || json;
 };
 
+// Download question set as PDF
+export const downloadQuestionSetPDF = async (setId: number, language?: string): Promise<Blob> => {
+  let url = `${BASE_URL}/questions/download-pdf/${setId}`;
+  
+  // Add language query parameter if provided and not English
+  if (language && language.toLowerCase() !== 'english') {
+    url += `?language=${language.toLowerCase()}`;
+  }
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      ...getAuthHeaders(false), // Don't add Content-Type for blob response
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Failed to download PDF" }));
+    throw new Error(error.message || "Failed to download PDF");
+  }
+
+  return await response.blob();
+};
+
 export const bulkUploadQuestions = async (csvData: string): Promise<any> => {
   const blob = new Blob([csvData], { type: "text/csv" });
   const file = new File([blob], "questions.csv", { type: "text/csv" });

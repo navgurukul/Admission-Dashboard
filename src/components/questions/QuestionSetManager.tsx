@@ -6,6 +6,13 @@ import { ListChecks, Trash2, Plus, Edit, Download } from "lucide-react";
 import { QuestionPicker } from "./QuestionPicker";
 import { useToast } from "@/components/ui/use-toast";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -25,6 +32,7 @@ import {
   createQuestionSet,
   updateQuestionSet,
   setDefaultOnlineQuestionSet,
+  downloadQuestionSetPDF,
 } from "@/utils/api";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels }) {
@@ -38,6 +46,11 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     name: "",
     description: "",
     maximumMarks: "" as any,
+  });
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [downloadFormData, setDownloadFormData] = useState({
+    selectedSet: "",
+    language: "English",
   });
 
 
@@ -289,12 +302,82 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const defaultSet = sets.find((s) => s.is_default_online_set);
 
+  const handleDownloadSubmit = async () => {
+    if (!downloadFormData.selectedSet) {
+      toast({
+        title: "⚠️ Required Field Missing",
+        description: "Please select a question set",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    try {
+      // Find the set ID from the selected set name
+      const selectedSet = sets.find((s) => s.name === downloadFormData.selectedSet);
+      if (!selectedSet) {
+        throw new Error("Selected set not found");
+      }
+
+      toast({
+        title: "⏳ Generating PDF...",
+        description: `Please wait while we generate the PDF`,
+        variant: "default",
+        className: "border-blue-500 bg-blue-50 text-blue-900",
+      });
+
+      // Call the API to download PDF
+      const pdfBlob = await downloadQuestionSetPDF(
+        selectedSet.id,
+        downloadFormData.language
+      );
+
+      // Create a download link and trigger download
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${downloadFormData.selectedSet}_${downloadFormData.language}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "✅ PDF Downloaded",
+        description: `${downloadFormData.selectedSet} in ${downloadFormData.language} has been downloaded`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+      setIsDownloadModalOpen(false);
+    } catch (err: any) {
+      toast({
+        title: "❌ Download Failed",
+        description: err.message || "Unable to download PDF. Please try again.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+    }
+  };
+
+  const openDownloadModal = () => {
+    setDownloadFormData({
+      selectedSet: "",
+      language: "English",
+    });
+    setIsDownloadModalOpen(true);
+  };
+
   return (
     <div className="flex flex-col h-[600px]">
       <div className="flex justify-end items-center gap-3 mb-4">
         <Button onClick={openAddModal} variant="outline">
           <Plus className="h-4 w-4 mr-2" />
           Add Set
+        </Button>
+        <Button onClick={openDownloadModal} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Download PDF
         </Button>
         {defaultSet && (
           <div className="flex items-center gap-2 border border-green-300 rounded-md px-3 py-1.5 bg-green-50">
@@ -481,6 +564,67 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </Button>
             <Button onClick={handleSubmit}>
               {editingSet ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Download PDF Modal */}
+      <Dialog open={isDownloadModalOpen} onOpenChange={setIsDownloadModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Download Question Set PDF</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="set-select">Select Question Set</Label>
+              <Select
+                value={downloadFormData.selectedSet}
+                onValueChange={(value) =>
+                  setDownloadFormData({ ...downloadFormData, selectedSet: value })
+                }
+              >
+                <SelectTrigger id="set-select">
+                  <SelectValue placeholder="Choose a question set" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sets.map((set) => (
+                    <SelectItem key={set.id} value={set.name}>
+                      {set.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="language-select">Language</Label>
+              <Select
+                value={downloadFormData.language}
+                onValueChange={(value) =>
+                  setDownloadFormData({ ...downloadFormData, language: value })
+                }
+              >
+                <SelectTrigger id="language-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="Marathi">Marathi</SelectItem>
+                  <SelectItem value="Hindi">Hindi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDownloadModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleDownloadSubmit}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
             </Button>
           </DialogFooter>
         </DialogContent>
