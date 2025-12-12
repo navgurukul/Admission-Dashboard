@@ -36,10 +36,10 @@ export function QuestionPicker({
     const fetchQuestions = async () => {
       setLoading(true);
       try {
-        const mainSet = await getQuestionsBySetType(activeSet.name);
+        // const mainSet = await getQuestionsBySetType(activeSet.name);
         const remainingSet = await getQuestionsBySetType("Remaining");
         const mergedQuestions = [
-          ...(mainSet.data || []),
+          // ...(mainSet.data || []),
           ...(remainingSet.data || []),
         ];
         setQuestions(mergedQuestions);

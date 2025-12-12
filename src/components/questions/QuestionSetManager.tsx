@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ListChecks, Trash2, Plus, Pencil, Download } from "lucide-react";
+import { ListChecks, Trash2, Plus, Edit, Download } from "lucide-react";
 import { QuestionPicker } from "./QuestionPicker";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -243,115 +243,12 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     }
   };
 
-  const downloadPDF = async () => {
-    try {
-      // Load all questions for all sets before generating PDF
-      await fetchSets(true);
-
-      // Wait a bit for state to update
-      setTimeout(() => {
-        const printContent = generatePDFContent();
-        const printWindow = window.open("", "_blank");
-
-        if (printWindow) {
-          printWindow.document.write(printContent);
-          printWindow.document.close();
-          printWindow.focus();
-
-          // Wait for content to load before printing
-          setTimeout(() => {
-            printWindow.print();
-          }, 250);
-        }
-      }, 500);
-
-      toast({
-        title: "Download initiated",
-        description: "Please wait while we prepare your PDF...",
-      });
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const generatePDFContent = () => {
-    const setsHTML = sets
-      .map(
-        (set) => `
-        <div style="page-break-after: always; margin-bottom: 30px;">
-          <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
-            ${set.name}
-          </h2>
-          ${set.description ? `<p style="color: #6b7280; margin: 10px 0;"><strong>Description:</strong> ${set.description}</p>` : ""}
-          <p style="color: #6b7280; margin: 10px 0;"><strong>Maximum Marks:</strong> ${set.limit}</p>
-          <p style="color: #6b7280; margin: 10px 0 20px 0;"><strong>Total Questions:</strong> ${set.questions.length}</p>
-          
-          ${set.questions.length > 0 ? `
-            <div style="margin-top: 20px;">
-              ${set.questions
-              .map(
-                (q, idx) => `
-                <div style="margin-bottom: 20px; padding: 15px; background: #f9fafb; border-left: 4px solid #3b82f6;">
-                  <p style="font-weight: bold; margin-bottom: 10px;">Q${idx + 1}. ${q.question_text || q.text || "N/A"}</p>
-                  <p style="color: #6b7280; margin: 5px 0;"><strong>Difficulty:</strong> ${q.difficulty_level || "N/A"}</p>
-                  <p style="color: #6b7280; margin: 5px 0;"><strong>Marks:</strong> ${q.marks || "N/A"}</p>
-                  ${q.options ? `<p style="color: #6b7280; margin: 5px 0;"><strong>Type:</strong> ${q.type || "Multiple Choice"}</p>` : ""}
-                </div>
-              `,
-              )
-              .join("")}
-            </div>
-          ` : '<p style="color: #9ca3af;">No questions added yet.</p>'}
-        </div>
-      `,
-      )
-      .join("");
-
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Question Sets - ${new Date().toLocaleDateString()}</title>
-          <style>
-            @media print {
-              body { margin: 0; padding: 20px; }
-              @page { margin: 1cm; }
-            }
-            body {
-              font-family: Arial, sans-serif;
-              line-height: 1.6;
-              color: #1f2937;
-            }
-          </style>
-        </head>
-        <body>
-          <h1 style="text-align: center; color: #1f2937; margin-bottom: 30px;">
-            Question Sets Report
-          </h1>
-          <p style="text-align: center; color: #6b7280; margin-bottom: 40px;">
-            Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
-          </p>
-          ${setsHTML}
-        </body>
-      </html>
-    `;
-  };
-
   return (
     <div className="flex flex-col h-[600px]">
       <div className="flex justify-end gap-2 mb-4">
         <Button onClick={openAddModal} variant="outline">
           <Plus className="h-4 w-4 mr-2" />
           Add Set
-        </Button>
-        <Button onClick={downloadPDF} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Download PDF
         </Button>
       </div>
 
@@ -374,7 +271,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                     onClick={() => openEditModal(set)}
                     title="Edit set"
                   >
-                    <Pencil className="h-4 w-4 text-blue-500" />
+                    <Edit className="h-4 w-4 text-blue-500" />
                   </Button>
                   <Button
                     variant="ghost"
