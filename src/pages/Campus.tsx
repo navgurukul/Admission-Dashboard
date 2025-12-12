@@ -103,8 +103,8 @@ const CampusPage: React.FC = () => {
     if (isDuplicate) {
       toast({
         title: "Duplicate Campus",
-        description: `This campus name already exists. Please use a different name..`,
-        variant: "destructive",
+        description: "This campus name already exists. Please use a different name.",
+        className: "border-l-4 border-l-orange-500",
       });
       return;
     }
@@ -114,15 +114,16 @@ const CampusPage: React.FC = () => {
       setAddDialog(false);
       setNewCampus("");
       toast({
-        title: "Campus Added",
-        description: "Campus has been successfully added.",
+        title: "Campus Added Successfully",
+        description: `"${newCampus}" has been added.`,
+        className: "border-l-4 border-l-green-600",
       });
       await fetchCampuses(false);
       setCurrentPage(1);
     } catch (err) {
       toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Unknown error",
+        title: "Unable to Add Campus",
+        description: err instanceof Error ? err.message : "An unexpected error occurred while adding the campus",
         variant: "destructive",
       });
     } finally {
@@ -132,50 +133,74 @@ const CampusPage: React.FC = () => {
 
   // Update campus
   const handleUpdateCampus = async (id: number, campus_name: string) => {
-    setActionLoading(true);
-    try {
-      await updateCampusApi(id, campus_name);
-      setEditDialog(false);
-      setSelectedCampus(null);
-      toast({
-        title: "Campus Updated",
-        description: `Campus "${campus_name}" updated successfully.`,
-      });
-      await fetchCampuses(false);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Unknown error",
-        variant: "destructive",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  // Get the old campus name before updating
+  const oldCampus = campuses.find(c => c.id === id);
+  const oldName = oldCampus?.campus_name || "";
+  
+  setActionLoading(true);
+  try {
+    await updateCampusApi(id, campus_name);
+    setEditDialog(false);
+    setSelectedCampus(null);
+    toast({
+      title: "Campus Updated",
+      description: `Campus name updated from "${oldName}" to "${campus_name}".`,
+      className: "border-l-4 border-l-blue-600",
+    });
+    await fetchCampuses(false);
+  } catch (err) {
+    toast({
+      title: "Unable to Update Campus",
+      description: err instanceof Error ? err.message : "An unexpected error occurred.",
+      variant: "destructive",
+    });
+  } finally {
+    setActionLoading(false);
+  }
+};
 
   // Delete campus
   const handleDeleteCampus = async (id: number, campus_name: string) => {
-    setActionLoading(true);
-    try {
-      await deleteCampusApi(id);
-      setDeleteDialog(false);
-      setSelectedCampus(null);
-      toast({
-        title: "Unable to Delete Campus",
-        description: `Campus "${campus_name}" has been deleted.`,
-      });
-      await fetchCampuses(false);
-      setCurrentPage(1);
-    } catch (err) {
-      toast({
-        title: "Unable to Delete Campus",
-        description: err instanceof Error ? err.message : "Unknown error",
-        variant: "destructive",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  setActionLoading(true);
+  try {
+    await deleteCampusApi(id);
+    setDeleteDialog(false);
+    setSelectedCampus(null);
+    toast({
+      title: "Campus Deleted",
+      description: `"${campus_name}" has been deleted.`,
+      className: "border-l-4 border-l-red-600",
+    });
+    await fetchCampuses(false);
+    setCurrentPage(1);
+  } catch (error: any) {
+    // Try multiple paths to get the error message
+    const fullErrorMessage = 
+      error?.data?.message || 
+      error?.response?.data?.message ||
+      error?.message ||
+      "An unexpected error occurred.";
+    
+    // Check if it's a student records association error
+    const isStudentRecordsError = fullErrorMessage && (
+      fullErrorMessage.toLowerCase().includes("associated with") ||
+      fullErrorMessage.toLowerCase().includes("student records") 
+    );
+    
+    // Use orange for student records error, red for others
+    const borderColor = isStudentRecordsError 
+      ? "border-l-orange-500" 
+      : "border-l-red-600";
+    
+    toast({
+      title: "Unable to Delete Campus",
+      description: fullErrorMessage || "An unexpected error occurred.",
+      className: `border-l-4 ${borderColor}`,
+    });
+  } finally {
+    setActionLoading(false);
+  }
+};
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
