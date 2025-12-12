@@ -41,13 +41,6 @@ export const navigation: NavigationItem[] = [
     allowedRoles: [1],
   },
   {
-    name: "Admin View",
-    href: "/admin-view",
-    icon: Eye,
-    component: AdminView,
-    allowedRoles: [1],
-  },
-  {
     name: "Dashboard",
     href: "/",
     icon: LayoutDashboard,
@@ -71,8 +64,15 @@ export const navigation: NavigationItem[] = [
     allowedRoles: [1],
   },
   // { name: "Owner", href: "/owner", icon: UserCheck, component: OwnerPage, allowedRoles: [1] },
+    {
+    name: "All Interviews",
+    href: "/admin-view",
+    icon: Eye,
+    component: AdminView,
+    allowedRoles: [1],
+  },
   {
-    name: "Interviews",
+    name: "My Interviews",
     href: "/interviews",
     icon: MessageSquare,
     component: Interviews,

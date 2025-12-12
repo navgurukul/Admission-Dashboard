@@ -504,22 +504,43 @@ export function AdvancedFilterModal({
     activeFilters.push({ key: "stage_status", label: `Status: ${filters.stage_status}` });
   if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}` });
   if (filters.district?.length) activeFilters.push({ key: "district", label: `District: ${filters.district[0]}` });
-  if (filters.partner?.length) activeFilters.push({ key: "partner", label: `Campus: ${filters.partner[0]}` });
-  if (filters.school?.length)
+  
+  // Campus - find and display actual name
+  if (filters.partner?.length) {
+    const campus = availableOptions.campuses.find((c: any) => String(c.id) === String(filters.partner[0]));
+    const campusLabel = campus?.campus_name || campus?.name || filters.partner[0];
+    activeFilters.push({ key: "partner", label: `Campus: ${campusLabel}` });
+  }
+  
+  // School - find and display actual name
+  if (filters.school?.length) {
+    const school = availableOptions.schools.find((s: any) => String(s.id) === String(filters.school[0]));
+    const schoolLabel = school?.school_name || school?.name || filters.school[0];
     activeFilters.push({
       key: "school",
-      label: `School: ${getDisplayName(filters.school[0], "school_name", "School")}`,
+      label: `School: ${schoolLabel}`,
     });
-  if (filters.qualification?.length)
+  }
+  
+  // Qualification - find and display actual name
+  if (filters.qualification?.length) {
+    const qualification = availableOptions.qualifications.find((q: any) => String(q.id) === String(filters.qualification[0]));
+    const qualLabel = qualification?.qualification_name || qualification?.name || filters.qualification[0];
     activeFilters.push({
       key: "qualification",
-      label: `Qualification: ${getDisplayName(filters.qualification[0], "qualification_name", "Qualification")}`,
+      label: `Qualification: ${qualLabel}`,
     });
-  if (filters.currentStatus?.length)
+  }
+  
+  // Current Status - find and display actual name
+  if (filters.currentStatus?.length) {
+    const status = availableOptions.currentStatuses.find((s: any) => String(s.id) === String(filters.currentStatus[0]));
+    const statusLabel = status?.current_status_name || status?.name || filters.currentStatus[0];
     activeFilters.push({
       key: "currentStatus",
-      label: `Current: ${getDisplayName(filters.currentStatus[0], "current_status_name", "Status")}`,
+      label: `Current: ${statusLabel}`,
     });
+  }
   if (filters.dateRange.from || filters.dateRange.to) {
     const from = filters.dateRange.from ? format(filters.dateRange.from, "PP") : "";
     const to = filters.dateRange.to ? format(filters.dateRange.to, "PP") : "";

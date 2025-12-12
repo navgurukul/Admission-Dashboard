@@ -235,8 +235,76 @@ const CSVImportModal = ({
     }
   };
 
-  const downloadTemplate = () => {
-    // Define the CSV headers based on the expected columns
+  const downloadTemplate = (templateType: 'full' | 'update' = 'full') => {
+    if (templateType === 'update') {
+      // Second format: For updating existing students with multiple session data (Email-based)
+      const headers = [
+        "Email",
+        "QuestionSetName",
+        "ExamCentre",
+        "DateOfTest",
+        "ObtainedMarks",
+        "ExamStatus",
+        "ExamLastUpdatedByEmail",
+        "LearningRoundStatus",
+        "LearningRoundComments",
+        "LearningRoundLastUpdatedByEmail",
+        "CulturalFitStatus",
+        "CulturalFitComments",
+        "CulturalFitLastUpdatedByEmail",
+        "OfferLetterStatus",
+        "OnboardedStatus",
+        "FinalNotes",
+        "JoiningDate",
+        "OfferLetterSentByEmail",
+        "FinalStatusUpdatedByEmail",
+      ];
+
+      const sampleRow = [
+        "student@example.com",
+        "A",
+        "Jaipur Center",
+        "2025-11-15",
+        "28",
+        "Screening Test Pass",
+        "interviewer1@example.com",
+        "Learner Round Pass",
+        "Excellent problem-solving and logical thinking",
+        "interviewer1@example.com",
+        "Cultural Fit Interview Pass",
+        "Strong values alignment and team player",
+        "interviewer2@example.com",
+        "Offer Sent",
+        "Onboarded",
+        "Selected for January 2025 batch",
+        "2025-01-15",
+        "abc@navgurukul.org",
+        "abc@navgurukul.org",
+      ];
+
+      const csvContent = [headers, sampleRow]
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", "student_sessions_update_template.csv");
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Template Downloaded",
+        description: "Student Sessions Update template has been downloaded successfully!",
+      });
+      return;
+    }
+
+    // First format: Full student data import (default)
     const headers = [
       "FirstName",
       "MiddleName",
@@ -253,10 +321,10 @@ const CSVImportModal = ({
       "PinCode",
       "Qualification",
       "CurrentStatus",
-      // "PercentageIn10th",
-      // "MathMarksIn10th",
-      // "PercentageIn12th",
-      // "MathMarksIn12th",
+      "PercentageIn10th",
+      "MathMarksIn10th",
+      "PercentageIn12th",
+      "MathMarksIn12th",
       "Cast",
       "Religion",
       "School",
@@ -299,10 +367,10 @@ const CSVImportModal = ({
       "302020",
       "12th Pass",
       "Student",
-      // "85.5",
-      // "90",
-      // "78.5",
-      // "85",
+      "85.5",
+      "90",
+      "78.5",
+      "85",
       "General",
       "Hindu",
       "SOB",
@@ -353,27 +421,42 @@ const CSVImportModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Import Applicants from CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to add multiple applicants at once. Duplicate
-            mobile numbers are now allowed.
+            Choose a template and upload your CSV file. Use "Full Student Data" to create new students or "Sessions Update" to update screening exam/interview rounds for existing students.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Download Template Button */}
-          <div className="flex justify-center">
-            <Button
-              onClick={downloadTemplate}
-              variant="outline"
-              className="flex items-center gap-2"
-              type="button"
-            >
-              <Download className="h-4 w-4" />
-              Download CSV Template
-            </Button>
+          {/* Download Template Buttons */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Download Template:</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button
+                onClick={() => downloadTemplate('full')}
+                variant="outline"
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                type="button"
+              >
+                <Download className="h-4 w-4" />
+                Full Student Data
+              </Button>
+              <Button
+                onClick={() => downloadTemplate('update')}
+                variant="outline"
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                type="button"
+              >
+                <Download className="h-4 w-4" />
+                Sessions Update
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              • <strong>Full Student Data:</strong> Create new students with complete information<br/>
+              • <strong>Sessions Update:</strong> Update existing students' stages and offer letter updates based on their email addresses.
+            </p>
           </div>
 
           <div className="relative">
