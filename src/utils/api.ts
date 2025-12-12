@@ -1213,9 +1213,6 @@ interface QuestionSet {
 
 // Get all question sets ...
 export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
-  const response = await fetch(`${BASE_URL}/questions/question-sets`,{
-    headers: getAuthHeaders(),
-  });
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "GET",
     headers: getAuthHeaders(),
