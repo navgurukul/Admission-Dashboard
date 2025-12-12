@@ -43,10 +43,10 @@ const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
 };
 
-interface Campus {
-  id: number;
-  campus_name: string;
-}
+// interface Campus {
+//   id: number;
+//   campus_name: string;
+// }
 
 interface School {
   id: number;
@@ -77,7 +77,7 @@ interface AddApplicantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newApplicant: any) => void;
-  campusList: Campus[];
+  // campusList: Campus[];
   schoolList: School[];
   currentstatusList: CurrentStatus[];
   religionList: religion[];
@@ -88,7 +88,7 @@ export function AddApplicantModal({
   isOpen,
   onClose,
   onSuccess,
-  campusList,
+  // campusList,
   schoolList,
   currentstatusList,
   religionList,
@@ -143,7 +143,7 @@ export function AddApplicantModal({
     current_status_id: "",
     religion_id: "",
     qualifying_school_id: "",
-    campus_id: "",
+    // campus_id: "",
     school_medium: "",
     status: "",
     is_passed: false,
@@ -175,7 +175,7 @@ export function AddApplicantModal({
       pin_code: "",
       cast_id: "",
       gender: "",
-      campus_id: "",
+      // campus_id: "",
       qualification_id: "",
       current_status_id: "",
       qualifying_school_id: "",
@@ -494,9 +494,9 @@ export function AddApplicantModal({
       newErrors.current_status_id = "Current work is required";
     }
 
-    if (!formData.campus_id) {
-      newErrors.campus_id = "Campus is required";
-    }
+    // if (!formData.campus_id) {
+    //   newErrors.campus_id = "Campus is required";
+    // }
 
     if (!formData.religion_id) {
       newErrors.religion_id = "Religion is required";
@@ -619,7 +619,7 @@ export function AddApplicantModal({
         religion_id: formData.religion_id ? Number(formData.religion_id) : null,
         school_medium: formData.school_medium || null,
         communication_notes: formData.communication_notes || "",
-        campus_id: formData.campus_id ? Number(formData.campus_id) : null,
+        // campus_id: formData.campus_id ? Number(formData.campus_id) : null,
       };
 
       // API Call - Create Student
@@ -666,13 +666,13 @@ export function AddApplicantModal({
           response?.data?.whatsapp_number || response?.whatsapp_number,
         email: response?.data?.email || response?.email,
         city: response?.data?.city || response?.city,
-        campus_id: response?.data?.campus_id || response?.campus_id,
-        campus:
-          campusList?.find(
-            (c) =>
-              Number(c.id) ===
-              Number(response?.data?.campus_id || response?.campus_id),
-          )?.campus_name || "",
+        // campus_id: response?.data?.campus_id || response?.campus_id,
+        // campus:
+        //   campusList?.find(
+        //     (c) =>
+        //       Number(c.id) ===
+        //       Number(response?.data?.campus_id || response?.campus_id),
+        //   )?.campus_name || "",
         school_id: response?.data?.school_id || response?.school_id,
         school:
           schoolList?.find(
@@ -755,7 +755,7 @@ export function AddApplicantModal({
           formData.cast_id &&
           formData.qualification_id &&
           formData.current_status_id &&
-          formData.campus_id &&
+          // formData.campus_id &&
           formData.religion_id &&
           formData.communication_notes
         );
