@@ -168,7 +168,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       );
 
       toast({
-        title: "✅ Questions Apdated Successfully",
+        title: "✅ Questions Added Successfully",
         description: `Added: ${added.length}`,
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900",
