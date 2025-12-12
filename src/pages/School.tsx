@@ -83,7 +83,7 @@ const SchoolPage = () => {
         setSchools(data);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "An unknown error occurred",
+          err instanceof Error ? err.message : "An unexpected error occurred while adding the schools",
         );
       } finally {
         setLoading(false);
@@ -123,9 +123,8 @@ const SchoolPage = () => {
     if (isDuplicate) {
       toast({
         title: "Duplicate School",
-        description:
-          "This school name already exists. Please use a different name.",
-        variant: "destructive",
+        description: "This school name already exists. Please use a different name.",
+        className: "border-l-4 border-l-orange-500",
       });
       return;
     }
@@ -143,13 +142,14 @@ const SchoolPage = () => {
       setAddDialog(false);
 
       toast({
-        title: "School Added",
-        description: "School has been successfully added.",
+        title: "School Added Successfully",
+        description: `"${newSchool}" has been added to the list.`,
+        className: "border-l-4 border-l-green-600",
       });
     } catch (err) {
       const errorMessage = formatErrorMessage(err as Error);
       toast({
-        title: "Error creating school",
+        title: "Unable to Add School",
         description: errorMessage,
         variant: "destructive",
       });
@@ -166,12 +166,13 @@ const SchoolPage = () => {
 
       toast({
         title: "School Updated",
-        description: `School "${updatedName}" updated successfully.`,
+        description: `School name updated to "${updatedName}".`,
+        className: "border-l-4 border-l-blue-600",
       });
     } catch (error) {
       const errorMessage = formatErrorMessage(error as Error);
       toast({
-        title: "Error updating school",
+        title: "Unable to Update School",
         description: errorMessage,
         variant: "destructive",
       });
@@ -180,39 +181,42 @@ const SchoolPage = () => {
 
   // Delete School
   const handleDeleteSchool = async (id: number, school_name: string) => {
-    try {
-      await deleteSchool(id);
+  try {
+    await deleteSchool(id);
 
-      setSchools((prev) => prev.filter((s) => s.id !== id));
-      toast({
-        title: "School Deleted",
-        description: `School ${school_name} has been deleted.`,
-      });
-    } catch (error: any) {
-      // Try multiple paths to get the error message
-      const fullErrorMessage = 
-        error?.data?.message || 
-        error?.response?.data?.message ||
-        error?.message ||
-        formatErrorMessage(error);
-      
-      // Split the error message at the colon to separate title and description
-      let title = "Unable to Delete School";
-      let description = fullErrorMessage;
-      
-      if (fullErrorMessage && fullErrorMessage.includes(":")) {
-        const parts = fullErrorMessage.split(":");
-        title = parts[0].trim();
-        description = parts.slice(1).join(":").trim();
-      }
-      
-      toast({
-        title: title,
-        description: description,
-        variant: "destructive",
-      });
-    }
-  };
+    setSchools((prev) => prev.filter((s) => s.id !== id));
+    toast({
+      title: "School Deleted",
+      description: `"${school_name}" has been removed.`,
+      className: "border-l-4 border-l-red-600",
+    });
+  } catch (error: any) {
+    // Try multiple paths to get the error message
+    const fullErrorMessage = 
+      error?.data?.message || 
+      error?.response?.data?.message ||
+      error?.message ||
+      formatErrorMessage(error);
+    
+    // Check if it's a student records association error
+    const isStudentRecordsError = fullErrorMessage && (
+      fullErrorMessage.toLowerCase().includes("existing student records") ||
+      fullErrorMessage.toLowerCase().includes("students before deletion") ||
+      fullErrorMessage.toLowerCase().includes("reassign or remove")
+    );
+    
+    // Use orange for student records error, red for others
+    const borderColor = isStudentRecordsError 
+      ? "border-l-orange-500" 
+      : "border-l-red-600";
+    
+    toast({
+      title: "Unable to Delete School",
+      description: fullErrorMessage || "An unexpected error occurred.",
+      className: `border-l-4 ${borderColor}`,
+    });
+  }
+};
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
