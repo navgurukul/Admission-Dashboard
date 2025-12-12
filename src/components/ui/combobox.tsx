@@ -106,16 +106,24 @@ export const Combobox = React.memo(function Combobox({
             placeholder={searchPlaceholder}
             value={searchQuery}
             onValueChange={setSearchQuery}
+            className="h-9"
           />
-          <CommandList>
+          <CommandList 
+            className="max-h-[300px] overflow-y-auto overflow-x-hidden"
+            style={{ overscrollBehavior: 'contain' }}
+            onWheel={(e) => {
+              e.stopPropagation();
+            }}
+          >
             <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
+            <CommandGroup className="overflow-visible">
               {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.value}
                   keywords={[option.label]}
                   onSelect={handleSelect}
+                  className="cursor-pointer"
                 >
                   <Check
                     className={cn(
