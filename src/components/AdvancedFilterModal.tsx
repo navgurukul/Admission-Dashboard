@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Select,
   SelectContent,
@@ -14,16 +16,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Filter, X } from "lucide-react";
+import { CalendarIcon, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { getFilterStudent, getAllStages, getStatusesByStageId } from "@/utils/api";
+import { cn } from "@/lib/utils";
 // import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 import {
   getStatesList,
@@ -43,7 +54,7 @@ import {
 interface FilterState {
   stage: string;
   stage_id?: number;
-  stage_status: string;
+  stage_status: string | string[]; // Support both single and multiple
   examMode: string;
   interviewMode: string;
   partner: string[];
@@ -387,12 +398,16 @@ export function AdvancedFilterModal({
       }
     }
 
-    // Validate stage status - mandatory for all stages except sourcing
-    if (filters.stage && filters.stage !== "all" && filters.stage.toLowerCase() !== "sourcing") {
-      if (!filters.stage_status || filters.stage_status === "all") {
+    // Validate stage status - mandatory for stages that have statuses available
+    if (filters.stage && filters.stage !== "all" && stageStatuses.length > 0) {
+      const hasStageStatus = Array.isArray(filters.stage_status)
+        ? filters.stage_status.length > 0
+        : filters.stage_status && filters.stage_status !== "all";
+        
+      if (!hasStageStatus) {
         toast({
           title: "Stage Status Required",
-          description: `Please select a stage status for ${filters.stage} stage.`,
+          description: `Please select at least one stage status for ${filters.stage} stage.`,
           variant: "destructive",
         });
         return;
@@ -466,6 +481,34 @@ export function AdvancedFilterModal({
   };
 
   // --- ADDED: helpers to build active filters and clear individual filter ---
+  // Helper to remove individual stage status
+  const removeSingleStageStatus = (statusToRemove: string) => {
+    setFilters((prev) => {
+      const currentStatuses = Array.isArray(prev.stage_status)
+        ? prev.stage_status
+        : prev.stage_status && prev.stage_status !== "all"
+        ? [prev.stage_status]
+        : [];
+      
+      const newStatuses = currentStatuses.filter((s) => s !== statusToRemove);
+      
+      // If removing the last status and stage has statuses available, also clear the stage
+      if (newStatuses.length === 0 && stageStatuses.length > 0) {
+        return {
+          ...prev,
+          stage: "all",
+          stage_id: undefined,
+          stage_status: "all",
+        };
+      }
+      
+      return {
+        ...prev,
+        stage_status: newStatuses.length > 0 ? newStatuses : "all",
+      };
+    });
+  };
+
   const clearSingleFilter = (key: string) => {
     setFilters((prev) => {
       switch (key) {
@@ -490,6 +533,7 @@ export function AdvancedFilterModal({
         case "currentStatus":
           return { ...prev, currentStatus: [] };
         case "dateRange":
+        case "daterange":
           return { ...prev, dateRange: { type: prev.dateRange.type } };
         default:
           return prev;
@@ -497,11 +541,33 @@ export function AdvancedFilterModal({
     });
   };
 
-  const activeFilters: { key: string; label: string }[] = [];
-  if (filters.stage && filters.stage !== "all")
-    activeFilters.push({ key: "stage", label: `Stage: ${filters.stage}` });
-  if (filters.stage_status && filters.stage_status !== "all")
-    activeFilters.push({ key: "stage_status", label: `Status: ${filters.stage_status}` });
+  const activeFilters: { key: string; label: string; onRemove?: () => void }[] = [];
+  
+  // Stage chip (only if stage is selected)
+  const hasStage = filters.stage && filters.stage !== "all";
+  if (hasStage) {
+    activeFilters.push({ 
+      key: "stage", 
+      label: `Stage: ${filters.stage}`,
+      onRemove: () => clearSingleFilter("stage")
+    });
+  }
+  
+  // Individual stage status chips
+  const stageStatusArray = Array.isArray(filters.stage_status) 
+    ? filters.stage_status 
+    : filters.stage_status && filters.stage_status !== "all" 
+      ? [filters.stage_status] 
+      : [];
+  
+  stageStatusArray.forEach((status) => {
+    activeFilters.push({
+      key: `stage_status-${status}`,
+      label: `Status: ${status}`,
+      onRemove: () => removeSingleStageStatus(status)
+    });
+  });
+  
   if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}` });
   if (filters.district?.length) activeFilters.push({ key: "district", label: `District: ${filters.district[0]}` });
   
@@ -575,11 +641,18 @@ export function AdvancedFilterModal({
                   key={f.key}
                   size="sm"
                   variant="ghost"
-                  className="rounded-full py-1 px-2 flex items-center gap-2 border"
-                  onClick={() => clearSingleFilter(f.key)}
+                  className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
+                  onClick={() => {
+                    if (f.onRemove) {
+                      f.onRemove();
+                    } else {
+                      const filterType = f.key.split('-')[0];
+                      clearSingleFilter(filterType);
+                    }
+                  }}
                 >
-                  <span className="text-sm">{f.label}</span>
-                  <X className="w-3 h-3" />
+                  <span className="text-sm inline-block">{f.label}</span>
+                  <X className="w-3 h-3 flex-shrink-0" />
                 </Button>
               ))}
             </div>
@@ -649,69 +722,114 @@ export function AdvancedFilterModal({
               </Select>
             </div>
 
-            {/* Stage Status */}
+            {/* Stage Status - Multi-select Dropdown */}
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">
                 Stage Status
                 {filters.stage &&
                   filters.stage !== "all" &&
-                  filters.stage.toLowerCase() !== "sourcing" && (
+                  stageStatuses.length > 0 && (
                     <span className="text-red-500 ml-1">*</span>
                   )}
               </h3>
-              <Select
-                value={filters.stage_status || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, stage_status: value }))
-                }
-                disabled={
-                  !filters.stage ||
-                  filters.stage === "all" ||
-                  filters.stage.toLowerCase() === "sourcing" ||
-                  isLoading.general
-                }
-              >
-                <SelectTrigger
-                  className={`w-full ${filters.stage &&
-                    filters.stage !== "all" &&
-                    filters.stage.toLowerCase() !== "sourcing" &&
-                    (!filters.stage_status || filters.stage_status === "all")
-                    ? "border-red-300"
-                    : ""
-                    }`}
-                >
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      !filters.stage || filters.stage === "all"
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    disabled={
+                      !filters.stage ||
+                      filters.stage === "all" ||
+                      stageStatuses.length === 0 ||
+                      isLoading.general
+                    }
+                    className={cn(
+                      "w-full justify-between h-10",
+                      (!filters.stage || filters.stage === "all") && "text-muted-foreground",
+                      filters.stage &&
+                        filters.stage !== "all" &&
+                        stageStatuses.length > 0 &&
+                        (!filters.stage_status || 
+                          (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) ||
+                          filters.stage_status === "all")
+                        ? "border-red-300"
+                        : ""
+                    )}
+                  >
+                    <span className="truncate">
+                      {!filters.stage || filters.stage === "all"
                         ? "Select stage first"
-                        : filters.stage.toLowerCase() === "sourcing"
-                          ? "Not applicable for Sourcing"
-                          : isLoading.general
+                        : isLoading.general
                             ? "Loading statuses..."
                             : stageStatuses.length === 0
-                              ? "No statuses available"
-                              : "Select status"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {stageStatuses.map((status: any) => (
-                    <SelectItem
-                      key={status.id || status.status_name}
-                      value={status.status_name || status.name}
-                    >
-                      {status.status_name || status.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {filters.stage && filters.stage.toLowerCase() === "sourcing" && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Status filtering not available for Sourcing stage
-                </p>
-              )}
+                              ? "No statuses available - Stage can be applied"
+                              : Array.isArray(filters.stage_status) && filters.stage_status.length > 0
+                                ? `${filters.stage_status.length} selected`
+                                : "Select statuses (required)"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search statuses..." />
+                    <CommandList className="max-h-[200px]">
+                      <CommandEmpty>No status found.</CommandEmpty>
+                      <CommandGroup>
+                        {stageStatuses.map((status: any) => {
+                          const statusName = status.status_name || status.name;
+                          const isSelected = Array.isArray(filters.stage_status)
+                            ? filters.stage_status.includes(statusName)
+                            : filters.stage_status === statusName;
+                          
+                          return (
+                            <CommandItem
+                              key={status.id || statusName}
+                              value={statusName}
+                              onSelect={() => {
+                                setFilters((prev) => {
+                                  const currentStatuses = Array.isArray(prev.stage_status)
+                                    ? prev.stage_status
+                                    : prev.stage_status && prev.stage_status !== "all"
+                                    ? [prev.stage_status]
+                                    : [];
+                                  
+                                  let newStatuses: string[];
+                                  if (isSelected) {
+                                    // Remove from selection
+                                    newStatuses = currentStatuses.filter((s) => s !== statusName);
+                                  } else {
+                                    // Add to selection
+                                    newStatuses = [...currentStatuses, statusName];
+                                  }
+                                  
+                                  return {
+                                    ...prev,
+                                    stage_status: newStatuses.length > 0 ? newStatuses : "all",
+                                  };
+                                });
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center w-full">
+                                <Checkbox
+                                  checked={isSelected}
+                                  className="mr-2"
+                                  onCheckedChange={() => {}}
+                                />
+                                <span className="flex-1">{statusName}</span>
+                                {isSelected && (
+                                  <Check className="ml-auto h-4 w-4" />
+                                )}
+                              </div>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Exam Mode */}
@@ -781,26 +899,21 @@ export function AdvancedFilterModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
             <div>
               <h3 className="font-semibold text-sm mb-2">State</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All States" },
+                  ...availableStates.map((state) => ({
+                    value: state.name,
+                    label: state.name,
+                  })),
+                ]}
                 value={filters.state || "all"}
                 onValueChange={handleStateChange}
+                placeholder="Select State"
+                searchPlaceholder="Search state..."
+                emptyText="No state found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  {/* <SelectValue placeholder="Select State">
-                    {filters.state || "All States"}
-                  </SelectValue> */}
-                  <SelectValue placeholder = "Select State"/>
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All States</SelectItem>
-                  {availableStates.map((state) => (
-                    <SelectItem key={state.id} value={state.name}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableStates.length} states available */}
                 {isLoading.general && " - Loading..."}
@@ -810,7 +923,14 @@ export function AdvancedFilterModal({
             {/* District / City */}
             <div>
               <h3 className="font-semibold text-sm mb-2">District</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Districts" },
+                  ...availableDistricts.map((district) => ({
+                    value: district.name,
+                    label: district.name,
+                  })),
+                ]}
                 value={filters.district?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -818,33 +938,21 @@ export function AdvancedFilterModal({
                     district: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  !filters.state || filters.state === "all"
+                    ? "Select state first"
+                    : isLoading.districts
+                      ? "Loading districts..."
+                      : "Select district"
+                }
+                searchPlaceholder="Search district..."
+                emptyText="No district found."
                 disabled={
                   !filters.state ||
                   filters.state === "all" ||
                   isLoading.districts
                 }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      !filters.state || filters.state === "all"
-                        ? "Select state first"
-                        : isLoading.districts
-                          ? "Loading districts..."
-                          : "Select district"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Districts</SelectItem>
-                  {availableDistricts.map((district) => (
-                    <SelectItem key={district.id} value={district.name}>
-                      {district.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableDistricts.length} districts available */}
                 {"Select state first"}
@@ -885,7 +993,14 @@ export function AdvancedFilterModal({
             {/* Campus */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Campus</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Campuses" },
+                  ...availableOptions.campuses.map((campus) => ({
+                    value: getValue(campus),
+                    label: getDisplayName(campus, "campus_name", "Campus"),
+                  })),
+                ]}
                 value={filters.partner?.[0] || "all"}
                 onValueChange={(value) => {
                   if (value === "all") {
@@ -900,25 +1015,13 @@ export function AdvancedFilterModal({
                     }));
                   }
                 }}
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select campus"
+                }
+                searchPlaceholder="Search campus..."
+                emptyText="No campus found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select campus"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Campuses</SelectItem>
-                  {availableOptions.campuses.map((campus) => (
-                    <SelectItem key={getValue(campus)} value={getValue(campus)}>
-                      {getDisplayName(campus, "campus_name", "Campus")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableOptions.campuses.length} campuses available */}
               </p>
@@ -929,7 +1032,14 @@ export function AdvancedFilterModal({
             {/* School */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Qualifying School</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Schools" },
+                  ...availableOptions.schools.map((school) => ({
+                    value: getValue(school),
+                    label: getDisplayName(school, "school_name", "School"),
+                  })),
+                ]}
                 value={filters.school?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -937,25 +1047,13 @@ export function AdvancedFilterModal({
                     school: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select school"
+                }
+                searchPlaceholder="Search school..."
+                emptyText="No school found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select school"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Schools</SelectItem>
-                  {availableOptions.schools.map((school) => (
-                    <SelectItem key={getValue(school)} value={getValue(school)}>
-                      {getDisplayName(school, "school_name", "School")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableOptions.schools.length} schools available */}
               </p>
@@ -964,7 +1062,18 @@ export function AdvancedFilterModal({
             {/* Qualification */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Qualification</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Qualifications" },
+                  ...availableOptions.qualifications.map((qualification) => ({
+                    value: getValue(qualification),
+                    label: getDisplayName(
+                      qualification,
+                      "qualification_name",
+                      "Qualification",
+                    ),
+                  })),
+                ]}
                 value={filters.qualification?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -972,40 +1081,27 @@ export function AdvancedFilterModal({
                     qualification: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select qualification"
+                }
+                searchPlaceholder="Search qualification..."
+                emptyText="No qualification found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger
-                  className={`w-full ${!filters.qualification?.length || filters.qualification[0] === "all" ? "border-red-300" : ""}`}
-                >
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select qualification"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Qualifications</SelectItem>
-                  {availableOptions.qualifications.map((qualification) => (
-                    <SelectItem
-                      key={getValue(qualification)}
-                      value={getValue(qualification)}
-                    >
-                      {getDisplayName(
-                        qualification,
-                        "qualification_name",
-                        "Qualification",
-                      )}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className={`${!filters.qualification?.length || filters.qualification[0] === "all" ? "border-red-300" : ""}`}
+              />
             </div>
 
             {/* Current Status */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Current Status</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Statuses" },
+                  ...availableOptions.currentStatuses.map((status) => ({
+                    value: getValue(status),
+                    label: getDisplayName(status, "current_status_name", "Status"),
+                  })),
+                ]}
                 value={filters.currentStatus?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -1013,25 +1109,13 @@ export function AdvancedFilterModal({
                     currentStatus: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select status"
+                }
+                searchPlaceholder="Search status..."
+                emptyText="No status found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select status"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {availableOptions.currentStatuses.map((status) => (
-                    <SelectItem key={getValue(status)} value={getValue(status)}>
-                      {getDisplayName(status, "current_status_name", "Status")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableOptions.currentStatuses.length} statuses available */}
               </p>
