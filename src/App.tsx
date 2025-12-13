@@ -16,10 +16,12 @@ import QuestionRepository from "./pages/QuestionRepository";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PartnerPage from "./pages/Partner";
+import PartnerStudents from "./pages/PartnerStudents";
 import AdminPage from "./pages/Admin";
 import AdminView from "./pages/AdminView";
 // import Student from "./pages/Student";
 import Donor from "./pages/Donor";
+import DonorStudents from "./pages/DonorStudents";
 import Campus from "./pages/Campus";
 import CampusDetail from "./pages/CampusDetail";
 import School from "./pages/School";
@@ -125,6 +127,14 @@ const App = () => (
                 }
               />
               <Route
+                path="/partners/:id/students"
+                element={
+                  <ProtectedRoute>
+                    <PartnerStudents />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin"
                 element={
                   <ProtectedRoute>
@@ -153,6 +163,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Donor />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/donors/:id/students"
+                element={
+                  <ProtectedRoute>
+                    <DonorStudents />
                   </ProtectedRoute>
                 }
               />

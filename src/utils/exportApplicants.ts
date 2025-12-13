@@ -1,13 +1,7 @@
-import { getStudents, getAllStates, getDistrictsByState, getBlocksByDistrict } from "./api";
+import { getStudents } from "./api";
 
 interface ExportOptions {
-  schoolList: any[];
-  campusList: any[];
-  currentstatusList: any[];
-  religionList: any[];
   questionSetList: any[];
-  qualificationList?: any[]; // for resolving qualification_id
-  castList?: any[]; //  for resolving cast_id
   filteredData?: any[]; //filtered/searched data to export
   selectedData?: any[]; //selected applicants data to export
   exportType?: 'all' | 'filtered' | 'selected'; // 'all' = all data, 'filtered' = current filtered/searched data, 'selected' = selected rows only
@@ -19,63 +13,13 @@ interface ExportOptions {
   }) => void;
 }
 
-// Helper function to resolve location names from codes/IDs (SYNCHRONOUS - no API calls)
-const resolveLocationName = (
-  applicant: any,
-  statesList: any[],
-  districtsList: Map<string, any[]>,
-  blocksList: Map<string, any[]>
-) => {
-  let stateName = "";
-  let districtName = "";
-  let blockName = "";
-
-  // Resolve State
-  if (applicant.state) {
-    const stateObj = statesList.find(
-      (s) => s.state_code === applicant.state || s.state_name === applicant.state
-    );
-    stateName = stateObj?.state_name || applicant.state;
-  }
-
-  // Resolve District
-  if (applicant.district && applicant.state) {
-    const districts = districtsList.get(applicant.state) || [];
-    const districtObj = districts.find(
-      (d) => d.district_code === applicant.district || d.district_name === applicant.district
-    );
-    districtName = districtObj?.district_name || applicant.district;
-  }
-
-  // Resolve Block
-  if (applicant.block && applicant.district) {
-    const blocks = blocksList.get(applicant.district) || [];
-    const blockObj = blocks.find(
-      (b) => b.block_code === applicant.block || b.block_name === applicant.block
-    );
-    blockName = blockObj?.block_name || applicant.block;
-  }
-
-  return {
-    state: stateName || applicant.state_name || applicant.state || "",
-    district: districtName || applicant.district_name || applicant.district || "",
-    block: blockName || applicant.block_name || applicant.block || "",
-  };
-};
-
 /**
  * Export all applicants to CSV format
- * Fetches ALL data from database regardless of current filters/search
+ * Uses resolved names from API response (state_name, district_name, block_name, cast_name, qualification_name, current_status_name, stage_name, school_name, campus_name, religion_name)
  */
 export const exportApplicantsToCSV = async (options: ExportOptions) => {
   const {
-    schoolList,
-    campusList,
-    currentstatusList,
-    religionList,
     questionSetList,
-    qualificationList = [],
-    castList = [],
     filteredData = [],
     selectedData = [],
     exportType = 'all', // Default: export all data
@@ -83,16 +27,12 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
   } = options;
 
   let dataToExport: any[] = [];
-  let statesList: any[] = [];
-  let districtsList: Map<string, any[]> = new Map();
-  let blocksList: Map<string, any[]> = new Map();
 
   try {
     let allStudents: any[] = [];
 
     if (exportType === 'selected' && selectedData.length > 0) {
       // Export selected applicants
-    //   console.log(`Exporting ${selectedData.length} selected students...`);
       allStudents = selectedData;
       
       toast({
@@ -101,7 +41,6 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       });
     } else if (exportType === 'filtered' && filteredData.length > 0) {
       // Export filtered/searched data
-    //   console.log(`Exporting ${filteredData.length} filtered/searched students...`);
       allStudents = filteredData;
       
       toast({
@@ -110,8 +49,6 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       });
     } else {
       // Fetch ALL students from database
-    //   console.log("Fetching all students for export...");
-      
       toast({
         title: "Preparing Export",
         description: "Fetching all applicants...",
@@ -119,98 +56,12 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
 
       const allStudentsResponse = await getStudents(1, 100000);
       allStudents = allStudentsResponse.data || [];
-    //   console.log("Fetched all students for export:", allStudents.length);
     }
-
-    // Fetch all states for lookup
-    try {
-      const statesResponse = await getAllStates();
-      statesList = statesResponse?.data || statesResponse || [];
-      // console.log("Fetched states:", statesList.length);
-    } catch (error) {
-      console.error("Error fetching states:", error);
-    }
-
-    // Collect unique state codes and district codes from students
-    const uniqueStates = new Set<string>();
-    const uniqueDistricts = new Set<string>();
-    
-    allStudents.forEach((student: any) => {
-      if (student.state) uniqueStates.add(student.state);
-      if (student.district) uniqueDistricts.add(student.district);
-    });
-
-    // console.log(`Fetching location data for ${uniqueStates.size} states and ${uniqueDistricts.size} districts...`);
-
-    // Fetch all districts in parallel (OPTIMIZED)
-    const districtPromises = Array.from(uniqueStates).map(async (stateCode) => {
-      try {
-        const districtsResponse = await getDistrictsByState(stateCode);
-        const districts = districtsResponse?.data || districtsResponse || [];
-        return { stateCode, districts };
-      } catch (error) {
-        console.error(`Error fetching districts for state ${stateCode}:`, error);
-        return { stateCode, districts: [] };
-      }
-    });
-
-    // Fetch all blocks in parallel (OPTIMIZED)
-    const blockPromises = Array.from(uniqueDistricts).map(async (districtCode) => {
-      try {
-        const blocksResponse = await getBlocksByDistrict(districtCode);
-        const blocks = blocksResponse?.data || blocksResponse || [];
-        return { districtCode, blocks };
-      } catch (error) {
-        console.error(`Error fetching blocks for district ${districtCode}:`, error);
-        return { districtCode, blocks: [] };
-      }
-    });
-
-    // Wait for all district and block fetches to complete in parallel
-    const [districtResults, blockResults] = await Promise.all([
-      Promise.all(districtPromises),
-      Promise.all(blockPromises),
-    ]);
-
-    // Populate Maps with results
-    districtResults.forEach(({ stateCode, districts }) => {
-      districtsList.set(stateCode, districts);
-    });
-
-    blockResults.forEach(({ districtCode, blocks }) => {
-      blocksList.set(districtCode, blocks);
-    });
-
-    // console.log(`✅ Fetched location data: ${statesList.length} states, ${districtsList.size} state districts, ${blocksList.size} district blocks`);
   
-    // Map all students with related data and resolved location names (OPTIMIZED - synchronous)
+    // Map all students with related data (using resolved names from API)
     dataToExport = allStudents.map((student: any) => {
-      const school = schoolList.find((s) => s.id === student.school_id);
-      const campus = campusList.find((c) => c.id === student.campus_id);
-      const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id,
-      );
-      const religion = religionList.find((r) => r.id === student.religion_id);
       const questionSet = questionSetList.find(
         (q) => q.id === student.question_set_id,
-      );
-      
-      // Resolve qualification_id to qualification name
-      const qualification = qualificationList.find(
-        (q) => q.id === student.qualification_id,
-      );
-      
-      // Resolve cast_id to cast name
-      const cast = castList.find(
-        (c) => c.id === student.cast_id,
-      );
-
-      // Resolve location names from codes/IDs (synchronous lookup)
-      const locationNames = resolveLocationName(
-        student,
-        statesList,
-        districtsList,
-        blocksList
       );
 
       return {
@@ -219,21 +70,12 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
         name: `${student.first_name || ""} ${student.middle_name || ""} ${
           student.last_name || ""
         }`.trim(),
-        school_name: school ? school.school_name : "N/A",
-        campus_name: campus ? campus.campus_name : "N/A",
-        current_status_name: current_status
-          ? current_status.current_status_name
-          : "N/A",
-        religion_name: religion ? religion.religion_name : "N/A",
         question_set_name: questionSet ? questionSet.name : "N/A",
         maximumMarks: questionSet ? questionSet.maximumMarks : 0,
-        // Resolved qualification and cast names
-        qualification_name: qualification ? qualification.qualification_name : student.qualification_name || "N/A",
-        cast_name: cast ? cast.cast_name : student.cast_name || "N/A",
-        // Override with resolved location names
-        resolved_state: locationNames.state,
-        resolved_district: locationNames.district,
-        resolved_block: locationNames.block,
+        // All other resolved names come directly from API response:
+        // school_name, campus_name, religion_name, qualification_name, 
+        // cast_name, current_status_name, stage_name, state_name, 
+        // district_name, block_name
       };
     });
   } catch (error: any) {
@@ -379,10 +221,10 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
         formatValue(applicant.email),
         formatValue(applicant.phone_number),
         formatValue(applicant.whatsapp_number),
-        formatValue(applicant.resolved_state || applicant.state_name || applicant.state || ""),
+        formatValue(applicant.state_name || applicant.state || ""),
         formatValue(applicant.city || applicant.city_name || ""),
-        formatValue(applicant.resolved_district || applicant.district_name || applicant.district || ""),
-        formatValue(applicant.resolved_block || applicant.block_name || applicant.block || ""),
+        formatValue(applicant.district_name || applicant.district || ""),
+        formatValue(applicant.block_name || applicant.block || ""),
         formatValue(applicant.pin_code || applicant.pincode || ""),
         formatValue(applicant.qualification_name || applicant.qualification || ""),
         formatValue(applicant.current_status_name || applicant.current_work),

@@ -1207,6 +1207,7 @@ interface QuestionSet {
   description: string;
   status: boolean;
   maximumMarks: number;
+  is_default_online_set?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1306,6 +1307,115 @@ export const deleteQuestionFromSet = async (id: number) => {
     const data = await response.json();
     throw new Error(data.message || "Failed to delete question from set");
   }
+};
+
+// Create a question set
+export const createQuestionSet = async (data: {
+  name: string;
+  description: string;
+  maximumMarks: number;
+}): Promise<QuestionSet> => {
+  const response = await fetch(`${BASE_URL}/questions/question-sets`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.message || "Failed to create question set");
+  }
+
+  return json.data || json;
+};
+
+// Update a question set
+export const updateQuestionSet = async (
+  id: number,
+  data: {
+    name: string;
+    description: string;
+    maximumMarks: number;
+  }
+): Promise<QuestionSet> => {
+  const response = await fetch(
+    `${BASE_URL}/questions/question-sets/${id}`,
+    {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    }
+  );
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.message || "Failed to update question set");
+  }
+
+  return json.data || json;
+};
+
+// Delete a question set
+export const deleteQuestionSet = async (id: number): Promise<void> => {
+  const response = await fetch(
+    `${BASE_URL}/questions/question-sets/${id}`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+      body:JSON.stringify(id)
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to delete question set");
+  }
+};
+
+// Set a question set as default for online tests
+export const setDefaultOnlineQuestionSet = async (id: number): Promise<QuestionSet> => {
+  const response = await fetch(
+    `${BASE_URL}/questions/question-sets/${id}/set-default-online`,
+    {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body:JSON.stringify(id)
+    }
+  );
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(json.message || "Failed to set default online question set");
+  }
+
+  return json.data || json;
+};
+
+// Download question set as PDF
+export const downloadQuestionSetPDF = async (setId: number, language?: string): Promise<Blob> => {
+  let url = `${BASE_URL}/questions/download-pdf/${setId}`;
+  
+  // Add language query parameter if provided and not English
+  if (language && language.toLowerCase() !== 'english') {
+    url += `?language=${language.toLowerCase()}`;
+  }
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      ...getAuthHeaders(false), // Don't add Content-Type for blob response
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Failed to download PDF" }));
+    throw new Error(error.message || "Failed to download PDF");
+  }
+
+  return await response.blob();
 };
 
 export const bulkUploadQuestions = async (csvData: string): Promise<any> => {
@@ -2094,7 +2204,7 @@ export const getAllSlots = async (params: {
   search?: string;
 }): Promise<SlotsResponse> => {
   const queryParams = new URLSearchParams();
-  
+
   if (params.page) queryParams.append('page', params.page.toString());
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
@@ -2117,3 +2227,235 @@ export const getAllSlots = async (params: {
 
   return data;
 };
+
+// Partner APIs
+export interface Partner {
+  id: number;
+  partner_name: string;
+  slug: string;
+  created_at?: string;
+  updated_at?: string;
+  districts?: string[];
+  email?: string;
+  notes?: string;
+  meraki_link?: string;
+  student_count?: number;
+}
+
+export const createPartner = async (payload: Partial<Partner>) => {
+  const response = await fetch(`${BASE_URL}/partners/createPartner`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create partner");
+  }
+
+  return data;
+};
+
+export const getPartners = async () => {
+  const response = await fetch(`${BASE_URL}/partners/getPartners`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch partners");
+  }
+
+  // Handle potential nested data structure like other APIs
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  }
+
+  return data;
+};
+
+export const getPartnerById = async (id: number | string) => {
+  const response = await fetch(`${BASE_URL}/partners/getPartnerById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch partner");
+  }
+
+  return data;
+};
+
+export const updatePartner = async (id: number | string, payload: Partial<Partner>) => {
+  const response = await fetch(`${BASE_URL}/partners/updatePartner/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update partner");
+  }
+
+  return data;
+};
+
+export const deletePartner = async (id: number | string) => {
+  const headers = getAuthHeaders();
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+  const response = await fetch(`${BASE_URL}/partners/deletePartner/${id}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || "Failed to delete partner");
+  }
+};
+
+export const getStudentsByPartnerId = async (id: number | string, page: number = 1, pageSize: number = 10) => {
+  const response = await fetch(`${BASE_URL}/partners/getStudentsByPartnerId/${id}?page=${page}&pageSize=${pageSize}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch students by partner");
+  }
+
+  return data;
+};
+
+
+// Donor APIs
+export interface Donor {
+  id: number;
+  donor_name: string;
+  donor_email?: string;
+  donor_phone?: number;
+  donor_address?: string;
+  donor_city?: string;
+  donor_state?: string;
+  donor_country?: string;
+  status?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const createDonor = async (payload: Partial<Donor>) => {
+  const response = await fetch(`${BASE_URL}/donors/createDonor`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create donor");
+  }
+
+  return data;
+};
+
+export const getDonors = async () => {
+  const response = await fetch(`${BASE_URL}/donors/getDonors`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch donors");
+  }
+
+  // Normalized return to handle data.data pattern if it exists, though check Partner implementation for consistency
+  if (data && data.data && Array.isArray(data.data)) {
+    return data.data;
+  }
+  return data;
+};
+
+export const getDonorById = async (id: number | string) => {
+  const response = await fetch(`${BASE_URL}/donors/getDonorById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch donor");
+  }
+
+  return data;
+}
+
+export const updateDonor = async (id: number | string, payload: Partial<Donor>) => {
+  const response = await fetch(`${BASE_URL}/donors/updateDonor/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update donor");
+  }
+
+  return data;
+}
+
+export const deleteDonor = async (id: number | string) => {
+  const headers = getAuthHeaders();
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+  const response = await fetch(`${BASE_URL}/donors/deleteDonor/${id}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || "Failed to delete donor");
+  }
+}
+
+export const getStudentsByDonorId = async (id: number | string, page: number = 1, pageSize: number = 10) => {
+  const response = await fetch(`${BASE_URL}/donors/getStudentsByDonorId/${id}?page=${page}&pageSize=${pageSize}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch students by donor");
+  }
+
+  return data;
+}
+

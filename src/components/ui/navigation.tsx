@@ -16,8 +16,8 @@ import AdminPage from "@/pages/Admin";
 import AdminView from "@/pages/AdminView";
 // import OwnerPage from "@/pages/Owner";
 import Dashboard from "@/pages/Index";
-// import DonorPage from "@/pages/Donor";
-// import PartnerPage from "@/pages/Partner";
+import DonorPage from "@/pages/Donor";
+import PartnerPage from "@/pages/Partner";
 import CampusPage from "@/pages/Campus";
 import SchoolPage from "@/pages/School";
 import Interviews from "@/pages/Interviews";
@@ -47,8 +47,8 @@ export const navigation: NavigationItem[] = [
     component: Dashboard,
     allowedRoles: [1, 2],
   },
-  // { name: "Donor", href: "/donor", icon: Handshake, component: DonorPage, allowedRoles: [1, 2] },
-  // { name: "Partner", href: "/partners", icon: Users, component: PartnerPage, allowedRoles: [1, 2] },
+  { name: "Donor", href: "/donor", icon: Handshake, component: DonorPage, allowedRoles: [1] },
+  { name: "Partner", href: "/partners", icon: Users, component: PartnerPage, allowedRoles: [1] },
   {
     name: "Campus",
     href: "/campus",
@@ -64,7 +64,7 @@ export const navigation: NavigationItem[] = [
     allowedRoles: [1],
   },
   // { name: "Owner", href: "/owner", icon: UserCheck, component: OwnerPage, allowedRoles: [1] },
-    {
+  {
     name: "All Interviews",
     href: "/admin-view",
     icon: Eye,
