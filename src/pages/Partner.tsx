@@ -1,28 +1,68 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import {
-  Pencil,
   Plus,
   X,
   Download,
   Eye,
-  File,
   Search,
   Filter,
+  MoreVertical,
+  Trash2,
+  ExternalLink,
+  MapPin,
+  FileText,
+  Users,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId } from "@/utils/api";
 
 const columns = [
-  "Edit",
-  "Name",
-  "View Assessments",
-  "Create Assessment",
-  "Joined Students Progress",
-  "Online Test",
-  "Meraki Link",
-  "Send Report",
+  "Partner",
+  "Contact Info",
+  "Districts",
+  "Slug",
+  "Status", // Added for visual balance, though logic might not be real
+  "Actions",
 ];
 
 const ROWS_PER_PAGE = 10;
@@ -35,7 +75,9 @@ const defaultPartnerForm = {
   districts: [""],
 };
 
+
 const PartnerPage = () => {
+  const navigate = useNavigate();
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
@@ -58,30 +100,50 @@ const PartnerPage = () => {
     open: false,
     form: defaultPartnerForm,
   });
+
+  // Student View State
+  const [partnerStudents, setPartnerStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsPage, setStudentsPage] = useState(1);
+  const [studentsTotal, setStudentsTotal] = useState(0);
+
   const { toast } = useToast();
 
+  const loadPartners = async () => {
+    setLoading(true);
+    try {
+      const data = await getPartners();
+      // Stronger check to ensure we get an array
+      let partnersArray = [];
+      if (Array.isArray(data)) {
+        partnersArray = data;
+      } else if (data && Array.isArray(data.data)) {
+        partnersArray = data.data;
+      }
+
+      setPartners(partnersArray);
+      setLoading(false);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to fetch partners", variant: "destructive" });
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("https://dev-join.navgurukul.org/api/partners")
-      .then((res) => res.json())
-      .then((data) => {
-        setPartners(data.data || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    loadPartners();
   }, []);
 
-  // Filter partners based on search query and filters (search on all partners, not just paginated)
+  // Filter partners based on search query and filters
   const filteredPartners = partners.filter((partner) => {
-    // If searchQuery is empty, match all
     const matchesSearch =
       !searchQuery.trim() ||
-      partner.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      partner.partner_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       partner.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       partner.slug?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDistrict = filters.district
       ? (partner.districts || []).some((d) =>
-          d.toLowerCase().includes(filters.district.toLowerCase()),
-        )
+        d.toLowerCase().includes(filters.district.toLowerCase()),
+      )
       : true;
     const matchesSlug = filters.slug
       ? partner.slug?.toLowerCase().includes(filters.slug.toLowerCase())
@@ -98,26 +160,38 @@ const PartnerPage = () => {
   React.useEffect(() => {
     setPage(1);
   }, [searchQuery, filters]);
+
   const paginatedPartners = filteredPartners.slice(
     (page - 1) * ROWS_PER_PAGE,
     page * ROWS_PER_PAGE,
   );
   const totalPages = Math.ceil(filteredPartners.length / ROWS_PER_PAGE);
 
+  // Stats
+  const totalPartners = partners.length;
+  const activeDistricts = new Set(
+    partners.flatMap((p) => p.districts || []),
+  ).size;
+  const totalStudents = partners.reduce((acc, curr) => acc + (curr.student_count || 0), 0); // Assuming student_count exists or 0
+
+
   // CSV Download
   const handleDownloadCSV = () => {
-    const headers = columns.map((col) =>
-      col === "Edit" ? "Edit Partner Details" : col,
-    );
+    const headers = [
+      "Name",
+      "Email",
+      "Slug",
+      "Districts",
+      "Notes",
+      "Meraki Link"
+    ];
     const rows = paginatedPartners.map((partner) => [
-      "Edit", // Placeholder
-      partner.name,
-      "View Assessments", // Placeholder
-      "+Create", // Placeholder
-      "Get Information", // Placeholder
-      "Go for test", // Placeholder
+      partner.partner_name,
+      partner.email,
+      partner.slug,
+      (partner.districts || []).join("; "),
+      partner.notes,
       partner.meraki_link || "-",
-      "Send Report", // Placeholder
     ]);
     const csvContent = [headers, ...rows]
       .map((row) => row.map((cell) => `"${cell ?? ""}"`).join(","))
@@ -138,7 +212,7 @@ const PartnerPage = () => {
     });
   };
 
-  // Create Meraki Link (client-side dummy)
+  // Logic handlers
   const handleCreateMerakiLink = (idx) => {
     setPartners((prev) => {
       const updated = [...prev];
@@ -150,14 +224,19 @@ const PartnerPage = () => {
     });
   };
 
-  // Edit dialog handlers
+  // Edit Dialog
   const openEditDialog = (idx) => {
-    const partner = partners[idx];
+    const realIdx = (page - 1) * ROWS_PER_PAGE + idx;
+    const partner = paginatedPartners[idx]; // Use paginated index for display, but need real index for update if modifying 'partners' array directly.
+    // Actually, simpler to find by ID if possible, but assuming index based on paginated view needs mapping.
+    // Let's find the original index in `partners` array.
+    const originalIndex = partners.findIndex(p => p.id === partner.id);
+
     setEditDialog({
       open: true,
-      idx,
+      idx: originalIndex,
       form: {
-        name: partner.name || "",
+        name: partner.partner_name || "",
         emails: partner.email ? [partner.email] : [""],
         notes: partner.notes || "",
         slug: partner.slug || "",
@@ -168,828 +247,629 @@ const PartnerPage = () => {
       },
     });
   };
+
   const closeEditDialog = () => {
     setEditDialog({ open: false, idx: null, form: defaultPartnerForm });
   };
+
   const handleEditFormChange = (field, value) => {
     setEditDialog((d) => ({ ...d, form: { ...d.form, [field]: value } }));
   };
-  const handleEditEmailChange = (i, value) => {
-    setEditDialog((d) => ({
+  // Simplified array handlers for edit
+  const handleEditArrayChange = (field, i, value) => {
+    setEditDialog(d => ({
       ...d,
       form: {
         ...d.form,
-        emails: d.form.emails.map((e, idx) => (idx === i ? value : e)),
-      },
-    }));
-  };
-  const handleEditDistrictChange = (i, value) => {
-    setEditDialog((d) => ({
+        [field]: d.form[field].map((item, idx) => idx === i ? value : item)
+      }
+    }))
+  }
+  const addEditArrayItem = (field) => {
+    setEditDialog(d => ({
       ...d,
-      form: {
-        ...d.form,
-        districts: d.form.districts.map((e, idx) => (idx === i ? value : e)),
-      },
-    }));
-  };
-  const addEditEmail = () => {
-    setEditDialog((d) => ({
+      form: { ...d.form, [field]: [...d.form[field], ""] }
+    }))
+  }
+  const removeEditArrayItem = (field, i) => {
+    setEditDialog(d => ({
       ...d,
-      form: { ...d.form, emails: [...d.form.emails, ""] },
-    }));
-  };
-  const removeEditEmail = (i) => {
-    setEditDialog((d) => ({
-      ...d,
-      form: { ...d.form, emails: d.form.emails.filter((_, idx) => idx !== i) },
-    }));
-  };
-  const addEditDistrict = () => {
-    setEditDialog((d) => ({
-      ...d,
-      form: { ...d.form, districts: [...d.form.districts, ""] },
-    }));
-  };
-  const removeEditDistrict = (i) => {
-    setEditDialog((d) => ({
-      ...d,
-      form: {
-        ...d.form,
-        districts: d.form.districts.filter((_, idx) => idx !== i),
-      },
-    }));
-  };
-  const handleEditSubmit = (e) => {
+      form: { ...d.form, [field]: d.form[field].filter((_, idx) => idx !== i) }
+    }))
+  }
+
+
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
-    setPartners((prev) => {
-      const updated = [...prev];
-      const idx = editDialog.idx;
-      updated[idx] = {
-        ...updated[idx],
-        name: editDialog.form.name,
-        email: editDialog.form.emails[0] || "",
-        notes: editDialog.form.notes,
+    // Use the original index from the dialog
+    const idx = editDialog.idx;
+    if (idx === null || idx === undefined || idx < 0) return;
+
+    // Find partner by index in the main array
+    const partnerToUpdate = partners[idx];
+    if (!partnerToUpdate || !partnerToUpdate.id) return;
+
+    try {
+      await updatePartner(partnerToUpdate.id, {
+        partner_name: editDialog.form.name,
         slug: editDialog.form.slug,
+        email: editDialog.form.emails[0], // API expects single email string? Adjust if array.
         districts: editDialog.form.districts,
-      };
-      return updated;
-    });
-    closeEditDialog();
+        notes: editDialog.form.notes,
+      });
+      toast({ title: "Updated", description: "Partner details updated successfully." });
+      closeEditDialog();
+      loadPartners();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update partner", variant: "destructive" });
+    }
   };
 
-  // Add Partner dialog handlers
-  const openAddDialog = () => {
-    setAddDialog({ open: true, form: defaultPartnerForm });
-  };
-  const closeAddDialog = () => {
-    setAddDialog({ open: false, form: defaultPartnerForm });
-  };
+  // Add Dialog
+  const openAddDialog = () => setAddDialog({ open: true, form: defaultPartnerForm });
+  const closeAddDialog = () => setAddDialog({ open: false, form: defaultPartnerForm });
   const handleAddFormChange = (field, value) => {
     setAddDialog((d) => ({ ...d, form: { ...d.form, [field]: value } }));
   };
-  const handleAddEmailChange = (i, value) => {
-    setAddDialog((d) => ({
+  const handleAddArrayChange = (field, i, value) => {
+    setAddDialog(d => ({
       ...d,
       form: {
         ...d.form,
-        emails: d.form.emails.map((e, idx) => (idx === i ? value : e)),
-      },
-    }));
-  };
-  const handleAddDistrictChange = (i, value) => {
-    setAddDialog((d) => ({
+        [field]: d.form[field].map((item, idx) => idx === i ? value : item)
+      }
+    }))
+  }
+  const addAddArrayItem = (field) => {
+    setAddDialog(d => ({
       ...d,
-      form: {
-        ...d.form,
-        districts: d.form.districts.map((e, idx) => (idx === i ? value : e)),
-      },
-    }));
-  };
-  const addAddEmail = () => {
-    setAddDialog((d) => ({
+      form: { ...d.form, [field]: [...d.form[field], ""] }
+    }))
+  }
+  const removeAddArrayItem = (field, i) => {
+    setAddDialog(d => ({
       ...d,
-      form: { ...d.form, emails: [...d.form.emails, ""] },
-    }));
-  };
-  const removeAddEmail = (i) => {
-    setAddDialog((d) => ({
-      ...d,
-      form: { ...d.form, emails: d.form.emails.filter((_, idx) => idx !== i) },
-    }));
-  };
-  const addAddDistrict = () => {
-    setAddDialog((d) => ({
-      ...d,
-      form: { ...d.form, districts: [...d.form.districts, ""] },
-    }));
-  };
-  const removeAddDistrict = (i) => {
-    setAddDialog((d) => ({
-      ...d,
-      form: {
-        ...d.form,
-        districts: d.form.districts.filter((_, idx) => idx !== i),
-      },
-    }));
-  };
-  const handleAddSubmit = (e) => {
+      form: { ...d.form, [field]: d.form[field].filter((_, idx) => idx !== i) }
+    }))
+  }
+
+
+  const handleAddSubmit = async (e) => {
     e.preventDefault();
-    // Basic validation: name and at least one email and district
     if (
       !addDialog.form.name.trim() ||
-      !addDialog.form.emails[0].trim() ||
-      !addDialog.form.districts[0].trim()
+      !addDialog.form.slug.trim()
     ) {
+      toast({ title: "Error", description: "Please fill in all required fields (Name and Slug).", variant: "destructive" });
       return;
     }
-    setPartners((prev) => [
-      ...prev,
-      {
-        id: Date.now(), // Temporary ID
-        name: addDialog.form.name,
-        email: addDialog.form.emails[0] || "",
-        notes: addDialog.form.notes,
+
+    try {
+      await createPartner({
+        partner_name: addDialog.form.name,
         slug: addDialog.form.slug,
+        email: addDialog.form.emails[0],
         districts: addDialog.form.districts,
-        meraki_link: "",
-      },
-    ]);
-    closeAddDialog();
-    toast({
-      title: "Success",
-      description: "Partner added successfully!",
-    });
+        notes: addDialog.form.notes,
+      });
+      toast({ title: "Success", description: "Partner added successfully!" });
+      closeAddDialog();
+      loadPartners();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to create partner", variant: "destructive" });
+    }
+  };
+
+  const loadPartnerStudents = async (partnerId, page = 1) => {
+    setStudentsLoading(true);
+    try {
+      const data = await getStudentsByPartnerId(partnerId, page, 10);
+
+      // Handle response structure variations
+      let students = [];
+      let total = 0;
+
+      if (data && data.data && Array.isArray(data.data)) {
+        students = data.data;
+        total = data.total || data.count || data.data.length; // Adjust based on API
+      } else if (Array.isArray(data)) {
+        students = data;
+        total = data.length;
+      } else if (data && data.students && Array.isArray(data.students)) {
+        students = data.students;
+        total = data.total || data.students.length;
+      }
+
+      setPartnerStudents(students);
+      setStudentsTotal(total);
+      setStudentsLoading(false);
+    } catch (error) {
+      console.error("Failed to fetch students", error);
+      toast({ title: "Error", description: "Failed to fetch students.", variant: "destructive" });
+      setPartnerStudents([]);
+      setStudentsLoading(false);
+    }
   };
 
   const handleViewAssessments = (partner) => {
     setSelectedPartner(partner);
     setShowAssessmentModal(true);
+    setStudentsPage(1);
+    loadPartnerStudents(partner.id, 1);
   };
-
   const handleCreateAssessment = (partner) => {
     setSelectedPartner(partner);
     setShowCreateModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowAssessmentModal(false);
-    setShowCreateModal(false);
-    setSelectedPartner(null);
-  };
-
-  const handleFileUpload = (e, partner) => {
-    alert(`File selected for ${partner.name}: ${e.target.files[0]?.name}`);
+  const handleDeletePartner = async (id) => {
+    if (!confirm("Are you sure you want to delete this partner?")) return;
+    try {
+      await deletePartner(id);
+      toast({ title: "Deleted", description: "Partner deleted successfully." });
+      loadPartners();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete partner", variant: "destructive" });
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/40 flex">
       <AdmissionsSidebar />
-      <main className="md:ml-64 overflow-auto h-screen flex flex-col items-center">
-        <div className="p-4 md:p-8 w-full pt-16 md:pt-8">
-          <div className="bg-card rounded-xl shadow-soft border border-border">
-            {/* Header */}
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-foreground">
-                    Partners
-                  </h2>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Manage and track partner details
-                  </p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={handleDownloadCSV}
-                    className="h-9"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export CSV
-                  </Button>
-                  <Button
-                    className="bg-gradient-primary hover:bg-primary/90 text-white h-9"
-                    onClick={openAddDialog}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Partner
-                  </Button>
-                </div>
-              </div>
+      <main className="md:ml-64 flex-1 p-6 overflow-y-auto h-screen">
+        <div className="max-w-7xl mx-auto space-y-8">
 
-              {/* Search and Filter */}
-              <div className="flex items-center space-x-4">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder="Search by name, email, or slug..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-9"
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9"
-                  onClick={() => setFilterDialog(true)}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
+          {/* Header & Stats */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Partners</h1>
+                <p className="text-muted-foreground mt-1">Manage network partners, track performance, and create assessments.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={handleDownloadCSV} size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
                 </Button>
-                {Object.values(filters).some(Boolean) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9"
-                    onClick={() =>
-                      setFilters({ district: "", slug: "", emailDomain: "" })
-                    }
-                  >
-                    Clear Filters
-                  </Button>
-                )}
+                <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground shadow-md hover:shadow-lg transition-all">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Partner
+                </Button>
               </div>
             </div>
 
-            {/* Clean Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/50">
-                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
-                      Partner
-                    </th>
-                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
-                      Email
-                    </th>
-                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
-                      Slug
-                    </th>
-                    <th className="text-left py-4 px-6 font-medium text-muted-foreground text-sm">
-                      Districts
-                    </th>
-                    <th className="text-center py-4 px-6 font-medium text-muted-foreground text-sm w-20">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="py-12 text-center text-muted-foreground"
-                      >
-                        <div className="flex flex-col items-center space-y-2">
-                          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                          <span>Loading partners...</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : paginatedPartners.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="py-12 text-center text-muted-foreground"
-                      >
-                        <div className="flex flex-col items-center space-y-2">
-                          <Search className="w-8 h-8 opacity-50" />
-                          <span>No partners found</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedPartners.map((partner, idx) => (
-                      <tr
-                        key={partner.id}
-                        className="border-b border-border/30 hover:bg-muted/30 transition-colors group"
-                      >
-                        <td className="py-4 px-6">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-primary text-sm font-medium">
-                                {partner.name
-                                  ? partner.name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                  : "?"}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-foreground truncate">
-                                {partner.name || "No Name"}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {partner.notes || "No notes"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className="text-sm text-foreground">
-                            {partner.email || "No email"}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className="text-sm text-foreground">
-                            {partner.slug || "No slug"}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className="text-sm text-foreground">
-                            {partner.districts && partner.districts.length > 0
-                              ? partner.districts.join(", ")
-                              : "No districts"}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          <div className="flex items-center justify-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-muted"
-                              onClick={() =>
-                                openEditDialog((page - 1) * ROWS_PER_PAGE + idx)
-                              }
-                              title="Edit Partner"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-muted"
-                              onClick={() => handleViewAssessments(partner)}
-                              title="View Assessments"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-muted"
-                              onClick={() => handleCreateAssessment(partner)}
-                              title="Create Assessment"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Show total count and pagination */}
-            <div className="px-6 py-4 border-t border-border/50 bg-muted/20">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Showing {paginatedPartners.length} of {partners.length}{" "}
-                  partners
-                </p>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+            {/* KPI/Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Partners</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalPartners}</div>
+                  <p className="text-xs text-muted-foreground">+2 from last month</p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Districts</CardTitle>
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{activeDistricts}</div>
+                  <p className="text-xs text-muted-foreground">Across the country</p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalStudents || "-"}</div>
+                  <p className="text-xs text-muted-foreground">Registered via partners</p>
+                </CardContent>
+              </Card>
+              <Card className="shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Assessments</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">128</div>
+                  <p className="text-xs text-muted-foreground">Completed this week</p>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
-          {/* Edit Partner Dialog */}
-          {editDialog.open && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-              <form
-                className="bg-white rounded-lg p-8 w-full max-w-lg shadow-lg overflow-y-auto max-h-[90vh]"
-                onSubmit={handleEditSubmit}
-              >
-                <h2 className="text-xl font-bold mb-4">Edit Partner</h2>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Partner Name
-                  </label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    value={editDialog.form.name}
-                    onChange={(e) =>
-                      handleEditFormChange("name", e.target.value)
-                    }
-                    required
+          {/* Filters and Search */}
+          <Card className="shadow-sm border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search by name, email, or slug..."
+                    className="pl-9 bg-background"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                  <span className="text-xs text-gray-500">
-                    Partner ka Name Enter karein.
-                  </span>
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Email
-                  </label>
-                  {editDialog.form.emails.map((email, i) => (
-                    <div key={i} className="flex items-center gap-2 mb-2">
-                      <input
-                        type="email"
-                        className="border px-3 py-2 rounded w-full"
-                        value={email}
-                        onChange={(e) =>
-                          handleEditEmailChange(i, e.target.value)
-                        }
-                        required
-                      />
-                      {editDialog.form.emails.length > 1 && (
-                        <button
-                          type="button"
-                          className="text-red-500"
-                          onClick={() => removeEditEmail(i)}
-                        >
-                          <X size={18} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    className="flex items-center text-orange-600 mt-1"
-                    onClick={addEditEmail}
-                  >
-                    <Plus size={18} className="mr-1" />
-                    ADD ANOTHER EMAIL
-                  </button>
-                  <span className="text-xs text-gray-500 block">
-                    Partner ka Email Enter karein.
-                  </span>
+                <div className="flex gap-2">
+                  {/* Optional: Add Dropdown Filters here directly instead of modal if simple */}
+                  <Button variant="outline" onClick={() => setFilterDialog(true)}>
+                    <Filter className="w-4 h-4 mr-2" />
+                    Advanced Filters
+                  </Button>
+                  {Object.values(filters).some(Boolean) && (
+                    <Button variant="ghost" onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })}>
+                      Clear
+                    </Button>
+                  )}
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    value={editDialog.form.notes}
-                    onChange={(e) =>
-                      handleEditFormChange("notes", e.target.value)
-                    }
-                  />
-                  <span className="text-xs text-gray-500">
-                    Partner ki thodi details add karein.
-                  </span>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Slug</label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    value={editDialog.form.slug}
-                    onChange={(e) =>
-                      handleEditFormChange("slug", e.target.value)
-                    }
-                  />
-                  <span className="text-xs text-gray-500">
-                    Partner ke student ko online test dene ke liye Slug add
-                    karo.
-                  </span>
-                </div>
-                {editDialog.form.districts.map((district, i) => (
-                  <div key={i} className="mb-2 flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium mb-1">
-                        District {i + 1}
-                      </label>
-                      <input
-                        type="text"
-                        className="border px-3 py-2 rounded w-full"
-                        value={district}
-                        onChange={(e) =>
-                          handleEditDistrictChange(i, e.target.value)
-                        }
-                        required
-                      />
-                      <span className="text-xs text-gray-500">
-                        Enter District {i + 1}
-                      </span>
-                    </div>
-                    {editDialog.form.districts.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-red-500 mt-6"
-                        onClick={() => removeEditDistrict(i)}
-                      >
-                        <X size={18} />
-                      </button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Main Table */}
+          <Card className="shadow-md border-border/60 overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="w-[250px]">Partner Details</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Districts</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                          Loading data...
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedPartners.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                        No partners found matching your criteria.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedPartners.map((partner, idx) => (
+                      <TableRow key={partner.id} className="hover:bg-muted/20 transition-colors">
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span
+                              className="font-semibold text-foreground cursor-pointer hover:text-primary hover:underline"
+                              onClick={() => navigate(`/partners/${partner.id}/students`)}
+                            >
+                              {partner.partner_name}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{partner.notes || "No notes"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 text-sm text-foreground">
+                            {partner.email || "-"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(partner.districts || []).map((d, i) => (
+                              <Badge key={i} variant="secondary" className="text-[10px] px-1 py-0">{d}</Badge>
+                            ))}
+                            {(!partner.districts || partner.districts.length === 0) && <span className="text-xs text-muted-foreground">-</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-1 py-0.5 rounded border">{partner.slug || "N/A"}</code>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => openEditDialog(idx)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleViewAssessments(partner)}>
+                                <Eye className="mr-2 h-4 w-4" /> View Assessments
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCreateAssessment(partner)}>
+                                <FileText className="mr-2 h-4 w-4" /> Create Assessment
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePartner(partner.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete Partner
+                              </DropdownMenuItem>
+                              {partner.meraki_link ? (
+                                <DropdownMenuItem onClick={() => {
+                                  navigator.clipboard.writeText(partner.meraki_link);
+                                  toast({ title: "Copied!", description: "Link copied to clipboard." });
+                                }}>
+                                  <ExternalLink className="mr-2 h-4 w-4" /> Copy Meraki Link
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => handleCreateMerakiLink((page - 1) * ROWS_PER_PAGE + idx)}>
+                                  <ExternalLink className="mr-2 h-4 w-4" /> Generate Link
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
+              <div className="text-xs text-muted-foreground">
+                Showing <strong>{(page - 1) * ROWS_PER_PAGE + 1}</strong> to <strong>{Math.min(page * ROWS_PER_PAGE, filteredPartners.length)}</strong> of <strong>{filteredPartners.length}</strong>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="h-8"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="h-8"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+        </div>
+
+        {/* ADD PARTNER DIALOG */}
+        <Dialog open={addDialog.open} onOpenChange={(open) => !open && closeAddDialog()}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Add New Partner</DialogTitle>
+              <DialogDescription>Enter the details of the new partner organization.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Partner Name</Label>
+                <Input id="name" value={addDialog.form.name} onChange={(e) => handleAddFormChange("name", e.target.value)} placeholder="e.g. NavGurukul" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Emails</Label>
+                {addDialog.form.emails.map((email, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={email} onChange={(e) => handleAddArrayChange("emails", i, e.target.value)} placeholder="contact@example.com" />
+                    {addDialog.form.emails.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("emails", i)}>
+                        <X className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  className="flex items-center text-orange-600 mt-1"
-                  onClick={addEditDistrict}
-                >
-                  <Plus size={18} className="mr-1" />
-                  ADD ANOTHER DISTRICT
-                </button>
-                <div className="flex justify-end gap-2 mt-8">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                    onClick={closeEditDialog}
-                  >
-                    CANCEL
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                  >
-                    UPDATE PARTNER
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-          {/* Add Partner Dialog */}
-          {addDialog.open && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-              <form
-                className="bg-white rounded-lg p-8 w-full max-w-lg shadow-lg overflow-y-auto max-h-[90vh]"
-                onSubmit={handleAddSubmit}
-              >
-                <h2 className="text-xl font-bold mb-4">Add Partner</h2>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Partner Name
-                  </label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    value={addDialog.form.name}
-                    onChange={(e) =>
-                      handleAddFormChange("name", e.target.value)
-                    }
-                    required
-                  />
-                  <span className="text-xs text-gray-500">
-                    Partner ka Name Enter karein.
-                  </span>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Email
-                  </label>
-                  {addDialog.form.emails.map((email, i) => (
-                    <div key={i} className="flex items-center gap-2 mb-2">
-                      <input
-                        type="email"
-                        className="border px-3 py-2 rounded w-full"
-                        value={email}
-                        onChange={(e) =>
-                          handleAddEmailChange(i, e.target.value)
-                        }
-                        required
-                      />
-                      {addDialog.form.emails.length > 1 && (
-                        <button
-                          type="button"
-                          className="text-red-500"
-                          onClick={() => removeAddEmail(i)}
-                        >
-                          <X size={18} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    className="flex items-center text-orange-600 mt-1"
-                    onClick={addAddEmail}
-                  >
-                    <Plus size={18} className="mr-1" />
-                    ADD ANOTHER EMAIL
-                  </button>
-                  <span className="text-xs text-gray-500 block">
-                    Partner ka Email Enter karein.
-                  </span>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    value={addDialog.form.notes}
-                    onChange={(e) =>
-                      handleAddFormChange("notes", e.target.value)
-                    }
-                  />
-                  <span className="text-xs text-gray-500">
-                    Partner ki thodi details add karein.
-                  </span>
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Slug</label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    value={addDialog.form.slug}
-                    onChange={(e) =>
-                      handleAddFormChange("slug", e.target.value)
-                    }
-                  />
-                  <span className="text-xs text-gray-500">
-                    Partner ke student ko online test dene ke liye Slug add
-                    karo.
-                  </span>
-                </div>
-                {addDialog.form.districts.map((district, i) => (
-                  <div key={i} className="mb-2 flex items-center gap-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium mb-1">
-                        District {i + 1}
-                      </label>
-                      <input
-                        type="text"
-                        className="border px-3 py-2 rounded w-full"
-                        value={district}
-                        onChange={(e) =>
-                          handleAddDistrictChange(i, e.target.value)
-                        }
-                        required
-                      />
-                      <span className="text-xs text-gray-500">
-                        Enter District {i + 1}
-                      </span>
-                    </div>
+                <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="slug">Slug</Label>
+                <Input id="slug" value={addDialog.form.slug} onChange={(e) => handleAddFormChange("slug", e.target.value)} placeholder="unique-slug-id" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Input id="notes" value={addDialog.form.notes} onChange={(e) => handleAddFormChange("notes", e.target.value)} placeholder="Additional details..." />
+              </div>
+              <div className="grid gap-2">
+                <Label>Districts</Label>
+                {addDialog.form.districts.map((d, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={d} onChange={(e) => handleAddArrayChange("districts", i, e.target.value)} placeholder="District Name" />
                     {addDialog.form.districts.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-red-500 mt-6"
-                        onClick={() => removeAddDistrict(i)}
-                      >
-                        <X size={18} />
-                      </button>
+                      <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
+                        <X className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  className="flex items-center text-orange-600 mt-1"
-                  onClick={addAddDistrict}
-                >
-                  <Plus size={18} className="mr-1" />
-                  ADD ANOTHER DISTRICT
-                </button>
-                <div className="flex justify-end gap-2 mt-8">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                    onClick={closeAddDialog}
-                  >
-                    CANCEL
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                  >
-                    ADD PARTNER
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-          {/* Assessment Modal */}
-          {showAssessmentModal && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-              <div className="bg-white rounded-lg p-8 w-full max-w-lg shadow-lg">
-                <h2 className="text-xl font-bold mb-4">
-                  Assessments for {selectedPartner?.name}
-                </h2>
-                <p className="mb-4">(Assessment details modal placeholder)</p>
-                <button
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  onClick={handleCloseModal}
-                >
-                  Close
-                </button>
+                <Button variant="link" size="sm" onClick={() => addAddArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
               </div>
             </div>
-          )}
-          {/* Create Assessment Modal */}
-          {showCreateModal && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-              <div className="bg-white rounded-lg p-8 w-full max-w-md shadow-lg">
-                <h2 className="text-xl font-bold mb-4">
-                  Create New Assessment
-                </h2>
-                <input
-                  type="text"
-                  placeholder="Paper set name"
-                  className="border px-3 py-2 rounded w-full mb-4"
-                />
-                <button
-                  className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                  onClick={handleCloseModal}
-                >
-                  Create
-                </button>
-                <button
-                  className="ml-2 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                  onClick={handleCloseModal}
-                >
-                  Cancel
-                </button>
+            <DialogFooter>
+              <Button variant="outline" onClick={closeAddDialog}>Cancel</Button>
+              <Button onClick={handleAddSubmit}>Save Partner</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* EDIT PARTNER DIALOG */}
+        <Dialog open={editDialog.open} onOpenChange={(open) => !open && closeEditDialog()}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Partner</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-name">Partner Name</Label>
+                <Input id="edit-name" value={editDialog.form.name} onChange={(e) => handleEditFormChange("name", e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Emails</Label>
+                {editDialog.form.emails.map((email, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={email} onChange={(e) => handleEditArrayChange("emails", i, e.target.value)} />
+                    {editDialog.form.emails.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("emails", i)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-slug">Slug</Label>
+                <Input id="edit-slug" value={editDialog.form.slug} onChange={(e) => handleEditFormChange("slug", e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Input id="edit-notes" value={editDialog.form.notes} onChange={(e) => handleEditFormChange("notes", e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Districts</Label>
+                {editDialog.form.districts.map((d, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={d} onChange={(e) => handleEditArrayChange("districts", i, e.target.value)} />
+                    {editDialog.form.districts.length > 1 && (
+                      <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="link" size="sm" onClick={() => addEditArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
               </div>
             </div>
-          )}
-          {/* Filter Modal */}
-          {filterDialog && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-              <form
-                className="bg-white rounded-lg p-8 w-full max-w-md shadow-lg overflow-y-auto max-h-[90vh]"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setFilterDialog(false);
+            <DialogFooter>
+              <Button variant="outline" onClick={closeEditDialog}>Cancel</Button>
+              <Button onClick={handleEditSubmit}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Filter Dialog (reused simple dialog) */}
+        <Dialog open={filterDialog} onOpenChange={setFilterDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Filter Partners</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>District</Label>
+                <Input value={filters.district} onChange={(e) => setFilters(f => ({ ...f, district: e.target.value }))} placeholder="Filter by district" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Slug</Label>
+                <Input value={filters.slug} onChange={(e) => setFilters(f => ({ ...f, slug: e.target.value }))} placeholder="Filter by slug" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Email Domain</Label>
+                <Input value={filters.emailDomain} onChange={(e) => setFilters(f => ({ ...f, emailDomain: e.target.value }))} placeholder="e.g. gmail.com" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setFilterDialog(false)}>Cancel</Button>
+              <Button onClick={() => setFilterDialog(false)}>Apply Filters</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ASSESSMENT MODAL - REPURPOSED FOR STUDENTS LIST */}
+        <Dialog open={showAssessmentModal} onOpenChange={setShowAssessmentModal}>
+          <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Students / Assesssments - {selectedPartner?.partner_name}</DialogTitle>
+              <DialogDescription>List of students associated with {selectedPartner?.partner_name}</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto py-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Stage</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {studentsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">Loading students...</TableCell>
+                    </TableRow>
+                  ) : partnerStudents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
+                    </TableRow>
+                  ) : (
+                    partnerStudents.map((student: any, idx) => (
+                      <TableRow key={student.id || idx}>
+                        <TableCell className="font-medium">{student.name}</TableCell>
+                        <TableCell>{student.email}</TableCell>
+                        <TableCell><Badge variant="outline">{student.current_status || "N/A"}</Badge></TableCell>
+                        <TableCell>{student.stage || "-"}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {/* Simple Pagination for Modal */}
+            <div className="flex items-center justify-between border-t pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={studentsPage === 1 || studentsLoading}
+                onClick={() => {
+                  const newPage = studentsPage - 1;
+                  setStudentsPage(newPage);
+                  if (selectedPartner) loadPartnerStudents(selectedPartner.id, newPage);
                 }}
               >
-                <h2 className="text-xl font-bold mb-4">Filter Partners</h2>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    District
-                  </label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    placeholder="Enter district name"
-                    value={filters.district}
-                    onChange={(e) =>
-                      setFilters((f) => ({ ...f, district: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Slug</label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    placeholder="Enter slug"
-                    value={filters.slug}
-                    onChange={(e) =>
-                      setFilters((f) => ({ ...f, slug: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Email Domain
-                  </label>
-                  <input
-                    type="text"
-                    className="border px-3 py-2 rounded w-full"
-                    placeholder="e.g. gmail.com"
-                    value={filters.emailDomain}
-                    onChange={(e) =>
-                      setFilters((f) => ({ ...f, emailDomain: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="flex justify-end gap-2 mt-8">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-                    onClick={() => setFilterDialog(false)}
-                  >
-                    CANCEL
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-                  >
-                    APPLY FILTERS
-                  </button>
-                </div>
-              </form>
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground">Page {studentsPage}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={partnerStudents.length < 10 || studentsLoading} // Simple check, ideally use total count
+                onClick={() => {
+                  const newPage = studentsPage + 1;
+                  setStudentsPage(newPage);
+                  if (selectedPartner) loadPartnerStudents(selectedPartner.id, newPage);
+                }}
+              >
+                Next
+              </Button>
             </div>
-          )}
-        </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* CREATE ASSESSMENT MODAL PLACEHOLDER */}
+        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Assessment</DialogTitle>
+              <DialogDescription>Create a new assessment for {selectedPartner?.name}</DialogDescription>
+            </DialogHeader>
+            <div className="py-10 text-center text-muted-foreground">
+              Form to create assessment will appear here.
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </main>
     </div>
   );
