@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Search, X, Loader2 } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
@@ -562,25 +563,38 @@ const ApplicantTable = () => {
   };
 
    const activeFilterTags = useMemo(() => {
-     const tags: { key: string; label: string }[] = [];
+     const tags: { key: string; label: string; onRemove?: () => void }[] = [];
 
-    // Stage (supports stage_id or stage)
+    // Stage chip (only if stage is selected)
     const stageId = (filters as any).stage_id ?? (filters as any).stage;
-    if (stageId && stageId !== "all") {
+    const hasStage = stageId && stageId !== "all";
+    
+    if (hasStage) {
       const stageObj = stageList.find((s) => s.id === stageId) as any;
+      const stageName = stageObj?.stage_name || stageObj?.name || stageId || "Stage";
+      
       tags.push({
         key: `stage-${stageId}`,
-        label: `Stage: ${stageObj?.stage_name || stageObj?.name || stageId}`,
+        label: `Stage: ${stageName}`,
+        onRemove: () => handleClearSingleFilter("stage")
       });
     }
-
-    // Stage status
-    if ((filters as any).stage_status && (filters as any).stage_status !== "all") {
+    
+    // Individual stage status chips
+    const stageStatusValue = (filters as any).stage_status;
+    const stageStatusArray = Array.isArray(stageStatusValue) 
+      ? stageStatusValue 
+      : stageStatusValue && stageStatusValue !== "all" 
+        ? [stageStatusValue] 
+        : [];
+    
+    stageStatusArray.forEach((status: string) => {
       tags.push({
-        key: `stage_status-${(filters as any).stage_status}`,
-        label: `Stage Status: ${(filters as any).stage_status}`,
+        key: `stage_status-${status}`,
+        label: `Status: ${status}`,
+        onRemove: () => handleRemoveSingleStageStatus(status)
       });
-    }
+    });
 
     // Partner / Campus
     if ((filters as any).partner?.length) {
@@ -625,8 +639,31 @@ const ApplicantTable = () => {
     if ((filters as any).qualification?.length) {
       const quals = (filters as any).qualification.filter((q: any) => q !== "all");
       quals.forEach((q: any) => {
-        const qq = questionSetList.find((x) => Number(x.id) === Number(q));
-        const qualLabel = qq?.name || resolveQuestionSetName(q) || q;
+        // Try multiple approaches to find the qualification name
+        let qualLabel = q; // fallback to raw value
+        
+        // Try finding in qualificationList by ID
+        const fromQualList = qualificationList.find((x: any) => 
+          String(x.id) === String(q) || 
+          x.qualification_name === q || 
+          x.name === q
+        );
+        
+        // Try finding in questionSetList by ID
+        const fromQuestionSet = questionSetList.find((x: any) => 
+          String(x.id) === String(q) || 
+          x.name === q
+        );
+        
+        if (fromQualList) {
+          qualLabel = fromQualList.qualification_name || fromQualList.name || q;
+        } else if (fromQuestionSet) {
+          qualLabel = fromQuestionSet.name || fromQuestionSet.qualification_name || q;
+        } else {
+          // Last resort: use resolver
+          qualLabel = resolveQuestionSetName(q) || q;
+        }
+        
         tags.push({
           key: `qualification-${q}`,
           label: `Qualification: ${qualLabel}`,
@@ -753,6 +790,180 @@ const ApplicantTable = () => {
       title: "Filters Cleared",
       description: "All filters have been removed. Showing all applicants.",
     });
+  };
+
+  // Remove individual stage status and re-apply filters
+  const handleRemoveSingleStageStatus = async (statusToRemove: string) => {
+    const currentStatuses = Array.isArray((filters as any).stage_status)
+      ? (filters as any).stage_status
+      : (filters as any).stage_status && (filters as any).stage_status !== "all"
+      ? [(filters as any).stage_status]
+      : [];
+    
+    const newStatuses = currentStatuses.filter((s: string) => s !== statusToRemove);
+    
+    // If removing the last status, also clear the stage
+    // (because a stage with statuses available requires at least one status to be selected)
+    let newFilters;
+    if (newStatuses.length === 0) {
+      newFilters = {
+        ...filters,
+        stage: "all",
+        stage_id: undefined,
+        stage_status: "all",
+      } as any;
+    } else {
+      newFilters = {
+        ...filters,
+        stage_status: newStatuses,
+      } as any;
+    }
+
+    setFilters(newFilters);
+
+    // Check if any filters are still active
+    const hasFilters =
+      (newFilters.stage_id && newFilters.stage_id !== undefined) ||
+      (newFilters.stage_status && newFilters.stage_status !== "all") ||
+      (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
+      (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
+      (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
+      (newFilters.state && newFilters.state !== "all") ||
+      (newFilters.district?.length && newFilters.district[0] !== "all") ||
+      (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.dateRange?.from && newFilters.dateRange?.to);
+
+    if (!hasFilters) {
+      setHasActiveFilters(false);
+      setFilteredStudents([]);
+      setCurrentPage(1);
+      toast({
+        title: "Filter Removed",
+        description: "All filters cleared. Showing all applicants.",
+      });
+    } else {
+      try {
+        setIsFiltering(true);
+        const apiParams = transformFiltersToAPI(newFilters);
+        const results = await getFilterStudent(apiParams);
+        setFilteredStudents(results || []);
+        setCurrentPage(1);
+
+        toast({
+          title: "Filter Removed",
+          description: `Found ${results?.length || 0} applicants matching your criteria`,
+        });
+      } catch (error) {
+        console.error("Error re-applying filters:", error);
+        toast({
+          title: "Filter Error",
+          description: "Failed to update filters. Please try again.",
+          variant: "destructive",
+        });
+        setFilteredStudents([]);
+      } finally {
+        setIsFiltering(false);
+      }
+    }
+  };
+
+  // Clear individual filter and re-apply
+  const handleClearSingleFilter = async (filterKey: string) => {
+    let newFilters = { ...filters } as any;
+
+    switch (filterKey) {
+      case "stage":
+        newFilters.stage = "all";
+        newFilters.stage_id = undefined;
+        newFilters.stage_status = "all";
+        break;
+      case "stage_status":
+        newFilters.stage_status = "all";
+        break;
+      case "state":
+        newFilters.state = undefined;
+        newFilters.district = [];
+        break;
+      case "district":
+        newFilters.district = [];
+        break;
+      case "partner":
+      case "campus":
+        newFilters.partner = [];
+        break;
+      case "school":
+        newFilters.school = [];
+        break;
+      case "religion":
+        newFilters.religion = [];
+        break;
+      case "qualification":
+        newFilters.qualification = [];
+        break;
+      case "currentStatus":
+        newFilters.currentStatus = [];
+        break;
+      case "gender":
+        newFilters.gender = undefined;
+        break;
+      case "dateRange":
+      case "daterange":
+        newFilters.dateRange = { type: newFilters.dateRange.type, from: undefined, to: undefined };
+        break;
+      default:
+        return;
+    }
+
+    setFilters(newFilters);
+
+    // Check if any filters are still active
+    const hasFilters =
+      (newFilters.stage_id && newFilters.stage_id !== undefined) ||
+      (newFilters.stage_status && newFilters.stage_status !== "all") ||
+      (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
+      (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
+      (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
+      (newFilters.state && newFilters.state !== "all") ||
+      (newFilters.district?.length && newFilters.district[0] !== "all") ||
+      (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.dateRange?.from && newFilters.dateRange?.to);
+
+    if (!hasFilters) {
+      // No filters remain, clear everything
+      setHasActiveFilters(false);
+      setFilteredStudents([]);
+      setCurrentPage(1);
+      toast({
+        title: "Filter Removed",
+        description: "All filters cleared. Showing all applicants.",
+      });
+    } else {
+      // Re-apply remaining filters
+      try {
+        setIsFiltering(true);
+        const apiParams = transformFiltersToAPI(newFilters);
+        const results = await getFilterStudent(apiParams);
+        setFilteredStudents(results || []);
+        setCurrentPage(1);
+
+        toast({
+          title: "Filter Removed",
+          description: `Found ${results?.length || 0} applicants matching your criteria`,
+        });
+      } catch (error) {
+        console.error("Error re-applying filters:", error);
+        toast({
+          title: "Filter Error",
+          description: "Failed to update filters. Please try again.",
+          variant: "destructive",
+        });
+        setFilteredStudents([]);
+      } finally {
+        setIsFiltering(false);
+      }
+    }
   };
 
   const exportToCSV = async (exportType: 'all' | 'filtered' | 'selected' = 'all') => {
@@ -907,12 +1118,23 @@ const ApplicantTable = () => {
           {activeFilterTags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {activeFilterTags.map((t) => (
-                <span
+                <Button
                   key={t.key}
-                  className="inline-flex items-center bg-muted px-2 py-1 rounded text-sm text-muted-foreground"
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs whitespace-nowrap max-w-none"
+                  onClick={() => {
+                    if (t.onRemove) {
+                      t.onRemove();
+                    } else {
+                      const filterType = t.key.split('-')[0];
+                      handleClearSingleFilter(filterType);
+                    }
+                  }}
                 >
-                  {t.label}
-                </span>
+                  <span className="inline-block">{t.label}</span>
+                  <X className="w-3 h-3 flex-shrink-0" />
+                </Button>
               ))}
             </div>
           )}
