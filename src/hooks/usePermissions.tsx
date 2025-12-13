@@ -23,8 +23,8 @@ export function usePermissions() {
       
       if (userStr) {
         const parsedUser = JSON.parse(userStr);
-        console.log("User from localStorage:", parsedUser);
-        console.log("User role_id:", parsedUser.user_role_id);
+        // console.log("User from localStorage:", parsedUser);
+        // console.log("User role_id:", parsedUser.user_role_id);
         setUser(parsedUser);
       } else {
         console.log("No user found in localStorage");
@@ -41,7 +41,7 @@ export function usePermissions() {
   // Memoize to prevent recalculation on every render
   const hasEditAccess = useMemo(() => {
     const hasAccess = user?.user_role_id === 1;
-    console.log("Permissions check - user_role_id:", user?.user_role_id, "hasAccess:", hasAccess);
+    // console.log("Permissions check - user_role_id:", user?.user_role_id, "hasAccess:", hasAccess);
     return hasAccess;
   }, [user?.user_role_id]);
 

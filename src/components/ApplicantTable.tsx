@@ -790,13 +790,7 @@ const ApplicantTable = () => {
       }
 
       await exportApplicantsToCSV({
-        schoolList,
-        campusList,
-        currentstatusList,
-        religionList,
         questionSetList,
-        qualificationList,
-        castList,
         filteredData: filteredApplicants, // Pass current filtered/searched data
         selectedData: selectedApplicantsData, // Pass selected applicants data
         exportType,
