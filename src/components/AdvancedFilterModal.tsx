@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Select,
   SelectContent,
@@ -898,26 +899,21 @@ export function AdvancedFilterModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
             <div>
               <h3 className="font-semibold text-sm mb-2">State</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All States" },
+                  ...availableStates.map((state) => ({
+                    value: state.name,
+                    label: state.name,
+                  })),
+                ]}
                 value={filters.state || "all"}
                 onValueChange={handleStateChange}
+                placeholder="Select State"
+                searchPlaceholder="Search state..."
+                emptyText="No state found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  {/* <SelectValue placeholder="Select State">
-                    {filters.state || "All States"}
-                  </SelectValue> */}
-                  <SelectValue placeholder = "Select State"/>
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All States</SelectItem>
-                  {availableStates.map((state) => (
-                    <SelectItem key={state.id} value={state.name}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableStates.length} states available */}
                 {isLoading.general && " - Loading..."}
@@ -927,7 +923,14 @@ export function AdvancedFilterModal({
             {/* District / City */}
             <div>
               <h3 className="font-semibold text-sm mb-2">District</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Districts" },
+                  ...availableDistricts.map((district) => ({
+                    value: district.name,
+                    label: district.name,
+                  })),
+                ]}
                 value={filters.district?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -935,33 +938,21 @@ export function AdvancedFilterModal({
                     district: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  !filters.state || filters.state === "all"
+                    ? "Select state first"
+                    : isLoading.districts
+                      ? "Loading districts..."
+                      : "Select district"
+                }
+                searchPlaceholder="Search district..."
+                emptyText="No district found."
                 disabled={
                   !filters.state ||
                   filters.state === "all" ||
                   isLoading.districts
                 }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      !filters.state || filters.state === "all"
-                        ? "Select state first"
-                        : isLoading.districts
-                          ? "Loading districts..."
-                          : "Select district"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Districts</SelectItem>
-                  {availableDistricts.map((district) => (
-                    <SelectItem key={district.id} value={district.name}>
-                      {district.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableDistricts.length} districts available */}
                 {"Select state first"}
@@ -1002,7 +993,14 @@ export function AdvancedFilterModal({
             {/* Campus */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Campus</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Campuses" },
+                  ...availableOptions.campuses.map((campus) => ({
+                    value: getValue(campus),
+                    label: getDisplayName(campus, "campus_name", "Campus"),
+                  })),
+                ]}
                 value={filters.partner?.[0] || "all"}
                 onValueChange={(value) => {
                   if (value === "all") {
@@ -1017,25 +1015,13 @@ export function AdvancedFilterModal({
                     }));
                   }
                 }}
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select campus"
+                }
+                searchPlaceholder="Search campus..."
+                emptyText="No campus found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select campus"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Campuses</SelectItem>
-                  {availableOptions.campuses.map((campus) => (
-                    <SelectItem key={getValue(campus)} value={getValue(campus)}>
-                      {getDisplayName(campus, "campus_name", "Campus")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableOptions.campuses.length} campuses available */}
               </p>
@@ -1046,7 +1032,14 @@ export function AdvancedFilterModal({
             {/* School */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Qualifying School</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Schools" },
+                  ...availableOptions.schools.map((school) => ({
+                    value: getValue(school),
+                    label: getDisplayName(school, "school_name", "School"),
+                  })),
+                ]}
                 value={filters.school?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -1054,25 +1047,13 @@ export function AdvancedFilterModal({
                     school: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select school"
+                }
+                searchPlaceholder="Search school..."
+                emptyText="No school found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select school"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Schools</SelectItem>
-                  {availableOptions.schools.map((school) => (
-                    <SelectItem key={getValue(school)} value={getValue(school)}>
-                      {getDisplayName(school, "school_name", "School")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableOptions.schools.length} schools available */}
               </p>
@@ -1081,7 +1062,18 @@ export function AdvancedFilterModal({
             {/* Qualification */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Qualification</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Qualifications" },
+                  ...availableOptions.qualifications.map((qualification) => ({
+                    value: getValue(qualification),
+                    label: getDisplayName(
+                      qualification,
+                      "qualification_name",
+                      "Qualification",
+                    ),
+                  })),
+                ]}
                 value={filters.qualification?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -1089,40 +1081,27 @@ export function AdvancedFilterModal({
                     qualification: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select qualification"
+                }
+                searchPlaceholder="Search qualification..."
+                emptyText="No qualification found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger
-                  className={`w-full ${!filters.qualification?.length || filters.qualification[0] === "all" ? "border-red-300" : ""}`}
-                >
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select qualification"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Qualifications</SelectItem>
-                  {availableOptions.qualifications.map((qualification) => (
-                    <SelectItem
-                      key={getValue(qualification)}
-                      value={getValue(qualification)}
-                    >
-                      {getDisplayName(
-                        qualification,
-                        "qualification_name",
-                        "Qualification",
-                      )}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className={`${!filters.qualification?.length || filters.qualification[0] === "all" ? "border-red-300" : ""}`}
+              />
             </div>
 
             {/* Current Status */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Current Status</h3>
-              <Select
+              <Combobox
+                options={[
+                  { value: "all", label: "All Statuses" },
+                  ...availableOptions.currentStatuses.map((status) => ({
+                    value: getValue(status),
+                    label: getDisplayName(status, "current_status_name", "Status"),
+                  })),
+                ]}
                 value={filters.currentStatus?.[0] || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
@@ -1130,25 +1109,13 @@ export function AdvancedFilterModal({
                     currentStatus: value === "all" ? [] : [value],
                   }))
                 }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select status"
+                }
+                searchPlaceholder="Search status..."
+                emptyText="No status found."
                 disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    className="truncate"
-                    placeholder={
-                      isLoading.general ? "Loading..." : "Select status"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {availableOptions.currentStatuses.map((status) => (
-                    <SelectItem key={getValue(status)} value={getValue(status)}>
-                      {getDisplayName(status, "current_status_name", "Status")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableOptions.currentStatuses.length} statuses available */}
               </p>

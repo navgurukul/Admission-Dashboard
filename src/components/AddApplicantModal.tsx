@@ -241,8 +241,16 @@ export function AddApplicantModal({
   }, [formData.question_set_id, questionSetList]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
+    // Handle name fields - only allow letters and spaces (no numbers)
+    if ((field === "first_name" || field === "middle_name" || field === "last_name") && typeof value === "string") {
+      const lettersOnly = value.replace(/[0-9]/g, "");
+      setFormData((prev) => ({
+        ...prev,
+        [field]: lettersOnly,
+      }));
+    }
     // Handle PIN code - only allow 6 digits
-    if (field === "pin_code" && typeof value === "string") {
+    else if (field === "pin_code" && typeof value === "string") {
       const digitsOnly = value.replace(/\D/g, "");
       const truncated = digitsOnly.slice(0, 6);
       setFormData((prev) => ({
@@ -468,11 +476,13 @@ export function AddApplicantModal({
       newErrors.state = "State is required";
     }
 
-    if (!selectedDistrict) {
+    // District is required only if districts are available
+    if (districtOptions.length > 0 && !selectedDistrict) {
       newErrors.district = "District is required";
     }
 
-    if (!formData.block) {
+    // Block is required only if blocks are available
+    if (blockOptions.length > 0 && !formData.block) {
       newErrors.block = "Block is required";
     }
 
@@ -604,10 +614,10 @@ export function AddApplicantModal({
         email: formData.email || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
-        state: formData.stateCode || null, // Send code instead of label
+        state: formData.state || null, // Send NAME instead of code
         city: formData.city || null,
-        district: formData.districtCode || null, // Send code instead of label
-        block: formData.blockCode || null, // Send code instead of label
+        district: formData.district || null, // Send NAME instead of code
+        block: formData.block || null, // Send NAME instead of code
         pin_code: formData.pin_code || null,
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
         qualification_id: formData.qualification_id
@@ -1130,7 +1140,8 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="district" className="text-sm font-medium">
-                      District *
+                      District
+                      {districtOptions.length > 0 && <span className="text-red-500"> *</span>}
                     </Label>
                     <Combobox
                       options={districtOptions}
@@ -1192,64 +1203,38 @@ export function AddApplicantModal({
                   </div> */}
                   <div className="space-y-2">
                     <Label htmlFor="block" className="text-sm font-medium">
-                      Block *
+                      Block
+                      {blockOptions.length > 0 && <span className="text-red-500"> *</span>}
                     </Label>
-                    {blockOptions.length > 0 ? (
-                      // Show dropdown if blocks are available
-                      <Combobox
-                        options={blockOptions}
-                        value={selectedBlock}
-                        onValueChange={(value) => {
-                          setSelectedBlock(value);
-                          const blockLabel = blockOptions.find((b) => b.value === value)?.label || value;
-                          setFormData((prev) => ({
-                            ...prev,
-                            block: blockLabel,
-                            blockCode: value,
-                          }));
-                        }}
-                        placeholder={
-                          isLoadingBlocks
-                            ? "Loading blocks..."
-                            : !selectedDistrict
-                            ? "Select district first"
-                            : "Select block"
-                        }
-                        searchPlaceholder="Search block..."
-                        emptyText="No block found."
-                        disabled={!selectedDistrict || isLoadingBlocks}
-                        className={cn(
-                          "h-10 border shadow-sm hover:bg-accent",
-                          (showLocationWarning.block || errors.block) && "border-red-500"
-                        )}
-                      />
-                    ) : (
-                      // Show input field if no blocks available
-                      <Input
-                        id="block"
-                        value={formData.block}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setFormData((prev) => ({
-                            ...prev,
-                            block: value,
-                            blockCode: value, // Use the input value as both label and code
-                          }));
-                          setSelectedBlock(value);
-                        }}
-                        placeholder={
-                          isLoadingBlocks
-                            ? "Loading blocks..."
-                            : !selectedDistrict
-                            ? "Select district first"
-                            : "Enter block name"
-                        }
-                        disabled={!selectedDistrict || isLoadingBlocks}
-                        className={
-                          (showLocationWarning.block || errors.block) ? "border-red-500" : ""
-                        }
-                      />
-                    )}
+                    <Combobox
+                      options={blockOptions}
+                      value={selectedBlock}
+                      onValueChange={(value) => {
+                        setSelectedBlock(value);
+                        const blockLabel = blockOptions.find((b) => b.value === value)?.label || value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          block: blockLabel,
+                          blockCode: value,
+                        }));
+                      }}
+                      placeholder={
+                        isLoadingBlocks
+                          ? "Loading blocks..."
+                          : !selectedDistrict
+                          ? "Select district first"
+                          : blockOptions.length === 0
+                          ? "No blocks available"
+                          : "Select block"
+                      }
+                      searchPlaceholder="Search block..."
+                      emptyText="No block found."
+                      disabled={!selectedDistrict || isLoadingBlocks}
+                      className={cn(
+                        "h-10 border shadow-sm hover:bg-accent",
+                        (showLocationWarning.block || errors.block) && "border-red-500"
+                      )}
+                    />
                     {errors.block && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />

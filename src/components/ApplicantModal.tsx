@@ -124,34 +124,32 @@ export function ApplicantModal({
   const getStateCodeFromNameOrCode = (value: string) => {
     if (!value) return null;
 
-    // Check if it's already a state_code (starts with "S-")
-    if (value.startsWith("S-")) {
-      return value;
-    }
+    // Try to find by matching the code first (exact match)
+    const byCode = stateOptions.find((opt) => opt.value === value);
+    if (byCode) return value;
 
-    // Try to find the state_code by matching the name
-    const stateOption = stateOptions.find(
+    // Try to find the state_code by matching the name (case-insensitive)
+    const byName = stateOptions.find(
       (opt) => opt.label.toUpperCase() === value.toUpperCase()
     );
 
-    return stateOption ? stateOption.value : value;
+    return byName ? byName.value : value;
   };
 
   // Helper to convert district name to district code (if needed)
   const getDistrictCodeFromNameOrCode = (value: string) => {
     if (!value) return null;
 
-    // Check if it's already a district_code (starts with "D-")
-    if (value.startsWith("D-")) {
-      return value;
-    }
+    // Try to find by matching the code first (exact match)
+    const byCode = districtOptions.find((opt) => opt.value === value);
+    if (byCode) return value;
 
-    // Try to find the district_code by matching the name
-    const districtOption = districtOptions.find(
+    // Try to find the district_code by matching the name (case-insensitive)
+    const byName = districtOptions.find(
       (opt) => opt.label.toUpperCase() === value.toUpperCase()
     );
 
-    return districtOption ? districtOption.value : value;
+    return byName ? byName.value : value;
   };
 
   // Fetch states on modal open
@@ -520,15 +518,25 @@ export function ApplicantModal({
     return matchedOption?.label || id?.toString() || defaultLabel;
   };
 
+  // Helper to convert name back to code (for dropdown value matching)
+  const getCode = (options: Array<{ value: string; label: string }>, name: string | null | undefined): string | null => {
+    if (!name) return null;
+    const matchedOption = options.find((o) => o.label === name);
+    return matchedOption?.value || null;
+  };
+
   const handleStateChange = async (value: string) => {
     setSelectedState(value);
     setSelectedDistrict(null);
     setDistrictOptions([]);
     setBlockOptions([]);
 
-    // Clear district and block in the database when state changes
+    // Convert state code to name before sending to API
+    const stateName = stateOptions.find((opt) => opt.value === value)?.label || value;
+    
     if (currentApplicant?.id) {
       await updateStudent(currentApplicant.id, { 
+        state: stateName,  // Send NAME to API (e.g., "Tripura")
         district: null,
         block: null
       });
@@ -541,9 +549,12 @@ export function ApplicantModal({
     setSelectedDistrict(value);
     setBlockOptions([]);
 
-    // Clear block in the database when district changes
+    // Convert district code to name before sending to API
+    const districtName = districtOptions.find((opt) => opt.value === value)?.label || value;
+    
     if (currentApplicant?.id) {
       await updateStudent(currentApplicant.id, { 
+        district: districtName,  // Send NAME to API (e.g., "North District")
         block: null
       });
     }
@@ -555,9 +566,11 @@ export function ApplicantModal({
     if (!currentApplicant?.id) return;
     
     try {
-      // Update block in database
+      // Convert block id to name before sending to API
+      const blockName = blockOptions.find((opt) => opt.value === value)?.label || value;
+      
       await updateStudent(currentApplicant.id, { 
-        block: value
+        block: blockName  // Send NAME to API (e.g., "Block A")
       });
       
       // Refresh applicant data
@@ -926,11 +939,8 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="state"
-                    displayValue={getLabel(
-                      stateOptions,
-                      currentApplicant.state
-                    )}
-                    value={currentApplicant.state}
+                    displayValue={currentApplicant.state}
+                    value={getCode(stateOptions, currentApplicant.state) || ""}
                     onUpdate={handleStateChange}
                     options={stateOptions}
                     disabled={!hasEditAccess}
@@ -954,14 +964,8 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="district"
-                    displayValue={
-                      isLoadingDistricts
-                        ? "Loading..."
-                        : !selectedState
-                        ? ""
-                        : getLabel(districtOptions, currentApplicant.district)
-                    }
-                    value={currentApplicant.district}
+                    displayValue={currentApplicant.district || ""}
+                    value={getCode(districtOptions, currentApplicant.district) || ""}
                     onUpdate={handleDistrictChange}
                     options={districtOptions}
                     disabled={
@@ -977,14 +981,8 @@ export function ApplicantModal({
                   <EditableCell
                     applicant={currentApplicant}
                     field="block"
-                    displayValue={
-                      isLoadingBlocks
-                        ? "Loading..."
-                        : !selectedDistrict
-                        ? ""
-                        : getLabel(blockOptions, currentApplicant.block, currentApplicant.block || "")
-                    }
-                    value={currentApplicant.block}
+                    displayValue={currentApplicant.block || ""}
+                    value={getCode(blockOptions, currentApplicant.block) || ""}
                     onUpdate={handleBlockChange}
                     options={blockOptions}
                     disabled={

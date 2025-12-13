@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { Users, ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -77,9 +78,9 @@ export function BulkUpdateModal({
     stageId: "no_change",
     statusId: "no_change",
     campusId: "no_change",
-    state: "no_change",
-    district: "no_change",
-    block: "no_change",
+    state: "no_change",          // Store CODE for UI
+    district: "no_change",       // Store CODE for UI
+    block: "no_change",          // Store ID for UI
     city: "",
     castId: "no_change",
     qualificationId: "no_change",
@@ -174,14 +175,21 @@ export function BulkUpdateModal({
   };
 
   const handleStateChange = async (stateCode: string) => {
+    // Store the CODE for UI (so Combobox selection works)
     setUpdateData((prev) => ({
       ...prev,
-      state: stateCode,
+      state: stateCode,          // Store CODE for UI display
       district: "no_change",
       block: "no_change",
     }));
     setDistrictOptions([]);
     setBlockOptions([]);
+
+    // Don't fetch districts if "no_change" is selected
+    if (stateCode === "no_change") {
+      return;
+    }
+
 
     try {
       const res = await getDistrictsByState(stateCode);
@@ -197,17 +205,23 @@ export function BulkUpdateModal({
   };
 
   const handleDistrictChange = async (districtCode: string) => {
+    // Store the CODE for UI (so Combobox selection works)
     setUpdateData((prev) => ({
       ...prev,
-      district: districtCode,
+      district: districtCode,    // Store CODE for UI display
       block: "no_change",
     }));
     setBlockOptions([]);
 
+    // Don't fetch blocks if "no_change" is selected
+    if (districtCode === "no_change") {
+      return;
+    }
+
     try {
       const res = await getBlocksByDistrict(districtCode);
       const blocks = (res?.data || res || []).map((b: any) => ({
-        value: b.block_code,
+        value: String(b.id), // Use id as value since block_code is not available
         label: b.block_name,
       }));
       setBlockOptions(blocks);
@@ -252,13 +266,19 @@ export function BulkUpdateModal({
           : Number(updateData.campusId);
     }
     if (updateData.state !== "no_change") {
-      payload.state = updateData.state;
+      // Convert state code to name before sending to API
+      const stateName = stateOptions.find((opt) => opt.value === updateData.state)?.label || updateData.state;
+      payload.state = stateName;  // Send NAME to API (e.g., "Tripura")
     }
     if (updateData.district !== "no_change") {
-      payload.district = updateData.district;
+      // Convert district code to name before sending to API
+      const districtName = districtOptions.find((opt) => opt.value === updateData.district)?.label || updateData.district;
+      payload.district = districtName;  // Send NAME to API (e.g., "North District")
     }
     if (updateData.block !== "no_change") {
-      payload.block = updateData.block;
+      // Convert block id to name before sending to API
+      const blockName = blockOptions.find((opt) => opt.value === updateData.block)?.label || updateData.block;
+      payload.block = blockName;  // Send NAME to API (e.g., "Block A")
     }
     if (updateData.castId !== "no_change") {
       payload.cast_id = Number(updateData.castId);
@@ -373,25 +393,23 @@ export function BulkUpdateModal({
             </h3>
             <div>
               <Label>Campus</Label>
-              <Select
+              <Combobox
+                options={[
+                  { value: "no_change", label: "No change" },
+                  { value: "unassigned", label: "Not assigned" },
+                  ...campusOptions.map((campus) => ({
+                    value: String(campus.id),
+                    label: campus.campus_name,
+                  })),
+                ]}
                 value={updateData.campusId}
                 onValueChange={(val) =>
                   setUpdateData((prev) => ({ ...prev, campusId: val }))
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select campus" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="no_change">No change</SelectItem>
-                  <SelectItem value="unassigned">Not assigned</SelectItem>
-                  {campusOptions.map((campus) => (
-                    <SelectItem key={campus.id} value={String(campus.id)}>
-                      {campus.campus_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select campus"
+                searchPlaceholder="Search campus..."
+                emptyText="No campus found."
+              />
             </div>
           </div>
 
@@ -403,72 +421,79 @@ export function BulkUpdateModal({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>State</Label>
-                <Select
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...stateOptions.map((s) => ({
+                      value: s.value,
+                      label: s.label,
+                    })),
+                  ]}
                   value={updateData.state}
                   onValueChange={(val) => handleStateChange(val)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select state" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_change">No change</SelectItem>
-                    {stateOptions.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select state"
+                  searchPlaceholder="Search state..."
+                  emptyText="No state found."
+                />
               </div>
 
               <div>
                 <Label>District</Label>
-                <Select
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...districtOptions.map((d) => ({
+                      value: d.value,
+                      label: d.label,
+                    })),
+                  ]}
                   value={updateData.district}
                   onValueChange={(val) => handleDistrictChange(val)}
-                  disabled={
-                    updateData.state === "no_change" ||
-                    districtOptions.length === 0
+                  placeholder={
+                    updateData.state === "no_change" || !updateData.state
+                      ? "Select state first"
+                      : districtOptions.length === 0
+                        ? "No districts available"
+                        : "Select district"
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select district" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_change">No change</SelectItem>
-                    {districtOptions.map((d) => (
-                      <SelectItem key={d.value} value={d.value}>
-                        {d.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  searchPlaceholder="Search district..."
+                  emptyText="No district found."
+                  disabled={
+                    !updateData.state ||
+                    updateData.state === "no_change"
+                  }
+                />
               </div>
 
               <div>
                 <Label>Block</Label>
-                <Select
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...blockOptions.map((b) => ({
+                      value: b.value,
+                      label: b.label,
+                    })),
+                  ]}
                   value={updateData.block}
-                  onValueChange={(val) =>
-                    setUpdateData((prev) => ({ ...prev, block: val }))
+                  onValueChange={(val) => {
+                    // Store the ID for UI (so Combobox selection works)
+                    setUpdateData((prev) => ({ ...prev, block: val }));
+                  }}
+                  placeholder={
+                    updateData.district === "no_change" || !updateData.district
+                      ? "Select district first"
+                      : blockOptions.length === 0
+                        ? "No blocks available"
+                        : "Select block"
                   }
+                  searchPlaceholder="Search block..."
+                  emptyText="No block found."
                   disabled={
-                    updateData.district === "no_change" ||
-                    blockOptions.length === 0
+                    !updateData.district ||
+                    updateData.district === "no_change"
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select block" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_change">No change</SelectItem>
-                    {blockOptions.map((b) => (
-                      <SelectItem key={b.value} value={b.value}>
-                        {b.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             </div>
           </div>
@@ -481,68 +506,62 @@ export function BulkUpdateModal({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Caste</Label>
-                <Select
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...castOptions.map((c) => ({
+                      value: c.value,
+                      label: c.label,
+                    })),
+                  ]}
                   value={updateData.castId}
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, castId: val }))
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select caste" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_change">No change</SelectItem>
-                    {castOptions.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select caste"
+                  searchPlaceholder="Search caste..."
+                  emptyText="No caste found."
+                />
               </div>
 
               <div>
                 <Label>Qualification</Label>
-                <Select
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...qualificationOptions.map((q) => ({
+                      value: q.value,
+                      label: q.label,
+                    })),
+                  ]}
                   value={updateData.qualificationId}
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, qualificationId: val }))
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select qualification" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_change">No change</SelectItem>
-                    {qualificationOptions.map((q) => (
-                      <SelectItem key={q.value} value={q.value}>
-                        {q.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select qualification"
+                  searchPlaceholder="Search qualification..."
+                  emptyText="No qualification found."
+                />
               </div>
 
               <div>
                 <Label>Current Work</Label>
-                <Select
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...currentWorkOptions.map((w) => ({
+                      value: w.value,
+                      label: w.label,
+                    })),
+                  ]}
                   value={updateData.currentWorkId}
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, currentWorkId: val }))
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select current work" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_change">No change</SelectItem>
-                    {currentWorkOptions.map((w) => (
-                      <SelectItem key={w.value} value={w.value}>
-                        {w.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select current work"
+                  searchPlaceholder="Search current work..."
+                  emptyText="No current work found."
+                />
               </div>
             </div>
           </div>
