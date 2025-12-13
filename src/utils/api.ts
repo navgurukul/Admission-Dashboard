@@ -2204,7 +2204,7 @@ export const getAllSlots = async (params: {
   search?: string;
 }): Promise<SlotsResponse> => {
   const queryParams = new URLSearchParams();
-  
+
   if (params.page) queryParams.append('page', params.page.toString());
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
@@ -2227,3 +2227,121 @@ export const getAllSlots = async (params: {
 
   return data;
 };
+
+// Partner APIs
+export interface Partner {
+  id: number;
+  partner_name: string;
+  slug: string;
+  created_at?: string;
+  updated_at?: string;
+  districts?: string[];
+  email?: string;
+  notes?: string;
+  meraki_link?: string;
+  student_count?: number;
+}
+
+export const createPartner = async (payload: Partial<Partner>) => {
+  const response = await fetch(`${BASE_URL}/partners/createPartner`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create partner");
+  }
+
+  return data;
+};
+
+export const getPartners = async () => {
+  const response = await fetch(`${BASE_URL}/partners/getPartners`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch partners");
+  }
+
+  // Handle potential nested data structure like other APIs
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  }
+
+  return data;
+};
+
+export const getPartnerById = async (id: number | string) => {
+  const response = await fetch(`${BASE_URL}/partners/getPartnerById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch partner");
+  }
+
+  return data;
+};
+
+export const updatePartner = async (id: number | string, payload: Partial<Partner>) => {
+  const response = await fetch(`${BASE_URL}/partners/updatePartner/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update partner");
+  }
+
+  return data;
+};
+
+export const deletePartner = async (id: number | string) => {
+  const headers = getAuthHeaders();
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+  const response = await fetch(`${BASE_URL}/partners/deletePartner/${id}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || "Failed to delete partner");
+  }
+};
+
+export const getStudentsByPartnerId = async (id: number | string, page: number = 1, pageSize: number = 10) => {
+  const response = await fetch(`${BASE_URL}/partners/getStudentsByPartnerId/${id}?page=${page}&pageSize=${pageSize}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch students by partner");
+  }
+
+  return data;
+};
+
