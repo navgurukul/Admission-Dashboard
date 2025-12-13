@@ -16,6 +16,7 @@ import QuestionRepository from "./pages/QuestionRepository";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PartnerPage from "./pages/Partner";
+import PartnerStudents from "./pages/PartnerStudents";
 import AdminPage from "./pages/Admin";
 import AdminView from "./pages/AdminView";
 // import Student from "./pages/Student";
@@ -121,6 +122,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <PartnerPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners/:id/students"
+                element={
+                  <ProtectedRoute>
+                    <PartnerStudents />
                   </ProtectedRoute>
                 }
               />
