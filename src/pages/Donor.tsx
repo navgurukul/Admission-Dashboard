@@ -12,334 +12,468 @@ import {
   DialogTrigger,
   DialogContent,
   DialogTitle,
+  DialogHeader,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Users, Handshake, Search, Filter } from "lucide-react";
+import {
+  Users,
+  Handshake,
+  Search,
+  Filter,
+  Plus,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Eye
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
+import { createDonor, getDonors, updateDonor, deleteDonor, Donor } from "@/utils/api";
 
-const students = [
-  {
-    id: 1,
-    name: "Rukhsar khan",
-    number: "9960511321",
-    altNumber: "",
-    email: "rukh­sarkhan20@navgurukul.org",
-    gender: "Female",
-    joinedDate: "25 Jul 2021",
-    stage: "offerLetterSent",
-    jobKab: "N/A",
-    daysPassed: "N/A",
-    kitneAurDin: "",
-    kitneDinLaenge: "",
-    qualification: "Class 10th",
-    partnerName: "Akanksha Foundation",
-    campus: "",
-  },
-  {
-    id: 2,
-    name: "Akash Deshmukh",
-    number: "9623738495",
-    altNumber: "",
-    email: "Update Email",
-    gender: "Male",
-    joinedDate: "12 Sep 2022",
-    stage: "offerLetterSent",
-    jobKab: "N/A",
-    daysPassed: "N/A",
-    kitneAurDin: "",
-    kitneDinLaenge: "",
-    qualification: "Graduate",
-    partnerName: "jojopulli@gmail",
-    campus: "",
-  },
-  {
-    id: 3,
-    name: "Ankur Singhalvbb",
-    number: "8755531363",
-    altNumber: "8755531363",
-    email: "jayshri20@navgurukul.org",
-    gender: "",
-    joinedDate: "",
-    stage: "offerLetterSent",
-    jobKab: "N/A",
-    daysPassed: "N/A",
-    kitneAurDin: "",
-    kitneDinLaenge: "",
-    qualification: "Graduate",
-    partnerName: "katha",
-    campus: "",
-  },
-  {
-    id: 4,
-    name: "Dipesh Rangwani",
-    number: "7385419562",
-    altNumber: "7385419562",
-    email: "Update Email",
-    gender: "Male",
-    joinedDate: "12 Sep 2022",
-    stage: "offerLetterSent",
-    jobKab: "N/A",
-    daysPassed: "N/A",
-    kitneAurDin: "",
-    kitneDinLaenge: "",
-    qualification: "Class 12th",
-    partnerName: "United way of Hyderabad",
-    campus: "",
-  },
-];
-
-const donors = [
-  { id: 1, name: "Accenture C1" },
-  { id: 2, name: "Accenture C2" },
-  { id: 3, name: "Accenture C3" },
-  { id: 4, name: "Microsoft C1" },
-  { id: 5, name: "KPMG C1" },
-  { id: 6, name: "LTI" },
-  { id: 7, name: "DxC ( EIT)" },
-  { id: 8, name: "ACL" },
-  { id: 9, name: "Macquarie" },
-];
-
-// Sample options for dropdowns
-const stageOptions = [
-  { value: "offerLetterSent", label: "Offer Letter Sent" },
-  { value: "joined", label: "Joined" },
-  { value: "pending", label: "Pending" },
-];
-const campusOptions = [
-  { value: "", label: "Select..." },
-  { value: "Bangalore", label: "Bangalore" },
-  { value: "Pune", label: "Pune" },
-  { value: "Delhi", label: "Delhi" },
-];
-
-const genderOptions = [
-  { value: "", label: "Select..." },
-  { value: "Male", label: "Male" },
-  { value: "Female", label: "Female" },
-  { value: "Other", label: "Other" },
-];
-
-// Calculate unique partners from students array
-const uniquePartners = Array.from(
-  new Set(students.map((s) => s.partnerName).filter(Boolean)),
-);
-
-const Donor = () => {
+const DonorPage = () => {
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDonor, setSelectedDonor] = useState("Accenture C1 Donor");
-  const [donorDialogOpen, setDonorDialogOpen] = useState(false);
-  // For dropdowns, you might want to manage state per row in a real app
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Filter students by name, email, or partner name
-  const filteredStudents = students.filter(
-    (s) =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.partnerName.toLowerCase().includes(searchQuery.toLowerCase()),
+  // Dialog States
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [currentDonor, setCurrentDonor] = useState<Donor | null>(null);
+  const [formData, setFormData] = useState({
+    donor_name: "",
+    donor_email: "",
+    donor_phone: "",
+    donor_address: "",
+    donor_city: "",
+    donor_state: "",
+    donor_country: ""
+  });
+
+  useEffect(() => {
+    loadDonors();
+  }, []);
+
+  const loadDonors = async () => {
+    setLoading(true);
+    try {
+      const data = await getDonors();
+      let donorList = [];
+
+      if (Array.isArray(data)) {
+        donorList = data;
+      } else if (data?.data?.data && Array.isArray(data.data.data)) {
+        // Handle nested pagination structure: data.data.data
+        donorList = data.data.data;
+      } else if (data?.data && Array.isArray(data.data)) {
+        donorList = data.data;
+      } else if (data?.donors && Array.isArray(data.donors)) {
+        donorList = data.donors;
+      }
+
+      setDonors(donorList);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to fetch donors", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.donor_name.trim()) return;
+
+    try {
+      await createDonor({
+        donor_name: formData.donor_name,
+        donor_email: formData.donor_email,
+        donor_phone: formData.donor_phone ? Number(formData.donor_phone) : null,
+        donor_address: formData.donor_address,
+        donor_city: formData.donor_city,
+        donor_state: formData.donor_state,
+        donor_country: formData.donor_country
+      });
+      toast({ title: "Success", description: "Donor created successfully" });
+      setAddDialogOpen(false);
+      setFormData({
+        donor_name: "",
+        donor_email: "",
+        donor_phone: "",
+        donor_address: "",
+        donor_city: "",
+        donor_state: "",
+        donor_country: ""
+      });
+      loadDonors();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to create donor", variant: "destructive" });
+    }
+  };
+
+  const handleEditClick = (donor: Donor) => {
+    setCurrentDonor(donor);
+    setFormData({
+      donor_name: donor.donor_name,
+      donor_email: donor.donor_email || "",
+      donor_phone: donor.donor_phone ? String(donor.donor_phone) : "",
+      donor_address: donor.donor_address || "",
+      donor_city: donor.donor_city || "",
+      donor_state: donor.donor_state || "",
+      donor_country: donor.donor_country || ""
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentDonor || !formData.donor_name.trim()) return;
+
+    try {
+      await updateDonor(currentDonor.id, {
+        donor_name: formData.donor_name,
+        donor_email: formData.donor_email,
+        donor_phone: formData.donor_phone ? Number(formData.donor_phone) : null,
+        donor_address: formData.donor_address,
+        donor_city: formData.donor_city,
+        donor_state: formData.donor_state,
+        donor_country: formData.donor_country
+      });
+      toast({ title: "Success", description: "Donor updated successfully" });
+      setEditDialogOpen(false);
+      setCurrentDonor(null);
+      loadDonors();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update donor", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteClick = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this donor?")) return;
+    try {
+      await deleteDonor(id);
+      toast({ title: "Deleted", description: "Donor deleted successfully" });
+      loadDonors();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete donor", variant: "destructive" });
+    }
+  }
+
+  const filteredDonors = donors.filter(d =>
+    (d.donor_name || (d as any)['name'] || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-muted/40 flex">
       <AdmissionsSidebar />
-      <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
-        {/* Dashboard-style summary section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          <div className="bg-card rounded-xl p-6 shadow-soft border border-border flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
-                Total Students
-              </p>
-              <p className="text-2xl font-bold text-foreground">
-                {students.length}
-              </p>
+      <main className="md:ml-64 flex-1 p-6 overflow-y-auto h-screen">
+        <div className="max-w-7xl mx-auto space-y-8">
+
+          {/* Header & Stats */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Donors</h1>
+                <p className="text-muted-foreground">Manage donor partnerships and related students.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => {
+                  setFormData({
+                    donor_name: "",
+                    donor_email: "",
+                    donor_phone: "",
+                    donor_address: "",
+                    donor_city: "",
+                    donor_state: "",
+                    donor_country: ""
+                  });
+                  setAddDialogOpen(true);
+                }}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Donor
+                </Button>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-primary" />
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Donors</CardTitle>
+                  <Handshake className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{donors.length}</div>
+                </CardContent>
+              </Card>
+              {/* Add more stats if available from API later */}
             </div>
           </div>
-          <div className="bg-card rounded-xl p-6 shadow-soft border border-border flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
-                Total Donors
-              </p>
-              <p className="text-2xl font-bold text-foreground">
-                {donors.length}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-status-prospect/10 rounded-lg flex items-center justify-center">
-              <Handshake className="w-6 h-6 text-status-prospect" />
-            </div>
-          </div>
-          <div className="bg-card rounded-xl p-6 shadow-soft border border-border flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
-                Unique Partners
-              </p>
-              <p className="text-2xl font-bold text-foreground">
-                {uniquePartners.length}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-status-active/10 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-status-active" />
-            </div>
-          </div>
-        </div>
-        <h1 className="text-3xl font-bold text-center mb-6">{selectedDonor}</h1>
-        {/* Search Bar with icon and filter button */}
-        <div className="flex items-center justify-between mb-6 gap-2">
-          <div className="flex items-center gap-2 w-full max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search by name, email, or partner..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-10 flex items-center gap-2"
-            >
-              <Filter className="w-4 h-4" />
-              Filter
-            </Button>
-          </div>
-          <Dialog open={donorDialogOpen} onOpenChange={setDonorDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="px-6 py-2 rounded font-semibold"
-              >
-                Donor List
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogTitle>Donors Name</DialogTitle>
+
+          {/* Main Content */}
+          <Card className="shadow-md border-border/60">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>All Donors</CardTitle>
+                <div className="relative w-full max-w-sm">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search donors..."
+                    className="pl-9"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-16">S.No</TableHead>
-                    <TableHead>Name</TableHead>
+                    <TableHead>Donor Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>State</TableHead>
+                    <TableHead>Country</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {donors.map((donor, idx) => (
-                    <TableRow key={donor.id}>
-                      <TableCell>{idx + 1}</TableCell>
-                      <TableCell>
-                        <button
-                          className="text-red-600 font-medium hover:underline focus:outline-none"
-                          onClick={() => {
-                            setSelectedDonor(donor.name);
-                            setDonorDialogOpen(false);
-                          }}
-                        >
-                          {donor.name}
-                        </button>
-                      </TableCell>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center">Loading...</TableCell>
                     </TableRow>
-                  ))}
+                  ) : filteredDonors.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">No donors found.</TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredDonors.map((donor) => (
+                      <TableRow key={donor.id}>
+                        <TableCell>
+                          <span
+                            className="font-medium cursor-pointer hover:underline hover:text-primary"
+                            onClick={() => navigate(`/donors/${donor.id}/students`)}
+                          >
+                            {donor.donor_name || (donor as any)['name'] || "Unknown"}
+                          </span>
+                        </TableCell>
+                        <TableCell>{donor.donor_email || "-"}</TableCell>
+                        <TableCell>{donor.donor_phone || "-"}</TableCell>
+                        <TableCell>{donor.donor_address || "-"}</TableCell>
+                        <TableCell>{donor.donor_city || "-"}</TableCell>
+                        <TableCell>{donor.donor_state || "-"}</TableCell>
+                        <TableCell>{donor.donor_country || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => handleEditClick(donor)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/donors/${donor.id}/students`)}>
+                                <Eye className="mr-2 h-4 w-4" /> View Students
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(donor.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
-              <div className="text-xs text-muted-foreground mt-2 text-right">
-                Rows per page: 10 &nbsp; 1-{donors.length} of {donors.length}
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-        {/* Student Data Table - dashboard style */}
-        <div className="bg-card rounded-xl shadow-soft border border-border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Number</TableHead>
-                <TableHead>Alternative Number</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead>Joined Date</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Job Kab Lagegi..</TableHead>
-                <TableHead>Days Passed</TableHead>
-                <TableHead>kitne Aur Din</TableHead>
-                <TableHead>kitne Din Laenge</TableHead>
-                <TableHead>Qualification</TableHead>
-                <TableHead>Partner Name</TableHead>
-                <TableHead>Campus</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStudents.map((s, idx) => (
-                <TableRow
-                  key={s.id}
-                  className="border-b border-border hover:bg-muted/20 transition-colors"
-                >
-                  <TableCell className="p-4">{s.name}</TableCell>
-                  <TableCell className="p-4">{s.number}</TableCell>
-                  <TableCell className="p-4">{s.altNumber}</TableCell>
-                  <TableCell className="p-4">{s.email}</TableCell>
-                  <TableCell className="p-4">
-                    <select className="border rounded px-2 py-1 text-sm w-full">
-                      {genderOptions.map((opt) => (
-                        <option
-                          key={opt.value}
-                          value={opt.value}
-                          selected={s.gender === opt.value}
-                        >
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </TableCell>
-                  <TableCell className="p-4">{s.joinedDate}</TableCell>
-                  <TableCell className="p-4">
-                    <select className="border rounded px-2 py-1 text-sm w-full">
-                      {stageOptions.map((opt) => (
-                        <option
-                          key={opt.value}
-                          value={opt.value}
-                          selected={s.stage === opt.value}
-                        >
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </TableCell>
-                  <TableCell className="p-4">{s.jobKab}</TableCell>
-                  <TableCell className="p-4">{s.daysPassed}</TableCell>
-                  <TableCell className="p-4">{s.kitneAurDin}</TableCell>
-                  <TableCell className="p-4">{s.kitneDinLaenge}</TableCell>
-                  <TableCell className="p-4">{s.qualification}</TableCell>
-                  <TableCell className="p-4">{s.partnerName}</TableCell>
-                  <TableCell className="p-4">
-                    <select className="border rounded px-2 py-1 text-sm w-full">
-                      {campusOptions.map((opt) => (
-                        <option
-                          key={opt.value}
-                          value={opt.value}
-                          selected={s.campus === opt.value}
-                        >
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="text-xs text-muted-foreground mt-2 text-right p-4">
-            Rows per page: 10 &nbsp; 1-{filteredStudents.length} of{" "}
-            {filteredStudents.length}
-          </div>
+            </CardContent>
+          </Card>
+
         </div>
       </main>
+
+      {/* Add Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Donor</DialogTitle>
+            <DialogDescription>Create a new donor partner.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Donor Name</Label>
+              <Input
+                id="name"
+                value={formData.donor_name}
+                onChange={(e) => setFormData({ ...formData, donor_name: e.target.value })}
+                placeholder="e.g. Accenture"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.donor_email}
+                  onChange={(e) => setFormData({ ...formData, donor_email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  type="number"
+                  value={formData.donor_phone}
+                  onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={formData.donor_address}
+                onChange={(e) => setFormData({ ...formData, donor_address: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={formData.donor_city}
+                  onChange={(e) => setFormData({ ...formData, donor_city: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  value={formData.donor_state}
+                  onChange={(e) => setFormData({ ...formData, donor_state: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={formData.donor_country}
+                  onChange={(e) => setFormData({ ...formData, donor_country: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">Create Donor</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Donor</DialogTitle>
+            <DialogDescription>Update donor details.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Donor Name</Label>
+              <Input
+                id="edit-name"
+                value={formData.donor_name}
+                onChange={(e) => setFormData({ ...formData, donor_name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.donor_email}
+                  onChange={(e) => setFormData({ ...formData, donor_email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  type="number"
+                  value={formData.donor_phone}
+                  onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Address</Label>
+              <Input
+                id="edit-address"
+                value={formData.donor_address}
+                onChange={(e) => setFormData({ ...formData, donor_address: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-city">City</Label>
+                <Input
+                  id="edit-city"
+                  value={formData.donor_city}
+                  onChange={(e) => setFormData({ ...formData, donor_city: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-state">State</Label>
+                <Input
+                  id="edit-state"
+                  value={formData.donor_state}
+                  onChange={(e) => setFormData({ ...formData, donor_state: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-country">Country</Label>
+                <Input
+                  id="edit-country"
+                  value={formData.donor_country}
+                  onChange={(e) => setFormData({ ...formData, donor_country: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">Update Donor</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
 
-export default Donor;
+export default DonorPage;

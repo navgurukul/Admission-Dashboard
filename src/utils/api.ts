@@ -2345,3 +2345,117 @@ export const getStudentsByPartnerId = async (id: number | string, page: number =
   return data;
 };
 
+
+// Donor APIs
+export interface Donor {
+  id: number;
+  donor_name: string;
+  donor_email?: string;
+  donor_phone?: number;
+  donor_address?: string;
+  donor_city?: string;
+  donor_state?: string;
+  donor_country?: string;
+  status?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const createDonor = async (payload: Partial<Donor>) => {
+  const response = await fetch(`${BASE_URL}/donors/createDonor`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create donor");
+  }
+
+  return data;
+};
+
+export const getDonors = async () => {
+  const response = await fetch(`${BASE_URL}/donors/getDonors`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch donors");
+  }
+
+  // Normalized return to handle data.data pattern if it exists, though check Partner implementation for consistency
+  if (data && data.data && Array.isArray(data.data)) {
+    return data.data;
+  }
+  return data;
+};
+
+export const getDonorById = async (id: number | string) => {
+  const response = await fetch(`${BASE_URL}/donors/getDonorById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch donor");
+  }
+
+  return data;
+}
+
+export const updateDonor = async (id: number | string, payload: Partial<Donor>) => {
+  const response = await fetch(`${BASE_URL}/donors/updateDonor/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update donor");
+  }
+
+  return data;
+}
+
+export const deleteDonor = async (id: number | string) => {
+  const headers = getAuthHeaders();
+  if (headers["Content-Type"]) {
+    delete headers["Content-Type"];
+  }
+
+  const response = await fetch(`${BASE_URL}/donors/deleteDonor/${id}`, {
+    method: "DELETE",
+    headers: headers,
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || "Failed to delete donor");
+  }
+}
+
+export const getStudentsByDonorId = async (id: number | string, page: number = 1, pageSize: number = 10) => {
+  const response = await fetch(`${BASE_URL}/donors/getStudentsByDonorId/${id}?page=${page}&pageSize=${pageSize}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch students by donor");
+  }
+
+  return data;
+}
+

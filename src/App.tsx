@@ -21,6 +21,7 @@ import AdminPage from "./pages/Admin";
 import AdminView from "./pages/AdminView";
 // import Student from "./pages/Student";
 import Donor from "./pages/Donor";
+import DonorStudents from "./pages/DonorStudents";
 import Campus from "./pages/Campus";
 import CampusDetail from "./pages/CampusDetail";
 import School from "./pages/School";
@@ -162,6 +163,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Donor />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/donors/:id/students"
+                element={
+                  <ProtectedRoute>
+                    <DonorStudents />
                   </ProtectedRoute>
                 }
               />
