@@ -11,10 +11,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Eye } from "lucide-react";
 import { getStudentsByPartnerId, getPartnerById } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ApplicantModal } from "@/components/ApplicantModal";
 
 const PartnerStudents = () => {
     const { id } = useParams();
@@ -25,6 +26,8 @@ const PartnerStudents = () => {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -52,7 +55,10 @@ const PartnerStudents = () => {
             let studentList = [];
             let totalCount = 0;
 
-            if (data && data.data && Array.isArray(data.data)) {
+            if (data?.data?.data && Array.isArray(data.data.data)) {
+                studentList = data.data.data;
+                totalCount = data.data.total || data.total || studentList.length;
+            } else if (data && data.data && Array.isArray(data.data)) {
                 studentList = data.data;
                 totalCount = data.total || studentList.length;
             } else if (Array.isArray(data)) {
@@ -70,6 +76,11 @@ const PartnerStudents = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleViewStudent = (student) => {
+        setSelectedStudent(student);
+        setIsModalOpen(true);
     };
 
     return (
@@ -105,23 +116,28 @@ const PartnerStudents = () => {
                                         <TableHead>Status</TableHead>
                                         <TableHead>Stage</TableHead>
                                         <TableHead>Score</TableHead>
+                                        <TableHead>Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center">Loading...</TableCell>
+                                            <TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell>
                                         </TableRow>
                                     ) : students.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
+                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
                                         </TableRow>
                                     ) : (
                                         students.map((student, idx) => (
                                             <TableRow key={student.id || idx}>
-                                                <TableCell className="font-medium">{student.name}</TableCell>
-                                                <TableCell>{student.email}</TableCell>
-                                                <TableCell>{student.mobile || "-"}</TableCell>
+                                                <TableCell className="font-medium">
+                                                    {student.name ||
+                                                        `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() ||
+                                                        "N/A"}
+                                                </TableCell>
+                                                <TableCell>{student.email || "-"}</TableCell>
+                                                <TableCell>{student.mobile || student.phone_number || student.whatsapp_number || "-"}</TableCell>
                                                 <TableCell>
                                                     <Badge variant="secondary" className="font-normal">
                                                         {student.current_status || "N/A"}
@@ -129,6 +145,11 @@ const PartnerStudents = () => {
                                                 </TableCell>
                                                 <TableCell>{student.stage || "-"}</TableCell>
                                                 <TableCell>{student.total_score || "-"}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleViewStudent(student)}>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -158,6 +179,12 @@ const PartnerStudents = () => {
                     </Card>
                 </div>
             </main>
+
+            <ApplicantModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                applicant={selectedStudent}
+            />
         </div>
     );
 };
