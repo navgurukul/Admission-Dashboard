@@ -188,7 +188,16 @@ export function EditableCell({
       const isIdField = String(field).endsWith("_id");
       const payload: any = {};
 
-      if (newValue === "none" || newValue === "") {
+      // Special handling for state, district, block - convert codes to names
+      if (field === "state" || field === "district" || field === "block") {
+        if (newValue === "none" || newValue === "") {
+          payload[field] = null;
+        } else {
+          // Find the label (name) from the options and send NAME to API
+          const selectedOption = normalizedOptions.find((opt) => opt.id === newValue);
+          payload[field] = selectedOption ? selectedOption.name : newValue;
+        }
+      } else if (newValue === "none" || newValue === "") {
         payload[field] = null;
       } else if (isIdField) {
         payload[field] = Number(newValue);
@@ -200,7 +209,7 @@ export function EditableCell({
       toast({ title: "Success", description: "Field updated successfully" });
       setCellValue(payload[field]);
       if (onUpdate) {
-        onUpdate(payload[field]); // Pass updated value
+        onUpdate(newValue); // Pass the code/id for state management, but API gets the name
       }
     } catch (error: any) {
       console.error("Error updating field:", error);
@@ -212,7 +221,7 @@ export function EditableCell({
     } finally {
       setIsUpdating(false);
     }
-  }, [applicant, field, isUpdating, onUpdate, toast]);
+  }, [applicant, field, isUpdating, onUpdate, toast, normalizedOptions]);
 
   const isEditing =
     editingCell?.id === applicant.id && editingCell?.field === field;
@@ -330,8 +339,12 @@ export function EditableCell({
             value={cellValue ?? ""}
             onChange={(e) => {
               const value = e.target.value;
+              // Filter out numbers from name fields
+              if (field === "first_name" || field === "middle_name" || field === "last_name") {
+                setCellValue(value.replace(/[0-9]/g, ""));
+              }
               // For phone/pincode fields, only allow digits
-              if (
+              else if (
                 field === "phone_number" || 
                 field === "whatsapp_number" || 
                 field === "pin_code"

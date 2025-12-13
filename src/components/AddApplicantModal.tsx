@@ -241,8 +241,16 @@ export function AddApplicantModal({
   }, [formData.question_set_id, questionSetList]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
+    // Handle name fields - only allow letters and spaces (no numbers)
+    if ((field === "first_name" || field === "middle_name" || field === "last_name") && typeof value === "string") {
+      const lettersOnly = value.replace(/[0-9]/g, "");
+      setFormData((prev) => ({
+        ...prev,
+        [field]: lettersOnly,
+      }));
+    }
     // Handle PIN code - only allow 6 digits
-    if (field === "pin_code" && typeof value === "string") {
+    else if (field === "pin_code" && typeof value === "string") {
       const digitsOnly = value.replace(/\D/g, "");
       const truncated = digitsOnly.slice(0, 6);
       setFormData((prev) => ({
@@ -606,10 +614,10 @@ export function AddApplicantModal({
         email: formData.email || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
-        state: formData.stateCode || null, // Send code instead of label
+        state: formData.state || null, // Send NAME instead of code
         city: formData.city || null,
-        district: formData.districtCode || null, // Send code instead of label
-        block: formData.blockCode || null, // Send code instead of label
+        district: formData.district || null, // Send NAME instead of code
+        block: formData.block || null, // Send NAME instead of code
         pin_code: formData.pin_code || null,
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
         qualification_id: formData.qualification_id

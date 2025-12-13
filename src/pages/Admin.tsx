@@ -795,25 +795,10 @@ const AdminPage: React.FC = () => {
                         value={addUserDialog.name}
                         onChange={(e) => {
                           const val = e.target.value;
-                          setAddUserDialog((d) => ({ ...d, name: val }));
-                          // live validation: only letters, spaces, apostrophe, hyphen
-                          if (val && !/^[A-Za-z\s'-]+$/.test(val)) {
-                            setNameError(
-                              "Name can only contain letters, spaces.",
-                            );
-                          } else {
-                            setNameError("");
-                          }
-                        }}
-                        onBlur={() => {
-                          const val = addUserDialog.name.trim();
-                          if (val && !/^[A-Za-z\s'-]+$/.test(val)) {
-                            setNameError(
-                              "Name can only contain letters, spaces.",
-                            );
-                          } else {
-                            setNameError("");
-                          }
+                          // Silently filter out numbers - only allow letters, spaces, apostrophe, hyphen
+                          const filteredVal = val.replace(/[0-9]/g, "");
+                          setAddUserDialog((d) => ({ ...d, name: filteredVal }));
+                          setNameError(""); // Clear any previous errors
                         }}
                         className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
                           nameError

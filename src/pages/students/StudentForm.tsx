@@ -99,9 +99,9 @@ const StudentForm: React.FC = () => {
       phone_number: data.alternateNumber,
       email: data.email,
       gender: data.gender,
-      state: data.stateCode, // Send code as state
-      district: data.districtCode, // Send code as district
-      block: data.blockCode, // Send code as block
+      state: data.state, // Send NAME (e.g., "Telangana")
+      district: data.district, // Send NAME (e.g., "Hyderabad")
+      block: data.block, // Send NAME (e.g., "Asifnagar")
       city: data.city,
       pin_code: data.pinCode,
       school_medium: data.schoolMedium,
@@ -301,8 +301,13 @@ const StudentForm: React.FC = () => {
   ) => {
     const { name, value } = e.target;
 
-    // For phone fields, strip non-digit characters and limit to 10 digits
+    // For name fields, allow only letters, spaces, apostrophes, and hyphens
     let processedValue = value;
+    if (name === "firstName" || name === "middleName" || name === "lastName") {
+      processedValue = value.replace(/[^A-Za-z\s'-]/g, "");
+    }
+    
+    // For phone fields, strip non-digit characters and limit to 10 digits
     if (name === "whatsappNumber" || name === "alternateNumber") {
       processedValue = value.replace(/\D/g, "").slice(0, 10);
     }

@@ -78,9 +78,9 @@ export function BulkUpdateModal({
     stageId: "no_change",
     statusId: "no_change",
     campusId: "no_change",
-    state: "no_change",
-    district: "no_change",
-    block: "no_change",
+    state: "no_change",          // Store CODE for UI
+    district: "no_change",       // Store CODE for UI
+    block: "no_change",          // Store ID for UI
     city: "",
     castId: "no_change",
     qualificationId: "no_change",
@@ -175,9 +175,10 @@ export function BulkUpdateModal({
   };
 
   const handleStateChange = async (stateCode: string) => {
+    // Store the CODE for UI (so Combobox selection works)
     setUpdateData((prev) => ({
       ...prev,
-      state: stateCode,
+      state: stateCode,          // Store CODE for UI display
       district: "no_change",
       block: "no_change",
     }));
@@ -188,6 +189,7 @@ export function BulkUpdateModal({
     if (stateCode === "no_change") {
       return;
     }
+
 
     try {
       const res = await getDistrictsByState(stateCode);
@@ -203,9 +205,10 @@ export function BulkUpdateModal({
   };
 
   const handleDistrictChange = async (districtCode: string) => {
+    // Store the CODE for UI (so Combobox selection works)
     setUpdateData((prev) => ({
       ...prev,
-      district: districtCode,
+      district: districtCode,    // Store CODE for UI display
       block: "no_change",
     }));
     setBlockOptions([]);
@@ -263,13 +266,19 @@ export function BulkUpdateModal({
           : Number(updateData.campusId);
     }
     if (updateData.state !== "no_change") {
-      payload.state = updateData.state;
+      // Convert state code to name before sending to API
+      const stateName = stateOptions.find((opt) => opt.value === updateData.state)?.label || updateData.state;
+      payload.state = stateName;  // Send NAME to API (e.g., "Tripura")
     }
     if (updateData.district !== "no_change") {
-      payload.district = updateData.district;
+      // Convert district code to name before sending to API
+      const districtName = districtOptions.find((opt) => opt.value === updateData.district)?.label || updateData.district;
+      payload.district = districtName;  // Send NAME to API (e.g., "North District")
     }
     if (updateData.block !== "no_change") {
-      payload.block = updateData.block;
+      // Convert block id to name before sending to API
+      const blockName = blockOptions.find((opt) => opt.value === updateData.block)?.label || updateData.block;
+      payload.block = blockName;  // Send NAME to API (e.g., "Block A")
     }
     if (updateData.castId !== "no_change") {
       payload.cast_id = Number(updateData.castId);
@@ -467,9 +476,10 @@ export function BulkUpdateModal({
                     })),
                   ]}
                   value={updateData.block}
-                  onValueChange={(val) =>
-                    setUpdateData((prev) => ({ ...prev, block: val }))
-                  }
+                  onValueChange={(val) => {
+                    // Store the ID for UI (so Combobox selection works)
+                    setUpdateData((prev) => ({ ...prev, block: val }));
+                  }}
                   placeholder={
                     updateData.district === "no_change" || !updateData.district
                       ? "Select district first"
