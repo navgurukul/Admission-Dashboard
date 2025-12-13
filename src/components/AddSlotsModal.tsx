@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Clock, User, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,16 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
-import { createSlotBookingTimes } from "@/utils/api";
+import { createSlotBookingTimes, getSlotByDate } from "@/utils/api";
+import {
+  toMinutes,
+  timesOverlap,
+  formatTime,
+  getSlotTypeName,
+  validateAgainstExistingSlots,
+  isValidTimeFormat,
+  validateTimeRange,
+} from "@/utils/slotValidation";
 
 interface TimeSlot {
   date?: Date;
@@ -50,7 +59,100 @@ export function AddSlotsModal({
   ]);
   const [loading, setLoading] = useState(false);
   const [openPopovers, setOpenPopovers] = useState<Record<number, boolean>>({});
+  const [existingSlotsCache, setExistingSlotsCache] = useState<Record<string, any[]>>({});
   const { toast } = useToast();
+
+  // Fetch existing slots when a date is selected
+  const fetchExistingSlotsForDate = async (date: Date, slotType: string) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    const cacheKey = `${dateStr}_${slotType}`;
+
+    // Check cache first
+    if (existingSlotsCache[cacheKey]) {
+      return existingSlotsCache[cacheKey];
+    }
+
+    try {
+      const response = await getSlotByDate(dateStr, slotType as "LR" | "CFR");
+      const slots = Array.isArray(response) ? response : (response as any)?.data || [];
+      
+      // Cache the result
+      setExistingSlotsCache(prev => ({
+        ...prev,
+        [cacheKey]: slots,
+      }));
+
+      return slots;
+    } catch (error) {
+      console.error("Error fetching existing slots:", error);
+      return [];
+    }
+  };
+
+  // Wrapper to validate using cached data
+  const validateSlotWithCache = async (
+    date: Date,
+    startTime: string,
+    endTime: string,
+    slotType: string,
+  ): Promise<{ valid: boolean; message?: string }> => {
+    // Ensure data is fetched and cached first
+    await fetchExistingSlotsForDate(date, slotType);
+    
+    // Now validate using the shared function
+    return validateAgainstExistingSlots(date, startTime, endTime, slotType);
+  };
+
+  // Validate within the current form (check duplicates and overlaps)
+  const validateWithinForm = (
+    slots: TimeSlot[],
+  ): { valid: boolean; message?: string } => {
+    for (let i = 0; i < slots.length; i++) {
+      const slot1 = slots[i];
+      if (!slot1.date || !slot1.startTime || !slot1.endTime || !slot1.slot_type) {
+        continue;
+      }
+
+      for (let j = i + 1; j < slots.length; j++) {
+        const slot2 = slots[j];
+        if (!slot2.date || !slot2.startTime || !slot2.endTime || !slot2.slot_type) {
+          continue;
+        }
+
+        // Check if same date
+        const sameDate = format(slot1.date, "yyyy-MM-dd") === format(slot2.date, "yyyy-MM-dd");
+        
+        if (sameDate) {
+          const sameType = slot1.slot_type === slot2.slot_type;
+          const slot1Type = getSlotTypeName(slot1.slot_type);
+          const slot2Type = getSlotTypeName(slot2.slot_type);
+          const dateStr = format(slot1.date, "MMM dd, yyyy");
+
+          // Check for exact duplicate (same type, same time)
+          if (
+            sameType &&
+            slot1.startTime === slot2.startTime &&
+            slot1.endTime === slot2.endTime
+          ) {
+            return {
+              valid: false,
+              message: `Duplicate found! Slot #${i + 1} and Slot #${j + 1} have the same ${slot1Type} time (${formatTime(slot1.startTime)} - ${formatTime(slot1.endTime)}) on ${dateStr}.`,
+            };
+          }
+
+          // Check for time overlap (regardless of type - can't have overlapping interviews)
+          if (timesOverlap(slot1.startTime, slot1.endTime, slot2.startTime, slot2.endTime)) {
+            return {
+              valid: false,
+              message: `Time conflict between your slots! Slot #${i + 1} (${slot1Type}: ${formatTime(slot1.startTime)} - ${formatTime(slot1.endTime)}) overlaps with Slot #${j + 1} (${slot2Type}: ${formatTime(slot2.startTime)} - ${formatTime(slot2.endTime)}) on ${dateStr}.`,
+            };
+          }
+        }
+      }
+    }
+
+    return { valid: true };
+  };
 
   const addTimeSlot = () => {
     setTimeSlots([
@@ -83,8 +185,8 @@ export function AddSlotsModal({
     const missingDates = timeSlots.some((slot) => !slot.date);
     if (missingDates) {
       toast({
-        title: "Error",
-        description: "Please select a date for all slots",
+        title: "Missing Date",
+        description: "Please select a date for all slots before submitting.",
         variant: "destructive",
       });
       return;
@@ -95,42 +197,101 @@ export function AddSlotsModal({
     );
     if (invalidSlots) {
       toast({
-        title: "Error",
-        description: "Please fill in all slot details including slot type",
+        title: "Incomplete Information",
+        description: "Please fill in all required fields: slot type, start time, and end time.",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate time format (HH:mm) and start < end
-    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
-    const toMinutes = (t: string) => {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    };
-
+    // Validate time format and time range
     for (let i = 0; i < timeSlots.length; i++) {
       const { startTime, endTime } = timeSlots[i];
 
-      if (!timePattern.test(startTime) || !timePattern.test(endTime)) {
+      if (!isValidTimeFormat(startTime) || !isValidTimeFormat(endTime)) {
         toast({
-          title: "Invalid time",
-          description: `Slot ${i + 1}: times must be in HH:mm format.`,
+          title: "Invalid Time Format",
+          description: `Slot #${i + 1}: Please enter valid times in HH:mm format (e.g., 14:30).`,
           variant: "destructive",
         });
         return;
       }
 
-      if (toMinutes(startTime) >= toMinutes(endTime)) {
+      // Validate time range (checks start < end, min duration, max duration)
+      const rangeValidation = validateTimeRange(startTime, endTime);
+      if (!rangeValidation.valid) {
         toast({
-          title: "Invalid time range",
-          description: `Slot ${
-            i + 1
-          }: start time must be earlier than end time.`,
+          title: "Invalid Time Range",
+          description: `Slot #${i + 1}: ${rangeValidation.message}`,
           variant: "destructive",
         });
         return;
       }
+    }
+
+    // Validate within form for duplicates and overlaps
+    const formValidation = validateWithinForm(timeSlots);
+    if (!formValidation.valid) {
+      toast({
+        title: "Slot Conflict",
+        description: formValidation.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Batch fetch all required existing slots to minimize API calls
+    toast({
+      title: "Validating Slots",
+      description: "Checking for conflicts with existing schedules...",
+    });
+
+    try {
+      // Get unique combinations of date and slot_type
+      const uniqueCombinations = new Map<string, { date: Date; slotType: string }>();
+      
+      timeSlots.forEach((slot) => {
+        const dateStr = format(slot.date!, "yyyy-MM-dd");
+        const key = `${dateStr}_${slot.slot_type}`;
+        if (!uniqueCombinations.has(key)) {
+          uniqueCombinations.set(key, { date: slot.date!, slotType: slot.slot_type });
+        }
+      });
+
+      // Fetch all required slots in parallel (batch request)
+      const fetchPromises = Array.from(uniqueCombinations.values()).map(
+        ({ date, slotType }) => fetchExistingSlotsForDate(date, slotType)
+      );
+
+      await Promise.all(fetchPromises);
+
+      // Now validate each slot against cached data
+      for (let i = 0; i < timeSlots.length; i++) {
+        const slot = timeSlots[i];
+        const validation = await validateSlotWithCache(
+          slot.date!,
+          slot.startTime,
+          slot.endTime,
+          slot.slot_type,
+        );
+
+        if (!validation.valid) {
+          toast({
+            title: "Cannot Add Slot",
+            description: validation.message,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error validating slots:", error);
+      toast({
+        title: "Validation Failed",
+        description: "Unable to verify slots. Please check your connection and try again.",
+        variant: "destructive",
+      });
+      return;
     }
 
     try {
@@ -148,8 +309,8 @@ export function AddSlotsModal({
       // console.log("Slots created via API", slotsData);
 
       toast({
-        title: "Success",
-        description: `${timeSlots.length} interview slots added successfully`,
+        title: "✓ Slots Added Successfully",
+        description: `${timeSlots.length} interview slot${timeSlots.length > 1 ? 's have' : ' has'} been added to the schedule.`,
       });
 
       onSuccess();
@@ -157,8 +318,8 @@ export function AddSlotsModal({
     } catch (error) {
       console.error("Error adding slots:", error);
       toast({
-        title: "Error",
-        description: "Failed to add interview slots",
+        title: "Failed to Add Slots",
+        description: "Something went wrong. Please try again or contact support if the issue persists.",
         variant: "destructive",
       });
     } finally {
@@ -171,6 +332,7 @@ export function AddSlotsModal({
       { date: undefined, startTime: "", endTime: "", slot_type: "" },
     ]);
     setOpenPopovers({});
+    setExistingSlotsCache({});
     onClose();
   };
 

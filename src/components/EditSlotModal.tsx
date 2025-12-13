@@ -26,6 +26,13 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { updateSlot } from "@/utils/api";
+import {
+  toMinutes,
+  formatTime,
+  validateAgainstExistingSlots,
+  isValidTimeFormat,
+  validateTimeRange,
+} from "@/utils/slotValidation";
 
 interface EditSlotModalProps {
   isOpen: boolean;
@@ -36,7 +43,7 @@ interface EditSlotModalProps {
     date: string;
     start_time: string;
     end_time: string;
-    slot_type: string;
+    slot_type?: string;
   } | null;
 }
 
@@ -59,7 +66,7 @@ export function EditSlotModal({
       setDate(new Date(slotData.date));
       setStartTime(slotData.start_time);
       setEndTime(slotData.end_time);
-      setSlotType(slotData.slot_type);
+      setSlotType(slotData.slot_type || "");
     }
   }, [slotData, isOpen]);
 
@@ -68,8 +75,8 @@ export function EditSlotModal({
 
     if (!date) {
       toast({
-        title: "Error",
-        description: "Please select a date",
+        title: "Missing Date",
+        description: "Please select a date before saving.",
         variant: "destructive",
       });
       return;
@@ -77,34 +84,61 @@ export function EditSlotModal({
 
     if (!startTime || !endTime) {
       toast({
-        title: "Error",
-        description: "Please fill in all time details",
+        title: "Incomplete Information",
+        description: "Please fill in both start time and end time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!slotType) {
+      toast({
+        title: "Missing Slot Type",
+        description: "Please select a slot type (LR or CFR).",
         variant: "destructive",
       });
       return;
     }
 
     // Validate time format (HH:mm)
-    const timePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
-    if (!timePattern.test(startTime) || !timePattern.test(endTime)) {
+    if (!isValidTimeFormat(startTime) || !isValidTimeFormat(endTime)) {
       toast({
-        title: "Invalid time",
-        description: "Times must be in HH:mm format",
+        title: "Invalid Time Format",
+        description: "Please enter valid times in HH:mm format (e.g., 14:30).",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate start < end
-    const toMinutes = (t: string) => {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    };
-
-    if (toMinutes(startTime) >= toMinutes(endTime)) {
+    // Validate time range (checks start < end, min duration, max duration)
+    const rangeValidation = validateTimeRange(startTime, endTime);
+    if (!rangeValidation.valid) {
       toast({
-        title: "Invalid time range",
-        description: "Start time must be earlier than end time",
+        title: "Invalid Time Range",
+        description: rangeValidation.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate against existing slots
+    toast({
+      title: "Validating Changes",
+      description: "Checking for conflicts with existing schedules...",
+    });
+
+    const validation = await validateAgainstExistingSlots(
+      date,
+      startTime,
+      endTime,
+      slotType,
+      slotData!.id, // Exclude current slot from validation
+    );
+
+    if (!validation.valid) {
+      toast({
+        title: "Cannot Update Slot",
+        description: validation.message,
         variant: "destructive",
       });
       return;
@@ -123,8 +157,8 @@ export function EditSlotModal({
       await updateSlot(slotData!.id, payload);
 
       toast({
-        title: "Success",
-        description: "Slot updated successfully",
+        title: "✓ Slot Updated Successfully",
+        description: "The interview slot has been updated in the schedule.",
       });
 
       onSuccess();
@@ -132,8 +166,8 @@ export function EditSlotModal({
     } catch (error) {
       console.error("Error updating slot:", error);
       toast({
-        title: "Error",
-        description: "Failed to update slot",
+        title: "Failed to Update Slot",
+        description: "Something went wrong. Please try again or contact support if the issue persists.",
         variant: "destructive",
       });
     } finally {
