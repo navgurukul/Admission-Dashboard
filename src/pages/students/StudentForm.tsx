@@ -458,6 +458,13 @@ const StudentForm: React.FC = () => {
 
   const isFormValid = () => {
     const age = getAge(formData.dateOfBirth);
+    
+    // District is mandatory only if districts are available
+    const districtRequired = districts.length > 0 ? formData.districtCode : true;
+    
+    // Block is mandatory only if blocks are available
+    const blockRequired = blocks.length > 0 ? formData.blockCode : true;
+    
     return (
       formData.profileImage &&
       formData.firstName &&
@@ -465,7 +472,8 @@ const StudentForm: React.FC = () => {
       formData.whatsappNumber &&
       formData.gender &&
       formData.stateCode &&
-      formData.districtCode &&
+      districtRequired &&
+      blockRequired &&
       formData.pinCode &&
       formData.currentStatus &&
       formData.maximumQualification &&
@@ -519,10 +527,29 @@ const StudentForm: React.FC = () => {
       });
     }
 
-    if (!formData.stateCode || !formData.districtCode || !formData.pinCode) {
+    // Validate State and Pin Code (always required)
+    if (!formData.stateCode || !formData.pinCode) {
       return toast({
         title: "Address Required",
-        description: "Please fill all required address fields.",
+        description: "Please fill State and Pin Code.",
+        variant: "destructive",
+      });
+    }
+
+    // Validate District (required only if districts are available)
+    if (districts.length > 0 && !formData.districtCode) {
+      return toast({
+        title: "District Required",
+        description: "Please select a district.",
+        variant: "destructive",
+      });
+    }
+
+    // Validate Block (required only if blocks are available)
+    if (blocks.length > 0 && !formData.blockCode) {
+      return toast({
+        title: "Block Required",
+        description: "Please select a block.",
         variant: "destructive",
       });
     }
@@ -629,7 +656,7 @@ const StudentForm: React.FC = () => {
           alternateNumber: "वैकल्पिक नंबर",
           email: "ईमेल पता ",
           state: "राज्य चुनें *",
-          district: "जिला चुनें *",
+          district: "जिला चुनें",
           block: "ब्लॉक चुनें",
           city: "शहर *",
           pinCode: "पिन कोड *",
@@ -682,7 +709,7 @@ const StudentForm: React.FC = () => {
           alternateNumber: "पर्यायी नंबर",
           email: "ईमेल पत्ता ",
           state: "राज्य निवडा *",
-          district: "जिल्हा निवडा *",
+          district: "जिल्हा निवडा",
           block: "ब्लॉक निवडा",
           city: "शहर *",
           pinCode: "पिन कोड *",
@@ -735,7 +762,7 @@ const StudentForm: React.FC = () => {
           alternateNumber: "Alternate Number",
           email: "Email Address",
           state: "Select State *",
-          district: "Select District *",
+          district: "Select District",
           block: "Select Block",
           pinCode: "Pin Code *",
           currentStatus: "Current Status *",
@@ -999,6 +1026,7 @@ const StudentForm: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.district}
+                {districts.length > 0 && <span className="text-red-500"> *</span>}
               </label>
               <Combobox
                 options={districts?.map((district) => ({
@@ -1025,58 +1053,31 @@ const StudentForm: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.block}
+                {blocks.length > 0 && <span className="text-red-500"> *</span>}
               </label>
-              {blocks.length > 0 ? (
-                <Combobox
-                  options={blocks?.map((block) => ({
-                    value: String(block.id), // Use id as value, like ApplicantModal
-                    label: block.block_name,
-                  })) || []}
-                  value={formData.blockCode}
-                  onValueChange={(value) => {
-                    handleInputChange({ target: { name: 'blockCode', value } } as any);
-                  }}
-                  placeholder={
-                    loadingStates.blocks
-                      ? content.loading
-                      : !formData.districtCode
-                      ? "Select district first"
-                      : content.selectBlock
-                  }
-                  searchPlaceholder="Search block..."
-                  emptyText="No block found."
-                  disabled={loadingStates.blocks || !formData.districtCode}
-                  className="h-12"
-                />
-              ) : (
-                <input
-                  type="text"
-                  name="blockCode"
-                  value={formData.block}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData((prev) => ({
-                      ...prev,
-                      block: value,
-                      blockCode: value,
-                    }));
-                    localStorage.setItem("studentFormData", JSON.stringify({
-                      ...formData,
-                      block: value,
-                      blockCode: value,
-                    }));
-                  }}
-                  placeholder={
-                    loadingStates.blocks
-                      ? content.loading
-                      : !formData.districtCode
-                      ? "Select district first"
-                      : "Enter block name"
-                  }
-                  disabled={!formData.districtCode || loadingStates.blocks}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-              )}
+              <Combobox
+                options={blocks?.map((block) => ({
+                  value: String(block.id), // Use id as value, like ApplicantModal
+                  label: block.block_name,
+                })) || []}
+                value={formData.blockCode}
+                onValueChange={(value) => {
+                  handleInputChange({ target: { name: 'blockCode', value } } as any);
+                }}
+                placeholder={
+                  loadingStates.blocks
+                    ? content.loading
+                    : !formData.districtCode
+                    ? "Select district first"
+                    : blocks.length === 0
+                    ? "No blocks available"
+                    : content.selectBlock
+                }
+                searchPlaceholder="Search block..."
+                emptyText="No block found."
+                disabled={loadingStates.blocks || !formData.districtCode}
+                className="h-12"
+              />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
