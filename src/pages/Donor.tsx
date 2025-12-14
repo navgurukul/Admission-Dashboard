@@ -48,6 +48,8 @@ const DonorPage = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const ROWS_PER_PAGE = 10;
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -96,13 +98,24 @@ const DonorPage = () => {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.donor_name.trim()) return;
+    if (
+      !formData.donor_name.trim() ||
+      !formData.donor_email.trim() ||
+      !formData.donor_phone.toString().trim() ||
+      !formData.donor_address.trim() ||
+      !formData.donor_city.trim() ||
+      !formData.donor_state.trim() ||
+      !formData.donor_country.trim()
+    ) {
+      toast({ title: "Error", description: "All fields are required", variant: "destructive" });
+      return;
+    }
 
     try {
       await createDonor({
         donor_name: formData.donor_name,
         donor_email: formData.donor_email,
-        donor_phone: formData.donor_phone ? Number(formData.donor_phone) : null,
+        donor_phone: Number(formData.donor_phone),
         donor_address: formData.donor_address,
         donor_city: formData.donor_city,
         donor_state: formData.donor_state,
@@ -141,13 +154,25 @@ const DonorPage = () => {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentDonor || !formData.donor_name.trim()) return;
+    if (
+      !currentDonor ||
+      !formData.donor_name.trim() ||
+      !formData.donor_email.trim() ||
+      !formData.donor_phone.toString().trim() ||
+      !formData.donor_address.trim() ||
+      !formData.donor_city.trim() ||
+      !formData.donor_state.trim() ||
+      !formData.donor_country.trim()
+    ) {
+      toast({ title: "Error", description: "All fields are required", variant: "destructive" });
+      return;
+    }
 
     try {
       await updateDonor(currentDonor.id, {
         donor_name: formData.donor_name,
         donor_email: formData.donor_email,
-        donor_phone: formData.donor_phone ? Number(formData.donor_phone) : null,
+        donor_phone: Number(formData.donor_phone),
         donor_address: formData.donor_address,
         donor_city: formData.donor_city,
         donor_state: formData.donor_state,
@@ -176,6 +201,17 @@ const DonorPage = () => {
   const filteredDonors = donors.filter(d =>
     (d.donor_name || (d as any)['name'] || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const paginatedDonors = filteredDonors.slice(
+    (page - 1) * ROWS_PER_PAGE,
+    page * ROWS_PER_PAGE
+  );
+
+  const totalPages = Math.ceil(filteredDonors.length / ROWS_PER_PAGE);
 
   return (
     <div className="min-h-screen bg-muted/40 flex">
@@ -264,7 +300,7 @@ const DonorPage = () => {
                       <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">No donors found.</TableCell>
                     </TableRow>
                   ) : (
-                    filteredDonors.map((donor) => (
+                    paginatedDonors.map((donor) => (
                       <TableRow key={donor.id}>
                         <TableCell>
                           <span
@@ -307,14 +343,42 @@ const DonorPage = () => {
                   )}
                 </TableBody>
               </Table>
+
+
+              {/* Pagination Controls */}
+              {!loading && filteredDonors.length > 0 && (
+                <div className="flex items-center justify-between px-2 pt-4 pb-2">
+                  <div className="text-sm text-muted-foreground">
+                    Showing <span className="font-medium">{(page - 1) * ROWS_PER_PAGE + 1}</span> to <span className="font-medium">{Math.min(page * ROWS_PER_PAGE, filteredDonors.length)}</span> of <span className="font-medium">{filteredDonors.length}</span> donors
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
         </div>
-      </main>
+      </main >
 
       {/* Add Dialog */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+      < Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen} >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Donor</DialogTitle>
@@ -339,6 +403,7 @@ const DonorPage = () => {
                   type="email"
                   value={formData.donor_email}
                   onChange={(e) => setFormData({ ...formData, donor_email: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -348,6 +413,7 @@ const DonorPage = () => {
                   type="number"
                   value={formData.donor_phone}
                   onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -357,6 +423,7 @@ const DonorPage = () => {
                 id="address"
                 value={formData.donor_address}
                 onChange={(e) => setFormData({ ...formData, donor_address: e.target.value })}
+                required
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -366,6 +433,7 @@ const DonorPage = () => {
                   id="city"
                   value={formData.donor_city}
                   onChange={(e) => setFormData({ ...formData, donor_city: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -374,6 +442,7 @@ const DonorPage = () => {
                   id="state"
                   value={formData.donor_state}
                   onChange={(e) => setFormData({ ...formData, donor_state: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -382,6 +451,7 @@ const DonorPage = () => {
                   id="country"
                   value={formData.donor_country}
                   onChange={(e) => setFormData({ ...formData, donor_country: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -391,10 +461,10 @@ const DonorPage = () => {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      < Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen} >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Donor</DialogTitle>
@@ -418,6 +488,7 @@ const DonorPage = () => {
                   type="email"
                   value={formData.donor_email}
                   onChange={(e) => setFormData({ ...formData, donor_email: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -427,6 +498,7 @@ const DonorPage = () => {
                   type="number"
                   value={formData.donor_phone}
                   onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -436,6 +508,7 @@ const DonorPage = () => {
                 id="edit-address"
                 value={formData.donor_address}
                 onChange={(e) => setFormData({ ...formData, donor_address: e.target.value })}
+                required
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -445,6 +518,7 @@ const DonorPage = () => {
                   id="edit-city"
                   value={formData.donor_city}
                   onChange={(e) => setFormData({ ...formData, donor_city: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -453,6 +527,7 @@ const DonorPage = () => {
                   id="edit-state"
                   value={formData.donor_state}
                   onChange={(e) => setFormData({ ...formData, donor_state: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -461,6 +536,7 @@ const DonorPage = () => {
                   id="edit-country"
                   value={formData.donor_country}
                   onChange={(e) => setFormData({ ...formData, donor_country: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -470,9 +546,9 @@ const DonorPage = () => {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
-    </div>
+    </div >
   );
 };
 

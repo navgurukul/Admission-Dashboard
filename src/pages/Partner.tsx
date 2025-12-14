@@ -121,6 +121,14 @@ const PartnerPage = () => {
         partnersArray = data.data;
       }
 
+      // Normalize districts to be always an array
+      partnersArray = partnersArray.map(p => ({
+        ...p,
+        districts: Array.isArray(p.districts)
+          ? p.districts
+          : (typeof p.districts === 'string' ? (p.districts as string).split(',').map(d => d.trim()) : [])
+      }));
+
       setPartners(partnersArray);
       setLoading(false);
     } catch (error) {
@@ -285,6 +293,25 @@ const PartnerPage = () => {
     const idx = editDialog.idx;
     if (idx === null || idx === undefined || idx < 0) return;
 
+    // Validate all fields
+    const hasValidEmail = editDialog.form.emails.some(e => e.trim() !== "");
+    const hasValidDistrict = editDialog.form.districts.some(d => d.trim() !== "");
+
+    if (
+      !editDialog.form.name.trim() ||
+      !editDialog.form.slug.trim() ||
+      !editDialog.form.notes.trim() ||
+      !hasValidEmail ||
+      !hasValidDistrict
+    ) {
+      toast({
+        title: "Error",
+        description: "All fields are required (Name, Slug, Email, Districts, Notes).",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Find partner by index in the main array
     const partnerToUpdate = partners[idx];
     if (!partnerToUpdate || !partnerToUpdate.id) return;
@@ -294,7 +321,7 @@ const PartnerPage = () => {
         partner_name: editDialog.form.name,
         slug: editDialog.form.slug,
         email: editDialog.form.emails[0], // API expects single email string? Adjust if array.
-        districts: editDialog.form.districts,
+        districts: editDialog.form.districts.filter(d => d.trim() !== "").join(',') as any, // Send as string
         notes: editDialog.form.notes,
       });
       toast({ title: "Updated", description: "Partner details updated successfully." });
@@ -308,8 +335,21 @@ const PartnerPage = () => {
   // Add Dialog
   const openAddDialog = () => setAddDialog({ open: true, form: defaultPartnerForm });
   const closeAddDialog = () => setAddDialog({ open: false, form: defaultPartnerForm });
-  const handleAddFormChange = (field, value) => {
-    setAddDialog((d) => ({ ...d, form: { ...d.form, [field]: value } }));
+  const handleAddFormChange = (field: string, value: string) => {
+    setAddDialog((d) => {
+      const newForm = { ...d.form, [field]: value };
+
+      // Auto-generate slug from name if the field being changed is 'name'
+      if (field === "name") {
+        newForm.slug = value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with hyphens
+          .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+      }
+
+      return { ...d, form: newForm };
+    });
   };
   const handleAddArrayChange = (field, i, value) => {
     setAddDialog(d => ({
@@ -336,20 +376,32 @@ const PartnerPage = () => {
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+    const hasValidEmail = addDialog.form.emails.some(e => e.trim() !== "");
+    const hasValidDistrict = addDialog.form.districts.some(d => d.trim() !== "");
+
     if (
       !addDialog.form.name.trim() ||
-      !addDialog.form.slug.trim()
+      !addDialog.form.slug.trim() ||
+      !addDialog.form.notes.trim() ||
+      !hasValidEmail ||
+      !hasValidDistrict
     ) {
-      toast({ title: "Error", description: "Please fill in all required fields (Name and Slug).", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "All fields are required (Name, Slug, Email, Districts, Notes).",
+        variant: "destructive"
+      });
       return;
     }
 
     try {
+      const cleanDistricts = addDialog.form.districts.filter(d => d.trim() !== "").join(',');
+
       await createPartner({
         partner_name: addDialog.form.name,
         slug: addDialog.form.slug,
         email: addDialog.form.emails[0],
-        districts: addDialog.form.districts,
+        districts: cleanDistricts as any, // Send as string
         notes: addDialog.form.notes,
       });
       toast({ title: "Success", description: "Partner added successfully!" });
@@ -658,14 +710,25 @@ const PartnerPage = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
               <div className="grid gap-2">
-                <Label htmlFor="name">Partner Name</Label>
-                <Input id="name" value={addDialog.form.name} onChange={(e) => handleAddFormChange("name", e.target.value)} placeholder="e.g. NavGurukul" />
+                <Label htmlFor="name">Partner Name <span className="text-destructive">*</span></Label>
+                <Input
+                  id="name"
+                  value={addDialog.form.name}
+                  onChange={(e) => handleAddFormChange("name", e.target.value)}
+                  placeholder="e.g. NavGurukul"
+                  required
+                />
               </div>
               <div className="grid gap-2">
-                <Label>Emails</Label>
+                <Label>Emails <span className="text-destructive">*</span></Label>
                 {addDialog.form.emails.map((email, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input value={email} onChange={(e) => handleAddArrayChange("emails", i, e.target.value)} placeholder="contact@example.com" />
+                    <Input
+                      value={email}
+                      onChange={(e) => handleAddArrayChange("emails", i, e.target.value)}
+                      placeholder="contact@example.com"
+                      required
+                    />
                     {addDialog.form.emails.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("emails", i)}>
                         <X className="h-4 w-4" />
@@ -676,18 +739,36 @@ const PartnerPage = () => {
                 <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="slug">Slug</Label>
-                <Input id="slug" value={addDialog.form.slug} onChange={(e) => handleAddFormChange("slug", e.target.value)} placeholder="unique-slug-id" />
+                <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
+                <Input
+                  id="slug"
+                  value={addDialog.form.slug}
+                  onChange={(e) => handleAddFormChange("slug", e.target.value)}
+                  placeholder="unique-slug-id"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Auto-generated from name. Must be unique.</p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Input id="notes" value={addDialog.form.notes} onChange={(e) => handleAddFormChange("notes", e.target.value)} placeholder="Additional details..." />
+                <Label htmlFor="notes">Notes <span className="text-destructive">*</span></Label>
+                <Input
+                  id="notes"
+                  value={addDialog.form.notes}
+                  onChange={(e) => handleAddFormChange("notes", e.target.value)}
+                  placeholder="Additional details..."
+                  required
+                />
               </div>
               <div className="grid gap-2">
-                <Label>Districts</Label>
+                <Label>Districts <span className="text-destructive">*</span></Label>
                 {addDialog.form.districts.map((d, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input value={d} onChange={(e) => handleAddArrayChange("districts", i, e.target.value)} placeholder="District Name" />
+                    <Input
+                      value={d}
+                      onChange={(e) => handleAddArrayChange("districts", i, e.target.value)}
+                      placeholder="District Name"
+                      required
+                    />
                     {addDialog.form.districts.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
                         <X className="h-4 w-4" />
@@ -717,10 +798,14 @@ const PartnerPage = () => {
                 <Input id="edit-name" value={editDialog.form.name} onChange={(e) => handleEditFormChange("name", e.target.value)} />
               </div>
               <div className="grid gap-2">
-                <Label>Emails</Label>
+                <Label>Emails <span className="text-destructive">*</span></Label>
                 {editDialog.form.emails.map((email, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input value={email} onChange={(e) => handleEditArrayChange("emails", i, e.target.value)} />
+                    <Input
+                      value={email}
+                      onChange={(e) => handleEditArrayChange("emails", i, e.target.value)}
+                      required
+                    />
                     {editDialog.form.emails.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("emails", i)}>
                         <X className="h-4 w-4" />
@@ -735,14 +820,23 @@ const PartnerPage = () => {
                 <Input id="edit-slug" value={editDialog.form.slug} onChange={(e) => handleEditFormChange("slug", e.target.value)} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-notes">Notes</Label>
-                <Input id="edit-notes" value={editDialog.form.notes} onChange={(e) => handleEditFormChange("notes", e.target.value)} />
+                <Label htmlFor="edit-notes">Notes <span className="text-destructive">*</span></Label>
+                <Input
+                  id="edit-notes"
+                  value={editDialog.form.notes}
+                  onChange={(e) => handleEditFormChange("notes", e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-2">
-                <Label>Districts</Label>
+                <Label>Districts <span className="text-destructive">*</span></Label>
                 {editDialog.form.districts.map((d, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input value={d} onChange={(e) => handleEditArrayChange("districts", i, e.target.value)} />
+                    <Input
+                      value={d}
+                      onChange={(e) => handleEditArrayChange("districts", i, e.target.value)}
+                      required
+                    />
                     {editDialog.form.districts.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
                         <X className="h-4 w-4" />

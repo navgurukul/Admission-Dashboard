@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getAllSlots, getAllInterviewSchedules } from "@/utils/api";
+import { ApplicantModal } from "@/components/ApplicantModal";
 
 export default function AdminView() {
   const [activeTab, setActiveTab] = useState("interviews");
@@ -23,6 +24,10 @@ export default function AdminView() {
   const [slots, setSlots] = useState<any[]>([]);
   const [interviewsLoading, setInterviewsLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Applicant Modal State
+  const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
+  const [isApplicantModalOpen, setIsApplicantModalOpen] = useState(false);
 
   // Search and filter states for interviews
   const [interviewSearchTerm, setInterviewSearchTerm] = useState("");
@@ -208,7 +213,7 @@ export default function AdminView() {
                       />
                     </div>
                     <div className="w-40">
-                      <Select 
+                      <Select
                         value={interviewSlotTypeFilter}
                         onValueChange={setInterviewSlotTypeFilter}
                       >
@@ -261,8 +266,19 @@ export default function AdminView() {
                           {interviews.map((interview: any) => (
                             <TableRow key={interview.id} className="hover:bg-orange-50 transition-colors">
                               <TableCell className="min-w-[200px]">
-                                <div>
-                                  <div className="font-medium">{interview.student_name || "Unknown"}</div>
+                                <div
+                                  className="cursor-pointer hover:bg-gray-100 p-2 rounded-md transition-colors group"
+                                  onClick={() => {
+                                    if (interview.student_id) {
+                                      setSelectedApplicant({ id: interview.student_id });
+                                      setIsApplicantModalOpen(true);
+                                    }
+                                  }}
+                                >
+                                  <div className="font-medium text-blue-600 group-hover:text-blue-800 flex items-center gap-2">
+                                    {interview.student_name || "Unknown"}
+                                    {/* <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
+                                  </div>
                                   <div className="text-xs text-gray-500">{interview.student_email || "N/A"}</div>
                                 </div>
                               </TableCell>
@@ -492,6 +508,11 @@ export default function AdminView() {
           </Tabs>
         </div>
       </div>
+      <ApplicantModal
+        applicant={selectedApplicant}
+        isOpen={isApplicantModalOpen}
+        onClose={() => setIsApplicantModalOpen(false)}
+      />
     </div>
   );
 }
