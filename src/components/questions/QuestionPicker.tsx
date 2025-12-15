@@ -154,12 +154,12 @@ export function QuestionPicker({
     if (easyCount !== 5) {
       const diff = 5 - easyCount;
       toast({
-        title: "❌ Invalid Easy Questions!",
+        title: "⚠️ Easy Questions Required",
         description: easyCount < 5
           ? `You have ${easyCount} Easy question${easyCount !== 1 ? 's' : ''}. Please select ${diff} more Easy question${diff > 1 ? 's' : ''}.`
           : `You have ${easyCount} Easy questions. Please remove ${Math.abs(diff)} Easy question${Math.abs(diff) > 1 ? 's' : ''}.`,
         variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -167,12 +167,12 @@ export function QuestionPicker({
     if (mediumCount !== 8) {
       const diff = 8 - mediumCount;
       toast({
-        title: "❌ Invalid Medium Questions!",
+        title: "⚠️ Medium Questions Required",
         description: mediumCount < 8
           ? `You have ${mediumCount} Medium question${mediumCount !== 1 ? 's' : ''}. Please select ${diff} more Medium question${diff > 1 ? 's' : ''}.`
           : `You have ${mediumCount} Medium questions. Please remove ${Math.abs(diff)} Medium question${Math.abs(diff) > 1 ? 's' : ''}.`,
         variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -180,27 +180,25 @@ export function QuestionPicker({
     if (hardCount !== 5) {
       const diff = 5 - hardCount;
       toast({
-        title: "❌ Invalid Hard Questions!",
+        title: "⚠️ Hard Questions Required",
         description: hardCount < 5
           ? `You have ${hardCount} Hard question${hardCount !== 1 ? 's' : ''}. Please select ${diff} more Hard question${diff > 1 ? 's' : ''}.`
           : `You have ${hardCount} Hard questions. Please remove ${Math.abs(diff)} Hard question${Math.abs(diff) > 1 ? 's' : ''}.`,
         variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
-    // Check total count last (if difficulty counts are correct, total should be 18)
+    // Check total count last (minimum 18 required, can be more)
     const totalCount = selected.length;
-    if (totalCount !== 18) {
+    if (totalCount < 18) {
       const diff = 18 - totalCount;
       toast({
-        title: "❌ Invalid Question Count!",
-        description: totalCount < 18 
-          ? `You have selected ${totalCount} questions. Please select ${diff} more question${diff > 1 ? 's' : ''} to reach 18.`
-          : `You have selected ${totalCount} questions. Please remove ${Math.abs(diff)} question${Math.abs(diff) > 1 ? 's' : ''}.`,
+        title: "⚠️ Minimum Questions Required",
+        description: `You have selected ${totalCount} question${totalCount !== 1 ? 's' : ''}. Please select ${diff} more question${diff > 1 ? 's' : ''} to reach minimum of 18.`,
         variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -276,8 +274,37 @@ export function QuestionPicker({
         </div>
 
         {/* Total Marks Display */}
-        <div className="flex justify-end mb-3">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 w-auto">
+        <div className="flex justify-between items-stretch gap-3 mb-3">
+          <div className="flex items-center gap-3 text-xs bg-gray-50 border border-gray-300 rounded-lg px-4 py-2">
+            <span
+              className={`${
+                selectedStats.easy === 5
+                  ? "text-green-600 font-semibold"
+                  : "text-red-600"
+              }`}
+            >
+              Easy: {selectedStats.easy} / 5
+            </span>
+            <span
+              className={`${
+                selectedStats.medium === 8
+                  ? "text-green-600 font-semibold"
+                  : "text-red-600"
+              }`}
+            >
+              Medium: {selectedStats.medium} / 8
+            </span>
+            <span
+              className={`${
+                selectedStats.hard === 5
+                  ? "text-green-600 font-semibold"
+                  : "text-red-600"
+              }`}
+            >
+              Hard: {selectedStats.hard} / 5
+            </span>
+          </div>
+          <div className="flex items-center bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 w-auto">
             <div className="text-base font-bold text-green-700">
               Total Marks: {selectedStats.totalMarks}
             </div>
@@ -324,7 +351,7 @@ export function QuestionPicker({
             <div className="text-sm font-semibold text-gray-800">
               Total Selected: {selectedStats.total} 
             </div>
-            <div className="flex gap-4 text-xs text-gray-600">
+            {/* <div className="flex gap-4 text-xs text-gray-600">
               <span
                 className={`${
                   selectedStats.easy === 5
@@ -352,7 +379,7 @@ export function QuestionPicker({
               >
                 Hard: {selectedStats.hard} / 5
               </span>
-            </div>
+            </div> */}
             <div className="text-xs text-orange-600 font-medium">
               ⚠️ Required: 18 questions (5 Easy + 8 Medium + 5 Hard)
             </div>
