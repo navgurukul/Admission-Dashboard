@@ -2236,6 +2236,7 @@ export interface Partner {
   created_at?: string;
   updated_at?: string;
   districts?: string[];
+  state?: string;
   email?: string;
   notes?: string;
   meraki_link?: string;

@@ -54,7 +54,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId } from "@/utils/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState } from "@/utils/api";
 
 const columns = [
   "Partner",
@@ -73,6 +81,7 @@ const defaultPartnerForm = {
   notes: "",
   slug: "",
   districts: [""],
+  state: "",
 };
 
 
@@ -107,6 +116,10 @@ const PartnerPage = () => {
   const [studentsPage, setStudentsPage] = useState(1);
   const [studentsTotal, setStudentsTotal] = useState(0);
 
+  // States data
+  const [states, setStates] = useState([]);
+  const [districts, setDistricts] = useState([]);
+
   const { toast } = useToast();
 
   const loadPartners = async () => {
@@ -139,7 +152,47 @@ const PartnerPage = () => {
 
   useEffect(() => {
     loadPartners();
+    loadStates();
   }, []);
+
+  const loadStates = async () => {
+    try {
+      const data = await getAllStates();
+      // Handle different response formats
+      let statesArray = [];
+      if (Array.isArray(data)) {
+        statesArray = data;
+      } else if (data && Array.isArray(data.data)) {
+        statesArray = data.data;
+      } else if (data && data.data && Array.isArray(data.data.data)) {
+        statesArray = data.data.data;
+      }
+      setStates(statesArray);
+    } catch (error) {
+      console.error("Failed to load states:", error);
+      toast({ title: "Error", description: "Failed to load states", variant: "destructive" });
+    }
+  };
+
+  const loadDistricts = async (stateCode: string) => {
+    try {
+      const data = await getDistrictsByState(stateCode);
+      // Handle different response formats
+      let districtsArray = [];
+      if (Array.isArray(data)) {
+        districtsArray = data;
+      } else if (data && Array.isArray(data.data)) {
+        districtsArray = data.data;
+      } else if (data && data.data && Array.isArray(data.data.data)) {
+        districtsArray = data.data.data;
+      }
+      setDistricts(districtsArray);
+    } catch (error) {
+      console.error("Failed to load districts:", error);
+      toast({ title: "Error", description: "Failed to load districts", variant: "destructive" });
+      setDistricts([]);
+    }
+  };
 
   // Filter partners based on search query and filters
   const filteredPartners = partners.filter((partner) => {
@@ -252,8 +305,15 @@ const PartnerPage = () => {
           partner.districts && partner.districts.length > 0
             ? [...partner.districts]
             : [""],
+        state: partner.state || "",
       },
     });
+
+    // Load districts if state exists
+    if (partner.state) {
+      // partner.state is already state_code
+      loadDistricts(partner.state);
+    }
   };
 
   const closeEditDialog = () => {
@@ -261,7 +321,19 @@ const PartnerPage = () => {
   };
 
   const handleEditFormChange = (field, value) => {
-    setEditDialog((d) => ({ ...d, form: { ...d.form, [field]: value } }));
+    setEditDialog((d) => {
+      const newForm = { ...d.form, [field]: value };
+
+      // Load districts when state changes
+      if (field === "state" && value) {
+        // value is already state_code
+        loadDistricts(value);
+        // Reset districts when state changes
+        newForm.districts = [""];
+      }
+
+      return { ...d, form: newForm };
+    });
   };
   // Simplified array handlers for edit
   const handleEditArrayChange = (field, i, value) => {
@@ -301,12 +373,13 @@ const PartnerPage = () => {
       !editDialog.form.name.trim() ||
       !editDialog.form.slug.trim() ||
       !editDialog.form.notes.trim() ||
+      !editDialog.form.state.trim() ||
       !hasValidEmail ||
       !hasValidDistrict
     ) {
       toast({
         title: "Error",
-        description: "All fields are required (Name, Slug, Email, Districts, Notes).",
+        description: "All fields are required (Name, Slug, Email, State, Districts, Notes).",
         variant: "destructive"
       });
       return;
@@ -321,6 +394,7 @@ const PartnerPage = () => {
         partner_name: editDialog.form.name,
         slug: editDialog.form.slug,
         email: editDialog.form.emails[0], // API expects single email string? Adjust if array.
+        state: editDialog.form.state,
         districts: editDialog.form.districts.filter(d => d.trim() !== "").join(',') as any, // Send as string
         notes: editDialog.form.notes,
       });
@@ -346,6 +420,14 @@ const PartnerPage = () => {
           .trim()
           .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with hyphens
           .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+      }
+
+      // Load districts when state changes
+      if (field === "state" && value) {
+        // value is already state_code
+        loadDistricts(value);
+        // Reset districts when state changes
+        newForm.districts = [""];
       }
 
       return { ...d, form: newForm };
@@ -383,12 +465,13 @@ const PartnerPage = () => {
       !addDialog.form.name.trim() ||
       !addDialog.form.slug.trim() ||
       !addDialog.form.notes.trim() ||
+      !addDialog.form.state.trim() ||
       !hasValidEmail ||
       !hasValidDistrict
     ) {
       toast({
         title: "Error",
-        description: "All fields are required (Name, Slug, Email, Districts, Notes).",
+        description: "All fields are required (Name, Slug, Email, State, Districts, Notes).",
         variant: "destructive"
       });
       return;
@@ -401,6 +484,7 @@ const PartnerPage = () => {
         partner_name: addDialog.form.name,
         slug: addDialog.form.slug,
         email: addDialog.form.emails[0],
+        state: addDialog.form.state,
         districts: cleanDistricts as any, // Send as string
         notes: addDialog.form.notes,
       });
@@ -736,7 +820,7 @@ const PartnerPage = () => {
                     )}
                   </div>
                 ))}
-                <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button>
+                {/* <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
@@ -760,14 +844,36 @@ const PartnerPage = () => {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="state">State <span className="text-destructive">*</span></Label>
+                <Combobox
+                  options={states.map((state) => ({
+                    value: state.state_code,
+                    label: state.state_name,
+                  }))}
+                  value={addDialog.form.state}
+                  onValueChange={(value) => handleAddFormChange("state", value)}
+                  placeholder="Select a state"
+                  searchPlaceholder="Search states..."
+                  emptyText="No state found."
+                  className="w-full"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label>Districts <span className="text-destructive">*</span></Label>
                 {addDialog.form.districts.map((d, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input
+                    <Combobox
+                      options={districts.map((district) => ({
+                        value: district.district_code,
+                        label: district.district_name,
+                      }))}
                       value={d}
-                      onChange={(e) => handleAddArrayChange("districts", i, e.target.value)}
-                      placeholder="District Name"
-                      required
+                      onValueChange={(value) => handleAddArrayChange("districts", i, value)}
+                      placeholder={!addDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
+                      searchPlaceholder="Search districts..."
+                      emptyText="No district found."
+                      disabled={!addDialog.form.state || districts.length === 0}
+                      className="flex-1"
                     />
                     {addDialog.form.districts.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
@@ -813,7 +919,7 @@ const PartnerPage = () => {
                     )}
                   </div>
                 ))}
-                <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button>
+                {/* <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-slug">Slug</Label>
@@ -829,13 +935,36 @@ const PartnerPage = () => {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="edit-state">State <span className="text-destructive">*</span></Label>
+                <Combobox
+                  options={states.map((state) => ({
+                    value: state.state_code,
+                    label: state.state_name,
+                  }))}
+                  value={editDialog.form.state}
+                  onValueChange={(value) => handleEditFormChange("state", value)}
+                  placeholder="Select a state"
+                  searchPlaceholder="Search states..."
+                  emptyText="No state found."
+                  className="w-full"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label>Districts <span className="text-destructive">*</span></Label>
                 {editDialog.form.districts.map((d, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input
+                    <Combobox
+                      options={districts.map((district) => ({
+                        value: district.district_code,
+                        label: district.district_name,
+                      }))}
                       value={d}
-                      onChange={(e) => handleEditArrayChange("districts", i, e.target.value)}
-                      required
+                      onValueChange={(value) => handleEditArrayChange("districts", i, value)}
+                      placeholder={!editDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
+                      searchPlaceholder="Search districts..."
+                      emptyText="No district found."
+                      disabled={!editDialog.form.state || districts.length === 0}
+                      className="flex-1"
                     />
                     {editDialog.form.districts.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
