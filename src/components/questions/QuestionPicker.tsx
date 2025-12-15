@@ -150,23 +150,14 @@ export function QuestionPicker({
       (q) => difficultyMap[q.difficulty_level]?.name.toLowerCase() === "hard"
     ).length;
 
-    // Validation: Must have exactly 18 questions with 5 Easy, 8 Medium, 5 Hard
-    const totalCount = selected.length;
-    
-    if (totalCount !== 18) {
-      toast({
-        title: "❌ Invalid Question Count!",
-        description: `Total Questions: ${totalCount}. Required: 18 questions. Please select exactly 18 questions.`,
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
-      });
-      return;
-    }
-
+    // Validation: Check difficulty-specific counts FIRST (more specific feedback)
     if (easyCount !== 5) {
+      const diff = 5 - easyCount;
       toast({
         title: "❌ Invalid Easy Questions!",
-        description: `Easy Questions: ${easyCount}. Required: 5 Easy questions. Please select exactly 5 Easy questions.`,
+        description: easyCount < 5
+          ? `You have ${easyCount} Easy question${easyCount !== 1 ? 's' : ''}. Please select ${diff} more Easy question${diff > 1 ? 's' : ''}.`
+          : `You have ${easyCount} Easy questions. Please remove ${Math.abs(diff)} Easy question${Math.abs(diff) > 1 ? 's' : ''}.`,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
       });
@@ -174,9 +165,12 @@ export function QuestionPicker({
     }
 
     if (mediumCount !== 8) {
+      const diff = 8 - mediumCount;
       toast({
         title: "❌ Invalid Medium Questions!",
-        description: `Medium Questions: ${mediumCount}. Required: 8 Medium questions. Please select exactly 8 Medium questions.`,
+        description: mediumCount < 8
+          ? `You have ${mediumCount} Medium question${mediumCount !== 1 ? 's' : ''}. Please select ${diff} more Medium question${diff > 1 ? 's' : ''}.`
+          : `You have ${mediumCount} Medium questions. Please remove ${Math.abs(diff)} Medium question${Math.abs(diff) > 1 ? 's' : ''}.`,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
       });
@@ -184,9 +178,27 @@ export function QuestionPicker({
     }
 
     if (hardCount !== 5) {
+      const diff = 5 - hardCount;
       toast({
         title: "❌ Invalid Hard Questions!",
-        description: `Hard Questions: ${hardCount}. Required: 5 Hard questions. Please select exactly 5 Hard questions.`,
+        description: hardCount < 5
+          ? `You have ${hardCount} Hard question${hardCount !== 1 ? 's' : ''}. Please select ${diff} more Hard question${diff > 1 ? 's' : ''}.`
+          : `You have ${hardCount} Hard questions. Please remove ${Math.abs(diff)} Hard question${Math.abs(diff) > 1 ? 's' : ''}.`,
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+      return;
+    }
+
+    // Check total count last (if difficulty counts are correct, total should be 18)
+    const totalCount = selected.length;
+    if (totalCount !== 18) {
+      const diff = 18 - totalCount;
+      toast({
+        title: "❌ Invalid Question Count!",
+        description: totalCount < 18 
+          ? `You have selected ${totalCount} questions. Please select ${diff} more question${diff > 1 ? 's' : ''} to reach 18.`
+          : `You have selected ${totalCount} questions. Please remove ${Math.abs(diff)} question${Math.abs(diff) > 1 ? 's' : ''}.`,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
       });
@@ -310,9 +322,9 @@ export function QuestionPicker({
         <DialogFooter className="mt-4">
           <div className="flex-1 space-y-2">
             <div className="text-sm font-semibold text-gray-800">
-              Total Selected: {selectedStats.total} / 18 Questions
+              Total Selected: {selectedStats.total} 
             </div>
-            {/* <div className="flex gap-4 text-xs text-gray-600">
+            <div className="flex gap-4 text-xs text-gray-600">
               <span
                 className={`${
                   selectedStats.easy === 5
@@ -320,7 +332,7 @@ export function QuestionPicker({
                     : "text-red-600"
                 }`}
               >
-                Easy: {selectedStats.easy} / 5 ({selectedStats.easyMarks} marks)
+                Easy: {selectedStats.easy} / 5
               </span>
               <span
                 className={`${
@@ -329,8 +341,7 @@ export function QuestionPicker({
                     : "text-red-600"
                 }`}
               >
-                Medium: {selectedStats.medium} / 8 ({selectedStats.mediumMarks}{" "}
-                marks)
+                Medium: {selectedStats.medium} / 8
               </span>
               <span
                 className={`${
@@ -339,9 +350,9 @@ export function QuestionPicker({
                     : "text-red-600"
                 }`}
               >
-                Hard: {selectedStats.hard} / 5 ({selectedStats.hardMarks} marks)
+                Hard: {selectedStats.hard} / 5
               </span>
-            </div> */}
+            </div>
             <div className="text-xs text-orange-600 font-medium">
               ⚠️ Required: 18 questions (5 Easy + 8 Medium + 5 Hard)
             </div>
