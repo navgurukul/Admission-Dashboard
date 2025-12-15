@@ -302,7 +302,7 @@ export const bulkUploadStudents = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
   const headers = getAuthHeaders(false);
-  
+
   // Create clean headers object with ONLY Authorization
   const uploadHeaders: HeadersInit = {};
   if (headers['Authorization']) {
@@ -310,8 +310,8 @@ export const bulkUploadStudents = async (file: File) => {
   }
 
   const res = await fetch(
-  `${BASE_URL}/students/bulkUploadStudents`,
-    { method: "POST", body: formData, headers :uploadHeaders },
+    `${BASE_URL}/students/bulkUploadStudents`,
+    { method: "POST", body: formData, headers: uploadHeaders },
   );
 
   if (!res.ok) {
@@ -795,6 +795,52 @@ export const updateReligion = async (
   return data;
 };
 
+// Get All Partners
+export const getAllPartners = async (): Promise<any[]> => {
+  const response = await fetch(`${BASE_URL}/partners/getPartners`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch partners");
+  }
+
+  // Handle different response formats based on other APIs
+  if (data && data.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else {
+    return [];
+  }
+};
+
+// Get All Donors
+export const getAllDonors = async (): Promise<any[]> => {
+  const response = await fetch(`${BASE_URL}/donors/getDonors`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch donors");
+  }
+
+  // Handle different response formats
+  if (data && data.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else {
+    return [];
+  }
+};
+
 // Delete Religion
 export const deleteReligion = async (id: string): Promise<void> => {
   const response = await fetch(`${BASE_URL}/religions/deleteReligion/${id}`, {
@@ -1210,6 +1256,8 @@ interface QuestionSet {
   is_default_online_set?: boolean;
   created_at: string;
   updated_at: string;
+  partnerId?: number;
+  partner_name?: string;
 }
 
 // Get all question sets ...
@@ -1228,7 +1276,7 @@ export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
 interface QuestionSetMapping {
   question_set_id: number;
   question_id: number;
-  difficulty_level: number; 
+  difficulty_level: number;
 }
 
 export const createQuestionSetMappings = async (
@@ -1258,12 +1306,13 @@ export const createQuestionSetMappings = async (
 // create test for students
 export const getRandomQuestions = async (
   language: "english" | "hindi" | "marathi" = "english",
+  studentId: number,
 ) => {
   try {
-    const response = await axios.get(`${BASE_URL}/questions/random-for-test`,{
+    const response = await axios.get(`${BASE_URL}/questions/random-for-test?student_id=${studentId}`, {
       headers: {
-        ...(getAuthHeaders() as Record<string, string>), 
-      },  
+        ...(getAuthHeaders() as Record<string, string>),
+      },
     });
 
     const questions =
@@ -1313,7 +1362,11 @@ export const deleteQuestionFromSet = async (id: number) => {
 export const createQuestionSet = async (data: {
   name: string;
   description: string;
-  maximumMarks: number;
+  maximumMarks?: number;
+  isRandom?: boolean;
+  questions?: { question_id: number; difficulty_level: number }[];
+  partnerId?: number;
+  partner_name?: string;
 }): Promise<QuestionSet> => {
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "POST",
@@ -1336,7 +1389,8 @@ export const updateQuestionSet = async (
   data: {
     name: string;
     description: string;
-    maximumMarks: number;
+    maximumMarks?: number;
+    isRandom?: boolean;
   }
 ): Promise<QuestionSet> => {
   const response = await fetch(
@@ -1364,7 +1418,7 @@ export const deleteQuestionSet = async (id: number): Promise<void> => {
     {
       method: "DELETE",
       headers: getAuthHeaders(),
-      body:JSON.stringify(id)
+      body: JSON.stringify(id)
     }
   );
 
@@ -1381,7 +1435,7 @@ export const setDefaultOnlineQuestionSet = async (id: number): Promise<QuestionS
     {
       method: "PUT",
       headers: getAuthHeaders(),
-      body:JSON.stringify(id)
+      body: JSON.stringify(id)
     }
   );
 
@@ -1397,7 +1451,7 @@ export const setDefaultOnlineQuestionSet = async (id: number): Promise<QuestionS
 // Download question set as PDF
 export const downloadQuestionSetPDF = async (setId: number, language?: string): Promise<Blob> => {
   let url = `${BASE_URL}/questions/download-pdf/${setId}`;
-  
+
   // Add language query parameter if provided and not English
   if (language && language.toLowerCase() !== 'english') {
     url += `?language=${language.toLowerCase()}`;
@@ -1688,16 +1742,16 @@ export const deleteCampusApi = async (id: number) => {
   });
 
   const result = await response.json();
-  
+
   // Check if there's an error in the nested data object
   if (result.data?.error) {
     throw new Error(result.data.details || result.data.error || "Failed to delete campus");
   }
-  
+
   if (!response.ok) {
     throw new Error(result.message || result.error || "Failed to delete campus");
   }
-  
+
   return result;
 };
 
@@ -1790,18 +1844,18 @@ export const deleteSchool = async (id: number) => {
     headers: getAuthHeaders(),
     body: JSON.stringify(id),
   });
-  
+
   if (!response.ok) {
     // Parse the JSON response to get the actual error message
     const errorData = await response.json();
-    
+
     // Create an error object that includes the parsed data
     const error: any = new Error(errorData?.message || 'Failed to delete school');
     error.data = errorData?.data || errorData;
     error.status = response.status;
     throw error;
   }
-  
+
   return await response.json();
 };
 
@@ -2161,7 +2215,7 @@ export const getAllInterviewSchedules = async (params: {
   search?: string;
 }): Promise<InterviewScheduleResponse> => {
   const queryParams = new URLSearchParams();
-  
+
   if (params.page) queryParams.append('page', params.page.toString());
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
@@ -2236,6 +2290,7 @@ export interface Partner {
   created_at?: string;
   updated_at?: string;
   districts?: string[];
+  state?: string;
   email?: string;
   notes?: string;
   meraki_link?: string;
@@ -2377,8 +2432,8 @@ export const createDonor = async (payload: Partial<Donor>) => {
   return data;
 };
 
-export const getDonors = async () => {
-  const response = await fetch(`${BASE_URL}/donors/getDonors`, {
+export const getDonors = async (page: number = 1, limit: number = 10) => {
+  const response = await fetch(`${BASE_URL}/donors/getDonors?page=${page}&pageSize=${limit}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -2389,12 +2444,10 @@ export const getDonors = async () => {
     throw new Error(data.message || "Failed to fetch donors");
   }
 
-  // Normalized return to handle data.data pattern if it exists, though check Partner implementation for consistency
-  if (data && data.data && Array.isArray(data.data)) {
-    return data.data;
-  }
+  // Return full response with pagination metadata
   return data;
 };
+
 
 export const getDonorById = async (id: number | string) => {
   const response = await fetch(`${BASE_URL}/donors/getDonorById/${id}`, {

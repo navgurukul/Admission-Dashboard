@@ -5,6 +5,7 @@ import LogoutButton from "@/components/ui/LogoutButton";
 import { getCurrentUser, getStudentDataByEmail } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import { ADMISSIONS_EMAIL } from "@/lib/const";
 
 const ScreeningResultPage: React.FC = () => {
   const { tests, setTests } = useTests();
@@ -85,7 +86,7 @@ const ScreeningResultPage: React.FC = () => {
         {status === "pass" ? (
           <>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Congratulations!
+              Congratulations! 🎉 
             </h1>
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
               You passed the test with a score of{" "}
@@ -100,9 +101,9 @@ const ScreeningResultPage: React.FC = () => {
             </p>
 
             <p className="text-gray-700 mb-4">
-              You can send us a mail on{" "}
-              <a href="mailto:admissions@navgurukul.org" className="text-blue-500">
-                admissions@navgurukul.org
+              You can send us a mail on {" "}
+              <a href={`mailto:${ADMISSIONS_EMAIL}`} className="text-blue-500">
+                {ADMISSIONS_EMAIL}
               </a>
               .
             </p>

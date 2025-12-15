@@ -11,6 +11,7 @@ import {
 } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { OfferLetterCard } from "./OfferLetterCard";
+import Footer from "@/components/Footer";
 
 interface Student {
   firstName: string;
@@ -616,239 +617,243 @@ export default function StudentResult() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 p-4 flex">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full h-[95vh] overflow-y-auto">
-        <header className="mb-6">
-          <LogoutButton className="from-orange-400 to-red-500" />
-          <h1 className="text-2xl font-bold">Student Results</h1>
-          <p className="text-gray-600">
-            Track your test results and interview slot booking status.
-          </p>
-        </header>
-
-        {/* Student Details */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Student Details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid sm:grid-cols-2 gap-4">
-            <p>
-              <span className="font-semibold">Name:</span>{" "}
-              {student?.firstName || "-"} {student?.middleName || ""}{" "}
-              {student?.lastName || ""}
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 p-4 flex flex-col">
+      <div className="flex-1 flex">
+        <div className="bg-white rounded-t-md shadow-2xl p-6 w-full overflow-y-auto">
+          <header className="mb-6">
+            <LogoutButton className="from-orange-400 to-red-500" />
+            <h1 className="text-2xl font-bold">Student Results</h1>
+            <p className="text-gray-600">
+              Track your test results and interview slot booking status.
             </p>
-            <p>
-              <span className="font-semibold">Email:</span>{" "}
-              {student?.email || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">Phone Number:</span>{" "}
-              {student?.whatsappNumber || "-"}
-            </p>
-            <p>
-              <span className="font-semibold">State:</span>{" "}
-              {student?.state
-                ? student.state
-                    .toLowerCase()
-                    .replace(/\b\w/g, (c) => c.toUpperCase())
-                : "-"}
-            </p>
-          </CardContent>
-        </Card>
+          </header>
 
-        {/* Congratulations Message - Only show if Offer Sent */}
-        {completeData?.data.final_decisions?.length > 0 &&
-          completeData.data.final_decisions
-            .sort(
-              (a: any, b: any) =>
-                new Date(b.created_at).getTime() -
-                new Date(a.created_at).getTime(),
-            )[0]
-            ?.offer_letter_status?.toLowerCase() === "offer sent" && (
-            <OfferLetterCard student={completeData.data.student} />
-          )}
+          {/* Student Details */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Student Details</CardTitle>
+            </CardHeader>
+            <CardContent className="grid sm:grid-cols-2 gap-4">
+              <p>
+                <span className="font-semibold">Name:</span>{" "}
+                {student?.firstName || "-"} {student?.middleName || ""}{" "}
+                {student?.lastName || ""}
+              </p>
+              <p>
+                <span className="font-semibold">Email:</span>{" "}
+                {student?.email || "-"}
+              </p>
+              <p>
+                <span className="font-semibold">Phone Number:</span>{" "}
+                {student?.whatsappNumber || "-"}
+              </p>
+              <p>
+                <span className="font-semibold">State:</span>{" "}
+                {student?.state
+                  ? student.state
+                      .toLowerCase()
+                      .replace(/\b\w/g, (c) => c.toUpperCase())
+                  : "-"}
+              </p>
+            </CardContent>
+          </Card>
 
-        {/* Test Results & Slot Booking */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Results & Slot Booking</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-200 text-left rounded-lg">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="px-4 py-2 border">Stage</th>
-                    <th className="px-4 py-2 border">Status</th>
-                    <th className="px-4 py-2 border">Scheduled Time</th>
-                    <th className="px-4 py-2 border">Actions</th>
-                    <th className="px-4 py-2 border">Marks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tests && tests.length > 0 ? (
-                    tests.map((test: TestRow) => {
-                      const slotStatus = test.slotBooking?.status;
-                      const isSlotBooked =
-                        slotStatus === "Booked" || slotStatus === "Pending";
-                      const isSlotCompleted = slotStatus === "Completed";
-                      const isSlotCancelled = slotStatus === "Cancelled";
+          {/* Congratulations Message - Only show if Offer Sent */}
+          {completeData?.data.final_decisions?.length > 0 &&
+            completeData.data.final_decisions
+              .sort(
+                (a: any, b: any) =>
+                  new Date(b.created_at).getTime() -
+                  new Date(a.created_at).getTime(),
+              )[0]
+              ?.offer_letter_status?.toLowerCase() === "offer sent" && (
+              <OfferLetterCard student={completeData.data.student} />
+            )}
 
-                      // Check if scheduled time has passed
-                      let hasTimePassed = false;
-                      if (test.slotBooking?.scheduledTime) {
-                        const scheduledDateTime = new Date(
-                          test.slotBooking.scheduledTime,
-                        );
-                        const now = new Date();
-                        hasTimePassed = scheduledDateTime < now;
-                      }
+          {/* Test Results & Slot Booking */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Results & Slot Booking</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border border-gray-200 text-left rounded-lg">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 border">Stage</th>
+                      <th className="px-4 py-2 border">Status</th>
+                      <th className="px-4 py-2 border">Scheduled Time</th>
+                      <th className="px-4 py-2 border">Actions</th>
+                      <th className="px-4 py-2 border">Marks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tests && tests.length > 0 ? (
+                      tests.map((test: TestRow) => {
+                        const slotStatus = test.slotBooking?.status;
+                        const isSlotBooked =
+                          slotStatus === "Booked" || slotStatus === "Pending";
+                        const isSlotCompleted = slotStatus === "Completed";
+                        const isSlotCancelled = slotStatus === "Cancelled";
 
-                      // Check if any attempt of the same type has passed
-                      const hasPassedAttempt = tests.some((t: TestRow) => {
-                        if (
-                          test.name.includes("Screening Test") &&
-                          t.name.includes("Screening Test")
-                        ) {
-                          return t.status === "Pass";
+                        // Check if scheduled time has passed
+                        let hasTimePassed = false;
+                        if (test.slotBooking?.scheduledTime) {
+                          const scheduledDateTime = new Date(
+                            test.slotBooking.scheduledTime,
+                          );
+                          const now = new Date();
+                          hasTimePassed = scheduledDateTime < now;
                         }
-                        if (
-                          test.name.includes("Learning Round") &&
-                          t.name.includes("Learning Round")
-                        ) {
-                          return t.status === "Pass";
-                        }
-                        if (
-                          test.name.includes("Cultural Fit Round") &&
-                          t.name.includes("Cultural Fit Round")
-                        ) {
-                          return t.status === "Pass";
-                        }
-                        return false;
-                      });
 
-                      return (
-                        <tr key={test.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 border">{test.name}</td>
-                          <td className="px-4 py-2 border">
-                            <span
-                              className={`px-2 py-1 rounded text-sm font-medium ${
-                                test.status === "Pass"
-                                  ? "bg-green-100 text-green-700"
-                                  : test.status === "Pending"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {test.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 border">
-                            {test.slotBooking?.scheduledTime
-                              ? new Date(
-                                  test.slotBooking.scheduledTime,
-                                ).toLocaleString("en-US", {
-                                  year: "numeric",
-                                  month: "2-digit",
-                                  day: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                })
-                              : "-"}
-                          </td>
-                          <td className="px-4 py-2 border">
-                            {/* Screening Test Actions - Only show Retest button for Fail */}
-                            {test.name.includes("Screening Test") ? (
-                              test.status === "Pass" ? (
-                                <p className="text-gray-600">-</p>
-                              ) : hasPassedAttempt ? (
-                                <Button
-                                  disabled
-                                  className="bg-gray-300 text-gray-500 cursor-not-allowed"
-                                >
-                                  Retest
-                                </Button>
-                              ) : test.status === "Fail" ? (
-                                <Button
-                                  onClick={handleRetestNavigation}
-                                  className="bg-orange-500 hover:bg-orange-600"
-                                >
-                                  Retest
-                                </Button>
-                              ) : (
-                                <p className="text-gray-600">-</p>
-                              )
-                            ) : (
-                              /* Book/Reschedule for LR & CFR only */
-                              <>
-                                {/* If completed (Pass/Fail), show nothing */}
-                                {test.action === "Completed" ? (
+                        // Check if any attempt of the same type has passed
+                        const hasPassedAttempt = tests.some((t: TestRow) => {
+                          if (
+                            test.name.includes("Screening Test") &&
+                            t.name.includes("Screening Test")
+                          ) {
+                            return t.status === "Pass";
+                          }
+                          if (
+                            test.name.includes("Learning Round") &&
+                            t.name.includes("Learning Round")
+                          ) {
+                            return t.status === "Pass";
+                          }
+                          if (
+                            test.name.includes("Cultural Fit Round") &&
+                            t.name.includes("Cultural Fit Round")
+                          ) {
+                            return t.status === "Pass";
+                          }
+                          return false;
+                        });
+
+                        return (
+                          <tr key={test.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-2 border">{test.name}</td>
+                            <td className="px-4 py-2 border">
+                              <span
+                                className={`px-2 py-1 rounded text-sm font-medium ${
+                                  test.status === "Pass"
+                                    ? "bg-green-100 text-green-700"
+                                    : test.status === "Pending"
+                                      ? "bg-yellow-100 text-yellow-700"
+                                      : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {test.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {test.slotBooking?.scheduledTime
+                                ? new Date(
+                                    test.slotBooking.scheduledTime,
+                                  ).toLocaleString("en-US", {
+                                    year: "numeric",
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })
+                                : "-"}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {/* Screening Test Actions - Only show Retest button for Fail */}
+                              {test.name.includes("Screening Test") ? (
+                                test.status === "Pass" ? (
                                   <p className="text-gray-600">-</p>
                                 ) : hasPassedAttempt ? (
-                                  /* If another attempt passed, disable button */
                                   <Button
                                     disabled
                                     className="bg-gray-300 text-gray-500 cursor-not-allowed"
-                                    variant="outline"
                                   >
-                                    {isSlotBooked ? "Reschedule" : "Book Slot"}
+                                    Retest
                                   </Button>
-                                ) : hasTimePassed && !isSlotCompleted ? (
-                                  /* If time passed but not completed, disable (awaiting result) */
+                                ) : test.status === "Fail" ? (
                                   <Button
-                                    disabled
-                                    className="bg-gray-300 text-gray-500 cursor-not-allowed"
-                                    variant="outline"
+                                    onClick={handleRetestNavigation}
+                                    className="bg-orange-500 hover:bg-orange-600"
                                   >
-                                    Interview Completed
-                                  </Button>
-                                ) : isSlotBooked && !isSlotCancelled ? (
-                                  /* If slot is booked and time not passed, show Reschedule */
-                                  <Button
-                                    onClick={() =>
-                                      handleBooking(test.id, test.name)
-                                    }
-                                    variant="outline"
-                                  >
-                                    Reschedule
+                                    Retest
                                   </Button>
                                 ) : (
-                                  /* Default: Show Book Slot */
-                                  <Button
-                                    onClick={() =>
-                                      handleBooking(test.id, test.name)
-                                    }
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    Book Slot
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                          </td>
-                          <td className="px-4 py-2 border">
-                            {test.score ?? "-"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-4 py-8 text-center text-gray-500"
-                      >
-                        No test data available
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                                  <p className="text-gray-600">-</p>
+                                )
+                              ) : (
+                                /* Book/Reschedule for LR & CFR only */
+                                <>
+                                  {/* If completed (Pass/Fail), show nothing */}
+                                  {test.action === "Completed" ? (
+                                    <p className="text-gray-600">-</p>
+                                  ) : hasPassedAttempt ? (
+                                    /* If another attempt passed, disable button */
+                                    <Button
+                                      disabled
+                                      className="bg-gray-300 text-gray-500 cursor-not-allowed"
+                                      variant="outline"
+                                    >
+                                      {isSlotBooked ? "Reschedule" : "Book Slot"}
+                                    </Button>
+                                  ) : hasTimePassed && !isSlotCompleted ? (
+                                    /* If time passed but not completed, disable (awaiting result) */
+                                    <Button
+                                      disabled
+                                      className="bg-gray-300 text-gray-500 cursor-not-allowed"
+                                      variant="outline"
+                                    >
+                                      Interview Completed
+                                    </Button>
+                                  ) : isSlotBooked && !isSlotCancelled ? (
+                                    /* If slot is booked and time not passed, show Reschedule */
+                                    <Button
+                                      onClick={() =>
+                                        handleBooking(test.id, test.name)
+                                      }
+                                      variant="outline"
+                                    >
+                                      Reschedule
+                                    </Button>
+                                  ) : (
+                                    /* Default: Show Book Slot */
+                                    <Button
+                                      onClick={() =>
+                                        handleBooking(test.id, test.name)
+                                      }
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      Book Slot
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </td>
+                            <td className="px-4 py-2 border">
+                              {test.score ?? "-"}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-4 py-8 text-center text-gray-500"
+                        >
+                          No test data available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+      {/* Footer sits outside the white card */}
+      <Footer />
     </div>
   );
 }

@@ -51,10 +51,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId } from "@/utils/api";
+import { Combobox } from "@/components/ui/combobox";
+import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet } from "@/utils/api";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
 const columns = [
   "Partner",
@@ -73,11 +83,13 @@ const defaultPartnerForm = {
   notes: "",
   slug: "",
   districts: [""],
+  state: "",
 };
 
 
 const PartnerPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
@@ -107,7 +119,27 @@ const PartnerPage = () => {
   const [studentsPage, setStudentsPage] = useState(1);
   const [studentsTotal, setStudentsTotal] = useState(0);
 
-  const { toast } = useToast();
+  // States data
+  const [states, setStates] = useState([]);
+  const [districts, setDistricts] = useState([]);
+
+  // Question Sets State
+  const [questionSets, setQuestionSets] = useState([]);
+  const [newAssessmentName, setNewAssessmentName] = useState("");
+  const [loadingQuestionSets, setLoadingQuestionSets] = useState(false);
+  const [partnerSets, setPartnerSets] = useState([]);
+
+  // State for Create Assessment Form
+  const [assessmentFormData, setAssessmentFormData] = useState({
+    name: "",
+    description: "",
+    nameType: "random", // Fixed to random for now
+    isRandom: true
+  });
+
+  // Cleaned up old picker states
+  // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
+  // const [pendingAssessment, setPendingAssessment] = useState<any>(null);
 
   const loadPartners = async () => {
     setLoading(true);
@@ -139,7 +171,47 @@ const PartnerPage = () => {
 
   useEffect(() => {
     loadPartners();
+    loadStates();
   }, []);
+
+  const loadStates = async () => {
+    try {
+      const data = await getAllStates();
+      // Handle different response formats
+      let statesArray = [];
+      if (Array.isArray(data)) {
+        statesArray = data;
+      } else if (data && Array.isArray(data.data)) {
+        statesArray = data.data;
+      } else if (data && data.data && Array.isArray(data.data.data)) {
+        statesArray = data.data.data;
+      }
+      setStates(statesArray);
+    } catch (error) {
+      console.error("Failed to load states:", error);
+      toast({ title: "Error", description: "Failed to load states", variant: "destructive" });
+    }
+  };
+
+  const loadDistricts = async (stateCode: string) => {
+    try {
+      const data = await getDistrictsByState(stateCode);
+      // Handle different response formats
+      let districtsArray = [];
+      if (Array.isArray(data)) {
+        districtsArray = data;
+      } else if (data && Array.isArray(data.data)) {
+        districtsArray = data.data;
+      } else if (data && data.data && Array.isArray(data.data.data)) {
+        districtsArray = data.data.data;
+      }
+      setDistricts(districtsArray);
+    } catch (error) {
+      console.error("Failed to load districts:", error);
+      toast({ title: "Error", description: "Failed to load districts", variant: "destructive" });
+      setDistricts([]);
+    }
+  };
 
   // Filter partners based on search query and filters
   const filteredPartners = partners.filter((partner) => {
@@ -252,8 +324,15 @@ const PartnerPage = () => {
           partner.districts && partner.districts.length > 0
             ? [...partner.districts]
             : [""],
+        state: partner.state || "",
       },
     });
+
+    // Load districts if state exists
+    if (partner.state) {
+      // partner.state is already state_code
+      loadDistricts(partner.state);
+    }
   };
 
   const closeEditDialog = () => {
@@ -261,7 +340,19 @@ const PartnerPage = () => {
   };
 
   const handleEditFormChange = (field, value) => {
-    setEditDialog((d) => ({ ...d, form: { ...d.form, [field]: value } }));
+    setEditDialog((d) => {
+      const newForm = { ...d.form, [field]: value };
+
+      // Load districts when state changes
+      if (field === "state" && value) {
+        // value is already state_code
+        loadDistricts(value);
+        // Reset districts when state changes
+        newForm.districts = [""];
+      }
+
+      return { ...d, form: newForm };
+    });
   };
   // Simplified array handlers for edit
   const handleEditArrayChange = (field, i, value) => {
@@ -301,12 +392,13 @@ const PartnerPage = () => {
       !editDialog.form.name.trim() ||
       !editDialog.form.slug.trim() ||
       !editDialog.form.notes.trim() ||
+      !editDialog.form.state.trim() ||
       !hasValidEmail ||
       !hasValidDistrict
     ) {
       toast({
         title: "Error",
-        description: "All fields are required (Name, Slug, Email, Districts, Notes).",
+        description: "All fields are required (Name, Slug, Email, State, Districts, Notes).",
         variant: "destructive"
       });
       return;
@@ -321,6 +413,7 @@ const PartnerPage = () => {
         partner_name: editDialog.form.name,
         slug: editDialog.form.slug,
         email: editDialog.form.emails[0], // API expects single email string? Adjust if array.
+        state: editDialog.form.state,
         districts: editDialog.form.districts.filter(d => d.trim() !== "").join(',') as any, // Send as string
         notes: editDialog.form.notes,
       });
@@ -346,6 +439,14 @@ const PartnerPage = () => {
           .trim()
           .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric chars with hyphens
           .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+      }
+
+      // Load districts when state changes
+      if (field === "state" && value) {
+        // value is already state_code
+        loadDistricts(value);
+        // Reset districts when state changes
+        newForm.districts = [""];
       }
 
       return { ...d, form: newForm };
@@ -383,12 +484,13 @@ const PartnerPage = () => {
       !addDialog.form.name.trim() ||
       !addDialog.form.slug.trim() ||
       !addDialog.form.notes.trim() ||
+      !addDialog.form.state.trim() ||
       !hasValidEmail ||
       !hasValidDistrict
     ) {
       toast({
         title: "Error",
-        description: "All fields are required (Name, Slug, Email, Districts, Notes).",
+        description: "All fields are required (Name, Slug, Email, State, Districts, Notes).",
         variant: "destructive"
       });
       return;
@@ -401,6 +503,7 @@ const PartnerPage = () => {
         partner_name: addDialog.form.name,
         slug: addDialog.form.slug,
         email: addDialog.form.emails[0],
+        state: addDialog.form.state,
         districts: cleanDistricts as any, // Send as string
         notes: addDialog.form.notes,
       });
@@ -443,15 +546,42 @@ const PartnerPage = () => {
     }
   };
 
-  const handleViewAssessments = (partner) => {
+  const handleViewAssessments = async (partner) => {
     setSelectedPartner(partner);
     setShowAssessmentModal(true);
     setStudentsPage(1);
     loadPartnerStudents(partner.id, 1);
+
+    try {
+      const allSets = await getAllQuestionSets();
+      console.log("All Sets:", allSets); // Debug
+
+      const filtered = allSets.filter((s: any) => {
+        // Check partnerId if it exists (loose equality for string/number safety)
+        // Checking both camelCase and snake_case to be safe with API response
+        const idMatch = (s.partnerId && s.partnerId == partner.id) || (s.partner_id && s.partner_id == partner.id);
+
+        // Check description for partner name (case insensitive)
+        const descMatch = s.description && s.description.toLowerCase().includes(partner.partner_name.toLowerCase());
+
+        return idMatch || descMatch;
+      });
+
+      console.log("Filtered Sets:", filtered); // Debug
+      setPartnerSets(filtered);
+    } catch (e: any) {
+      console.error("Failed to load assessments:", e);
+      toast({
+        title: "Error",
+        description: "Failed to load assessments: " + (e.message || "Unknown error"),
+        variant: "destructive"
+      });
+    }
   };
-  const handleCreateAssessment = (partner) => {
+  const handleCreateAssessment = async (partner) => {
     setSelectedPartner(partner);
     setShowCreateModal(true);
+    setNewAssessmentName("");
   };
 
   const handleDeletePartner = async (id) => {
@@ -578,13 +708,15 @@ const PartnerPage = () => {
                     <TableHead>Contact</TableHead>
                     <TableHead>Districts</TableHead>
                     <TableHead>Slug</TableHead>
+                    <TableHead>View Assessment</TableHead>
+                    <TableHead>Create Assessment</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                           Loading data...
@@ -593,7 +725,7 @@ const PartnerPage = () => {
                     </TableRow>
                   ) : paginatedPartners.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                      <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                         No partners found matching your criteria.
                       </TableCell>
                     </TableRow>
@@ -627,6 +759,16 @@ const PartnerPage = () => {
                         <TableCell>
                           <code className="text-xs bg-muted px-1 py-0.5 rounded border">{partner.slug || "N/A"}</code>
                         </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewAssessments(partner)} className="h-8 px-2 text-primary hover:text-primary/80">
+                            <Eye className="mr-2 h-4 w-4" /> View
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => handleCreateAssessment(partner)} className="h-8 px-2 text-primary hover:text-primary/80">
+                            <FileText className="mr-2 h-4 w-4" /> Create
+                          </Button>
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -641,12 +783,6 @@ const PartnerPage = () => {
                                 <Pencil className="mr-2 h-4 w-4" /> Edit Details
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewAssessments(partner)}>
-                                <Eye className="mr-2 h-4 w-4" /> View Assessments
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleCreateAssessment(partner)}>
-                                <FileText className="mr-2 h-4 w-4" /> Create Assessment
-                              </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePartner(partner.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete Partner
                               </DropdownMenuItem>
@@ -736,7 +872,7 @@ const PartnerPage = () => {
                     )}
                   </div>
                 ))}
-                <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button>
+                {/* <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
@@ -760,14 +896,36 @@ const PartnerPage = () => {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="state">State <span className="text-destructive">*</span></Label>
+                <Combobox
+                  options={states.map((state) => ({
+                    value: state.state_code,
+                    label: state.state_name,
+                  }))}
+                  value={addDialog.form.state}
+                  onValueChange={(value) => handleAddFormChange("state", value)}
+                  placeholder="Select a state"
+                  searchPlaceholder="Search states..."
+                  emptyText="No state found."
+                  className="w-full"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label>Districts <span className="text-destructive">*</span></Label>
                 {addDialog.form.districts.map((d, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input
+                    <Combobox
+                      options={districts.map((district) => ({
+                        value: district.district_code,
+                        label: district.district_name,
+                      }))}
                       value={d}
-                      onChange={(e) => handleAddArrayChange("districts", i, e.target.value)}
-                      placeholder="District Name"
-                      required
+                      onValueChange={(value) => handleAddArrayChange("districts", i, value)}
+                      placeholder={!addDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
+                      searchPlaceholder="Search districts..."
+                      emptyText="No district found."
+                      disabled={!addDialog.form.state || districts.length === 0}
+                      className="flex-1"
                     />
                     {addDialog.form.districts.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
@@ -813,7 +971,7 @@ const PartnerPage = () => {
                     )}
                   </div>
                 ))}
-                <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button>
+                {/* <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-slug">Slug</Label>
@@ -829,13 +987,36 @@ const PartnerPage = () => {
                 />
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="edit-state">State <span className="text-destructive">*</span></Label>
+                <Combobox
+                  options={states.map((state) => ({
+                    value: state.state_code,
+                    label: state.state_name,
+                  }))}
+                  value={editDialog.form.state}
+                  onValueChange={(value) => handleEditFormChange("state", value)}
+                  placeholder="Select a state"
+                  searchPlaceholder="Search states..."
+                  emptyText="No state found."
+                  className="w-full"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label>Districts <span className="text-destructive">*</span></Label>
                 {editDialog.form.districts.map((d, i) => (
                   <div key={i} className="flex gap-2">
-                    <Input
+                    <Combobox
+                      options={districts.map((district) => ({
+                        value: district.district_code,
+                        label: district.district_name,
+                      }))}
                       value={d}
-                      onChange={(e) => handleEditArrayChange("districts", i, e.target.value)}
-                      required
+                      onValueChange={(value) => handleEditArrayChange("districts", i, value)}
+                      placeholder={!editDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
+                      searchPlaceholder="Search districts..."
+                      emptyText="No district found."
+                      disabled={!editDialog.form.state || districts.length === 0}
+                      className="flex-1"
                     />
                     {editDialog.form.districts.length > 1 && (
                       <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
@@ -883,84 +1064,152 @@ const PartnerPage = () => {
 
         {/* ASSESSMENT MODAL - REPURPOSED FOR STUDENTS LIST */}
         <Dialog open={showAssessmentModal} onOpenChange={setShowAssessmentModal}>
-          <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+          <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Students / Assesssments - {selectedPartner?.partner_name}</DialogTitle>
-              <DialogDescription>List of students associated with {selectedPartner?.partner_name}</DialogDescription>
+              <DialogTitle>Details for {selectedPartner?.partner_name}</DialogTitle>
+              <DialogDescription>View students and assessments associated with this partner.</DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-auto py-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Stage</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {studentsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">Loading students...</TableCell>
-                    </TableRow>
-                  ) : partnerStudents.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
-                    </TableRow>
-                  ) : (
-                    partnerStudents.map((student: any, idx) => (
-                      <TableRow key={student.id || idx}>
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{student.email}</TableCell>
-                        <TableCell><Badge variant="outline">{student.current_status || "N/A"}</Badge></TableCell>
-                        <TableCell>{student.stage || "-"}</TableCell>
+
+            <div className="flex-1 overflow-auto py-4 space-y-6">
+              {/* Section 1: Assesssments */}
+              <div>
+                <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Created Assessments
+                </h3>
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Assessment Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Created At</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {partnerSets.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground h-20">
+                            No assessments created for this partner yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        partnerSets.map((set: any) => (
+                          <TableRow key={set.id}>
+                            <TableCell className="font-medium">{set.name}</TableCell>
+                            <TableCell>{set.description}</TableCell>
+                            <TableCell>{set.created_at ? new Date(set.created_at).toLocaleDateString() : "-"}</TableCell>
+                            <TableCell><Badge variant="outline">{set.active ? "Active" : "Inactive"}</Badge></TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+
             </div>
-            {/* Simple Pagination for Modal */}
-            <div className="flex items-center justify-between border-t pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={studentsPage === 1 || studentsLoading}
-                onClick={() => {
-                  const newPage = studentsPage - 1;
-                  setStudentsPage(newPage);
-                  if (selectedPartner) loadPartnerStudents(selectedPartner.id, newPage);
-                }}
-              >
-                Previous
-              </Button>
-              <span className="text-xs text-muted-foreground">Page {studentsPage}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={partnerStudents.length < 10 || studentsLoading} // Simple check, ideally use total count
-                onClick={() => {
-                  const newPage = studentsPage + 1;
-                  setStudentsPage(newPage);
-                  if (selectedPartner) loadPartnerStudents(selectedPartner.id, newPage);
-                }}
-              >
-                Next
-              </Button>
-            </div>
+
           </DialogContent>
         </Dialog>
 
         {/* CREATE ASSESSMENT MODAL PLACEHOLDER */}
-        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-          <DialogContent>
+        <Dialog open={showCreateModal} onOpenChange={(open) => {
+          setShowCreateModal(open);
+          if (open) {
+            // Reset form on open
+            setAssessmentFormData({
+              name: "",
+              description: "",
+              nameType: "random",
+              isRandom: true
+            });
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Create Assessment</DialogTitle>
-              <DialogDescription>Create a new assessment for {selectedPartner?.name}</DialogDescription>
+              <DialogTitle>Create Assessment for {selectedPartner?.partner_name}</DialogTitle>
             </DialogHeader>
-            <div className="py-10 text-center text-muted-foreground">
-              Form to create assessment will appear here.
+            <div className="space-y-4">
+
+              {/* Generation Method (Random Only) */}
+              <div>
+                <Label className="mb-2 block">Set Generation Method</Label>
+                <RadioGroup
+                  value={assessmentFormData.nameType}
+                  onValueChange={(val) => {
+                    // Keep it read-only or forced for now if user requested "Only random hi show hona chiye"
+                    // But strictly implementing Radio logic if they want to see it selected
+                    setAssessmentFormData(prev => ({ ...prev, nameType: val, isRandom: val === "random" }));
+                  }}
+                  className="flex items-center gap-4 mb-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="random" id="r-random" />
+                    <Label htmlFor="r-random">Random</Label>
+                  </div>
+                  {/* Hiding Custom option as per request */}
+                  {/* <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="r-custom" disabled />
+                      <Label htmlFor="r-custom" className="text-gray-400">Custom Name</Label>
+                    </div> */}
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label htmlFor="assessmentName">Assessment Name</Label>
+                <Input
+                  id="assessmentName"
+                  value={assessmentFormData.name}
+                  onChange={(e) => setAssessmentFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter assessment name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="assessmentDesc">Description</Label>
+                <Textarea
+                  id="assessmentDesc"
+                  value={assessmentFormData.description}
+                  onChange={(e) => setAssessmentFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter description (optional)"
+                />
+              </div>
+
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!assessmentFormData.name.trim()) {
+                  toast({ title: "Required", description: "Please enter an assessment name", variant: "destructive" });
+                  return;
+                }
+
+                try {
+                  const payload = {
+                    name: assessmentFormData.name,
+                    description: assessmentFormData.description || `Created for partner: ${selectedPartner?.partner_name}`,
+                    partnerId: selectedPartner?.id ? parseInt(selectedPartner.id) : undefined,
+                    partner_name: selectedPartner?.partner_name,
+                    isRandom: true, // Force Random
+                  };
+
+                  console.log("Creating Random Assessment Payload:", payload);
+
+                  // Create new question set linked to partner
+                  await createQuestionSet(payload as any);
+
+                  toast({ title: "Success", description: `Assessment "${assessmentFormData.name}" created for ${selectedPartner?.partner_name}` });
+                  setShowCreateModal(false);
+                  setAssessmentFormData({ name: "", description: "", nameType: "random", isRandom: true });
+                } catch (e: any) {
+                  toast({ title: "Error", description: e.message || "Failed to create assessment", variant: "destructive" });
+                }
+              }}>
+                Create
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

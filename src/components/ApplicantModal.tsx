@@ -43,6 +43,8 @@ import {
   getBlocksByDistrict,
   getDistrictsByState,
   getAllStages,
+  getPartners,
+  getDonors,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -80,6 +82,8 @@ export function ApplicantModal({
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [currentWorks, setCurrentWorks] = useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
+  const [partners, setPartners] = useState<any[]>([]);
+  const [donors, setDonors] = useState<any[]>([]);
   const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [joiningDate, setJoiningDate] = useState("");
   const [stages, setStages] = useState<any[]>([]);
@@ -234,6 +238,8 @@ export function ApplicantModal({
           campusRes,
           questionSetRes,
           stagesRes,
+          partnersRes,
+          donorsRes,
         ] = await Promise.all([
           getAllCasts(),
           getAllQualification(),
@@ -242,6 +248,8 @@ export function ApplicantModal({
           getCampusesApi(),
           getAllQuestionSets(),
           getAllStages(),
+          getPartners(),
+          getDonors(),
         ]);
 
         setCampus(
@@ -288,6 +296,20 @@ export function ApplicantModal({
           (stagesRes || []).map((s: any) => ({
             id: s.id,
             name: s.stage_name,
+          }))
+        );
+
+        setPartners(
+          (partnersRes || []).map((p: any) => ({
+            value: p.id.toString(),
+            label: p.partner_name,
+          }))
+        );
+
+        setDonors(
+          (donorsRes || []).map((d: any) => ({
+            value: d.id.toString(),
+            label: d.donor_name,
           }))
         );
       } catch (err) {
@@ -615,7 +637,7 @@ export function ApplicantModal({
     {
       name: "obtained_marks",
       label: "Obtained Marks *",
-      type: "readonly" as const,
+      type: "number" as const,
     },
     {
       name: "school_id",
@@ -1001,48 +1023,82 @@ export function ApplicantModal({
                     displayValue={currentApplicant.pin_code || ""}
                     onUpdate={handleUpdate}
                     disabled={!hasEditAccess}
-
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Partner
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="partner_id"
+                    value={currentApplicant.partner_id}
+                    displayValue={getLabel(
+                      partners,
+                      currentApplicant.partner_id
+                    )}
+                    onUpdate={handleUpdate}
+                    options={partners}
+                    disabled={!hasEditAccess}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Donor
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="donor_id"
+                    value={currentApplicant.donor_id}
+                    displayValue={getLabel(
+                      donors,
+                      currentApplicant.donor_id
+                    )}
+                    onUpdate={handleUpdate}
+                    options={donors}
+                    disabled={!hasEditAccess}
                   />
                 </div>
               </div>
-              
-              {/* Timestamps for Personal Details */}
-              <div className="space-y-3 pt-4">
-                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Personal Details</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Created At
-                    </label>
-                    <p className="text-sm">
-                      {currentApplicant.created_at
-                        ? new Date(currentApplicant.created_at).toLocaleString()
-                        : "Not available"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Last Updated At
-                    </label>
-                    <p className="text-sm">
-                      {currentApplicant.updated_at
-                        ? new Date(currentApplicant.updated_at).toLocaleString()
-                        : "Not available"}
-                    </p>
-                  </div>
-                   <div>
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Last Updated By
-                    </label>
-                    <p className="text-sm">
-                      {currentApplicant.last_updated_by
-                        ? currentApplicant.last_updated_by
-                        : "Not available"}
-                    </p>
-                  </div>
+            </div>
+
+            {/* Timestamps for Personal Details */}
+            <div className="space-y-3 pt-4">
+              <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Personal Details</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Created At
+                  </label>
+                  <p className="text-sm">
+                    {currentApplicant.created_at
+                      ? new Date(currentApplicant.created_at).toLocaleString()
+                      : "Not available"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Last Updated At
+                  </label>
+                  <p className="text-sm">
+                    {currentApplicant.updated_at
+                      ? new Date(currentApplicant.updated_at).toLocaleString()
+                      : "Not available"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Last Updated By
+                  </label>
+                  <p className="text-sm">
+                    {currentApplicant.last_updated_by
+                      ? currentApplicant.last_updated_by
+                      : "Not available"}
+                  </p>
                 </div>
               </div>
             </div>
+          </div>
 
             <InlineSubform
               title="Screening Round"
@@ -1443,38 +1499,37 @@ export function ApplicantModal({
                   />
                 </div>
 
-                {/* Audit Information - Below Final Note */}
-                <div className="space-y-3 pt-4">
-                  <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Offer Letter</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Created At
-                      </label>
-                      <p className="text-sm mt-1">
-                        {currentApplicant.final_decisions?.[0]?.created_at
-                          ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString()
-                          : "Not available"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Last Updated At
-                      </label>
-                      <p className="text-sm mt-1">
-                        {currentApplicant.final_decisions?.[0]?.updated_at
-                          ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString()
-                          : "Not available"}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Last Updated By
-                      </label>
-                      <p className="text-sm mt-1">
-                        {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
-                      </p>
-                    </div>
+              Audit Information - Below Final Note
+              <div className="space-y-3 pt-4">
+                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Offer Letter</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Created At
+                    </label>
+                    <p className="text-sm mt-1">
+                      {currentApplicant.final_decisions?.[0]?.created_at
+                        ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString()
+                        : "Not available"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Last Updated At
+                    </label>
+                    <p className="text-sm mt-1">
+                      {currentApplicant.final_decisions?.[0]?.updated_at
+                        ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString()
+                        : "Not available"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Last Updated By
+                    </label>
+                    <p className="text-sm mt-1">
+                      {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
+                    </p>
                   </div>
                 </div>
               </div>

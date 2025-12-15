@@ -49,7 +49,9 @@ const DonorPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
-  const ROWS_PER_PAGE = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalDonors, setTotalDonors] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -69,27 +71,25 @@ const DonorPage = () => {
 
   useEffect(() => {
     loadDonors();
-  }, []);
+  }, [page, rowsPerPage]);
 
   const loadDonors = async () => {
     setLoading(true);
     try {
-      const data = await getDonors();
-      let donorList = [];
-
-      if (Array.isArray(data)) {
-        donorList = data;
-      } else if (data?.data?.data && Array.isArray(data.data.data)) {
-        // Handle nested pagination structure: data.data.data
-        donorList = data.data.data;
-      } else if (data?.data && Array.isArray(data.data)) {
-        donorList = data.data;
-      } else if (data?.donors && Array.isArray(data.donors)) {
-        donorList = data.donors;
-      }
+      const response = await getDonors(page, rowsPerPage);
+    
+      
+      // Extract data from nested structure
+      // API returns: { success, data: { data: [...], total, page, pageSize, totalPages } }
+      const donorList = response?.data?.data || [];
+      const total = response?.data?.total || 0;
+      const pages = response?.data?.totalPages || 0;
 
       setDonors(donorList);
+      setTotalDonors(total);
+      setTotalPages(pages);
     } catch (error) {
+      console.error("Error loading donors:", error);
       toast({ title: "Error", description: "Failed to fetch donors", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -198,20 +198,17 @@ const DonorPage = () => {
     }
   }
 
+  // Client-side search filter (optional - you can also implement server-side search later)
   const filteredDonors = donors.filter(d =>
-    (d.donor_name || (d as any)['name'] || "").toLowerCase().includes(searchQuery.toLowerCase())
+    searchQuery === "" || (d.donor_name || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
-
-  const paginatedDonors = filteredDonors.slice(
-    (page - 1) * ROWS_PER_PAGE,
-    page * ROWS_PER_PAGE
-  );
-
-  const totalPages = Math.ceil(filteredDonors.length / ROWS_PER_PAGE);
+    // Reset to page 1 when search query or rows per page changes
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [searchQuery, rowsPerPage]);
 
   return (
     <div className="min-h-screen bg-muted/40 flex">
@@ -252,7 +249,7 @@ const DonorPage = () => {
                   <Handshake className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{donors.length}</div>
+                  <div className="text-2xl font-bold">{totalDonors}</div>
                 </CardContent>
               </Card>
               {/* Add more stats if available from API later */}
@@ -300,7 +297,7 @@ const DonorPage = () => {
                       <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">No donors found.</TableCell>
                     </TableRow>
                   ) : (
-                    paginatedDonors.map((donor) => (
+                    filteredDonors.map((donor) => (
                       <TableRow key={donor.id}>
                         <TableCell>
                           <span
@@ -346,12 +343,37 @@ const DonorPage = () => {
 
 
               {/* Pagination Controls */}
-              {!loading && filteredDonors.length > 0 && (
-                <div className="flex items-center justify-between px-2 pt-4 pb-2">
-                  <div className="text-sm text-muted-foreground">
-                    Showing <span className="font-medium">{(page - 1) * ROWS_PER_PAGE + 1}</span> to <span className="font-medium">{Math.min(page * ROWS_PER_PAGE, filteredDonors.length)}</span> of <span className="font-medium">{filteredDonors.length}</span> donors
+              {!loading && totalDonors > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 pt-4 pb-2">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-muted-foreground">
+                      Showing <span className="font-medium">{(page - 1) * rowsPerPage + 1}</span> - <span className="font-medium">{Math.min(page * rowsPerPage, totalDonors)}</span> of <span className="font-medium">{totalDonors}</span> donors
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                      <select
+                        value={rowsPerPage}
+                        onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                        className="border rounded px-2 py-1 text-sm"
+                      >
+                       
+                        <option value={10}>10</option>
+
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(1)}
+                      disabled={page === 1}
+                    >
+                      First
+                    </Button>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -360,6 +382,12 @@ const DonorPage = () => {
                     >
                       Previous
                     </Button>
+
+                    {/* Page indicator */}
+                    <span className="text-sm text-muted-foreground px-2">
+                      Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
+                    </span>
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -367,6 +395,15 @@ const DonorPage = () => {
                       disabled={page === totalPages}
                     >
                       Next
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm" 
+                      onClick={() => setPage(totalPages)}
+                      disabled={page === totalPages}
+                    >
+                      Last
                     </Button>
                   </div>
                 </div>
