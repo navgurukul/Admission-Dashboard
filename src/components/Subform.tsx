@@ -20,7 +20,7 @@ import {
 interface RowField {
   name: string;
   label: string;
-  type: "text" | "select" | "component" | "readonly";
+  type: "text" | "number" | "select" | "component" | "readonly";
   options?: { value: string; label: string }[];
   component?: React.ComponentType<any>;
   disabled?: boolean;
@@ -159,6 +159,37 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
         />
       );
     }
+    
+    // Use number input for number fields
+    if (field.type === "number") {
+      return (
+        <Input
+          type="number"
+          value={row[field.name] || ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Only update if it's a valid non-negative number or empty string
+            if (value === "") {
+              updateRow(field.name, value);
+            } else if (!isNaN(Number(value)) && Number(value) >= 0) {
+              updateRow(field.name, value);
+            }
+            // Reject negative numbers silently
+          }}
+          onKeyDown={(e) => {
+            // Prevent typing minus sign or 'e' (scientific notation)
+            if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+              e.preventDefault();
+            }
+          }}
+          disabled={isDisabled}
+          className={`w-full min-w-full ${isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+          placeholder="0"
+          min="0"
+        />
+      );
+    }
+    
     return (
       <Input
         value={row[field.name]}
@@ -410,7 +441,7 @@ export function InlineSubform({
   };
 
   return (
-    <div className="space-y-3 border rounded-lg p-4">
+    <div className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-semibold">{title}</h3>
         {disabled ? (
@@ -441,7 +472,8 @@ export function InlineSubform({
         )}
       </div>
 
-      <div className="overflow-x-auto w-full">
+  {/* Table container: allow vertical and horizontal scrolling if content is large */}
+  <div className="overflow-x-auto w-full max-h-[48vh] overflow-auto">
         <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
