@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListChecks, Trash2, Plus, Edit, Download } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { QuestionPicker } from "./QuestionPicker";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -54,6 +55,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     selectedSet: "",
     language: "English",
   });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [setToDelete, setSetToDelete] = useState<any>(null);
 
 
   const fetchSets = async (loadQuestions = true) => {
@@ -296,12 +299,17 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     }
   };
 
-  const deleteSet = async (id: number) => {
-    const setToDelete = sets.find((s) => s.id === id);
+  const openDeleteConfirm = (set: any) => {
+    setSetToDelete(set);
+    setDeleteConfirmOpen(true);
+  };
+
+  const deleteSet = async () => {
+    if (!setToDelete) return;
 
     try {
-      await deleteQuestionSet(id);
-      setSets((prev) => prev.filter((s) => s.id !== id));
+      await deleteQuestionSet(setToDelete.id);
+      setSets((prev) => prev.filter((s) => s.id !== setToDelete.id));
       toast({
         title: "✅ Set Deleted Successfully",
         description: `"${setToDelete?.name || 'Set'}" has been removed.`,
@@ -309,6 +317,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         className: "border-green-500 bg-green-50 text-green-900",
       });
       await fetchSets(false);
+      setDeleteConfirmOpen(false);
+      setSetToDelete(null);
     } catch (err: any) {
       toast({
         title: "❌ Failed to Delete Set",
@@ -432,7 +442,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteSet(set.id)}
+                    onClick={() => openDeleteConfirm(set)}
                     title="Delete set"
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
@@ -657,6 +667,20 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false);
+          setSetToDelete(null);
+        }}
+        onConfirm={deleteSet}
+        title="Delete Question Set"
+        description={`Are you sure you want to delete "${setToDelete?.name || 'this set'}"?\n\nThis action cannot be revert. All questions in this set will be removed from the set.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }
