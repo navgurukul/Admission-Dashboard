@@ -1304,9 +1304,10 @@ export const createQuestionSetMappings = async (
 // create test for students
 export const getRandomQuestions = async (
   language: "english" | "hindi" | "marathi" = "english",
+  studentId: number,
 ) => {
   try {
-    const response = await axios.get(`${BASE_URL}/questions/random-for-test`, {
+    const response = await axios.get(`${BASE_URL}/questions/random-for-test?student_id=${studentId}`, {
       headers: {
         ...(getAuthHeaders() as Record<string, string>),
       },
