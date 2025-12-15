@@ -2426,8 +2426,8 @@ export const createDonor = async (payload: Partial<Donor>) => {
   return data;
 };
 
-export const getDonors = async () => {
-  const response = await fetch(`${BASE_URL}/donors/getDonors`, {
+export const getDonors = async (page: number = 1, limit: number = 10) => {
+  const response = await fetch(`${BASE_URL}/donors/getDonors?page=${page}&pageSize=${limit}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -2438,19 +2438,10 @@ export const getDonors = async () => {
     throw new Error(data.message || "Failed to fetch donors");
   }
 
-  // Handle potential nested data structure like Partners and other APIs
-  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    return data.data.data;
-  } else if (data && data.data && Array.isArray(data.data)) {
-    return data.data;
-  } else if (data && data.donors && Array.isArray(data.donors)) {
-    return data.donors;
-  } else if (Array.isArray(data)) {
-    return data;
-  }
-
-  return [];
+  // Return full response with pagination metadata
+  return data;
 };
+
 
 export const getDonorById = async (id: number | string) => {
   const response = await fetch(`${BASE_URL}/donors/getDonorById/${id}`, {
