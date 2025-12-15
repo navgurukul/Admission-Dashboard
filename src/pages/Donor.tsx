@@ -115,7 +115,7 @@ const DonorPage = () => {
       await createDonor({
         donor_name: formData.donor_name,
         donor_email: formData.donor_email,
-        donor_phone: Number(formData.donor_phone),
+        donor_phone: formData.donor_phone,
         donor_address: formData.donor_address,
         donor_city: formData.donor_city,
         donor_state: formData.donor_state,
@@ -172,7 +172,7 @@ const DonorPage = () => {
       await updateDonor(currentDonor.id, {
         donor_name: formData.donor_name,
         donor_email: formData.donor_email,
-        donor_phone: Number(formData.donor_phone),
+        donor_phone: formData.donor_phone,
         donor_address: formData.donor_address,
         donor_city: formData.donor_city,
         donor_state: formData.donor_state,
@@ -423,7 +423,7 @@ const DonorPage = () => {
           </DialogHeader>
           <form onSubmit={handleAddSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Donor Name</Label>
+              <Label htmlFor="name">Donor Name <span className="text-destructive">*</span></Label>
               <Input
                 id="name"
                 value={formData.donor_name}
@@ -434,60 +434,73 @@ const DonorPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.donor_email}
                   onChange={(e) => setFormData({ ...formData, donor_email: e.target.value })}
+                  placeholder="donor@example.com"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
                 <Input
                   id="phone"
-                  type="number"
+                  type="tel"
                   value={formData.donor_phone}
-                  onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                  onChange={(e) => {
+                    // Allow + at start and digits only (for international numbers like +91, +1, etc.)
+                    let value = e.target.value.replace(/(?!^\+)[^0-9]/g, '');
+                    // Limit to 15 characters max (international standard)
+                    if (value.length > 15) value = value.slice(0, 15);
+                    setFormData({ ...formData, donor_phone: value });
+                  }}
+                  placeholder="+919876543210"
+                  maxLength={15}
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Address <span className="text-destructive">*</span></Label>
               <Input
                 id="address"
                 value={formData.donor_address}
                 onChange={(e) => setFormData({ ...formData, donor_address: e.target.value })}
+                placeholder="Street address"
                 required
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
                 <Input
                   id="city"
                   value={formData.donor_city}
                   onChange={(e) => setFormData({ ...formData, donor_city: e.target.value })}
+                  placeholder="City"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
+                <Label htmlFor="state">State <span className="text-destructive">*</span></Label>
                 <Input
                   id="state"
                   value={formData.donor_state}
                   onChange={(e) => setFormData({ ...formData, donor_state: e.target.value })}
+                  placeholder="State"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
+                <Label htmlFor="country">Country <span className="text-destructive">*</span></Label>
                 <Input
                   id="country"
                   value={formData.donor_country}
                   onChange={(e) => setFormData({ ...formData, donor_country: e.target.value })}
+                  placeholder="Country"
                   required
                 />
               </div>
@@ -509,7 +522,7 @@ const DonorPage = () => {
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Donor Name</Label>
+              <Label htmlFor="edit-name">Donor Name <span className="text-destructive">*</span></Label>
               <Input
                 id="edit-name"
                 value={formData.donor_name}
@@ -519,7 +532,7 @@ const DonorPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-email">Email</Label>
+                <Label htmlFor="edit-email">Email <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-email"
                   type="email"
@@ -529,18 +542,25 @@ const DonorPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-phone">Phone</Label>
+                <Label htmlFor="edit-phone">Phone <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-phone"
-                  type="number"
+                  type="tel"
                   value={formData.donor_phone}
-                  onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                  onChange={(e) => {
+                    // Allow + at start and digits only (for international numbers like +91, +1, etc.)
+                    let value = e.target.value.replace(/(?!^\+)[^0-9]/g, '');
+                    // Limit to 15 characters max (international standard)
+                    if (value.length > 15) value = value.slice(0, 15);
+                    setFormData({ ...formData, donor_phone: value });
+                  }}
+                  maxLength={15}
                   required
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-address">Address</Label>
+              <Label htmlFor="edit-address">Address <span className="text-destructive">*</span></Label>
               <Input
                 id="edit-address"
                 value={formData.donor_address}
@@ -550,7 +570,7 @@ const DonorPage = () => {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-city">City</Label>
+                <Label htmlFor="edit-city">City <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-city"
                   value={formData.donor_city}
@@ -559,7 +579,7 @@ const DonorPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-state">State</Label>
+                <Label htmlFor="edit-state">State <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-state"
                   value={formData.donor_state}
@@ -568,7 +588,7 @@ const DonorPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-country">Country</Label>
+                <Label htmlFor="edit-country">Country <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-country"
                   value={formData.donor_country}
