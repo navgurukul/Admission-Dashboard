@@ -50,6 +50,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     nameType: "random", // "random" | "custom"
     isRandom: true,
   });
+  const [pendingSetData, setPendingSetData] = useState<any>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [downloadFormData, setDownloadFormData] = useState({
     selectedSet: "",
@@ -131,6 +132,32 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   // Function to handle saving selected questions
   const handleSaveQuestions = async (selected: any[], activeSet: any) => {
     try {
+      // If this is a new custom set that hasn't been created yet
+      if (activeSet.id === -1 && pendingSetData) {
+        const payload = {
+          name: pendingSetData.name,
+          description: pendingSetData.description,
+          isRandom: false,
+          questions: selected.map((q) => ({
+            question_id: q.id,
+            difficulty_level: q.difficulty_level
+          }))
+        };
+
+        await createQuestionSet(payload);
+        toast({
+          title: "✅ Set Created Successfully",
+          description: `"${pendingSetData.name}" has been created with ${selected.length} questions.`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
+        });
+
+        setActiveSet(null);
+        setPendingSetData(null);
+        await fetchSets(false);
+        return;
+      }
+
       const prevSelected = activeSet.questions || [];
 
       // Find newly added
@@ -260,6 +287,28 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         await fetchSets(false);
       } else {
         // Create new set
+
+        // If Custom Name (and thus "Next" flow), defer creation
+        if (formData.nameType === "custom") {
+          setIsModalOpen(false);
+          setPendingSetData({
+            name: finalName,
+            description: formData.description
+          });
+
+          // Create a temporary "fake" set to trigger the picker
+          const tempSet = {
+            id: -1, // signal that this is new
+            name: finalName,
+            limit: 0,
+            questions: [],
+            active: true,
+            isNewCustom: true // Optional helper flag
+          };
+          setActiveSet(tempSet);
+          return;
+        }
+
         const newSet = await createQuestionSet(payload);
         toast({
           title: "✅ Set Created Successfully",
@@ -269,25 +318,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         });
 
         setIsModalOpen(false);
-        // If Custom Name (and thus "Next" flow), open picker immediately
-        if (formData.nameType === "custom") {
-          // We need to fetch sets to get the full object structure expected by the UI/Picker
-          // or at least ensure the state is updated enough for setActiveSet to work.
-          await fetchSets(false);
-          await loadSetQuestions(newSet.id);
-
-          // Construct a set object that matches what QuestionPicker expects
-          // The API returns the set, but our local state has extra fields like 'questions'
-          const setForPicker = {
-            ...newSet,
-            limit: newSet.maximumMarks,
-            questions: [],
-            active: newSet.status,
-          };
-          setActiveSet(setForPicker);
-        } else {
-          await fetchSets(false);
-        }
+        await fetchSets(false);
       }
     } catch (err: any) {
       toast({

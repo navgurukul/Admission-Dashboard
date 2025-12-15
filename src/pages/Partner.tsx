@@ -62,7 +62,9 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets } from "@/utils/api";
+import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet } from "@/utils/api";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
 const columns = [
   "Partner",
@@ -87,6 +89,7 @@ const defaultPartnerForm = {
 
 const PartnerPage = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
@@ -122,10 +125,21 @@ const PartnerPage = () => {
 
   // Question Sets State
   const [questionSets, setQuestionSets] = useState([]);
-  const [selectedQuestionSet, setSelectedQuestionSet] = useState("");
+  const [newAssessmentName, setNewAssessmentName] = useState("");
   const [loadingQuestionSets, setLoadingQuestionSets] = useState(false);
+  const [partnerSets, setPartnerSets] = useState([]);
 
-  const { toast } = useToast();
+  // State for Create Assessment Form
+  const [assessmentFormData, setAssessmentFormData] = useState({
+    name: "",
+    description: "",
+    nameType: "random", // Fixed to random for now
+    isRandom: true
+  });
+
+  // Cleaned up old picker states
+  // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
+  // const [pendingAssessment, setPendingAssessment] = useState<any>(null);
 
   const loadPartners = async () => {
     setLoading(true);
@@ -560,24 +574,42 @@ const PartnerPage = () => {
     }
   };
 
-  const handleViewAssessments = (partner) => {
+  const handleViewAssessments = async (partner) => {
     setSelectedPartner(partner);
     setShowAssessmentModal(true);
     setStudentsPage(1);
     loadPartnerStudents(partner.id, 1);
+
+    try {
+      const allSets = await getAllQuestionSets();
+      console.log("All Sets:", allSets); // Debug
+
+      const filtered = allSets.filter((s: any) => {
+        // Check partnerId if it exists (loose equality for string/number safety)
+        // Checking both camelCase and snake_case to be safe with API response
+        const idMatch = (s.partnerId && s.partnerId == partner.id) || (s.partner_id && s.partner_id == partner.id);
+
+        // Check description for partner name (case insensitive)
+        const descMatch = s.description && s.description.toLowerCase().includes(partner.partner_name.toLowerCase());
+
+        return idMatch || descMatch;
+      });
+
+      console.log("Filtered Sets:", filtered); // Debug
+      setPartnerSets(filtered);
+    } catch (e: any) {
+      console.error("Failed to load assessments:", e);
+      toast({
+        title: "Error",
+        description: "Failed to load assessments: " + (e.message || "Unknown error"),
+        variant: "destructive"
+      });
+    }
   };
   const handleCreateAssessment = async (partner) => {
     setSelectedPartner(partner);
     setShowCreateModal(true);
-    setLoadingQuestionSets(true);
-    try {
-      const data = await getAllQuestionSets();
-      setQuestionSets(data);
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to fetch question sets", variant: "destructive" });
-    } finally {
-      setLoadingQuestionSets(false);
-    }
+    setNewAssessmentName("");
   };
 
   const handleDeletePartner = async (id) => {
@@ -1077,103 +1109,148 @@ const PartnerPage = () => {
 
         {/* ASSESSMENT MODAL - REPURPOSED FOR STUDENTS LIST */}
         <Dialog open={showAssessmentModal} onOpenChange={setShowAssessmentModal}>
-          <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+          <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Students / Assesssments - {selectedPartner?.partner_name}</DialogTitle>
-              <DialogDescription>List of students associated with {selectedPartner?.partner_name}</DialogDescription>
+              <DialogTitle>Details for {selectedPartner?.partner_name}</DialogTitle>
+              <DialogDescription>View students and assessments associated with this partner.</DialogDescription>
             </DialogHeader>
-            <div className="flex-1 overflow-auto py-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Stage</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {studentsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">Loading students...</TableCell>
-                    </TableRow>
-                  ) : partnerStudents.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
-                    </TableRow>
-                  ) : (
-                    partnerStudents.map((student: any, idx) => (
-                      <TableRow key={student.id || idx}>
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{student.email}</TableCell>
-                        <TableCell><Badge variant="outline">{student.current_status || "N/A"}</Badge></TableCell>
-                        <TableCell>{student.stage || "-"}</TableCell>
+
+            <div className="flex-1 overflow-auto py-4 space-y-6">
+              {/* Section 1: Assesssments */}
+              <div>
+                <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Created Assessments
+                </h3>
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead>Assessment Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Created At</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {partnerSets.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground h-20">
+                            No assessments created for this partner yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        partnerSets.map((set: any) => (
+                          <TableRow key={set.id}>
+                            <TableCell className="font-medium">{set.name}</TableCell>
+                            <TableCell>{set.description}</TableCell>
+                            <TableCell>{set.created_at ? new Date(set.created_at).toLocaleDateString() : "-"}</TableCell>
+                            <TableCell><Badge variant="outline">{set.active ? "Active" : "Inactive"}</Badge></TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+
             </div>
-            {/* Simple Pagination for Modal */}
-            <div className="flex items-center justify-between border-t pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={studentsPage === 1 || studentsLoading}
-                onClick={() => {
-                  const newPage = studentsPage - 1;
-                  setStudentsPage(newPage);
-                  if (selectedPartner) loadPartnerStudents(selectedPartner.id, newPage);
-                }}
-              >
-                Previous
-              </Button>
-              <span className="text-xs text-muted-foreground">Page {studentsPage}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={partnerStudents.length < 10 || studentsLoading} // Simple check, ideally use total count
-                onClick={() => {
-                  const newPage = studentsPage + 1;
-                  setStudentsPage(newPage);
-                  if (selectedPartner) loadPartnerStudents(selectedPartner.id, newPage);
-                }}
-              >
-                Next
-              </Button>
-            </div>
+
           </DialogContent>
         </Dialog>
 
         {/* CREATE ASSESSMENT MODAL PLACEHOLDER */}
-        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-          <DialogContent>
+        <Dialog open={showCreateModal} onOpenChange={(open) => {
+          setShowCreateModal(open);
+          if (open) {
+            // Reset form on open
+            setAssessmentFormData({
+              name: "",
+              description: "",
+              nameType: "random",
+              isRandom: true
+            });
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Create Assessment</DialogTitle>
-              <DialogDescription>Create a new assessment for {selectedPartner?.partner_name}</DialogDescription>
+              <DialogTitle>Create Assessment for {selectedPartner?.partner_name}</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="question-set">Select Question Set</Label>
-                <Select value={selectedQuestionSet} onValueChange={setSelectedQuestionSet}>
-                  <SelectTrigger id="question-set">
-                    <SelectValue placeholder={loadingQuestionSets ? "Loading..." : "Select a question set"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {questionSets.map((set: any) => (
-                      <SelectItem key={set.id} value={set.id.toString()}>
-                        {set.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-4">
+
+              {/* Generation Method (Random Only) */}
+              <div>
+                <Label className="mb-2 block">Set Generation Method</Label>
+                <RadioGroup
+                  value={assessmentFormData.nameType}
+                  onValueChange={(val) => {
+                    // Keep it read-only or forced for now if user requested "Only random hi show hona chiye"
+                    // But strictly implementing Radio logic if they want to see it selected
+                    setAssessmentFormData(prev => ({ ...prev, nameType: val, isRandom: val === "random" }));
+                  }}
+                  className="flex items-center gap-4 mb-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="random" id="r-random" />
+                    <Label htmlFor="r-random">Random</Label>
+                  </div>
+                  {/* Hiding Custom option as per request */}
+                  {/* <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="r-custom" disabled />
+                      <Label htmlFor="r-custom" className="text-gray-400">Custom Name</Label>
+                    </div> */}
+                </RadioGroup>
               </div>
+
+              <div>
+                <Label htmlFor="assessmentName">Assessment Name</Label>
+                <Input
+                  id="assessmentName"
+                  value={assessmentFormData.name}
+                  onChange={(e) => setAssessmentFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter assessment name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="assessmentDesc">Description</Label>
+                <Textarea
+                  id="assessmentDesc"
+                  value={assessmentFormData.description}
+                  onChange={(e) => setAssessmentFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter description (optional)"
+                />
+              </div>
+
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-              <Button onClick={() => {
-                toast({ title: "Info", description: `Selected Question Set ID: ${selectedQuestionSet}` });
-                setShowCreateModal(false);
+              <Button onClick={async () => {
+                if (!assessmentFormData.name.trim()) {
+                  toast({ title: "Required", description: "Please enter an assessment name", variant: "destructive" });
+                  return;
+                }
+
+                try {
+                  const payload = {
+                    name: assessmentFormData.name,
+                    description: assessmentFormData.description || `Created for partner: ${selectedPartner?.partner_name}`,
+                    partnerId: selectedPartner?.id ? parseInt(selectedPartner.id) : undefined,
+                    partner_name: selectedPartner?.partner_name,
+                    isRandom: true, // Force Random
+                  };
+
+                  console.log("Creating Random Assessment Payload:", payload);
+
+                  // Create new question set linked to partner
+                  await createQuestionSet(payload as any);
+
+                  toast({ title: "Success", description: `Assessment "${assessmentFormData.name}" created for ${selectedPartner?.partner_name}` });
+                  setShowCreateModal(false);
+                  setAssessmentFormData({ name: "", description: "", nameType: "random", isRandom: true });
+                } catch (e: any) {
+                  toast({ title: "Error", description: e.message || "Failed to create assessment", variant: "destructive" });
+                }
               }}>
                 Create
               </Button>

@@ -887,6 +887,7 @@ export function ApplicantModal({
                     disabled={!hasEditAccess}
                   />
                 </div>
+    
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Gender

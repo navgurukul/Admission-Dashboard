@@ -13,11 +13,13 @@ const ScreeningRoundStartPage: React.FC = () => {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const studentId = localStorage.getItem("studentId") || "";
+
   // Fetch values when page loads
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const qs = await getQuestions(selectedLanguage); // pass language here
+        const qs = await getQuestions(selectedLanguage, studentId); // pass language here
         setQuestions(qs || []);
         setQuestionCount(qs?.length || 0);
       } catch (err) {

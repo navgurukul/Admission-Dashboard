@@ -1256,6 +1256,8 @@ interface QuestionSet {
   is_default_online_set?: boolean;
   created_at: string;
   updated_at: string;
+  partnerId?: number;
+  partner_name?: string;
 }
 
 // Get all question sets ...
@@ -1304,9 +1306,10 @@ export const createQuestionSetMappings = async (
 // create test for students
 export const getRandomQuestions = async (
   language: "english" | "hindi" | "marathi" = "english",
+  studentId: number,
 ) => {
   try {
-    const response = await axios.get(`${BASE_URL}/questions/random-for-test`, {
+    const response = await axios.get(`${BASE_URL}/questions/random-for-test?student_id=${studentId}`, {
       headers: {
         ...(getAuthHeaders() as Record<string, string>),
       },
@@ -1361,6 +1364,9 @@ export const createQuestionSet = async (data: {
   description: string;
   maximumMarks?: number;
   isRandom?: boolean;
+  questions?: { question_id: number; difficulty_level: number }[];
+  partnerId?: number;
+  partner_name?: string;
 }): Promise<QuestionSet> => {
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "POST",
