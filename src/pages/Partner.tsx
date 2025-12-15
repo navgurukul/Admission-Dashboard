@@ -71,7 +71,6 @@ const columns = [
   "Contact Info",
   "Districts",
   "Slug",
-  "Status", // Added for visual balance, though logic might not be real
   "Actions",
 ];
 
@@ -298,7 +297,8 @@ const PartnerPage = () => {
       const updated = [...prev];
       updated[idx] = {
         ...updated[idx],
-        meraki_link: `https://dummy-meraki-link.com/partner/${updated[idx].id}`,
+        // meraki_link: `https://dummy-meraki-link.com/partner/${updated[idx].id}`,
+        meraki_link : "https://play.google.com/store/apps/details?id=org.merakilearn",
       };
       return updated;
     });
@@ -1083,13 +1083,12 @@ const PartnerPage = () => {
                         <TableHead>Assessment Name</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Created At</TableHead>
-                        <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {partnerSets.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground h-20">
+                          <TableCell colSpan={3} className="text-center text-muted-foreground h-20">
                             No assessments created for this partner yet.
                           </TableCell>
                         </TableRow>
@@ -1099,7 +1098,6 @@ const PartnerPage = () => {
                             <TableCell className="font-medium">{set.name}</TableCell>
                             <TableCell>{set.description}</TableCell>
                             <TableCell>{set.created_at ? new Date(set.created_at).toLocaleDateString() : "-"}</TableCell>
-                            <TableCell><Badge variant="outline">{set.active ? "Active" : "Inactive"}</Badge></TableCell>
                           </TableRow>
                         ))
                       )}

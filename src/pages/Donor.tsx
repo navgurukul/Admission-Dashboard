@@ -111,6 +111,11 @@ const DonorPage = () => {
       return;
     }
 
+    if (formData.donor_phone.length !== 10) {
+      toast({ title: "Error", description: "Phone number must be exactly 10 digits", variant: "destructive" });
+      return;
+    }
+
     try {
       await createDonor({
         donor_name: formData.donor_name,
@@ -165,6 +170,11 @@ const DonorPage = () => {
       !formData.donor_country.trim()
     ) {
       toast({ title: "Error", description: "All fields are required", variant: "destructive" });
+      return;
+    }
+
+    if (formData.donor_phone.length !== 10) {
+      toast({ title: "Error", description: "Phone number must be exactly 10 digits", variant: "destructive" });
       return;
     }
 
@@ -399,7 +409,7 @@ const DonorPage = () => {
 
                     <Button
                       variant="outline"
-                      size="sm" 
+                      size="sm"
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
                     >
@@ -447,9 +457,13 @@ const DonorPage = () => {
                 <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
-                  type="number"
+                  type="text"
                   value={formData.donor_phone}
-                  onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setFormData({ ...formData, donor_phone: value });
+                  }}
+                  placeholder="10 digit number"
                   required
                 />
               </div>
@@ -532,9 +546,13 @@ const DonorPage = () => {
                 <Label htmlFor="edit-phone">Phone</Label>
                 <Input
                   id="edit-phone"
-                  type="number"
+                  type="text"
                   value={formData.donor_phone}
-                  onChange={(e) => setFormData({ ...formData, donor_phone: e.target.value })}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setFormData({ ...formData, donor_phone: value });
+                  }}
+                  placeholder="10 digit number"
                   required
                 />
               </div>

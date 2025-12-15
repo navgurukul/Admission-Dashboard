@@ -44,7 +44,7 @@ import {
   getDistrictsByState,
   getAllStages,
   getPartners,
-  getDonors,
+  getAllDonors,
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
@@ -249,7 +249,7 @@ export function ApplicantModal({
           getAllQuestionSets(),
           getAllStages(),
           getPartners(),
-          getDonors(),
+          getAllDonors(),
         ]);
 
         setCampus(
@@ -1100,322 +1100,130 @@ export function ApplicantModal({
             </div>
           </div>
 
-            <InlineSubform
-              title="Screening Round"
-              studentId={currentApplicant.id}
-              initialData={initialScreeningData}
-              fields={screeningFields}
-              submitApi={screeningSubmit}
-              updateApi={screeningUpdate}
-              onSave={handleUpdate}
-            />
+          <InlineSubform
+            title="Screening Round"
+            studentId={currentApplicant.id}
+            initialData={initialScreeningData}
+            fields={screeningFields}
+            submitApi={screeningSubmit}
+            updateApi={screeningUpdate}
+            onSave={handleUpdate}
+          />
 
-            {/* Learning & Cultural Fit Rounds */}
-            <div className="grid grid-cols-1 gap-4 sm:gap-6">
-              <div className="col-span-full w-full">
-                <InlineSubform
-                  title="Learning Round"
-                  studentId={currentApplicant.id}
-                  initialData={initialLearningData}
-                  fields={[
-                    {
-                      name: "learning_round_status",
-                      label: "Status *",
-                      type: "select" as const,
-                      disabled: isStageDisabled(currentApplicant, "LR"),
-                      options: [
-                        {
-                          value: "Learner Round Pass",
-                          label: "Learner Round Pass",
-                        },
-                        {
-                          value: "Learner Round Fail",
-                          label: "Learner Round Fail",
-                        },
-                        { value: "Reschedule", label: "Reschedule" },
-                        { value: "No Show", label: "No Show" },
-                      ],
-                    },
-                    {
-                      name: "comments",
-                      label: "Comments *",
-                      type: "text" as const,
-                      disabled: isStageDisabled(currentApplicant, "LR"),
-                    },
-                    {
-                      name: "audit_info",
-                      label: "Audit Info",
-                      type: "readonly" as const,
-                    },
-                  ]}
-                  submitApi={API_MAP.learning.submit}
-                  updateApi={API_MAP.learning.update}
-                  onSave={handleUpdate}
-                  disabled={isStageDisabled(currentApplicant, "LR")}
-                  disabledReason=" Student need to pass Screening Round"
-                />
-              </div>
-              <div className="col-span-full w-full">
-                <InlineSubform
-                  title="Cultural Fit Round"
-                  studentId={currentApplicant.id}
-                  initialData={initialCulturalData}
-                  fields={[
-                    {
-                      name: "cultural_fit_status",
-                      label: "Status *",
-                      type: "select" as const,
-                      disabled: isStageDisabled(currentApplicant, "CFR"),
-                      options: [
-                        {
-                          value: "Cultural Fit Interview Pass",
-                          label: "Cultural Fit Interview Pass",
-                        },
-                        {
-                          value: "Cultural Fit Interview Fail",
-                          label: "Cultural Fit Interview Fail",
-                        },
-                        { value: "Reschedule", label: "Reschedule" },
-                        { value: "No Show", label: "No Show" },
-                      ],
-                    },
-                    {
-                      name: "comments",
-                      label: "Comments *",
-                      type: "text" as const,
-                      disabled: isStageDisabled(currentApplicant, "LR"),
-                    },
+          {/* Learning & Cultural Fit Rounds */}
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
+            <div className="col-span-full w-full">
+              <InlineSubform
+                title="Learning Round"
+                studentId={currentApplicant.id}
+                initialData={initialLearningData}
+                fields={[
+                  {
+                    name: "learning_round_status",
+                    label: "Status *",
+                    type: "select" as const,
+                    disabled: isStageDisabled(currentApplicant, "LR"),
+                    options: [
+                      {
+                        value: "Learner Round Pass",
+                        label: "Learner Round Pass",
+                      },
+                      {
+                        value: "Learner Round Fail",
+                        label: "Learner Round Fail",
+                      },
+                      { value: "Reschedule", label: "Reschedule" },
+                      { value: "No Show", label: "No Show" },
+                    ],
+                  },
+                  {
+                    name: "comments",
+                    label: "Comments *",
+                    type: "text" as const,
+                    disabled: isStageDisabled(currentApplicant, "LR"),
+                  },
+                  {
+                    name: "audit_info",
+                    label: "Audit Info",
+                    type: "readonly" as const,
+                  },
+                ]}
+                submitApi={API_MAP.learning.submit}
+                updateApi={API_MAP.learning.update}
+                onSave={handleUpdate}
+                disabled={isStageDisabled(currentApplicant, "LR")}
+                disabledReason=" Student need to pass Screening Round"
+              />
+            </div>
+            <div className="col-span-full w-full">
+              <InlineSubform
+                title="Cultural Fit Round"
+                studentId={currentApplicant.id}
+                initialData={initialCulturalData}
+                fields={[
+                  {
+                    name: "cultural_fit_status",
+                    label: "Status *",
+                    type: "select" as const,
+                    disabled: isStageDisabled(currentApplicant, "CFR"),
+                    options: [
+                      {
+                        value: "Cultural Fit Interview Pass",
+                        label: "Cultural Fit Interview Pass",
+                      },
+                      {
+                        value: "Cultural Fit Interview Fail",
+                        label: "Cultural Fit Interview Fail",
+                      },
+                      { value: "Reschedule", label: "Reschedule" },
+                      { value: "No Show", label: "No Show" },
+                    ],
+                  },
+                  {
+                    name: "comments",
+                    label: "Comments *",
+                    type: "text" as const,
+                    disabled: isStageDisabled(currentApplicant, "LR"),
+                  },
 
-                    {
-                      name: "audit_info",
-                      label: "Audit Info",
-                      type: "readonly" as const,
-                    }
-                  ]}
-                  submitApi={API_MAP.cultural.submit}
-                  updateApi={API_MAP.cultural.update}
-                  onSave={handleUpdate}
-                  disabled={isStageDisabled(currentApplicant, "CFR")}
-                  disabledReason="Student need to pass Learning Round"
-                />
-              </div>
+                  {
+                    name: "audit_info",
+                    label: "Audit Info",
+                    type: "readonly" as const,
+                  }
+                ]}
+                submitApi={API_MAP.cultural.submit}
+                updateApi={API_MAP.cultural.update}
+                onSave={handleUpdate}
+                disabled={isStageDisabled(currentApplicant, "CFR")}
+                disabledReason="Student need to pass Learning Round"
+              />
+            </div>
 
-              {/* Offer and Final Status */}
-              <div className="space-y-4">
-                <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Campus
-                    </label>
-                    {isStageDisabled(currentApplicant, "OFFER") &&
-                      !currentApplicant.campus_id ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <EditableCell
-                                applicant={currentApplicant}
-                                field="campus_id"
-                                value={currentApplicant.campus_id}
-                                displayValue={getLabel(
-                                  campus,
-                                  currentApplicant.campus_id
-                                )}
-                                onUpdate={handleUpdate}
-                                options={campus}
-                                disabled={true}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>All rounds should be passed</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <EditableCell
-                        applicant={currentApplicant}
-                        field="campus_id"
-                        value={currentApplicant.campus_id}
-                        displayValue={getLabel(
-                          campus,
-                          currentApplicant.campus_id
-                        )}
-                        onUpdate={handleUpdate}
-                        options={campus}
-                        disabled={!hasEditAccess}
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Offer Letter Status
-                    </label>
-                    {isStageDisabled(currentApplicant, "OFFER") &&
-                      !currentApplicant.final_decisions?.[0]
-                        ?.offer_letter_status ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <EditableCell
-                                applicant={currentApplicant}
-                                field="offer_letter_status"
-                                value={
-                                  currentApplicant.final_decisions?.[0]
-                                    ?.offer_letter_status
-                                }
-                                displayValue={
-                                  currentApplicant.final_decisions?.[0]
-                                    ?.offer_letter_status || ""
-                                }
-                                options={[
-                                  {
-                                    value: "Offer Pending",
-                                    label: "Offer Pending",
-                                  },
-                                  { value: "Offer Sent", label: "Offer Sent" },
-                                  {
-                                    value: "Offer Accepted",
-                                    label: "Offer Accepted",
-                                  },
-                                  {
-                                    value: "Offer Declined",
-                                    label: "Offer Declined",
-                                  },
-                                  { value: "Waitlisted", label: "Waitlisted" },
-                                  {
-                                    value: "Selected but not joined",
-                                    label: "Selected but not joined",
-                                  },
-                                ]}
-                                disabled={true}
-                                onUpdate={async (value) => {
-                                  await handleFinalDecisionUpdate(
-                                    "offer_letter_status",
-                                    value
-                                  );
-                                }}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>All rounds should be passed</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <EditableCell
-                        applicant={currentApplicant}
-                        field="offer_letter_status"
-                        value={
-                          currentApplicant.final_decisions?.[0]
-                            ?.offer_letter_status
-                        }
-                        displayValue={
-                          currentApplicant.final_decisions?.[0]
-                            ?.offer_letter_status || ""
-                        }
-                        options={[
-                          { value: "Offer Pending", label: "Offer Pending" },
-                          { value: "Offer Sent", label: "Offer Sent" },
-                          { value: "Offer Accepted", label: "Offer Accepted" },
-                          { value: "Offer Declined", label: "Offer Declined" },
-                          { value: "Waitlisted", label: "Waitlisted" },
-                          {
-                            value: "Selected but not joined",
-                            label: "Selected but not joined",
-                          },
-                        ]}
-                        disabled={!hasEditAccess}
-                        onUpdate={async (value) => {
-                          await handleFinalDecisionUpdate(
-                            "offer_letter_status",
-                            value
-                          );
-                        }}
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Onboarded Status
-                    </label>
-                    {isStageDisabled(currentApplicant, "OFFER") &&
-                      !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <EditableCell
-                                applicant={currentApplicant}
-                                field="onboarded_status"
-                                value={
-                                  currentApplicant.final_decisions?.[0]
-                                    ?.onboarded_status
-                                }
-                                displayValue={
-                                  currentApplicant.final_decisions?.[0]
-                                    ?.onboarded_status || ""
-                                }
-                                options={[
-                                  { value: "Onboarded", label: "Onboarded" },
-                                ]}
-                                disabled={true}
-                                onUpdate={async (value) => {
-                                  await handleFinalDecisionUpdate(
-                                    "onboarded_status",
-                                    value
-                                  );
-                                }}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>All rounds should be passed</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <EditableCell
-                        applicant={currentApplicant}
-                        field="onboarded_status"
-                        value={
-                          currentApplicant.final_decisions?.[0]
-                            ?.onboarded_status
-                        }
-                        displayValue={
-                          currentApplicant.final_decisions?.[0]
-                            ?.onboarded_status || ""
-                        }
-                        options={[{ value: "Onboarded", label: "Onboarded" }]}
-                        disabled={!hasEditAccess}
-                        onUpdate={async (value) => {
-                          await handleFinalDecisionUpdate(
-                            "onboarded_status",
-                            value
-                          );
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="w-full">
+            {/* Offer and Final Status */}
+            <div className="space-y-4">
+              <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Joining Date
+                    Campus
                   </label>
                   {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.final_decisions?.[0]?.joining_date ? (
+                    !currentApplicant.campus_id ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div>
-                            <input
-                              type="date"
-                              className="border rounded px-2 py-1 w-full cursor-not-allowed opacity-60"
-                              value=""
+                            <EditableCell
+                              applicant={currentApplicant}
+                              field="campus_id"
+                              value={currentApplicant.campus_id}
+                              displayValue={getLabel(
+                                campus,
+                                currentApplicant.campus_id
+                              )}
+                              onUpdate={handleUpdate}
+                              options={campus}
                               disabled={true}
                             />
                           </div>
@@ -1426,78 +1234,270 @@ export function ApplicantModal({
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
-                    <input
-                      type="date"
-                      className="border rounded px-2 py-1 w-full text-sm sm:text-base"
-                      value={
-                        joiningDate ||
-                        currentApplicant.final_decisions?.[0]?.joining_date?.split(
-                          "T"
-                        )[0] ||
-                        ""
-                      }
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="campus_id"
+                      value={currentApplicant.campus_id}
+                      displayValue={getLabel(
+                        campus,
+                        currentApplicant.campus_id
+                      )}
+                      onUpdate={handleUpdate}
+                      options={campus}
                       disabled={!hasEditAccess}
-                      onChange={async (e) => {
-                        const selectedDate = e.target.value;
-                        setJoiningDate(selectedDate);
-
-                        try {
-                          // Call API immediately when date changes
-                          await handleFinalDecisionUpdate(
-                            "joining_date",
-                            selectedDate || null
-                          );
-
-                          // Immediately sync
-                          setCurrentApplicant((prev) => ({
-                            ...prev,
-                            final_decisions: [
-                              {
-                                ...(prev.final_decisions?.[0] || {}),
-                                joining_date: selectedDate,
-                              },
-                            ],
-                          }));
-                        } catch (err) {
-                          // console.error("Failed to update joining date:", err);
-                        }
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Offer Letter Status
+                  </label>
+                  {isStageDisabled(currentApplicant, "OFFER") &&
+                    !currentApplicant.final_decisions?.[0]
+                      ?.offer_letter_status ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <EditableCell
+                              applicant={currentApplicant}
+                              field="offer_letter_status"
+                              value={
+                                currentApplicant.final_decisions?.[0]
+                                  ?.offer_letter_status
+                              }
+                              displayValue={
+                                currentApplicant.final_decisions?.[0]
+                                  ?.offer_letter_status || ""
+                              }
+                              options={[
+                                {
+                                  value: "Offer Pending",
+                                  label: "Offer Pending",
+                                },
+                                { value: "Offer Sent", label: "Offer Sent" },
+                                {
+                                  value: "Offer Accepted",
+                                  label: "Offer Accepted",
+                                },
+                                {
+                                  value: "Offer Declined",
+                                  label: "Offer Declined",
+                                },
+                                { value: "Waitlisted", label: "Waitlisted" },
+                                {
+                                  value: "Selected but not joined",
+                                  label: "Selected but not joined",
+                                },
+                              ]}
+                              disabled={true}
+                              onUpdate={async (value) => {
+                                await handleFinalDecisionUpdate(
+                                  "offer_letter_status",
+                                  value
+                                );
+                              }}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>All rounds should be passed</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="offer_letter_status"
+                      value={
+                        currentApplicant.final_decisions?.[0]
+                          ?.offer_letter_status
+                      }
+                      displayValue={
+                        currentApplicant.final_decisions?.[0]
+                          ?.offer_letter_status || ""
+                      }
+                      options={[
+                        { value: "Offer Pending", label: "Offer Pending" },
+                        { value: "Offer Sent", label: "Offer Sent" },
+                        { value: "Offer Accepted", label: "Offer Accepted" },
+                        { value: "Offer Declined", label: "Offer Declined" },
+                        { value: "Waitlisted", label: "Waitlisted" },
+                        {
+                          value: "Selected but not joined",
+                          label: "Selected but not joined",
+                        },
+                      ]}
+                      disabled={!hasEditAccess}
+                      onUpdate={async (value) => {
+                        await handleFinalDecisionUpdate(
+                          "offer_letter_status",
+                          value
+                        );
+                      }}
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Onboarded Status
+                  </label>
+                  {isStageDisabled(currentApplicant, "OFFER") &&
+                    !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <EditableCell
+                              applicant={currentApplicant}
+                              field="onboarded_status"
+                              value={
+                                currentApplicant.final_decisions?.[0]
+                                  ?.onboarded_status
+                              }
+                              displayValue={
+                                currentApplicant.final_decisions?.[0]
+                                  ?.onboarded_status || ""
+                              }
+                              options={[
+                                { value: "Onboarded", label: "Onboarded" },
+                              ]}
+                              disabled={true}
+                              onUpdate={async (value) => {
+                                await handleFinalDecisionUpdate(
+                                  "onboarded_status",
+                                  value
+                                );
+                              }}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>All rounds should be passed</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <EditableCell
+                      applicant={currentApplicant}
+                      field="onboarded_status"
+                      value={
+                        currentApplicant.final_decisions?.[0]
+                          ?.onboarded_status
+                      }
+                      displayValue={
+                        currentApplicant.final_decisions?.[0]
+                          ?.onboarded_status || ""
+                      }
+                      options={[{ value: "Onboarded", label: "Onboarded" }]}
+                      disabled={!hasEditAccess}
+                      onUpdate={async (value) => {
+                        await handleFinalDecisionUpdate(
+                          "onboarded_status",
+                          value
+                        );
                       }}
                     />
                   )}
                 </div>
               </div>
 
-              {/* Notes */}
-              <div className="space-y-4">
-                {/* Final Note - Full Width */}
-                <div className="w-full">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Final Note
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="final_notes"
+              <div className="w-full">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Joining Date
+                </label>
+                {isStageDisabled(currentApplicant, "OFFER") &&
+                  !currentApplicant.final_decisions?.[0]?.joining_date ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <input
+                            type="date"
+                            className="border rounded px-2 py-1 w-full cursor-not-allowed opacity-60"
+                            value=""
+                            disabled={true}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>All rounds should be passed</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <input
+                    type="date"
+                    className="border rounded px-2 py-1 w-full text-sm sm:text-base"
                     value={
-                      currentApplicant.final_decisions?.[0]?.final_notes || ""
+                      joiningDate ||
+                      currentApplicant.final_decisions?.[0]?.joining_date?.split(
+                        "T"
+                      )[0] ||
+                      ""
                     }
-                    displayValue={
-                      currentApplicant.final_decisions?.[0]?.final_notes ||
-                      "No final note"
-                    }
-                    renderInput={({ value, onChange }) => (
-                      <textarea
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        rows={4}
-                        className="border rounded px-2 py-1 w-full resize-y"
-                        placeholder="Enter final notes here..."
-                      />
-                    )}
-                    onUpdate={async (value) => {
-                      await handleFinalDecisionUpdate("final_notes", value);
+                    disabled={!hasEditAccess}
+                    onChange={async (e) => {
+                      const selectedDate = e.target.value;
+                      setJoiningDate(selectedDate);
+
+                      try {
+                        // Call API immediately when date changes
+                        await handleFinalDecisionUpdate(
+                          "joining_date",
+                          selectedDate || null
+                        );
+
+                        // Immediately sync
+                        setCurrentApplicant((prev) => ({
+                          ...prev,
+                          final_decisions: [
+                            {
+                              ...(prev.final_decisions?.[0] || {}),
+                              joining_date: selectedDate,
+                            },
+                          ],
+                        }));
+                      } catch (err) {
+                        // console.error("Failed to update joining date:", err);
+                      }
                     }}
                   />
-                </div>
+                )}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-4">
+              {/* Final Note - Full Width */}
+              <div className="w-full">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Final Note
+                </label>
+                <EditableCell
+                  applicant={currentApplicant}
+                  field="final_notes"
+                  value={
+                    currentApplicant.final_decisions?.[0]?.final_notes || ""
+                  }
+                  displayValue={
+                    currentApplicant.final_decisions?.[0]?.final_notes ||
+                    "No final note"
+                  }
+                  renderInput={({ value, onChange }) => (
+                    <textarea
+                      value={value}
+                      onChange={(e) => onChange(e.target.value)}
+                      rows={4}
+                      className="border rounded px-2 py-1 w-full resize-y"
+                      placeholder="Enter final notes here..."
+                    />
+                  )}
+                  onUpdate={async (value) => {
+                    await handleFinalDecisionUpdate("final_notes", value);
+                  }}
+                />
+              </div>
 
               Audit Information - Below Final Note
               <div className="space-y-3 pt-4">
