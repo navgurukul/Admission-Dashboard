@@ -132,28 +132,47 @@ export default function AdminView() {
 
   const getStatusBadge = (status: string) => {
     let colorClass = "bg-gray-500";
+    let displayStatus = status;
+    
     switch (status?.toLowerCase()) {
+      // Interview statuses
       case "scheduled":
         colorClass = "bg-green-500";
+        displayStatus = "Scheduled";
         break;
       case "rescheduled":
         colorClass = "bg-orange-500";
+        displayStatus = "Rescheduled";
         break;
       case "active":
         colorClass = "bg-blue-500";
+        displayStatus = "Active";
         break;
       case "completed":
+        colorClass = "bg-green-500";
+        displayStatus = "Completed";
+        break;
+      
+      // Slot statuses
       case "booked":
         colorClass = "bg-green-500";
-        break;
-      case "cancelled":
-        colorClass = "bg-red-500";
+        displayStatus = "Booked";
         break;
       case "available":
         colorClass = "bg-orange-500";
+        displayStatus = "Available";
+        break;
+      case "expired":
+        colorClass = "bg-gray-500";
+        displayStatus = "Expired";
+        break;
+      case "cancelled":
+      case "canceled":
+        colorClass = "bg-red-500";
+        displayStatus = "Cancelled";
         break;
     }
-    return <Badge className={`${colorClass} text-white hover:${colorClass}`}>{status}</Badge>;
+    return <Badge className={`${colorClass} text-white hover:${colorClass}`}>{displayStatus}</Badge>;
   };
 
   const formatDate = (dateString: string) => {
@@ -457,7 +476,7 @@ export default function AdminView() {
                                 {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                               </TableCell>
                               <TableCell className="min-w-[120px]">
-                                {getStatusBadge(slot.is_booked ? 'Booked' : 'Available')}
+                                {getStatusBadge(slot.status || 'Available')}
                               </TableCell>
                             </TableRow>
                           ))}

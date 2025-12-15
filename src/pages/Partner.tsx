@@ -388,17 +388,31 @@ const PartnerPage = () => {
     const hasValidEmail = editDialog.form.emails.some(e => e.trim() !== "");
     const hasValidDistrict = editDialog.form.districts.some(d => d.trim() !== "");
 
-    if (
-      !editDialog.form.name.trim() ||
-      !editDialog.form.slug.trim() ||
-      !editDialog.form.notes.trim() ||
-      !editDialog.form.state.trim() ||
-      !hasValidEmail ||
-      !hasValidDistrict
-    ) {
+    // Collect missing fields
+    const missingFields: string[] = [];
+    if (!editDialog.form.name.trim()) missingFields.push("Partner Name");
+    if (!editDialog.form.slug.trim()) missingFields.push("Slug");
+    if (!hasValidEmail) missingFields.push("Email");
+    if (!editDialog.form.state.trim()) missingFields.push("State");
+    if (!hasValidDistrict) missingFields.push("District");
+    if (!editDialog.form.notes.trim()) missingFields.push("Notes");
+
+    if (missingFields.length > 0) {
       toast({
-        title: "Error",
-        description: "All fields are required (Name, Slug, Email, State, Districts, Notes).",
+        title: "Missing Required Fields",
+        description: `Please fill in: ${missingFields.join(", ")}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmail = editDialog.form.emails.find(e => e.trim() !== "" && !emailRegex.test(e.trim()));
+    if (invalidEmail) {
+      toast({
+        title: "Invalid Email Format",
+        description: `"${invalidEmail}" is not a valid email address. Please use format: example@domain.com`,
         variant: "destructive"
       });
       return;
@@ -480,17 +494,31 @@ const PartnerPage = () => {
     const hasValidEmail = addDialog.form.emails.some(e => e.trim() !== "");
     const hasValidDistrict = addDialog.form.districts.some(d => d.trim() !== "");
 
-    if (
-      !addDialog.form.name.trim() ||
-      !addDialog.form.slug.trim() ||
-      !addDialog.form.notes.trim() ||
-      !addDialog.form.state.trim() ||
-      !hasValidEmail ||
-      !hasValidDistrict
-    ) {
+    // Collect missing fields
+    const missingFields: string[] = [];
+    if (!addDialog.form.name.trim()) missingFields.push("Partner Name");
+    if (!addDialog.form.slug.trim()) missingFields.push("Slug");
+    if (!hasValidEmail) missingFields.push("Email");
+    if (!addDialog.form.state.trim()) missingFields.push("State");
+    if (!hasValidDistrict) missingFields.push("District");
+    if (!addDialog.form.notes.trim()) missingFields.push("Notes");
+
+    if (missingFields.length > 0) {
       toast({
-        title: "Error",
-        description: "All fields are required (Name, Slug, Email, State, Districts, Notes).",
+        title: "Missing Required Fields",
+        description: `Please fill in: ${missingFields.join(", ")}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmail = addDialog.form.emails.find(e => e.trim() !== "" && !emailRegex.test(e.trim()));
+    if (invalidEmail) {
+      toast({
+        title: "Invalid Email Format",
+        description: `"${invalidEmail}" is not a valid email address. Please use format: example@domain.com`,
         variant: "destructive"
       });
       return;
@@ -844,7 +872,8 @@ const PartnerPage = () => {
               <DialogTitle>Add New Partner</DialogTitle>
               <DialogDescription>Enter the details of the new partner organization.</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+            <form onSubmit={handleAddSubmit}>
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
               <div className="grid gap-2">
                 <Label htmlFor="name">Partner Name <span className="text-destructive">*</span></Label>
                 <Input
@@ -860,13 +889,14 @@ const PartnerPage = () => {
                 {addDialog.form.emails.map((email, i) => (
                   <div key={i} className="flex gap-2">
                     <Input
+                      type="email"
                       value={email}
                       onChange={(e) => handleAddArrayChange("emails", i, e.target.value)}
                       placeholder="contact@example.com"
                       required
                     />
                     {addDialog.form.emails.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("emails", i)}>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeAddArrayItem("emails", i)}>
                         <X className="h-4 w-4" />
                       </Button>
                     )}
@@ -928,7 +958,7 @@ const PartnerPage = () => {
                       className="flex-1"
                     />
                     {addDialog.form.districts.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
                         <X className="h-4 w-4" />
                       </Button>
                     )}
@@ -936,11 +966,12 @@ const PartnerPage = () => {
                 ))}
                 <Button variant="link" size="sm" onClick={() => addAddArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={closeAddDialog}>Cancel</Button>
-              <Button onClick={handleAddSubmit}>Save Partner</Button>
-            </DialogFooter>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeAddDialog}>Cancel</Button>
+                <Button type="submit">Save Partner</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
 
@@ -950,22 +981,30 @@ const PartnerPage = () => {
             <DialogHeader>
               <DialogTitle>Edit Partner</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+            <form onSubmit={handleEditSubmit}>
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
               <div className="grid gap-2">
-                <Label htmlFor="edit-name">Partner Name</Label>
-                <Input id="edit-name" value={editDialog.form.name} onChange={(e) => handleEditFormChange("name", e.target.value)} />
+                <Label htmlFor="edit-name">Partner Name <span className="text-destructive">*</span></Label>
+                <Input 
+                  id="edit-name" 
+                  value={editDialog.form.name} 
+                  onChange={(e) => handleEditFormChange("name", e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Emails <span className="text-destructive">*</span></Label>
                 {editDialog.form.emails.map((email, i) => (
                   <div key={i} className="flex gap-2">
                     <Input
+                      type="email"
                       value={email}
                       onChange={(e) => handleEditArrayChange("emails", i, e.target.value)}
+                      placeholder="contact@example.com"
                       required
                     />
                     {editDialog.form.emails.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("emails", i)}>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeEditArrayItem("emails", i)}>
                         <X className="h-4 w-4" />
                       </Button>
                     )}
@@ -974,8 +1013,13 @@ const PartnerPage = () => {
                 {/* <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-slug">Slug</Label>
-                <Input id="edit-slug" value={editDialog.form.slug} onChange={(e) => handleEditFormChange("slug", e.target.value)} />
+                <Label htmlFor="edit-slug">Slug <span className="text-destructive">*</span></Label>
+                <Input 
+                  id="edit-slug" 
+                  value={editDialog.form.slug} 
+                  onChange={(e) => handleEditFormChange("slug", e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit-notes">Notes <span className="text-destructive">*</span></Label>
@@ -1019,19 +1063,20 @@ const PartnerPage = () => {
                       className="flex-1"
                     />
                     {editDialog.form.districts.length > 1 && (
-                      <Button variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
                 ))}
-                <Button variant="link" size="sm" onClick={() => addEditArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
+                <Button type="button" variant="link" size="sm" onClick={() => addEditArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={closeEditDialog}>Cancel</Button>
-              <Button onClick={handleEditSubmit}>Save Changes</Button>
-            </DialogFooter>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeEditDialog}>Cancel</Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
 
