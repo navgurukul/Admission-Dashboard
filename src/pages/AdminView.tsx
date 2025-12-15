@@ -134,6 +134,11 @@ export default function AdminView() {
     let colorClass = "bg-gray-500";
     switch (status?.toLowerCase()) {
       case "scheduled":
+        colorClass = "bg-green-500";
+        break;
+      case "rescheduled":
+        colorClass = "bg-orange-500";
+        break;
       case "active":
         colorClass = "bg-blue-500";
         break;
@@ -275,7 +280,7 @@ export default function AdminView() {
                                     }
                                   }}
                                 >
-                                  <div className="font-medium text-blue-600 group-hover:text-blue-800 flex items-center gap-2">
+                                  <div className="font-medium text-black-600 group-hover:text-black-800 flex items-center gap-2">
                                     {interview.student_name || "Unknown"}
                                     {/* <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
                                   </div>
@@ -303,7 +308,7 @@ export default function AdminView() {
                                     href={interview.meeting_link}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-blue-600 hover:underline"
+                                    className="flex items-center gap-1 text-orange-600 hover:underline"
                                   >
                                     <Video className="w-4 h-4" />
                                     <span>Join</span>
