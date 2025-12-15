@@ -111,6 +111,11 @@ const DonorPage = () => {
       return;
     }
 
+    if (formData.donor_phone.length !== 10) {
+      toast({ title: "Error", description: "Phone number must be exactly 10 digits", variant: "destructive" });
+      return;
+    }
+
     try {
       await createDonor({
         donor_name: formData.donor_name,
@@ -165,6 +170,11 @@ const DonorPage = () => {
       !formData.donor_country.trim()
     ) {
       toast({ title: "Error", description: "All fields are required", variant: "destructive" });
+      return;
+    }
+
+    if (formData.donor_phone.length !== 10) {
+      toast({ title: "Error", description: "Phone number must be exactly 10 digits", variant: "destructive" });
       return;
     }
 
@@ -399,7 +409,7 @@ const DonorPage = () => {
 
                     <Button
                       variant="outline"
-                      size="sm" 
+                      size="sm"
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
                     >
@@ -448,17 +458,13 @@ const DonorPage = () => {
                 <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
                 <Input
                   id="phone"
-                  type="tel"
+                  type="text"
                   value={formData.donor_phone}
                   onChange={(e) => {
-                    // Allow + at start and digits only (for international numbers like +91, +1, etc.)
-                    let value = e.target.value.replace(/(?!^\+)[^0-9]/g, '');
-                    // Limit to 15 characters max (international standard)
-                    if (value.length > 15) value = value.slice(0, 15);
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                     setFormData({ ...formData, donor_phone: value });
                   }}
-                  placeholder="+919876543210"
-                  maxLength={15}
+                  placeholder="10 digit number"
                   required
                 />
               </div>
@@ -545,16 +551,13 @@ const DonorPage = () => {
                 <Label htmlFor="edit-phone">Phone <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-phone"
-                  type="tel"
+                  type="text"
                   value={formData.donor_phone}
                   onChange={(e) => {
-                    // Allow + at start and digits only (for international numbers like +91, +1, etc.)
-                    let value = e.target.value.replace(/(?!^\+)[^0-9]/g, '');
-                    // Limit to 15 characters max (international standard)
-                    if (value.length > 15) value = value.slice(0, 15);
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                     setFormData({ ...formData, donor_phone: value });
                   }}
-                  maxLength={15}
+                  placeholder="10 digit number"
                   required
                 />
               </div>

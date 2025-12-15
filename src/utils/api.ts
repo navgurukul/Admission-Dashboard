@@ -819,8 +819,9 @@ export const getAllPartners = async (): Promise<any[]> => {
 };
 
 // Get All Donors
+// Get All Donors
 export const getAllDonors = async (): Promise<any[]> => {
-  const response = await fetch(`${BASE_URL}/donors/getDonors`, {
+  const response = await fetch(`${BASE_URL}/donors/getDonors?page=1&pageSize=1000`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -832,7 +833,9 @@ export const getAllDonors = async (): Promise<any[]> => {
   }
 
   // Handle different response formats
-  if (data && data.data && Array.isArray(data.data)) {
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
     return data.data;
   } else if (Array.isArray(data)) {
     return data;
