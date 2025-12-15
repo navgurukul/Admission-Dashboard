@@ -2409,7 +2409,7 @@ export interface Donor {
   id: number;
   donor_name: string;
   donor_email?: string;
-  donor_phone?: number;
+  donor_phone?: number | string;
   donor_address?: string;
   donor_city?: string;
   donor_state?: string;
