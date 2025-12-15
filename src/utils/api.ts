@@ -1307,7 +1307,7 @@ export const getRandomQuestions = async (
   studentId: number,
 ) => {
   try {
-    const response = await axios.get(`${BASE_URL}/questions/random-for-test?studentId=${studentId}`, {
+    const response = await axios.get(`${BASE_URL}/questions/random-for-test?student_id=${studentId}`, {
       headers: {
         ...(getAuthHeaders() as Record<string, string>),
       },
