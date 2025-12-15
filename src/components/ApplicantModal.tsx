@@ -637,7 +637,7 @@ export function ApplicantModal({
     {
       name: "obtained_marks",
       label: "Obtained Marks *",
-      type: "readonly" as const,
+      type: "number" as const,
     },
     {
       name: "school_id",
