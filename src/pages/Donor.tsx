@@ -75,18 +75,7 @@ const DonorPage = () => {
     setLoading(true);
     try {
       const data = await getDonors();
-      let donorList = [];
-
-      if (Array.isArray(data)) {
-        donorList = data;
-      } else if (data?.data?.data && Array.isArray(data.data.data)) {
-        // Handle nested pagination structure: data.data.data
-        donorList = data.data.data;
-      } else if (data?.data && Array.isArray(data.data)) {
-        donorList = data.data;
-      } else if (data?.donors && Array.isArray(data.donors)) {
-        donorList = data.donors;
-      }
+      let donorList = data || [];
 
       setDonors(donorList);
     } catch (error) {

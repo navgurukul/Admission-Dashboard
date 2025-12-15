@@ -11,10 +11,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { getStudentsByDonorId, getDonorById } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ApplicantModal } from "@/components/ApplicantModal";
 
 const DonorStudents = () => {
     const { id } = useParams();
@@ -25,6 +26,8 @@ const DonorStudents = () => {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -51,7 +54,10 @@ const DonorStudents = () => {
             let studentList = [];
             let totalCount = 0;
 
-            if (data && data.data && Array.isArray(data.data)) {
+            if (data?.data?.data && Array.isArray(data.data.data)) {
+                studentList = data.data.data;
+                totalCount = data.data.total || data.total || studentList.length;
+            } else if (data && data.data && Array.isArray(data.data)) {
                 studentList = data.data;
                 totalCount = data.total || studentList.length;
             } else if (Array.isArray(data)) {
@@ -69,6 +75,11 @@ const DonorStudents = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleViewStudent = (student) => {
+        setSelectedStudent(student);
+        setIsModalOpen(true);
     };
 
     return (
@@ -104,16 +115,19 @@ const DonorStudents = () => {
                                         <TableHead>Status</TableHead>
                                         <TableHead>Stage</TableHead>
                                         <TableHead>Score</TableHead>
+                                        <TableHead>Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center">Loading...</TableCell>
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell>
+                                            </TableRow>
                                         </TableRow>
                                     ) : students.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
+                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
                                         </TableRow>
                                     ) : (
                                         students.map((student, idx) => (
@@ -128,6 +142,11 @@ const DonorStudents = () => {
                                                 </TableCell>
                                                 <TableCell>{student.stage || "-"}</TableCell>
                                                 <TableCell>{student.total_score || "-"}</TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleViewStudent(student)}>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -156,6 +175,11 @@ const DonorStudents = () => {
                     </Card>
                 </div>
             </main>
+            <ApplicantModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                applicant={selectedStudent}
+            />
         </div>
     );
 };

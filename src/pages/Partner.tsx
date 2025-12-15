@@ -51,9 +51,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -61,8 +58,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState } from "@/utils/api";
+import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets } from "@/utils/api";
 
 const columns = [
   "Partner",
@@ -119,6 +119,11 @@ const PartnerPage = () => {
   // States data
   const [states, setStates] = useState([]);
   const [districts, setDistricts] = useState([]);
+
+  // Question Sets State
+  const [questionSets, setQuestionSets] = useState([]);
+  const [selectedQuestionSet, setSelectedQuestionSet] = useState("");
+  const [loadingQuestionSets, setLoadingQuestionSets] = useState(false);
 
   const { toast } = useToast();
 
@@ -533,9 +538,18 @@ const PartnerPage = () => {
     setStudentsPage(1);
     loadPartnerStudents(partner.id, 1);
   };
-  const handleCreateAssessment = (partner) => {
+  const handleCreateAssessment = async (partner) => {
     setSelectedPartner(partner);
     setShowCreateModal(true);
+    setLoadingQuestionSets(true);
+    try {
+      const data = await getAllQuestionSets();
+      setQuestionSets(data);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to fetch question sets", variant: "destructive" });
+    } finally {
+      setLoadingQuestionSets(false);
+    }
   };
 
   const handleDeletePartner = async (id) => {
@@ -662,13 +676,15 @@ const PartnerPage = () => {
                     <TableHead>Contact</TableHead>
                     <TableHead>Districts</TableHead>
                     <TableHead>Slug</TableHead>
+                    <TableHead>View Assessment</TableHead>
+                    <TableHead>Create Assessment</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                           Loading data...
@@ -677,7 +693,7 @@ const PartnerPage = () => {
                     </TableRow>
                   ) : paginatedPartners.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                      <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                         No partners found matching your criteria.
                       </TableCell>
                     </TableRow>
@@ -711,6 +727,16 @@ const PartnerPage = () => {
                         <TableCell>
                           <code className="text-xs bg-muted px-1 py-0.5 rounded border">{partner.slug || "N/A"}</code>
                         </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewAssessments(partner)} className="h-8 px-2 text-primary hover:text-primary/80">
+                            <Eye className="mr-2 h-4 w-4" /> View
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" onClick={() => handleCreateAssessment(partner)} className="h-8 px-2 text-primary hover:text-primary/80">
+                            <FileText className="mr-2 h-4 w-4" /> Create
+                          </Button>
+                        </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -725,12 +751,6 @@ const PartnerPage = () => {
                                 <Pencil className="mr-2 h-4 w-4" /> Edit Details
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewAssessments(partner)}>
-                                <Eye className="mr-2 h-4 w-4" /> View Assessments
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleCreateAssessment(partner)}>
-                                <FileText className="mr-2 h-4 w-4" /> Create Assessment
-                              </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePartner(partner.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete Partner
                               </DropdownMenuItem>
@@ -1085,11 +1105,34 @@ const PartnerPage = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Assessment</DialogTitle>
-              <DialogDescription>Create a new assessment for {selectedPartner?.name}</DialogDescription>
+              <DialogDescription>Create a new assessment for {selectedPartner?.partner_name}</DialogDescription>
             </DialogHeader>
-            <div className="py-10 text-center text-muted-foreground">
-              Form to create assessment will appear here.
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="question-set">Select Question Set</Label>
+                <Select value={selectedQuestionSet} onValueChange={setSelectedQuestionSet}>
+                  <SelectTrigger id="question-set">
+                    <SelectValue placeholder={loadingQuestionSets ? "Loading..." : "Select a question set"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {questionSets.map((set: any) => (
+                      <SelectItem key={set.id} value={set.id.toString()}>
+                        {set.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+              <Button onClick={() => {
+                toast({ title: "Info", description: `Selected Question Set ID: ${selectedQuestionSet}` });
+                setShowCreateModal(false);
+              }}>
+                Create
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
