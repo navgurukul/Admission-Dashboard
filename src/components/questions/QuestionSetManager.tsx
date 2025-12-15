@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   getAllQuestionSets,
   deleteQuestionFromSet,
@@ -45,7 +46,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    maximumMarks: "" as any,
+    nameType: "random", // "random" | "custom"
+    isRandom: true,
   });
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [downloadFormData, setDownloadFormData] = useState({
@@ -203,7 +205,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const openAddModal = () => {
     setEditingSet(null);
-    setFormData({ name: "", description: "", maximumMarks:  "" as any });
+    setFormData({ name: "", description: "", nameType: "random", isRandom: true });
     setIsModalOpen(true);
   };
 
@@ -212,14 +214,18 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     setFormData({
       name: set.name,
       description: set.description || "",
-      maximumMarks: set.limit,
+      nameType: "custom", // Always custom when editing
+      isRandom: false,
     });
     setIsModalOpen(true);
   };
 
   const handleSubmit = async () => {
     // Validation
-    if (!formData.name.trim()) {
+    // let limit = 0; // Default limit since we removed the field
+    let finalName = formData.name;
+
+    if (formData.nameType === "custom" && !formData.name.trim()) {
       toast({
         title: "⚠️ Required Field Missing",
         description: "Please enter a set name",
@@ -229,20 +235,13 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       return;
     }
 
-    if (formData.maximumMarks <= 0) {
-      toast({
-        title: "⚠️ Invalid Value",
-        description: "Maximum marks must be greater than 0",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
+
 
     try {
       const payload = {
-        ...formData,
-        maximumMarks: parseInt(formData.maximumMarks) || 0,
+        name: finalName,
+        description: formData.description,
+        isRandom: formData.isRandom,
       };
 
       if (editingSet) {
@@ -250,23 +249,43 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         await updateQuestionSet(editingSet.id, payload);
         toast({
           title: "✅ Set Updated Successfully",
-          description: `"${formData.name}" has been updated successfully.`,
+          description: `"${finalName}" has been updated successfully.`,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
+        setIsModalOpen(false);
+        await fetchSets(false);
       } else {
         // Create new set
-        await createQuestionSet(payload);
+        const newSet = await createQuestionSet(payload);
         toast({
           title: "✅ Set Created Successfully",
-          description: `"${formData.name}" has been added.`,
+          description: `"${finalName}" has been added.`,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
+
+        setIsModalOpen(false);
+        // If Custom Name (and thus "Next" flow), open picker immediately
+        if (formData.nameType === "custom") {
+          // We need to fetch sets to get the full object structure expected by the UI/Picker
+          // or at least ensure the state is updated enough for setActiveSet to work.
+          await fetchSets(false);
+          await loadSetQuestions(newSet.id);
+
+          // Construct a set object that matches what QuestionPicker expects
+          // The API returns the set, but our local state has extra fields like 'questions'
+          const setForPicker = {
+            ...newSet,
+            limit: newSet.maximumMarks,
+            questions: [],
+            active: newSet.status,
+          };
+          setActiveSet(setForPicker);
+        } else {
+          await fetchSets(false);
+        }
       }
-      setIsModalOpen(false);
-      // Refetch only sets metadata (without questions for speed)
-      await fetchSets(false);
     } catch (err: any) {
       toast({
         title: "❌ Operation Failed",
@@ -279,7 +298,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const deleteSet = async (id: number) => {
     const setToDelete = sets.find((s) => s.id === id);
-    
+
     try {
       await deleteQuestionSet(id);
       setSets((prev) => prev.filter((s) => s.id !== id));
@@ -516,6 +535,28 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
           <div className="space-y-4">
             <div>
+              <Label className="mb-2 block">Set Generation Method</Label>
+              <RadioGroup
+                value={formData.nameType}
+                onValueChange={(val) => {
+                  const isRandom = val === "random";
+                  const newName = isRandom ? `Set ${sets.length + 1}` : "";
+                  setFormData({ ...formData, nameType: val, name: newName, isRandom });
+                }}
+                className="flex items-center gap-4 mb-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="random" id="r-random" />
+                  <Label htmlFor="r-random">Random</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="custom" id="r-custom" />
+                  <Label htmlFor="r-custom">Custom Name</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div>
               <Label htmlFor="name">Set Name</Label>
               <Input
                 id="name"
@@ -540,22 +581,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               />
             </div>
 
-            <div>
-              <Label htmlFor="maximumMarks">Maximum Marks</Label>
-              <Input
-                id="maximumMarks"
-                type="number"
-                value={formData.maximumMarks}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    maximumMarks: e.target.value,
-                  })
-                }
-                placeholder="Enter Marks"
-                min="1"
-              />
-            </div>
+
+
+
           </div>
 
           <DialogFooter>
@@ -563,7 +591,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               Cancel
             </Button>
             <Button onClick={handleSubmit}>
-              {editingSet ? "Update" : "Create"}
+              {editingSet ? "Update" : (formData.nameType === "custom" ? "Next" : "Create")}
             </Button>
           </DialogFooter>
         </DialogContent>
