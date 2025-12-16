@@ -154,7 +154,7 @@ export function AddApplicantModal({
     status: "",
     is_passed: false,
     question_set_id: "",
-    total_marks: 0,
+    total_marks: 36,
     obtained_marks: "",
     exam_centre: "",
     date_of_test: "",
@@ -1712,16 +1712,43 @@ export function AddApplicantModal({
                       id="obtained_marks"
                       type="number"
                       value={formData.obtained_marks}
-                      onChange={(e) =>
-                        handleInputChange("obtained_marks", e.target.value)
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const numValue = Number(value);
+                        const maxMarks = Number(formData.total_marks);
+                        
+                        // Only allow if value is empty, or within valid range
+                        if (value === "" || (numValue >= 0 && numValue <= maxMarks)) {
+                          handleInputChange("obtained_marks", value);
+                          // Clear error if within range
+                          if (errors.obtained_marks && numValue <= maxMarks) {
+                            setErrors((prev) => {
+                              const newErrors = { ...prev };
+                              delete newErrors.obtained_marks;
+                              return newErrors;
+                            });
+                          }
+                        } else if (numValue > maxMarks) {
+                          // Show error but don't update value
+                          setErrors((prev) => ({
+                            ...prev,
+                            obtained_marks: `Obtained marks cannot exceed total marks (${maxMarks})`,
+                          }));
+                        }
+                      }}
                       placeholder="Enter obtained marks"
                       min="0"
+                      max={formData.total_marks || undefined}
                       className={errors.obtained_marks ? "border-red-500" : ""}
                     />
                     {errors.obtained_marks && (
                       <p className="text-xs text-red-500">
                         {errors.obtained_marks}
+                      </p>
+                    )}
+                    {formData.total_marks > 0 && (
+                      <p className="text-xs text-gray-500">
+                        Maximum marks: {formData.total_marks}
                       </p>
                     )}
                   </div>
