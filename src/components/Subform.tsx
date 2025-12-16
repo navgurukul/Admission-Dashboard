@@ -285,9 +285,19 @@ export function InlineSubform({
       // Conditional validation based on status
       const status = row.status;
 
+      // Check if this is a screening round (has screening-specific fields)
+      const isScreeningRound = fields.some((f) =>
+        ["question_set_id", "obtained_marks", "is_passed", "school_id", "exam_centre", "date_of_test"].includes(f.name)
+      );
+
       for (const field of editableFields) {
         const fieldValue = row[field.name];
         const isEmpty = !fieldValue || fieldValue.toString().trim() === "";
+
+        // Skip validation for status and school_id in Screening Round - they are not mandatory
+        if (isScreeningRound && (field.name === "status" || field.name === "school_id")) {
+          continue;
+        }
 
         // Skip validation for specific fields based on status
         if (field.name === "school_id") {
