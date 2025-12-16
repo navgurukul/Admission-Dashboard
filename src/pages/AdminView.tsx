@@ -323,6 +323,12 @@ export default function AdminView() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap min-w-[100px]">
                                 {interview.meeting_link ? (
+                                    interview.status?.toLowerCase() === "cancelled" ? (
+                                    <span className="flex items-center gap-1 text-gray-400 text-sm cursor-not-allowed">
+                                      <Video className="w-4 h-4" />
+                                      <span>Cancelled</span>
+                                    </span>
+                                  ) : (
                                   <a
                                     href={interview.meeting_link}
                                     target="_blank"
@@ -332,6 +338,7 @@ export default function AdminView() {
                                     <Video className="w-4 h-4" />
                                     <span>Join</span>
                                   </a>
+                                  )
                                 ) : (
                                   <span className="text-gray-400 text-sm">No Link</span>
                                 )}
