@@ -617,7 +617,7 @@ export function ApplicantModal({
   const screeningFields = [
     {
       name: "status",
-      label: "Status *",
+      label: "Status",
       type: "select" as const,
       options: [
         { value: "Screening Test Pass", label: "Screening Test Pass" },
@@ -1512,7 +1512,7 @@ export function ApplicantModal({
                 />
               </div>
 
-              Audit Information - Below Final Note
+              {/* Audit Information - Below Final Note */}
               <div className="space-y-3 pt-4">
                 <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Offer Letter</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
