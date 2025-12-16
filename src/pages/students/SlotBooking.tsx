@@ -23,6 +23,7 @@ import {
   getSlotByDate,
   scheduleInterview,
   updateScheduledInterview,
+  cancelScheduledInterview,
   getCompleteStudentData,
 } from "@/utils/api";
 
@@ -105,6 +106,9 @@ const SlotBooking: React.FC = () => {
   const [isGoogleSignedIn, setIsGoogleSignedIn] = useState(false);
   const [isBookingInProgress, setIsBookingInProgress] = useState(false);
   const [showSignInHelper, setShowSignInHelper] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const navigate = useNavigate();
 
@@ -407,9 +411,8 @@ const SlotBooking: React.FC = () => {
         bookedSlot.scheduled_interview_id = scheduleResponse.id;
       }
 
-      // Update local state
+      // Update local state (no localStorage dependency)
       setSlot(bookedSlot);
-      localStorage.setItem(`bookedSlot_${testId}`, JSON.stringify(bookedSlot));
 
       updateSlot(testId, {
         status: "Booked",
@@ -417,7 +420,7 @@ const SlotBooking: React.FC = () => {
       });
 
       showNotificationMessage(
-        "✅ Slot Booked! Google Meet link sent to your email.",
+        "Slot Booked! Google Meet link sent to your email.",
         "success",
       );
 
@@ -459,6 +462,78 @@ const SlotBooking: React.FC = () => {
       "Select a new time slot to reschedule your interview",
       "info",
     );
+  };
+
+  const handleCancelSlot = async () => {
+    if (!slot.scheduled_interview_id) {
+      showNotificationMessage(
+        "Cannot cancel: Interview ID not found. Please contact support.",
+        "error",
+      );
+      return;
+    }
+
+    if (!cancelReason.trim()) {
+      showNotificationMessage("Please provide a reason for cancellation", "error");
+      return;
+    }
+
+    try {
+      setIsCancelling(true);
+
+      // Delete Google Calendar event if exists
+      if (slot.calendar_event_id) {
+        try {
+          // Ensure user is signed in to Google before deleting calendar event
+          if (!isSignedIn()) {
+            showNotificationMessage("Signing in to Google to delete calendar event...", "info");
+            const signInSuccess = await handleGoogleSignIn();
+            if (!signInSuccess) {
+              showNotificationMessage("Could not sign in to Google. Calendar event may not be deleted.", "error");
+            }
+          }
+          
+          if (isSignedIn()) {
+            console.log("Deleting calendar event ID:", slot.calendar_event_id);
+            showNotificationMessage("Removing event from Google Calendar...", "info");
+            await deleteCalendarEvent(slot.calendar_event_id);
+            console.log("Google Calendar event deleted successfully");
+          }
+        } catch (error) {
+          console.error("Error deleting calendar event:", error);
+          showNotificationMessage("Warning: Could not remove event from calendar. Proceeding with cancellation...", "info");
+          // Continue even if deletion fails
+        }
+      }
+
+      // Call cancel API with reason
+      await cancelScheduledInterview(slot.scheduled_interview_id, cancelReason.trim());
+
+      // Clear local state (no localStorage dependency)
+      setSlot({ from: "", to: "", id: null, is_cancelled: true });
+
+      updateSlot(testId, {
+        status: "Cancelled",
+        scheduledTime: undefined,
+      });
+
+      setShowCancelModal(false);
+      setCancelReason("");
+      showNotificationMessage("Interview slot cancelled and removed from calendar!", "success");
+
+      // Navigate back to results page
+      setTimeout(() => {
+        navigate("/students/final-result");
+      }, 2000);
+    } catch (error: any) {
+      console.error("Cancel error:", error);
+      showNotificationMessage(
+        error.message || "Failed to cancel slot. Please try again.",
+        "error",
+      );
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleRescheduleConfirm = async () => {
@@ -582,14 +657,10 @@ const SlotBooking: React.FC = () => {
         newBookedSlot.scheduled_interview_id = slot.scheduled_interview_id;
       }
 
-      // Update local state
+      // Update local state (no localStorage dependency)
       setSlot(newBookedSlot);
       setNewSlot({ from: "", to: "", id: null, is_cancelled: true });
       setIsRescheduling(false);
-      localStorage.setItem(
-        `bookedSlot_${testId}`,
-        JSON.stringify(newBookedSlot),
-      );
 
       updateSlot(testId, {
         status: "Booked",
@@ -622,21 +693,8 @@ const SlotBooking: React.FC = () => {
   const handleNavigationOnStudentPage = () =>
     navigate("/students/final-result");
 
-  const loadSlotFromLocalStorage = () => {
-    const storedSlot = localStorage.getItem(`bookedSlot_${testId}`);
-    if (storedSlot) {
-      try {
-        setSlot(JSON.parse(storedSlot));
-      } catch {
-        setSlot({ from: "", to: "", id: null, is_cancelled: true });
-      }
-    } else {
-      setSlot({ from: "", to: "", id: null, is_cancelled: true });
-    }
-  };
-
   // ---------- Effects ----------
-  // Fetch student data from API
+  // Fetch student data and existing booking from API
   useEffect(() => {
     const fetchStudentData = async () => {
       try {
@@ -663,6 +721,87 @@ const SlotBooking: React.FC = () => {
                 email: studentData.email || "",
                 ...studentData,
               });
+
+              // Check for existing booked slots from API based on slotType
+              const schedules = slotType === "CFR" 
+                ? response.data.interview_schedules_cfr || []
+                : response.data.interview_schedules_lr || [];
+
+              // Calculate attempt number from testId
+              // LR: testId = 200 + index, so attempt = testId - 200 + 1 (or 200 for first placeholder)
+              // CFR: testId = 300 + index, so attempt = testId - 300 + 1 (or 300 for first placeholder)
+              let attemptNumber = 1;
+              if (slotType === "LR") {
+                // testId 2 is the first placeholder, 200+ are from interview_learner_round
+                attemptNumber = testId === 2 ? 1 : testId - 200 + 1;
+              } else if (slotType === "CFR") {
+                // testId 3 is the first placeholder, 300+ are from interview_cultural_fit_round
+                attemptNumber = testId === 3 ? 1 : testId - 300 + 1;
+              }
+
+              console.log("Looking for schedule matching attempt:", attemptNumber, "testId:", testId);
+
+              // Find schedule matching this specific attempt number by title
+              const roundName = slotType === "CFR" ? "Cultural Fit Round" : "Learning Round";
+              
+              const matchingSchedule = schedules
+                .filter((s: any) => {
+                  const title = s.title || "";
+                  const status = String(s.status || "").toLowerCase();
+                  
+                  // Skip cancelled schedules
+                  if (status === "cancelled") return false;
+                  
+                  if (attemptNumber === 1) {
+                    // For attempt 1, match titles without "(Attempt X)" or with "(Attempt 1)"
+                    const hasAttemptNumber = /\(Attempt \d+\)/i.test(title);
+                    if (!hasAttemptNumber && title.includes(roundName)) return true;
+                    if (/\(Attempt 1\)/i.test(title)) return true;
+                    return false;
+                  } else {
+                    // For attempt N, match titles with "(Attempt N)"
+                    const attemptPattern = new RegExp(`\\(Attempt ${attemptNumber}\\)`, "i");
+                    return attemptPattern.test(title);
+                  }
+                })
+                // Take the last (most recent) matching schedule
+                .slice(-1)[0];
+
+              console.log("Matching schedule found:", matchingSchedule);
+
+              if (matchingSchedule) {
+                const scheduleStatus = String(matchingSchedule.status || "").toLowerCase();
+
+                // If status is "booked" or similar (not cancelled), show booked view
+                if (scheduleStatus !== "cancelled" && scheduleStatus !== "expired") {
+                  setSlot({
+                    id: matchingSchedule.slot_id,
+                    from: matchingSchedule.start_time,
+                    to: matchingSchedule.end_time,
+                    is_cancelled: false,
+                    on_date: matchingSchedule.date,
+                    start_time: matchingSchedule.start_time,
+                    end_time_expected: matchingSchedule.end_time,
+                    student_name: `${studentData.first_name || ""} ${studentData.last_name || ""}`,
+                    topic_name: slotType === "CFR" ? "Cultural Fit Round" : "Learning Round",
+                    calendar_event_id: matchingSchedule.google_event_id,
+                    meet_link: matchingSchedule.meeting_link,
+                    interviewer_email: matchingSchedule.slot_details?.user_email || "",
+                    interviewer_name: matchingSchedule.slot_details?.user_name || "",
+                    scheduled_interview_id: matchingSchedule.schedule_id,
+                    slot_type: slotType,
+                  });
+                  console.log("Slot set from API - showing booked view for attempt:", attemptNumber);
+                } else {
+                  // Cancelled or expired - show booking view
+                  setSlot({ from: "", to: "", id: null, is_cancelled: true });
+                  console.log("Slot is cancelled/expired - showing booking view");
+                }
+              } else {
+                // No existing schedules - show booking view
+                setSlot({ from: "", to: "", id: null, is_cancelled: true });
+                console.log("No existing schedules - showing booking view");
+              }
             }
           } else {
             console.error("No email found in user data");
@@ -678,7 +817,7 @@ const SlotBooking: React.FC = () => {
     };
 
     fetchStudentData();
-  }, []);
+  }, [slotType]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -690,8 +829,6 @@ const SlotBooking: React.FC = () => {
         if (isSignedIn()) {
           setIsGoogleSignedIn(true);
         }
-
-        loadSlotFromLocalStorage();
       } catch (error: any) {
         console.error("Initialization error:", error);
         const errorMessage =
@@ -704,10 +841,6 @@ const SlotBooking: React.FC = () => {
     };
 
     initialize();
-    window.addEventListener("storage", loadSlotFromLocalStorage);
-    return () =>
-      window.removeEventListener("storage", loadSlotFromLocalStorage);
-     
   }, [testId]);
 
   // ---------- Conditions ----------
@@ -1104,13 +1237,13 @@ const SlotBooking: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleDeleteSlot}
-                  disabled={isBookingInProgress}
-                  className="flex-1 py-3 px-8 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  disabled={isBookingInProgress || isCancelling}
+                  className="flex-1 py-3 px-8 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-500 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   {isBookingInProgress ? (
                     <span className="flex items-center justify-center">
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Cancelling...
+                      Processing...
                     </span>
                   ) : (
                     "Reschedule Slot"
@@ -1118,10 +1251,78 @@ const SlotBooking: React.FC = () => {
                 </button>
 
                 <button
+                  onClick={() => setShowCancelModal(true)}
+                  disabled={isBookingInProgress || isCancelling}
+                  className="flex-1 py-3 px-8 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                >
+                  Cancel Slot
+                </button>
+
+                <button
                   onClick={handleNavigationOnStudentPage}
                   className="flex-1 py-3 px-8 bg-gradient-to-r from-green-400 to-green-500 text-white font-semibold rounded-lg hover:from-green-500 hover:to-green-600 transition-all shadow-md hover:shadow-lg"
                 >
                   View Results
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancel Slot Modal */}
+        {showCancelModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center mb-4">
+                <XCircle className="w-8 h-8 text-red-500 mr-3" />
+                <h2 className="text-xl font-bold text-gray-800">Cancel Interview Slot</h2>
+              </div>
+
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to cancel your scheduled interview? This action cannot be undone.
+              </p>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for Cancellation <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Please provide a reason for cancelling your interview..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCancelModal(false);
+                    setCancelReason("");
+                  }}
+                  disabled={isCancelling}
+                  className="flex-1 py-3 px-4 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all disabled:opacity-50"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={handleCancelSlot}
+                  disabled={isCancelling || !cancelReason.trim()}
+                  className={`flex-1 py-3 px-4 font-semibold rounded-lg transition-all ${
+                    isCancelling || !cancelReason.trim()
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-red-500 text-white hover:bg-red-600"
+                  }`}
+                >
+                  {isCancelling ? (
+                    <span className="flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Cancelling...
+                    </span>
+                  ) : (
+                    "Confirm Cancel"
+                  )}
                 </button>
               </div>
             </div>
