@@ -636,7 +636,7 @@ const PartnerPage = () => {
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Partners</h1>
                 <p className="text-muted-foreground mt-1">Manage network partners, track performance, and create assessments.</p>
               </div>
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={handleDownloadCSV} size="sm">
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -645,7 +645,7 @@ const PartnerPage = () => {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Partner
                 </Button>
-              </div>
+              </div> */}
             </div>
 
             {/* KPI/Stats Cards */}
@@ -696,7 +696,28 @@ const PartnerPage = () => {
           {/* Filters and Search */}
           <Card className="shadow-sm border-border/60">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
+              <div className="flex flex-row justify-between items-center">
+                <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={handleDownloadCSV} size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export 
+                  </Button>
+                  <Button variant="outline" onClick={() => setFilterDialog(true)} size="sm">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Advanced Filters
+                  </Button>
+                  {Object.values(filters).some(Boolean) && (
+                    <Button variant="ghost" size="sm" onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })}>
+                      Clear
+                    </Button>
+                  )}
+                  <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Partner
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col md:flex-row gap-4">
@@ -710,8 +731,7 @@ const PartnerPage = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-2">
-                  {/* Optional: Add Dropdown Filters here directly instead of modal if simple */}
+                {/* <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setFilterDialog(true)}>
                     <Filter className="w-4 h-4 mr-2" />
                     Advanced Filters
@@ -721,7 +741,7 @@ const PartnerPage = () => {
                       Clear
                     </Button>
                   )}
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
