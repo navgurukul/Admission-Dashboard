@@ -233,7 +233,7 @@ const DonorPage = () => {
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Donors</h1>
                 <p className="text-muted-foreground">Manage donor partnerships and related students.</p>
               </div>
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Button onClick={() => {
                   setFormData({
                     donor_name: "",
@@ -248,7 +248,7 @@ const DonorPage = () => {
                 }}>
                   <Plus className="mr-2 h-4 w-4" /> Add Donor
                 </Button>
-              </div>
+              </div> */}
             </div>
 
             {/* KPI Cards */}
@@ -269,9 +269,35 @@ const DonorPage = () => {
           {/* Main Content */}
           <Card className="shadow-md border-border/60">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>All Donors</CardTitle>
-                <div className="relative w-full max-w-sm">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
+                <div className="flex flex-col mr-10">
+                  <CardTitle>All Donors</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {filteredDonors.length} {filteredDonors.length === 1 ? 'donor' : 'donors'} {searchQuery ? '(filtered)' : 'total'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                  <Button onClick={() => {
+                    setFormData({
+                      donor_name: "",
+                      donor_email: "",
+                      donor_phone: "",
+                      donor_address: "",
+                      donor_city: "",
+                      donor_state: "",
+                      donor_country: ""
+                    });
+                    setAddDialogOpen(true);
+                  }}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Donor
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Search Bar */}
+              <div className="mb-4">
+                <div className="relative w-full">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
@@ -282,8 +308,6 @@ const DonorPage = () => {
                   />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
