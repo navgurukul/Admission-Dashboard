@@ -132,12 +132,16 @@ const DonorStudents = () => {
                                     ) : (
                                         students.map((student, idx) => (
                                             <TableRow key={student.id || idx}>
-                                                <TableCell className="font-medium">{student.name}</TableCell>
-                                                <TableCell>{student.email}</TableCell>
-                                                <TableCell>{student.mobile || "-"}</TableCell>
+                                                <TableCell className="font-medium">
+                                                    {student.name ||
+                                                        `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() ||
+                                                        "N/A"}
+                                                </TableCell>
+                                                <TableCell>{student.email || "-"}</TableCell>
+                                                <TableCell>{student.mobile || student.phone_number || student.whatsapp_number || "-"}</TableCell>
                                                 <TableCell>
                                                     <Badge variant="secondary" className="font-normal">
-                                                        {student.current_status || "N/A"}
+                                                        {student.current_status || student.status || "N/A"}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>{student.stage || "-"}</TableCell>
