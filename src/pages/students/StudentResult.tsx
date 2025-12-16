@@ -7,7 +7,6 @@ import LogoutButton from "@/components/ui/LogoutButton";
 import {
   getCompleteStudentData,
   CompleteStudentData,
-  getAllStates,
 } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { OfferLetterCard } from "./OfferLetterCard";
@@ -19,7 +18,7 @@ interface Student {
   lastName: string;
   email: string;
   whatsappNumber: string;
-  city: string;
+  district: string;
   state: string;
 }
 
@@ -43,7 +42,6 @@ export default function StudentResult() {
     null,
   );
   const [loading, setLoading] = useState(true);
-  const [states, setStates] = useState<any[]>([]);
   const { tests, setTests } = useTests();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -59,27 +57,7 @@ export default function StudentResult() {
     return null;
   };
 
-  // Fetch states on mount
-  useEffect(() => {
-    const fetchStates = async () => {
-      try {
-        const statesData = await getAllStates();
-        // console.log("Fetched states:", statesData);
-        setStates(statesData || []);
-      } catch (error) {
-        console.error("Error fetching states:", error);
-        setStates([]);
-      }
-    };
-    fetchStates();
-  }, []);
 
-  const getStateByCodeId = async (codeId: string): Promise<string> => {
-    if (!codeId) return "";
-    const states = await getAllStates();
-    const match = states.data.find((s: any) => s.state_code === codeId);
-    return match?.state_name || "";
-  };
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -109,8 +87,6 @@ export default function StudentResult() {
 
           const profile = data.data.student;
           if (profile) {
-            // console.log("state:", profile.state);
-            const stateName = await getStateByCodeId(profile.state);
             // console.log("Mapped state name:", stateName);
             setStudent({
               firstName: profile.first_name || "",
@@ -119,8 +95,8 @@ export default function StudentResult() {
               email: profile.email || "",
               whatsappNumber:
                 profile.whatsapp_number || profile.phone_number || "",
-              city: profile.city || "",
-              state: stateName || "",
+              district: profile.district || "",
+              state: profile.state || "",
             });
 
             // Build tests array using API data (keep all relevant rows and history)
@@ -166,41 +142,47 @@ export default function StudentResult() {
               (exam: any) => exam.status && String(exam.status).toLowerCase().includes("pass"),
             );
 
-            // Helper function to get booked slots from localStorage
-            const getLocalStorageBookedSlots = (slotType: "LR" | "CFR") => {
-              const bookedSlots: any[] = [];
-              // Check all localStorage keys for bookedSlot_ pattern
-              for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith("bookedSlot_")) {
-                  try {
-                    const slotData = JSON.parse(
-                      localStorage.getItem(key) || "{}",
-                    );
-                    // Check if it's the correct type based on topic_name
-                    if (
-                      slotType === "LR" &&
-                      slotData.topic_name === "Learning Round"
-                    ) {
-                      bookedSlots.push({ ...slotData, localStorageKey: key });
-                    } else if (
-                      slotType === "CFR" &&
-                      slotData.topic_name === "Cultural Fit Round"
-                    ) {
-                      bookedSlots.push({ ...slotData, localStorageKey: key });
-                    }
-                  } catch (e) {
-                    console.error("Error parsing localStorage slot:", e);
-                  }
+            // Helper function to find schedule by attempt number from title
+            // Title format: "Learning Round - Interview" (attempt 1) or "Learning Round (Attempt 2) - Interview"
+            const findScheduleByAttempt = (
+              schedules: any[],
+              roundType: "LR" | "CFR",
+              attemptNumber: number
+            ): any | null => {
+              const roundName = roundType === "LR" ? "Learning Round" : "Cultural Fit Round";
+              
+              // Filter schedules that match this attempt number and are not cancelled
+              const matchingSchedules = schedules.filter((s: any) => {
+                const title = s.title || "";
+                const status = s.status?.toLowerCase();
+                
+                // Skip cancelled schedules
+                if (status === "cancelled") return false;
+                
+                if (attemptNumber === 1) {
+                  // For attempt 1, match titles without "(Attempt X)" or with "(Attempt 1)"
+                  const hasAttemptNumber = /\(Attempt \d+\)/i.test(title);
+                  if (!hasAttemptNumber && title.includes(roundName)) return true;
+                  if (/\(Attempt 1\)/i.test(title)) return true;
+                  return false;
+                } else {
+                  // For attempt N, match titles with "(Attempt N)"
+                  const attemptPattern = new RegExp(`\\(Attempt ${attemptNumber}\\)`, "i");
+                  return attemptPattern.test(title);
                 }
+              });
+              
+              // Return the last matching schedule (most recent)
+              if (matchingSchedules.length > 0) {
+                return matchingSchedules[matchingSchedules.length - 1];
               }
-              return bookedSlots;
+              
+              return null;
             };
 
             // 2) Learning Round - Rows ONLY created from interview_learner_round
             const lrRounds = data.data.interview_learner_round || [];
             const lrSchedules = data.data.interview_schedules_lr || [];
-            const lrLocalSlots = getLocalStorageBookedSlots("LR");
 
             // Sort completed rounds by creation date (oldest to newest)
             lrRounds.sort(
@@ -218,24 +200,11 @@ export default function StudentResult() {
               else if (lrText.toLowerCase().includes("fail"))
                 lrAttemptStatus = "Fail";
 
-              // Match schedule by index (attempt number) - sorted by creation date
-              // Sort schedules by creation date to match with attempt number
-              const sortedLrSchedules = [...lrSchedules].sort(
-                (a: any, b: any) =>
-                  new Date(a.created_at).getTime() -
-                  new Date(b.created_at).getTime(),
-              );
+              // Find schedule by attempt number using title matching
+              const attemptNumber = index + 1;
+              const matchingSchedule = findScheduleByAttempt(lrSchedules, "LR", attemptNumber);
 
-              // Get the schedule for this attempt (index)
-              const matchingSchedule = sortedLrSchedules[index];
-
-              // Find matching localStorage slot for time/details
-              const matchingLocalSlot = lrLocalSlots.find(
-                (ls: any) =>
-                  ls.scheduled_interview_id === matchingSchedule?.schedule_id,
-              );
-
-              // Determine scheduled time from schedule or localStorage
+              // Determine scheduled time from API schedule
               let scheduledTime = "";
               let slotStatus: BookingStatus = "Completed";
 
@@ -248,19 +217,8 @@ export default function StudentResult() {
                           matchingSchedule.status,
                       )
                     : "Completed";
-                // console.log(`LR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
-              } else if (matchingLocalSlot) {
-                scheduledTime = `${matchingLocalSlot.on_date}T${matchingLocalSlot.from}`;
-                slotStatus =
-                  lrAttemptStatus === "Pending"
-                    ? matchingLocalSlot.is_cancelled
-                      ? "Cancelled"
-                      : "Booked"
-                    : "Completed";
-                // console.log(`LR Attempt ${index + 1} scheduledTime from localStorage:`, scheduledTime);
               } else {
                 scheduledTime = lr.scheduled_time || lr.scheduled_at || "";
-                // console.log(`LR Attempt ${index + 1} scheduledTime from interview_learner_round:`, scheduledTime);
               }
 
               // Check if time has passed
@@ -308,41 +266,22 @@ export default function StudentResult() {
 
             // If screening passed but no LR rounds exist, create placeholder row
             if (hasPassedScreening && lrRounds.length === 0) {
-              // Check if there's a booked slot in localStorage or API
-              let bookedSlotInfo: any = null;
-
-              if (lrLocalSlots.length > 0) {
-                bookedSlotInfo = lrLocalSlots[0];
-              } else if (lrSchedules.length > 0) {
-                bookedSlotInfo = lrSchedules[0];
-              }
+              // Find schedule for attempt 1 using title matching
+              const bookedSlotInfo = findScheduleByAttempt(lrSchedules, "LR", 1);
 
               let scheduledTime = "";
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                if (bookedSlotInfo.on_date) {
-                  // localStorage slot
-                  scheduledTime = `${bookedSlotInfo.on_date}T${bookedSlotInfo.from}`;
-                  const scheduledDateTime = new Date(scheduledTime);
-                  const hasTimePassed = scheduledDateTime < new Date();
-                  slotStatus = hasTimePassed
-                    ? "Completed"
-                    : bookedSlotInfo.is_cancelled
-                      ? "Cancelled"
-                      : "Booked";
-                } else {
-                  // API schedule slot
-                  scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
-                  const scheduledDateTime = new Date(scheduledTime);
-                  const hasTimePassed = scheduledDateTime < new Date();
-                  slotStatus = hasTimePassed
-                    ? "Completed"
-                    : normalizeBooking(
-                        bookedSlotInfo.slot_details?.status ||
-                          bookedSlotInfo.status,
-                      );
-                }
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                const scheduledDateTime = new Date(scheduledTime);
+                const hasTimePassed = scheduledDateTime < new Date();
+                slotStatus = hasTimePassed
+                  ? "Completed"
+                  : normalizeBooking(
+                      bookedSlotInfo.slot_details?.status ||
+                        bookedSlotInfo.status,
+                    );
               }
 
               const hasTimePassed = scheduledTime
@@ -365,7 +304,6 @@ export default function StudentResult() {
             // 3) Cultural Fit Round - Rows ONLY created from interview_cultural_fit_round
             const cfrRounds = data.data.interview_cultural_fit_round || [];
             const cfrSchedules = data.data.interview_schedules_cfr || [];
-            const cfrLocalSlots = getLocalStorageBookedSlots("CFR");
 
             // Sort completed rounds by creation date (oldest to newest)
             cfrRounds.sort(
@@ -383,24 +321,11 @@ export default function StudentResult() {
               else if (cfrText.toLowerCase().includes("fail"))
                 cfrAttemptStatus = "Fail";
 
-              // Match schedule by index (attempt number) - sorted by creation date
-              // Sort schedules by creation date to match with attempt number
-              const sortedCfrSchedules = [...cfrSchedules].sort(
-                (a: any, b: any) =>
-                  new Date(a.created_at).getTime() -
-                  new Date(b.created_at).getTime(),
-              );
+              // Find schedule by attempt number using title matching
+              const attemptNumber = index + 1;
+              const matchingSchedule = findScheduleByAttempt(cfrSchedules, "CFR", attemptNumber);
 
-              // Get the schedule for this attempt (index)
-              const matchingSchedule = sortedCfrSchedules[index];
-
-              // Find matching localStorage slot for time/details
-              const matchingLocalSlot = cfrLocalSlots.find(
-                (ls: any) =>
-                  ls.scheduled_interview_id === matchingSchedule?.schedule_id,
-              );
-
-              // Determine scheduled time from schedule or localStorage
+              // Determine scheduled time from API schedule
               let scheduledTime = "";
               let slotStatus: BookingStatus = "Completed";
 
@@ -413,19 +338,8 @@ export default function StudentResult() {
                           matchingSchedule.status,
                       )
                     : "Completed";
-                // console.log(`CFR Attempt ${index + 1} scheduledTime from API schedule:`, scheduledTime, "schedule_id:", matchingSchedule.schedule_id);
-              } else if (matchingLocalSlot) {
-                scheduledTime = `${matchingLocalSlot.on_date}T${matchingLocalSlot.from}`;
-                slotStatus =
-                  cfrAttemptStatus === "Pending"
-                    ? matchingLocalSlot.is_cancelled
-                      ? "Cancelled"
-                      : "Booked"
-                    : "Completed";
-                // console.log(`CFR Attempt ${index + 1} scheduledTime from localStorage:`, scheduledTime);
               } else {
                 scheduledTime = cfr.scheduled_time || cfr.scheduled_at || "";
-                // console.log(`CFR Attempt ${index + 1} scheduledTime from interview_cultural_fit_round:`, scheduledTime);
               }
 
               // Check if time has passed
@@ -474,41 +388,22 @@ export default function StudentResult() {
 
             // If latest LR passed and no CFR rounds exist, create placeholder row
             if (lrStatus === "Pass" && cfrRounds.length === 0) {
-              // Check if there's a booked slot in localStorage or API
-              let bookedSlotInfo: any = null;
-
-              if (cfrLocalSlots.length > 0) {
-                bookedSlotInfo = cfrLocalSlots[0];
-              } else if (cfrSchedules.length > 0) {
-                bookedSlotInfo = cfrSchedules[0];
-              }
+              // Find schedule for attempt 1 using title matching
+              const bookedSlotInfo = findScheduleByAttempt(cfrSchedules, "CFR", 1);
 
               let scheduledTime = "";
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                if (bookedSlotInfo.on_date) {
-                  // localStorage slot
-                  scheduledTime = `${bookedSlotInfo.on_date}T${bookedSlotInfo.from}`;
-                  const scheduledDateTime = new Date(scheduledTime);
-                  const hasTimePassed = scheduledDateTime < new Date();
-                  slotStatus = hasTimePassed
-                    ? "Completed"
-                    : bookedSlotInfo.is_cancelled
-                      ? "Cancelled"
-                      : "Booked";
-                } else {
-                  // API schedule slot
-                  scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
-                  const scheduledDateTime = new Date(scheduledTime);
-                  const hasTimePassed = scheduledDateTime < new Date();
-                  slotStatus = hasTimePassed
-                    ? "Completed"
-                    : normalizeBooking(
-                        bookedSlotInfo.slot_details?.status ||
-                          bookedSlotInfo.status,
-                      );
-                }
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                const scheduledDateTime = new Date(scheduledTime);
+                const hasTimePassed = scheduledDateTime < new Date();
+                slotStatus = hasTimePassed
+                  ? "Completed"
+                  : normalizeBooking(
+                      bookedSlotInfo.slot_details?.status ||
+                        bookedSlotInfo.status,
+                    );
               }
 
               const hasTimePassed = scheduledTime
@@ -530,30 +425,76 @@ export default function StudentResult() {
 
             // If latest LR failed, create new LR placeholder for rebooking
             if (lrStatus === "Fail") {
+              const nextAttemptNumber = lrRounds.length + 1;
+              // Find schedule for next attempt using title matching
+              const bookedSlotInfo = findScheduleByAttempt(lrSchedules, "LR", nextAttemptNumber);
+
+              let scheduledTime = "";
+              let slotStatus: BookingStatus = null;
+
+              if (bookedSlotInfo) {
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                const scheduledDateTime = new Date(scheduledTime);
+                const hasTimePassed = scheduledDateTime < new Date();
+                slotStatus = hasTimePassed
+                  ? "Completed"
+                  : normalizeBooking(
+                      bookedSlotInfo.slot_details?.status ||
+                        bookedSlotInfo.status,
+                    );
+              }
+
+              const hasTimePassed = scheduledTime
+                ? new Date(scheduledTime) < new Date()
+                : false;
+
               updatedTests.push({
                 id: 200 + lrRounds.length,
-                name: `Learning Round (Attempt ${lrRounds.length + 1})`,
+                name: `Learning Round (Attempt ${nextAttemptNumber})`,
                 status: "Pending",
                 score: null,
-                action: "slot-book",
+                action: hasTimePassed ? "Completed" : "slot-book",
                 slotBooking: {
-                  status: null,
-                  scheduledTime: "",
+                  status: slotStatus,
+                  scheduledTime: scheduledTime,
                 },
               });
             }
 
             // If latest CFR failed, create new CFR placeholder for rebooking
             if (cfrStatus === "Fail") {
+              const nextAttemptNumber = cfrRounds.length + 1;
+              // Find schedule for next attempt using title matching
+              const bookedSlotInfo = findScheduleByAttempt(cfrSchedules, "CFR", nextAttemptNumber);
+
+              let scheduledTime = "";
+              let slotStatus: BookingStatus = null;
+
+              if (bookedSlotInfo) {
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                const scheduledDateTime = new Date(scheduledTime);
+                const hasTimePassed = scheduledDateTime < new Date();
+                slotStatus = hasTimePassed
+                  ? "Completed"
+                  : normalizeBooking(
+                      bookedSlotInfo.slot_details?.status ||
+                        bookedSlotInfo.status,
+                    );
+              }
+
+              const hasTimePassed = scheduledTime
+                ? new Date(scheduledTime) < new Date()
+                : false;
+
               updatedTests.push({
                 id: 300 + cfrRounds.length,
-                name: `Cultural Fit Round (Attempt ${cfrRounds.length + 1})`,
+                name: `Cultural Fit Round (Attempt ${nextAttemptNumber})`,
                 status: "Pending",
                 score: null,
-                action: "slot-book",
+                action: hasTimePassed ? "Completed" : "slot-book",
                 slotBooking: {
-                  status: null,
-                  scheduledTime: "",
+                  status: slotStatus,
+                  scheduledTime: scheduledTime,
                 },
               });
             }
@@ -649,11 +590,8 @@ export default function StudentResult() {
               </p>
               <p>
                 <span className="font-semibold">State:</span>{" "}
-                {student?.state
-                  ? student.state
-                      .toLowerCase()
-                      .replace(/\b\w/g, (c) => c.toUpperCase())
-                  : "-"}
+                {student?.state ? student.state : "-"}
+          
               </p>
             </CardContent>
           </Card>

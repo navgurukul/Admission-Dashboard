@@ -2162,6 +2162,26 @@ export const deleteInterviewSlot = async (slotId: number): Promise<void> => {
   }
 };
 
+// Cancel scheduled interview from student side
+export const cancelScheduledInterview = async (
+  scheduledInterviewId: number,
+  cancelReason: string,
+): Promise<void> => {
+  const response = await fetch(
+    `${BASE_URL}/interview-schedules/${scheduledInterviewId}/cancel`,
+    {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ cancel_reason: cancelReason }),
+    },
+  );
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || "Failed to cancel interview");
+  }
+};
+
 // Upload profile image
 export const uploadProfileImage = async (
   file: File,
