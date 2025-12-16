@@ -1,16 +1,19 @@
 import {
   LayoutDashboard,
-  Calendar,
-  LogOut,
-  Mail,
+  // Calendar,
+  // LogOut,
+  // Mail,
   Users,
   MessageSquare,
   Handshake,
-  School,
+  // School,
   Shield,
-  UserCheck,
-  FileQuestion,
+  // UserCheck,
+  // FileQuestion,
   Eye,
+  GraduationCap,
+  BookOpen,
+  Landmark,
 } from "lucide-react";
 import AdminPage from "@/pages/Admin";
 import AdminView from "@/pages/AdminView";
@@ -34,7 +37,7 @@ export interface NavigationItem {
 
 export const navigation: NavigationItem[] = [
   {
-    name: "Admin",
+    name: "User Management",
     href: "/admin",
     icon: Shield,
     component: AdminPage,
@@ -52,14 +55,14 @@ export const navigation: NavigationItem[] = [
   {
     name: "Campus",
     href: "/campus",
-    icon: School,
+    icon: Landmark,
     component: CampusPage,
     allowedRoles: [1],
   },
   {
     name: "School",
     href: "/school",
-    icon: School,
+    icon: GraduationCap,
     component: SchoolPage,
     allowedRoles: [1],
   },
@@ -82,7 +85,7 @@ export const navigation: NavigationItem[] = [
   {
     name: "Question Repository",
     href: "/questions",
-    icon: FileQuestion,
+    icon: BookOpen,
     component: QuestionRepository,
     allowedRoles: [1],
   },
