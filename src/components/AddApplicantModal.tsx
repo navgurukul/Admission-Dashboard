@@ -37,6 +37,8 @@ import {
   getDistrictsByState,
   submitScreeningRound,
   uploadProfileImage,
+  getPartners,
+  getAllDonors,
 } from "@/utils/api";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -100,6 +102,8 @@ export function AddApplicantModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [casteList, setCasteList] = useState<any[]>([]);
   const [qualificationList, setQualificationList] = useState<any[]>([]);
+  const [partnerList, setPartnerList] = useState<any[]>([]);
+  const [donorList, setDonorList] = useState<any[]>([]);
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
@@ -142,6 +146,8 @@ export function AddApplicantModal({
     qualification_id: "",
     current_status_id: "",
     religion_id: "",
+    partner_id: "",
+    donor_id: "",
     qualifying_school_id: "",
     // campus_id: "",
     school_medium: "",
@@ -180,6 +186,8 @@ export function AddApplicantModal({
       current_status_id: "",
       qualifying_school_id: "",
       religion_id: "",
+      partner_id: "",
+      donor_id: "",
       status: "",
       is_passed: false,
       question_set_id: "",
@@ -224,6 +232,32 @@ export function AddApplicantModal({
     };
 
     fetchQualifications();
+  }, []);
+
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        const response = await getPartners();
+        setPartnerList(response || []);
+      } catch (error) {
+        // console.error("Error fetching partners:", error);
+      }
+    };
+
+    fetchPartners();
+  }, []);
+
+  useEffect(() => {
+    const fetchDonors = async () => {
+      try {
+        const response = await getAllDonors();
+        setDonorList(response || []);
+      } catch (error) {
+        // console.error("Error fetching donors:", error);
+      }
+    };
+
+    fetchDonors();
   }, []);
 
   useEffect(() => {
@@ -595,6 +629,8 @@ export function AddApplicantModal({
           ? Number(formData.current_status_id)
           : null,
         religion_id: formData.religion_id ? Number(formData.religion_id) : null,
+        partner_id: formData.partner_id ? Number(formData.partner_id) : null,
+        donor_id: formData.donor_id ? Number(formData.donor_id) : null,
         school_medium: formData.school_medium || null,
         communication_notes: formData.communication_notes || "",
         // campus_id: formData.campus_id ? Number(formData.campus_id) : null,
@@ -1419,6 +1455,62 @@ export function AddApplicantModal({
                         {errors.religion_id}
                       </p>
                     )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="partner_id"
+                      className="text-sm font-medium"
+                    >
+                      Partner
+                    </Label>
+                    <Combobox
+                      options={partnerList?.map((p) => ({
+                        value: String(p.id),
+                        label: p.partner_name,
+                      })) || []}
+                      value={
+                        formData.partner_id ? String(formData.partner_id) : ""
+                      }
+                      onValueChange={(value) =>
+                        handleInputChange(
+                          "partner_id",
+                          value === "none" ? "" : value
+                        )
+                      }
+                      placeholder="Select partner"
+                      searchPlaceholder="Search partner..."
+                      emptyText="No partner found."
+                      className="h-10 border shadow-sm hover:bg-accent"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="donor_id"
+                      className="text-sm font-medium"
+                    >
+                      Donor
+                    </Label>
+                    <Combobox
+                      options={donorList?.map((d) => ({
+                        value: String(d.id),
+                        label: d.donor_name,
+                      })) || []}
+                      value={
+                        formData.donor_id ? String(formData.donor_id) : ""
+                      }
+                      onValueChange={(value) =>
+                        handleInputChange(
+                          "donor_id",
+                          value === "none" ? "" : value
+                        )
+                      }
+                      placeholder="Select donor"
+                      searchPlaceholder="Search donor..."
+                      emptyText="No donor found."
+                      className="h-10 border shadow-sm hover:bg-accent"
+                    />
                   </div>
                 </div>
 
