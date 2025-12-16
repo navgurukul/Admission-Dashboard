@@ -79,7 +79,7 @@ const ROWS_PER_PAGE = 10;
 const defaultPartnerForm = {
   name: "",
   emails: [""],
-  notes: "",
+  // notes: "",
   slug: "",
   districts: [""],
   state: "",
@@ -261,7 +261,7 @@ const PartnerPage = () => {
       "Email",
       "Slug",
       "Districts",
-      "Notes",
+      // "Notes",
       "Meraki Link"
     ];
     const rows = paginatedPartners.map((partner) => [
@@ -269,7 +269,7 @@ const PartnerPage = () => {
       partner.email,
       partner.slug,
       (partner.districts || []).join("; "),
-      partner.notes,
+      // partner.notes,
       partner.meraki_link || "-",
     ]);
     const csvContent = [headers, ...rows]
@@ -318,7 +318,7 @@ const PartnerPage = () => {
       form: {
         name: partner.partner_name || "",
         emails: partner.email ? [partner.email] : [""],
-        notes: partner.notes || "",
+        // notes: partner.notes || "",
         slug: partner.slug || "",
         districts:
           partner.districts && partner.districts.length > 0
@@ -395,7 +395,7 @@ const PartnerPage = () => {
     if (!hasValidEmail) missingFields.push("Email");
     if (!editDialog.form.state.trim()) missingFields.push("State");
     if (!hasValidDistrict) missingFields.push("District");
-    if (!editDialog.form.notes.trim()) missingFields.push("Notes");
+    // if (!editDialog.form.notes.trim()) missingFields.push("Notes");
 
     if (missingFields.length > 0) {
       toast({
@@ -429,7 +429,7 @@ const PartnerPage = () => {
         email: editDialog.form.emails[0], // API expects single email string? Adjust if array.
         state: editDialog.form.state,
         districts: editDialog.form.districts.filter(d => d.trim() !== "").join(',') as any, // Send as string
-        notes: editDialog.form.notes,
+        // notes: editDialog.form.notes,
       });
       toast({ title: "Updated", description: "Partner details updated successfully." });
       closeEditDialog();
@@ -501,7 +501,7 @@ const PartnerPage = () => {
     if (!hasValidEmail) missingFields.push("Email");
     if (!addDialog.form.state.trim()) missingFields.push("State");
     if (!hasValidDistrict) missingFields.push("District");
-    if (!addDialog.form.notes.trim()) missingFields.push("Notes");
+    // if (!addDialog.form.notes.trim()) missingFields.push("Notes");
 
     if (missingFields.length > 0) {
       toast({
@@ -533,7 +533,7 @@ const PartnerPage = () => {
         email: addDialog.form.emails[0],
         state: addDialog.form.state,
         districts: cleanDistricts as any, // Send as string
-        notes: addDialog.form.notes,
+        // notes: addDialog.form.notes,
       });
       toast({ title: "Success", description: "Partner added successfully!" });
       closeAddDialog();
@@ -636,7 +636,7 @@ const PartnerPage = () => {
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Partners</h1>
                 <p className="text-muted-foreground mt-1">Manage network partners, track performance, and create assessments.</p>
               </div>
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={handleDownloadCSV} size="sm">
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -645,7 +645,7 @@ const PartnerPage = () => {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Partner
                 </Button>
-              </div>
+              </div> */}
             </div>
 
             {/* KPI/Stats Cards */}
@@ -696,7 +696,28 @@ const PartnerPage = () => {
           {/* Filters and Search */}
           <Card className="shadow-sm border-border/60">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
+              <div className="flex flex-row justify-between items-center">
+                <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={handleDownloadCSV} size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export 
+                  </Button>
+                  <Button variant="outline" onClick={() => setFilterDialog(true)} size="sm">
+                    <Filter className="w-4 h-4 mr-2" />
+                    Advanced Filters
+                  </Button>
+                  {Object.values(filters).some(Boolean) && (
+                    <Button variant="ghost" size="sm" onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })}>
+                      Clear
+                    </Button>
+                  )}
+                  <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Partner
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col md:flex-row gap-4">
@@ -710,8 +731,7 @@ const PartnerPage = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-2">
-                  {/* Optional: Add Dropdown Filters here directly instead of modal if simple */}
+                {/* <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setFilterDialog(true)}>
                     <Filter className="w-4 h-4 mr-2" />
                     Advanced Filters
@@ -721,7 +741,7 @@ const PartnerPage = () => {
                       Clear
                     </Button>
                   )}
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
@@ -768,7 +788,7 @@ const PartnerPage = () => {
                             >
                               {partner.partner_name}
                             </span>
-                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{partner.notes || "No notes"}</span>
+                            {/* <span className="text-xs text-muted-foreground truncate max-w-[200px]">{partner.notes || "No notes"}</span> */}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -915,7 +935,7 @@ const PartnerPage = () => {
                 />
                 <p className="text-xs text-muted-foreground">Auto-generated from name. Must be unique.</p>
               </div>
-              <div className="grid gap-2">
+              {/* <div className="grid gap-2">
                 <Label htmlFor="notes">Notes <span className="text-destructive">*</span></Label>
                 <Input
                   id="notes"
@@ -924,7 +944,7 @@ const PartnerPage = () => {
                   placeholder="Additional details..."
                   required
                 />
-              </div>
+              </div> */}
               <div className="grid gap-2">
                 <Label htmlFor="state">State <span className="text-destructive">*</span></Label>
                 <Combobox
@@ -969,7 +989,7 @@ const PartnerPage = () => {
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeAddDialog}>Cancel</Button>
-                <Button type="submit">Save Partner</Button>
+                <Button type="submit">Add Partner</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -1021,7 +1041,7 @@ const PartnerPage = () => {
                   required
                 />
               </div>
-              <div className="grid gap-2">
+              {/* <div className="grid gap-2">
                 <Label htmlFor="edit-notes">Notes <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-notes"
@@ -1029,7 +1049,7 @@ const PartnerPage = () => {
                   onChange={(e) => handleEditFormChange("notes", e.target.value)}
                   required
                 />
-              </div>
+              </div> */}
               <div className="grid gap-2">
                 <Label htmlFor="edit-state">State <span className="text-destructive">*</span></Label>
                 <Combobox

@@ -617,7 +617,7 @@ export function ApplicantModal({
   const screeningFields = [
     {
       name: "status",
-      label: "Status *",
+      label: "Status",
       type: "select" as const,
       options: [
         { value: "Screening Test Pass", label: "Screening Test Pass" },
@@ -636,8 +636,34 @@ export function ApplicantModal({
     },
     {
       name: "obtained_marks",
-      label: "Obtained Marks *",
-      type: "number" as const,
+      label: "Obtained Marks * (Max: 36)",
+      type: "component" as const,
+      component: ({ row, updateRow, disabled }: any) => {
+        const maxMarks = 36;
+        return (
+          <div className="w-full">
+            <input
+              type="number"
+              value={row?.obtained_marks || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                const numValue = Number(value);
+                
+                // Only allow if value is empty, or within valid range (0 to maxMarks)
+                if (value === "" || (numValue >= 0 && numValue <= maxMarks)) {
+                  updateRow?.("obtained_marks", value);
+                }
+                // If value exceeds max, don't update (block the input)
+              }}
+              className={`border p-1 rounded w-full ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+              disabled={!!disabled}
+              min="0"
+              max={maxMarks}
+              placeholder="0-36"
+            />
+          </div>
+        );
+      },
     },
     {
       name: "school_id",
@@ -1512,7 +1538,7 @@ export function ApplicantModal({
                 />
               </div>
 
-              Audit Information - Below Final Note
+              {/* Audit Information - Below Final Note */}
               <div className="space-y-3 pt-4">
                 <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Offer Letter</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

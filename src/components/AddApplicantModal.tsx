@@ -37,6 +37,8 @@ import {
   getDistrictsByState,
   submitScreeningRound,
   uploadProfileImage,
+  getPartners,
+  getAllDonors,
 } from "@/utils/api";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -100,6 +102,8 @@ export function AddApplicantModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [casteList, setCasteList] = useState<any[]>([]);
   const [qualificationList, setQualificationList] = useState<any[]>([]);
+  const [partnerList, setPartnerList] = useState<any[]>([]);
+  const [donorList, setDonorList] = useState<any[]>([]);
   const [stateOptions, setStateOptions] = useState<
     { value: string; label: string }[]
   >([]);
@@ -142,13 +146,15 @@ export function AddApplicantModal({
     qualification_id: "",
     current_status_id: "",
     religion_id: "",
+    partner_id: "",
+    donor_id: "",
     qualifying_school_id: "",
     // campus_id: "",
     school_medium: "",
     status: "",
     is_passed: false,
     question_set_id: "",
-    total_marks: 0,
+    total_marks: 36,
     obtained_marks: "",
     exam_centre: "",
     date_of_test: "",
@@ -180,6 +186,8 @@ export function AddApplicantModal({
       current_status_id: "",
       qualifying_school_id: "",
       religion_id: "",
+      partner_id: "",
+      donor_id: "",
       status: "",
       is_passed: false,
       question_set_id: "",
@@ -224,6 +232,32 @@ export function AddApplicantModal({
     };
 
     fetchQualifications();
+  }, []);
+
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        const response = await getPartners();
+        setPartnerList(response || []);
+      } catch (error) {
+        // console.error("Error fetching partners:", error);
+      }
+    };
+
+    fetchPartners();
+  }, []);
+
+  useEffect(() => {
+    const fetchDonors = async () => {
+      try {
+        const response = await getAllDonors();
+        setDonorList(response || []);
+      } catch (error) {
+        // console.error("Error fetching donors:", error);
+      }
+    };
+
+    fetchDonors();
   }, []);
 
   useEffect(() => {
@@ -516,58 +550,28 @@ export function AddApplicantModal({
       newErrors.communication_notes = "Communication notes are required";
     }
 
-    // Screening section validation: If any field is filled, all required fields must be filled
-    const screeningFields = {
-      status: formData.status,
-      question_set_id: formData.question_set_id,
-      exam_centre: formData.exam_centre,
-      date_of_test: formData.date_of_test,
-      obtained_marks: formData.obtained_marks,
-      qualifying_school_id: formData.qualifying_school_id,
-    };
+    // Screening section validation: These fields are always mandatory
+    if (!formData.question_set_id) {
+      newErrors.question_set_id = "Question set is required";
+    }
 
-    const hasAnyScreeningData = Object.values(screeningFields).some(
-      (value) => value !== "" && value !== null && value !== undefined,
-    );
+    if (!formData.exam_centre || !formData.exam_centre.trim()) {
+      newErrors.exam_centre = "Exam centre is required";
+    }
 
-    if (hasAnyScreeningData) {
-      // If any screening field is filled, validate all required screening fields
-      if (!formData.status) {
-        newErrors.status =
-          "Screening status is required when filling screening details";
-      }
+    if (!formData.date_of_test) {
+      newErrors.date_of_test = "Date of test is required";
+    }
 
-      if (!formData.question_set_id) {
-        newErrors.question_set_id =
-          "Question set is required when filling screening details";
-      }
-
-      if (!formData.exam_centre || !formData.exam_centre.trim()) {
-        newErrors.exam_centre =
-          "Exam centre is required when filling screening details";
-      }
-
-      if (!formData.date_of_test) {
-        newErrors.date_of_test =
-          "Date of test is required when filling screening details";
-      }
-
-      if (!formData.obtained_marks || formData.obtained_marks === "") {
-        newErrors.obtained_marks =
-          "Obtained marks is required when filling screening details";
-      } else if (Number(formData.obtained_marks) < 0) {
-        newErrors.obtained_marks = "Obtained marks cannot be negative";
-      } else if (
-        formData.total_marks &&
-        Number(formData.obtained_marks) > Number(formData.total_marks)
-      ) {
-        newErrors.obtained_marks = "Obtained marks cannot exceed total marks";
-      }
-
-      if (!formData.qualifying_school_id) {
-        newErrors.qualifying_school_id =
-          "Qualifying school is required when filling screening details";
-      }
+    if (!formData.obtained_marks || formData.obtained_marks === "") {
+      newErrors.obtained_marks = "Obtained marks is required";
+    } else if (Number(formData.obtained_marks) < 0) {
+      newErrors.obtained_marks = "Obtained marks cannot be negative";
+    } else if (
+      formData.total_marks &&
+      Number(formData.obtained_marks) > Number(formData.total_marks)
+    ) {
+      newErrors.obtained_marks = "Obtained marks cannot exceed total marks";
     }
 
     setErrors(newErrors);
@@ -580,20 +584,18 @@ export function AddApplicantModal({
       // Check if screening validation failed
       const hasScreeningErrors = Object.keys(formErrors).some((key) =>
         [
-          "status",
           "question_set_id",
           "exam_centre",
           "date_of_test",
           "obtained_marks",
-          "qualifying_school_id",
         ].includes(key),
       );
 
       toast({
         title: "⚠️ Required Fields Missing",
         description: hasScreeningErrors
-          ? "Please complete all required screening fields or leave the section empty"
-          : "Please fill all required Basic section fields",
+          ? "Please complete all required screening fields"
+          : "Please fill all required fields",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
@@ -627,6 +629,8 @@ export function AddApplicantModal({
           ? Number(formData.current_status_id)
           : null,
         religion_id: formData.religion_id ? Number(formData.religion_id) : null,
+        partner_id: formData.partner_id ? Number(formData.partner_id) : null,
+        donor_id: formData.donor_id ? Number(formData.donor_id) : null,
         school_medium: formData.school_medium || null,
         communication_notes: formData.communication_notes || "",
         // campus_id: formData.campus_id ? Number(formData.campus_id) : null,
@@ -1452,6 +1456,62 @@ export function AddApplicantModal({
                       </p>
                     )}
                   </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="partner_id"
+                      className="text-sm font-medium"
+                    >
+                      Partner
+                    </Label>
+                    <Combobox
+                      options={partnerList?.map((p) => ({
+                        value: String(p.id),
+                        label: p.partner_name,
+                      })) || []}
+                      value={
+                        formData.partner_id ? String(formData.partner_id) : ""
+                      }
+                      onValueChange={(value) =>
+                        handleInputChange(
+                          "partner_id",
+                          value === "none" ? "" : value
+                        )
+                      }
+                      placeholder="Select partner"
+                      searchPlaceholder="Search partner..."
+                      emptyText="No partner found."
+                      className="h-10 border shadow-sm hover:bg-accent"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="donor_id"
+                      className="text-sm font-medium"
+                    >
+                      Donor
+                    </Label>
+                    <Combobox
+                      options={donorList?.map((d) => ({
+                        value: String(d.id),
+                        label: d.donor_name,
+                      })) || []}
+                      value={
+                        formData.donor_id ? String(formData.donor_id) : ""
+                      }
+                      onValueChange={(value) =>
+                        handleInputChange(
+                          "donor_id",
+                          value === "none" ? "" : value
+                        )
+                      }
+                      placeholder="Select donor"
+                      searchPlaceholder="Search donor..."
+                      emptyText="No donor found."
+                      className="h-10 border shadow-sm hover:bg-accent"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2 mt-4">
@@ -1487,14 +1547,13 @@ export function AddApplicantModal({
 
             <TabsContent value="screening" className="space-y-4 sm:space-y-6">
               <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                   <FileText className="w-5 h-5 mr-2 text-orange-600" />
                   Screening Details
                 </h3>
                 <p className="text-sm text-gray-600 mb-4 bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
                   <AlertCircle className="w-4 h-4 inline mr-1 text-blue-600" />
-                  <strong>Note:</strong> If you fill any field in this section,
-                  all screening fields are required.
+                  <strong>Note:</strong> For screening students, if you enter marks, the screening status and school will be automatically updated based on the obtained marks.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
@@ -1504,9 +1563,6 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Screening Status
-                      {errors.status && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
                     </Label>
                     <Combobox
                       options={[
@@ -1541,10 +1597,7 @@ export function AddApplicantModal({
                       htmlFor="question_set_id"
                       className="text-sm font-medium"
                     >
-                      Question Set
-                      {errors.question_set_id && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
+                      Question Set *
                     </Label>
                     <Combobox
                       options={questionSetList?.map((set) => ({
@@ -1582,10 +1635,7 @@ export function AddApplicantModal({
                       htmlFor="exam_centre"
                       className="text-sm font-medium"
                     >
-                      Exam Centre
-                      {errors.exam_centre && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
+                      Exam Centre *
                     </Label>
                     <Input
                       id="exam_centre"
@@ -1608,10 +1658,7 @@ export function AddApplicantModal({
                       htmlFor="date_of_test"
                       className="text-sm font-medium"
                     >
-                      Date of Testing
-                      {errors.date_of_test && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
+                      Date of Testing *
                     </Label>
                     <Input
                       id="date_of_test"
@@ -1659,25 +1706,49 @@ export function AddApplicantModal({
                       htmlFor="obtained_marks"
                       className="text-sm font-medium"
                     >
-                      Obtained Marks
-                      {errors.obtained_marks && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
+                      Obtained Marks *
                     </Label>
                     <Input
                       id="obtained_marks"
                       type="number"
                       value={formData.obtained_marks}
-                      onChange={(e) =>
-                        handleInputChange("obtained_marks", e.target.value)
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const numValue = Number(value);
+                        const maxMarks = Number(formData.total_marks);
+                        
+                        // Only allow if value is empty, or within valid range
+                        if (value === "" || (numValue >= 0 && numValue <= maxMarks)) {
+                          handleInputChange("obtained_marks", value);
+                          // Clear error if within range
+                          if (errors.obtained_marks && numValue <= maxMarks) {
+                            setErrors((prev) => {
+                              const newErrors = { ...prev };
+                              delete newErrors.obtained_marks;
+                              return newErrors;
+                            });
+                          }
+                        } else if (numValue > maxMarks) {
+                          // Show error but don't update value
+                          setErrors((prev) => ({
+                            ...prev,
+                            obtained_marks: `Obtained marks cannot exceed total marks (${maxMarks})`,
+                          }));
+                        }
+                      }}
                       placeholder="Enter obtained marks"
                       min="0"
+                      max={formData.total_marks || undefined}
                       className={errors.obtained_marks ? "border-red-500" : ""}
                     />
                     {errors.obtained_marks && (
                       <p className="text-xs text-red-500">
                         {errors.obtained_marks}
+                      </p>
+                    )}
+                    {formData.total_marks > 0 && (
+                      <p className="text-xs text-gray-500">
+                        Maximum marks: {formData.total_marks}
                       </p>
                     )}
                   </div>
@@ -1688,9 +1759,6 @@ export function AddApplicantModal({
                       className="text-sm font-medium"
                     >
                       Qualifying School
-                      {errors.qualifying_school_id && (
-                        <span className="text-red-500 ml-1">*</span>
-                      )}
                     </Label>
                     <Combobox
                       options={schoolList?.map((school) => ({

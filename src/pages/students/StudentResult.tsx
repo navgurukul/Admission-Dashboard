@@ -85,7 +85,7 @@ export default function StudentResult() {
           const data = await getCompleteStudentData(email);
           setCompleteData(data);
 
-          const profile = data.data.student;
+          const profile = data?.data?.student;
           if (profile) {
             // console.log("Mapped state name:", stateName);
             setStudent({
@@ -103,7 +103,7 @@ export default function StudentResult() {
             const updatedTests: TestRow[] = [];
 
             // 1) Screening Test - show ALL attempts, not just latest
-            const examSessions = data.data.exam_sessions || [];
+            const examSessions = data?.data?.exam_sessions || [];
 
             if (examSessions.length > 0) {
               // Sort by date oldest to newest
@@ -181,8 +181,8 @@ export default function StudentResult() {
             };
 
             // 2) Learning Round - Rows ONLY created from interview_learner_round
-            const lrRounds = data.data.interview_learner_round || [];
-            const lrSchedules = data.data.interview_schedules_lr || [];
+            const lrRounds = data?.data?.interview_learner_round || [];
+            const lrSchedules = data?.data?.interview_schedules_lr || [];
 
             // Sort completed rounds by creation date (oldest to newest)
             lrRounds.sort(
@@ -302,8 +302,8 @@ export default function StudentResult() {
             }
 
             // 3) Cultural Fit Round - Rows ONLY created from interview_cultural_fit_round
-            const cfrRounds = data.data.interview_cultural_fit_round || [];
-            const cfrSchedules = data.data.interview_schedules_cfr || [];
+            const cfrRounds = data?.data?.interview_cultural_fit_round || [];
+            const cfrSchedules = data?.data?.interview_schedules_cfr || [];
 
             // Sort completed rounds by creation date (oldest to newest)
             cfrRounds.sort(
@@ -597,7 +597,7 @@ export default function StudentResult() {
           </Card>
 
           {/* Congratulations Message - Only show if Offer Sent */}
-          {completeData?.data.final_decisions?.length > 0 &&
+          {completeData?.data?.final_decisions?.length > 0 &&
             completeData.data.final_decisions
               .sort(
                 (a: any, b: any) =>
@@ -605,7 +605,7 @@ export default function StudentResult() {
                   new Date(a.created_at).getTime(),
               )[0]
               ?.offer_letter_status?.toLowerCase() === "offer sent" && (
-              <OfferLetterCard student={completeData.data.student} />
+              <OfferLetterCard student={completeData.data?.student} />
             )}
 
           {/* Test Results & Slot Booking */}

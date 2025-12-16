@@ -129,7 +129,7 @@ export function AdmissionsSidebar() {
               <h3 className="text-lg font-semibold text-sidebar-text">
                 {getUserDisplayName()}
               </h3>
-              <p className="text-sm text-sidebar-text-muted">View profile</p>
+              {/* <p className="text-sm text-sidebar-text-muted">View profile</p> */}
             </div>
           </div>
         </div>
