@@ -317,6 +317,27 @@ export function InlineSubform({
           continue; // Skip validation for all fields
         }
 
+        // Validate obtained_marks should not exceed 36 for screening round
+        if (isScreeningRound && field.name === "obtained_marks") {
+          const obtainedMarks = Number(row.obtained_marks);
+          if (obtainedMarks > 36) {
+            toast({
+              title: "Validation Error",
+              description: "Obtained marks cannot exceed 36",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (obtainedMarks < 0) {
+            toast({
+              title: "Validation Error",
+              description: "Obtained marks cannot be negative",
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+
         // For all other cases, validate required fields
         if (isEmpty) {
           toast({
