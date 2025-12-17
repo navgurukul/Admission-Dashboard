@@ -98,7 +98,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       console.error("Error fetching questions:", error);
       console.error("Error fetching questions:", error);
       toast({
-        title: "❌ Error",
+        title: "Unable to complete action",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
@@ -114,7 +114,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       await fetchQuestions();
     } catch (error: any) {
       toast({
-        title: "❌ Error",
+        title: "Unable to complete action",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",

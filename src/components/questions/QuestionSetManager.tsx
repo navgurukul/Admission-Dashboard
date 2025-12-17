@@ -110,7 +110,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     setSets(setsWithQuestions);
   };
   useEffect(() => {
-    fetchSets(true);
+    fetchSets(false); // prevent unnecessary api call for sets.
   }, []);
 
   const loadSetQuestions = async (setId: number) => {

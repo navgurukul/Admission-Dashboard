@@ -114,7 +114,7 @@ export default function QuestionRepository() {
       setSelectedQuestion(null);
     } catch (error) {
       toast({
-        title: "❌ Error",
+        title: "Unable to complete action",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
@@ -133,7 +133,7 @@ export default function QuestionRepository() {
       });
     } catch (error) {
       toast({
-        title: "❌ Error",
+        title: "Unable to complete action",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
@@ -154,7 +154,7 @@ export default function QuestionRepository() {
       setQuestionToDelete(null);
     } catch (error) {
       toast({
-        title: "❌ Error",
+        title: "Unable to complete action",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
