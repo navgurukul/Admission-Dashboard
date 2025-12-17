@@ -1099,6 +1099,34 @@ export function ApplicantModal({
                   />
                 </div>
               </div>
+              
+              {/* Communication Note */}
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 mt-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Communication Note
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="communication_notes"
+                    value={currentApplicant.communication_notes || ""}
+                    displayValue={
+                      currentApplicant.communication_notes || "No communication note"
+                    }
+                    renderInput={({ value, onChange }) => (
+                      <textarea
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        rows={3}
+                        className="border rounded px-2 py-1 w-full resize-y"
+                        placeholder="Enter communication notes here..."
+                      />
+                    )}
+                    onUpdate={handleUpdate}
+                    disabled={!hasEditAccess}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Timestamps for Personal Details */}
