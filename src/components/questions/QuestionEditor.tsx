@@ -99,18 +99,20 @@ export function QuestionEditor({
     // Validate question type & difficulty
     if (!formData.question_type) {
       toast({
-        title: "Required field",
+        title: "⚠️ Required field",
         description: "Select a question type",
-        // variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
     if (!formData.difficulty_level) {
       toast({
-        title: "Required field",
+        title: "⚠️ Required field",
         description: "Select difficulty level",
-        // variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -118,27 +120,30 @@ export function QuestionEditor({
     // Validate question text
     if (!formData.question_text.english.trim()) {
       toast({
-        title: "Required field",
-        description: "Enter question text in English",
-        // variant: "destructive",
+        title: "⚠️ Required field",
+        description: "Please enter the question text in English, Hindi, and Marathi",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
     if (!formData.question_text.hindi.trim()) {
       toast({
-        title: "Required field",
-        description: "Enter question text in Hindi",
-        // variant: "destructive",
+        title: "⚠️ Required field",
+        description: "Enter question text in Hindi and Marathi",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
     if (!formData.question_text.marathi.trim()) {
       toast({
-        title: "Required field",
+        title: "⚠️ Required field",
         description: "Enter question text in Marathi",
-        // variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -153,9 +158,10 @@ export function QuestionEditor({
 
       if (hasEmptyOption) {
         toast({
-          title: "Required field",
+          title: "⚠️ Required field",
           description: "All MCQ options must be filled in all languages",
-          // variant: "destructive",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }
@@ -166,9 +172,10 @@ export function QuestionEditor({
         formData.correct_answer === undefined
       ) {
         toast({
-          title: "Required field",
+          title: "⚠️ Required field",
           description: "Select the correct answer",
-          // variant: "destructive",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }

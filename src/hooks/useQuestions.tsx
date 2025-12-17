@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { useToast } from "@/hooks/use-toast";
 import {
   getQuestions,
@@ -31,14 +32,14 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   useEffect(() => {
     const fetchLevels = async () => {
       try {
-        const levelsRaw = await difficultyLevelAPI.getDifficultyLevels();
+        const levelsRaw : any = await difficultyLevelAPI.getDifficultyLevels();
 
         const arr = Array.isArray(levelsRaw.data?.data)
           ? levelsRaw.data.data.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              points: item.marks ?? 0,
-            }))
+            id: item.id,
+            name: item.name,
+            points: item.marks ?? 0,
+          }))
           : [];
 
         setDifficultyLevels(arr);
@@ -79,7 +80,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
         if (
           filters.question_type &&
           filters.question_type !== "All" &&
-          q.question_type !== filters.question_type
+          q.question_type?.toUpperCase() !== filters.question_type.toUpperCase()
         )
           return false;
 
@@ -95,10 +96,12 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       setQuestions(filtered);
     } catch (error: any) {
       console.error("Error fetching questions:", error);
+      console.error("Error fetching questions:", error);
       toast({
-        title: "Error",
-        description: "Failed to fetch questions",
+        title: "❌ Error",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);
@@ -111,9 +114,10 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       await fetchQuestions();
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create question",
+        title: "❌ Error",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       throw error;
     }
@@ -125,9 +129,10 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       await fetchQuestions();
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update question",
+        title: "❌ Error",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       throw error;
     }
@@ -139,9 +144,10 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       await fetchQuestions();
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete question",
+        title: "❌ Error",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       throw error;
     }
