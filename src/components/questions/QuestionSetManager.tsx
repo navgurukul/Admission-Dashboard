@@ -322,11 +322,11 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       }
     } catch (err: any) {
       toast({
-        title: "❌ Operation Failed",
-        description: err.message || "An error occurred. Please try again.",
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
-      });
+  title: "Oops!",
+  description: "There was a small issue while processing your request. Please try again.",
+  variant: "destructive",
+  className: "border-red-500 bg-red-50 text-red-900",
+});
     }
   };
 
