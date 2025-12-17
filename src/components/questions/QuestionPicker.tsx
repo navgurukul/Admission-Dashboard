@@ -38,10 +38,10 @@ export function QuestionPicker({
     const fetchQuestions = async () => {
       setLoading(true);
       try {
-        // const mainSet = await getQuestionsBySetType(activeSet.name);
+        const mainSet = await getQuestionsBySetType(activeSet.name);
         const remainingSet = await getQuestionsBySetType("Remaining");
         const mergedQuestions = [
-          // ...(mainSet.data || []),
+          ...(mainSet.data || []),
           ...(remainingSet.data || []),
         ];
         setQuestions(mergedQuestions);
@@ -59,10 +59,10 @@ export function QuestionPicker({
   const toggle = (q: any) => {
     setSelected((prev) => {
       const exists = prev.find((item) => item.id === q.id);
-      
+
       // If deselecting, allow it
       if (exists) return prev.filter((item) => item.id !== q.id);
-      
+
       // If selecting, check constraints
       // 1. Check total questions limit (18)
       if (prev.length >= 18) {
@@ -74,17 +74,17 @@ export function QuestionPicker({
         });
         return prev;
       }
-      
+
       // 2. Check total marks limit (36)
       const currentMarks = prev.reduce((sum, question) => {
         const diffName = difficultyMap[question.difficulty_level]?.name.toLowerCase();
         const marks = diffName === "easy" ? 1 : diffName === "medium" ? 2 : diffName === "hard" ? 3 : 0;
         return sum + marks;
       }, 0);
-      
+
       const newQuestionDiffName = difficultyMap[q.difficulty_level]?.name.toLowerCase();
       const newQuestionMarks = newQuestionDiffName === "easy" ? 1 : newQuestionDiffName === "medium" ? 2 : newQuestionDiffName === "hard" ? 3 : 0;
-      
+
       if (currentMarks + newQuestionMarks > 36) {
         toast({
           title: "⚠️ Maximum Marks Exceeded",
@@ -94,19 +94,19 @@ export function QuestionPicker({
         });
         return prev;
       }
-      
+
       return [...prev, q];
     });
   };
 
   const difficultyMap = Array.isArray(difficultyLevel)
     ? difficultyLevel.reduce(
-        (acc, d) => {
-          acc[d.id] = d;
-          return acc;
-        },
-        {} as Record<number, { id: number; name: string; points: number }>,
-      )
+      (acc, d) => {
+        acc[d.id] = d;
+        return acc;
+      },
+      {} as Record<number, { id: number; name: string; points: number }>,
+    )
     : {};
 
   const getDifficultyColor = (diffId: number) => {
@@ -277,29 +277,26 @@ export function QuestionPicker({
         <div className="flex justify-between items-stretch gap-3 mb-3">
           <div className="flex items-center gap-3 text-xs bg-gray-50 border border-gray-300 rounded-lg px-4 py-2">
             <span
-              className={`${
-                selectedStats.easy === 5
+              className={`${selectedStats.easy === 5
                   ? "text-green-600 font-semibold"
                   : "text-red-600"
-              }`}
+                }`}
             >
               Easy: {selectedStats.easy} / 5
             </span>
             <span
-              className={`${
-                selectedStats.medium === 8
+              className={`${selectedStats.medium === 8
                   ? "text-green-600 font-semibold"
                   : "text-red-600"
-              }`}
+                }`}
             >
               Medium: {selectedStats.medium} / 8
             </span>
             <span
-              className={`${
-                selectedStats.hard === 5
+              className={`${selectedStats.hard === 5
                   ? "text-green-600 font-semibold"
                   : "text-red-600"
-              }`}
+                }`}
             >
               Hard: {selectedStats.hard} / 5
             </span>
@@ -349,7 +346,7 @@ export function QuestionPicker({
         <DialogFooter className="mt-4">
           <div className="flex-1 space-y-2">
             <div className="text-sm font-semibold text-gray-800">
-              Total Selected: {selectedStats.total} 
+              Total Selected: {selectedStats.total}
             </div>
             {/* <div className="flex gap-4 text-xs text-gray-600">
               <span
