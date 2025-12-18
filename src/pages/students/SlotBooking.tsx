@@ -846,10 +846,10 @@ const SlotBooking: React.FC = () => {
   // ---------- Conditions ----------
   if (loading || studentLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-orange-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading student data...</p>
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading student data...</p>
         </div>
       </div>
     );
@@ -857,17 +857,17 @@ const SlotBooking: React.FC = () => {
 
   // ---------- UI ----------
   return (
-    <div className="min-h-screen bg-gradient-to-r from-orange-500 to-red-500 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-r from-primary to-primary/90 py-8 px-4">
       {/* Notification */}
       {showNotification && (
         <div
-          className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+          className={`fixed top-4 right-4 p-4 rounded-lg shadow-large z-50 transition-all duration-300 ${
             notificationType === "success"
-              ? "bg-green-500"
+              ? "bg-[hsl(var(--status-active))]"
               : notificationType === "error"
-                ? "bg-red-500"
-                : "bg-blue-500"
-          } text-white max-w-md`}
+                ? "bg-destructive"
+                : "bg-[hsl(var(--status-prospect))]"
+          } text-primary-foreground max-w-md`}
         >
           <div className="flex items-center space-x-2">
             {notificationType === "success" && (
@@ -883,25 +883,25 @@ const SlotBooking: React.FC = () => {
       {/* Sign-in Helper Modal */}
       {showSignInHelper && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md mx-4 animate-fade-in">
+          <div className="bg-card rounded-xl shadow-large p-8 max-w-md mx-4 animate-fade-in">
             <div className="text-center">
               <div className="flex justify-center mb-4">
-                <Loader2 className="w-16 h-16 text-orange-600 animate-spin" />
+                <Loader2 className="w-16 h-16 text-primary animate-spin" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">
+              <h3 className="text-2xl font-bold text-foreground mb-3">
                 Sign in with Google
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted-foreground mb-4">
                 A popup window should have opened for Google sign-in.
               </p>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-gray-700">
+              <div className="bg-accent border border-border rounded-lg p-4 mb-4">
+                <p className="text-sm text-foreground">
                   <strong>Popup blocked?</strong>
                   <br />
                   Please allow popups for this site and try again.
                 </p>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Grant calendar permissions to schedule your interview.
               </p>
             </div>
@@ -912,9 +912,9 @@ const SlotBooking: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         {slot.is_cancelled || isRescheduling ? (
           // ---------- Booking Section ----------
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="bg-card rounded-2xl shadow-large overflow-hidden">
             {/* Header */}
-            <div className="bg-orange-400 px-8 py-6 text-white">
+            <div className="bg-primary px-8 py-6 text-primary-foreground">
               <h1 className="text-3xl font-bold mb-2">
                 {isRescheduling
                   ? "Reschedule Interview Slot"
@@ -938,7 +938,7 @@ const SlotBooking: React.FC = () => {
                 {currentStudent?.email || ""}
               </p>
               {isRescheduling && (
-                <div className="mt-3 bg-orange-500 bg-opacity-50 rounded-lg p-3">
+                <div className="mt-3 bg-primary/50 rounded-lg p-3">
                   <p className="text-sm font-semibold">
                     📅 Current Slot:{" "}
                     {slot.on_date && formatDisplayDate(new Date(slot.on_date))}{" "}
@@ -954,8 +954,8 @@ const SlotBooking: React.FC = () => {
             <div className="p-8">
               {/* Date Picker */}
               <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Calendar className="w-6 h-6 mr-2 text-orange-600" />
+                <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+                  <Calendar className="w-6 h-6 mr-2 text-primary" />
                   Select Date
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -967,11 +967,11 @@ const SlotBooking: React.FC = () => {
                     max={formatDate(
                       new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
                     )}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full p-3 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-ring"
                   />
-                  <div className="bg-orange-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-600">Selected Date:</p>
-                    <p className="text-lg font-semibold text-orange-600">
+                  <div className="bg-accent p-3 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Selected Date:</p>
+                    <p className="text-lg font-semibold text-primary">
                       {formatDisplayDate(selectedDate)}
                     </p>
                   </div>
@@ -980,8 +980,8 @@ const SlotBooking: React.FC = () => {
 
               {/* Time Slots */}
               <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <Clock className="w-6 h-6 mr-2 text-orange-600" />
+                <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+                  <Clock className="w-6 h-6 mr-2 text-primary" />
                   Available Time Slots
                 </h3>
                 {timings.length > 0 ? (
@@ -1012,12 +1012,12 @@ const SlotBooking: React.FC = () => {
                         }}
                         className={`p-4 rounded-lg border-2 transition-all ${
                           (isRescheduling ? newSlot.id : slot.id) === timing.id
-                            ? "border-orange-500 bg-orange-50 shadow-md"
-                            : "border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm"
+                            ? "border-ring bg-accent shadow-medium"
+                            : "border-border bg-card hover:border-primary/30 hover:shadow-soft"
                         }`}
                       >
                         <div className="text-center">
-                          <p className="font-semibold text-gray-800">
+                          <p className="font-semibold text-foreground">
                             {formatTime(timing.start_time)} -{" "}
                             {formatTime(timing.end_time)}
                           </p>
@@ -1029,12 +1029,12 @@ const SlotBooking: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600 text-base">
+                  <div className="bg-muted border border-border rounded-lg p-8 text-center">
+                    <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-foreground text-base">
                       No slots available for this date.
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                       Please select another date.
                     </p>
                   </div>
@@ -1043,11 +1043,11 @@ const SlotBooking: React.FC = () => {
 
               {/* Selected Slot Info */}
               {((isRescheduling && newSlot.id) || (!isRescheduling && slot.id && slot.is_cancelled)) && (
-                <div className="mb-6 bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">
+                <div className="mb-6 bg-accent border-2 border-ring rounded-lg p-4">
+                  <h4 className="font-semibold text-accent-foreground mb-2">
                     {isRescheduling ? "New Slot Selected:" : "Selected Slot:"}
                   </h4>
-                  <div className="text-sm text-blue-700 space-y-1">
+                  <div className="text-sm text-accent-foreground space-y-1">
                     <p>📅 Date: {formatDisplayDate(selectedDate)}</p>
                     <p>
                       🕐 Time:{" "}
@@ -1081,10 +1081,10 @@ const SlotBooking: React.FC = () => {
               )}
 
               {isGoogleSignedIn && (slot.id || newSlot.id) && (
-                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="mb-6 bg-accent border border-[hsl(var(--status-active))] rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <p className="text-sm text-green-700">
+                    <CheckCircle className="w-5 h-5 text-[hsl(var(--status-active))]" />
+                    <p className="text-sm text-accent-foreground">
                       Google account connected. Meet link will be created
                       automatically.
                     </p>
@@ -1098,7 +1098,7 @@ const SlotBooking: React.FC = () => {
                   <button
                     onClick={handleCancelReschedule}
                     disabled={isBookingInProgress}
-                    className="flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-all bg-gray-300 text-gray-700 hover:bg-gray-400 disabled:opacity-50"
+                    className="flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -1107,8 +1107,8 @@ const SlotBooking: React.FC = () => {
                     disabled={!newSlot.id || isBookingInProgress}
                     className={`flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
                       !newSlot.id || isBookingInProgress
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-gradient-to-r from-green-600 to-green-400 text-white hover:from-green-700 hover:to-green-500 shadow-lg hover:shadow-xl"
+                        ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                        : "bg-[hsl(var(--status-active))] text-primary-foreground hover:bg-[hsl(var(--status-active))]/90 shadow-large"
                     }`}
                   >
                     {isBookingInProgress ? (
@@ -1129,8 +1129,8 @@ const SlotBooking: React.FC = () => {
                   disabled={!slot.id || isBookingInProgress}
                   className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
                     !slot.id || isBookingInProgress
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-gradient-to-r from-orange-600 to-orange-400 text-white hover:from-orange-700 hover:to-orange-500 shadow-lg hover:shadow-xl"
+                      ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-large"
                   }`}
                 >
                   {isBookingInProgress ? (
@@ -1149,8 +1149,8 @@ const SlotBooking: React.FC = () => {
           </div>
         ) : (
           // ---------- Booked Details Section ----------
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="bg-green-500 px-8 py-6 text-white">
+          <div className="bg-card rounded-xl shadow-large overflow-hidden">
+            <div className="bg-[hsl(var(--status-active))] px-8 py-6 text-primary-foreground">
               <div className="flex items-center justify-center space-x-3 mb-2">
                 <CheckCircle className="w-8 h-8" />
                 <h1 className="text-3xl font-bold">Interview Slot Booked</h1>
@@ -1158,29 +1158,29 @@ const SlotBooking: React.FC = () => {
             </div>
 
             <div className="p-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+              <h2 className="text-2xl font-semibold text-foreground mb-6">
                 Slot Details
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-gray-500">Student Name</p>
+                    <p className="text-sm text-muted-foreground">Student Name</p>
                     <p className="text-lg font-semibold">{slot.student_name}</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-gray-500">Topic</p>
+                    <p className="text-sm text-muted-foreground">Topic</p>
                     <p className="text-lg font-semibold">{slot.topic_name}</p>
                   </div>
 
                   {slot.interviewer_name && (
                     <div>
-                      <p className="text-sm text-gray-500">Interviewer</p>
+                      <p className="text-sm text-muted-foreground">Interviewer</p>
                       <p className="text-lg font-semibold">
                         {slot.interviewer_name}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {slot.interviewer_email}
                       </p>
                     </div>
@@ -1189,7 +1189,7 @@ const SlotBooking: React.FC = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-gray-500">Date</p>
+                    <p className="text-sm text-muted-foreground">Date</p>
                     <p className="text-lg font-semibold">
                       {slot.on_date &&
                         formatDisplayDate(new Date(slot.on_date))}

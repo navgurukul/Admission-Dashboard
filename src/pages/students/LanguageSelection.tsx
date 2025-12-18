@@ -21,22 +21,22 @@ const LanguageSelection: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-large p-8 max-w-md w-full text-center">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           NavGurukul Entrance Test
         </h1>
-        <p className="text-gray-600 mb-8">Select Your Language</p>
+        <p className="text-muted-foreground mb-8">Select Your Language</p>
 
         <div className="mb-8">
-          <label className="block text-left text-gray-700 font-medium mb-2">
+          <label className="block text-left text-foreground font-medium mb-2">
             Choose your language
           </label>
           <div className="relative">
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}
-              className="w-full p-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full p-3 border border-input rounded-lg appearance-none bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="English">English</option>
               <option value="Hindi">हिंदी</option>
@@ -45,7 +45,7 @@ const LanguageSelection: React.FC = () => {
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg
-                className="w-4 h-4 text-gray-400"
+                className="w-4 h-4 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -63,21 +63,21 @@ const LanguageSelection: React.FC = () => {
 
         <button
           onClick={handleContinue}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200"
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-6 rounded-lg transition duration-200"
         >
           LET'S GO AHEAD
         </button>
 
         <div className="flex justify-center space-x-2 mt-8">
-          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+          <div className="w-3 h-3 bg-primary rounded-full"></div>
+          <div className="w-3 h-3 bg-muted rounded-full"></div>
+          <div className="w-3 h-3 bg-muted rounded-full"></div>
         </div>
 
         <div className="flex justify-between mt-6">
           <button
             onClick={handleBackToHome}
-            className="text-gray-600 hover:text-gray-800 flex items-center"
+            className="text-muted-foreground hover:text-foreground flex items-center"
           >
             <svg
               className="w-4 h-4 mr-1"
@@ -96,7 +96,7 @@ const LanguageSelection: React.FC = () => {
           </button>
           <button
             onClick={handleContinue}
-            className="text-orange-500 hover:text-orange-600 flex items-center"
+            className="text-primary hover:text-primary/80 flex items-center"
           >
             NEXT
             <svg

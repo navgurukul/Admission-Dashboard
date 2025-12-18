@@ -243,11 +243,11 @@ export default function StudentLogin() {
             title: getContent().successMessage,
             description: (
               <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <CheckCircle2 className="w-5 h-5 text-[hsl(var(--status-active))]" />
                 <span>Welcome back, {googleUser.name}! 🎉</span>
               </div>
             ),
-            className: "bg-green-50 border-green-500 text-green-800",
+            className: "bg-accent border-[hsl(var(--status-active))] text-accent-foreground",
           });
 
           // Mark as processed and clear the credential
@@ -369,11 +369,11 @@ export default function StudentLogin() {
         title: getContent().successMessage,
         description: (
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <CheckCircle2 className="w-5 h-5 text-[hsl(var(--status-active))]" />
             <span>Welcome back, {data.student.name}! 🎉</span>
           </div>
         ),
-        className: "bg-green-50 border-green-500 text-green-800",
+        className: "bg-accent border-[hsl(var(--status-active))] text-accent-foreground",
       });
 
       navigate("/students/details/instructions");
@@ -382,23 +382,23 @@ export default function StudentLogin() {
         title: getContent().failureMessage,
         description: (
           <div className="flex items-center space-x-2">
-            <XCircle className="w-5 h-5 text-red-500" />
+            <XCircle className="w-5 h-5 text-destructive" />
             <span>{err.message}</span>
           </div>
         ),
-        className: "bg-red-50 border-red-500 text-red-800",
+        className: "bg-destructive/10 border-destructive text-destructive",
       });
     } finally {
       setLoading(false);
     }
   };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-large">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center space-x-2 mb-2">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <User className="w-6 h-6 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">
               {getContent().title}

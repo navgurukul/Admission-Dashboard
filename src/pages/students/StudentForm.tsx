@@ -806,8 +806,8 @@ const StudentForm: React.FC = () => {
   const content = getContent();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
           <LogoutButton />
@@ -818,13 +818,13 @@ const StudentForm: React.FC = () => {
 
         {/* Profile Image Upload */}
         <div className="text-center">
-          <div className="w-24 h-24 mx-auto border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center bg-gray-50 relative cursor-pointer hover:border-orange-400 transition-colors">
+          <div className="w-24 h-24 mx-auto border-2 border-dashed border-input rounded-xl flex flex-col items-center justify-center bg-muted relative cursor-pointer hover:border-primary transition-colors">
             {!imagePreview ? (
               <>
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mb-1">
-                  <span className="text-white text-sm">📷</span>
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mb-1">
+                  <span className="text-primary-foreground text-sm">📷</span>
                 </div>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {content.addPhoto}
                 </span>
               </>
@@ -921,7 +921,7 @@ const StudentForm: React.FC = () => {
                   value="male"
                   checked={formData.gender === "male"}
                   onChange={handleInputChange}
-                  className="text-orange-500 focus:ring-orange-500"
+                  className="text-primary focus:ring-ring"
                 />
                 <span className="text-sm">{content.male}</span>
               </label>
@@ -932,7 +932,7 @@ const StudentForm: React.FC = () => {
                   value="female"
                   checked={formData.gender === "female"}
                   onChange={handleInputChange}
-                  className="text-orange-500 focus:ring-orange-500"
+                  className="text-primary focus:ring-ring"
                 />
                 <span className="text-sm">{content.female}</span>
               </label>
@@ -1233,9 +1233,9 @@ const StudentForm: React.FC = () => {
 
         {/* Progress Dots */}
         <div className="flex justify-center space-x-2 mt-6">
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+          <div className="w-3 h-3 bg-muted rounded-full"></div>
+          <div className="w-3 h-3 bg-muted rounded-full"></div>
+          <div className="w-3 h-3 bg-primary rounded-full"></div>
         </div>
       </div>
     </div>

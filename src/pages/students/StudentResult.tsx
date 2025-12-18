@@ -615,8 +615,8 @@ export default function StudentResult() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="min-w-full border border-gray-200 text-left rounded-lg">
-                  <thead className="bg-gray-100">
+                <table className="min-w-full border border-border text-left rounded-lg">
+                  <thead className="bg-muted">
                     <tr>
                       <th className="px-4 py-2 border">Stage</th>
                       <th className="px-4 py-2 border">Status</th>
@@ -668,16 +668,16 @@ export default function StudentResult() {
                         });
 
                         return (
-                          <tr key={test.id} className="hover:bg-gray-50">
+                          <tr key={test.id} className="hover:bg-muted">
                             <td className="px-4 py-2 border">{test.name}</td>
                             <td className="px-4 py-2 border">
                               <span
                                 className={`px-2 py-1 rounded text-sm font-medium ${
                                   test.status === "Pass"
-                                    ? "bg-green-100 text-green-700"
+                                    ? "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]"
                                     : test.status === "Pending"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-red-100 text-red-700"
+                                      ? "bg-[hsl(var(--status-pending))]/10 text-[hsl(var(--status-pending))]"
+                                      : "bg-destructive/10 text-destructive"
                                 }`}
                               >
                                 {test.status}
@@ -701,35 +701,35 @@ export default function StudentResult() {
                               {/* Screening Test Actions - Only show Retest button for Fail */}
                               {test.name.includes("Screening Test") ? (
                                 test.status === "Pass" ? (
-                                  <p className="text-gray-600">-</p>
+                                  <p className="text-muted-foreground">-</p>
                                 ) : hasPassedAttempt ? (
                                   <Button
                                     disabled
-                                    className="bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    className="bg-secondary text-muted-foreground cursor-not-allowed"
                                   >
                                     Retest
                                   </Button>
                                 ) : test.status === "Fail" ? (
                                   <Button
                                     onClick={handleRetestNavigation}
-                                    className="bg-orange-500 hover:bg-orange-600"
+                                    className="bg-primary hover:bg-primary/90"
                                   >
                                     Retest
                                   </Button>
                                 ) : (
-                                  <p className="text-gray-600">-</p>
+                                  <p className="text-muted-foreground">-</p>
                                 )
                               ) : (
                                 /* Book/Reschedule for LR & CFR only */
                                 <>
                                   {/* If completed (Pass/Fail), show nothing */}
                                   {test.action === "Completed" ? (
-                                    <p className="text-gray-600">-</p>
+                                    <p className="text-muted-foreground">-</p>
                                   ) : hasPassedAttempt ? (
                                     /* If another attempt passed, disable button */
                                     <Button
                                       disabled
-                                      className="bg-gray-300 text-gray-500 cursor-not-allowed"
+                                      className="bg-secondary text-muted-foreground cursor-not-allowed"
                                       variant="outline"
                                     >
                                       {isSlotBooked ? "Reschedule" : "Book Slot"}
@@ -738,7 +738,7 @@ export default function StudentResult() {
                                     /* If time passed but not completed, disable (awaiting result) */
                                     <Button
                                       disabled
-                                      className="bg-gray-300 text-gray-500 cursor-not-allowed"
+                                      className="bg-secondary text-muted-foreground cursor-not-allowed"
                                       variant="outline"
                                     >
                                       Interview Completed
@@ -759,7 +759,7 @@ export default function StudentResult() {
                                       onClick={() =>
                                         handleBooking(test.id, test.name)
                                       }
-                                      className="bg-green-600 hover:bg-green-700"
+                                      className="bg-[hsl(var(--status-active))] hover:bg-[hsl(var(--status-active))]/90"
                                     >
                                       Book Slot
                                     </Button>
@@ -777,7 +777,7 @@ export default function StudentResult() {
                       <tr>
                         <td
                           colSpan={5}
-                          className="px-4 py-8 text-center text-gray-500"
+                          className="px-4 py-8 text-center text-muted-foreground"
                         >
                           No test data available
                         </td>

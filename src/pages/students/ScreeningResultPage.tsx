@@ -80,27 +80,27 @@ const ScreeningResultPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
       <LogoutButton />
-      <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-2xl w-full flex flex-col items-center text-center">
+      <div className="bg-card rounded-3xl shadow-large p-10 max-w-2xl w-full flex flex-col items-center text-center">
         {status === "pass" ? (
           <>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Congratulations! 🎉 
             </h1>
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
+            <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-6">
               You passed the test with a score of{" "}
-              <span className="text-orange-500">{score}</span> /{" "}
-              <span className="text-orange-500">{total}</span>
+              <span className="text-primary">{score}</span> /{" "}
+              <span className="text-primary">{total}</span>
             </h2>
-            <p className="text-gray-700 mb-2">
+            <p className="text-muted-foreground mb-2">
               Thank you for applying to NavGurukul Program.
             </p>
-            <p className="text-gray-700 mb-4">
+            <p className="text-muted-foreground mb-4">
               Our admission team will contact you for the next steps.
             </p>
 
-            <p className="text-gray-700 mb-4">
+            <p className="text-muted-foreground mb-4">
               You can send us a mail on {" "}
               <a href={`mailto:${ADMISSIONS_EMAIL}`} className="text-blue-500">
                 {ADMISSIONS_EMAIL}
@@ -131,7 +131,7 @@ const ScreeningResultPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="mt-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
                 <>
@@ -145,16 +145,16 @@ const ScreeningResultPage: React.FC = () => {
           </>
         ) : (
           <>
-            <h1 className="text-3xl font-semibold text-gray-900 mb-6">
+            <h1 className="text-3xl font-semibold text-foreground mb-6">
               Oh Sorry!
             </h1>
-            <p className="text-gray-700 mb-4 text-lg">
+            <p className="text-muted-foreground mb-4 text-lg">
               You could not clear the NavGurukul Preliminary Test this time. You
               have scored <span className="font-bold">{score}</span> marks in
               the test. Don't worry, you can give the test again after some
               preparation.
             </p>
-            <p className="text-gray-700 mb-6">
+            <p className="text-muted-foreground mb-6">
               You can use this study guide for more maths practice{" "}
               <a
                 href="https://www.khanacademy.org/math"
@@ -169,7 +169,7 @@ const ScreeningResultPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
                 <>
