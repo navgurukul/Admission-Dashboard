@@ -30,15 +30,10 @@ import { useToast } from "@/components/ui/use-toast";
 
 import {
   createStudent,
-  getAllCasts,
-  getAllQualification,
-  getAllStates,
-  getBlocksByDistrict,
-  getDistrictsByState,
   submitScreeningRound,
   uploadProfileImage,
-  getPartners,
-  getAllDonors,
+  getBlocksByDistrict,
+  getDistrictsByState,
 } from "@/utils/api";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -84,6 +79,11 @@ interface AddApplicantModalProps {
   currentstatusList: CurrentStatus[];
   religionList: religion[];
   questionSetList: QuestionSet[];
+  qualificationList: any[];
+  castList: any[];
+  partnerList: any[];
+  donorList: any[];
+  stateList: { value: string; label: string }[];
 }
 
 export function AddApplicantModal({
@@ -95,18 +95,16 @@ export function AddApplicantModal({
   currentstatusList,
   religionList,
   questionSetList,
+  qualificationList,
+  castList,
+  partnerList,
+  donorList,
+  stateList,
 }: AddApplicantModalProps) {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const { toast } = useToast();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [casteList, setCasteList] = useState<any[]>([]);
-  const [qualificationList, setQualificationList] = useState<any[]>([]);
-  const [partnerList, setPartnerList] = useState<any[]>([]);
-  const [donorList, setDonorList] = useState<any[]>([]);
-  const [stateOptions, setStateOptions] = useState<
-    { value: string; label: string }[]
-  >([]);
   const [districtOptions, setDistrictOptions] = useState<
     { value: string; label: string }[]
   >([]);
@@ -209,58 +207,6 @@ export function AddApplicantModal({
   };
 
   useEffect(() => {
-    const fetchCasteList = async () => {
-      try {
-        const response = await getAllCasts();
-        setCasteList(response || []);
-      } catch (error) {
-        // console.error("Error fetching castes:", error);
-      }
-    };
-
-    fetchCasteList();
-  }, []);
-
-  useEffect(() => {
-    const fetchQualifications = async () => {
-      try {
-        const response = await getAllQualification();
-        setQualificationList(response || []);
-      } catch (error) {
-        // console.error("Error fetching qualifications:", error);
-      }
-    };
-
-    fetchQualifications();
-  }, []);
-
-  useEffect(() => {
-    const fetchPartners = async () => {
-      try {
-        const response = await getPartners();
-        setPartnerList(response || []);
-      } catch (error) {
-        // console.error("Error fetching partners:", error);
-      }
-    };
-
-    fetchPartners();
-  }, []);
-
-  useEffect(() => {
-    const fetchDonors = async () => {
-      try {
-        const response = await getAllDonors();
-        setDonorList(response || []);
-      } catch (error) {
-        // console.error("Error fetching donors:", error);
-      }
-    };
-
-    fetchDonors();
-  }, []);
-
-  useEffect(() => {
     if (formData.question_set_id && questionSetList.length > 0) {
       const selectedQuestionSet = questionSetList.find(
         (set) => set.id === Number(formData.question_set_id),
@@ -308,30 +254,6 @@ export function AddApplicantModal({
   };
 
   useEffect(() => {
-    const fetchStates = async () => {
-      try {
-        const statesRes = await getAllStates();
-        const statesData = statesRes?.data || statesRes || [];
-        const mappedStates = statesData.map((s: any) => ({
-          value: s.state_code,
-          label: s.state_name,
-        }));
-        setStateOptions(mappedStates);
-      } catch (error) {
-        // console.error("Failed to fetch states:", error);
-        setStateOptions([
-          { value: "S-UP", label: "Uttar Pradesh" },
-          { value: "S-DL", label: "Delhi" },
-        ]);
-      }
-    };
-
-    if (isOpen) {
-      fetchStates();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     if (!selectedState) {
       setDistrictOptions([]);
       setBlockOptions([]);
@@ -354,8 +276,8 @@ export function AddApplicantModal({
         }));
         setDistrictOptions(mappedDistricts);
 
-        // Find state label directly from the response data
-        const stateLabel = stateOptions.find((s) => s.value === selectedState)?.label || selectedState;
+        // Find state label directly from the props data
+        const stateLabel = stateList.find((s) => s.value === selectedState)?.label || selectedState;
         
         setFormData((prev) => ({
           ...prev,
@@ -1108,7 +1030,7 @@ export function AddApplicantModal({
                       State *
                     </Label>
                     <Combobox
-                      options={stateOptions}
+                      options={stateList}
                       value={selectedState}
                       onValueChange={(value) => {
                         if (selectedDistrict || formData.block) {
@@ -1284,7 +1206,7 @@ export function AddApplicantModal({
                       Caste *
                     </Label>
                     <Combobox
-                      options={casteList?.map((caste) => ({
+                      options={castList?.map((caste) => ({
                         value: String(caste.id),
                         label: caste.cast_name,
                       })) || []}

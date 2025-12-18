@@ -104,6 +104,9 @@ const ApplicantTable = () => {
     questionSetList,
     qualificationList,
     castList,
+    partnerList,
+    donorList,
+    stateList,
   } = useApplicantData(currentPage, itemsPerPage);
 
   // Map student data with related info
@@ -1216,10 +1219,14 @@ const ApplicantTable = () => {
         onClose={() => setShowAddModal(false)}
         onSuccess={refreshData}
         schoolList={schoolList}
-        campusList={campusList}
         currentstatusList={currentstatusList}
         religionList={religionList}
         questionSetList={questionSetList}
+        qualificationList={qualificationList}
+        castList={castList}
+        partnerList={partnerList}
+        donorList={donorList}
+        stateList={stateList}
       />
       <CSVImportModal
         isOpen={showCSVImport}
@@ -1236,12 +1243,18 @@ const ApplicantTable = () => {
         schoolList={schoolList}
         religionList={religionList}
         currentstatusList={currentstatusList}
+        stageList={stageList}
       />
       <BulkUpdateModal
         isOpen={showBulkUpdate}
         onClose={() => setShowBulkUpdate(false)}
         selectedApplicants={selectedRows}
         onSuccess={refreshData}
+        campusList={campusList}
+        stateList={stateList}
+        castList={castList}
+        qualificationList={qualificationList}
+        currentstatusList={currentstatusList}
       />
       <ApplicantModal
         applicant={applicantToView}
@@ -1250,6 +1263,16 @@ const ApplicantTable = () => {
           setApplicantToView(null);
           refreshData(); // Refresh the table data when modal closes
         }}
+        castList={castList}
+        qualificationList={qualificationList}
+        currentstatusList={currentstatusList}
+        schoolList={schoolList}
+        campusList={campusList}
+        questionSetList={questionSetList}
+        stageList={stageList}
+        partnerList={partnerList}
+        donorList={donorList}
+        stateList={stateList}
       />
       {/* <ApplicantCommentsModal
         applicantId={applicantForComments?.id || ""}
