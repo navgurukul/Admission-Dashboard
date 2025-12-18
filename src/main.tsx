@@ -7,7 +7,7 @@ import { LanguageProvider } from "@/routes/LaunguageContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter basename="/Admission-Dashboard">
+    <BrowserRouter basename="/Admission-Dashboard/">
       <LanguageProvider>
         <App />
       </LanguageProvider>
