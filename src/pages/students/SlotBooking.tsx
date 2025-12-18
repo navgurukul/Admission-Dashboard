@@ -857,7 +857,7 @@ const SlotBooking: React.FC = () => {
 
   // ---------- UI ----------
   return (
-    <div className="min-h-screen bg-gradient-to-r from-orange-500 to-red-500 py-8 px-4">
+    <div className="min-h-screen student-gradient py-8 px-4">
       {/* Notification */}
       {showNotification && (
         <div
@@ -894,7 +894,7 @@ const SlotBooking: React.FC = () => {
               <p className="text-gray-600 mb-4">
                 A popup window should have opened for Google sign-in.
               </p>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+              <div className="bg-student-primary-100 border-student rounded-lg p-4 mb-4">
                 <p className="text-sm text-gray-700">
                   <strong>Popup blocked?</strong>
                   <br />
@@ -909,12 +909,12 @@ const SlotBooking: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto">
+  <div className="max-w-4xl mx-auto">
         {slot.is_cancelled || isRescheduling ? (
           // ---------- Booking Section ----------
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="bg-orange-400 px-8 py-6 text-white">
+            <div className="bg-student-primary px-8 py-6 text-white">
               <h1 className="text-3xl font-bold mb-2">
                 {isRescheduling
                   ? "Reschedule Interview Slot"
@@ -938,7 +938,7 @@ const SlotBooking: React.FC = () => {
                 {currentStudent?.email || ""}
               </p>
               {isRescheduling && (
-                <div className="mt-3 bg-orange-500 bg-opacity-50 rounded-lg p-3">
+                <div className="mt-3 student-soft rounded-lg p-3">
                   <p className="text-sm font-semibold">
                     📅 Current Slot:{" "}
                     {slot.on_date && formatDisplayDate(new Date(slot.on_date))}{" "}
@@ -969,7 +969,7 @@ const SlotBooking: React.FC = () => {
                     )}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   />
-                  <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="bg-student-primary-100 p-3 rounded-lg">
                     <p className="text-sm text-gray-600">Selected Date:</p>
                     <p className="text-lg font-semibold text-orange-600">
                       {formatDisplayDate(selectedDate)}
@@ -1012,7 +1012,7 @@ const SlotBooking: React.FC = () => {
                         }}
                         className={`p-4 rounded-lg border-2 transition-all ${
                           (isRescheduling ? newSlot.id : slot.id) === timing.id
-                            ? "border-orange-500 bg-orange-50 shadow-md"
+                            ? "border-student bg-student-primary-100 shadow-md"
                             : "border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm"
                         }`}
                       >
@@ -1108,7 +1108,7 @@ const SlotBooking: React.FC = () => {
                     className={`flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
                       !newSlot.id || isBookingInProgress
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                        : "bg-gradient-to-r from-green-600 to-green-400 text-white hover:from-green-700 hover:to-green-500 shadow-lg hover:shadow-xl"
+                        : "btn-success shadow-lg hover:shadow-xl text-white"
                     }`}
                   >
                     {isBookingInProgress ? (
@@ -1130,7 +1130,7 @@ const SlotBooking: React.FC = () => {
                   className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
                     !slot.id || isBookingInProgress
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-gradient-to-r from-orange-600 to-orange-400 text-white hover:from-orange-700 hover:to-orange-500 shadow-lg hover:shadow-xl"
+                      : "btn-student shadow-lg hover:shadow-xl text-white"
                   }`}
                 >
                   {isBookingInProgress ? (
@@ -1238,7 +1238,7 @@ const SlotBooking: React.FC = () => {
                 <button
                   onClick={handleDeleteSlot}
                   disabled={isBookingInProgress || isCancelling}
-                  className="flex-1 py-3 px-8 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-500 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  className="flex-1 py-3 px-8 btn-student font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   {isBookingInProgress ? (
                     <span className="flex items-center justify-center">
@@ -1253,14 +1253,14 @@ const SlotBooking: React.FC = () => {
                 <button
                   onClick={() => setShowCancelModal(true)}
                   disabled={isBookingInProgress || isCancelling}
-                  className="flex-1 py-3 px-8 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  className="flex-1 py-3 px-8 btn-danger font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   Cancel Slot
                 </button>
 
                 <button
                   onClick={handleNavigationOnStudentPage}
-                  className="flex-1 py-3 px-8 bg-gradient-to-r from-green-400 to-green-500 text-white font-semibold rounded-lg hover:from-green-500 hover:to-green-600 transition-all shadow-md hover:shadow-lg"
+                  className="flex-1 py-3 px-8 btn-success font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
                 >
                   View Results
                 </button>

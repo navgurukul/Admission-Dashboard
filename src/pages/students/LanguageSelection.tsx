@@ -21,7 +21,7 @@ const LanguageSelection: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center p-4">
+  <div className="min-h-screen student-gradient flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           NavGurukul Entrance Test
@@ -63,13 +63,13 @@ const LanguageSelection: React.FC = () => {
 
         <button
           onClick={handleContinue}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200"
+          className="btn-student w-full"
         >
           LET'S GO AHEAD
         </button>
 
         <div className="flex justify-center space-x-2 mt-8">
-          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+          <div className="w-3 h-3 bg-student-primary-500 rounded-full"></div>
           <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
           <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
         </div>
@@ -96,7 +96,7 @@ const LanguageSelection: React.FC = () => {
           </button>
           <button
             onClick={handleContinue}
-            className="text-orange-500 hover:text-orange-600 flex items-center"
+            className="text-student-primary hover:text-student-primary flex items-center"
           >
             NEXT
             <svg

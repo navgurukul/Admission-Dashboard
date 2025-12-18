@@ -51,7 +51,7 @@ export function DashboardStats() {
       const onboardedStageId = onboardedStage?.id;
 
       // Fetch total students - just get first page to get total count
-      const studentsResponse = await getStudents(1, 10);
+      const studentsResponse = await getStudents(1, 1);
       const totalApplicants = studentsResponse?.totalCount || 0;
 
       // Fetch active applications - students at "Final Decision" stage using stage_id

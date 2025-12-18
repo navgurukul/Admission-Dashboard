@@ -207,30 +207,33 @@ const TestPage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    document.body.classList.add("student");
+    return () => document.body.classList.remove("student");
+  }, []);
+
   if (timeLeft === null || questions.length === 0) {
     return (
-      <div className="text-center mt-10 text-lg font-semibold">
-        Loading test...
-      </div>
+      <div className="text-center mt-10 text-lg font-semibold">Loading test...</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
+    <div className="min-h-screen student-gradient flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="font-bold text-xl">
             Question {currentIndex + 1} / {questions.length}
           </h2>
-          <div className="bg-red-100 text-red-600 font-bold px-4 py-2 rounded-lg shadow">
+          <div className="bg-student-primary-100 text-student-primary font-bold px-4 py-2 rounded-lg shadow">
             ⏳ {formatTime(timeLeft)}
           </div>
         </div>
 
         {/* Question */}
-        <div className="border border-gray-300 rounded-xl p-6 mb-6 bg-gray-50 shadow-inner">
-          <p className="text-lg font-medium text-gray-800 leading-relaxed">
+          <div className="border border-gray-300 rounded-xl p-6 mb-6 bg-gray-50 shadow-inner">
+          <p className="text-lg font-medium leading-relaxed">
             {questions[currentIndex].question}
           </p>
         </div>
@@ -244,7 +247,7 @@ const TestPage: React.FC = () => {
                 key={idx}
                 className={`block border rounded-lg px-4 py-3 cursor-pointer transition ${
                   answers[qid] === idx
-                    ? "bg-blue-100 border-blue-500"
+                    ? "bg-student-primary-100 border-student"
                     : "hover:bg-gray-100 border-gray-300"
                 }`}
               >
@@ -266,7 +269,7 @@ const TestPage: React.FC = () => {
           <button
             disabled={currentIndex === 0}
             onClick={() => setCurrentIndex((i) => i - 1)}
-            className="px-6 py-2 bg-gray-300 rounded-lg font-medium disabled:opacity-50"
+            className="px-6 py-2 bg-white border rounded-lg font-medium disabled:opacity-50"
           >
             Previous
           </button>
@@ -275,7 +278,7 @@ const TestPage: React.FC = () => {
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
               <DialogTrigger asChild>
                 <button
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700"
+                  className="px-6 py-2 btn-success rounded-lg font-medium shadow hover:brightness-95"
                   onClick={handleConfirmSubmit}
                 >
                   Submit
@@ -300,11 +303,8 @@ const TestPage: React.FC = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          ) : (
-            <button
-              onClick={() => setCurrentIndex((i) => i + 1)}
-              className="px-6 py-2 bg-orange-500 text-white rounded-lg font-medium shadow hover:bg-orange-600"
-            >
+            ) : (
+            <button onClick={() => setCurrentIndex((i) => i + 1)} className="btn-student">
               Next
             </button>
           )}

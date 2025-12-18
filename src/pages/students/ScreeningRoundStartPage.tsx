@@ -4,6 +4,7 @@ import { getRandomQuestions as getQuestions } from "@/utils/api";
 import { useLanguage } from "@/routes/LaunguageContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 
+
 const ScreeningRoundStartPage: React.FC = () => {
   const navigate = useNavigate();
   const { selectedLanguage } = useLanguage();
@@ -89,26 +90,21 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-400 to-red-500">
+      <div className="min-h-screen flex items-center justify-center student-gradient">
         <p className="text-white text-lg">Loading test details...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
-      <LogoutButton />
+    <div className="min-h-screen student-gradient flex items-center justify-center p-4">
+      <LogoutButton className="student-gradient" />
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full flex flex-col items-center justify-center">
         <h1 className="text-2xl font-semibold mb-4">{content.heading}</h1>
-        <p className="text-gray-600 mb-2">{content.description1}</p>
-        <p className="text-gray-800 font-medium mb-2">{content.description2}</p>
-        <p className="text-gray-800 font-semibold mb-2">
-          {content.description3}
-        </p>
-        <button
-          onClick={handleStartTest}
-          className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg"
-        >
+        <p className="text-student-muted mb-2">{content.description1}</p>
+        <p className="text-student-muted font-medium mb-2">{content.description2}</p>
+        <p className="text-student-muted font-semibold mb-2">{content.description3}</p>
+        <button onClick={handleStartTest} className="btn-student shadow-lg">
           {content.buttonText}
         </button>
       </div>

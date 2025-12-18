@@ -1309,7 +1309,7 @@ export const createQuestionSetMappings = async (
 // create test for students
 export const getRandomQuestions = async (
   language: "english" | "hindi" | "marathi" = "english",
-  studentId: number,
+  studentId: number|string,
 ) => {
   try {
     const response = await axios.get(`${BASE_URL}/questions/random-for-test?student_id=${studentId}`, {

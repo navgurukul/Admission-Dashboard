@@ -79,28 +79,33 @@ const ScreeningResultPage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    document.body.classList.add("student");
+    return () => document.body.classList.remove("student");
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <LogoutButton />
+  <div className="min-h-screen student-gradient flex items-center justify-center p-4">
+      <LogoutButton className="student-gradient" />
       <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-2xl w-full flex flex-col items-center text-center">
         {status === "pass" ? (
           <>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Congratulations! 🎉 
             </h1>
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
+            <h2 className="text-2xl md:text-3xl font-semibold text-student-muted mb-6">
               You passed the test with a score of{" "}
-              <span className="text-orange-500">{score}</span> /{" "}
-              <span className="text-orange-500">{total}</span>
+              <span className="text-student-primary">{score}</span> / {" "}
+              <span className="text-student-primary">{total}</span>
             </h2>
-            <p className="text-gray-700 mb-2">
+            <p className="text-student-muted mb-2">
               Thank you for applying to NavGurukul Program.
             </p>
-            <p className="text-gray-700 mb-4">
+            <p className="text-student-muted mb-4">
               Our admission team will contact you for the next steps.
             </p>
 
-            <p className="text-gray-700 mb-4">
+            <p className="text-student-muted mb-4">
               You can send us a mail on {" "}
               <a href={`mailto:${ADMISSIONS_EMAIL}`} className="text-blue-500">
                 {ADMISSIONS_EMAIL}
@@ -113,7 +118,7 @@ const ScreeningResultPage: React.FC = () => {
                 href="https://navgurukul.org"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-orange-50 border border-orange-500 text-orange-600 font-semibold py-3 px-6 rounded-lg hover:bg-orange-100 transition"
+                className="btn-student-soft text-student-primary font-semibold py-3 px-6 rounded-lg hover:bg-student-primary-100 transition"
               >
                 VISIT NAVGURUKUL
               </a>
@@ -121,7 +126,7 @@ const ScreeningResultPage: React.FC = () => {
                 href="https://www.merakilearn.org/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-orange-50 border border-orange-500 text-orange-600 font-semibold py-3 px-6 rounded-lg hover:bg-orange-100 transition"
+                className="btn-student-soft text-student-primary font-semibold py-3 px-6 rounded-lg transition"
               >
                 START CODING NOW
               </a>
@@ -131,7 +136,7 @@ const ScreeningResultPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="mt-6 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="btn-student mt-6 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -169,7 +174,7 @@ const ScreeningResultPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="btn-student flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>

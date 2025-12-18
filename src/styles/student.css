@@ -1,0 +1,172 @@
+/* Global student color palette and utilities
+   - Defines CSS variables for student theme
+   - Scoped variables are applied when `body.student` is present
+   - Provides small utility classes (buttons, text, backgrounds, badges)
+*/
+
+/* Fallback defaults (safe to read even when body.student is not set) */
+:root {
+  --student-bg: #ffffff;
+  --student-surface: #ffffff;
+  --student-foreground: #0f172a;
+  --student-muted: #1F2A44;
+
+  /* Primary (orange) - used across student pages */
+  --student-primary-50:  #fff7ed;
+  --student-primary-100: #ffedd5;
+  --student-primary-200: #fed7aa;
+  --student-primary-300: #fdba74;
+  --student-primary-400: #fb923c;
+  --student-primary-500: #f97316; /* primary */
+  --student-primary-600: #ea580c;
+  --student-primary-700: #c2410c;
+  --student-primary-800: #9a3412;
+  --student-primary-900: #7c2d12;
+
+  /* Accent (green) - secondary accent used in some components */
+  --student-accent-500: #16a34a;
+  --student-accent-600: #15803d;
+
+  /* Semantic */
+  --student-success: #16a34a;
+  --student-warning: #f59e0b;
+  --student-danger:  #ef4444;
+
+  /* gradients */
+  --student-gradient-from: #fb923c; /* orange-400 */
+  --student-gradient-to:   #ef4444; /* red-500 */
+
+  /* Global aliases so utilities work even when `body.student` isn't applied */
+  --primary: var(--student-primary-500);
+  --primary-600: var(--student-primary-600);
+  --primary-100: var(--student-primary-100);
+  --muted: var(--student-muted);
+  --bg: var(--student-bg);
+  --surface: var(--student-surface);
+  --text: var(--student-foreground);
+  --gradient-from: var(--student-gradient-from);
+  --gradient-to: var(--student-gradient-to);
+}
+
+/* Student theme (applied when body.student is present) */
+body.student {
+  --bg: var(--student-bg);
+  --surface: var(--student-surface);
+  --text: var(--student-foreground);
+  --muted: var(--student-muted);
+  --primary: var(--student-primary-500);
+  --primary-600: var(--student-primary-600);
+  --primary-100: var(--student-primary-100);
+  --accent: var(--student-accent-500);
+  --success: var(--student-success);
+  --warning: var(--student-warning);
+  --danger: var(--student-danger);
+  --gradient-from: var(--student-gradient-from);
+  --gradient-to: var(--student-gradient-to);
+
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Surface / cards */
+body.student .card,
+body.student .surface {
+  background: var(--surface);
+  border: 1px solid rgba(15,23,42,0.04);
+}
+
+/* Muted text */
+body.student .text-muted {
+  color: var(--muted);
+}
+
+/* Utilities */
+.text-student-primary { color: var(--primary) !important; }
+.text-student-muted { color: var(--muted) !important; }
+.bg-student-primary { background-color: var(--primary) !important; }
+.bg-student-primary-100 { background-color: var(--primary-100) !important; }
+.border-student { border-color: rgba(15,23,42,0.06) !important; }
+
+.student-gradient {
+  background-image: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
+}
+
+.btn-student {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0.55rem 1.1rem;   /* compact, not bulky */
+  min-height: 36px;          /* matches visual height */
+
+  background-color: #FF7A00; /* solid orange (NOT gradient) */
+  color: #FFFFFF;
+
+  border: none;
+  border-radius: 10px;       /* soft rounded, not pill */
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.btn-student:hover { background: var(--primary-600); }
+.btn-student-soft {
+  background: rgba(249,115,22,0.08); /* soft orange */
+  color: var(--primary);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem;
+}
+
+/* Success / Danger variants used on student pages */
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--success);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+}
+.btn-success:hover { filter: brightness(0.95); }
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+}
+.btn-danger:hover { filter: brightness(0.95); }
+
+.badge-student {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 24px;
+  height: 24px;
+
+  background: var(--primary);
+  color: white;
+
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* small helpers used on student pages */
+.student-soft { background: rgba(249,115,22,0.06); }
+.student-outline { border: 1px solid rgba(249,115,22,0.12); }
+
+/* Accessibility helpers */
+.student-focus:focus { outline: 3px solid rgba(249,115,22,0.18); outline-offset: 2px; }
+
+/* Export a compact CSS custom properties set usable by JS if needed */
+/* e.g., getComputedStyle(document.body).getPropertyValue('--primary') */

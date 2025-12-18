@@ -34,7 +34,7 @@ const NavgurukulTestPage: React.FC = () => {
           </div>
 
           <button
-            className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-12 py-4 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 transition-transform"
+            className="btn-student shadow-lg hover:shadow-xl transform hover:scale-105"
             onClick={() => console.log("Starting test...")}
           >
             START THE TEST

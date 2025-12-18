@@ -1,0 +1,104 @@
+/* Admin theme variables and utilities */
+
+/* Admin gradient tokens (fallback) */
+:root {
+  --admin-gradient-from: #0ea5e9; /* sky-500 */
+  --admin-gradient-to: #6366f1; /* indigo-500 */
+}
+
+/* Admin theme (applied when body.admin is present) */
+body.admin {
+  --bg: #0f172a; /* slate-900 */
+  --surface: #0b1220;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --primary: var(--admin-gradient-from);
+  --primary-600: #0369a1;
+  --primary-100: #e6f6ff;
+  --accent: #7c3aed;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --gradient-from: var(--admin-gradient-from);
+  --gradient-to: var(--admin-gradient-to);
+
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Admin utilities */
+.admin-gradient {
+  background-image: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
+}
+
+.btn-admin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+}
+.btn-admin:hover { filter: brightness(0.95); }
+
+.btn-admin-soft {
+  background: rgba(14,165,233,0.08);
+  color: var(--primary);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.bg-admin-primary { background-color: var(--primary) !important; }
+.bg-admin-primary-100 { background-color: var(--primary-100) !important; }
+
+.badge-admin {
+  display:inline-block;
+  background: var(--primary-100);
+  color: var(--primary-600);
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* small helpers */
+.admin-soft { background: rgba(99,102,241,0.06); }
+/* Global admin styles and variables */
+:root {
+  --admin-bg: #0f172a; /* slate-900 */
+  --admin-foreground: #e6eef8; /* light */
+  --admin-accent: #2563eb; /* blue-600 */
+  --admin-muted: #94a3b8; /* muted */
+}
+
+/* Admin-scoped utilities applied when <body class="admin"> is set */
+body.admin {
+  background-color: var(--admin-bg);
+  color: var(--admin-foreground);
+}
+
+body.admin .card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+body.admin .text-muted {
+  color: var(--admin-muted);
+}
+
+/* Example reusable utilities */
+.admin-btn {
+  background: var(--admin-accent);
+  color: white;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Small helpers */
+.admin-soft {
+  background: rgba(37,99,235,0.08);
+}
