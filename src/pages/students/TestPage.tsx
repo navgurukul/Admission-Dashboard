@@ -80,7 +80,8 @@ const TestPage: React.FC = () => {
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft <= 0) {
-      handleConfirmSubmit();
+      // Auto-submit when timer reaches 0
+      submitTest();
       return;
     }
 
@@ -216,7 +217,7 @@ const TestPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl shadow-large p-8 w-full max-w-3xl flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">

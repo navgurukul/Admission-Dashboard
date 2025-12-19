@@ -89,14 +89,14 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-primary/90">
+      <div className="min-h-screen flex items-center justify-center student-bg-gradient">
         <p className="text-primary-foreground text-lg">Loading test details...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center">
       <LogoutButton />
       <div className="bg-card rounded-2xl shadow-large p-8 max-w-lg w-full flex flex-col items-center justify-center">
         <h1 className="text-2xl font-semibold mb-4">{content.heading}</h1>

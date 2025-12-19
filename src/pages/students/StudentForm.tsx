@@ -806,7 +806,7 @@ const StudentForm: React.FC = () => {
   const content = getContent();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
@@ -860,7 +860,7 @@ const StudentForm: React.FC = () => {
               name="firstName"
               value={formData.firstName}
               onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:prime"
               placeholder={content.enterFirstName}
             />
           </div>
@@ -873,7 +873,7 @@ const StudentForm: React.FC = () => {
               name="middleName"
               value={formData.middleName}
               onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder={content.enterMiddleName}
             />
           </div>
@@ -886,7 +886,7 @@ const StudentForm: React.FC = () => {
               name="lastName"
               value={formData.lastName}
               onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder={content.enterLastName}
             />
           </div>
@@ -905,7 +905,7 @@ const StudentForm: React.FC = () => {
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
                 max={getMaxDOB()}
-                className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
@@ -957,7 +957,7 @@ const StudentForm: React.FC = () => {
                 pattern="[0-9]{10}"
                 value={formData.whatsappNumber}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={content.enterWhatsapp}
               />
             </div>
@@ -972,7 +972,7 @@ const StudentForm: React.FC = () => {
                 pattern="[0-9]{10}"
                 value={formData.alternateNumber}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={content.enterAlternate}
               />
             </div>
@@ -986,7 +986,7 @@ const StudentForm: React.FC = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={!!location.state?.googleEmail}
-                className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
                   location.state?.googleEmail
                     ? "bg-gray-100 cursor-not-allowed"
                     : ""
@@ -994,7 +994,7 @@ const StudentForm: React.FC = () => {
                 placeholder={content.enterEmail}
               />
               {emailError && (
-                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                <p className="text-destructive text-sm mt-1">{emailError}</p>
               )}
             </div>
           </div>
@@ -1031,7 +1031,7 @@ const StudentForm: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.district}
-                {districts.length > 0 && <span className="text-red-500"> *</span>}
+                {districts.length > 0 && <span className="text-destructive"> *</span>}
               </label>
               <Combobox
                 options={districts?.map((district) => ({
@@ -1058,7 +1058,7 @@ const StudentForm: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {content.block}
-                {blocks.length > 0 && <span className="text-red-500"> *</span>}
+                {blocks.length > 0 && <span className="text-destructive"> *</span>}
               </label>
               <Combobox
                 options={blocks?.map((block) => ({
@@ -1095,7 +1095,7 @@ const StudentForm: React.FC = () => {
                 name="pinCode"
                 value={formData.pinCode}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Enter pin code"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -1221,11 +1221,7 @@ const StudentForm: React.FC = () => {
           <button
             onClick={handleSubmit}
             // disabled={!isFormValid()}
-            className={`px-6 py-2 rounded-lg transition duration-200 ${
-              isFormValid()
-                ? "bg-orange-500 hover:bg-orange-600 text-white"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
+            className={`px-6 py-2 rounded-lg transition duration-200 student-btn text-white`}
           >
             {content.saveContinue}
           </button>

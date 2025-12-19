@@ -3,6 +3,7 @@ import { useLanguage } from "../routes/LaunguageContext";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Code, Users, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import image from "@/assets/ng-logo-horizontal.png";
 
 const slides = [
   {
@@ -53,7 +54,7 @@ const content = {
     learnMoreText: "Learn More",
     footerText: "For more queries, email at",
     footerContact: "hi@navgurukul.org",
-    imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    imageUrl: image,
     features: {
       realProjects: "Real Projects",
       community: "Community",
@@ -70,7 +71,7 @@ const content = {
     learnMoreText: "और जानें",
     footerText: "अधिक जानकारी के लिए ईमेल करें:",
     footerContact: "hi@navgurukul.org",
-    imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    imageUrl: image,
     features: {
       realProjects: "वास्तविक परियोजनाएं",
       community: "समुदाय",
@@ -87,7 +88,7 @@ const content = {
     learnMoreText: "अधिक जाणून घ्या",
     footerText: "अधिक प्रश्नांसाठी, ईमेल करा:",
     footerContact: "hi@navgurukul.org",
-    imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    imageUrl: image,
     features: {
       realProjects: "वास्तविक प्रकल्प",
       community: "समुदाय",
@@ -240,7 +241,7 @@ const StudentLandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col student-bg-light">
       {/* ---- Modern Navbar ---- */}
       <header className="sticky top-0 flex justify-between items-center px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-white border-b border-gray-200 z-50 backdrop-blur-sm bg-white/95">
         {/* Logo Section */}
@@ -260,7 +261,7 @@ const StudentLandingPage = () => {
           <select
             value={selectedLanguage}
             onChange={(e) => setSelectedLanguage(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 text-gray-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white hover:border-orange-400 transition-colors cursor-pointer"
+            className="border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 text-gray-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white hover:border-primary transition-colors cursor-pointer"
           >
             <option value="english">English</option>
             <option value="hindi">हिंदी</option>
@@ -270,7 +271,7 @@ const StudentLandingPage = () => {
           <Button
             onClick={handleNavigation}
             size="sm"
-            className="hidden sm:flex bg-orange-500 hover:bg-orange-600 text-white text-xs md:text-sm px-3 md:px-4"
+            className="hidden sm:flex student-btn text-xs md:text-sm px-3 md:px-4"
           >
             {content[selectedLanguage].buttonText}
           </Button>
@@ -278,20 +279,20 @@ const StudentLandingPage = () => {
       </header>
 
       {/* ---- Main Hero Section ---- */}
-      <section className="flex-1 flex items-center py-8 md:py-12 lg:py-16 bg-gradient-to-br from-orange-50 to-orange-100">
+      <section className="flex-1 flex items-center py-8 md:py-12 lg:py-16 ">
         <div className="w-full px-4 md:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 items-center max-w-[90rem] mx-auto px-6 md:px-12 lg:px-20">
             {/* Left Section - Content */}
             <div className="space-y-4 md:space-y-6 order-2 md:order-1">
               <div className="inline-block">
-                <span className="bg-orange-500/10 text-orange-600 md:rounded-full text-3xl md:text-3xl lg:text-base font-semibold">
+                <span className="text-primary md:rounded-full text-3xl md:text-3xl lg:text-base font-semibold">
                   {content[selectedLanguage].heading}
                 </span>
               </div>
 
               <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
                 {content[selectedLanguage].subtitle}{" "}
-                <span className="text-orange-500">
+                <span className="text-primary">
                   {content[selectedLanguage].title}
                 </span>
               </h1>
@@ -303,14 +304,14 @@ const StudentLandingPage = () => {
               <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
                 <Button
                   onClick={handleNavigation}
-                  className="bg-orange-500 hover:bg-orange-600 text-white group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full sm:w-auto"
+                  className="student-btn group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full sm:w-auto"
                 >
                   {content[selectedLanguage].buttonText}
                   <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-orange-500 text-orange-600 hover:bg-orange-50 w-full sm:w-auto"
+                  className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-primary text-primary hover:bg-primary/5 w-full sm:w-auto"
                   onClick={() => {
                     window.open("https://www.navgurukul.org/", "_blank");
                   }}
@@ -337,7 +338,7 @@ const StudentLandingPage = () => {
 
             {/* Right Section - Video Carousel */}
             <div className="relative order-1 md:order-2">
-              <div className="absolute inset-0 bg-orange-500/5 rounded-2xl blur-3xl"></div>
+              <div className="absolute inset-0 bg-primary/5 rounded-2xl blur-3xl"></div>
               <div className="relative w-full overflow-hidden rounded-xl md:rounded-2xl shadow-xl md:shadow-2xl">
                 <a
                   href={slides[currentSlide].videoUrl}

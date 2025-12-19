@@ -548,7 +548,7 @@ export default function StudentResult() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-400 to-red-500">
+      <div className="min-h-screen flex items-center justify-center student-bg-gradient">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading student data…</p>
@@ -558,13 +558,13 @@ export default function StudentResult() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 p-4 flex flex-col">
+    <div className="min-h-screen student-bg-gradient p-4 flex flex-col">
       <div className="flex-1 flex">
-        <div className="bg-white rounded-t-md shadow-2xl p-6 w-full overflow-y-auto">
+        <div className="bg-card rounded-t-md shadow-2xl p-6 w-full overflow-y-auto">
           <header className="mb-6">
-            <LogoutButton className="from-orange-400 to-red-500" />
-            <h1 className="text-2xl font-bold">Student Results</h1>
-            <p className="text-gray-600">
+            <LogoutButton />
+            <h1 className="text-2xl font-bold text-foreground">Student Results</h1>
+            <p className="text-muted-foreground">
               Track your test results and interview slot booking status.
             </p>
           </header>

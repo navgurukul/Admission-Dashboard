@@ -75,9 +75,9 @@ const Instructions: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
       <LogoutButton className="from-primary to-primary/90" />
-      <div className="bg-card rounded-2xl shadow-large p-8 max-w-2xl w-full">
+      <div className="bg-card  card-shadow rounded-2xl shadow-large p-8 max-w-2xl w-full">
         <h1 className="text-3xl font-bold text-foreground text-center mb-4">
           {content.title}
         </h1>

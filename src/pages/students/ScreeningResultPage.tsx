@@ -80,7 +80,7 @@ const ScreeningResultPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
       <LogoutButton />
       <div className="bg-card rounded-3xl shadow-large p-10 max-w-2xl w-full flex flex-col items-center text-center">
         {status === "pass" ? (

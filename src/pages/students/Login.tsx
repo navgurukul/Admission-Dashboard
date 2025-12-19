@@ -393,7 +393,7 @@ export default function StudentLogin() {
     }
   };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-large">
         <CardHeader className="space-y-1 text-center">
           <div className="flex items-center justify-center space-x-2 mb-2">

@@ -857,7 +857,7 @@ const SlotBooking: React.FC = () => {
 
   // ---------- UI ----------
   return (
-    <div className="min-h-screen bg-gradient-to-r from-primary to-primary/90 py-8 px-4">
+    <div className="min-h-screen student-bg-gradient py-8 px-4">
       {/* Notification */}
       {showNotification && (
         <div
@@ -1211,10 +1211,10 @@ const SlotBooking: React.FC = () => {
 
               {/* Google Meet Link */}
               {slot.meet_link && (
-                <div className="bg-green-50 border-2 border-green-300 rounded-lg p-6 mb-6">
+                <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-6 mb-6">
                   <div className="flex items-center mb-3">
-                    <Video className="w-6 h-6 text-green-600 mr-2" />
-                    <h3 className="text-xl font-semibold text-gray-800">
+                    <Video className="w-6 h-6 text-primary mr-2" />
+                    <h3 className="text-xl font-semibold text-foreground">
                       Google Meet Link
                     </h3>
                   </div>
@@ -1222,12 +1222,12 @@ const SlotBooking: React.FC = () => {
                     href={slot.meet_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+                    className="inline-flex items-center px-6 py-3 student-btn font-semibold rounded-lg transition-colors shadow-md hover:shadow-lg"
                   >
                     <Video className="w-5 h-5 mr-2" />
                     Join Google Meet
                   </a>
-                  <p className="text-sm text-gray-600 mt-3">
+                  <p className="text-sm text-muted-foreground mt-3">
                     Meeting link has been sent to your email and the
                     interviewer's email.
                   </p>
@@ -1238,7 +1238,7 @@ const SlotBooking: React.FC = () => {
                 <button
                   onClick={handleDeleteSlot}
                   disabled={isBookingInProgress || isCancelling}
-                  className="flex-1 py-3 px-8 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-500 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  className="flex-1 py-3 px-8 student-btn font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   {isBookingInProgress ? (
                     <span className="flex items-center justify-center">
@@ -1253,14 +1253,14 @@ const SlotBooking: React.FC = () => {
                 <button
                   onClick={() => setShowCancelModal(true)}
                   disabled={isBookingInProgress || isCancelling}
-                  className="flex-1 py-3 px-8 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  className="flex-1 py-3 px-8 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   Cancel Slot
                 </button>
 
                 <button
                   onClick={handleNavigationOnStudentPage}
-                  className="flex-1 py-3 px-8 bg-gradient-to-r from-green-400 to-green-500 text-white font-semibold rounded-lg hover:from-green-500 hover:to-green-600 transition-all shadow-md hover:shadow-lg"
+                  className="flex-1 py-3 px-8 student-btn font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
                 >
                   View Results
                 </button>

@@ -2,7 +2,7 @@ import React from "react";
 
 const NavgurukulTestPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary to-muted">
+    <div className="min-h-screen student-bg-gradient">
       {/* Logo */}
       <div className="flex justify-start px-8 py-6">
         <div className="flex items-center">
