@@ -211,15 +211,17 @@ const CSVImportModal = ({
       });
 
       // Save to localStorage first
-      addApplicants(processedData);
+      // addApplicants(processedData);
 
       setSuccessCount(processedData.length);
       setShowSuccess(true);
 
       // Show toast
       toast({
-        title: "Success",
-        description: `Successfully imported ${processedData.length} applicants!`,
+        title: "✅ Import Successful",
+        description: `Successfully imported ${processedData.length} applicant${processedData.length > 1 ? 's' : ''}!`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       onSuccess();
@@ -298,8 +300,10 @@ const CSVImportModal = ({
       document.body.removeChild(link);
 
       toast({
-        title: "Template Downloaded",
+        title: "✅ Template Downloaded",
         description: "Student Sessions Update template has been downloaded successfully!",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
       return;
     }
@@ -414,8 +418,10 @@ const CSVImportModal = ({
     document.body.removeChild(link);
 
     toast({
-      title: "Template Downloaded",
+      title: "✅ Template Downloaded",
       description: "CSV template has been downloaded successfully!",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
   };
 

@@ -10,25 +10,26 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
+  // TableHead,
+  // TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+// import { Input } from "@/components/ui/input";
+// import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Search, X, Loader2 } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
 import { ApplicantModal } from "./ApplicantModal";
-import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+// import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 import CSVImportModal from "./CSVImportModal";
 import { BulkOfferResultsModal } from "./BulkOfferResultsModal";
 import { useToast } from "@/hooks/use-toast";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useApplicantFilters } from "@/hooks/useApplicantFilters";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
 import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
@@ -51,10 +52,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  // AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { tr } from "date-fns/locale";
-import { cp } from "fs";
+// import { tr } from "date-fns/locale";
+// import { cp } from "fs";
 
 const ApplicantTable = () => {
   // Modals
@@ -239,10 +240,10 @@ const ApplicantTable = () => {
       } catch (error: any) {
         console.error("Error refreshing filtered data:", error);
         toast({
-          title: "Refresh Error",
-          description: error?.message || "Failed to refresh filtered data.",
+          title: "❌ Unable to Refresh Data",
+          description: getFriendlyErrorMessage(error),
           variant: "destructive",
-          duration: 2000,
+          className: "border-red-500 bg-red-50 text-red-900",
         });
       }
     }
@@ -257,32 +258,30 @@ const ApplicantTable = () => {
   const handleBulkDelete = async () => {
     if (!selectedRows.length) {
       toast({
-        title: "No Selection",
+        title: "⚠️ No Selection",
         description: "Please select applicants to delete",
-        variant: "destructive",
-        duration: 2000,
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
     try {
       await Promise.all(selectedRows.map((id) => deleteStudent(id)));
       toast({
-        title: "Applicants Deleted",
+        title: "✅ Applicants Deleted",
         description: "Successfully deleted selected applicants",
-        duration: 2000,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
       setSelectedRows([]);
       refreshData();
     } catch (error: any) {
       console.error("Error deleting applicants:", error);
       toast({
-        title: "Delete Error",
-        description:
-          error?.message ||
-          error?.toString() ||
-          "Failed to delete applicants. Please try again.",
+        title: "❌ Unable to Delete Applicants",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
-        duration: 2000,
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -290,10 +289,10 @@ const ApplicantTable = () => {
   const handleSendOfferLetters = async () => {
     if (!selectedRows.length) {
       toast({
-        title: "No Selection",
+        title: "⚠️ No Selection",
         description: "Please select applicants to send offer letters to",
-        variant: "destructive",
-        duration: 2000,
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
     }
   };
@@ -301,10 +300,10 @@ const ApplicantTable = () => {
   const handleSendBulkOfferLetters = async () => {
     if (selectedRows.length === 0) {
       toast({
-        title: "No Selection",
+        title: "⚠️ No Selection",
         description: "Please select at least one student to send offer letters",
-        variant: "destructive",
-        duration: 2000,
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -403,10 +402,10 @@ const ApplicantTable = () => {
       }
 
       toast({
-        title: "❌ Error Sending Offer Letters",
-        description: errorMessage,
+        title: "❌ Unable to Send Offer Letters",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
-        duration: 2000,
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -747,17 +746,20 @@ const ApplicantTable = () => {
       setCurrentPage(1); // Reset to first page when filters are applied
 
       toast({
-        title: "Filters Applied",
+        title: "✅ Filters Applied",
         description: `Found ${
           results?.length || 0
         } applicants matching your criteria`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
     } catch (error) {
       console.error("Error applying filters:", error);
       toast({
-        title: "Filter Error",
-        description: "Failed to apply filters. Please try again.",
+        title: "❌ Unable to Apply Filters",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       setFilteredStudents([]);
     } finally {
@@ -787,8 +789,10 @@ const ApplicantTable = () => {
     setCurrentPage(1);
 
     toast({
-      title: "Filters Cleared",
+      title: "✅ Filters Cleared",
       description: "All filters have been removed. Showing all applicants.",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
   };
 
@@ -839,8 +843,10 @@ const ApplicantTable = () => {
       setFilteredStudents([]);
       setCurrentPage(1);
       toast({
-        title: "Filter Removed",
+        title: "✅ Filter Removed",
         description: "All filters cleared. Showing all applicants.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
     } else {
       try {
@@ -851,15 +857,18 @@ const ApplicantTable = () => {
         setCurrentPage(1);
 
         toast({
-          title: "Filter Removed",
+          title: "✅ Filter Removed",
           description: `Found ${results?.length || 0} applicants matching your criteria`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } catch (error) {
         console.error("Error re-applying filters:", error);
         toast({
-          title: "Filter Error",
-          description: "Failed to update filters. Please try again.",
+          title: "❌ Unable to Update Filters",
+          description: getFriendlyErrorMessage(error),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         setFilteredStudents([]);
       } finally {
@@ -936,8 +945,10 @@ const ApplicantTable = () => {
       setFilteredStudents([]);
       setCurrentPage(1);
       toast({
-        title: "Filter Removed",
+        title: "✅ Filter Removed",
         description: "All filters cleared. Showing all applicants.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
     } else {
       // Re-apply remaining filters
@@ -949,15 +960,18 @@ const ApplicantTable = () => {
         setCurrentPage(1);
 
         toast({
-          title: "Filter Removed",
+          title: "✅ Filter Removed",
           description: `Found ${results?.length || 0} applicants matching your criteria`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } catch (error) {
         console.error("Error re-applying filters:", error);
         toast({
-          title: "Filter Error",
-          description: "Failed to update filters. Please try again.",
+          title: "❌ Unable to Update Filters",
+          description: getFriendlyErrorMessage(error),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         setFilteredStudents([]);
       } finally {
@@ -970,10 +984,10 @@ const ApplicantTable = () => {
     // Prevent multiple simultaneous exports
     if (isExporting) {
       toast({
-        title: "Export in Progress",
+        title: "⚠️ Export in Progress",
         description: "Please wait for the current export to complete",
-        variant: "destructive",
-        duration: 2000,
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -981,10 +995,10 @@ const ApplicantTable = () => {
     // Validate selection if export type is 'selected'
     if (exportType === 'selected' && selectedRows.length === 0) {
       toast({
-        title: "No Selection",
+        title: "⚠️ No Selection",
         description: "Please select applicants to export",
-        variant: "destructive",
-        duration: 2000,
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }

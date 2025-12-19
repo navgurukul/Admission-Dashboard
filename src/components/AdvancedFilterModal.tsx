@@ -35,6 +35,7 @@ import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import { getFilterStudent, getAllStages, getStatusesByStageId } from "@/utils/api";
 import { cn } from "@/lib/utils";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 // import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 import {
   getStatesList,
@@ -160,9 +161,10 @@ export function AdvancedFilterModal({
         console.error("Error fetching stage statuses:", error);
         setStageStatuses([]);
         toast({
-          title: "Error",
-          description: "Failed to load stage statuses",
+          title: "❌ Unable to Load Data",
+          description: "Failed to load stage statuses. Please try again.",
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
       } finally {
         setIsLoading((prev) => ({ ...prev, general: false }));
@@ -323,9 +325,10 @@ export function AdvancedFilterModal({
       } catch (error) {
         // console.error(" Error loading filter data:", error);
         toast({
-          title: "Error",
-          description: "Failed to load filter options",
+          title: "❌ Unable to Load Data",
+          description: getFriendlyErrorMessage(error),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
       } finally {
         setIsLoading((prev) => ({ ...prev, general: false }));
@@ -369,9 +372,10 @@ export function AdvancedFilterModal({
     // Validate date range - if start is selected, end must be selected
     if (filters.dateRange.from && !filters.dateRange.to) {
       toast({
-        title: "Incomplete Date Range",
+        title: "⚠️ Incomplete Date Range",
         description: "Please select an end date to complete the date range.",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -379,9 +383,10 @@ export function AdvancedFilterModal({
     // Validate date range - if end is selected, start must be selected
     if (filters.dateRange.to && !filters.dateRange.from) {
       toast({
-        title: "Incomplete Date Range",
+        title: "⚠️ Incomplete Date Range",
         description: "Please select a start date before selecting an end date.",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -390,9 +395,10 @@ export function AdvancedFilterModal({
     if (filters.dateRange.from && filters.dateRange.to) {
       if (filters.dateRange.from > filters.dateRange.to) {
         toast({
-          title: "Invalid Date Range",
+          title: "⚠️ Invalid Date Range",
           description: "End date cannot be before start date.",
           variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }
@@ -406,9 +412,10 @@ export function AdvancedFilterModal({
         
       if (!hasStageStatus) {
         toast({
-          title: "Stage Status Required",
+          title: "⚠️ Stage Status Required",
           description: `Please select at least one stage status for ${filters.stage} stage.`,
           variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }
@@ -430,8 +437,10 @@ export function AdvancedFilterModal({
     onApplyFilters(processedFilters);
     onClose();
     toast({
-      title: "Filters Applied",
+      title: "✅ Filters Applied",
       description: "Your filters have been successfully applied.",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
   };
 

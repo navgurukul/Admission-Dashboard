@@ -17,6 +17,7 @@ import {
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { Users, ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   getCampusesApi,
   getAllStates,
@@ -248,9 +249,10 @@ export function BulkUpdateModal({
 
     if (isNoChange) {
       toast({
-        title: "Error",
-        description: "Please select the field to update.",
+        title: "⚠️ No Fields Selected",
+        description: "Please select at least one field to update.",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -332,8 +334,10 @@ export function BulkUpdateModal({
       }
 
       toast({
-        title: "Success",
-        description: `Updated ${selectedApplicants.length} applicant(s) successfully.`,
+        title: "✅ Bulk Update Successful",
+        description: `Successfully updated ${selectedApplicants.length} applicant${selectedApplicants.length > 1 ? 's' : ''}.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       onSuccess();
@@ -358,9 +362,10 @@ export function BulkUpdateModal({
     } catch (err: any) {
       console.error("Bulk update failure:", err);
       toast({
-        title: "Update Failed",
-        description: err?.message || "Bulk update failed. Please try again.",
+        title: "❌ Unable to Update",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);
