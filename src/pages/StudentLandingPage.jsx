@@ -143,120 +143,120 @@ const StudentLandingPage = () => {
   }, [isLanguageDropdownOpen]);
 
   const handleNavigation = async () => {
-    const googleUser = localStorage.getItem("user");
-    const testStarted = localStorage.getItem("testStarted") === "true";
-    const testCompleted = localStorage.getItem("testCompleted") === "true";
-    const allowRetest = localStorage.getItem("allowRetest") === "true";
+    // const googleUser = localStorage.getItem("user");
+    // const testStarted = localStorage.getItem("testStarted") === "true";
+    // const testCompleted = localStorage.getItem("testCompleted") === "true";
+    // const allowRetest = localStorage.getItem("allowRetest") === "true";
 
-    // Case 1: Not logged in
-    if (!googleUser) {
+    // // Case 1: Not logged in
+    // if (!googleUser) {
       navigate("/students/login");
-      return;
-    }
+    //   return;
+    // }
 
-    try {
-      // Try to get email from user data
-      const parsedUser = JSON.parse(googleUser);
-      const email = parsedUser.email;
+    // try {
+    //   // Try to get email from user data
+    //   const parsedUser = JSON.parse(googleUser);
+    //   const email = parsedUser.email;
 
-      if (email) {
-        // Import the API function dynamically
-        const { getCompleteStudentData } = await import("@/utils/api");
+    //   if (email) {
+    //     // Import the API function dynamically
+    //     const { getCompleteStudentData } = await import("@/utils/api");
 
-        // Fetch complete student data
-        const data = await getCompleteStudentData(email);
+    //     // Fetch complete student data
+    //     const data = await getCompleteStudentData(email);
 
-        // Get latest exam session
-        const examSessions = data.data.exam_sessions || [];
-        const latestExam =
-          examSessions.length > 0
-            ? examSessions.reduce((latest, current) =>
-                new Date(current.created_at) > new Date(latest.created_at)
-                  ? current
-                  : latest,
-              )
-            : null;
+    //     // Get latest exam session
+    //     const examSessions = data.data.exam_sessions || [];
+    //     const latestExam =
+    //       examSessions.length > 0
+    //         ? examSessions.reduce((latest, current) =>
+    //             new Date(current.created_at) > new Date(latest.created_at)
+    //               ? current
+    //               : latest,
+    //           )
+    //         : null;
 
-        if (latestExam) {
-          // Exam completed
-          if (latestExam.is_passed) {
-            // Get latest LR status
-            const lrRounds = data.data.interview_learner_round || [];
-            const latestLR =
-              lrRounds.length > 0
-                ? lrRounds.reduce((latest, current) =>
-                    new Date(current.created_at) > new Date(latest.created_at)
-                      ? current
-                      : latest,
-                  )
-                : null;
+    //     if (latestExam) {
+    //       // Exam completed
+    //       if (latestExam.is_passed) {
+    //         // Get latest LR status
+    //         const lrRounds = data.data.interview_learner_round || [];
+    //         const latestLR =
+    //           lrRounds.length > 0
+    //             ? lrRounds.reduce((latest, current) =>
+    //                 new Date(current.created_at) > new Date(latest.created_at)
+    //                   ? current
+    //                   : latest,
+    //               )
+    //             : null;
 
-            // Check if LR is passed
-            const isLRPassed =
-              latestLR?.learning_round_status?.includes("Pass");
+    //         // Check if LR is passed
+    //         const isLRPassed =
+    //           latestLR?.learning_round_status?.includes("Pass");
 
-            if (isLRPassed) {
-              // LR passed - check CFR status
-              const cfrRounds = data.data.interview_cultural_fit_round || [];
-              const latestCFR =
-                cfrRounds.length > 0
-                  ? cfrRounds.reduce((latest, current) =>
-                      new Date(current.created_at) > new Date(latest.created_at)
-                        ? current
-                        : latest,
-                    )
-                  : null;
+    //         if (isLRPassed) {
+    //           // LR passed - check CFR status
+    //           const cfrRounds = data.data.interview_cultural_fit_round || [];
+    //           const latestCFR =
+    //             cfrRounds.length > 0
+    //               ? cfrRounds.reduce((latest, current) =>
+    //                   new Date(current.created_at) > new Date(latest.created_at)
+    //                     ? current
+    //                     : latest,
+    //                 )
+    //               : null;
 
-              // Show result page with CFR status
-              navigate("/students/final-result");
-              return;
-            } else {
-              // Exam passed - show result page to book LR or view status
-              navigate("/students/final-result");
-              return;
-            }
-          } else {
-            // Failed exam
-            if (allowRetest) {
-              navigate("/students/test/start");
-              return;
-            } else {
-              navigate("/students/final-result");
-              return;
-            }
-          }
-        } else {
-          // No exam session found
-          if (testCompleted && !allowRetest) {
-            navigate("/students/final-result");
-            return;
-          }
+    //           // Show result page with CFR status
+    //           navigate("/students/final-result");
+    //           return;
+    //         } else {
+    //           // Exam passed - show result page to book LR or view status
+    //           navigate("/students/final-result");
+    //           return;
+    //         }
+    //       } else {
+    //         // Failed exam
+    //         if (allowRetest) {
+    //           navigate("/students/test/start");
+    //           return;
+    //         } else {
+    //           navigate("/students/final-result");
+    //           return;
+    //         }
+    //       }
+    //     } else {
+    //       // No exam session found
+    //       if (testCompleted && !allowRetest) {
+    //         navigate("/students/final-result");
+    //         return;
+    //       }
 
-          if (testStarted || allowRetest) {
-            navigate("/students/test/start");
-            return;
-          }
+    //       if (testStarted || allowRetest) {
+    //         navigate("/students/test/start");
+    //         return;
+    //       }
 
-          // Not started - go to instructions
-          navigate("/students/details/instructions");
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching student data:", error);
+    //       // Not started - go to instructions
+    //       navigate("/students/details/instructions");
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("Error fetching student data:", error);
 
-      // Fallback to old logic if API fails
-      if (testCompleted && !allowRetest) {
-        navigate("/students/final-result");
-        return;
-      }
+    //   // Fallback to old logic if API fails
+    //   if (testCompleted && !allowRetest) {
+    //     navigate("/students/final-result");
+    //     return;
+    //   }
 
-      if (testStarted || allowRetest) {
-        navigate("/students/test/start");
-        return;
-      }
+    //   if (testStarted || allowRetest) {
+    //     navigate("/students/test/start");
+    //     return;
+    //   }
 
-      navigate("/students/details/instructions");
-    }
+    //   navigate("/students/details/instructions");
+    // }
   };
 
   return (
