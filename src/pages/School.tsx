@@ -223,7 +223,7 @@ const SchoolPage = () => {
 };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-background">
       <AdmissionsSidebar />
       <main className="flex-1 p-4 md:p-8 pt-20 md:pt-8 md:ml-64">
         <Card>
@@ -283,14 +283,14 @@ const SchoolPage = () => {
                             <TableCell>
                               {indexOfFirstItem + index + 1}
                             </TableCell>
-                            <TableCell className="font-medium text-orange-600">
+                            <TableCell className="font-medium text-primary">
                               {school.school_name || "N/A"}
                             </TableCell>
                             <TableCell className="text-right space-x-2">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-blue-600"
+                                className="text-primary"
                                 onClick={() => {
                                   setSelectedSchool(school);
                                   setUpdatedSchoolName(school.school_name);
@@ -302,7 +302,7 @@ const SchoolPage = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-red-600"
+                                className="text-destructive"
                                 onClick={() => {
                                   setSelectedSchool(school);
                                   setDeleteDialog(true);
@@ -358,15 +358,15 @@ const SchoolPage = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <form
             onSubmit={handleAddSchool}
-            className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200"
+            className="bg-card rounded-lg p-6 w-full max-w-md shadow-lg border border-border"
           >
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">
               Add School
             </h2>
             <input
               type="text"
               placeholder="Enter school name"
-              className="border border-orange-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               value={newSchool}
               onChange={(e) => setNewSchool(e.target.value)}
               required
@@ -374,14 +374,14 @@ const SchoolPage = () => {
             <div className="flex justify-end gap-2 mt-6">
               <button
                 type="button"
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                className="px-4 py-2 bg-muted text-foreground rounded hover:bg-muted/80 transition-colors"
                 onClick={() => setAddDialog(false)}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
               >
                 Add
               </button>
@@ -393,21 +393,21 @@ const SchoolPage = () => {
       {/* 🔹 Edit Dialog */}
       {editDialog && selectedSchool && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200">
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md shadow-lg border border-border">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">
               Update School
             </h2>
             <input
               type="text"
               placeholder="Enter school name"
-              className="border border-orange-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               value={updatedSchoolName}
               onChange={(e) => setUpdatedSchoolName(e.target.value)}
               required
             />
             <div className="flex justify-end gap-2 mt-6">
               <button
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                className="px-4 py-2 bg-muted text-foreground rounded hover:bg-muted/80 transition-colors"
                 onClick={() => {
                   setEditDialog(false);
                   setSelectedSchool(null);
@@ -416,7 +416,7 @@ const SchoolPage = () => {
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
                 onClick={() => {
                   if (selectedSchool) {
                     handleUpdateSchool(selectedSchool.id, updatedSchoolName);
@@ -435,17 +435,17 @@ const SchoolPage = () => {
       {/* 🔹 Delete Dialog */}
       {deleteDialog && selectedSchool && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-red-200">
-            <h2 className="text-lg font-semibold text-red-600 mb-4">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md shadow-lg border border-border">
+            <h2 className="text-lg font-semibold text-destructive mb-4">
               Confirm Deletion
             </h2>
-            <p>
+            <p className="text-muted-foreground">
               Are you sure you want to delete{" "}
-              <strong>{selectedSchool.school_name}</strong>?
+              <strong className="text-foreground">{selectedSchool.school_name}</strong>?
             </p>
             <div className="flex justify-end gap-2 mt-6">
               <button
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+                className="px-4 py-2 bg-muted text-foreground rounded hover:bg-muted/80 transition-colors"
                 onClick={() => {
                   setDeleteDialog(false);
                   setSelectedSchool(null);
@@ -454,7 +454,7 @@ const SchoolPage = () => {
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-destructive text-white rounded hover:bg-destructive/90 transition-colors"
                 onClick={() => {
                   handleDeleteSchool(
                     selectedSchool.id,
