@@ -233,7 +233,7 @@ const TestPage: React.FC = () => {
       <div className="bg-card rounded-2xl shadow-large p-8 w-full max-w-3xl flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="font-bold text-xl text-foreground">
+          <h2 className="font-bold text-xl text-primary">
             Question {currentIndex + 1} / {questions.length}
           </h2>
           <div className="bg-destructive/10 text-destructive font-bold px-4 py-2 rounded-lg shadow-soft">
@@ -257,7 +257,7 @@ const TestPage: React.FC = () => {
                 key={idx}
                 className={`block border rounded-lg px-4 py-3 cursor-pointer transition ${
                   answers[qid] === idx
-                    ? "bg-accent border-ring"
+                    ? "bg-secondary-purple-light border-secondary-purple text-secondary-purple font-medium shadow-md"
                     : "hover:bg-muted border-border"
                 }`}
               >
@@ -279,7 +279,7 @@ const TestPage: React.FC = () => {
           <button
             disabled={currentIndex === 0}
             onClick={() => setCurrentIndex((i) => i - 1)}
-            className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium disabled:opacity-50"
+            className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium disabled:opacity-50 hover:bg-secondary/80 transition"
           >
             Previous
           </button>
@@ -288,10 +288,10 @@ const TestPage: React.FC = () => {
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
               <DialogTrigger asChild>
                 <button
-                  className="px-6 py-2 bg-[hsl(var(--status-active))] text-primary-foreground rounded-lg font-medium shadow-soft hover:bg-[hsl(var(--status-active))]/90"
+                  className="px-6 py-2 bg-secondary-purple hover:bg-secondary-purple/90 text-white rounded-lg font-medium shadow-soft transition"
                   onClick={handleConfirmSubmit}
                 >
-                  Submit
+                  Submit Test
                 </button>
               </DialogTrigger>
               <DialogContent>
@@ -309,14 +309,14 @@ const TestPage: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={submitTest}>Yes, Submit</Button>
+                  <Button onClick={submitTest} className="bg-secondary-purple hover:bg-secondary-purple/90">Yes, Submit</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           ) : (
             <button
               onClick={() => setCurrentIndex((i) => i + 1)}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium shadow-soft hover:bg-primary/90"
+              className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium shadow-soft transition"
             >
               Next
             </button>

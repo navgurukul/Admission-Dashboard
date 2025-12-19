@@ -495,8 +495,8 @@ const AdminPage: React.FC = () => {
 
               <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
                 <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Shield className="h-5 w-5 text-green-600" />
+                  <div className="p-2 bg-secondary-purple-light rounded-lg">
+                    <Shield className="h-5 w-5 text-secondary-purple" />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-muted-foreground">

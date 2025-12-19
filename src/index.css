@@ -18,9 +18,14 @@
     --popover-foreground: 0 0% 13%;
 
     /* Brand Colors - NavGurukul Magenta/Pink */
-    --primary: 338 83% 51%; /* Vibrant magenta/pink #E31F6D */
+    --primary: 338 83% 51%; /* Vibrant magenta/pink #E31F6D (was #D81B60) */
     --primary-foreground: 0 0% 100%;
     --primary-light: 338 83% 92%; /* Light pink for hover states */
+
+    /* Secondary Colors - Purple Accent */
+    --secondary-purple: 263 53% 46%; /* Purple #5E35B1 */
+    --secondary-purple-foreground: 0 0% 100%;
+    --secondary-purple-light: 263 54% 94%; /* Light purple #EDE7F6 */
 
     /* Sidebar System */
     --sidebar-dark: 0 0% 7%; /* Very dark gray (almost black) */
@@ -36,7 +41,7 @@
     --status-fail: 0 72% 55%; /* Red for fail/declined */
     --status-prospect: 263 70% 60%; /* Purple for prospects */
 
-    /* Neutral System */
+    /* Neutral Gray System (for general UI elements) */
     --secondary: 0 0% 96%; /* Very light gray */
     --secondary-foreground: 0 0% 13%;
 
@@ -82,7 +87,7 @@
       hsl(338 83% 51%),
       hsl(338 83% 58%)
     ); /* Bright pink gradient for student page backgrounds */
-    --student-bg-light: #f8b0c8; /* Very light pink background */
+    --student-bg-light: #FFF5F7; /* Very light pink background - almost white */
     --student-bg-soft: #FCE4EC; /* Soft pink tint for sections */
     --student-accent: 338 83% 51%; /* Full vibrant pink for CTAs */
     --student-accent-hover: 338 83% 45%; /* Darker pink on hover */
@@ -132,12 +137,12 @@
 
   /* Student Page Background - Soft Pink Tint */
   .student-bg-soft {
-    background-color: #FCE4EC;
+    background-color: #FCE4EC !important;
   }
 
   /* Student Page Background - Very Light Pink */
   .student-bg-light {
-    background-color: #d61656;
+    background-color: #FFF5F7 !important;
   }
 
   /* Student CTA Button - Full Vibrant Pink */

@@ -100,8 +100,15 @@ const StudentLandingPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const navigate = useNavigate();
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
+
+  const languages = [
+    { value: "english", label: "English" },
+    { value: "hindi", label: "हिंदी" },
+    { value: "marathi", label: "मराठी" },
+  ];
 
   useEffect(() => {
     const interval = setInterval(nextSlide, 5000);
@@ -122,6 +129,18 @@ const StudentLandingPage = () => {
       localStorage.setItem("selectedLanguage", selectedLanguage);
     }
   }, [selectedLanguage]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isLanguageDropdownOpen && !event.target.closest(".relative")) {
+        setIsLanguageDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isLanguageDropdownOpen]);
 
   const handleNavigation = async () => {
     const googleUser = localStorage.getItem("user");
@@ -241,9 +260,9 @@ const StudentLandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col student-bg-light">
+    <div className="min-h-screen flex flex-col bg-student-bg-light">
       {/* ---- Modern Navbar ---- */}
-      <header className="sticky top-0 flex justify-between items-center px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-white border-b border-gray-200 z-50 backdrop-blur-sm bg-white/95">
+      <header className="sticky top-0 flex justify-between items-center px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-card/95 border-b border-border z-50 backdrop-blur-sm">
         {/* Logo Section */}
         <div className="flex items-center space-x-2 md:space-x-3">
           <img
@@ -251,27 +270,64 @@ const StudentLandingPage = () => {
             alt="NavGurukul Logo"
             className="h-8 md:h-10 lg:h-12"
           />
-          <span className="hidden sm:block text-lg md:text-xl font-bold text-gray-800">
+          <span className="hidden sm:block text-lg md:text-xl font-bold text-foreground">
             {content[selectedLanguage].title}
           </span>
         </div>
 
         {/* Right Section - Language Selector & CTA */}
         <div className="flex items-center gap-2 md:gap-4">
-          <select
-            value={selectedLanguage}
-            onChange={(e) => setSelectedLanguage(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 text-gray-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white hover:border-primary transition-colors cursor-pointer"
-          >
-            <option value="english">English</option>
-            <option value="hindi">हिंदी</option>
-            <option value="marathi">मराठी</option>
-          </select>
+          {/* Custom Language Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+              className="border border-border rounded-lg px-2 py-1.5 md:px-4 md:py-2 text-foreground text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-card hover:border-primary transition-all cursor-pointer flex items-center gap-2 min-w-[80px] md:min-w-[100px]"
+            >
+              <span className="font-medium">
+                {languages.find((l) => l.value === selectedLanguage)?.label}
+              </span>
+              <svg
+                className={`w-4 h-4 transition-transform ${isLanguageDropdownOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isLanguageDropdownOpen && (
+              <div className="absolute top-full mt-2 right-0 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50 min-w-[120px]">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.value}
+                    onClick={() => {
+                      setSelectedLanguage(lang.value);
+                      setIsLanguageDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                      selectedLanguage === lang.value
+                        ? "bg-primary text-white font-medium"
+                        : "text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Button
             onClick={handleNavigation}
             size="sm"
-            className="hidden sm:flex student-btn text-xs md:text-sm px-3 md:px-4"
+            className="hidden sm:flex student-btn text-xs md:text-sm px-3 md:px-4 shadow-md hover:shadow-lg"
           >
             {content[selectedLanguage].buttonText}
           </Button>
@@ -290,14 +346,14 @@ const StudentLandingPage = () => {
                 </span>
               </div>
 
-              <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight text-foreground">
                 {content[selectedLanguage].subtitle}{" "}
                 <span className="text-primary">
                   {content[selectedLanguage].title}
                 </span>
               </h1>
 
-              <p className="text-base md:text-lg lg:text-xl text-gray-600 leading-relaxed">
+              <p className="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed">
                 {content[selectedLanguage].description}
               </p>
 
@@ -373,11 +429,11 @@ const StudentLandingPage = () => {
       </section>
 
       {/* ---- Footer ---- */}
-      <footer className="bg-gray-100 text-center text-xs md:text-sm py-4 md:py-6 mt-auto px-4">
+      <footer className="bg-muted text-center text-xs md:text-sm py-4 md:py-6 mt-auto px-4">
         {content[selectedLanguage].footerText}{" "}
         <a
           href={`mailto:${content[selectedLanguage].footerContact}`}
-          className="text-blue-600 hover:underline break-all md:break-normal"
+          className="text-primary hover:underline break-all md:break-normal"
         >
           {content[selectedLanguage].footerContact}
         </a>
