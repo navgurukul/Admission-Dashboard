@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTests } from "@/utils/TestContext";
 import {
@@ -43,6 +43,7 @@ const TestPage: React.FC = () => {
     stateDuration || null,
   );
   const [showConfirm, setShowConfirm] = useState(false);
+  const isSubmitting = useRef(false); // Track submission to prevent duplicates
 
   // Restore progress from localStorage
   useEffect(() => {
@@ -80,8 +81,11 @@ const TestPage: React.FC = () => {
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft <= 0) {
-      // Auto-submit when timer reaches 0
-      submitTest();
+      // Auto-submit when timer reaches 0 (only once)
+      if (!isSubmitting.current) {
+        isSubmitting.current = true;
+        submitTest();
+      }
       return;
     }
 
@@ -116,12 +120,19 @@ const TestPage: React.FC = () => {
 
   const submitTest = async () => {
     setShowConfirm(false);
+    
+    // Prevent duplicate submissions
+    if (isSubmitting.current) {
+      return;
+    }
+    isSubmitting.current = true;
 
     // Get student ID from localStorage
     const studentId = localStorage.getItem("studentId");
     if (!studentId) {
       console.error("Student ID not found");
       alert("Error: Student ID not found. Please log in again.");
+      isSubmitting.current = false;
       return;
     }
 
@@ -205,6 +216,7 @@ const TestPage: React.FC = () => {
       console.error("Error submitting exam:", error);
       alert("Failed to submit exam. Please try again.");
       setShowConfirm(false);
+      isSubmitting.current = false; // Reset on error to allow retry
     }
   };
 
