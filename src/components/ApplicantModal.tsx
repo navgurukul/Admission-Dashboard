@@ -5,26 +5,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
-import { StatusBadge } from "./StatusBadge";
+// import { Button } from "@/components/ui/button";
+// import { Badge } from "@/components/ui/badge";
+// import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
+// import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
-import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import { Calendar } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+// import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+// import { Calendar } from "lucide-react";
+// import {
+//   Popover,
+//   PopoverContent,
+//   PopoverTrigger,
+// } from "@/components/ui/popover";
+// import {
+//   Command,
+//   CommandEmpty,
+//   CommandGroup,
+//   CommandInput,
+//   CommandItem,
+//   CommandList,
+// } from "@/components/ui/command";
 import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -49,12 +49,12 @@ import {
 } from "@/utils/api";
 import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import StageDropdown, {
-  STAGE_STATUS_MAP,
-} from "./applicant-table/StageDropdown";
-import { Value } from "@radix-ui/react-select";
+// import { Input } from "@/components/ui/input";
+// import { cn } from "@/lib/utils";
+// import StageDropdown, {
+//   STAGE_STATUS_MAP,
+// } from "./applicant-table/StageDropdown";
+// import { Value } from "@radix-ui/react-select";
 import {
   Tooltip,
   TooltipContent,
@@ -1407,7 +1407,7 @@ export function ApplicantModal({
                         if (!currentApplicant.campus_id) {
                           toast({
                             title: "⚠️ Campus Required",
-                            description: "Please select a campus before sending offer letter",
+                            description: "Please select a campus before proceeding with the offer letter status",
                             variant: "destructive",
                             className: "border-orange-500 bg-orange-50 text-orange-900",
                           });

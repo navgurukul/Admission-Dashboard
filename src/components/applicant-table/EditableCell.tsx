@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateStudent } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   Select,
   SelectTrigger,
@@ -86,9 +87,10 @@ export function EditableCell({
     if (!applicant?.id) {
       console.error("Applicant ID is missing in EditableCell:", applicant);
       toast({
-        title: "Error",
+        title: "❌ Unable to Update",
         description: "Cannot update: Student ID is missing",
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       return;
     }
@@ -99,9 +101,10 @@ export function EditableCell({
       !/^\d{10}$/.test(cellValue)
     ) {
       toast({
-        title: "Invalid Mobile Number",
+        title: "⚠️ Invalid Mobile Number",
         description: "Mobile number must be exactly 10 digits",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -112,9 +115,10 @@ export function EditableCell({
       !/^\d{6}$/.test(cellValue)
     ) {
       toast({
-        title: "Invalid Pincode",
+        title: "⚠️ Invalid Pincode",
         description: "Pincode must be exactly 6 digits",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -125,9 +129,10 @@ export function EditableCell({
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellValue)
     ) {
       toast({
-        title: "Invalid Email",
+        title: "⚠️ Invalid Email",
         description: "Please enter a valid email address",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -147,7 +152,12 @@ export function EditableCell({
       }
 
       await updateStudent(applicant.id, payload);
-      toast({ title: "Success", description: "Field updated successfully" });
+      toast({ 
+        title: "✅ Field Updated", 
+        description: "Field updated successfully",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
       setEditingCell(null);
       if (onUpdate) {
         onUpdate(payload[field]); // Pass updated value
@@ -155,9 +165,10 @@ export function EditableCell({
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
-        title: "Error",
-        description: error?.message || "Failed to update field",
+        title: "❌ Unable to Update Field",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setIsUpdating(false);
@@ -174,9 +185,10 @@ export function EditableCell({
     if (!applicant?.id) {
       console.error("Applicant ID is missing in EditableCell:", applicant);
       toast({
-        title: "Error",
+        title: "❌ Unable to Update",
         description: "Cannot update: Student ID is missing",
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       return;
     }
@@ -206,7 +218,12 @@ export function EditableCell({
       }
 
       await updateStudent(applicant.id, payload);
-      toast({ title: "Success", description: "Field updated successfully" });
+      toast({ 
+        title: "✅ Field Updated", 
+        description: "Field updated successfully",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
       setCellValue(payload[field]);
       if (onUpdate) {
         onUpdate(newValue); // Pass the code/id for state management, but API gets the name
@@ -214,9 +231,10 @@ export function EditableCell({
     } catch (error: any) {
       console.error("Error updating field:", error);
       toast({
-        title: "Error",
-        description: error?.message || "Failed to update field",
+        title: "❌ Unable to Update Field",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setIsUpdating(false);

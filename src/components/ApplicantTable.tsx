@@ -1230,7 +1230,7 @@ const ApplicantTable = () => {
         onClose={() => setShowAddModal(false)}
         onSuccess={refreshData}
         schoolList={schoolList}
-        campusList={campusList}
+        // campusList={campusList}
         currentstatusList={currentstatusList}
         religionList={religionList}
         questionSetList={questionSetList}
