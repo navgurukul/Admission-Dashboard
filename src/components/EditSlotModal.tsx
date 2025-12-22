@@ -25,6 +25,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { updateSlot } from "@/utils/api";
 import {
   toMinutes,
@@ -75,27 +76,30 @@ export function EditSlotModal({
 
     if (!date) {
       toast({
-        title: "Missing Date",
+        title: "⚠️ Missing Date",
         description: "Please select a date before saving.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
     if (!startTime || !endTime) {
       toast({
-        title: "Incomplete Information",
+        title: "⚠️ Incomplete Information",
         description: "Please fill in both start time and end time.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
     if (!slotType) {
       toast({
-        title: "Missing Slot Type",
+        title: "⚠️ Missing Slot Type",
         description: "Please select a slot type (LR or CFR).",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -103,9 +107,10 @@ export function EditSlotModal({
     // Validate time format (HH:mm)
     if (!isValidTimeFormat(startTime) || !isValidTimeFormat(endTime)) {
       toast({
-        title: "Invalid Time Format",
+        title: "⚠️ Invalid Time Format",
         description: "Please enter valid times in HH:mm format (e.g., 14:30).",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -114,17 +119,20 @@ export function EditSlotModal({
     const rangeValidation = validateTimeRange(startTime, endTime);
     if (!rangeValidation.valid) {
       toast({
-        title: "Invalid Time Range",
+        title: "⚠️ Invalid Time Range",
         description: rangeValidation.message,
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
     // Validate against existing slots
     toast({
-      title: "Validating Changes",
+      title: "Validating Changes...",
       description: "Checking for conflicts with existing schedules...",
+      variant: "default",
+      className: "border-orange-500 bg-orange-50 text-orange-900",
     });
 
     const validation = await validateAgainstExistingSlots(
@@ -137,9 +145,10 @@ export function EditSlotModal({
 
     if (!validation.valid) {
       toast({
-        title: "Cannot Update Slot",
+        title: "⚠️ Cannot Update Slot",
         description: validation.message,
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -157,8 +166,10 @@ export function EditSlotModal({
       await updateSlot(slotData!.id, payload);
 
       toast({
-        title: "✓ Slot Updated Successfully",
+        title: "✅ Slot Updated Successfully",
         description: "The interview slot has been updated in the schedule.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       onSuccess();
@@ -166,9 +177,10 @@ export function EditSlotModal({
     } catch (error) {
       console.error("Error updating slot:", error);
       toast({
-        title: "Failed to Update Slot",
-        description: "Something went wrong. Please try again or contact support if the issue persists.",
+        title: "❌ Unable to Update Slot",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);

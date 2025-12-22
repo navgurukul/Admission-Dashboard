@@ -355,6 +355,8 @@ export function AddApplicantModal({
         toast({
           title: "Uploading...",
           description: "Please wait while we upload the image...",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
 
         const uploadResult = await uploadProfileImage(file);
