@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { getScheduledInterviews, type ScheduledInterview } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 const Interviews = () => {
   const [interviews, setInterviews] = useState<ScheduledInterview[]>([]);
@@ -35,9 +36,10 @@ const Interviews = () => {
     } catch (error) {
       console.error("Error fetching interview data:", error);
       toast({
-        title: "Error",
-        description: "Failed to load interview data",
+        title: "❌ Unable to Load Interview Data",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       setInterviews([]);
     } finally {
@@ -64,9 +66,10 @@ const Interviews = () => {
     } catch (error) {
       console.error("Error fetching interviews by date:", error);
       toast({
-        title: "Error",
-        description: "Failed to load interviews for selected date",
+        title: "❌ Unable to Load Interviews",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       setInterviews([]);
     } finally {

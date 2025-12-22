@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 import {
   getCampusesApi,
@@ -102,9 +103,10 @@ const CampusPage: React.FC = () => {
 
     if (isDuplicate) {
       toast({
-        title: "Duplicate Campus",
+        title: "⚠️ Duplicate Campus",
         description: "This campus name already exists. Please use a different name.",
-        className: "border-l-4 border-l-orange-500",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -114,17 +116,19 @@ const CampusPage: React.FC = () => {
       setAddDialog(false);
       setNewCampus("");
       toast({
-        title: "Campus Added Successfully",
+        title: "✅ Campus Added Successfully",
         description: `"${newCampus}" has been added.`,
-        className: "border-l-4 border-l-green-600",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
       await fetchCampuses(false);
       setCurrentPage(1);
     } catch (err) {
       toast({
-        title: "Unable to Add Campus",
-        description: err instanceof Error ? err.message : "An unexpected error occurred while adding the campus",
+        title: "❌ Unable to Add Campus",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setActionLoading(false);
@@ -143,16 +147,18 @@ const CampusPage: React.FC = () => {
     setEditDialog(false);
     setSelectedCampus(null);
     toast({
-      title: "Campus Updated",
+      title: "✅ Campus Updated",
       description: `Campus name updated from "${oldName}" to "${campus_name}".`,
-      className: "border-l-4 border-l-blue-600",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
     await fetchCampuses(false);
   } catch (err) {
     toast({
-      title: "Unable to Update Campus",
-      description: err instanceof Error ? err.message : "An unexpected error occurred.",
+      title: "❌ Unable to Update Campus",
+      description: getFriendlyErrorMessage(err),
       variant: "destructive",
+      className: "border-red-500 bg-red-50 text-red-900",
     });
   } finally {
     setActionLoading(false);
@@ -167,9 +173,10 @@ const CampusPage: React.FC = () => {
     setDeleteDialog(false);
     setSelectedCampus(null);
     toast({
-      title: "Campus Deleted",
+      title: "✅ Campus Deleted",
       description: `"${campus_name}" has been deleted.`,
-      className: "border-l-4 border-l-red-600",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
     await fetchCampuses(false);
     setCurrentPage(1);
@@ -187,15 +194,14 @@ const CampusPage: React.FC = () => {
       fullErrorMessage.toLowerCase().includes("student records") 
     );
     
-    // Use orange for student records error, red for others
-    const borderColor = isStudentRecordsError 
-      ? "border-l-orange-500" 
-      : "border-l-red-600";
+    // Use orange for student records error (warning), red for others (error)
+    const isWarning = isStudentRecordsError;
     
     toast({
-      title: "Unable to Delete Campus",
+      title: isWarning ? "⚠️ Unable to Delete Campus" : "❌ Unable to Delete Campus",
       description: fullErrorMessage || "An unexpected error occurred.",
-      className: `border-l-4 ${borderColor}`,
+      variant: isWarning ? "default" : "destructive",
+      className: isWarning ? "border-orange-500 bg-orange-50 text-orange-900" : "border-red-500 bg-red-50 text-red-900",
     });
   } finally {
     setActionLoading(false);

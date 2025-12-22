@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download, Eye } from "lucide-react";
 import { getStudentsByPartnerId, getPartnerById } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApplicantModal } from "@/components/ApplicantModal";
 
@@ -72,7 +73,12 @@ const PartnerStudents = () => {
             setStudents(studentList);
             setTotal(totalCount);
         } catch (error) {
-            toast({ title: "Error", description: "Failed to load students", variant: "destructive" });
+            toast({ 
+                title: "❌ Unable to Load Students", 
+                description: getFriendlyErrorMessage(error), 
+                variant: "destructive",
+                className: "border-red-500 bg-red-50 text-red-900"
+            });
         } finally {
             setLoading(false);
         }

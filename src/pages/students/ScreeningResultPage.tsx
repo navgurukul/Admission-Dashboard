@@ -6,6 +6,7 @@ import { getCurrentUser, getStudentDataByEmail } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { ADMISSIONS_EMAIL } from "@/lib/const";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 const ScreeningResultPage: React.FC = () => {
   const { tests, setTests } = useTests();
@@ -31,9 +32,10 @@ const ScreeningResultPage: React.FC = () => {
 
       if (!currentUser || !currentUser.email) {
         toast({
-          title: "Error",
+          title: "⚠️ Login Required",
           description: "Please login to view your results",
-          variant: "destructive",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
         });
         navigate("/student-login");
         return;
@@ -44,9 +46,10 @@ const ScreeningResultPage: React.FC = () => {
 
       if (!response) {
         toast({
-          title: "Error",
+          title: "❌ Unable to Load Data",
           description: "Failed to fetch student data",
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900"
         });
         return;
       }
@@ -70,9 +73,10 @@ const ScreeningResultPage: React.FC = () => {
     } catch (error: any) {
       console.error("Error fetching student data:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to load student data",
+        title: "❌ Unable to Load Data",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
     } finally {
       setLoading(false);
