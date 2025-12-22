@@ -88,7 +88,7 @@ const ApplicantTable = () => {
 
   const { toast } = useToast();
   const { triggerRefresh } = useDashboardRefresh();
-
+  const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   // Custom hook for data fetching
   const {
     students,
@@ -237,7 +237,7 @@ const ApplicantTable = () => {
     else if (hasActiveFilters && filters) {
       try {
         const apiParams = transformFiltersToAPI(filters);
-        console.log("Refreshing filtered data with params:", apiParams);
+        // console.log("Refreshing filtered data with params:", apiParams);
         const results = await getFilterStudent(apiParams);
         setFilteredStudents(results || []);
       } catch (error: any) {
@@ -297,19 +297,60 @@ const ApplicantTable = () => {
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
+      return;
     }
+
+    const selectedStudents = filteredApplicants.filter((applicant) =>
+      selectedRows.includes(applicant.id)
+    );
+    
+    // Check for students without campus (check campus_name)
+    const studentsWithoutCampus = selectedStudents.filter(
+      (student) => !student.campus_name || student.campus_name === "N/A"
+    );
+    
+    if (studentsWithoutCampus.length > 0) {
+      // Show names of first 3 students without campus
+      const studentNames = studentsWithoutCampus
+        .slice(0, 3)
+        .map((s) => s.name || `${s.first_name} ${s.last_name}`)
+        .join(", ");
+      
+      const moreCount = studentsWithoutCampus.length - 3;
+      
+      toast({
+        title: "⚠️ Campus Required",
+        description: `You’ve selected ${selectedStudents.length} students, but ${studentsWithoutCampus.length} ${
+    studentsWithoutCampus.length === 1 ? "student doesn’t" : "students don’t"
+  } have a campus assigned${
+    studentNames
+      ? `. Please assign a campus to: ${studentNames}${
+          moreCount > 0 ? ` and ${moreCount} others` : ""
+        }`
+      : ""
+  }. Once campus is assigned, you can send offer letters.`,
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+        duration: 8000,
+      });
+      
+      return; 
+    }
+
+    // All students have campus - show confirmation dialog
+    setShowBulkOfferConfirmation(true);
   };
 
   const handleSendBulkOfferLetters = async () => {
-    if (selectedRows.length === 0) {
-      toast({
-        title: "⚠️ No Selection",
-        description: "Please select at least one student to send offer letters",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
+    // if (selectedRows.length === 0) {
+    //   toast({
+    //     title: "⚠️ No Selection",
+    //     description: "Please select at least one student to send offer letters",
+    //     variant: "default",
+    //     className: "border-orange-500 bg-orange-50 text-orange-900",
+    //   });
+    //   return;
+    // }
 
     try {
       const studentIds = selectedRows.map((id) => Number(id));
@@ -415,7 +456,7 @@ const ApplicantTable = () => {
 
   // Transform filter state to API query parameters
   const transformFiltersToAPI = (filterState: any) => {
-    console.log("Transforming filters to API params:", filterState);
+    // console.log("Transforming filters to API params:", filterState);
     const apiParams: any = {};
 
     // Date range mapping based on type
@@ -1102,7 +1143,7 @@ const ApplicantTable = () => {
               selectedRowsCount={selectedRows.length}
               onBulkUpdate={() => setShowBulkUpdate(true)}
               // onBulkUpdate={handleBulkUpdate}
-              onSendOfferLetters={handleSendBulkOfferLetters}
+              onSendOfferLetters={handleSendOfferLetters}
               onBulkDelete={() => setShowDeleteConfirm(true)}
             />
             <TableActions
@@ -1319,6 +1360,31 @@ const ApplicantTable = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Offer Letter Confirmation Dialog */}
+      <AlertDialog open={showBulkOfferConfirmation} onOpenChange={setShowBulkOfferConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Offer Letters</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to send offer letters to {selectedRows.length} selected applicant
+              {selectedRows.length > 1 ? "s" : ""}? All selected students have campus assigned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-primary text-white hover:bg-primary/90"
+              onClick={async () => {
+                setShowBulkOfferConfirmation(false);
+                await handleSendBulkOfferLetters();
+              }}
+            >
+              Send Offer Letters
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BulkOfferResultsModal
         isOpen={showBulkOfferResults}
         onClose={() => setShowBulkOfferResults(false)}
