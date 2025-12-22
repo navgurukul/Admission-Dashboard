@@ -27,6 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 import {
   createStudent,
@@ -370,15 +371,18 @@ export function AddApplicantModal({
         reader.readAsDataURL(file);
 
         toast({
-          title: "Success",
-          description: "Image uploaded successfully!",
+          title: "✅ Image Uploaded",
+          description: "Profile image uploaded successfully!",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } catch (error) {
         console.error("Error uploading image:", error);
         toast({
+          title: "❌ Upload Failed",
+          description: getFriendlyErrorMessage(error),
           variant: "destructive",
-          title: "Upload Failed",
-          description: "Failed to upload image. Please try again.",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         e.target.value = "";
       }
@@ -646,8 +650,10 @@ export function AddApplicantModal({
       }
 
       toast({
-        title: "Success!",
-        description: "Applicant created successfully",
+        title: "✅ Applicant Created Successfully",
+        description: "The applicant has been added to the system",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       onSuccess?.(response?.data);
@@ -656,9 +662,10 @@ export function AddApplicantModal({
     } catch (error: any) {
       // console.error("Error creating student:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create student",
+        title: "❌ Unable to Create Applicant",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);

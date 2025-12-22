@@ -19,25 +19,30 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
+// import { Button } from "@/components/ui/button";
+// import { Badge } from "@/components/ui/badge";
+// import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
+// import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
-import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import { Calendar } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+// import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+// import { Calendar } from "lucide-react";
+// import {
+//   Popover,
+//   PopoverContent,
+//   PopoverTrigger,
+// } from "@/components/ui/popover";
+// import {
+//   Command,
+//   CommandEmpty,
+//   CommandGroup,
+//   CommandInput,
+//   CommandItem,
+//   CommandList,
+// } from "@/components/ui/command";
 import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   updateStudent,
   getStudentById,
@@ -47,12 +52,12 @@ import {
   getDistrictsByState,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import StageDropdown, {
-  STAGE_STATUS_MAP,
-} from "./applicant-table/StageDropdown";
-import { Value } from "@radix-ui/react-select";
+// import { Input } from "@/components/ui/input";
+// import { cn } from "@/lib/utils";
+// import StageDropdown, {
+//   STAGE_STATUS_MAP,
+// } from "./applicant-table/StageDropdown";
+// import { Value } from "@radix-ui/react-select";
 import {
   Tooltip,
   TooltipContent,
@@ -489,9 +494,10 @@ export function ApplicantModal({
     } catch (err) {
       console.error("Failed to update final decision", err);
       toast({
-        title: "Error",
-        description: "Failed to update final decision. Please try again.",
+        title: "❌ Unable to Update Final Decision",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -603,15 +609,18 @@ export function ApplicantModal({
       await handleUpdate();
       
       toast({ 
-        title: "Success", 
-        description: "Block updated successfully" 
+        title: "✅ Block Updated",
+        description: "Block has been updated successfully",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
     } catch (error) {
       console.error("Failed to update block:", error);
       toast({
-        title: "Error",
-        description: "Failed to update block",
+        title: "❌ Unable to Update Block",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -1249,7 +1258,7 @@ export function ApplicantModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Campus
+                    Campus <span className="text-red-500">*</span>
                   </label>
                   {isStageDisabled(currentApplicant, "OFFER") &&
                     !currentApplicant.campus_id ? (
@@ -1277,18 +1286,20 @@ export function ApplicantModal({
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="campus_id"
-                      value={currentApplicant.campus_id}
-                      displayValue={getLabel(
-                        campus,
-                        currentApplicant.campus_id
-                      )}
-                      onUpdate={handleUpdate}
-                      options={campus}
-                      disabled={!hasEditAccess}
-                    />
+                    <div className={!currentApplicant.campus_id && (currentApplicant.final_decisions?.[0]?.offer_letter_status || currentApplicant.final_decisions?.[0]?.onboarded_status) ? "border-2 border-red-500 rounded" : ""}>
+                      <EditableCell
+                        applicant={currentApplicant}
+                        field="campus_id"
+                        value={currentApplicant.campus_id}
+                        displayValue={getLabel(
+                          campus,
+                          currentApplicant.campus_id
+                        )}
+                        onUpdate={handleUpdate}
+                        options={campus}
+                        disabled={!hasEditAccess}
+                      />
+                    </div>
                   )}
                 </div>
                 <div>
@@ -1371,6 +1382,19 @@ export function ApplicantModal({
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
+                        if (!currentApplicant.campus_id) {
+                          toast({
+                            title: "⚠️ Campus Required",
+                            description: "Please select a campus before proceeding with the offer letter status",
+                            variant: "destructive",
+                            className: "border-orange-500 bg-orange-50 text-orange-900",
+                          });
+                          return;
+                        }
+                        await handleFinalDecisionUpdate(
+                          "offer_letter_status",
+                          value
+                        );
                       }}
                     />
                   )}
@@ -1429,6 +1453,15 @@ export function ApplicantModal({
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
+                        if (!currentApplicant.campus_id) {
+                          toast({
+                            title: "⚠️ Campus Required",
+                            description: "Please select a campus before onboarding",
+                            variant: "destructive",
+                            className: "border-orange-500 bg-orange-50 text-orange-900",
+                          });
+                          return;
+                        }
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
                           value

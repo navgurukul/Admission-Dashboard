@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { searchStudentsApi } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface FilterState {
   stage: string;
@@ -72,12 +73,10 @@ export const useApplicantFilters = (
       } catch (error: any) {
         console.error("Search error:", error);
         toast({
-          title: "Search Error",
-          description:
-            error?.message ||
-            error?.toString() ||
-            "Unable to fetch search results. Please try again.",
+          title: "❌ Unable to Search",
+          description: getFriendlyErrorMessage(error),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
       } finally {
         setIsSearching(false);
