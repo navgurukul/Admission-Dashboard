@@ -38,6 +38,10 @@ export const getFriendlyErrorMessage = (error: any): string => {
         return "Server Error. Something went wrong on our end. Please try again later.";
     }
 
+    if (status === 502) {
+        return "Connection Error. The server is temporarily unreachable. Please try again in a moment.";
+    }
+
     if (status === 503) {
         return "Service Unavailable. The server is temporarily busy. Please try again in a few moments.";
     }
