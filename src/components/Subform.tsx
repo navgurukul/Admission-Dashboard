@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { getCurrentUser } from "@/utils/api";
 
 interface RowField {
   name: string;
@@ -37,6 +38,7 @@ interface InlineSubformProps {
   onSave?: () => void;
   disabled?: boolean;
   disabledReason?: string;
+  disableAdd?: boolean;
 }
 
 // Map payload based on round type
@@ -97,6 +99,17 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
 const getEditableFields = (row: any, allFields: RowField[]) => {
   if (!row.id) return allFields; // new row: all editable
 
+  // For existing rows, check if status field is disabled (round is passed)
+  const statusField = allFields.find((f) => 
+    ["status", "learning_round_status", "cultural_fit_status"].includes(f.name)
+  );
+  
+  // If status field is disabled (round passed), only allow comments to be edited
+  if (statusField?.disabled) {
+    return allFields.filter((f) => f.name === "comments");
+  }
+
+  // Otherwise, allow editing of status, school_id, and comments
   return allFields.filter((f) => {
     if (["status", "school_id"].includes(f.name)) return true;
     if (["learning_round_status", "comments"].includes(f.name)) return true;
@@ -212,6 +225,7 @@ export function InlineSubform({
   onSave,
   disabled,
   disabledReason,
+  disableAdd,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
   const { toast } = useToast();
@@ -354,7 +368,12 @@ export function InlineSubform({
       }
     }
 
-    const payload = mapPayload(row, fields, studentId);
+    const currentUser = getCurrentUser();
+    const payload = {
+      ...mapPayload(row, fields, studentId),
+      updated_by: currentUser?.name || currentUser?.email || "Unknown",
+      last_updated_by: currentUser?.name || currentUser?.email || "Unknown"
+    };
 
     try {
       let res;
@@ -482,7 +501,7 @@ export function InlineSubform({
     <div className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-semibold">{title}</h3>
-        {disabled ? (
+        {disabled || disableAdd ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -499,7 +518,11 @@ export function InlineSubform({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{disabledReason || "Action disabled"}</p>
+                <p>
+                  {disableAdd 
+                    ? "Cannot add more rows - round already passed" 
+                    : disabledReason || "Action disabled"}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -510,8 +533,8 @@ export function InlineSubform({
         )}
       </div>
 
-  {/* Table container: allow vertical and horizontal scrolling if content is large */}
-  <div className="overflow-x-auto w-full max-h-[48vh] overflow-auto">
+      {/* Table container: allow vertical and horizontal scrolling if content is large */}
+      <div className="overflow-x-auto w-full max-h-[48vh] overflow-auto">
         <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
@@ -537,14 +560,14 @@ export function InlineSubform({
                     <td
                       key={f.name}
                       className={`px-3 py-2 align-top ${isTextAreaField
-                          ? "whitespace-pre-wrap break-words w-full min-w-[250px] max-w-[400px]"
-                          : f.name === "audit_info"
-                            ? "w-auto min-w-[280px] max-w-[320px]"
-                            : isAuditField
-                              ? "w-auto min-w-[200px]"
-                              : isStatusField
-                                ? "w-auto min-w-[250px] max-w-[300px]"
-                                : "w-auto"
+                        ? "whitespace-pre-wrap break-words w-full min-w-[250px] max-w-[400px]"
+                        : f.name === "audit_info"
+                          ? "w-auto min-w-[280px] max-w-[320px]"
+                          : isAuditField
+                            ? "w-auto min-w-[200px]"
+                            : isStatusField
+                              ? "w-auto min-w-[250px] max-w-[300px]"
+                              : "w-auto"
                         }`}
                     >
                       {!isEditable && (f.type === "readonly" || isAuditField) ? (
@@ -573,8 +596,9 @@ export function InlineSubform({
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-blue-600 hover:bg-blue-50"
+                      className={`text-blue-600 hover:bg-blue-50 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                       onClick={() => toggleEdit(idx, true)}
+                      disabled={disabled}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
