@@ -64,7 +64,7 @@ export default function StudentLogin() {
       const data = await getStudentDataByEmail(email);
       // getStudentDataByEmail returns axios response.data which itself
       // often contains a `data` field with payload. Normalize both.
-      const payload = data?.data ?? data ?? null;
+      const payload = (data as unknown as any)?.data ?? data ?? null;
       return payload?.student ?? null;
     } catch (error) {
       console.error("Error fetching student data:", error);
@@ -189,7 +189,7 @@ export default function StudentLogin() {
           const apiResponse = await getStudentDataByEmail(googleUser.email);
 
           // Normalize payload: API usually returns { success, message, data: { student, exam_sessions, ... } }
-          const payload = apiResponse?.data ?? apiResponse ?? null;
+          const payload = (apiResponse as unknown as any)?.data ?? apiResponse ?? null;
 
           // Persist the whole payload for later use
           localStorage.setItem("studentData", JSON.stringify(payload));

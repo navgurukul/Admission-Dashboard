@@ -25,6 +25,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { createSlotBookingTimes, getSlotByDate } from "@/utils/api";
 import {
   toMinutes,
@@ -185,9 +186,10 @@ export function AddSlotsModal({
     const missingDates = timeSlots.some((slot) => !slot.date);
     if (missingDates) {
       toast({
-        title: "Missing Date",
+        title: "⚠️ Missing Date",
         description: "Please select a date for all slots before submitting.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -197,9 +199,10 @@ export function AddSlotsModal({
     );
     if (invalidSlots) {
       toast({
-        title: "Incomplete Information",
+        title: "⚠️ Incomplete Information",
         description: "Please fill in all required fields: slot type, start time, and end time.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -210,9 +213,10 @@ export function AddSlotsModal({
 
       if (!isValidTimeFormat(startTime) || !isValidTimeFormat(endTime)) {
         toast({
-          title: "Invalid Time Format",
+          title: "⚠️ Invalid Time Format",
           description: `Slot #${i + 1}: Please enter valid times in HH:mm format (e.g., 14:30).`,
-          variant: "destructive",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }
@@ -221,9 +225,10 @@ export function AddSlotsModal({
       const rangeValidation = validateTimeRange(startTime, endTime);
       if (!rangeValidation.valid) {
         toast({
-          title: "Invalid Time Range",
+          title: "⚠️ Invalid Time Range",
           description: `Slot #${i + 1}: ${rangeValidation.message}`,
-          variant: "destructive",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }
@@ -233,17 +238,20 @@ export function AddSlotsModal({
     const formValidation = validateWithinForm(timeSlots);
     if (!formValidation.valid) {
       toast({
-        title: "Slot Conflict",
+        title: "⚠️ Slot Conflict",
         description: formValidation.message,
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
     // Batch fetch all required existing slots to minimize API calls
     toast({
-      title: "Validating Slots",
+      title: "Validating Slots...",
       description: "Checking for conflicts with existing schedules...",
+      variant: "default",
+      className: "border-orange-500 bg-orange-50 text-orange-900",
     });
 
     try {
@@ -277,9 +285,10 @@ export function AddSlotsModal({
 
         if (!validation.valid) {
           toast({
-            title: "Cannot Add Slot",
+            title: "⚠️ Cannot Add Slot",
             description: validation.message,
-            variant: "destructive",
+            variant: "default",
+            className: "border-orange-500 bg-orange-50 text-orange-900",
           });
           return;
         }
@@ -287,9 +296,10 @@ export function AddSlotsModal({
     } catch (error) {
       console.error("Error validating slots:", error);
       toast({
-        title: "Validation Failed",
-        description: "Unable to verify slots. Please check your connection and try again.",
+        title: "❌ Validation Failed",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       return;
     }
@@ -309,8 +319,10 @@ export function AddSlotsModal({
       // console.log("Slots created via API", slotsData);
 
       toast({
-        title: "✓ Slots Added Successfully",
+        title: "✅ Slots Added Successfully",
         description: `${timeSlots.length} interview slot${timeSlots.length > 1 ? 's have' : ' has'} been added to the schedule.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       onSuccess();
@@ -318,9 +330,10 @@ export function AddSlotsModal({
     } catch (error) {
       console.error("Error adding slots:", error);
       toast({
-        title: "Failed to Add Slots",
-        description: "Something went wrong. Please try again or contact support if the issue persists.",
+        title: "❌ Unable to Add Slots",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);
