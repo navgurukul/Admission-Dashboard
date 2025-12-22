@@ -27,6 +27,9 @@ import { useQuestions } from "@/hooks/useQuestions";
 import { useToast } from "@/hooks/use-toast";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { QuestionSetManager } from "@/components/questions/QuestionSetManager";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+
 
 export default function QuestionRepository() {
   const [activeTab, setActiveTab] = useState("list");
@@ -39,6 +42,8 @@ export default function QuestionRepository() {
     topic: "",
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<any>(null);
 
   const { toast } = useToast();
   const {
@@ -53,13 +58,15 @@ export default function QuestionRepository() {
     refetch,
   } = useQuestions(filters, searchTerm);
 
-  useEffect(() => {}, [questions]);
+  useEffect(() => { }, [questions]);
 
   const handleImportComplete = () => {
     refetch();
     toast({
-      title: "Import Successful",
+      title: "✅ Import Successful",
       description: "Questions have been imported and list is refreshed.",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
     setActiveTab("list");
   };
@@ -89,23 +96,28 @@ export default function QuestionRepository() {
       if (selectedQuestion) {
         await updateQuestion(selectedQuestion.id, questionData);
         toast({
-          title: "Question Updated",
+          title: "✅ Question Updated",
           description: "The question has been successfully updated.",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } else {
         await createQuestion(questionData);
         toast({
-          title: "Question Created",
+          title: "✅ Question Created",
           description: "The question has been successfully created.",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       }
       setActiveTab("list");
       setSelectedQuestion(null);
     } catch (error) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to save question",
+        title: "Unable to complete action",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -114,14 +126,17 @@ export default function QuestionRepository() {
     try {
       await archiveQuestion(questionId);
       toast({
-        title: "Question Archived",
+        title: "✅ Question Archived",
         description: "The question has been archived successfully.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to archive question",
+        title: "Unable to complete action",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -130,16 +145,26 @@ export default function QuestionRepository() {
     try {
       await deleteQuestion(questionId);
       toast({
-        title: "Question Deleted",
+        title: "✅ Question Deleted",
         description: "The question has been permanently deleted.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
+      setDeleteConfirmOpen(false);
+      setQuestionToDelete(null);
     } catch (error) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete question",
+        title: "Unable to complete action",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
+  };
+
+  const openDeleteConfirm = (questionId) => {
+    setQuestionToDelete(questionId);
+    setDeleteConfirmOpen(true);
   };
 
   return (
@@ -236,7 +261,7 @@ export default function QuestionRepository() {
                       setActiveTab("editor");
                     }}
                     onArchive={handleArchiveQuestion}
-                    onDelete={handleDeleteQuestion}
+                    onDelete={openDeleteConfirm}
                   />
                 </div>
               </CardContent>
@@ -333,6 +358,20 @@ export default function QuestionRepository() {
         {/* </div>
          */}
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false);
+          setQuestionToDelete(null);
+        }}
+        onConfirm={() => handleDeleteQuestion(questionToDelete)}
+        title="Delete Question"
+        description="Are you sure you want to permanently delete this question? This action cannot be revert."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }

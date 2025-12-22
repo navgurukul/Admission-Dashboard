@@ -33,8 +33,9 @@ import {
 import { CalendarIcon, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { getFilterStudent, getAllStages, getStatusesByStageId } from "@/utils/api";
+import { getFilterStudent, getStatusesByStageId } from "@/utils/api";
 import { cn } from "@/lib/utils";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 // import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 import {
   getStatesList,
@@ -83,6 +84,7 @@ interface AdvancedFilterModalProps {
   religionList?: any[];
   qualificationList?: any[];
   currentstatusList?: any[];
+  stageList?: any[];
 }
 
 // const STAGE_STATUS_MAP = {
@@ -111,6 +113,7 @@ export function AdvancedFilterModal({
   religionList = [],
   qualificationList = [],
   currentstatusList = [],
+  stageList = [],
 }: AdvancedFilterModalProps) {
   const [filters, setFilters] = useState<FilterState>(currentFilters);
   const [availableOptions, setAvailableOptions] = useState({
@@ -160,9 +163,10 @@ export function AdvancedFilterModal({
         console.error("Error fetching stage statuses:", error);
         setStageStatuses([]);
         toast({
-          title: "Error",
-          description: "Failed to load stage statuses",
+          title: "❌ Unable to Load Data",
+          description: "Failed to load stage statuses. Please try again.",
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
       } finally {
         setIsLoading((prev) => ({ ...prev, general: false }));
@@ -248,24 +252,50 @@ export function AdvancedFilterModal({
       setFilters(currentFilters);
 
       try {
-        // Load data from APIs in parallel
-        const [
-          apiStates,
-          apiCampuses,
-          apiSchools,
-          apiReligions,
-          apiQualifications,
-          apiStatuses,
-          apiStages,
-        ] = await Promise.all([
-          getStatesList(),
-          getCampusesList(),
-          getSchoolsList(),
-          getReligionsList(),
-          getQualificationsList(),
-          getStatusesList(),
-          getAllStages(),
-        ]);
+        // Only fetch APIs for data not provided via props
+        const apiPromises: Promise<any>[] = [];
+        const apiKeys: string[] = [];
+
+        // Always fetch states (not passed as prop in current setup)
+        apiPromises.push(getStatesList());
+        apiKeys.push('states');
+
+        if (campusList.length === 0) {
+          apiPromises.push(getCampusesList());
+          apiKeys.push('campuses');
+        }
+        if (schoolList.length === 0) {
+          apiPromises.push(getSchoolsList());
+          apiKeys.push('schools');
+        }
+        if (religionList.length === 0) {
+          apiPromises.push(getReligionsList());
+          apiKeys.push('religions');
+        }
+        if (qualificationList.length === 0) {
+          apiPromises.push(getQualificationsList());
+          apiKeys.push('qualifications');
+        }
+        if (currentstatusList.length === 0) {
+          apiPromises.push(getStatusesList());
+          apiKeys.push('statuses');
+        }
+
+        const results = await Promise.all(apiPromises);
+
+        // Map results to their corresponding keys
+        const apiResults: Record<string, any> = {};
+        apiKeys.forEach((key, index) => {
+          apiResults[key] = results[index];
+        });
+
+        // Use props if available, otherwise use API results
+        const finalCampuses = campusList.length > 0 ? campusList : (apiResults.campuses || []);
+        const finalSchools = schoolList.length > 0 ? schoolList : (apiResults.schools || []);
+        const finalReligions = religionList.length > 0 ? religionList : (apiResults.religions || []);
+        const finalQualifications = qualificationList.length > 0 ? qualificationList : (apiResults.qualifications || []);
+        const finalStatuses = currentstatusList.length > 0 ? currentstatusList : (apiResults.statuses || []);
+        const apiStates = apiResults.states || [];
 
         // Extract data from students
         const partnersFromStudents = getPartnersFromStudents(students);
@@ -275,8 +305,6 @@ export function AdvancedFilterModal({
         // Combine API states with states from students
         const allStates = [...apiStates];
         statesFromStudents.forEach((stateName) => {
-          // if (!allStates.find((s) => s.name === stateName)) {
-            
           const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
            
           // Check if state already exists by name or code
@@ -290,16 +318,6 @@ export function AdvancedFilterModal({
           }
         });
 
-        // Use provided lists or API data
-        const finalCampuses = campusList.length > 0 ? campusList : apiCampuses;
-        const finalSchools = schoolList.length > 0 ? schoolList : apiSchools;
-        const finalReligions =
-          religionList.length > 0 ? religionList : apiReligions;
-        const finalQualifications =
-          qualificationList.length > 0 ? qualificationList : apiQualifications;
-        const finalStatuses =
-          currentstatusList.length > 0 ? currentstatusList : apiStatuses;
-
         setAvailableOptions({
           partners: partnersFromStudents,
           districts: districtsFromStudents,
@@ -308,8 +326,7 @@ export function AdvancedFilterModal({
           qualifications: finalQualifications,
           currentStatuses: finalStatuses,
           campuses: finalCampuses,
-          stages: apiStages,
-     
+          stages: stageList.length > 0 ? stageList : [],
         });
 
         setAvailableStates(allStates);
@@ -323,9 +340,10 @@ export function AdvancedFilterModal({
       } catch (error) {
         // console.error(" Error loading filter data:", error);
         toast({
-          title: "Error",
-          description: "Failed to load filter options",
+          title: "❌ Unable to Load Data",
+          description: getFriendlyErrorMessage(error),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
       } finally {
         setIsLoading((prev) => ({ ...prev, general: false }));
@@ -369,9 +387,10 @@ export function AdvancedFilterModal({
     // Validate date range - if start is selected, end must be selected
     if (filters.dateRange.from && !filters.dateRange.to) {
       toast({
-        title: "Incomplete Date Range",
+        title: "⚠️ Incomplete Date Range",
         description: "Please select an end date to complete the date range.",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -379,9 +398,10 @@ export function AdvancedFilterModal({
     // Validate date range - if end is selected, start must be selected
     if (filters.dateRange.to && !filters.dateRange.from) {
       toast({
-        title: "Incomplete Date Range",
+        title: "⚠️ Incomplete Date Range",
         description: "Please select a start date before selecting an end date.",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -390,9 +410,10 @@ export function AdvancedFilterModal({
     if (filters.dateRange.from && filters.dateRange.to) {
       if (filters.dateRange.from > filters.dateRange.to) {
         toast({
-          title: "Invalid Date Range",
+          title: "⚠️ Invalid Date Range",
           description: "End date cannot be before start date.",
           variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }
@@ -406,9 +427,10 @@ export function AdvancedFilterModal({
         
       if (!hasStageStatus) {
         toast({
-          title: "Stage Status Required",
+          title: "⚠️ Stage Status Required",
           description: `Please select at least one stage status for ${filters.stage} stage.`,
           variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
         return;
       }
@@ -430,8 +452,10 @@ export function AdvancedFilterModal({
     onApplyFilters(processedFilters);
     onClose();
     toast({
-      title: "Filters Applied",
+      title: "✅ Filters Applied",
       description: "Your filters have been successfully applied.",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
   };
 

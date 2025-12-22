@@ -1982,6 +1982,11 @@ export interface ScheduledInterview {
   status: string;
   created_at: string;
   updated_at: string;
+  student_name?: string;
+  student_email?: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 // Get available slots for interviewer by date

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useToast } from "./use-toast";
 import { useGoogleAuth } from "./useGoogleAuth";
+import { getFriendlyErrorMessage } from "../utils/errorUtils";
 
 interface AuthUser {
   id: string;
@@ -76,15 +77,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(null);
 
       toast({
-        title: "Signed out successfully",
-        description: "You have been logged out from all systems.",
+        title: "Success",
+        description: "You have been logged out successfully.",
+        className: "bg-green-50 border-green-200",
       });
     } catch (error) {
       console.error("Logout error:", error);
       toast({
-        title: "Logout Error",
-        description: "There was an issue signing you out. Please try again.",
-        variant: "destructive",
+        title: "Unable to log out",
+        description: getFriendlyErrorMessage(error),
+        className: "bg-red-50 border-red-200",
       });
     }
   };

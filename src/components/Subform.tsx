@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface RowField {
   name: string;
@@ -322,17 +323,19 @@ export function InlineSubform({
           const obtainedMarks = Number(row.obtained_marks);
           if (obtainedMarks > 36) {
             toast({
-              title: "Validation Error",
+              title: "⚠️ Validation Error",
               description: "Obtained marks cannot exceed 36",
               variant: "destructive",
+              className: "border-orange-500 bg-orange-50 text-orange-900",
             });
             return;
           }
           if (obtainedMarks < 0) {
             toast({
-              title: "Validation Error",
+              title: "⚠️ Validation Error",
               description: "Obtained marks cannot be negative",
               variant: "destructive",
+              className: "border-orange-500 bg-orange-50 text-orange-900",
             });
             return;
           }
@@ -341,9 +344,10 @@ export function InlineSubform({
         // For all other cases, validate required fields
         if (isEmpty) {
           toast({
-            title: "Validation Error",
+            title: "⚠️ Validation Error",
             description: `Please fill the field: ${field.label}`,
             variant: "destructive",
+            className: "border-orange-500 bg-orange-50 text-orange-900",
           });
           return;
         }
@@ -362,9 +366,10 @@ export function InlineSubform({
             : response;
 
         toast({
-          title: "Updated Successfully",
+          title: "✅ Updated Successfully",
           description: "Row updated successfully.",
           variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } else {
         const response = await submitApi(payload);
@@ -373,9 +378,10 @@ export function InlineSubform({
             ? await response.json()
             : response;
         toast({
-          title: "Created Successfully",
+          title: "✅ Created Successfully",
           description: "Row created successfully.",
           variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       }
 
@@ -398,9 +404,10 @@ export function InlineSubform({
     } catch (err) {
       console.error("Save failed", err);
       toast({
-        title: "Save Failed",
-        description: "Something went wrong while saving.",
+        title: "❌ Unable to Save",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };

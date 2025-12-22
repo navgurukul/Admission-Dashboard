@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { updateStudent } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface StatusDropdownProps {
   applicant?: any; // make optional
@@ -84,17 +85,20 @@ const StatusDropdown = ({ applicant, onUpdate }: StatusDropdownProps) => {
       }
 
       toast({
-        title: "Status Updated",
+        title: "✅ Status Updated",
         description: `Status changed to ${newStatus}`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       onUpdate();
     } catch (error) {
       console.error("Error updating status:", error);
       toast({
-        title: "Error",
-        description: "Failed to update status",
+        title: "❌ Unable to Update Status",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };

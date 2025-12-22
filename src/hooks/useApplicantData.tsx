@@ -10,6 +10,9 @@ import {
   getAllQuestionSets,
   getAllQualification,
   getAllCasts,
+  getPartners,
+  getAllDonors,
+  getAllStates,
 } from "@/utils/api";
 
 export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
@@ -22,6 +25,9 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
   const [questionSetList, setQuestionSetList] = useState<any[]>([]);
   const [qualificationList, setQualificationList] = useState<any[]>([]);
   const [castList, setCastList] = useState<any[]>([]);
+  const [partnerList, setPartnerList] = useState<any[]>([]);
+  const [donorList, setDonorList] = useState<any[]>([]);
+  const [stateList, setStateList] = useState<{ value: string; label: string }[]>([]);
 
   // Fetch students with server-side pagination
   const {
@@ -45,57 +51,60 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
     (studentsData as any)?.totalPages ||
     Math.max(1, Math.ceil(totalStudents / itemsPerPage));
 
-  // Fetch static options (campuses, schools, religions, qualifications, casts)
+  // Fetch static options (campuses, schools, religions, qualifications, casts, partners, donors, states, stages, statuses, questionSets)
+  // All fetched in a single useEffect to prevent multiple state updates and re-renders
   useEffect(() => {
-    const fetchOptions = async () => {
+    const fetchAllOptions = async () => {
       try {
-        const [campuses, schools, religions, qualifications, casts] = await Promise.all([
+        const [
+          campuses, 
+          schools, 
+          religions, 
+          qualifications, 
+          casts, 
+          partners, 
+          donors, 
+          states,
+          stages,
+          statuses,
+          questionSets
+        ] = await Promise.all([
           getCampusesApi(),
           getAllSchools(),
           getAllReligions(),
           getAllQualification(),
           getAllCasts(),
+          getPartners(),
+          getAllDonors(),
+          getAllStates(),
+          getAllStages(),
+          getAllStatuses(),
+          getAllQuestionSets(),
         ]);
+        
         setCampusList(campuses || []);
         setSchoolsList(schools || []);
         setReligionList(religions || []);
         setQualificationList(qualifications || []);
         setCastList(casts || []);
-      } catch (error) {
-        console.error("Failed to fetch campuses/schools/options:", error);
-      }
-    };
-    fetchOptions();
-  }, []);
-
-  // Fetch stages and statuses
-  useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const [stages, statuses] = await Promise.all([
-          getAllStages(),
-          getAllStatuses(),
-        ]);
+        setPartnerList(partners || []);
+        setDonorList(donors || []);
         setStageList(stages || []);
         setcurrentstatusList(statuses || []);
+        setQuestionSetList(questionSets || []);
+        
+        // Map states to { value, label } format
+        const statesData = states?.data || states || [];
+        const mappedStates = statesData.map((s: any) => ({
+          value: s.state_code,
+          label: s.state_name,
+        }));
+        setStateList(mappedStates);
       } catch (error) {
-        console.error("Failed to fetch stages/statuses:", error);
+        console.error("Failed to fetch options:", error);
       }
     };
-    fetchOptions();
-  }, []);
-
-  // Fetch question sets
-  useEffect(() => {
-    const fetchQuestionSets = async () => {
-      try {
-        const response = await getAllQuestionSets();
-        setQuestionSetList(response || []);
-      } catch (error) {
-        console.error("Error fetching question sets:", error);
-      }
-    };
-    fetchQuestionSets();
+    fetchAllOptions();
   }, []);
 
   return {
@@ -116,5 +125,8 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
     questionSetList,
     qualificationList,
     castList,
+    partnerList,
+    donorList,
+    stateList,
   };
 };

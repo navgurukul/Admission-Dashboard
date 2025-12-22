@@ -1,59 +1,63 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
+// import { Button } from "@/components/ui/button";
+// import { Badge } from "@/components/ui/badge";
+// import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
+// import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
-import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import { Calendar } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+// import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+// import { Calendar } from "lucide-react";
+// import {
+//   Popover,
+//   PopoverContent,
+//   PopoverTrigger,
+// } from "@/components/ui/popover";
+// import {
+//   Command,
+//   CommandEmpty,
+//   CommandGroup,
+//   CommandInput,
+//   CommandItem,
+//   CommandList,
+// } from "@/components/ui/command";
 import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
-  getAllCasts,
   updateStudent,
-  getAllQualification,
-  getAllStatuses,
-  getAllSchools,
-  getCampusesApi,
   getStudentById,
-  getAllQuestionSets,
   API_MAP,
   submitFinalDecision,
-  getAllStates,
   getBlocksByDistrict,
   getDistrictsByState,
-  getAllStages,
-  getPartners,
-  getAllDonors,
 } from "@/utils/api";
-import { states } from "@/utils/mockApi";
 import { InlineSubform } from "@/components/Subform";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import StageDropdown, {
-  STAGE_STATUS_MAP,
-} from "./applicant-table/StageDropdown";
-import { Value } from "@radix-ui/react-select";
+// import { Input } from "@/components/ui/input";
+// import { cn } from "@/lib/utils";
+// import StageDropdown, {
+//   STAGE_STATUS_MAP,
+// } from "./applicant-table/StageDropdown";
+// import { Value } from "@radix-ui/react-select";
 import {
   Tooltip,
   TooltipContent,
@@ -65,12 +69,33 @@ interface ApplicantModalProps {
   applicant: any;
   isOpen: boolean;
   onClose: () => void;
+  // Pre-fetched data from parent
+  castList?: any[];
+  qualificationList?: any[];
+  currentstatusList?: any[];
+  schoolList?: any[];
+  campusList?: any[];
+  questionSetList?: any[];
+  stageList?: any[];
+  partnerList?: any[];
+  donorList?: any[];
+  stateList?: { value: string; label: string }[];
 }
 
 export function ApplicantModal({
   applicant,
   isOpen,
   onClose,
+  castList = [],
+  qualificationList = [],
+  currentstatusList = [],
+  schoolList = [],
+  campusList = [],
+  questionSetList = [],
+  stageList = [],
+  partnerList = [],
+  donorList = [],
+  stateList = [],
 }: ApplicantModalProps) {
   const { toast } = useToast();
   const { hasEditAccess } = usePermissions();
@@ -78,18 +103,7 @@ export function ApplicantModal({
   const [showEditModal, setShowEditModal] = useState(false);
   // const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [castes, setCastes] = useState<any[]>([]);
-  const [qualifications, setQualifications] = useState<any[]>([]);
-  const [currentWorks, setCurrentWorks] = useState<any[]>([]);
-  const [schools, setSchools] = useState<any[]>([]);
-  const [partners, setPartners] = useState<any[]>([]);
-  const [donors, setDonors] = useState<any[]>([]);
-  const [questionSets, setQuestionSets] = useState<any[]>([]);
   const [joiningDate, setJoiningDate] = useState("");
-  const [stages, setStages] = useState<any[]>([]);
-  const [stateOptions, setStateOptions] = useState<
-    { value: string; label: string }[]
-  >([]);
   const [districtOptions, setDistrictOptions] = useState<
     { value: string; label: string }[]
   >([]);
@@ -100,14 +114,78 @@ export function ApplicantModal({
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+  
+  // Refs to track previous values and prevent unnecessary API calls
+  const prevStateRef = useRef<string | null>(null);
+  const prevDistrictRef = useRef<string | null>(null);
+  
   const [openComboboxes, setOpenComboboxes] = useState({
     state: false,
     district: false,
     block: false,
   });
 
-  const [campus, setCampus] = useState<any[]>([]);
+  // Transform props data to the format expected by the component
+  const castes = useMemo(() => 
+    (castList || []).map((c: any) => ({
+      value: c.id?.toString(),
+      label: c.cast_name,
+    })), [castList]);
+
+  const qualifications = useMemo(() => 
+    (qualificationList || []).map((q: any) => ({
+      value: q.id?.toString(),
+      label: q.qualification_name,
+    })), [qualificationList]);
+
+  const currentWorks = useMemo(() => 
+    (currentstatusList || []).map((w: any) => ({
+      value: w.id?.toString(),
+      label: w.current_status_name,
+    })), [currentstatusList]);
+
+  const schools = useMemo(() => 
+    (schoolList || []).map((c: any) => ({
+      value: c.id?.toString(),
+      label: c.school_name,
+    })), [schoolList]);
+
+  const campus = useMemo(() => 
+    (campusList || []).map((c: any) => ({
+      value: c.id?.toString(),
+      label: c.campus_name,
+    })), [campusList]);
+
+  const questionSets = useMemo(() => 
+    (questionSetList || []).map((qs: any) => ({
+      value: qs.id?.toString(),
+      label: qs.name,
+    })), [questionSetList]);
+
+  const stages = useMemo(() => 
+    (stageList || []).map((s: any) => ({
+      id: s.id,
+      name: s.stage_name || s.name,
+    })), [stageList]);
+
+  const partners = useMemo(() => 
+    (partnerList || []).map((p: any) => ({
+      value: p.id?.toString(),
+      label: p.partner_name,
+    })), [partnerList]);
+
+  const donors = useMemo(() => 
+    (donorList || []).map((d: any) => ({
+      value: d.id?.toString(),
+      label: d.donor_name,
+    })), [donorList]);
+
+  const stateOptions = useMemo(() => stateList || [], [stateList]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  // Confirmation dialog state for "Offer Sent"
+  const [showOfferSentConfirmation, setShowOfferSentConfirmation] = useState(false);
+  const [pendingOfferLetterValue, setPendingOfferLetterValue] = useState<string | null>(null);
 
   const format = (date: Date, formatStr: string) => {
     if (formatStr === "PPP") {
@@ -156,28 +234,6 @@ export function ApplicantModal({
     return byName ? byName.value : value;
   };
 
-  // Fetch states on modal open
-  useEffect(() => {
-    const fetchStates = async () => {
-      try {
-        const statesRes = await getAllStates();
-        const statesData = statesRes?.data || statesRes || [];
-        const mappedStates = statesData.map((s: any) => ({
-          value: s.state_code,
-          label: s.state_name,
-        }));
-        setStateOptions(mappedStates);
-      } catch (error) {
-        // console.error("Failed to fetch states:", error);
-        setStateOptions(states);
-      }
-    };
-
-    if (isOpen) {
-      fetchStates();
-    }
-  }, [isOpen]);
-
   // Initialize selected state and district from applicant data
   useEffect(() => {
     if (applicant?.id) {
@@ -224,101 +280,7 @@ export function ApplicantModal({
       };
       fetchStudent();
     }
-  }, [isOpen, applicant?.id, refreshKey, stateOptions, districtOptions]);
-
-  // Fetch dropdowns data
-  useEffect(() => {
-    async function fetchDropdowns() {
-      try {
-        const [
-          casteRes,
-          qualRes,
-          workRes,
-          schoolRes,
-          campusRes,
-          questionSetRes,
-          stagesRes,
-          partnersRes,
-          donorsRes,
-        ] = await Promise.all([
-          getAllCasts(),
-          getAllQualification(),
-          getAllStatuses(),
-          getAllSchools(),
-          getCampusesApi(),
-          getAllQuestionSets(),
-          getAllStages(),
-          getPartners(),
-          getAllDonors(),
-        ]);
-
-        setCampus(
-          (campusRes || []).map((c: any) => ({
-            value: c.id.toString(),
-            label: c.campus_name,
-          }))
-        );
-
-        setSchools(
-          (schoolRes || []).map((c: any) => ({
-            value: c.id.toString(),
-            label: c.school_name,
-          }))
-        );
-
-        setCastes(
-          (casteRes || []).map((c: any) => ({
-            value: c.id.toString(),
-            label: c.cast_name,
-          }))
-        );
-
-        setQualifications(
-          (qualRes || []).map((q: any) => ({
-            value: q.id.toString(),
-            label: q.qualification_name,
-          }))
-        );
-
-        setCurrentWorks(
-          (workRes || []).map((w: any) => ({
-            value: w.id.toString(),
-            label: w.current_status_name,
-          }))
-        );
-        setQuestionSets(
-          (questionSetRes || []).map((qs: any) => ({
-            value: qs.id.toString(),
-            label: qs.name,
-          }))
-        );
-        setStages(
-          (stagesRes || []).map((s: any) => ({
-            id: s.id,
-            name: s.stage_name,
-          }))
-        );
-
-        setPartners(
-          (partnersRes || []).map((p: any) => ({
-            value: p.id.toString(),
-            label: p.partner_name,
-          }))
-        );
-
-        setDonors(
-          (donorsRes || []).map((d: any) => ({
-            value: d.id.toString(),
-            label: d.donor_name,
-          }))
-        );
-      } catch (err) {
-        // console.error("Failed to load dropdown data", err);
-      }
-    }
-
-    if (isOpen) fetchDropdowns();
-  }, [isOpen]);
+  }, [isOpen, applicant?.id, refreshKey]); // Removed stateOptions and districtOptions to prevent unnecessary API calls
 
   // Set joining date from current applicant
   // useEffect(() => {
@@ -341,8 +303,15 @@ export function ApplicantModal({
     if (!selectedState) {
       setDistrictOptions([]);
       setBlockOptions([]);
+      prevStateRef.current = null;
       return;
     }
+
+    // Skip if state hasn't actually changed (prevents duplicate calls)
+    if (prevStateRef.current === selectedState) {
+      return;
+    }
+    prevStateRef.current = selectedState;
 
     const fetchDistricts = async () => {
       setIsLoadingDistricts(true);
@@ -369,8 +338,15 @@ export function ApplicantModal({
   useEffect(() => {
     if (!selectedDistrict) {
       setBlockOptions([]);
+      prevDistrictRef.current = null;
       return;
     }
+
+    // Skip if district hasn't actually changed (prevents duplicate calls)
+    if (prevDistrictRef.current === selectedDistrict) {
+      return;
+    }
+    prevDistrictRef.current = selectedDistrict;
 
     const fetchBlocks = async () => {
       setIsLoadingBlocks(true);
@@ -396,18 +372,49 @@ export function ApplicantModal({
     fetchBlocks();
   }, [selectedDistrict]);
 
+  // Handler for "Offer Sent" confirmation
+  const handleOfferLetterStatusChange = async (value: any) => {
+    if (value === "Offer Sent") {
+      // Show confirmation dialog before proceeding
+      setPendingOfferLetterValue(value);
+      setShowOfferSentConfirmation(true);
+      return;
+    }
+    // For other values, proceed directly
+    await handleFinalDecisionUpdate("offer_letter_status", value);
+  };
+
+  // Confirm "Offer Sent" selection
+  const confirmOfferSent = async () => {
+    if (pendingOfferLetterValue) {
+      await handleFinalDecisionUpdate("offer_letter_status", pendingOfferLetterValue);
+    }
+    setShowOfferSentConfirmation(false);
+    setPendingOfferLetterValue(null);
+  };
+
+  // Cancel "Offer Sent" selection
+  const cancelOfferSent = () => {
+    setShowOfferSentConfirmation(false);
+    setPendingOfferLetterValue(null);
+  };
+
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
 
-    try {
-      // Fetch latest data to ensure we have all current values
-      const response = await getStudentById(currentApplicant.id);
-      let latestData: any = response;
-      if (response && typeof response === "object" && "data" in response) {
-        latestData = (response as any).data;
-      }
+    // Validation: Campus must be selected before setting offer letter status
+    if (field === "offer_letter_status" && !currentApplicant?.campus_id) {
+      toast({
+        title: "Alert",
+        description: "Please select a Campus first before setting Offer Letter Status.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      const existingDecision = latestData?.final_decisions?.[0] || {};
+    try {
+      // Use existing local state instead of fetching again
+      const existingDecision = currentApplicant?.final_decisions?.[0] || {};
 
       // Get the current joining_date - prioritize the state value
       let currentJoiningDate = joiningDate;
@@ -462,7 +469,7 @@ export function ApplicantModal({
 
       await submitFinalDecision(payload);
 
-      // Update local state immediately
+      // Update local state immediately - no need for extra API call
       setCurrentApplicant((prev) => ({
         ...prev,
         final_decisions: [
@@ -480,14 +487,17 @@ export function ApplicantModal({
         setJoiningDate(value);
       }
 
-      // Refresh to get latest data from server
-      await handleUpdate();
+      toast({
+        title: "Success",
+        description: "Final decision updated successfully.",
+      });
     } catch (err) {
       console.error("Failed to update final decision", err);
       toast({
-        title: "Error",
-        description: "Failed to update final decision. Please try again.",
+        title: "❌ Unable to Update Final Decision",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -599,15 +609,18 @@ export function ApplicantModal({
       await handleUpdate();
       
       toast({ 
-        title: "Success", 
-        description: "Block updated successfully" 
+        title: "✅ Block Updated",
+        description: "Block has been updated successfully",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
     } catch (error) {
       console.error("Failed to update block:", error);
       toast({
-        title: "Error",
-        description: "Failed to update block",
+        title: "❌ Unable to Update Block",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -1245,7 +1258,7 @@ export function ApplicantModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Campus
+                    Campus <span className="text-red-500">*</span>
                   </label>
                   {isStageDisabled(currentApplicant, "OFFER") &&
                     !currentApplicant.campus_id ? (
@@ -1273,18 +1286,20 @@ export function ApplicantModal({
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
-                    <EditableCell
-                      applicant={currentApplicant}
-                      field="campus_id"
-                      value={currentApplicant.campus_id}
-                      displayValue={getLabel(
-                        campus,
-                        currentApplicant.campus_id
-                      )}
-                      onUpdate={handleUpdate}
-                      options={campus}
-                      disabled={!hasEditAccess}
-                    />
+                    <div className={!currentApplicant.campus_id && (currentApplicant.final_decisions?.[0]?.offer_letter_status || currentApplicant.final_decisions?.[0]?.onboarded_status) ? "border-2 border-red-500 rounded" : ""}>
+                      <EditableCell
+                        applicant={currentApplicant}
+                        field="campus_id"
+                        value={currentApplicant.campus_id}
+                        displayValue={getLabel(
+                          campus,
+                          currentApplicant.campus_id
+                        )}
+                        onUpdate={handleUpdate}
+                        options={campus}
+                        disabled={!hasEditAccess}
+                      />
+                    </div>
                   )}
                 </div>
                 <div>
@@ -1331,10 +1346,7 @@ export function ApplicantModal({
                               ]}
                               disabled={true}
                               onUpdate={async (value) => {
-                                await handleFinalDecisionUpdate(
-                                  "offer_letter_status",
-                                  value
-                                );
+                                await handleOfferLetterStatusChange(value);
                               }}
                             />
                           </div>
@@ -1369,6 +1381,16 @@ export function ApplicantModal({
                       ]}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
+                        await handleOfferLetterStatusChange(value);
+                        if (!currentApplicant.campus_id) {
+                          toast({
+                            title: "⚠️ Campus Required",
+                            description: "Please select a campus before proceeding with the offer letter status",
+                            variant: "destructive",
+                            className: "border-orange-500 bg-orange-50 text-orange-900",
+                          });
+                          return;
+                        }
                         await handleFinalDecisionUpdate(
                           "offer_letter_status",
                           value
@@ -1431,6 +1453,15 @@ export function ApplicantModal({
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
+                        if (!currentApplicant.campus_id) {
+                          toast({
+                            title: "⚠️ Campus Required",
+                            description: "Please select a campus before onboarding",
+                            variant: "destructive",
+                            className: "border-orange-500 bg-orange-50 text-orange-900",
+                          });
+                          return;
+                        }
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
                           value
@@ -1585,6 +1616,22 @@ export function ApplicantModal({
           onSuccess={handleEditSuccess}
         />
       )}
+
+      {/* Confirmation Dialog for "Offer Sent" */}
+      <AlertDialog open={showOfferSentConfirmation} onOpenChange={setShowOfferSentConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Offer Sent</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this offer as "Offer Sent"? This action will update the applicant's offer letter status.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelOfferSent}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmOfferSent}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* {showCommentsModal && (
         <ApplicantCommentsModal

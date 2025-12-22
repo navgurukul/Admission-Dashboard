@@ -13,6 +13,7 @@ import { User, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { getStudentDataByEmail } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 type Student = {
   id: number;
@@ -63,7 +64,7 @@ export default function StudentLogin() {
       const data = await getStudentDataByEmail(email);
       // getStudentDataByEmail returns axios response.data which itself
       // often contains a `data` field with payload. Normalize both.
-      const payload = data?.data ?? data ?? null;
+      const payload = (data as unknown as any)?.data ?? data ?? null;
       return payload?.student ?? null;
     } catch (error) {
       console.error("Error fetching student data:", error);
@@ -169,8 +170,10 @@ export default function StudentLogin() {
         localStorage.setItem("userRole", JSON.stringify(roleName));
 
         toast({
-          title: "Welcome!",
+          title: "✅ Welcome!",
           description: `Successfully signed in as ${googleUser.name}`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900"
         });
 
         // Mark as processed and clear the credential
@@ -186,7 +189,7 @@ export default function StudentLogin() {
           const apiResponse = await getStudentDataByEmail(googleUser.email);
 
           // Normalize payload: API usually returns { success, message, data: { student, exam_sessions, ... } }
-          const payload = apiResponse?.data ?? apiResponse ?? null;
+          const payload = (apiResponse as unknown as any)?.data ?? apiResponse ?? null;
 
           // Persist the whole payload for later use
           localStorage.setItem("studentData", JSON.stringify(payload));
@@ -247,7 +250,8 @@ export default function StudentLogin() {
                 <span>Welcome back, {googleUser.name}! 🎉</span>
               </div>
             ),
-            className: "bg-green-50 border-green-500 text-green-800",
+            variant: "default",
+            className: "border-green-500 bg-green-50 text-green-900"
           });
 
           // Mark as processed and clear the credential
@@ -373,7 +377,8 @@ export default function StudentLogin() {
             <span>Welcome back, {data.student.name}! 🎉</span>
           </div>
         ),
-        className: "bg-green-50 border-green-500 text-green-800",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
       });
 
       navigate("/students/details/instructions");
@@ -383,10 +388,11 @@ export default function StudentLogin() {
         description: (
           <div className="flex items-center space-x-2">
             <XCircle className="w-5 h-5 text-red-500" />
-            <span>{err.message}</span>
+            <span>{getFriendlyErrorMessage(err)}</span>
           </div>
         ),
-        className: "bg-red-50 border-red-500 text-red-800",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
     } finally {
       setLoading(false);

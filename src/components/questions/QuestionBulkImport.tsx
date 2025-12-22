@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import Papa from "papaparse";
 import { bulkUploadQuestions, getQuestions } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+
 
 interface QuestionBulkImportProps {
   onImportComplete: () => void;
@@ -89,9 +91,10 @@ export function QuestionBulkImport({
   const parseCsvData = () => {
     if (!csvData.trim()) {
       toast({
-        title: "No Data",
+        title: "⚠️ No Data",
         description: "Please paste CSV data or upload a file",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -237,8 +240,10 @@ export function QuestionBulkImport({
           setParsedData(validQuestions);
           setImportStatus("parsed");
           toast({
-            title: "CSV Parsed Successfully",
+            title: "✅ CSV Parsed Successfully",
             description: `Found ${validQuestions.length} valid questions`,
+            variant: "default",
+            className: "border-green-500 bg-green-50 text-green-900",
           });
         }
       },
@@ -253,9 +258,10 @@ export function QuestionBulkImport({
   const importQuestions = async () => {
     if (!csvData.trim()) {
       toast({
-        title: "No Data",
+        title: "⚠️ No Data",
         description: "Please parse CSV data first",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -265,9 +271,10 @@ export function QuestionBulkImport({
 
     if (!googleUser?.id) {
       toast({
-        title: "Authentication Error",
+        title: "⚠️ Authentication Error",
         description: "You must be logged in to import questions",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       setImportStatus("error");
       return;
@@ -305,19 +312,23 @@ export function QuestionBulkImport({
       setImportStatus("complete");
 
       toast({
-        title: "Import Complete",
+        title: "✅ Import Complete",
         description: `Successfully imported ${res.data?.success || res.success || parsedData.length} questions.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       onImportComplete();
     } catch (error: any) {
       console.error("Import error:", error);
-      setErrors([error.message || "Failed to import questions"]);
+      const friendlyError = getFriendlyErrorMessage(error);
+      setErrors([friendlyError]);
       setImportStatus("error");
       toast({
-        title: "Import Failed",
-        description: error.message || "Something went wrong",
+        title: "❌ Import Failed",
+        description: friendlyError,
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -328,9 +339,10 @@ export function QuestionBulkImport({
 
     if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
       toast({
-        title: "Invalid File",
+        title: "⚠️ Invalid File",
         description: "Please upload a CSV file",
         variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
 
       return;

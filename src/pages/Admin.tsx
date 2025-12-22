@@ -22,6 +22,7 @@ import {
 } from "@/utils/api";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { searchUsers } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 const ROWS_PER_PAGE = 10;
 
@@ -154,10 +155,11 @@ const AdminPage: React.FC = () => {
     if (!/^[A-Za-z\s'-]+$/.test(nameTrim)) {
       setNameError("Name can only contain letters, spaces.");
       toast({
-        title: "Invalid Name",
+        title: "⚠️ Invalid Name",
         description:
           "Name can only contain letters, spaces, apostrophes, and hyphens.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -167,9 +169,10 @@ const AdminPage: React.FC = () => {
     if (!/^\d{10}$/.test(addUserDialog.phone.trim())) {
       setPhoneError("Phone number must be exactly 10 digits");
       toast({
-        title: "Invalid Phone",
+        title: "⚠️ Invalid Phone",
         description: "Phone number must be exactly 10 digits.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -180,9 +183,10 @@ const AdminPage: React.FC = () => {
     if (!emailTrim) {
       setEmailError("Email is required");
       toast({
-        title: "Email Required",
+        title: "⚠️ Email Required",
         description: "Please enter an email address.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -190,9 +194,10 @@ const AdminPage: React.FC = () => {
     if (!emailRegex.test(emailTrim)) {
       setEmailError("Please enter a valid email address");
       toast({
-        title: "Invalid Email",
+        title: "⚠️ Invalid Email",
         description: "Please enter a valid email address.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -205,10 +210,11 @@ const AdminPage: React.FC = () => {
         "Username can only contain letters, numbers, and underscores",
       );
       toast({
-        title: "Invalid Username",
+        title: "⚠️ Invalid Username",
         description:
           "Username can only contain letters, numbers, and underscores.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -217,9 +223,10 @@ const AdminPage: React.FC = () => {
     if (!addUserDialog.selectedRoleId) {
       // role required
       toast({
-        title: "Role Required",
+        title: "⚠️ Role Required",
         description: "Please select a role for the user.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -260,8 +267,10 @@ const AdminPage: React.FC = () => {
       setPage(1);
 
       toast({
-        title: "User Created",
+        title: "✅ User Created",
         description: `Successfully created user ${payload.name}`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       closeAddUserDialog();
@@ -278,16 +287,18 @@ const AdminPage: React.FC = () => {
       if (errorMessage.toLowerCase().includes('already exists')) {
         setEmailError("User with this email already exists");
         toast({
-          title: "User Already Exists",
+          title: "⚠️ User Already Exists",
           description: "This email is already registered. Please use a different email.",
-          variant: "destructive",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
       } else {
         // Show other errors
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "❌ Unable to Create User",
+          description: getFriendlyErrorMessage(err),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
       }
     }
@@ -336,20 +347,20 @@ const AdminPage: React.FC = () => {
       }
 
       toast({
-        title: "User Deleted",
+        title: "✅ User Deleted",
         description: "User has been successfully deleted.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       setDeleteConfirm({ open: false, userId: null, userName: "" });
     } catch (err: any) {
       console.error("Error deleting user:", err);
       toast({
-        title: "Delete Failed",
-        description:
-          err.details ||
-          err.message ||
-          "Failed to delete user. Please try again.",
+        title: "❌ Unable to Delete User",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       setDeleteConfirm({ open: false, userId: null, userName: "" });
     }
@@ -370,8 +381,10 @@ const AdminPage: React.FC = () => {
       }
 
       toast({
-        title: "User Updated",
+        title: "✅ User Updated",
         description: `Successfully updated ${updateConfirm.data.name}`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       setUpdateConfirm({ open: false, data: null });
@@ -389,9 +402,10 @@ const AdminPage: React.FC = () => {
                           "Failed to update user. Please try again.";
       
       toast({
-        title: "Error Updating User",
-        description: errorMessage,
+        title: "❌ Unable to Update User",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       setUpdateConfirm({ open: false, data: null });
     }
