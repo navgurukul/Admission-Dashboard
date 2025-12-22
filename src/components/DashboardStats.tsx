@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
@@ -10,6 +10,9 @@ interface DashboardMetrics {
   interviewsScheduled: number;
   successfullyOnboarded: number;
 }
+
+// Cache stages at module level to avoid refetching
+let cachedStages: any[] | null = null;
 
 export function DashboardStats() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -31,8 +34,13 @@ export function DashboardStats() {
         return;
       }
 
-      // Fetch all stages to get the stage IDs
-      const stages = await getAllStages();
+      // Use cached stages or fetch if not available
+      let stages = cachedStages;
+      if (!stages) {
+        stages = await getAllStages();
+        cachedStages = stages;
+      }
+      
       const finalDecisionStage = stages.find(
         (stage: any) => stage.stage_name === "Final Decision",
       );

@@ -67,6 +67,11 @@ interface BulkUpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  campusList?: any[];
+  stateList?: any[];
+  castList?: any[];
+  qualificationList?: any[];
+  currentstatusList?: any[];
 }
 
 export function BulkUpdateModal({
@@ -74,6 +79,11 @@ export function BulkUpdateModal({
   isOpen,
   onClose,
   onSuccess,
+  campusList = [],
+  stateList = [],
+  castList = [],
+  qualificationList = [],
+  currentstatusList = [],
 }: BulkUpdateModalProps) {
   const [updateData, setUpdateData] = useState({
     stageId: "no_change",
@@ -111,13 +121,60 @@ export function BulkUpdateModal({
     { value: string; label: string }[]
   >([]);
 
+  // Initialize dropdown options from props when modal opens
   useEffect(() => {
     if (isOpen) {
-      fetchCampuses();
-      fetchStates();
-      fetchDropdowns();
+      // Use props if available, otherwise fetch from API
+      if (campusList.length > 0) {
+        setCampusOptions(campusList);
+      } else {
+        fetchCampuses();
+      }
+
+      if (stateList.length > 0) {
+        const states = stateList.map((s: any) => ({
+          value: s.state_code,
+          label: s.state_name,
+        }));
+        setStateOptions(states);
+      } else {
+        fetchStates();
+      }
+
+      // Set dropdown options from props
+      if (castList.length > 0) {
+        setCastOptions(
+          castList.map((c: any) => ({
+            value: String(c.id),
+            label: c.cast_name || c.name || `#${c.id}`,
+          }))
+        );
+      }
+
+      if (qualificationList.length > 0) {
+        setQualificationOptions(
+          qualificationList.map((q: any) => ({
+            value: String(q.id),
+            label: q.qualification_name || q.name || `#${q.id}`,
+          }))
+        );
+      }
+
+      if (currentstatusList.length > 0) {
+        setCurrentWorkOptions(
+          currentstatusList.map((s: any) => ({
+            value: String(s.id),
+            label: s.current_status_name || s.name || `#${s.id}`,
+          }))
+        );
+      }
+
+      // Only fetch dropdowns if props are not provided
+      if (castList.length === 0 || qualificationList.length === 0 || currentstatusList.length === 0) {
+        fetchDropdowns();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, campusList, stateList, castList, qualificationList, currentstatusList]);
 
   const fetchCampuses = async () => {
     try {
