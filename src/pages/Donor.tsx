@@ -43,6 +43,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { createDonor, getDonors, updateDonor, deleteDonor, Donor } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 const DonorPage = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
@@ -90,7 +91,7 @@ const DonorPage = () => {
       setTotalPages(pages);
     } catch (error) {
       console.error("Error loading donors:", error);
-      toast({ title: "Error", description: "Failed to fetch donors", variant: "destructive" });
+      toast({ title: "❌ Unable to Load Donors", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
     } finally {
       setLoading(false);
     }
@@ -107,12 +108,12 @@ const DonorPage = () => {
       !formData.donor_state.trim() ||
       !formData.donor_country.trim()
     ) {
-      toast({ title: "Error", description: "All fields are required", variant: "destructive" });
+      toast({ title: "⚠️ Required Fields Missing", description: "All fields are required", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
     }
 
     if (formData.donor_phone.length !== 10) {
-      toast({ title: "Error", description: "Phone number must be exactly 10 digits", variant: "destructive" });
+      toast({ title: "⚠️ Invalid Phone Number", description: "Phone number must be exactly 10 digits", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
     }
 
@@ -126,7 +127,7 @@ const DonorPage = () => {
         donor_state: formData.donor_state,
         donor_country: formData.donor_country
       });
-      toast({ title: "Success", description: "Donor created successfully" });
+      toast({ title: "✅ Donor Created", description: "Donor created successfully", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
       setAddDialogOpen(false);
       setFormData({
         donor_name: "",
@@ -139,7 +140,7 @@ const DonorPage = () => {
       });
       loadDonors();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to create donor", variant: "destructive" });
+      toast({ title: "❌ Unable to Create Donor", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
     }
   };
 
@@ -169,12 +170,12 @@ const DonorPage = () => {
       !formData.donor_state.trim() ||
       !formData.donor_country.trim()
     ) {
-      toast({ title: "Error", description: "All fields are required", variant: "destructive" });
+      toast({ title: "⚠️ Required Fields Missing", description: "All fields are required", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
     }
 
     if (formData.donor_phone.length !== 10) {
-      toast({ title: "Error", description: "Phone number must be exactly 10 digits", variant: "destructive" });
+      toast({ title: "⚠️ Invalid Phone Number", description: "Phone number must be exactly 10 digits", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
     }
 
@@ -188,12 +189,12 @@ const DonorPage = () => {
         donor_state: formData.donor_state,
         donor_country: formData.donor_country
       });
-      toast({ title: "Success", description: "Donor updated successfully" });
+      toast({ title: "✅ Donor Updated", description: "Donor updated successfully", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
       setEditDialogOpen(false);
       setCurrentDonor(null);
       loadDonors();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to update donor", variant: "destructive" });
+      toast({ title: "❌ Unable to Update Donor", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
     }
   };
 
@@ -201,10 +202,10 @@ const DonorPage = () => {
     if (!confirm("Are you sure you want to delete this donor?")) return;
     try {
       await deleteDonor(id);
-      toast({ title: "Deleted", description: "Donor deleted successfully" });
+      toast({ title: "✅ Donor Deleted", description: "Donor deleted successfully", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
       loadDonors();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to delete donor", variant: "destructive" });
+      toast({ title: "❌ Unable to Delete Donor", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
     }
   }
 

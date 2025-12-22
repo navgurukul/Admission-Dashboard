@@ -19,6 +19,7 @@ import { Search, Plus, FileDown, Printer, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 // 🔹 API methods from api.ts
 import {
@@ -122,9 +123,10 @@ const SchoolPage = () => {
 
     if (isDuplicate) {
       toast({
-        title: "Duplicate School",
+        title: "⚠️ Duplicate School",
         description: "This school name already exists. Please use a different name.",
-        className: "border-l-4 border-l-orange-500",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
       return;
     }
@@ -142,16 +144,18 @@ const SchoolPage = () => {
       setAddDialog(false);
 
       toast({
-        title: "School Added Successfully",
+        title: "✅ School Added",
         description: `"${newSchool}" has been added to the list.`,
-        className: "border-l-4 border-l-green-600",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
       });
     } catch (err) {
       const errorMessage = formatErrorMessage(err as Error);
       toast({
-        title: "Unable to Add School",
-        description: errorMessage,
+        title: "❌ Unable to Add School",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
     }
   };
@@ -169,16 +173,18 @@ const SchoolPage = () => {
     );
 
     toast({
-      title: "School Updated",
+      title: "✅ School Updated",
       description: `School name updated from "${oldName}" to "${updatedName}".`,
-      className: "border-l-4 border-l-blue-600",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900"
     });
   } catch (error) {
     const errorMessage = formatErrorMessage(error as Error);
     toast({
-      title: "Unable to Update School",
-      description: errorMessage,
+      title: "❌ Unable to Update School",
+      description: getFriendlyErrorMessage(error),
       variant: "destructive",
+      className: "border-red-500 bg-red-50 text-red-900"
     });
   }
 };
@@ -190,9 +196,10 @@ const SchoolPage = () => {
 
     setSchools((prev) => prev.filter((s) => s.id !== id));
     toast({
-      title: "School Deleted",
+      title: "✅ School Deleted",
       description: `"${school_name}" has been removed.`,
-      className: "border-l-4 border-l-red-600",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900"
     });
   } catch (error: any) {
     // Try multiple paths to get the error message
@@ -209,15 +216,13 @@ const SchoolPage = () => {
       fullErrorMessage.toLowerCase().includes("reassign or remove")
     );
     
-    // Use orange for student records error, red for others
-    const borderColor = isStudentRecordsError 
-      ? "border-l-orange-500" 
-      : "border-l-red-600";
-    
     toast({
-      title: "Unable to Delete School",
-      description: fullErrorMessage || "An unexpected error occurred.",
-      className: `border-l-4 ${borderColor}`,
+      title: isStudentRecordsError ? "⚠️ Cannot Delete School" : "❌ Unable to Delete School",
+      description: getFriendlyErrorMessage(error),
+      variant: isStudentRecordsError ? "default" : "destructive",
+      className: isStudentRecordsError 
+        ? "border-orange-500 bg-orange-50 text-orange-900" 
+        : "border-red-500 bg-red-50 text-red-900"
     });
   }
 };

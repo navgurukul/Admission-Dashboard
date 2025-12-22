@@ -9,6 +9,7 @@ import {
   CompleteStudentData,
 } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { OfferLetterCard } from "./OfferLetterCard";
 import Footer from "@/components/Footer";
 
@@ -512,8 +513,9 @@ export default function StudentResult() {
         console.error("Error fetching student data:", error);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to load student data. Please try again.",
+          title: "❌ Unable to Load Data",
+          description: getFriendlyErrorMessage(error),
+          className: "border-red-500 bg-red-50 text-red-900"
         });
       } finally {
         setLoading(false);

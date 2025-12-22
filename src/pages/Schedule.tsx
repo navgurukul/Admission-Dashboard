@@ -14,6 +14,7 @@ import { AddSlotsModal } from "@/components/AddSlotsModal";
 import { EditSlotModal } from "@/components/EditSlotModal";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   getMyAvailableSlots,
   scheduleInterview,
@@ -110,9 +111,10 @@ const Schedule = () => {
     } catch (error) {
       console.error("Error fetching slots:", error);
       toast({
-        title: "Error",
-        description: "Failed to load available slots",
+        title: "❌ Unable to Load Slots",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
       setAllSlots([]);
       setAvailableSlots([]);
@@ -160,9 +162,10 @@ const Schedule = () => {
 
       if (!isSignedIn()) {
         toast({
-          title: "Sign-in Required",
+          title: "⚠️ Google Sign-in Required",
           description: "Please sign in with Google to create Meet link",
-          variant: "destructive",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
         });
         await signIn();
         setIsGoogleSignedIn(true);
@@ -182,8 +185,10 @@ const Schedule = () => {
       };
 
       toast({
-        title: "Creating Meeting",
+        title: "Creating Meeting...",
         description: "Generating Google Meet link...",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
 
       const calendarResult = await createCalendarEvent(eventDetails);
@@ -205,8 +210,10 @@ const Schedule = () => {
       await scheduleInterview(payload);
 
       toast({
-        title: "Success",
+        title: "✅ Interview Scheduled",
         description: "Interview scheduled and Meet link created successfully!",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
       });
 
       fetchAllAvailableSlots();
@@ -216,9 +223,10 @@ const Schedule = () => {
     } catch (error: any) {
       console.error("Admin scheduling error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to schedule interview",
+        title: "❌ Unable to Schedule Interview",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
     } finally {
       setSchedulingInProgress(false);
@@ -249,9 +257,10 @@ const Schedule = () => {
   const openDeleteDialog = (slot: SlotData) => {
     if (!canDeleteSlot(slot)) {
       toast({
-        title: "Cannot Delete",
+        title: "⚠️ Cannot Delete Slot",
         description: "Cannot delete booked slots or past date slots",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
       return;
     }
@@ -268,8 +277,10 @@ const Schedule = () => {
       await deleteInterviewSlot(slotToDelete.id);
 
       toast({
-        title: "Success",
+        title: "✅ Slot Deleted",
         description: "Slot deleted successfully",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
       });
 
       // Refresh slots
@@ -279,9 +290,10 @@ const Schedule = () => {
     } catch (error: any) {
       console.error("Error deleting slot:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete slot",
+        title: "❌ Unable to Delete Slot",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
     } finally {
       setIsDeletingSlot(false);
