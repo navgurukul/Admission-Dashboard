@@ -417,7 +417,7 @@ const Schedule = () => {
                     <Plus className="w-4 h-4 mr-2" />
                     Add Slots
                   </Button>
-                  {/* <Button
+                  <Button
                     onClick={() => {
                       setIsDirectScheduleMode(true);
                       setSelectedSlotForScheduling(null);
@@ -427,7 +427,7 @@ const Schedule = () => {
                   >
                     <Video className="w-4 h-4 mr-2" />
                     Schedule
-                  </Button> */}
+                  </Button>
                 </div>
               </div>
 
@@ -569,7 +569,7 @@ const Schedule = () => {
                           {/* Actions */}
                           <td className="p-4">
                             <div className="flex items-center gap-2">
-                              {/* {!slot.is_booked && (
+                              {!slot.is_booked && (
                                 <Button
                                   variant="default"
                                   size="sm"
@@ -581,7 +581,7 @@ const Schedule = () => {
                                 >
                                   <Video className="w-3 h-3 mr-1" />
                                 </Button>
-                              )} */}
+                              )}
 
                               <Button
                                 variant="outline"

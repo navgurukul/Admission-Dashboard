@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -8,6 +8,7 @@ import {
   User,
   Mail,
   FileText,
+  Search,
 } from "lucide-react";
 import {
   Dialog,
@@ -15,6 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getStudentDataByEmail } from "@/utils/api";
+import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -66,10 +70,85 @@ export const ScheduleInterviewModal = ({
   const [studentName, setStudentName] = useState("");
   const [topicName, setTopicName] = useState("");
   const [interviewerEmail, setInterviewerEmail] = useState("");
+  const [isFetchingStudent, setIsFetchingStudent] = useState(false);
+  const [studentDataFetched, setStudentDataFetched] = useState(false);
+  const { toast } = useToast();
 
   // New states for date and slot selection
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
+
+  // Fetch student details by email
+  const handleFetchStudent = useCallback(async () => {
+    if (!studentEmail || !studentEmail.includes("@")) {
+      toast({
+        title: "⚠️ Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
+      return;
+    }
+
+    setIsFetchingStudent(true);
+    try {
+      const studentData = await getStudentDataByEmail(studentEmail);
+      
+      console.log("Student API Response:", studentData);
+      
+      if (studentData) {
+        // Handle different response formats - data.student contains the actual student info
+        const responseData = studentData.data || studentData;
+        const student = responseData.student || responseData;
+        
+        console.log("Student Object:", student);
+        
+        const studentId = student.student_id || student.id;
+        const fullName = student.full_name || student.name || 
+                        `${student.first_name || ''} ${student.last_name || ''}`.trim();
+        
+        // console.log("Extracted - ID:", studentId, "Name:", fullName);
+        
+        if (studentId) {
+          setStudentId(String(studentId));
+          setStudentName(fullName);
+          setStudentDataFetched(true);
+          
+          toast({
+            title: "✅ Student Found",
+            description: `${fullName} has been successfully found`,
+            variant: "default",
+            className: "border-green-500 bg-green-50 text-green-900"
+          });
+        } else {
+          throw new Error("Student ID not found in response");
+        }
+      }
+    } catch (error: any) {
+      console.error("Error fetching student:", error);
+      toast({
+        title: "❌ Student Not Found",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+      setStudentId("");
+      setStudentName("");
+      setStudentDataFetched(false);
+    } finally {
+      setIsFetchingStudent(false);
+    }
+  }, [studentEmail, toast]);
+
+  // Reset student data when email changes
+  const handleEmailChange = (email: string) => {
+    setStudentEmail(email);
+    if (studentDataFetched) {
+      setStudentId("");
+      setStudentName("");
+      setStudentDataFetched(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -92,25 +171,45 @@ export const ScheduleInterviewModal = ({
     e.preventDefault();
 
     if (!studentId || !studentEmail || !studentName || !topicName) {
-      alert("Please fill all required fields");
+      toast({
+        title: "⚠️ Incomplete Information",
+        description: "Please fill all required fields",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
       return;
     }
 
     if (isDirectScheduleMode && !selectedSlotId) {
-      alert("Please select a date and slot");
+      toast({
+        title: "⚠️ Slot Required",
+        description: "Please select a date and time slot",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
       return;
     }
 
     const slotToUse = currentSlot;
     if (!slotToUse) {
-      alert("Please select a valid slot");
+      toast({
+        title: "⚠️ Invalid Slot",
+        description: "Please select a valid slot",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
       return;
     }
 
     const finalInterviewerEmail =
       interviewerEmail || slotToUse.interviewer_email || "";
     if (!finalInterviewerEmail) {
-      alert("Please enter interviewer email");
+      toast({
+        title: "⚠️ Interviewer Required",
+        description: "Please enter interviewer email",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
       return;
     }
 
@@ -136,8 +235,15 @@ export const ScheduleInterviewModal = ({
       setInterviewerEmail("");
       setSelectedDate("");
       setSelectedSlotId(null);
+      setStudentDataFetched(false);
     } catch (error) {
       console.error("Error in handleSubmit:", error);
+      toast({
+        title: "❌ Failed to Schedule Interview",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
     }
   };
 
@@ -289,17 +395,38 @@ export const ScheduleInterviewModal = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Student ID <span className="text-red-500">*</span>
+                Student Email <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                placeholder="Enter student ID"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={studentEmail}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="student@example.com"
+                  required
+                  disabled={isFetchingStudent}
+                />
+                <Button
+                  type="button"
+                  onClick={handleFetchStudent}
+                  disabled={isFetchingStudent || !studentEmail}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  {isFetchingStudent ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Enter email and click search to student details
+              </p>
             </div>
+
+            {/* Hidden Student ID field - value sent in payload but not shown in UI */}
+            <input type="hidden" value={studentId} required />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -309,27 +436,16 @@ export const ScheduleInterviewModal = ({
                 type="text"
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                placeholder="Enter student full name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                placeholder="Auto-filled from email"
                 required
+                disabled={studentDataFetched}
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Student Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={studentEmail}
-                onChange={(e) => setStudentEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                placeholder="student@example.com"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Calendar invite will be sent to this email
-              </p>
+              {studentDataFetched && (
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  ✓ Student Found
+                </p>
+              )}
             </div>
           </div>
 
@@ -366,16 +482,19 @@ export const ScheduleInterviewModal = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Interview Topic <span className="text-red-500">*</span>
+                Interview Type <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 value={topicName}
                 onChange={(e) => setTopicName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                placeholder="e.g., Technical Interview - Round 1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none"
+                style={{ accentColor: '#f97316' }}
                 required
-              />
+              >
+                <option value="">Select Interview Type</option>
+                <option value="Learning Round (LR)">Learning Round (LR)</option>
+                <option value="Cultural Fit Round (CFR)">Cultural Fit Round (CFR)</option>
+              </select>
             </div>
           </div>
 
