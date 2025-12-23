@@ -99,6 +99,11 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
 const getEditableFields = (row: any, allFields: RowField[]) => {
   if (!row.id) return allFields; // new row: all editable
 
+  // Check if this is a screening round
+  const isScreeningRound = allFields.some((f) =>
+    ["question_set_id", "obtained_marks", "exam_centre", "date_of_test"].includes(f.name)
+  );
+
   // For existing rows, check if status field is disabled (round is passed)
   const statusField = allFields.find((f) => 
     ["status", "learning_round_status", "cultural_fit_status"].includes(f.name)
@@ -109,9 +114,15 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
     return allFields.filter((f) => f.name === "comments");
   }
 
-  // Otherwise, allow editing of status, school_id, and comments
+  // For screening round, allow ALL fields except audit info to be edited
+  if (isScreeningRound) {
+    return allFields.filter((f) => 
+      !["audit_info", "created_at", "updated_at", "last_updated_by"].includes(f.name)
+    );
+  }
+
+  // For learning/cultural rounds, allow editing of status and comments
   return allFields.filter((f) => {
-    if (["status", "school_id"].includes(f.name)) return true;
     if (["learning_round_status", "comments"].includes(f.name)) return true;
     if (["cultural_fit_status", "comments"].includes(f.name)) return true;
     return false;
@@ -228,6 +239,7 @@ export function InlineSubform({
   disableAdd,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
+  const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
   const { toast } = useToast();
 
   useEffect(() => {
@@ -260,7 +272,9 @@ export function InlineSubform({
     });
 
     if (idsChanged || rows.length === 0 || auditInfoChanged) {
-      setRows(initialData.map((r) => ({ ...r })));
+      const mappedData = initialData.map((r) => ({ ...r }));
+      setRows(mappedData);
+      setOriginalRows(mappedData);
     }
   }, [initialData]);
 
@@ -292,9 +306,49 @@ export function InlineSubform({
     });
   };
 
+  // Check if row has actual changes compared to original
+  const hasChanges = (index: number) => {
+    const currentRow = rows[index];
+    const originalRow = originalRows[index];
+    
+    if (!currentRow.id) return true;
+    if (!originalRow) return true;
+    // Get editable fields for this row
+    const editableFields = getEditableFields(currentRow, fields);
+    
+    // Check if any editable field has changed
+    for (const field of editableFields) {
+      const currentValue = currentRow[field.name];
+      const originalValue = originalRow[field.name];
+      
+      //  undefined, and empty string as equivalent
+      const normalizedCurrent = currentValue == null || currentValue === "" ? null : currentValue;
+      const normalizedOriginal = originalValue == null || originalValue === "" ? null : originalValue;
+      
+      if (normalizedCurrent !== normalizedOriginal) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   const saveRow = async (index: number) => {
     const row = rows[index];
     const editableFields = getEditableFields(row, fields);
+
+    // Check if there are actual changes (only for existing rows)
+    if (row.id && !hasChanges(index)) {
+      toast({
+        title: "ℹ️ No Changes",
+        description: "No changes detected. Please modify a field before saving.",
+        variant: "default",
+        className: "border-blue-500 bg-blue-50 text-blue-900",
+      });
+      // Exit editing mode without saving
+      toggleEdit(index, false);
+      return;
+    }
 
     if (!row.id) {
       // Conditional validation based on status
@@ -409,6 +463,13 @@ export function InlineSubform({
       setRows((prev) => {
         const newRows = [...prev];
         newRows[index] = updatedRow;
+        return newRows;
+      });
+      
+      // Update originalRows to reflect the saved state
+      setOriginalRows((prev) => {
+        const newRows = [...prev];
+        newRows[index] = { ...updatedRow };
         return newRows;
       });
 
@@ -578,6 +639,10 @@ export function InlineSubform({
                         <div className="p-2 rounded bg-gray-50 whitespace-pre-wrap break-words max-w-[400px]">
                           {row[f.name] || "—"}
                         </div>
+                      ) : !isEditable ? (
+                        <div className="p-2 rounded bg-gray-50 w-full break-words">
+                          {getDisplayValue(row, f)}
+                        </div>
                       ) : (
                         <EditableCell
                           row={row}
@@ -603,14 +668,25 @@ export function InlineSubform({
                       <Pencil className="h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-green-600 hover:bg-green-50"
-                      onClick={() => saveRow(idx)}
-                    >
-                      <Save className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""}`}
+                            onClick={() => saveRow(idx)}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        {row.id && !hasChanges(idx) && (
+                          <TooltipContent>
+                            <p>No changes to save</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </td>
               </tr>
