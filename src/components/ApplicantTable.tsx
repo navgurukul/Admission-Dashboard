@@ -342,16 +342,7 @@ const ApplicantTable = () => {
   };
 
   const handleSendBulkOfferLetters = async () => {
-    // if (selectedRows.length === 0) {
-    //   toast({
-    //     title: "⚠️ No Selection",
-    //     description: "Please select at least one student to send offer letters",
-    //     variant: "default",
-    //     className: "border-orange-500 bg-orange-50 text-orange-900",
-    //   });
-    //   return;
-    // }
-
+  
     try {
       const studentIds = selectedRows.map((id) => Number(id));
       const result = await sendBulkOfferLetters(studentIds);
@@ -505,6 +496,16 @@ const ApplicantTable = () => {
     // Campus ID
     if (filterState.partner?.length && filterState.partner[0] !== "all") {
       apiParams.campus_id = filterState.partner[0];
+    }
+
+    // Partner ID
+    if (filterState.partnerFilter?.length && filterState.partnerFilter[0] !== "all") {
+      apiParams.partner_id = filterState.partnerFilter[0];
+    }
+
+    // Donor ID
+    if (filterState.donor?.length && filterState.donor[0] !== "all") {
+      apiParams.donor_id = filterState.donor[0];
     }
 
     // School ID
@@ -726,6 +727,32 @@ const ApplicantTable = () => {
       });
     }
 
+    // Partner (org partner, not campus)
+    if ((filters as any).partnerFilter?.length) {
+      const partners = (filters as any).partnerFilter.filter((p: any) => p !== "all");
+      partners.forEach((p: any) => {
+        const partner = partnerList.find((pt) => Number(pt.id) === Number(p));
+        const partnerLabel = partner?.partner_name || partner?.name || p;
+        tags.push({
+          key: `partnerFilter-${p}`,
+          label: `Partner: ${partnerLabel}`,
+        });
+      });
+    }
+
+    // Donor
+    if ((filters as any).donor?.length) {
+      const donors = (filters as any).donor.filter((d: any) => d !== "all");
+      donors.forEach((d: any) => {
+        const donor = donorList.find((dn) => Number(dn.id) === Number(d));
+        const donorLabel = donor?.donor_name || donor?.name || d;
+        tags.push({
+          key: `donor-${d}`,
+          label: `Donor: ${donorLabel}`,
+        });
+      });
+    }
+
     // State / District / Gender
     if ((filters as any).state && (filters as any).state !== "all") {
       tags.push({ key: `state-${(filters as any).state}`, label: `State: ${(filters as any).state}` });
@@ -763,6 +790,8 @@ const ApplicantTable = () => {
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
+      (newFilters.partnerFilter?.length && newFilters.partnerFilter[0] !== "all") ||
+      (newFilters.donor?.length && newFilters.donor[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
@@ -814,6 +843,7 @@ const ApplicantTable = () => {
   const handleClearFilters = () => {
     setFilters({
       stage: "all",
+      stage_id: undefined,
       stage_status: "all",
       examMode: "all",
       interviewMode: "all",
@@ -826,6 +856,8 @@ const ApplicantTable = () => {
       currentStatus: [],
       state: undefined,
       gender: undefined,
+      donor: [],
+      partnerFilter: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },
     });
     setHasActiveFilters(false);

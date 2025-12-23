@@ -438,17 +438,6 @@ export function ApplicantModal({
 
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
-
-    // Validation: Campus must be selected before setting offer letter status
-    // if (field === "offer_letter_status" && !currentApplicant?.campus_id) {
-    //   toast({
-    //     title: "Alert",
-    //     description: "Please select a Campus first before setting Offer Letter Status.",
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
-
     try {
       // Use existing local state instead of fetching again
       const existingDecision = currentApplicant?.final_decisions?.[0] || {};
@@ -1452,19 +1441,6 @@ export function ApplicantModal({
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
-                        // if (!currentApplicant.campus_id) {
-                        //   toast({
-                        //     title: "⚠️ Campus Required",
-                        //     description: "Please select a campus before proceeding with the offer letter status",
-                        //     variant: "destructive",
-                        //     className: "border-orange-500 bg-orange-50 text-orange-900",
-                        //   });
-                        //   return;
-                        // }
-                        // await handleFinalDecisionUpdate(
-                        //   "offer_letter_status",
-                        //   value
-                        // );
                       }}
                     />
                   )}
@@ -1523,15 +1499,6 @@ export function ApplicantModal({
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
-                        // if (!currentApplicant.campus_id) {
-                        //   toast({
-                        //     title: "⚠️ Campus Required",
-                        //     description: "Please select a campus before onboarding",
-                        //     variant: "destructive",
-                        //     className: "border-orange-500 bg-orange-50 text-orange-900",
-                        //   });
-                        //   return;
-                        // }
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
                           value

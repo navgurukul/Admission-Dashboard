@@ -30,6 +30,8 @@ import {
   submitFinalDecision,
   getStudentById,
   bulkUpdateStudents,
+  getAllDonors,
+  getAllPartners,
 } from "@/utils/api";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -72,6 +74,8 @@ interface BulkUpdateModalProps {
   castList?: any[];
   qualificationList?: any[];
   currentstatusList?: any[];
+  partnerList?: any[];
+  donorList?: any[];
 }
 
 export function BulkUpdateModal({
@@ -84,6 +88,8 @@ export function BulkUpdateModal({
   castList = [],
   qualificationList = [],
   currentstatusList = [],
+  partnerList = [],
+  donorList = [],
 }: BulkUpdateModalProps) {
   const [updateData, setUpdateData] = useState({
     stageId: "no_change",
@@ -96,6 +102,8 @@ export function BulkUpdateModal({
     castId: "no_change",
     qualificationId: "no_change",
     currentWorkId: "no_change",
+    partnerId: "no_change",
+    donorId: "no_change",
     offerLetterStatus: "no_change",
     onboardedStatus: "no_change",
     joiningDate: "",
@@ -118,6 +126,12 @@ export function BulkUpdateModal({
     { value: string; label: string }[]
   >([]);
   const [currentWorkOptions, setCurrentWorkOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [partnerOptions, setPartnerOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [donorOptions, setDonorOptions] = useState<
     { value: string; label: string }[]
   >([]);
 
@@ -169,12 +183,30 @@ export function BulkUpdateModal({
         );
       }
 
+      if (partnerList.length > 0) {
+        setPartnerOptions(
+          partnerList.map((p: any) => ({
+            value: String(p.id),
+            label: p.partner_name || p.name || `#${p.id}`,
+          }))
+        );
+      }
+
+      if (donorList.length > 0) {
+        setDonorOptions(
+          donorList.map((d: any) => ({
+            value: String(d.id),
+            label: d.donor_name || d.name || `#${d.id}`,
+          }))
+        );
+      }
+
       // Only fetch dropdowns if props are not provided
-      if (castList.length === 0 || qualificationList.length === 0 || currentstatusList.length === 0) {
+      if (castList.length === 0 || qualificationList.length === 0 || currentstatusList.length === 0 || partnerList.length === 0 || donorList.length === 0) {
         fetchDropdowns();
       }
     }
-  }, [isOpen, campusList, stateList, castList, qualificationList, currentstatusList]);
+  }, [isOpen]); // prevent infinite loop
 
   const fetchCampuses = async () => {
     try {
@@ -201,10 +233,12 @@ export function BulkUpdateModal({
 
   const fetchDropdowns = async () => {
     try {
-      const [castsRes, qualsRes, statusRes] = await Promise.all([
-        getAllCasts().catch(() => []),
-        getAllQualification().catch(() => []),
-        getAllStatus().catch(() => []),
+      const [castsRes, qualsRes, statusRes, partnersRes, donorsRes] = await Promise.all([
+        castList.length > 0 ? Promise.resolve(castList) : getAllCasts().catch(() => []),
+        qualificationList.length > 0 ? Promise.resolve(qualificationList) : getAllQualification().catch(() => []),
+        currentstatusList.length > 0 ? Promise.resolve(currentstatusList) : getAllStatus().catch(() => []),
+        partnerList.length > 0 ? Promise.resolve(partnerList) : getAllPartners().catch(() => []),
+        donorList.length > 0 ? Promise.resolve(donorList) : getAllDonors().catch(() => []),
       ]);
 
       setCastOptions(
@@ -225,6 +259,20 @@ export function BulkUpdateModal({
         (statusRes || []).map((s: any) => ({
           value: String(s.id),
           label: s.current_status_name || s.name || `#${s.id}`,
+        })),
+      );
+
+      setPartnerOptions(
+        (partnersRes || []).map((p: any) => ({
+          value: String(p.id),
+          label: p.partner_name || p.name || `#${p.id}`,
+        })),
+      );
+
+      setDonorOptions(
+        (donorsRes || []).map((d: any) => ({
+          value: String(d.id),
+          label: d.donor_name || d.name || `#${d.id}`,
         })),
       );
     } catch (err) {
@@ -299,6 +347,8 @@ export function BulkUpdateModal({
       updateData.castId === "no_change" &&
       updateData.qualificationId === "no_change" &&
       updateData.currentWorkId === "no_change" &&
+      updateData.partnerId === "no_change" &&
+      updateData.donorId === "no_change" &&
       updateData.offerLetterStatus === "no_change" &&
       updateData.onboardedStatus === "no_change" &&
       !updateData.joiningDate &&
@@ -347,6 +397,12 @@ export function BulkUpdateModal({
     }
     if (updateData.currentWorkId !== "no_change") {
       payload.current_status_id = Number(updateData.currentWorkId);
+    }
+    if (updateData.partnerId !== "no_change") {
+      payload.partner_id = Number(updateData.partnerId);
+    }
+    if (updateData.donorId !== "no_change") {
+      payload.donor_id = Number(updateData.donorId);
     }
     // Note: offer_letter_status, onboarded_status, joining_date, and final_notes
     // are handled separately through submitFinalDecision API
@@ -411,6 +467,8 @@ export function BulkUpdateModal({
         castId: "no_change",
         qualificationId: "no_change",
         currentWorkId: "no_change",
+        partnerId: "no_change",
+        donorId: "no_change",
         offerLetterStatus: "no_change",
         onboardedStatus: "no_change",
         joiningDate: "",
@@ -472,6 +530,54 @@ export function BulkUpdateModal({
                 searchPlaceholder="Search campus..."
                 emptyText="No campus found."
               />
+            </div>
+          </div>
+
+          {/* Partner and Donor Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">
+              Partner & Donor
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Partner</Label>
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...partnerOptions.map((partner) => ({
+                      value: partner.value,
+                      label: partner.label,
+                    })),
+                  ]}
+                  value={updateData.partnerId}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, partnerId: val }))
+                  }
+                  placeholder="Select partner"
+                  searchPlaceholder="Search partner..."
+                  emptyText="No partner found."
+                />
+              </div>
+
+              <div>
+                <Label>Donor</Label>
+                <Combobox
+                  options={[
+                    { value: "no_change", label: "No change" },
+                    ...donorOptions.map((donor) => ({
+                      value: donor.value,
+                      label: donor.label,
+                    })),
+                  ]}
+                  value={updateData.donorId}
+                  onValueChange={(val) =>
+                    setUpdateData((prev) => ({ ...prev, donorId: val }))
+                  }
+                  placeholder="Select donor"
+                  searchPlaceholder="Search donor..."
+                  emptyText="No donor found."
+                />
+              </div>
             </div>
           </div>
 
