@@ -33,7 +33,7 @@ import {
 import { CalendarIcon, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { getFilterStudent, getStatusesByStageId } from "@/utils/api";
+import { getFilterStudent, getStatusesByStageId, getAllDonors, getAllPartners } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 // import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
@@ -66,6 +66,8 @@ interface FilterState {
   currentStatus: string[];
   state?: string;
   gender?: string;
+  donor: string[];
+  partnerFilter: string[];
   dateRange: {
     type: "applicant" | "lastUpdate" | "interview";
     from?: Date;
@@ -86,21 +88,6 @@ interface AdvancedFilterModalProps {
   currentstatusList?: any[];
   stageList?: any[];
 }
-
-// const STAGE_STATUS_MAP = {
-//   sourcing: [
-//     "Enrollment Key Generated",
-//     "Basic Details Entered",
-//     "Duplicate",
-//     "Unreachable",
-//     "Became Disinterested",
-//   ],
-//   screening: [
-//     "Screening Test Pass",
-//     "Screening Test Fail",
-//     "Created Student Without Exam",
-//   ],
-// };
 
 export function AdvancedFilterModal({
   isOpen,
@@ -125,6 +112,8 @@ export function AdvancedFilterModal({
     currentStatuses: [] as any[],
     campuses: [] as any[],
     stages: [] as any[],
+    donors: [] as any[],
+    partnersList: [] as any[],
   });
 
   const [availableStates, setAvailableStates] = useState<State[]>([]);
@@ -215,12 +204,6 @@ export function AdvancedFilterModal({
           }));
         }
 
-        // console.log(" Districts loaded:", {
-        //   state: selectedState,
-        //   stateCode,
-        //   districts: districts.length
-        // });
-
         setAvailableDistricts(districts);
       } catch (error) {
         // console.error("Error loading districts:", error);
@@ -281,6 +264,12 @@ export function AdvancedFilterModal({
           apiKeys.push('statuses');
         }
 
+        // Fetch donors and partners
+        apiPromises.push(getAllDonors());
+        apiKeys.push('donors');
+        apiPromises.push(getAllPartners());
+        apiKeys.push('partners');
+
         const results = await Promise.all(apiPromises);
 
         // Map results to their corresponding keys
@@ -296,6 +285,8 @@ export function AdvancedFilterModal({
         const finalQualifications = qualificationList.length > 0 ? qualificationList : (apiResults.qualifications || []);
         const finalStatuses = currentstatusList.length > 0 ? currentstatusList : (apiResults.statuses || []);
         const apiStates = apiResults.states || [];
+        const apiDonors = apiResults.donors || [];
+        const apiPartners = apiResults.partners || [];
 
         // Extract data from students
         const partnersFromStudents = getPartnersFromStudents(students);
@@ -327,6 +318,8 @@ export function AdvancedFilterModal({
           currentStatuses: finalStatuses,
           campuses: finalCampuses,
           stages: stageList.length > 0 ? stageList : [],
+          donors: apiDonors,
+          partnersList: apiPartners,
         });
 
         setAvailableStates(allStates);
@@ -368,22 +361,15 @@ export function AdvancedFilterModal({
       qualification: [],
       currentStatus: [],
       state: undefined,
+      donor: [],
+      partnerFilter: [],
       dateRange: { type: "applicant" },
     });
     setAvailableDistricts([]);
   };
 
   const handleApplyFilters = () => {
-    // // Validate qualification field
-    // if (!filters.qualification?.length || filters.qualification[0] === 'all') {
-    //   toast({
-    //     title: "Validation Error",
-    //     description: "Please select a qualification before applying filters.",
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
-
+    
     // Validate date range - if start is selected, end must be selected
     if (filters.dateRange.from && !filters.dateRange.to) {
       toast({
@@ -480,6 +466,8 @@ export function AdvancedFilterModal({
       "qualification_name",
       "campus_name",
       "district_name",
+      "partner_name",
+      "donor_name",
     ];
 
     for (const key of possibleKeys) {
@@ -1048,6 +1036,69 @@ export function AdvancedFilterModal({
               />
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {availableOptions.campuses.length} campuses available */}
+              </p>
+            </div>
+          </div>
+
+          {/* Partner and Donor Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
+            {/* Partner */}
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Partner</h3>
+              <Combobox
+                options={[
+                  { value: "all", label: "All Partners" },
+                  ...availableOptions.partnersList.map((partner) => ({
+                    value: getValue(partner),
+                    label: getDisplayName(partner, "partner_name", "Partner"),
+                  })),
+                ]}
+                value={filters.partnerFilter?.[0] || "all"}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    partnerFilter: value === "all" ? [] : [value],
+                  }))
+                }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select partner"
+                }
+                searchPlaceholder="Search partner..."
+                emptyText="No partner found."
+                disabled={isLoading.general}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.partnersList.length} partners available */}
+              </p>
+            </div>
+
+            {/* Donor */}
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Donor</h3>
+              <Combobox
+                options={[
+                  { value: "all", label: "All Donors" },
+                  ...availableOptions.donors.map((donor) => ({
+                    value: getValue(donor),
+                    label: getDisplayName(donor, "donor_name", "Donor"),
+                  })),
+                ]}
+                value={filters.donor?.[0] || "all"}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    donor: value === "all" ? [] : [value],
+                  }))
+                }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select donor"
+                }
+                searchPlaceholder="Search donor..."
+                emptyText="No donor found."
+                disabled={isLoading.general}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.donors.length} donors available */}
               </p>
             </div>
           </div>

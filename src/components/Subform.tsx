@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { getCurrentUser } from "@/utils/api";
 
 interface RowField {
   name: string;
@@ -37,6 +38,7 @@ interface InlineSubformProps {
   onSave?: () => void;
   disabled?: boolean;
   disabledReason?: string;
+  disableAdd?: boolean;
 }
 
 // Map payload based on round type
@@ -97,8 +99,30 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
 const getEditableFields = (row: any, allFields: RowField[]) => {
   if (!row.id) return allFields; // new row: all editable
 
+  // Check if this is a screening round
+  const isScreeningRound = allFields.some((f) =>
+    ["question_set_id", "obtained_marks", "exam_centre", "date_of_test"].includes(f.name)
+  );
+
+  // For existing rows, check if status field is disabled (round is passed)
+  const statusField = allFields.find((f) => 
+    ["status", "learning_round_status", "cultural_fit_status"].includes(f.name)
+  );
+  
+  // If status field is disabled (round passed), only allow comments to be edited
+  if (statusField?.disabled) {
+    return allFields.filter((f) => f.name === "comments");
+  }
+
+  // For screening round, allow ALL fields except audit info to be edited
+  if (isScreeningRound) {
+    return allFields.filter((f) => 
+      !["audit_info", "created_at", "updated_at", "last_updated_by"].includes(f.name)
+    );
+  }
+
+  // For learning/cultural rounds, allow editing of status and comments
   return allFields.filter((f) => {
-    if (["status", "school_id"].includes(f.name)) return true;
     if (["learning_round_status", "comments"].includes(f.name)) return true;
     if (["cultural_fit_status", "comments"].includes(f.name)) return true;
     return false;
@@ -212,8 +236,10 @@ export function InlineSubform({
   onSave,
   disabled,
   disabledReason,
+  disableAdd,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
+  const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
   const { toast } = useToast();
 
   useEffect(() => {
@@ -246,7 +272,9 @@ export function InlineSubform({
     });
 
     if (idsChanged || rows.length === 0 || auditInfoChanged) {
-      setRows(initialData.map((r) => ({ ...r })));
+      const mappedData = initialData.map((r) => ({ ...r }));
+      setRows(mappedData);
+      setOriginalRows(mappedData);
     }
   }, [initialData]);
 
@@ -278,9 +306,49 @@ export function InlineSubform({
     });
   };
 
+  // Check if row has actual changes compared to original
+  const hasChanges = (index: number) => {
+    const currentRow = rows[index];
+    const originalRow = originalRows[index];
+    
+    if (!currentRow.id) return true;
+    if (!originalRow) return true;
+    // Get editable fields for this row
+    const editableFields = getEditableFields(currentRow, fields);
+    
+    // Check if any editable field has changed
+    for (const field of editableFields) {
+      const currentValue = currentRow[field.name];
+      const originalValue = originalRow[field.name];
+      
+      //  undefined, and empty string as equivalent
+      const normalizedCurrent = currentValue == null || currentValue === "" ? null : currentValue;
+      const normalizedOriginal = originalValue == null || originalValue === "" ? null : originalValue;
+      
+      if (normalizedCurrent !== normalizedOriginal) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   const saveRow = async (index: number) => {
     const row = rows[index];
     const editableFields = getEditableFields(row, fields);
+
+    // Check if there are actual changes (only for existing rows)
+    if (row.id && !hasChanges(index)) {
+      toast({
+        title: "ℹ️ No Changes",
+        description: "No changes detected. Please modify a field before saving.",
+        variant: "default",
+        className: "border-blue-500 bg-blue-50 text-blue-900",
+      });
+      // Exit editing mode without saving
+      toggleEdit(index, false);
+      return;
+    }
 
     if (!row.id) {
       // Conditional validation based on status
@@ -354,7 +422,12 @@ export function InlineSubform({
       }
     }
 
-    const payload = mapPayload(row, fields, studentId);
+    const currentUser = getCurrentUser();
+    const payload = {
+      ...mapPayload(row, fields, studentId),
+      updated_by: currentUser?.name || currentUser?.email || "Unknown",
+      last_updated_by: currentUser?.name || currentUser?.email || "Unknown"
+    };
 
     try {
       let res;
@@ -390,6 +463,13 @@ export function InlineSubform({
       setRows((prev) => {
         const newRows = [...prev];
         newRows[index] = updatedRow;
+        return newRows;
+      });
+      
+      // Update originalRows to reflect the saved state
+      setOriginalRows((prev) => {
+        const newRows = [...prev];
+        newRows[index] = { ...updatedRow };
         return newRows;
       });
 
@@ -482,7 +562,7 @@ export function InlineSubform({
     <div className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-semibold">{title}</h3>
-        {disabled ? (
+        {disabled || disableAdd ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -499,7 +579,11 @@ export function InlineSubform({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{disabledReason || "Action disabled"}</p>
+                <p>
+                  {disableAdd 
+                    ? "Cannot add more rows - round already passed" 
+                    : disabledReason || "Action disabled"}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -510,8 +594,8 @@ export function InlineSubform({
         )}
       </div>
 
-  {/* Table container: allow vertical and horizontal scrolling if content is large */}
-  <div className="overflow-x-auto w-full max-h-[48vh] overflow-auto">
+      {/* Table container: allow vertical and horizontal scrolling if content is large */}
+      <div className="overflow-x-auto w-full max-h-[48vh] overflow-auto">
         <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
@@ -537,14 +621,14 @@ export function InlineSubform({
                     <td
                       key={f.name}
                       className={`px-3 py-2 align-top ${isTextAreaField
-                          ? "whitespace-pre-wrap break-words w-full min-w-[250px] max-w-[400px]"
-                          : f.name === "audit_info"
-                            ? "w-auto min-w-[280px] max-w-[320px]"
-                            : isAuditField
-                              ? "w-auto min-w-[200px]"
-                              : isStatusField
-                                ? "w-auto min-w-[250px] max-w-[300px]"
-                                : "w-auto"
+                        ? "whitespace-pre-wrap break-words w-full min-w-[250px] max-w-[400px]"
+                        : f.name === "audit_info"
+                          ? "w-auto min-w-[280px] max-w-[320px]"
+                          : isAuditField
+                            ? "w-auto min-w-[200px]"
+                            : isStatusField
+                              ? "w-auto min-w-[250px] max-w-[300px]"
+                              : "w-auto"
                         }`}
                     >
                       {!isEditable && (f.type === "readonly" || isAuditField) ? (
@@ -554,6 +638,10 @@ export function InlineSubform({
                       ) : !isEditable && (f.name === "comments" || f.name === "note" || f.name === "notes") ? (
                         <div className="p-2 rounded bg-gray-50 whitespace-pre-wrap break-words max-w-[400px]">
                           {row[f.name] || "—"}
+                        </div>
+                      ) : !isEditable ? (
+                        <div className="p-2 rounded bg-gray-50 w-full break-words">
+                          {getDisplayValue(row, f)}
                         </div>
                       ) : (
                         <EditableCell
@@ -573,20 +661,32 @@ export function InlineSubform({
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-blue-600 hover:bg-blue-50"
+                      className={`text-blue-600 hover:bg-blue-50 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                       onClick={() => toggleEdit(idx, true)}
+                      disabled={disabled}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                   ) : (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-green-600 hover:bg-green-50"
-                      onClick={() => saveRow(idx)}
-                    >
-                      <Save className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""}`}
+                            onClick={() => saveRow(idx)}
+                          >
+                            <Save className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        {row.id && !hasChanges(idx) && (
+                          <TooltipContent>
+                            <p>No changes to save</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </td>
               </tr>
