@@ -6,6 +6,7 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 interface FilterState {
   stage: string;
   stage_status: string;
+  stage_id:number;
   examMode: string;
   interviewMode: string;
   partner: any[];
@@ -17,6 +18,8 @@ interface FilterState {
   currentStatus: any[];
   state: any;
   gender: any;
+  donor: any[];
+  partnerFilter: any[];
   dateRange: { type: "applicant" | "lastUpdate" | "interview"; from: any; to: any };
 }
 
@@ -31,6 +34,7 @@ export const useApplicantFilters = (
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<FilterState>({
     stage: "all",
+    stage_id: undefined,
     stage_status: "all",
     examMode: "all",
     interviewMode: "all",
@@ -43,6 +47,8 @@ export const useApplicantFilters = (
     currentStatus: [],
     state: undefined,
     gender: undefined,
+    donor: [],
+    partnerFilter: [],
     dateRange: { type: "applicant" as const, from: undefined, to: undefined },
   });
 
