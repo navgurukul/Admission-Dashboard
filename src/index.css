@@ -18,14 +18,14 @@
     --popover-foreground: 0 0% 13%;
 
     /* Brand Colors - NavGurukul Magenta/Pink */
-    --primary: 338 83% 51%; /* Vibrant magenta/pink #E31F6D (was #D81B60) */
+   --primary: 338 83% 51%; /* #E31F6D */
     --primary-foreground: 0 0% 100%;
     --primary-light: 338 83% 92%; /* Light pink for hover states */
 
     /* Secondary Colors - Purple Accent */
-    --secondary-purple: 263 53% 46%; /* Purple #5E35B1 */
+    --secondary-purple: 263 53% 46%; /* #5E35B1 */
     --secondary-purple-foreground: 0 0% 100%;
-    --secondary-purple-light: 263 54% 94%; /* Light purple #EDE7F6 */
+    --secondary-purple-light: 263 54% 94%; /* #EDE7F6 */
 
     /* Sidebar System */
     --sidebar-dark: 0 0% 7%; /* Very dark gray (almost black) */
@@ -175,6 +175,43 @@
   border-radius: var(--radius);
   padding: 1rem;
   transition: box-shadow 0.2s, transform 0.2s;
+}
+
+/* Animation utilities */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
 }
 
 }

@@ -676,7 +676,7 @@ export default function StudentResult() {
                                   test.status === "Pass"
                                     ? "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]"
                                     : test.status === "Pending"
-                                      ? "bg-[hsl(var(--status-pending))]/10 text-[hsl(var(--status-pending))]"
+                                      ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
                                       : "bg-destructive/10 text-destructive"
                                 }`}
                               >

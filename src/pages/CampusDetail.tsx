@@ -178,10 +178,10 @@ const CampusDetail = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-background">
       <AdmissionsSidebar />
       <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 md:ml-64">
-        <h2 className="text-3xl font-bold text-center mb-6">
+        <h2 className="text-3xl font-bold text-center mb-6 text-foreground">
           {campusName} Campus
         </h2>
         <div className="flex justify-center mb-6 gap-2">
@@ -190,7 +190,9 @@ const CampusDetail = () => {
               key={tab.key}
               variant={activeTab === tab.key ? "default" : "outline"}
               className={
-                activeTab === tab.key ? "bg-orange-500 text-white" : ""
+                activeTab === tab.key
+                  ? "bg-primary hover:bg-primary/90 text-primary-foreground border-2 border-primary"
+                  : "border-2 border-border hover:bg-primary/10 hover:text-primary hover:border-primary/30"
               }
               onClick={() => setActiveTab(tab.key)}
             >
@@ -324,7 +326,7 @@ const CampusDetail = () => {
                 {loading ? (
                   <p>Loading students...</p>
                 ) : error ? (
-                  <p className="text-red-500">{error}</p>
+                  <p className="text-destructive">{error}</p>
                 ) : filteredStudents.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
                     No students found
@@ -427,9 +429,9 @@ const CampusDetail = () => {
                     </div>
                     <div className="flex justify-center items-center gap-6 mt-4 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">Rows per page:</span>
+                        <span className="text-sm text-muted-foreground">Rows per page:</span>
                         <select
-                          className="border rounded px-2 py-1 text-sm"
+                          className="border-2 border-input rounded-lg px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                           value={rowsPerPage}
                           onChange={(e) => {
                             setRowsPerPage(Number(e.target.value));
@@ -443,12 +445,12 @@ const CampusDetail = () => {
                           ))}
                         </select>
                       </div>
-                      <span className="text-sm">
+                      <span className="text-sm text-muted-foreground">
                         {startIdx}-{endIdx} of {displayStudents.length}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
-                          className="px-2 py-1 rounded border border-gray-200 bg-white text-sm disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg border-2 border-border bg-card text-sm disabled:opacity-50 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all"
                           onClick={() =>
                             setStudentPage((p) => Math.max(1, p - 1))
                           }
@@ -458,7 +460,7 @@ const CampusDetail = () => {
                           &#60;
                         </button>
                         <button
-                          className="px-2 py-1 rounded border border-gray-200 bg-white text-sm disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg border-2 border-border bg-card text-sm disabled:opacity-50 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all"
                           onClick={() =>
                             setStudentPage((p) =>
                               Math.min(totalStudentPages, p + 1),

@@ -341,50 +341,50 @@ const Schedule = () => {
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
+            <div className="bg-card rounded-xl p-6 shadow-medium border border-border hover:border-primary/30 transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     Today's Booked
                   </p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-3xl font-bold text-foreground">
                     {bookedTodayCount}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-primary" />
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Calendar className="w-7 h-7 text-primary" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
+            <div className="bg-card rounded-xl p-6 shadow-medium border border-border hover:border-secondary-purple/30 transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     Available Today
                   </p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-3xl font-bold text-foreground">
                     {availableTodayCount}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-status-pending/10 rounded-lg flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-status-pending" />
+                <div className="w-14 h-14 bg-secondary-purple/10 rounded-xl flex items-center justify-center">
+                  <Clock className="w-7 h-7 text-secondary-purple" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-6 shadow-soft border border-border">
+            <div className="bg-card rounded-xl p-6 shadow-medium border border-border hover:border-primary/30  transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     Total Slots
                   </p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-3xl font-bold text-foreground">
                     {allSlots.length}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-status-active/10 rounded-lg flex items-center justify-center">
-                  <Users className="w-6 h-6 text-status-active" />
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Users className="w-7 h-7 text-primary" />
                 </div>
               </div>
             </div>
