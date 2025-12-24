@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -19,22 +20,14 @@ import { Users, ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
-  getCampusesApi,
-  getAllStates,
   getDistrictsByState,
   getBlocksByDistrict,
-  getAllCasts,
-  getAllQualification,
-  getAllStatus,
-  updateStudent,
-  submitFinalDecision,
-  getStudentById,
   bulkUpdateStudents,
-  getAllDonors,
-  getAllPartners,
+  submitFinalDecision,
 } from "@/utils/api";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useApplicantOptions } from "@/hooks/useApplicantOptions";
 
 interface CampusOption {
   id: number;
@@ -69,13 +62,6 @@ interface BulkUpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  campusList?: any[];
-  stateList?: any[];
-  castList?: any[];
-  qualificationList?: any[];
-  currentstatusList?: any[];
-  partnerList?: any[];
-  donorList?: any[];
 }
 
 export function BulkUpdateModal({
@@ -83,14 +69,21 @@ export function BulkUpdateModal({
   isOpen,
   onClose,
   onSuccess,
-  campusList = [],
-  stateList = [],
-  castList = [],
-  qualificationList = [],
-  currentstatusList = [],
-  partnerList = [],
-  donorList = [],
 }: BulkUpdateModalProps) {
+  // Use centralized options hook
+  const {
+    campusList: hookCampusList,
+    stateList: hookStateList,
+    castList: hookCastList,
+    qualificationList: hookQualificationList,
+    currentstatusList: hookCurrentStatusList,
+    partnerList: hookPartnerList,
+    donorList: hookDonorList,
+    isLoading: isOptionsLoading,
+  } = useApplicantOptions();
+
+  const { toast } = useToast();
+
   const [updateData, setUpdateData] = useState({
     stageId: "no_change",
     statusId: "no_change",
@@ -113,7 +106,6 @@ export function BulkUpdateModal({
   const [statusOptions, setStatusOptions] = useState<Status[]>([]);
   const [campusOptions, setCampusOptions] = useState<CampusOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   const [stateOptions, setStateOptions] = useState<StateOption[]>([]);
   const [districtOptions, setDistrictOptions] = useState<DistrictOption[]>([]);
@@ -135,150 +127,76 @@ export function BulkUpdateModal({
     { value: string; label: string }[]
   >([]);
 
-  // Initialize dropdown options from props when modal opens
+  // Initialize dropdown options from hook when modal opens
   useEffect(() => {
-    if (isOpen) {
-      // Use props if available, otherwise fetch from API
-      if (campusList.length > 0) {
-        setCampusOptions(campusList);
-      } else {
-        fetchCampuses();
+    if (isOpen && !isOptionsLoading) {
+      // Set campus options from hook
+      if (hookCampusList.length > 0) {
+        setCampusOptions(hookCampusList);
       }
 
-      if (stateList.length > 0) {
-        const states = stateList.map((s: any) => ({
-          value: s.state_code,
-          label: s.state_name,
-        }));
-        setStateOptions(states);
-      } else {
-        fetchStates();
+      // Set state options from hook
+      if (hookStateList.length > 0) {
+        setStateOptions(hookStateList);
       }
 
-      // Set dropdown options from props
-      if (castList.length > 0) {
+      // Set dropdown options from hook data
+      if (hookCastList.length > 0) {
         setCastOptions(
-          castList.map((c: any) => ({
-            value: String(c.id),
-            label: c.cast_name || c.name || `#${c.id}`,
-          }))
+          hookCastList
+            .filter((c: any) => c && (c.cast_name || c.name || c.id))
+            .map((c: any) => ({
+              value: String(c.id),
+              label: c.cast_name || c.name || `#${c.id}`,
+            }))
         );
       }
 
-      if (qualificationList.length > 0) {
+      if (hookQualificationList.length > 0) {
         setQualificationOptions(
-          qualificationList.map((q: any) => ({
-            value: String(q.id),
-            label: q.qualification_name || q.name || `#${q.id}`,
-          }))
+          hookQualificationList
+            .filter((q: any) => q && (q.qualification_name || q.name || q.id))
+            .map((q: any) => ({
+              value: String(q.id),
+              label: q.qualification_name || q.name || `#${q.id}`,
+            }))
         );
       }
 
-      if (currentstatusList.length > 0) {
+      if (hookCurrentStatusList.length > 0) {
         setCurrentWorkOptions(
-          currentstatusList.map((s: any) => ({
-            value: String(s.id),
-            label: s.current_status_name || s.name || `#${s.id}`,
-          }))
+          hookCurrentStatusList
+            .filter((s: any) => s && (s.current_status_name || s.name || s.id))
+            .map((s: any) => ({
+              value: String(s.id),
+              label: s.current_status_name || s.name || `#${s.id}`,
+            }))
         );
       }
 
-      if (partnerList.length > 0) {
+      if (hookPartnerList.length > 0) {
         setPartnerOptions(
-          partnerList.map((p: any) => ({
-            value: String(p.id),
-            label: p.partner_name || p.name || `#${p.id}`,
-          }))
+          hookPartnerList
+            .filter((p: any) => p && (p.partner_name || p.name || p.id))
+            .map((p: any) => ({
+              value: String(p.id),
+              label: p.partner_name || p.name || `#${p.id}`,
+            }))
         );
       }
 
-      if (donorList.length > 0) {
+      if (hookDonorList.length > 0) {
         setDonorOptions(
-          donorList.map((d: any) => ({
-            value: String(d.id),
-            label: d.donor_name || d.name || `#${d.id}`,
-          }))
+          hookDonorList
+            .filter((d: any) => d && (d.donor_name || d.name || d.id))
+            .map((d: any) => ({
+              value: String(d.id),
+              label: d.donor_name || d.name || `#${d.id}`,
+            }))
         );
       }
-
-      // Only fetch dropdowns if props are not provided
-      if (castList.length === 0 || qualificationList.length === 0 || currentstatusList.length === 0 || partnerList.length === 0 || donorList.length === 0) {
-        fetchDropdowns();
-      }
     }
-  }, [isOpen]); // prevent infinite loop
-
-  const fetchCampuses = async () => {
-    try {
-      const campuses = await getCampusesApi();
-      setCampusOptions(campuses);
-    } catch (err) {
-      console.error("Error fetching campuses:", err);
-    }
-  };
-
-  const fetchStates = async () => {
-    try {
-      const res = await getAllStates();
-      const states = (res?.data || res || []).map((s: any) => ({
-        value: s.state_code,
-        label: s.state_name,
-      }));
-      setStateOptions(states);
-    } catch (err) {
-      console.error("Error fetching states:", err);
-      setStateOptions([]);
-    }
-  };
-
-  const fetchDropdowns = async () => {
-    try {
-      const [castsRes, qualsRes, statusRes, partnersRes, donorsRes] = await Promise.all([
-        castList.length > 0 ? Promise.resolve(castList) : getAllCasts().catch(() => []),
-        qualificationList.length > 0 ? Promise.resolve(qualificationList) : getAllQualification().catch(() => []),
-        currentstatusList.length > 0 ? Promise.resolve(currentstatusList) : getAllStatus().catch(() => []),
-        partnerList.length > 0 ? Promise.resolve(partnerList) : getAllPartners().catch(() => []),
-        donorList.length > 0 ? Promise.resolve(donorList) : getAllDonors().catch(() => []),
-      ]);
-
-      setCastOptions(
-        (castsRes || []).map((c: any) => ({
-          value: String(c.id),
-          label: c.cast_name || c.name || `#${c.id}`,
-        })),
-      );
-
-      setQualificationOptions(
-        (qualsRes || []).map((q: any) => ({
-          value: String(q.id),
-          label: q.qualification_name || q.name || `#${q.id}`,
-        })),
-      );
-
-      setCurrentWorkOptions(
-        (statusRes || []).map((s: any) => ({
-          value: String(s.id),
-          label: s.current_status_name || s.name || `#${s.id}`,
-        })),
-      );
-
-      setPartnerOptions(
-        (partnersRes || []).map((p: any) => ({
-          value: String(p.id),
-          label: p.partner_name || p.name || `#${p.id}`,
-        })),
-      );
-
-      setDonorOptions(
-        (donorsRes || []).map((d: any) => ({
-          value: String(d.id),
-          label: d.donor_name || d.name || `#${d.id}`,
-        })),
-      );
-    } catch (err) {
-      console.error("Error fetching dropdowns:", err);
-    }
-  };
+  }, [isOpen, isOptionsLoading, hookCampusList, hookStateList, hookCastList, hookQualificationList, hookCurrentStatusList, hookPartnerList, hookDonorList]);
 
   const handleStateChange = async (stateCode: string) => {
     // Store the CODE for UI (so Combobox selection works)
@@ -299,10 +217,12 @@ export function BulkUpdateModal({
 
     try {
       const res = await getDistrictsByState(stateCode);
-      const districts = (res?.data || res || []).map((d: any) => ({
-        value: d.district_code,
-        label: d.district_name,
-      }));
+      const districts = (res?.data || res || [])
+        .filter((d: any) => d && (d.district_name || d.name))
+        .map((d: any) => ({
+          value: d.district_code || String(d.id),
+          label: d.district_name || d.name || `District ${d.id}`,
+        }));
       setDistrictOptions(districts);
     } catch (err) {
       console.error("Error fetching districts:", err);
@@ -326,10 +246,12 @@ export function BulkUpdateModal({
 
     try {
       const res = await getBlocksByDistrict(districtCode);
-      const blocks = (res?.data || res || []).map((b: any) => ({
-        value: String(b.id), // Use id as value since block_code is not available
-        label: b.block_name,
-      }));
+      const blocks = (res?.data || res || [])
+        .filter((b: any) => b && (b.block_name || b.name || b.id))
+        .map((b: any) => ({
+          value: String(b.id), // Use id as value since block_code is not available
+          label: b.block_name || b.name || `Block ${b.id}`,
+        }));
       setBlockOptions(blocks);
     } catch (err) {
       console.error("Error fetching blocks:", err);
@@ -495,10 +417,12 @@ export function BulkUpdateModal({
             <Users className="w-5 h-5" />
             Bulk Update - {selectedApplicants.length} Applicant(s)
           </DialogTitle>
+          <DialogDescription>
+            Update multiple applicant fields at once. Only fields you change will be updated.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Info Banner */}
+        <div className="space-y-6">{/* Info Banner */}
           <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
             <p className="text-sm text-blue-800">
               Update selected fields for {selectedApplicants.length}{" "}

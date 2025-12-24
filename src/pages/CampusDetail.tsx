@@ -12,20 +12,41 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, X } from "lucide-react";
 import { AdvancedFilterModal } from "@/components/AdvancedFilterModal";
-import { getFilterStudent, getCampusById } from "@/utils/api";
+import { 
+  getFilterStudent, 
+  getCampusById, 
+  getAllStages,
+  getAllSchools,
+  getAllQualification,
+  getAllStatuses,
+  getAllPartners,
+  getCampusesApi,
+  getAllDonors,
+  getAllReligions
+} from "@/utils/api";
 
 interface FilterState {
   stage: string;
-  status: string;
+  stage_id?: number;
+  stage_status: string | string[];
+  status?: string;
   examMode: string;
   interviewMode: string;
   partner: string[];
   district: string[];
-  market: string[];
+  market?: string[];
+  school: string[];
+  religion: string[];
+  qualification: string[];
+  currentStatus: string[];
+  state?: string;
+  gender?: string;
+  donor: string[];
+  partnerFilter: string[];
   dateRange: {
-    type: "application" | "lastUpdate" | "interview";
+    type: "applicant" | "lastUpdate" | "interview";
     from?: Date;
     to?: Date;
   };
@@ -53,16 +74,34 @@ const CampusDetail = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     stage: "all",
+    stage_id: undefined,
+    stage_status: "all",
     status: "all",
     examMode: "all",
     interviewMode: "all",
     partner: [],
     district: [],
     market: [],
-    dateRange: { type: "application" },
+    school: [],
+    religion: [],
+    qualification: [],
+    currentStatus: [],
+    state: undefined,
+    gender: undefined,
+    donor: [],
+    partnerFilter: [],
+    dateRange: { type: "applicant" },
   });
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
   const [filteredStudentsData, setFilteredStudentsData] = useState<any[]>([]);
+  const [stageList, setStageList] = useState<any[]>([]);
+  const [schoolList, setSchoolList] = useState<any[]>([]);
+  const [qualificationList, setQualificationList] = useState<any[]>([]);
+  const [currentStatusList, setCurrentStatusList] = useState<any[]>([]);
+  const [partnerList, setPartnerList] = useState<any[]>([]);
+  const [campusList, setCampusList] = useState<any[]>([]);
+  const [donorList, setDonorList] = useState<any[]>([]);
+  const [religionList, setReligionList] = useState<any[]>([]);
 
   // Fetch campus details
   useEffect(() => {
@@ -81,6 +120,310 @@ const CampusDetail = () => {
 
     fetchCampusDetails();
   }, [id]);
+
+  // Fetch stages and other dropdown data for filter
+  useEffect(() => {
+    const fetchDropdownData = async () => {
+      try {
+        const [stages, schools, qualifications, statuses, partners, campuses, donors, religions] = await Promise.all([
+          getAllStages(),
+          getAllSchools(),
+          getAllQualification(),
+          getAllStatuses(),
+          getAllPartners(),
+          getCampusesApi(),
+          getAllDonors(),
+          getAllReligions(),
+        ]);
+        
+        setStageList(stages || []);
+        setSchoolList(schools || []);
+        setQualificationList(qualifications || []);
+        setCurrentStatusList(statuses || []);
+        setPartnerList(partners || []);
+        setCampusList(campuses || []);
+        setDonorList(donors || []);
+        setReligionList(religions || []);
+      } catch (error) {
+        console.error("Failed to fetch dropdown data:", error);
+      }
+    };
+
+    fetchDropdownData();
+  }, []);
+
+  // Helper function to clear individual filters and refetch
+  const clearSingleFilter = async (filterKey: string) => {
+    const newFilters = { ...filters };
+    
+    switch (filterKey) {
+      case "stage":
+        newFilters.stage = "all";
+        newFilters.stage_id = undefined;
+        newFilters.stage_status = "all";
+        break;
+      case "stage_status":
+        newFilters.stage_status = "all";
+        break;
+      case "state":
+        newFilters.state = undefined;
+        break;
+      case "district":
+        newFilters.district = [];
+        break;
+      case "partner":
+        newFilters.partner = [];
+        break;
+      case "school":
+        newFilters.school = [];
+        break;
+      case "religion":
+        newFilters.religion = [];
+        break;
+      case "qualification":
+        newFilters.qualification = [];
+        break;
+      case "currentStatus":
+        newFilters.currentStatus = [];
+        break;
+      case "partnerFilter":
+        newFilters.partnerFilter = [];
+        break;
+      case "donor":
+        newFilters.donor = [];
+        break;
+    }
+    
+    setFilters(newFilters);
+    
+    // Rebuild API params and refetch
+    const apiParams: any = { campus_id: Number(id) };
+    
+    if (newFilters.stage_id) {
+      apiParams.stage_id = newFilters.stage_id;
+    }
+    if (newFilters.stage_status && newFilters.stage_status !== "all") {
+      apiParams.stage_status = newFilters.stage_status;
+    }
+    if (newFilters.qualification?.length && newFilters.qualification[0] !== "all") {
+      apiParams.qualification_id = newFilters.qualification[0];
+    }
+    if (newFilters.school?.length && newFilters.school[0] !== "all") {
+      apiParams.school_id = newFilters.school[0];
+    }
+    if (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") {
+      apiParams.current_status_id = newFilters.currentStatus[0];
+    }
+    if (newFilters.state && newFilters.state !== "all") {
+      apiParams.state = newFilters.state;
+    }
+    if (newFilters.district?.length && newFilters.district[0] !== "all") {
+      apiParams.district = newFilters.district[0];
+    }
+    if (newFilters.partnerFilter?.length && newFilters.partnerFilter[0] !== "all") {
+      apiParams.partner_id = newFilters.partnerFilter[0];
+    }
+    if (newFilters.donor?.length && newFilters.donor[0] !== "all") {
+      apiParams.donor_id = newFilters.donor[0];
+    }
+    if (newFilters.religion?.length && newFilters.religion[0] !== "all") {
+      apiParams.religion_id = newFilters.religion[0];
+    }
+    
+    const hasFilters = Object.keys(apiParams).length > 1;
+    
+    if (hasFilters) {
+      setHasActiveFilters(true);
+      setLoading(true);
+      try {
+        const results = await getFilterStudent(apiParams);
+        setFilteredStudentsData(results || []);
+      } catch (error) {
+        console.error("Error refetching after filter clear:", error);
+        setError("Failed to fetch filtered students");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // No filters left, reset to showing all campus students
+      setHasActiveFilters(false);
+      setFilteredStudentsData([]);
+    }
+  };
+
+  // Helper to remove individual stage status
+  const removeSingleStageStatus = async (statusToRemove: string) => {
+    const currentStatuses = Array.isArray(filters.stage_status)
+      ? filters.stage_status
+      : filters.stage_status && filters.stage_status !== "all"
+      ? [filters.stage_status]
+      : [];
+    
+    const newStatuses = currentStatuses.filter((s) => s !== statusToRemove);
+    
+    const newFilters = {
+      ...filters,
+      stage_status: newStatuses.length > 0 ? newStatuses : "all",
+    };
+    
+    // If removing the last status, also clear the stage
+    if (newStatuses.length === 0) {
+      newFilters.stage = "all";
+      newFilters.stage_id = undefined;
+    }
+    
+    setFilters(newFilters);
+    
+    // Refetch with updated filters
+    const apiParams: any = { campus_id: Number(id) };
+    
+    if (newFilters.stage_id) {
+      apiParams.stage_id = newFilters.stage_id;
+    }
+    if (newFilters.stage_status && newFilters.stage_status !== "all") {
+      apiParams.stage_status = newFilters.stage_status;
+    }
+    
+    const hasFilters = Object.keys(apiParams).length > 1;
+    
+    if (hasFilters) {
+      setHasActiveFilters(true);
+      setLoading(true);
+      try {
+        const results = await getFilterStudent(apiParams);
+        setFilteredStudentsData(results || []);
+      } catch (error) {
+        console.error("Error refetching after status removal:", error);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setHasActiveFilters(false);
+      setFilteredStudentsData([]);
+    }
+  };
+
+  // Build active filter tags
+  const activeFilterTags: { key: string; label: string; onRemove: () => void }[] = [];
+  
+  // Stage
+  if (filters.stage && filters.stage !== "all") {
+    activeFilterTags.push({
+      key: "stage",
+      label: `Stage: ${filters.stage}`,
+      onRemove: () => clearSingleFilter("stage"),
+    });
+  }
+  
+  // Individual stage statuses
+  const stageStatusArray = Array.isArray(filters.stage_status)
+    ? filters.stage_status
+    : filters.stage_status && filters.stage_status !== "all"
+    ? [filters.stage_status]
+    : [];
+  
+  stageStatusArray.forEach((status) => {
+    activeFilterTags.push({
+      key: `stage_status-${status}`,
+      label: `Status: ${status}`,
+      onRemove: () => removeSingleStageStatus(status),
+    });
+  });
+  
+  // State
+  if (filters.state) {
+    activeFilterTags.push({
+      key: "state",
+      label: `State: ${filters.state}`,
+      onRemove: () => clearSingleFilter("state"),
+    });
+  }
+  
+  // District
+  if (filters.district?.length) {
+    activeFilterTags.push({
+      key: "district",
+      label: `District: ${filters.district[0]}`,
+      onRemove: () => clearSingleFilter("district"),
+    });
+  }
+  
+  // Campus (partner field)
+  if (filters.partner?.length) {
+    const campus = campusList.find((c: any) => String(c.id) === String(filters.partner[0]));
+    const campusLabel = campus?.campus_name || campus?.name || filters.partner[0];
+    activeFilterTags.push({
+      key: "partner",
+      label: `Campus: ${campusLabel}`,
+      onRemove: () => clearSingleFilter("partner"),
+    });
+  }
+  
+  // School
+  if (filters.school?.length) {
+    const school = schoolList.find((s: any) => String(s.id) === String(filters.school[0]));
+    const schoolLabel = school?.school_name || school?.name || filters.school[0];
+    activeFilterTags.push({
+      key: "school",
+      label: `School: ${schoolLabel}`,
+      onRemove: () => clearSingleFilter("school"),
+    });
+  }
+  
+  // Qualification
+  if (filters.qualification?.length) {
+    const qualification = qualificationList.find((q: any) => String(q.id) === String(filters.qualification[0]));
+    const qualLabel = qualification?.qualification_name || qualification?.name || filters.qualification[0];
+    activeFilterTags.push({
+      key: "qualification",
+      label: `Qualification: ${qualLabel}`,
+      onRemove: () => clearSingleFilter("qualification"),
+    });
+  }
+  
+  // Current Status
+  if (filters.currentStatus?.length) {
+    const status = currentStatusList.find((s: any) => String(s.id) === String(filters.currentStatus[0]));
+    const statusLabel = status?.current_status_name || status?.name || filters.currentStatus[0];
+    activeFilterTags.push({
+      key: "currentStatus",
+      label: `Current Status: ${statusLabel}`,
+      onRemove: () => clearSingleFilter("currentStatus"),
+    });
+  }
+  
+  // Partner Filter
+  if (filters.partnerFilter?.length) {
+    const partner = partnerList.find((p: any) => String(p.id) === String(filters.partnerFilter[0]));
+    const partnerLabel = partner?.partner_name || partner?.name || filters.partnerFilter[0];
+    activeFilterTags.push({
+      key: "partnerFilter",
+      label: `Partner: ${partnerLabel}`,
+      onRemove: () => clearSingleFilter("partnerFilter"),
+    });
+  }
+  
+  // Donor
+  if (filters.donor?.length) {
+    const donor = donorList.find((d: any) => String(d.id) === String(filters.donor[0]));
+    const donorLabel = donor?.donor_name || donor?.name || filters.donor[0];
+    activeFilterTags.push({
+      key: "donor",
+      label: `Donor: ${donorLabel}`,
+      onRemove: () => clearSingleFilter("donor"),
+    });
+  }
+  
+  // Religion
+  if (filters.religion?.length) {
+    const religion = religionList.find((r: any) => String(r.id) === String(filters.religion[0]));
+    const religionLabel = religion?.religion_name || religion?.name || filters.religion[0];
+    activeFilterTags.push({
+      key: "religion",
+      label: `Religion: ${religionLabel}`,
+      onRemove: () => clearSingleFilter("religion"),
+    });
+  }
 
   // Fetch students data (used for both overview and student tabs)
   useEffect(() => {
@@ -155,8 +498,13 @@ const CampusDetail = () => {
     displayStudents.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
   const endIdx = Math.min(studentPage * rowsPerPage, displayStudents.length);
 
-  // Filtered students based on search and filters
+  // Filtered students based on search only (not filters - filters are applied via API)
   const filteredStudents = paginatedStudents.filter((student) => {
+    // If no search term, show all paginated students
+    if (!searchTerm.trim()) {
+      return true;
+    }
+
     const search = searchTerm.toLowerCase();
     const matchesSearch =
       (student.first_name &&
@@ -165,16 +513,7 @@ const CampusDetail = () => {
       (student.email && student.email.toLowerCase().includes(search)) ||
       (student.phone_number && student.phone_number.includes(search));
 
-    let matchesFilters = true;
-    if (filters.stage !== "all" && student.stage_name !== filters.stage)
-      matchesFilters = false;
-    if (
-      filters.status !== "all" &&
-      student.current_status_name !== filters.status
-    )
-      matchesFilters = false;
-
-    return matchesSearch && matchesFilters;
+    return matchesSearch;
   });
 
   return (
@@ -258,6 +597,56 @@ const CampusDetail = () => {
                     Filter
                   </Button>
                 </div>
+
+                {/* Active Filter Tags */}
+                {activeFilterTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {activeFilterTags.map((tag) => (
+                      <Button
+                        key={tag.key}
+                        size="sm"
+                        variant="secondary"
+                        className="rounded-full py-1.5 px-3 flex items-center gap-2 h-auto text-xs"
+                        onClick={tag.onRemove}
+                      >
+                        <span>{tag.label}</span>
+                        <X className="w-3 h-3" />
+                      </Button>
+                    ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-full py-1.5 px-3 h-auto text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setFilters({
+                          stage: "all",
+                          stage_id: undefined,
+                          stage_status: "all",
+                          status: "all",
+                          examMode: "all",
+                          interviewMode: "all",
+                          partner: [],
+                          district: [],
+                          market: [],
+                          school: [],
+                          religion: [],
+                          qualification: [],
+                          currentStatus: [],
+                          state: undefined,
+                          gender: undefined,
+                          donor: [],
+                          partnerFilter: [],
+                          dateRange: { type: "applicant" },
+                        });
+                        setHasActiveFilters(false);
+                        setFilteredStudentsData([]);
+                      }}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                )}
+
                 <AdvancedFilterModal
                   isOpen={showFilterModal}
                   onClose={() => setShowFilterModal(false)}
@@ -272,6 +661,10 @@ const CampusDetail = () => {
                     }
                     if (f.stage_id) {
                       apiParams.stage_id = f.stage_id;
+                    }
+                    // Stage Status
+                    if (f.stage_status && f.stage_status !== "all") {
+                      apiParams.stage_status = f.stage_status;
                     }
                     if (
                       f.qualification?.length &&
@@ -294,15 +687,34 @@ const CampusDetail = () => {
                     if (f.district?.length && f.district[0] !== "all") {
                       apiParams.district = f.district[0];
                     }
+                    // Partner filter
+                    if (f.partnerFilter?.length && f.partnerFilter[0] !== "all") {
+                      apiParams.partner_id = f.partnerFilter[0];
+                    }
+                    // Donor filter
+                    if (f.donor?.length && f.donor[0] !== "all") {
+                      apiParams.donor_id = f.donor[0];
+                    }
+                    // Religion filter
+                    if (f.religion?.length && f.religion[0] !== "all") {
+                      apiParams.religion_id = f.religion[0];
+                    }
 
                     // Check if any filters are applied
                     const hasFilters = Object.keys(apiParams).length > 1; // More than just campus_id
+
+                    console.log("🔍 Filter Applied:", {
+                      filterObject: f,
+                      apiParams: apiParams,
+                      hasFilters: hasFilters
+                    });
 
                     if (hasFilters) {
                       setHasActiveFilters(true);
                       setLoading(true);
                       try {
                         const results = await getFilterStudent(apiParams);
+                        console.log("✅ Filter Results:", results?.length, "students found");
                         setFilteredStudentsData(results || []);
                       } catch (error) {
                         console.error(
@@ -322,6 +734,8 @@ const CampusDetail = () => {
                   }}
                   currentFilters={filters}
                   students={students}
+                  stageList={stageList}
+                  hiddenFilters={['campus']}
                 />
                 {loading ? (
                   <p>Loading students...</p>

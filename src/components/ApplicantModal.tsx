@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -875,6 +876,9 @@ export function ApplicantModal({
         <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
             <DialogTitle className="text-lg sm:text-xl">Applicant Details</DialogTitle>
+            <DialogDescription className="sr-only">
+              View and edit applicant information including personal details, contact information, and application status
+            </DialogDescription>
             <div className="flex items-center gap-2">
               {/* <Button
                 variant="outline"

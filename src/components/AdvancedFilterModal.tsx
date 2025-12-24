@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -87,6 +88,7 @@ interface AdvancedFilterModalProps {
   qualificationList?: any[];
   currentstatusList?: any[];
   stageList?: any[];
+  hiddenFilters?: string[]; // Array of filter keys to hide (e.g., ['campus', 'state'])
 }
 
 export function AdvancedFilterModal({
@@ -101,6 +103,7 @@ export function AdvancedFilterModal({
   qualificationList = [],
   currentstatusList = [],
   stageList = [],
+  hiddenFilters = [],
 }: AdvancedFilterModalProps) {
   const [filters, setFilters] = useState<FilterState>(currentFilters);
   const [availableOptions, setAvailableOptions] = useState({
@@ -642,6 +645,9 @@ export function AdvancedFilterModal({
               </span>
             )}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Filter applicants by stage, location, qualifications, and other criteria
+          </DialogDescription>
         </DialogHeader>
 
         {/* --- ADDED: show active filter chips --- */}
@@ -783,11 +789,66 @@ export function AdvancedFilterModal({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[300px] p-0" align="start">
-                  <Command>
+                  <Command shouldFilter={false}>
                     <CommandInput placeholder="Search statuses..." />
-                    <CommandList className="max-h-[200px]">
+                    <CommandList 
+                      className="max-h-[200px] overflow-y-auto"
+                      onWheel={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
                       <CommandEmpty>No status found.</CommandEmpty>
                       <CommandGroup>
+                        {/* Select All Option */}
+                        <CommandItem
+                          value="select-all"
+                          onSelect={() => {
+                            setFilters((prev) => {
+                              const currentStatuses = Array.isArray(prev.stage_status)
+                                ? prev.stage_status
+                                : prev.stage_status && prev.stage_status !== "all"
+                                ? [prev.stage_status]
+                                : [];
+                              
+                              const allStatusNames = stageStatuses.map(
+                                (s: any) => s.status_name || s.name
+                              );
+                              
+                              // If all are selected, deselect all; otherwise select all
+                              const allSelected = allStatusNames.every((name: string) =>
+                                currentStatuses.includes(name)
+                              );
+                              
+                              return {
+                                ...prev,
+                                stage_status: allSelected ? "all" : allStatusNames,
+                              };
+                            });
+                          }}
+                          className="cursor-pointer font-medium border-b"
+                        >
+                          <div className="flex items-center w-full">
+                            <Checkbox
+                              checked={
+                                Array.isArray(filters.stage_status) &&
+                                stageStatuses.length > 0 &&
+                                stageStatuses.every((s: any) =>
+                                  filters.stage_status.includes(s.status_name || s.name)
+                                )
+                              }
+                              className="mr-2"
+                              onCheckedChange={() => {}}
+                            />
+                            <span className="flex-1">Select All</span>
+                            {Array.isArray(filters.stage_status) &&
+                              stageStatuses.length > 0 &&
+                              stageStatuses.every((s: any) =>
+                                filters.stage_status.includes(s.status_name || s.name)
+                              ) && <Check className="ml-auto h-4 w-4" />}
+                          </div>
+                        </CommandItem>
+                        
+                        {/* Individual Status Options */}
                         {stageStatuses.map((status: any) => {
                           const statusName = status.status_name || status.name;
                           const isSelected = Array.isArray(filters.stage_status)
@@ -1003,41 +1064,43 @@ export function AdvancedFilterModal({
             </div> */}
 
             {/* Campus */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Campus</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All Campuses" },
-                  ...availableOptions.campuses.map((campus) => ({
-                    value: getValue(campus),
-                    label: getDisplayName(campus, "campus_name", "Campus"),
-                  })),
-                ]}
-                value={filters.partner?.[0] || "all"}
-                onValueChange={(value) => {
-                  if (value === "all") {
-                    setFilters((prev) => ({
-                      ...prev,
-                      partner: [],
-                    }));
-                  } else {
-                    setFilters((prev) => ({
-                      ...prev,
-                      partner: [value],
-                    }));
+            {!hiddenFilters.includes('campus') && (
+              <div>
+                <h3 className="font-semibold text-sm mb-2">Campus</h3>
+                <Combobox
+                  options={[
+                    { value: "all", label: "All Campuses" },
+                    ...availableOptions.campuses.map((campus) => ({
+                      value: getValue(campus),
+                      label: getDisplayName(campus, "campus_name", "Campus"),
+                    })),
+                  ]}
+                  value={filters.partner?.[0] || "all"}
+                  onValueChange={(value) => {
+                    if (value === "all") {
+                      setFilters((prev) => ({
+                        ...prev,
+                        partner: [],
+                      }));
+                    } else {
+                      setFilters((prev) => ({
+                        ...prev,
+                        partner: [value],
+                      }));
+                    }
+                  }}
+                  placeholder={
+                    isLoading.general ? "Loading..." : "Select campus"
                   }
-                }}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select campus"
-                }
-                searchPlaceholder="Search campus..."
-                emptyText="No campus found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.campuses.length} campuses available */}
-              </p>
-            </div>
+                  searchPlaceholder="Search campus..."
+                  emptyText="No campus found."
+                  disabled={isLoading.general}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {/* {availableOptions.campuses.length} campuses available */}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Partner and Donor Filters */}
