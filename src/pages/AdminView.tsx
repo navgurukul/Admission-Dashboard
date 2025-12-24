@@ -15,8 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAllSlots, getAllInterviewSchedules } from "@/utils/api";
+import {
+  getAllSlots,
+  getAllInterviewSchedules,
+  scheduleInterview,
+} from "@/utils/api";
 import { ApplicantModal } from "@/components/ApplicantModal";
+import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
+import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import {
+  initClient,
+  signIn,
+  isSignedIn,
+  createCalendarEvent,
+  formatDateTimeForCalendar,
+} from "@/utils/googleCalendar";
 
 export default function AdminView() {
   const [activeTab, setActiveTab] = useState("interviews");
@@ -47,6 +61,24 @@ export default function AdminView() {
   const [slotTotalPages, setSlotTotalPages] = useState(1);
   const [slotTotalCount, setSlotTotalCount] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const { toast } = useToast();
+
+  // Scheduling States
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedSlotForScheduling, setSelectedSlotForScheduling] = useState<any>(null);
+  const [schedulingInProgress, setSchedulingInProgress] = useState(false);
+
+  // Initialize Google API on mount
+  useEffect(() => {
+    const initGoogle = async () => {
+      try {
+        await initClient();
+      } catch (error) {
+        console.error("Google API init error:", error);
+      }
+    };
+    initGoogle();
+  }, []);
 
   // Only fetch interviews when interviews tab is active
   useEffect(() => {
@@ -130,6 +162,92 @@ export default function AdminView() {
     }
   };
 
+  const handleAdminScheduleMeet = async (
+    slotId: number,
+    studentId: number,
+    studentEmail: string,
+    studentName: string,
+    interviewerEmail: string,
+    interviewerName: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    topicName: string,
+  ) => {
+    try {
+      setSchedulingInProgress(true);
+
+      if (!isSignedIn()) {
+        toast({
+          title: "⚠️ Google Sign-in Required",
+          description: "Please sign in with Google to create Meet link",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+        await signIn();
+      }
+
+      const startDateTime = formatDateTimeForCalendar(date, startTime);
+      const endDateTime = formatDateTimeForCalendar(date, endTime);
+
+      const eventDetails = {
+        summary: `${topicName} - Interview (Admin Scheduled)`,
+        description: `Interview scheduled by Admin\nStudent: ${studentName} (${studentEmail})\nInterviewer: ${interviewerName} (${interviewerEmail})\nTopic: ${topicName}`,
+        startDateTime,
+        endDateTime,
+        attendeeEmail: studentEmail,
+        studentName: studentName,
+        attendees: [studentEmail, interviewerEmail].filter(Boolean),
+      };
+
+      toast({
+        title: "Creating Meeting...",
+        description: "Generating Google Meet link...",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
+
+      const calendarResult = await createCalendarEvent(eventDetails);
+
+      if (!calendarResult.meetLink) {
+        throw new Error("Failed to create Google Meet link");
+      }
+
+      const payload = {
+        student_id: studentId,
+        slot_id: slotId,
+        title: `${topicName} - Interview`,
+        description: `Admin scheduled interview for ${studentName}. Topic: ${topicName}. Interviewer: ${interviewerName}`,
+        meeting_link: calendarResult.meetLink,
+        google_event_id: calendarResult.eventId,
+        created_by: "Admin" as const,
+      };
+
+      await scheduleInterview(payload);
+
+      toast({
+        title: "✅ Interview Scheduled",
+        description: "Interview scheduled and Meet link created successfully!",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
+
+      fetchSlots();
+      setIsScheduleModalOpen(false);
+      setSelectedSlotForScheduling(null);
+    } catch (error: any) {
+      console.error("Admin scheduling error:", error);
+      toast({
+        title: "❌ Unable to Schedule Interview",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+    } finally {
+      setSchedulingInProgress(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     let colorClass = "bg-gray-500";
     let displayStatus = status;
@@ -159,7 +277,7 @@ export default function AdminView() {
         displayStatus = "Booked";
         break;
       case "available":
-        colorClass = "bg-orange-500";
+        colorClass = "bg-primary/90";
         displayStatus = "Available";
         break;
       case "expired":
@@ -463,6 +581,7 @@ export default function AdminView() {
                             <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
                             <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
                             <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
+                            <TableHead className="font-semibold min-w-[100px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -488,6 +607,23 @@ export default function AdminView() {
                               </TableCell>
                               <TableCell className="min-w-[120px]">
                                 {getStatusBadge(slot.status || 'Available')}
+                              </TableCell>
+                              <TableCell className="min-w-[100px]">
+                                {slot.status?.toLowerCase() === "available" && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedSlotForScheduling(slot);
+                                      setIsScheduleModalOpen(true);
+                                    }}
+                                    className="flex items-center gap-1 text-primary hover:bg-primary/5 border-primary/20 shadow-soft hover:shadow-medium transition-all"
+                                    title="Schedule interview"
+                                  >
+                                    <Video className="w-4 h-4" />
+                                    <span>Schedule</span>
+                                  </Button>
+                                )}
                               </TableCell>
                             </TableRow>
                           ))}
@@ -547,6 +683,21 @@ export default function AdminView() {
         applicant={selectedApplicant}
         isOpen={isApplicantModalOpen}
         onClose={() => setIsApplicantModalOpen(false)}
+      />
+      <ScheduleInterviewModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setSelectedSlotForScheduling(null);
+        }}
+        slotData={selectedSlotForScheduling ? {
+          ...selectedSlotForScheduling,
+          interviewer_name: selectedSlotForScheduling.user_name,
+          interviewer_email: selectedSlotForScheduling.user_email
+        } : null}
+        allAvailableSlots={slots}
+        onSchedule={handleAdminScheduleMeet}
+        isLoading={schedulingInProgress}
       />
     </div>
   );
