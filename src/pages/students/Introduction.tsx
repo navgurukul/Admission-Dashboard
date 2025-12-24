@@ -75,24 +75,24 @@ const Instructions: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <LogoutButton className="from-orange-400 to-red-500" />
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
-        <h1 className="text-3xl font-bold text-gray-800 text-center mb-4">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
+      <LogoutButton className="from-primary to-primary/90" />
+      <div className="bg-card  card-shadow rounded-2xl shadow-large p-8 max-w-2xl w-full">
+        <h1 className="text-3xl font-bold text-foreground text-center mb-4">
           {content.title}
         </h1>
 
-        <p className="text-gray-600 text-center mb-8">
+        <p className="text-muted-foreground text-center mb-8">
           {content.instructionsIntro}
         </p>
 
         <div className="space-y-4 mb-8">
           {content.instructions.map((instruction, index) => (
             <div key={index} className="flex items-start space-x-3">
-              <span className="bg-orange-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+              <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                 {index + 1}
               </span>
-              <p className="text-gray-700">{instruction}</p>
+              <p className="text-foreground">{instruction}</p>
             </div>
           ))}
         </div>
@@ -100,7 +100,7 @@ const Instructions: React.FC = () => {
         <div className="text-center">
           <button
             onClick={handleNext}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200"
           >
             {content.imReady}
           </button>
@@ -108,15 +108,15 @@ const Instructions: React.FC = () => {
 
         {/* Progress Dots */}
         <div className="flex justify-center space-x-2 mt-8">
-          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-          <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+          <div className="w-3 h-3 bg-primary rounded-full"></div>
+          <div className="w-3 h-3 bg-muted rounded-full"></div>
         </div>
 
         {/* Navigation */}
         <div className="flex justify-between mt-6">
           <button
             onClick={handlePrevious}
-            className="text-gray-600 hover:text-gray-800 flex items-center"
+            className="text-muted-foreground hover:text-foreground flex items-center"
           >
             <svg
               className="w-4 h-4 mr-1"
@@ -135,7 +135,7 @@ const Instructions: React.FC = () => {
           </button>
           <button
             onClick={handleNext}
-            className="text-orange-500 hover:text-orange-600 flex items-center"
+            className="text-primary hover:text-primary/80 flex items-center"
           >
             {content.next}
             <svg

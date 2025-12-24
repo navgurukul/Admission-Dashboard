@@ -191,14 +191,14 @@ export default function AdminView() {
 
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-background">
       <AdmissionsSidebar />
 
       <div className="flex-1 md:ml-64 min-w-0">
         <div className="p-6 md:p-8">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Admin View</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-foreground">Admin View</h1>
+            <p className="text-muted-foreground mt-2">
               Overview of all scheduled interviews and created slots
             </p>
           </div>
@@ -207,13 +207,13 @@ export default function AdminView() {
             <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger
                 value="interviews"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Scheduled Interviews
               </TabsTrigger>
               <TabsTrigger
                 value="slots"
-                className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Created Slots
               </TabsTrigger>
@@ -264,20 +264,20 @@ export default function AdminView() {
                 <CardContent>
                   {interviewsLoading ? (
                     <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     </div>
                   ) : interviews.length === 0 ? (
                     <div className="text-center py-12">
-                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">
+                      <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">
                         No scheduled interviews found
                       </p>
                     </div>
                   ) : (
                     <div className="border rounded-lg overflow-auto max-h-[600px] w-full">
                       <Table>
-                        <TableHeader className="sticky top-0 bg-gray-50 z-10">
-                          <TableRow className="bg-gray-50">
+                        <TableHeader className="sticky top-0 bg-muted/30 z-10">
+                          <TableRow className="bg-muted/30">
                             <TableHead className="font-semibold min-w-[200px]">Applicant</TableHead>
                             <TableHead className="font-semibold min-w-[200px]">Interviewer</TableHead>
                             <TableHead className="font-semibold min-w-[150px]">Title</TableHead>
@@ -289,10 +289,10 @@ export default function AdminView() {
                         </TableHeader>
                         <TableBody>
                           {interviews.map((interview: any) => (
-                            <TableRow key={interview.id} className="hover:bg-orange-50 transition-colors">
+                            <TableRow key={interview.id} className="hover:bg-muted/20 transition-colors">
                               <TableCell className="min-w-[200px]">
                                 <div
-                                  className="cursor-pointer hover:bg-gray-100 p-2 rounded-md transition-colors group"
+                                  className="cursor-pointer hover:bg-muted p-2 rounded-md transition-colors group"
                                   onClick={() => {
                                     if (interview.student_id) {
                                       setSelectedApplicant({ id: interview.student_id });
@@ -300,17 +300,17 @@ export default function AdminView() {
                                     }
                                   }}
                                 >
-                                  <div className="font-medium text-black-600 group-hover:text-black-800 flex items-center gap-2">
+                                  <div className="font-medium text-foreground group-hover:text-foreground flex items-center gap-2">
                                     {interview.student_name || "Unknown"}
                                     {/* <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
                                   </div>
-                                  <div className="text-xs text-gray-500">{interview.student_email || "N/A"}</div>
+                                  <div className="text-xs text-muted-foreground">{interview.student_email || "N/A"}</div>
                                 </div>
                               </TableCell>
                               <TableCell className="min-w-[200px]">
                                 <div>
                                   <div className="font-medium">{interview.interviewer_name || "Not Assigned"}</div>
-                                  <div className="text-xs text-gray-500">{interview.interviewer_email || "N/A"}</div>
+                                  <div className="text-xs text-muted-foreground">{interview.interviewer_email || "N/A"}</div>
                                 </div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap min-w-[150px]">
@@ -328,7 +328,7 @@ export default function AdminView() {
                               <TableCell className="whitespace-nowrap min-w-[100px]">
                                 {interview.meeting_link ? (
                                     interview.status?.toLowerCase() === "cancelled" ? (
-                                    <span className="flex items-center gap-1 text-gray-400 text-sm cursor-not-allowed">
+                                    <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
                                       <Video className="w-4 h-4" />
                                       <span>Cancelled</span>
                                     </span>
@@ -337,14 +337,14 @@ export default function AdminView() {
                                     href={interview.meeting_link}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-orange-600 hover:underline"
+                                    className="flex items-center gap-1 text-primary hover:underline"
                                   >
                                     <Video className="w-4 h-4" />
                                     <span>Join</span>
                                   </a>
                                   )
                                 ) : (
-                                  <span className="text-gray-400 text-sm">No Link</span>
+                                  <span className="text-muted-foreground text-sm">No Link</span>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -444,20 +444,20 @@ export default function AdminView() {
                 <CardContent>
                   {slotsLoading ? (
                     <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                     </div>
                   ) : slots.length === 0 ? (
                     <div className="text-center py-12">
-                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">
+                      <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">
                         No slots found
                       </p>
                     </div>
                   ) : (
                     <div className="border rounded-lg overflow-auto max-h-[600px]">
                       <Table>
-                        <TableHeader className="sticky top-0 bg-gray-50 z-10">
-                          <TableRow className="bg-gray-50">
+                        <TableHeader className="sticky top-0 bg-muted/30 z-10">
+                          <TableRow className="bg-muted/30">
                             <TableHead className="font-semibold min-w-[200px]">Created By</TableHead>
                             <TableHead className="font-semibold min-w-[120px]">Slot type</TableHead>
                             <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
@@ -467,15 +467,15 @@ export default function AdminView() {
                         </TableHeader>
                         <TableBody>
                           {slots.map((slot: any) => (
-                            <TableRow key={slot.id} className="hover:bg-orange-50 transition-colors">
+                            <TableRow key={slot.id} className="hover:bg-muted/20 transition-colors">
                               <TableCell className="min-w-[200px]">
                                 <div>
                                   <div className="font-medium">{slot.user_name || `User #${slot.created_by}`}</div>
-                                  <div className="text-xs text-gray-500">{slot.user_email}</div>
+                                  <div className="text-xs text-muted-foreground">{slot.user_email}</div>
                                 </div>
                               </TableCell>
                               <TableCell className="min-w-[120px]">
-                                <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                                   {slot.slot_type || "Not Specified"}
                                 </Badge>
                               </TableCell>

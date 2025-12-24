@@ -35,6 +35,7 @@ import {
   uploadProfileImage,
   getBlocksByDistrict,
   getDistrictsByState,
+  getStudentDataByEmail,
 } from "@/utils/api";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -122,6 +123,8 @@ export function AddApplicantModal({
     block: false,
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [emailExists, setEmailExists] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   const [formData, setFormData] = useState({
     image_url: "",
@@ -390,6 +393,37 @@ export function AddApplicantModal({
       }
     }
   };
+
+  const handleEmailBlur = async () => {
+  if (!formData.email) return;
+
+  // basic format check
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.email)) return;
+
+  setIsCheckingEmail(true);
+
+  try {
+    const existingStudent = await getStudentDataByEmail(formData.email);
+
+    if (existingStudent) {
+      setErrors((prev) => ({
+        ...prev,
+        email: "This email already exists, you can use another email",
+      }));
+      setEmailExists(true);
+    }
+  } catch (err) {
+    // email NOT found = valid case
+    setEmailExists(false);
+    setErrors((prev) => {
+      const { email, ...rest } = prev;
+      return rest;
+    });
+  } finally {
+    setIsCheckingEmail(false);
+  }
+};
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -693,6 +727,8 @@ export function AddApplicantModal({
           formData.gender &&
           formData.dob &&
           formData.email &&
+          !emailExists &&
+          !errors.email &&
           selectedState &&
           selectedDistrict &&
           formData.block &&
@@ -744,10 +780,10 @@ export function AddApplicantModal({
                       className={cn(
                         "flex items-center justify-center w-8 h-8 sm:w-8 sm:h-8 rounded-full border-2 transition-colors",
                         isCurrent
-                          ? "bg-orange-500 border-orange-500 text-white"
+                          ? "bg-primary border-primary text-primary-foreground"
                           : isCompleted
-                            ? "bg-orange-500 border-orange-500 text-white"
-                            : "border-gray-300 text-gray-400",
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-muted-foreground/30 text-muted-foreground",
                       )}
                     >
                       {isCompleted ? (
@@ -760,7 +796,7 @@ export function AddApplicantModal({
                       <div
                         className={cn(
                           "w-6 sm:w-12 h-0.5 mx-1 sm:mx-2",
-                          isCompleted ? "bg-orange-400" : "bg-orange-300",
+                          isCompleted ? "bg-primary" : "bg-muted-foreground/30",
                         )}
                       />
                     )}
@@ -807,7 +843,7 @@ export function AddApplicantModal({
                     <div
                       className={cn(
                         "w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center",
-                        errors.image_url ? "border-red-500" : "border-white",
+                        errors.image_url ? "bg-destructive/10 border-destructive" : "border-white",
                       )}
                     >
                       {imagePreview ? (
@@ -822,7 +858,7 @@ export function AddApplicantModal({
                     </div>
                     <label
                       htmlFor="profile-image"
-                      className="absolute bottom-0 right-0 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full shadow-md cursor-pointer transition-colors"
+                      className="absolute bottom-0 right-0 bg-primary hover:bg-primary-600 text-white p-2 rounded-full shadow-md cursor-pointer transition-colors"
                     >
                       <div className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
                         <svg
@@ -970,9 +1006,14 @@ export function AddApplicantModal({
                       onChange={(e) =>
                         handleInputChange("email", e.target.value)
                       }
+                      onBlur={handleEmailBlur}
                       placeholder="Enter email address"
                       className={errors.email ? "border-red-500" : ""}
                     />
+                    {isCheckingEmail && (
+                      <p className="text-xs text-muted-foreground">
+                        Checking email...
+                      </p>)}
                     {errors.email && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1738,7 +1779,7 @@ export function AddApplicantModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || emailExists ||isCheckingEmail}
             className="w-full sm:w-auto"
           >
             {loading ? (

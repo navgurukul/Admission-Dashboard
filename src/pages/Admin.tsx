@@ -440,16 +440,16 @@ const AdminPage: React.FC = () => {
         <main className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <UserIcon className="h-6 w-6 text-orange-600" />
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <UserIcon className="h-6 w-6 text-primary" />
                     </div>
                     User Management
                   </h1>
-                  <p className="text-gray-600 mt-1">
+                  <p className="text-muted-foreground mt-1">
                     {searchQuery
                       ? `${filteredUsers.length} users found (search)`
                       : "Manage system users and their roles"}
@@ -458,7 +458,7 @@ const AdminPage: React.FC = () => {
 
                 <button
                   onClick={openAddUserDialog}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
+                  className="bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Add User</span>
@@ -469,21 +469,21 @@ const AdminPage: React.FC = () => {
               {/* Search Bar */}
               <div className="mt-4 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <input
                   type="text"
                   placeholder="Search users by name, email, or username..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                  className="block w-full pl-10 pr-3 py-2.5 border border-border rounded-lg leading-5 bg-background placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   >
-                    <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                    <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                   </button>
                 )}
               </div>
@@ -491,48 +491,48 @@ const AdminPage: React.FC = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
                 <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <UserIcon className="h-5 w-5 text-blue-600" />
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <UserIcon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Total Users
                     </p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                    <p className="text-2xl font-semibold text-foreground">
                       {searchQuery.trim() ? filteredUsers.length : totalUsers}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
                 <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Shield className="h-5 w-5 text-green-600" />
+                  <div className="p-2 bg-secondary-purple-light rounded-lg">
+                    <Shield className="h-5 w-5 text-secondary-purple" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Active Roles
                     </p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                    <p className="text-2xl font-semibold text-foreground">
                       {roles.length}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
                 <div className="flex items-center">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Search className="h-5 w-5 text-orange-600" />
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Search className="h-5 w-5 text-primary" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       Search Results
                     </p>
-                    <p className="text-2xl font-semibold text-gray-900">
+                    <p className="text-2xl font-semibold text-foreground">
                       {filteredUsers.length}
                     </p>
                   </div>
@@ -542,56 +542,56 @@ const AdminPage: React.FC = () => {
 
             {/* Table */}
             {loading || isSearching ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
+              <div className="bg-card rounded-xl shadow-sm border border-border p-12">
                 <div className="flex flex-col items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
-                  <div className="text-lg text-gray-600 mt-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  <div className="text-lg text-muted-foreground mt-4">
                     {isSearching ? "Searching users..." : "Loading users..."}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                 {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted/30">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           User
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Contact
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Username
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Role
                         </th>
-                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-card divide-y divide-border">
                       {paginatedUsers.map((user) => (
                         <tr
                           key={user.id}
-                          className="hover:bg-gray-50 transition-colors duration-150"
+                          className="hover:bg-muted/20 transition-colors duration-150"
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center">
-                                <span className="text-orange-600 font-semibold text-sm">
+                              <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span className="text-primary font-semibold text-sm">
                                   {user.name.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-foreground">
                                   {user.name}
                                 </div>
-                                <div className="text-sm text-gray-500 flex items-center gap-1">
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
                                   {user.email}
                                 </div>
@@ -599,18 +599,18 @@ const AdminPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 flex items-center gap-1">
+                            <div className="text-sm text-foreground flex items-center gap-1">
                               <Phone className="h-3 w-3" />
                               {user.mobile || "-"}
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-foreground">
                               {user.user_name || "-"}
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                               <Shield className="h-3 w-3 mr-1" />
                               {getRoleName(user.user_role_id)}
                             </span>
@@ -630,7 +630,7 @@ const AdminPage: React.FC = () => {
                                     editId: user.id,
                                   })
                                 }
-                                className="p-2 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-colors duration-200"
+                                className="p-2 text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors duration-200"
                                 title="Edit User"
                               >
                                 <Pencil size={16} />
@@ -639,7 +639,7 @@ const AdminPage: React.FC = () => {
                                 onClick={() =>
                                   handleDeleteUser(user.id, user.name)
                                 }
-                                className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                                className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
                                 title="Delete User"
                               >
                                 <Trash2 size={16} />
@@ -653,32 +653,32 @@ const AdminPage: React.FC = () => {
                 </div>
 
                 {/* Mobile Cards */}
-                <div className="md:hidden divide-y divide-gray-200">
+                <div className="md:hidden divide-y divide-border">
                   {paginatedUsers.map((user) => (
                     <div key={user.id} className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start space-x-3 flex-1">
-                          <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center">
-                            <span className="text-orange-600 font-semibold">
+                          <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
+                            <span className="text-primary font-semibold">
                               {user.name.charAt(0).toUpperCase()}
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {user.name}
                             </p>
-                            <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+                            <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               {user.email}
                             </p>
-                            <div className="mt-1 flex items-center gap-4 text-xs text-gray-500">
+                            <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
                               {user.mobile && (
                                 <span className="flex items-center gap-1">
                                   <Phone className="h-3 w-3" />
                                   {user.mobile}
                                 </span>
                               )}
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                                 <Shield className="h-3 w-3 mr-1" />
                                 {getRoleName(user.user_role_id)}
                               </span>
@@ -699,13 +699,13 @@ const AdminPage: React.FC = () => {
                                 editId: user.id,
                               })
                             }
-                            className="p-2 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-colors duration-200"
+                            className="p-2 text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors duration-200"
                           >
                             <Pencil size={16} />
                           </button>
                           <button
                             onClick={() => handleDeleteUser(user.id, user.name)}
-                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                            className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -717,11 +717,11 @@ const AdminPage: React.FC = () => {
 
                 {filteredUsers.length === 0 && (
                   <div className="p-12 text-center">
-                    <UserIcon className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    <UserIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-medium text-foreground">
                       No users found
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {searchQuery
                         ? "Try adjusting your search criteria."
                         : "Get started by adding a new user."}
@@ -734,15 +734,15 @@ const AdminPage: React.FC = () => {
             {/* Pagination */}
             {totalPagesCount > 1 && (
               <div className="flex justify-center mt-6">
-                <nav className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                <nav className="bg-card rounded-lg shadow-sm border border-border p-2">
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
                         page === 1
-                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                          : "bg-white text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
                       }`}
                     >
                       Previous
@@ -755,8 +755,8 @@ const AdminPage: React.FC = () => {
                           onClick={() => setPage(i + 1)}
                           className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
                             page === i + 1
-                              ? "bg-orange-600 text-white shadow-sm"
-                              : "bg-white text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                              ? "bg-primary text-white shadow-sm"
+                              : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
                           }`}
                         >
                           {i + 1}
@@ -771,8 +771,8 @@ const AdminPage: React.FC = () => {
                       disabled={page === totalPagesCount}
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
                         page === totalPagesCount
-                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                          : "bg-white text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
                       }`}
                     >
                       Next
@@ -785,22 +785,22 @@ const AdminPage: React.FC = () => {
             {/* Add/Edit Dialog */}
             {addUserDialog.open && (
               <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-                <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto border border-border">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-gray-900">
+                    <h2 className="text-xl font-bold text-foreground">
                       {addUserDialog.editId ? "Edit User" : "Add New User"}
                     </h2>
                     <button
                       onClick={closeAddUserDialog}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                      className="p-2 hover:bg-muted rounded-lg transition-colors duration-200"
                     >
-                      <X className="h-5 w-5 text-gray-500" />
+                      <X className="h-5 w-5 text-muted-foreground" />
                     </button>
                   </div>
 
                   <form onSubmit={handleAddUserSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Name *
                       </label>
                       <input
@@ -816,18 +816,18 @@ const AdminPage: React.FC = () => {
                         }}
                         className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
                           nameError
-                            ? "border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                            ? "border-destructive focus:ring-destructive"
+                            : "border-border focus:ring-primary focus:border-primary"
                         }`}
                         placeholder="Enter full name"
                       />
                       {nameError && (
-                        <p className="text-red-500 text-sm mt-1">{nameError}</p>
+                        <p className="text-destructive text-sm mt-1">{nameError}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Email *
                       </label>
                       <input
@@ -853,18 +853,18 @@ const AdminPage: React.FC = () => {
                           else setEmailError("");
                         }}
                         disabled={!!addUserDialog.editId}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors duration-200 disabled:bg-muted disabled:cursor-not-allowed"
                         placeholder="Enter email address"
                       />
                       {emailError && (
-                        <p className="text-red-500 text-sm mt-1">
+                        <p className="text-destructive text-sm mt-1">
                           {emailError}
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Phone *
                       </label>
                       <input
@@ -888,21 +888,21 @@ const AdminPage: React.FC = () => {
                         }}
                         className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
                           phoneError
-                            ? "border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                            ? "border-destructive focus:ring-destructive"
+                            : "border-border focus:ring-primary focus:border-primary"
                         }`}
                         placeholder="Enter 10-digit phone number"
                         maxLength={10}
                       />
                       {phoneError && (
-                        <p className="text-red-500 text-sm mt-1">
+                        <p className="text-destructive text-sm mt-1">
                           {phoneError}
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Username
                       </label>
                       <input
@@ -932,20 +932,20 @@ const AdminPage: React.FC = () => {
                         }}
                         className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
                           usernameError
-                            ? "border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:ring-orange-500 focus:border-orange-500"
+                            ? "border-destructive focus:ring-destructive"
+                            : "border-border focus:ring-primary focus:border-primary"
                         }`}
                         placeholder="Enter username (optional)"
                       />
                       {usernameError && (
-                        <p className="text-red-500 text-sm mt-1">
+                        <p className="text-destructive text-sm mt-1">
                           {usernameError}
                         </p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Role *
                       </label>
                       <select
@@ -957,7 +957,7 @@ const AdminPage: React.FC = () => {
                             selectedRoleId: e.target.value,
                           }))
                         }
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors duration-200"
+                        className="w-full px-3 py-2.5 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-primary transition-colors duration-200"
                       >
                         <option value="" disabled>
                           Select a role
@@ -970,17 +970,17 @@ const AdminPage: React.FC = () => {
                       </select>
                     </div>
 
-                    <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-200">
+                    <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-border">
                       <button
                         type="button"
                         onClick={closeAddUserDialog}
-                        className="px-4 py-2.5 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                        className="px-4 py-2.5 text-foreground border border-border rounded-lg hover:bg-muted transition-colors duration-200"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                        className="px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors duration-200 shadow-sm hover:shadow-md"
                       >
                         {addUserDialog.editId ? "Update User" : "Create User"}
                       </button>
@@ -993,12 +993,12 @@ const AdminPage: React.FC = () => {
             {/* Delete Confirmation Dialog */}
             {deleteConfirm.open && (
               <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-                <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+                <div className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl border border-border">
                   <div className="mb-4">
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-xl font-bold text-foreground mb-2">
                       Confirm Delete
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Are you sure you want to delete{" "}
                       <strong>{deleteConfirm.userName}</strong>? This action
                       cannot be retrieved.
@@ -1013,13 +1013,13 @@ const AdminPage: React.FC = () => {
                           userName: "",
                         })
                       }
-                      className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors duration-200"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={confirmDeleteUser}
-                      className="px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+                      className="px-4 py-2.5 bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors duration-200"
                     >
                       Delete
                     </button>
@@ -1031,12 +1031,12 @@ const AdminPage: React.FC = () => {
             {/* Update Confirmation Dialog */}
             {updateConfirm.open && (
               <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-                <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+                <div className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl border border-border">
                   <div className="mb-4">
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-xl font-bold text-foreground mb-2">
                       Confirm Update
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Are you sure you want to update{" "}
                       <strong>{updateConfirm.data?.name}</strong>?
                     </p>
@@ -1046,13 +1046,13 @@ const AdminPage: React.FC = () => {
                       onClick={() =>
                         setUpdateConfirm({ open: false, data: null })
                       }
-                      className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                      className="px-4 py-2.5 border border-border rounded-lg hover:bg-muted transition-colors duration-200"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={confirmUpdateUser}
-                      className="px-4 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors duration-200"
+                      className="px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors duration-200"
                     >
                       Update
                     </button>

@@ -3,6 +3,7 @@ import { useLanguage } from "../routes/LaunguageContext";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Code, Users, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import image from "@/assets/ng-logo-horizontal.png";
 
 const slides = [
   {
@@ -53,7 +54,7 @@ const content = {
     learnMoreText: "Learn More",
     footerText: "For more queries, email at",
     footerContact: "hi@navgurukul.org",
-    imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    imageUrl: image,
     features: {
       realProjects: "Real Projects",
       community: "Community",
@@ -70,7 +71,7 @@ const content = {
     learnMoreText: "और जानें",
     footerText: "अधिक जानकारी के लिए ईमेल करें:",
     footerContact: "hi@navgurukul.org",
-    imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    imageUrl: image,
     features: {
       realProjects: "वास्तविक परियोजनाएं",
       community: "समुदाय",
@@ -87,7 +88,7 @@ const content = {
     learnMoreText: "अधिक जाणून घ्या",
     footerText: "अधिक प्रश्नांसाठी, ईमेल करा:",
     footerContact: "hi@navgurukul.org",
-    imageUrl: "https://admissions.navgurukul.org/assets/logo.71054d69.png",
+    imageUrl: image,
     features: {
       realProjects: "वास्तविक प्रकल्प",
       community: "समुदाय",
@@ -99,8 +100,15 @@ const StudentLandingPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const navigate = useNavigate();
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
+
+  const languages = [
+    { value: "english", label: "English" },
+    { value: "hindi", label: "हिंदी" },
+    { value: "marathi", label: "मराठी" },
+  ];
 
   useEffect(() => {
     const interval = setInterval(nextSlide, 5000);
@@ -122,127 +130,139 @@ const StudentLandingPage = () => {
     }
   }, [selectedLanguage]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isLanguageDropdownOpen && !event.target.closest(".relative")) {
+        setIsLanguageDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isLanguageDropdownOpen]);
+
   const handleNavigation = async () => {
-    const googleUser = localStorage.getItem("user");
-    const testStarted = localStorage.getItem("testStarted") === "true";
-    const testCompleted = localStorage.getItem("testCompleted") === "true";
-    const allowRetest = localStorage.getItem("allowRetest") === "true";
+    // const googleUser = localStorage.getItem("user");
+    // const testStarted = localStorage.getItem("testStarted") === "true";
+    // const testCompleted = localStorage.getItem("testCompleted") === "true";
+    // const allowRetest = localStorage.getItem("allowRetest") === "true";
 
-    // Case 1: Not logged in
-    if (!googleUser) {
+    // // Case 1: Not logged in
+    // if (!googleUser) {
       navigate("/students/login");
-      return;
-    }
+    //   return;
+    // }
 
-    try {
-      // Try to get email from user data
-      const parsedUser = JSON.parse(googleUser);
-      const email = parsedUser.email;
+    // try {
+    //   // Try to get email from user data
+    //   const parsedUser = JSON.parse(googleUser);
+    //   const email = parsedUser.email;
 
-      if (email) {
-        // Import the API function dynamically
-        const { getCompleteStudentData } = await import("@/utils/api");
+    //   if (email) {
+    //     // Import the API function dynamically
+    //     const { getCompleteStudentData } = await import("@/utils/api");
 
-        // Fetch complete student data
-        const data = await getCompleteStudentData(email);
+    //     // Fetch complete student data
+    //     const data = await getCompleteStudentData(email);
 
-        // Get latest exam session
-        const examSessions = data.data.exam_sessions || [];
-        const latestExam =
-          examSessions.length > 0
-            ? examSessions.reduce((latest, current) =>
-                new Date(current.created_at) > new Date(latest.created_at)
-                  ? current
-                  : latest,
-              )
-            : null;
+    //     // Get latest exam session
+    //     const examSessions = data.data.exam_sessions || [];
+    //     const latestExam =
+    //       examSessions.length > 0
+    //         ? examSessions.reduce((latest, current) =>
+    //             new Date(current.created_at) > new Date(latest.created_at)
+    //               ? current
+    //               : latest,
+    //           )
+    //         : null;
 
-        if (latestExam) {
-          // Exam completed
-          if (latestExam.is_passed) {
-            // Get latest LR status
-            const lrRounds = data.data.interview_learner_round || [];
-            const latestLR =
-              lrRounds.length > 0
-                ? lrRounds.reduce((latest, current) =>
-                    new Date(current.created_at) > new Date(latest.created_at)
-                      ? current
-                      : latest,
-                  )
-                : null;
+    //     if (latestExam) {
+    //       // Exam completed
+    //       if (latestExam.is_passed) {
+    //         // Get latest LR status
+    //         const lrRounds = data.data.interview_learner_round || [];
+    //         const latestLR =
+    //           lrRounds.length > 0
+    //             ? lrRounds.reduce((latest, current) =>
+    //                 new Date(current.created_at) > new Date(latest.created_at)
+    //                   ? current
+    //                   : latest,
+    //               )
+    //             : null;
 
-            // Check if LR is passed
-            const isLRPassed =
-              latestLR?.learning_round_status?.includes("Pass");
+    //         // Check if LR is passed
+    //         const isLRPassed =
+    //           latestLR?.learning_round_status?.includes("Pass");
 
-            if (isLRPassed) {
-              // LR passed - check CFR status
-              const cfrRounds = data.data.interview_cultural_fit_round || [];
-              const latestCFR =
-                cfrRounds.length > 0
-                  ? cfrRounds.reduce((latest, current) =>
-                      new Date(current.created_at) > new Date(latest.created_at)
-                        ? current
-                        : latest,
-                    )
-                  : null;
+    //         if (isLRPassed) {
+    //           // LR passed - check CFR status
+    //           const cfrRounds = data.data.interview_cultural_fit_round || [];
+    //           const latestCFR =
+    //             cfrRounds.length > 0
+    //               ? cfrRounds.reduce((latest, current) =>
+    //                   new Date(current.created_at) > new Date(latest.created_at)
+    //                     ? current
+    //                     : latest,
+    //                 )
+    //               : null;
 
-              // Show result page with CFR status
-              navigate("/students/final-result");
-              return;
-            } else {
-              // Exam passed - show result page to book LR or view status
-              navigate("/students/final-result");
-              return;
-            }
-          } else {
-            // Failed exam
-            if (allowRetest) {
-              navigate("/students/test/start");
-              return;
-            } else {
-              navigate("/students/final-result");
-              return;
-            }
-          }
-        } else {
-          // No exam session found
-          if (testCompleted && !allowRetest) {
-            navigate("/students/final-result");
-            return;
-          }
+    //           // Show result page with CFR status
+    //           navigate("/students/final-result");
+    //           return;
+    //         } else {
+    //           // Exam passed - show result page to book LR or view status
+    //           navigate("/students/final-result");
+    //           return;
+    //         }
+    //       } else {
+    //         // Failed exam
+    //         if (allowRetest) {
+    //           navigate("/students/test/start");
+    //           return;
+    //         } else {
+    //           navigate("/students/final-result");
+    //           return;
+    //         }
+    //       }
+    //     } else {
+    //       // No exam session found
+    //       if (testCompleted && !allowRetest) {
+    //         navigate("/students/final-result");
+    //         return;
+    //       }
 
-          if (testStarted || allowRetest) {
-            navigate("/students/test/start");
-            return;
-          }
+    //       if (testStarted || allowRetest) {
+    //         navigate("/students/test/start");
+    //         return;
+    //       }
 
-          // Not started - go to instructions
-          navigate("/students/details/instructions");
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching student data:", error);
+    //       // Not started - go to instructions
+    //       navigate("/students/details/instructions");
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("Error fetching student data:", error);
 
-      // Fallback to old logic if API fails
-      if (testCompleted && !allowRetest) {
-        navigate("/students/final-result");
-        return;
-      }
+    //   // Fallback to old logic if API fails
+    //   if (testCompleted && !allowRetest) {
+    //     navigate("/students/final-result");
+    //     return;
+    //   }
 
-      if (testStarted || allowRetest) {
-        navigate("/students/test/start");
-        return;
-      }
+    //   if (testStarted || allowRetest) {
+    //     navigate("/students/test/start");
+    //     return;
+    //   }
 
-      navigate("/students/details/instructions");
-    }
+    //   navigate("/students/details/instructions");
+    // }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-student-bg-light">
       {/* ---- Modern Navbar ---- */}
-      <header className="sticky top-0 flex justify-between items-center px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-white border-b border-gray-200 z-50 backdrop-blur-sm bg-white/95">
+      <header className="sticky top-0 flex justify-between items-center px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-card/95 border-b border-border z-50 backdrop-blur-sm">
         {/* Logo Section */}
         <div className="flex items-center space-x-2 md:space-x-3">
           <img
@@ -250,27 +270,64 @@ const StudentLandingPage = () => {
             alt="NavGurukul Logo"
             className="h-8 md:h-10 lg:h-12"
           />
-          <span className="hidden sm:block text-lg md:text-xl font-bold text-gray-800">
+          <span className="hidden sm:block text-lg md:text-xl font-bold text-foreground">
             {content[selectedLanguage].title}
           </span>
         </div>
 
         {/* Right Section - Language Selector & CTA */}
         <div className="flex items-center gap-2 md:gap-4">
-          <select
-            value={selectedLanguage}
-            onChange={(e) => setSelectedLanguage(e.target.value)}
-            className="border border-gray-300 rounded-lg px-2 py-1.5 md:px-4 md:py-2 text-gray-700 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white hover:border-orange-400 transition-colors cursor-pointer"
-          >
-            <option value="english">English</option>
-            <option value="hindi">हिंदी</option>
-            <option value="marathi">मराठी</option>
-          </select>
+          {/* Custom Language Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLanguageDropdownOpen(!isLanguageDropdownOpen)}
+              className="border border-border rounded-lg px-2 py-1.5 md:px-4 md:py-2 text-foreground text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-card hover:border-primary transition-all cursor-pointer flex items-center gap-2 min-w-[80px] md:min-w-[100px]"
+            >
+              <span className="font-medium">
+                {languages.find((l) => l.value === selectedLanguage)?.label}
+              </span>
+              <svg
+                className={`w-4 h-4 transition-transform ${isLanguageDropdownOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isLanguageDropdownOpen && (
+              <div className="absolute top-full mt-2 right-0 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50 min-w-[120px]">
+                {languages.map((lang) => (
+                  <button
+                    key={lang.value}
+                    onClick={() => {
+                      setSelectedLanguage(lang.value);
+                      setIsLanguageDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                      selectedLanguage === lang.value
+                        ? "bg-primary text-white font-medium"
+                        : "text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <Button
             onClick={handleNavigation}
             size="sm"
-            className="hidden sm:flex bg-orange-500 hover:bg-orange-600 text-white text-xs md:text-sm px-3 md:px-4"
+            className="hidden sm:flex student-btn text-xs md:text-sm px-3 md:px-4 shadow-md hover:shadow-lg"
           >
             {content[selectedLanguage].buttonText}
           </Button>
@@ -278,39 +335,39 @@ const StudentLandingPage = () => {
       </header>
 
       {/* ---- Main Hero Section ---- */}
-      <section className="flex-1 flex items-center py-8 md:py-12 lg:py-16 bg-gradient-to-br from-orange-50 to-orange-100">
+      <section className="flex-1 flex items-center py-8 md:py-12 lg:py-16 ">
         <div className="w-full px-4 md:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 items-center max-w-[90rem] mx-auto px-6 md:px-12 lg:px-20">
             {/* Left Section - Content */}
             <div className="space-y-4 md:space-y-6 order-2 md:order-1">
               <div className="inline-block">
-                <span className="bg-orange-500/10 text-orange-600 md:rounded-full text-3xl md:text-3xl lg:text-base font-semibold">
+                <span className="text-primary md:rounded-full text-3xl md:text-3xl lg:text-base font-semibold">
                   {content[selectedLanguage].heading}
                 </span>
               </div>
 
-              <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight text-foreground">
                 {content[selectedLanguage].subtitle}{" "}
-                <span className="text-orange-500">
+                <span className="text-primary">
                   {content[selectedLanguage].title}
                 </span>
               </h1>
 
-              <p className="text-base md:text-lg lg:text-xl text-gray-600 leading-relaxed">
+              <p className="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed">
                 {content[selectedLanguage].description}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
                 <Button
                   onClick={handleNavigation}
-                  className="bg-orange-500 hover:bg-orange-600 text-white group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full sm:w-auto"
+                  className="student-btn group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full sm:w-auto"
                 >
                   {content[selectedLanguage].buttonText}
                   <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-orange-500 text-orange-600 hover:bg-orange-50 w-full sm:w-auto"
+                  className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-primary text-primary hover:bg-primary/5 w-full sm:w-auto"
                   onClick={() => {
                     window.open("https://www.navgurukul.org/", "_blank");
                   }}
@@ -337,7 +394,7 @@ const StudentLandingPage = () => {
 
             {/* Right Section - Video Carousel */}
             <div className="relative order-1 md:order-2">
-              <div className="absolute inset-0 bg-orange-500/5 rounded-2xl blur-3xl"></div>
+              <div className="absolute inset-0 bg-primary/5 rounded-2xl blur-3xl"></div>
               <div className="relative w-full overflow-hidden rounded-xl md:rounded-2xl shadow-xl md:shadow-2xl">
                 <a
                   href={slides[currentSlide].videoUrl}
@@ -372,11 +429,11 @@ const StudentLandingPage = () => {
       </section>
 
       {/* ---- Footer ---- */}
-      <footer className="bg-gray-100 text-center text-xs md:text-sm py-4 md:py-6 mt-auto px-4">
+      <footer className="bg-muted text-center text-xs md:text-sm py-4 md:py-6 mt-auto px-4">
         {content[selectedLanguage].footerText}{" "}
         <a
           href={`mailto:${content[selectedLanguage].footerContact}`}
-          className="text-blue-600 hover:underline break-all md:break-normal"
+          className="text-primary hover:underline break-all md:break-normal"
         >
           {content[selectedLanguage].footerContact}
         </a>

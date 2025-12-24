@@ -209,7 +209,7 @@ const CampusPage: React.FC = () => {
 };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row min-h-screen bg-background">
       <AdmissionsSidebar />
       <main className="flex-1 p-4 md:p-8 pt-20 md:pt-8 md:ml-64">
         <Card>
@@ -280,7 +280,7 @@ const CampusPage: React.FC = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-blue-600"
+                                className="text-secondary-purple hover:text-secondary-purple/80 hover:bg-secondary-purple/10"
                                 onClick={() => {
                                   setSelectedCampus(campus);
                                   setUpdatedCampusName(campus.campus_name);
@@ -292,7 +292,7 @@ const CampusPage: React.FC = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-red-600"
+                                className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                                 onClick={() => {
                                   setSelectedCampus(campus);
                                   setDeleteDialog(true);
@@ -346,35 +346,36 @@ const CampusPage: React.FC = () => {
 
       {/* Add Dialog */}
       {addDialog && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fade-in">
           <form
             onSubmit={handleAddCampus}
-            className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200"
+            className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl border-2 border-primary/30 animate-scale-in"
           >
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+            <h2 className="text-xl font-semibold mb-4 text-primary">
               Add Campus
             </h2>
             <input
               type="text"
               placeholder="Enter campus name"
-              className="border border-orange-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="border-2 border-input px-3 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground transition-all"
               value={newCampus}
               onChange={(e) => setNewCampus(e.target.value)}
               required
             />
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-3 mt-6">
               <button
                 type="button"
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg border-2 border-border transition-all"
                 onClick={() => setAddDialog(false)}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-orange-500 text-white rounded"
+                className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-primary"
+                disabled={actionLoading}
               >
-                Add
+                {actionLoading ? "Adding..." : "Add"}
               </button>
             </div>
           </form>
@@ -383,7 +384,7 @@ const CampusPage: React.FC = () => {
 
       {/* Edit Dialog */}
       {editDialog && selectedCampus && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fade-in">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -391,23 +392,23 @@ const CampusPage: React.FC = () => {
                 handleUpdateCampus(selectedCampus.id, updatedCampusName);
               }
             }}
-            className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-orange-200"
+            className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl border-2 border-secondary-purple/30 animate-scale-in"
           >
-            <h2 className="text-lg font-semibold mb-4 text-orange-700">
+            <h2 className="text-xl font-semibold mb-4 text-secondary-purple">
               Update Campus
             </h2>
             <input
               type="text"
               placeholder="Enter campus name"
-              className="border border-orange-300 px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="border-2 border-input px-3 py-2 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-secondary-purple focus:border-secondary-purple bg-background text-foreground transition-all"
               value={updatedCampusName}
               onChange={(e) => setUpdatedCampusName(e.target.value)}
               required
             />
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-3 mt-6">
               <button
                 type="button"
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg border-2 border-border transition-all"
                 onClick={() => {
                   setEditDialog(false);
                   setSelectedCampus(null);
@@ -417,7 +418,7 @@ const CampusPage: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-orange-500 text-white rounded"
+                className="px-4 py-2 bg-secondary-purple hover:bg-secondary-purple/90 text-secondary-purple-foreground rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-secondary-purple"
                 disabled={actionLoading}
               >
                 {actionLoading ? "Updating..." : "Update"}
@@ -429,18 +430,26 @@ const CampusPage: React.FC = () => {
 
       {/* Delete Dialog */}
       {deleteDialog && selectedCampus && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg border border-red-200">
-            <h2 className="text-lg font-semibold text-red-600 mb-4">
-              Confirm Deletion
-            </h2>
-            <p>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fade-in">
+          <div className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl border-2 border-destructive/30 animate-scale-in">
+            <div className="flex items-center mb-4">
+              <div className="bg-destructive/10 rounded-full p-2 mr-3">
+                <Trash2 className="w-6 h-6 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold text-destructive">
+                Confirm Deletion
+              </h2>
+            </div>
+            <p className="text-muted-foreground mb-2">
               Are you sure you want to delete{" "}
-              <strong>{selectedCampus.campus_name}</strong>?
+              <strong className="text-foreground">{selectedCampus.campus_name}</strong>?
             </p>
-            <div className="flex justify-end gap-2 mt-6">
+            <p className="text-sm text-muted-foreground mb-4">
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
               <button
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded"
+                className="px-4 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg border-2 border-border transition-all"
                 onClick={() => {
                   setDeleteDialog(false);
                   setSelectedCampus(null);
@@ -449,7 +458,7 @@ const CampusPage: React.FC = () => {
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-red-600 text-white rounded"
+                className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg shadow-md hover:shadow-lg transition-all border-2 border-destructive"
                 onClick={() => {
                   handleDeleteCampus(
                     selectedCampus.id,
@@ -458,8 +467,9 @@ const CampusPage: React.FC = () => {
                   setDeleteDialog(false);
                   setSelectedCampus(null);
                 }}
+                disabled={actionLoading}
               >
-                Delete
+                {actionLoading ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>

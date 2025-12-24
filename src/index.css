@@ -6,71 +6,91 @@
 
 @layer base {
   :root {
-    /* Core Background & Text */
-    --background: 0 0% 100%; /* White background */
-    --foreground: 215 25% 27%; /* Dark blue-gray text */
+    /* Core Background & Text - NavGurukul Brand */
+    --background: 0 0% 98%; /* Clean off-white background */
+    --foreground: 0 0% 13%; /* Deep charcoal text #212121 */
 
     /* Cards & Surfaces */
-    --card: 0 0% 100%; /* Pure white cards */
-    --card-foreground: 215 25% 27%;
+    --card: 0 0% 100%; /* Pure white cards #FFFFFF */
+    --card-foreground: 0 0% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 27%;
+    --popover-foreground: 0 0% 13%;
 
-    /* Brand Colors - Orange System */
-    --primary: 25 95% 53%; /* Orange for CTAs */
+    /* Brand Colors - NavGurukul Magenta/Pink */
+   --primary: 338 83% 51%; /* #E31F6D */
     --primary-foreground: 0 0% 100%;
-    --primary-light: 25 95% 85%; /* Light orange for hover states */
+    --primary-light: 338 83% 92%; /* Light pink for hover states */
 
-    /* Black Sidebar System */
-    --sidebar-dark: 0 0% 0%; /* Pure black for sidebar */
-    --sidebar-medium: 0 0% 10%; /* Very dark gray for hover */
-    --sidebar-light: 0 0% 15%; /* Dark gray for active */
-    --sidebar-text: 0 0% 100%; /* Pure white text on dark */
+    /* Secondary Colors - Purple Accent */
+    --secondary-purple: 263 53% 46%; /* #5E35B1 */
+    --secondary-purple-foreground: 0 0% 100%;
+    --secondary-purple-light: 263 54% 94%; /* #EDE7F6 */
+
+    /* Sidebar System */
+    --sidebar-dark: 0 0% 7%; /* Very dark gray (almost black) */
+    --sidebar-medium: 0 0% 12%; /* Dark gray for hover */
+    --sidebar-light: 0 0% 17%; /* Medium-dark gray for active */
+    --sidebar-text: 0 0% 98%; /* Soft white text on dark */
     --sidebar-text-muted: 0 0% 70%; /* Light gray sidebar text */
 
     /* Status Color System */
-    --status-active: 142 71% 45%; /* Green for active/pass */
-    --status-pending: 25 95% 53%; /* Orange for pending */
+    --status-active: 142 65% 45%; /* Green for active/pass */
+    --status-pending: 338 83% 51%; /* Magenta for pending */
     --status-inactive: 215 16% 47%; /* Gray for inactive */
-    --status-fail: 0 84% 60%; /* Red for fail/declined */
-    --status-prospect: 220 91% 60%; /* Blue for prospects */
+    --status-fail: 0 72% 55%; /* Red for fail/declined */
+    --status-prospect: 263 70% 60%; /* Purple for prospects */
 
-    /* Neutral System */
-    --secondary: 215 25% 97%; /* Very light gray */
-    --secondary-foreground: 215 25% 27%;
+    /* Neutral Gray System (for general UI elements) */
+    --secondary: 0 0% 96%; /* Very light gray */
+    --secondary-foreground: 0 0% 13%;
 
-    --muted: 215 25% 96%; /* Light gray backgrounds */
-    --muted-foreground: 215 16% 47%; /* Muted text */
+    --muted: 0 0% 95%; /* Light gray backgrounds */
+    --muted-foreground: 0 0% 45%; /* Muted text */
 
-    --accent: 25 95% 96%; /* Very light orange */
-    --accent-foreground: 25 95% 30%; /* Dark orange text */
+    --accent: 338 83% 97%; /* Very light pink tint */
+    --accent-foreground: 338 75% 35%; /* Dark magenta text */
 
     /* System Colors */
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 92%; /* Subtle borders */
-    --input: 215 25% 92%;
-    --ring: 25 95% 53%; /* Orange focus rings */
+    --border: 0 0% 89%; /* Subtle borders */
+    --input: 0 0% 90%;
+    --ring: 338 83% 51%; /* Magenta focus rings */
 
     --radius: 0.75rem; /* Slightly more rounded */
 
     /* Custom Design Tokens */
     --gradient-primary: linear-gradient(
       135deg,
-      hsl(25 95% 53%),
-      hsl(25 95% 45%)
+      hsl(338 83% 51%),
+      hsl(338 83% 43%)
     );
-    --gradient-sidebar: linear-gradient(180deg, hsl(0 0% 0%), hsl(0 0% 5%));
+    --gradient-sidebar: linear-gradient(
+      180deg,
+      hsl(0 0% 7%),
+      hsl(0 0% 5%)
+    );
     --shadow-soft:
-      0 1px 3px 0 hsl(215 25% 27% / 0.1), 0 1px 2px -1px hsl(215 25% 27% / 0.1);
+      0 1px 3px 0 hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
     --shadow-medium:
-      0 4px 6px -1px hsl(215 25% 27% / 0.1),
-      0 2px 4px -2px hsl(215 25% 27% / 0.1);
+      0 4px 6px -1px hsl(0 0% 0% / 0.1),
+      0 2px 4px -2px hsl(0 0% 0% / 0.08);
     --shadow-large:
-      0 20px 25px -5px hsl(215 25% 27% / 0.1),
-      0 8px 10px -6px hsl(215 25% 27% / 0.1);
+      0 20px 25px -5px hsl(0 0% 0% / 0.1),
+      0 8px 10px -6px hsl(0 0% 0% / 0.08);
+
+    /* Student Portal Specific Colors - Vibrant & Energetic */
+    --student-bg-gradient: linear-gradient(
+      135deg,
+      hsl(338 83% 51%),
+      hsl(338 83% 58%)
+    ); /* Bright pink gradient for student page backgrounds */
+    --student-bg-light: #FFF5F7; /* Very light pink background - almost white */
+    --student-bg-soft: #FCE4EC; /* Soft pink tint for sections */
+    --student-accent: 338 83% 51%; /* Full vibrant pink for CTAs */
+    --student-accent-hover: 338 83% 45%; /* Darker pink on hover */
   }
 
   .dark {
@@ -106,4 +126,92 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
+}
+
+/* Student Portal Utility Classes - Use these for vibrant student pages */
+@layer utilities {
+  /* Student Page Background - Full Pink Gradient */
+  .student-bg-gradient {
+    background: linear-gradient(135deg, rgb(252, 228, 236), rgb(255, 182, 193));
+  }
+
+  /* Student Page Background - Soft Pink Tint */
+  .student-bg-soft {
+    background-color: #FCE4EC !important;
+  }
+
+  /* Student Page Background - Very Light Pink */
+  .student-bg-light {
+    background-color: #FFF5F7 !important;
+  }
+
+  /* Student CTA Button - Full Vibrant Pink */
+  .student-btn {
+    background-color: rgb(216, 27, 96);
+    color: white;
+    transition: background-color 0.2s;
+  }
+
+  .student-btn:hover {
+    background-color: rgb(189, 24, 84);
+  }
+
+  .student-bg-subtle {
+  background: linear-gradient(
+    180deg,
+    hsl(338 83% 97%),
+    hsl(0 0% 100%)
+  );
+}
+  .student-footer {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.card-shadow {
+  box-shadow: var(--shadow-medium);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  border-radius: var(--radius);
+  padding: 1rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+/* Animation utilities */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
 }

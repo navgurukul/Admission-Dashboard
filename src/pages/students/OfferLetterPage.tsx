@@ -30,7 +30,7 @@ export default function OfferLetterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex">
+    <div className="min-h-screen student-bg-gradient flex">
       <LogoutButton />
       <div className="p-6 min-w-full overflow-y-auto">
         <Card className="h-[90vh] rounded-2xl">
@@ -39,8 +39,8 @@ export default function OfferLetterPage() {
           </CardHeader>
           <CardContent>
             {documents.length > 0 ? (
-              <table className="w-full border-collapse text-left text-gray-700">
-                <thead className="bg-gray-100">
+              <table className="w-full border-collapse text-left text-foreground">
+                <thead className="bg-muted">
                   <tr>
                     <th className="border px-4 py-2 w-12">#</th>
                     <th className="border px-4 py-2">File Name</th>
@@ -51,7 +51,7 @@ export default function OfferLetterPage() {
                 </thead>
                 <tbody>
                   {documents.map((doc, index) => (
-                    <tr key={doc.id} className="hover:bg-gray-50">
+                    <tr key={doc.id} className="hover:bg-muted/50">
                       <td className="border px-4 py-2">{index + 1}</td>
                       <td className="border px-4 py-2">{doc.name}</td>
                       <td className="border px-4 py-2 text-center">
@@ -68,7 +68,7 @@ export default function OfferLetterPage() {
                 </tbody>
               </table>
             ) : (
-              <p className="text-gray-500">No documents available.</p>
+              <p className="text-muted-foreground">No documents available.</p>
             )}
           </CardContent>
         </Card>
