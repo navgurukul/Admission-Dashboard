@@ -809,7 +809,9 @@ export const getAllPartners = async (): Promise<any[]> => {
   }
 
   // Handle different response formats based on other APIs
-  if (data && data.data && Array.isArray(data.data)) {
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+    return data.data.data;
+  } else if (data && data.data && Array.isArray(data.data)) {
     return data.data;
   } else if (Array.isArray(data)) {
     return data;
@@ -974,8 +976,11 @@ export const bulkUpdateStudents = async (payload: {
   current_status_id?: number;
   qualification_id?: number;
   cast_id?: number;
-  // Note: Final decision fields (offer_letter_status, onboarded_status, joining_date, final_note)
-  // should be updated using submitFinalDecision API instead
+  partner_id?: number;
+  donor_id?: number;
+  offer_letter_status?: string;
+  onboarded_status?: string;
+  joining_date?: string;
 }): Promise<any> => {
   const response = await fetch(`${BASE_URL}/students/bulk-update`, {
     method: "PUT",
@@ -1982,6 +1987,11 @@ export interface ScheduledInterview {
   status: string;
   created_at: string;
   updated_at: string;
+  student_name?: string;
+  student_email?: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 // Get available slots for interviewer by date

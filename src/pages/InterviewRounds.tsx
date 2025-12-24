@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 type ApplicantData = {
   id: string;
@@ -92,9 +93,10 @@ const InterviewRounds = () => {
     } catch (error) {
       console.error("Error fetching applicants:", error);
       toast({
-        title: "Error",
-        description: "Failed to load applicants data",
+        title: "❌ Unable to Load Applicants",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
       setApplicants([]);
     } finally {

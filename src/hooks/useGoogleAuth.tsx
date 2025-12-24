@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "./use-toast";
 import { loginWithGoogle, GoogleAuthPayload } from "@/utils/api";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface GoogleUser {
   id: string;
@@ -223,15 +224,19 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
             localStorage.setItem("userRole", JSON.stringify(apiUser.role_name));
             navigate("/");
             toast({
-              title: "Welcome!",
+              title: "✅ Welcome!",
               description: `Successfully signed in as ${apiUser.name}`,
+              variant: "default",
+              className: "border-green-500 bg-green-50 text-green-900",
             });
           } else {
             localStorage.setItem("userRole", JSON.stringify("student"));
             navigate("/students");
             toast({
-              title: "No Role Assigned",
+              title: "⚠️ No Role Assigned",
               description: `No role assigned. Please contact admin to assign a role.`,
+              variant: "default",
+              className: "border-orange-500 bg-orange-50 text-orange-900",
             });
           }
         }
@@ -248,12 +253,10 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
       });
 
       toast({
-        title: "Sign In Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to sign in. Please try again.",
+        title: "❌ Sign In Failed",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };
@@ -281,8 +284,10 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
     });
 
     toast({
-      title: "Signed Out",
+      title: "✅ Signed Out",
       description: "You have been successfully signed out.",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
     });
   };
 

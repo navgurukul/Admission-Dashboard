@@ -20,6 +20,7 @@ import {
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 interface State {
   id: string;
   state_name: string;
@@ -139,9 +140,10 @@ const StudentForm: React.FC = () => {
     } catch (error) {
       // console.error("Error fetching states:", error);
       toast({
-        title: "Error",
-        description: "Failed to load states",
+        title: "❌ Unable to Load States",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
       setStates([]);
     } finally {
@@ -176,9 +178,10 @@ const StudentForm: React.FC = () => {
     } catch (error) {
       console.error("Error fetching districts:", error);
       toast({
-        title: "Error",
-        description: "Failed to load districts",
+        title: "❌ Unable to Load Districts",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
       setDistricts([]);
     } finally {
@@ -213,9 +216,10 @@ const StudentForm: React.FC = () => {
     } catch (error) {
       // console.error("Error fetching blocks:", error);
       toast({
-        title: "Error",
-        description: "Failed to load blocks",
+        title: "❌ Unable to Load Blocks",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
       setBlocks([]);
     } finally {
@@ -392,6 +396,8 @@ const StudentForm: React.FC = () => {
         description:
           content.verifyingMessage ||
           "Please wait while we verify the image...",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
 
       // Verify if image contains human face
@@ -401,10 +407,11 @@ const StudentForm: React.FC = () => {
         // Show error toast
         toast({
           variant: "destructive",
-          title: content.noFaceDetected || "No Face Detected",
+          title: content.noFaceDetected || "❌ No Face Detected",
           description:
             content.noFaceMessage ||
             "Please upload an image with a clear human face.",
+          className: "border-red-500 bg-red-50 text-red-900"
         });
         // Clear the file input
         e.target.value = "";
@@ -431,19 +438,19 @@ const StudentForm: React.FC = () => {
 
         // Show success toast
         toast({
-          title: content.faceVerified || "Face Verified",
+          title: content.faceVerified || "✅ Face Verified",
           description:
             content.faceVerifiedMessage || "Image uploaded successfully!",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900"
         });
       } catch (error) {
         console.error("Error uploading image:", error);
         toast({
           variant: "destructive",
-          title: "Upload Failed",
-          description:
-            error instanceof Error
-              ? error.message
-              : "Failed to upload image. Please try again.",
+          title: "❌ Upload Failed",
+          description: getFriendlyErrorMessage(error),
+          className: "border-red-500 bg-red-50 text-red-900"
         });
         // Clear the file input
         e.target.value = "";
@@ -494,68 +501,76 @@ const StudentForm: React.FC = () => {
 
     if (!formData.profileImage) {
       return toast({
-        title: "Profile Image Required",
+        title: "⚠️ Profile Image Required",
         description: "Please upload a profile image.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
     if (!formData.firstName) {
       return toast({
-        title: "First Name Required",
+        title: "⚠️ First Name Required",
         description: "Please enter your first name.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
     if (!formData.dateOfBirth || age < 16.5) {
       return toast({
-        title: "Invalid Date of Birth",
+        title: "⚠️ Invalid Date of Birth",
         description: "You must be at least 16.5 years old.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
     if (!formData.whatsappNumber || !/^\d{10}$/.test(formData.whatsappNumber)) {
       return toast({
-        title: "Invalid WhatsApp Number",
+        title: "⚠️ Invalid WhatsApp Number",
         description: "Enter a valid 10-digit WhatsApp number.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
     if (!formData.gender) {
       return toast({
-        title: "Gender Required",
+        title: "⚠️ Gender Required",
         description: "Please select your gender.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
     // Validate State and Pin Code (always required)
     if (!formData.stateCode || !formData.pinCode) {
       return toast({
-        title: "Address Required",
+        title: "⚠️ Address Required",
         description: "Please fill State and Pin Code.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
     // Validate District (required only if districts are available)
     if (districts.length > 0 && !formData.districtCode) {
       return toast({
-        title: "District Required",
+        title: "⚠️ District Required",
         description: "Please select a district.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
     // Validate Block (required only if blocks are available)
     if (blocks.length > 0 && !formData.blockCode) {
       return toast({
-        title: "Block Required",
+        title: "⚠️ Block Required",
         description: "Please select a block.",
-        variant: "destructive",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
     }
 
@@ -610,9 +625,10 @@ const StudentForm: React.FC = () => {
       }
 
       toast({
-        title: "Student Created",
+        title: "✅ Registration Successful",
         description: "Your registration was successful!",
         variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
       });
 
       navigate("/students/test/start");
@@ -623,9 +639,10 @@ const StudentForm: React.FC = () => {
           ? error.message
           : "Something went wrong while creating student.";
       toast({
-        title: "Registration Failed",
-        description: errorMessage,
+        title: "❌ Registration Failed",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
     }
   };

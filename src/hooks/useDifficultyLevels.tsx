@@ -7,6 +7,7 @@ import {
   type UpdateDifficultyLevelData,
 } from "@/utils/difficultyLevelAPI";
 import { useToast } from "@/hooks/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 export function useDifficultyLevels() {
   const [difficultyLevels, setDifficultyLevels] = useState<DifficultyLevel[]>(
@@ -35,9 +36,10 @@ export function useDifficultyLevels() {
           : "Failed to fetch difficulty levels";
       setError(errorMessage);
       toast({
-        title: "Error",
-        description: errorMessage,
+        title: "❌ Unable to Load Difficulty Levels",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);
@@ -59,9 +61,10 @@ export function useDifficultyLevels() {
           : "Failed to fetch active difficulty levels";
       setError(errorMessage);
       toast({
-        title: "Error",
-        description: errorMessage,
+        title: "❌ Unable to Load Active Difficulty Levels",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);
@@ -87,8 +90,10 @@ export function useDifficultyLevels() {
         setDifficultyLevels((prev) => [...prev, newLevel]);
 
         toast({
-          title: "Success",
+          title: "✅ Difficulty Level Created",
           description: "Difficulty level created successfully",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
 
         return newLevel;
@@ -99,9 +104,10 @@ export function useDifficultyLevels() {
             : "Failed to create difficulty level";
         setError(errorMessage);
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "❌ Unable to Create Difficulty Level",
+          description: getFriendlyErrorMessage(err),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         throw err;
       } finally {
@@ -138,8 +144,10 @@ export function useDifficultyLevels() {
         );
 
         toast({
-          title: "Success",
+          title: "✅ Difficulty Level Updated",
           description: "Difficulty level updated successfully",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
 
         return updatedLevel;
@@ -150,9 +158,10 @@ export function useDifficultyLevels() {
             : "Failed to update difficulty level";
         setError(errorMessage);
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "❌ Unable to Update Difficulty Level",
+          description: getFriendlyErrorMessage(err),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         throw err;
       } finally {
@@ -174,8 +183,10 @@ export function useDifficultyLevels() {
         setDifficultyLevels((prev) => prev.filter((level) => level.id !== id));
 
         toast({
-          title: "Success",
+          title: "✅ Difficulty Level Deleted",
           description: "Difficulty level deleted successfully",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } catch (err) {
         const errorMessage =
@@ -184,9 +195,10 @@ export function useDifficultyLevels() {
             : "Failed to delete difficulty level";
         setError(errorMessage);
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "❌ Unable to Delete Difficulty Level",
+          description: getFriendlyErrorMessage(err),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         throw err;
       } finally {
@@ -215,8 +227,10 @@ export function useDifficultyLevels() {
 
         const statusText = updatedLevel.status ? "activated" : "deactivated";
         toast({
-          title: "Success",
+          title: "✅ Status Updated",
           description: `Difficulty level ${statusText} successfully`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
         });
 
         return updatedLevel;
@@ -227,9 +241,10 @@ export function useDifficultyLevels() {
             : "Failed to toggle difficulty level status";
         setError(errorMessage);
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "❌ Unable to Update Status",
+          description: getFriendlyErrorMessage(err),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         throw err;
       } finally {
@@ -256,9 +271,10 @@ export function useDifficultyLevels() {
             : "Failed to fetch difficulty level";
         setError(errorMessage);
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "❌ Unable to Load Difficulty Level",
+          description: getFriendlyErrorMessage(err),
           variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
         });
         throw err;
       } finally {

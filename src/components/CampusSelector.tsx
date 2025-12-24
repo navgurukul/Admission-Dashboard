@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 // import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { updateApplicant } from "@/utils/localStorage";
 
 interface CampusOption {
@@ -76,8 +77,10 @@ export function CampusSelector({
       }
 
       toast({
-        title: "Success",
-        description: `Campus ${campusName ? `updated to ${campusName}` : "cleared"} and saved to localStorage`,
+        title: "✅ Campus Updated",
+        description: `Campus ${campusName ? `updated to ${campusName}` : "cleared"} successfully`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       // Immediately update the UI
@@ -85,9 +88,10 @@ export function CampusSelector({
     } catch (error) {
       console.error("Error updating campus:", error);
       toast({
-        title: "Error",
-        description: "Failed to update campus",
+        title: "❌ Unable to Update Campus",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setLoading(false);

@@ -18,6 +18,7 @@ import {
 import { Save, X, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 type ApplicantData = {
   id: string;
@@ -166,8 +167,10 @@ export function InlineEditModal({
       if (error) throw error;
 
       toast({
-        title: "Success",
+        title: "✅ Applicant Updated",
         description: "Applicant updated successfully",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       // Show undo option for 5 seconds
@@ -183,9 +186,10 @@ export function InlineEditModal({
     } catch (error) {
       console.error("Error updating applicant:", error);
       toast({
-        title: "Error",
-        description: "Failed to update applicant",
+        title: "❌ Unable to Update Applicant",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
       setSaving(false);
@@ -213,8 +217,10 @@ export function InlineEditModal({
       if (error) throw error;
 
       toast({
-        title: "Undone",
-        description: "Changes have been reverted",
+        title: "✅ Changes Reverted",
+        description: "Changes have been reverted successfully",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
       });
 
       setShowUndo(false);
@@ -227,9 +233,10 @@ export function InlineEditModal({
     } catch (error) {
       console.error("Error undoing changes:", error);
       toast({
-        title: "Error",
-        description: "Failed to undo changes",
+        title: "❌ Unable to Undo Changes",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     }
   };

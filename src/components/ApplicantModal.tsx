@@ -19,22 +19,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
+// import { Button } from "@/components/ui/button";
+// import { Badge } from "@/components/ui/badge";
+// import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
+// import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
-import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
-import { Calendar } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+// import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
+// import { Calendar } from "lucide-react";
+// import {
+//   Popover,
+//   PopoverContent,
+//   PopoverTrigger,
+// } from "@/components/ui/popover";
+// import {
+//   Command,
+//   CommandEmpty,
+//   CommandGroup,
+//   CommandInput,
+//   CommandItem,
+//   CommandList,
+// } from "@/components/ui/command";
 import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -48,12 +52,12 @@ import {
   getDistrictsByState,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import StageDropdown, {
-  STAGE_STATUS_MAP,
-} from "./applicant-table/StageDropdown";
-import { Value } from "@radix-ui/react-select";
+// import { Input } from "@/components/ui/input";
+// import { cn } from "@/lib/utils";
+// import StageDropdown, {
+//   STAGE_STATUS_MAP,
+// } from "./applicant-table/StageDropdown";
+// import { Value } from "@radix-ui/react-select";
 import {
   Tooltip,
   TooltipContent,
@@ -370,7 +374,44 @@ export function ApplicantModal({
 
   // Handler for "Offer Sent" confirmation
   const handleOfferLetterStatusChange = async (value: any) => {
+    // Get current offer letter status
+    const currentOfferStatus = currentApplicant.final_decisions?.[0]?.offer_letter_status;
+
+    if (!currentApplicant.campus_id) {
+        toast({
+          title: "⚠️ Campus Required",
+          description: "Please select a campus before proceeding with the offer letter status.",
+          variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+        });
+        return;
+      }
+    
+    // Prevent changing back to "Offer Pending" if already sent or beyond
+    if (value === "Offer Pending" && currentOfferStatus && currentOfferStatus !== "Offer Pending") {
+      toast({
+        title: "❌ Action Not Allowed",
+        description: `Cannot change status back to "Offer Pending" from "${currentOfferStatus}". Once an offer has progressed beyond pending status, it cannot be reverted to pending.`,
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+        duration: 6000,
+      });
+      return; // Don't proceed with the update
+    }
+
     if (value === "Offer Sent") {
+      // Prevent sending offer again if already sent
+      if (currentOfferStatus === "Offer Sent") {
+        toast({
+          title: "ℹ️ Already Sent",
+          description: "Offer letter has already been sent to this student. No need to send again.",
+          variant: "default",
+          className: "border-blue-500 bg-blue-50 text-blue-900",
+          duration: 4000,
+        });
+        return; 
+      }
+
       // Show confirmation dialog before proceeding
       setPendingOfferLetterValue(value);
       setShowOfferSentConfirmation(true);
@@ -397,17 +438,6 @@ export function ApplicantModal({
 
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
-
-    // Validation: Campus must be selected before setting offer letter status
-    if (field === "offer_letter_status" && !currentApplicant?.campus_id) {
-      toast({
-        title: "Alert",
-        description: "Please select a Campus first before setting Offer Letter Status.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       // Use existing local state instead of fetching again
       const existingDecision = currentApplicant?.final_decisions?.[0] || {};
@@ -486,6 +516,8 @@ export function ApplicantModal({
       toast({
         title: "Success",
         description: "Final decision updated successfully.",
+        variant: "default",
+        className: "border-green-400 bg-green-50 text-green-900",
       });
     } catch (err) {
       console.error("Failed to update final decision", err);
@@ -623,11 +655,21 @@ export function ApplicantModal({
 
   const examSession = currentApplicant?.exam_sessions?.[0] ?? null;
 
+  // Logic to determine if screening is passed (needed before screeningFields definition)
+  const isScreeningPassed = (currentApplicant?.exam_sessions || []).some((session: any) => {
+    const status = session?.status || "";
+    return (
+      status.toLowerCase().includes("pass") ||
+      status === "Created Student Without Exam"
+    );
+  });
+
   const screeningFields = [
     {
       name: "status",
       label: "Status",
       type: "select" as const,
+      disabled: isScreeningPassed,
       options: [
         { value: "Screening Test Pass", label: "Screening Test Pass" },
         { value: "Screening Test Fail", label: "Screening Test Fail" },
@@ -781,15 +823,8 @@ export function ApplicantModal({
     });
 
   const isStageDisabled = (applicant: any, stage: string) => {
-    // Check if screening passed (check all sessions)
-    const examSessions = applicant?.exam_sessions || [];
-    const screeningPassed = examSessions.some((session: any) => {
-      const status = session?.status || "";
-      return (
-        status.toLowerCase().includes("pass") ||
-        status === "Created Student Without Exam"
-      );
-    });
+    // Reuse isScreeningPassed logic - already defined earlier
+    const screeningPassed = isScreeningPassed;
 
     // Check if learning round passed (check all rounds)
     const learnerRounds = applicant?.interview_learner_round || [];
@@ -822,6 +857,17 @@ export function ApplicantModal({
 
     return false;
   };
+
+  // Logic to determine if learning and cultural rounds are passed (to disable editing)
+  const isLearningPassed = (currentApplicant?.interview_learner_round || []).some((round: any) => {
+    const status = round?.learning_round_status || "";
+    return status.toLowerCase().includes("pass");
+  });
+
+  const isCulturalPassed = (currentApplicant?.interview_cultural_fit_round || []).some((round: any) => {
+    const status = round?.cultural_fit_status || "";
+    return status.toLowerCase().includes("pass");
+  });
 
   return (
     <>
@@ -1156,6 +1202,9 @@ export function ApplicantModal({
             submitApi={screeningSubmit}
             updateApi={screeningUpdate}
             onSave={handleUpdate}
+            disableAdd={isScreeningPassed}
+            // disabled={!hasEditAccess}
+            // disabledReason={!hasEditAccess ? "You do not have edit access" : undefined}
           />
 
           {/* Learning & Cultural Fit Rounds */}
@@ -1170,7 +1219,7 @@ export function ApplicantModal({
                     name: "learning_round_status",
                     label: "Status *",
                     type: "select" as const,
-                    disabled: isStageDisabled(currentApplicant, "LR"),
+                    disabled: isStageDisabled(currentApplicant, "LR") || isLearningPassed,
                     options: [
                       {
                         value: "Learner Round Pass",
@@ -1199,8 +1248,15 @@ export function ApplicantModal({
                 submitApi={API_MAP.learning.submit}
                 updateApi={API_MAP.learning.update}
                 onSave={handleUpdate}
+                disableAdd={isLearningPassed}
                 disabled={isStageDisabled(currentApplicant, "LR")}
-                disabledReason=" Student need to pass Screening Round"
+                disabledReason={
+                  isStageDisabled(currentApplicant, "LR")
+                    ? "Student need to pass Screening Round"
+                    // : !hasEditAccess
+                    //   ? "You do not have edit access"
+                      : undefined
+                }
               />
             </div>
             <div className="col-span-full w-full">
@@ -1213,7 +1269,7 @@ export function ApplicantModal({
                     name: "cultural_fit_status",
                     label: "Status *",
                     type: "select" as const,
-                    disabled: isStageDisabled(currentApplicant, "CFR"),
+                    disabled: isStageDisabled(currentApplicant, "CFR") || isCulturalPassed,
                     options: [
                       {
                         value: "Cultural Fit Interview Pass",
@@ -1243,8 +1299,15 @@ export function ApplicantModal({
                 submitApi={API_MAP.cultural.submit}
                 updateApi={API_MAP.cultural.update}
                 onSave={handleUpdate}
+                disableAdd={isCulturalPassed}
                 disabled={isStageDisabled(currentApplicant, "CFR")}
-                disabledReason="Student need to pass Learning Round"
+                disabledReason={
+                  isStageDisabled(currentApplicant, "CFR")
+                    ? "Student need to pass Learning Round"
+                    // : !hasEditAccess
+                    //   ? "You do not have edit access"
+                      : undefined
+                }
               />
             </div>
 
@@ -1377,19 +1440,7 @@ export function ApplicantModal({
                       ]}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
-                        if (!currentApplicant.campus_id) {
-                          toast({
-                            title: "⚠️ Campus Required",
-                            description: "Please select a campus before sending offer letter",
-                            variant: "destructive",
-                            className: "border-orange-500 bg-orange-50 text-orange-900",
-                          });
-                          return;
-                        }
-                        await handleFinalDecisionUpdate(
-                          "offer_letter_status",
-                          value
-                        );
+                        await handleOfferLetterStatusChange(value);
                       }}
                     />
                   )}
@@ -1448,15 +1499,6 @@ export function ApplicantModal({
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
-                        if (!currentApplicant.campus_id) {
-                          toast({
-                            title: "⚠️ Campus Required",
-                            description: "Please select a campus before onboarding",
-                            variant: "destructive",
-                            className: "border-orange-500 bg-orange-50 text-orange-900",
-                          });
-                          return;
-                        }
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
                           value

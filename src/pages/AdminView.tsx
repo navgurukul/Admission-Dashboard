@@ -133,7 +133,7 @@ export default function AdminView() {
   const getStatusBadge = (status: string) => {
     let colorClass = "bg-gray-500";
     let displayStatus = status;
-    
+
     switch (status?.toLowerCase()) {
       // Interview statuses
       case "scheduled":
@@ -152,7 +152,7 @@ export default function AdminView() {
         colorClass = "bg-green-500";
         displayStatus = "Completed";
         break;
-      
+
       // Slot statuses
       case "booked":
         colorClass = "bg-green-500";
@@ -282,6 +282,7 @@ export default function AdminView() {
                             <TableHead className="font-semibold min-w-[200px]">Interviewer</TableHead>
                             <TableHead className="font-semibold min-w-[150px]">Title</TableHead>
                             <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
+                            <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
                             <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
                             <TableHead className="font-semibold min-w-[100px]">Meeting Link</TableHead>
                           </TableRow>
@@ -317,6 +318,9 @@ export default function AdminView() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-sm min-w-[120px]">
                                 {formatDate(interview.slot_date)}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap text-sm min-w-[150px]">
+                                {formatTime(interview.start_time)} - {formatTime(interview.end_time)}
                               </TableCell>
                               <TableCell className="whitespace-nowrap min-w-[120px]">
                                 {getStatusBadge(interview.status)}

@@ -88,7 +88,7 @@ const ApplicantTable = () => {
 
   const { toast } = useToast();
   const { triggerRefresh } = useDashboardRefresh();
-
+  const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   // Custom hook for data fetching
   const {
     students,
@@ -237,7 +237,7 @@ const ApplicantTable = () => {
     else if (hasActiveFilters && filters) {
       try {
         const apiParams = transformFiltersToAPI(filters);
-        console.log("Refreshing filtered data with params:", apiParams);
+        // console.log("Refreshing filtered data with params:", apiParams);
         const results = await getFilterStudent(apiParams);
         setFilteredStudents(results || []);
       } catch (error: any) {
@@ -297,20 +297,52 @@ const ApplicantTable = () => {
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
-    }
-  };
-
-  const handleSendBulkOfferLetters = async () => {
-    if (selectedRows.length === 0) {
-      toast({
-        title: "⚠️ No Selection",
-        description: "Please select at least one student to send offer letters",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
       return;
     }
 
+    const selectedStudents = filteredApplicants.filter((applicant) =>
+      selectedRows.includes(applicant.id)
+    );
+    
+    // Check for students without campus (check campus_name)
+    const studentsWithoutCampus = selectedStudents.filter(
+      (student) => !student.campus_name || student.campus_name === "N/A"
+    );
+    
+    if (studentsWithoutCampus.length > 0) {
+      // Show names of first 3 students without campus
+      const studentNames = studentsWithoutCampus
+        .slice(0, 3)
+        .map((s) => s.name || `${s.first_name} ${s.last_name}`)
+        .join(", ");
+      
+      const moreCount = studentsWithoutCampus.length - 3;
+      
+      toast({
+        title: "⚠️ Campus Required",
+        description: `You’ve selected ${selectedStudents.length} students, but ${studentsWithoutCampus.length} ${
+    studentsWithoutCampus.length === 1 ? "student doesn’t" : "students don’t"
+  } have a campus assigned${
+    studentNames
+      ? `. Please assign a campus to: ${studentNames}${
+          moreCount > 0 ? ` and ${moreCount} others` : ""
+        }`
+      : ""
+  }. Once campus is assigned, you can send offer letters.`,
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+        duration: 8000,
+      });
+      
+      return; 
+    }
+
+    // All students have campus - show confirmation dialog
+    setShowBulkOfferConfirmation(true);
+  };
+
+  const handleSendBulkOfferLetters = async () => {
+  
     try {
       const studentIds = selectedRows.map((id) => Number(id));
       const result = await sendBulkOfferLetters(studentIds);
@@ -415,7 +447,7 @@ const ApplicantTable = () => {
 
   // Transform filter state to API query parameters
   const transformFiltersToAPI = (filterState: any) => {
-    console.log("Transforming filters to API params:", filterState);
+    // console.log("Transforming filters to API params:", filterState);
     const apiParams: any = {};
 
     // Date range mapping based on type
@@ -464,6 +496,16 @@ const ApplicantTable = () => {
     // Campus ID
     if (filterState.partner?.length && filterState.partner[0] !== "all") {
       apiParams.campus_id = filterState.partner[0];
+    }
+
+    // Partner ID
+    if (filterState.partnerFilter?.length && filterState.partnerFilter[0] !== "all") {
+      apiParams.partner_id = filterState.partnerFilter[0];
+    }
+
+    // Donor ID
+    if (filterState.donor?.length && filterState.donor[0] !== "all") {
+      apiParams.donor_id = filterState.donor[0];
     }
 
     // School ID
@@ -685,6 +727,32 @@ const ApplicantTable = () => {
       });
     }
 
+    // Partner (org partner, not campus)
+    if ((filters as any).partnerFilter?.length) {
+      const partners = (filters as any).partnerFilter.filter((p: any) => p !== "all");
+      partners.forEach((p: any) => {
+        const partner = partnerList.find((pt) => Number(pt.id) === Number(p));
+        const partnerLabel = partner?.partner_name || partner?.name || p;
+        tags.push({
+          key: `partnerFilter-${p}`,
+          label: `Partner: ${partnerLabel}`,
+        });
+      });
+    }
+
+    // Donor
+    if ((filters as any).donor?.length) {
+      const donors = (filters as any).donor.filter((d: any) => d !== "all");
+      donors.forEach((d: any) => {
+        const donor = donorList.find((dn) => Number(dn.id) === Number(d));
+        const donorLabel = donor?.donor_name || donor?.name || d;
+        tags.push({
+          key: `donor-${d}`,
+          label: `Donor: ${donorLabel}`,
+        });
+      });
+    }
+
     // State / District / Gender
     if ((filters as any).state && (filters as any).state !== "all") {
       tags.push({ key: `state-${(filters as any).state}`, label: `State: ${(filters as any).state}` });
@@ -722,6 +790,8 @@ const ApplicantTable = () => {
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
+      (newFilters.partnerFilter?.length && newFilters.partnerFilter[0] !== "all") ||
+      (newFilters.donor?.length && newFilters.donor[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
@@ -773,6 +843,7 @@ const ApplicantTable = () => {
   const handleClearFilters = () => {
     setFilters({
       stage: "all",
+      stage_id: undefined,
       stage_status: "all",
       examMode: "all",
       interviewMode: "all",
@@ -785,6 +856,8 @@ const ApplicantTable = () => {
       currentStatus: [],
       state: undefined,
       gender: undefined,
+      donor: [],
+      partnerFilter: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },
     });
     setHasActiveFilters(false);
@@ -1102,7 +1175,7 @@ const ApplicantTable = () => {
               selectedRowsCount={selectedRows.length}
               onBulkUpdate={() => setShowBulkUpdate(true)}
               // onBulkUpdate={handleBulkUpdate}
-              onSendOfferLetters={handleSendBulkOfferLetters}
+              onSendOfferLetters={handleSendOfferLetters}
               onBulkDelete={() => setShowDeleteConfirm(true)}
             />
             <TableActions
@@ -1233,6 +1306,7 @@ const ApplicantTable = () => {
         onClose={() => setShowAddModal(false)}
         onSuccess={refreshData}
         schoolList={schoolList}
+        // campusList={campusList}
         currentstatusList={currentstatusList}
         religionList={religionList}
         questionSetList={questionSetList}
@@ -1318,6 +1392,31 @@ const ApplicantTable = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Offer Letter Confirmation Dialog */}
+      <AlertDialog open={showBulkOfferConfirmation} onOpenChange={setShowBulkOfferConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Offer Letters</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to send offer letters to {selectedRows.length} selected applicant
+              {selectedRows.length > 1 ? "s" : ""}? All selected students have campus assigned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-primary text-white hover:bg-primary/90"
+              onClick={async () => {
+                setShowBulkOfferConfirmation(false);
+                await handleSendBulkOfferLetters();
+              }}
+            >
+              Send Offer Letters
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BulkOfferResultsModal
         isOpen={showBulkOfferResults}
         onClose={() => setShowBulkOfferResults(false)}

@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   Card,
   CardContent,
@@ -163,7 +164,12 @@ const PartnerPage = () => {
       setPartners(partnersArray);
       setLoading(false);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to fetch partners", variant: "destructive" });
+      toast({ 
+        title: "❌ Unable to Load Partners", 
+        description: getFriendlyErrorMessage(error), 
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
       setLoading(false);
     }
   };
@@ -188,7 +194,12 @@ const PartnerPage = () => {
       setStates(statesArray);
     } catch (error) {
       console.error("Failed to load states:", error);
-      toast({ title: "Error", description: "Failed to load states", variant: "destructive" });
+      toast({ 
+        title: "❌ Unable to Load States", 
+        description: getFriendlyErrorMessage(error), 
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
     }
   };
 
@@ -207,7 +218,12 @@ const PartnerPage = () => {
       setDistricts(districtsArray);
     } catch (error) {
       console.error("Failed to load districts:", error);
-      toast({ title: "Error", description: "Failed to load districts", variant: "destructive" });
+      toast({ 
+        title: "❌ Unable to Load Districts", 
+        description: getFriendlyErrorMessage(error), 
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
       setDistricts([]);
     }
   };
@@ -286,8 +302,10 @@ const PartnerPage = () => {
     URL.revokeObjectURL(url);
 
     toast({
-      title: "Success",
+      title: "✅ CSV Downloaded",
       description: "CSV file downloaded successfully",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900"
     });
   };
 
@@ -399,9 +417,10 @@ const PartnerPage = () => {
 
     if (missingFields.length > 0) {
       toast({
-        title: "Missing Required Fields",
+        title: "⚠️ Missing Required Fields",
         description: `Please fill in: ${missingFields.join(", ")}`,
-        variant: "destructive"
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
       return;
     }
@@ -411,9 +430,10 @@ const PartnerPage = () => {
     const invalidEmail = editDialog.form.emails.find(e => e.trim() !== "" && !emailRegex.test(e.trim()));
     if (invalidEmail) {
       toast({
-        title: "Invalid Email Format",
+        title: "⚠️ Invalid Email Format",
         description: `"${invalidEmail}" is not a valid email address. Please use format: example@domain.com`,
-        variant: "destructive"
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
       return;
     }
@@ -431,11 +451,21 @@ const PartnerPage = () => {
         districts: editDialog.form.districts.filter(d => d.trim() !== "").join(',') as any, // Send as string
         // notes: editDialog.form.notes,
       });
-      toast({ title: "Updated", description: "Partner details updated successfully." });
+      toast({ 
+        title: "✅ Partner Updated", 
+        description: "Partner details updated successfully.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
       closeEditDialog();
       loadPartners();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to update partner", variant: "destructive" });
+      toast({ 
+        title: "❌ Unable to Update Partner", 
+        description: getFriendlyErrorMessage(error), 
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
     }
   };
 
@@ -505,9 +535,10 @@ const PartnerPage = () => {
 
     if (missingFields.length > 0) {
       toast({
-        title: "Missing Required Fields",
+        title: "⚠️ Missing Required Fields",
         description: `Please fill in: ${missingFields.join(", ")}`,
-        variant: "destructive"
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
       return;
     }
@@ -517,9 +548,10 @@ const PartnerPage = () => {
     const invalidEmail = addDialog.form.emails.find(e => e.trim() !== "" && !emailRegex.test(e.trim()));
     if (invalidEmail) {
       toast({
-        title: "Invalid Email Format",
+        title: "⚠️ Invalid Email Format",
         description: `"${invalidEmail}" is not a valid email address. Please use format: example@domain.com`,
-        variant: "destructive"
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
       });
       return;
     }
@@ -535,11 +567,21 @@ const PartnerPage = () => {
         districts: cleanDistricts as any, // Send as string
         // notes: addDialog.form.notes,
       });
-      toast({ title: "Success", description: "Partner added successfully!" });
+      toast({ 
+        title: "✅ Partner Added", 
+        description: "Partner added successfully!",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
       closeAddDialog();
       loadPartners();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to create partner", variant: "destructive" });
+      toast({ 
+        title: "❌ Unable to Create Partner", 
+        description: getFriendlyErrorMessage(error), 
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
     }
   };
 
@@ -568,7 +610,12 @@ const PartnerPage = () => {
       setStudentsLoading(false);
     } catch (error) {
       console.error("Failed to fetch students", error);
-      toast({ title: "Error", description: "Failed to fetch students.", variant: "destructive" });
+      toast({ 
+        title: "❌ Unable to Load Students", 
+        description: getFriendlyErrorMessage(error), 
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
       setPartnerStudents([]);
       setStudentsLoading(false);
     }
@@ -600,9 +647,10 @@ const PartnerPage = () => {
     } catch (e: any) {
       console.error("Failed to load assessments:", e);
       toast({
-        title: "Error",
-        description: "Failed to load assessments: " + (e.message || "Unknown error"),
-        variant: "destructive"
+        title: "❌ Unable to Load Assessments",
+        description: getFriendlyErrorMessage(e),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
       });
     }
   };
@@ -616,10 +664,20 @@ const PartnerPage = () => {
     if (!confirm("Are you sure you want to delete this partner?")) return;
     try {
       await deletePartner(id);
-      toast({ title: "Deleted", description: "Partner deleted successfully." });
+      toast({ 
+        title: "✅ Partner Deleted", 
+        description: "Partner deleted successfully.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
       loadPartners();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to delete partner", variant: "destructive" });
+      toast({ 
+        title: "❌ Unable to Delete Partner", 
+        description: getFriendlyErrorMessage(error), 
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
     }
   };
 
@@ -837,7 +895,12 @@ const PartnerPage = () => {
                               {partner.meraki_link ? (
                                 <DropdownMenuItem onClick={() => {
                                   navigator.clipboard.writeText(partner.meraki_link);
-                                  toast({ title: "Copied!", description: "Link copied to clipboard." });
+                                  toast({ 
+                                    title: "✅ Link Copied", 
+                                    description: "Link copied to clipboard.",
+                                    variant: "default",
+                                    className: "border-green-500 bg-green-50 text-green-900"
+                                  });
                                 }}>
                                   <ExternalLink className="mr-2 h-4 w-4" /> Copy Meraki Link
                                 </DropdownMenuItem>
@@ -1245,7 +1308,12 @@ const PartnerPage = () => {
               <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
               <Button onClick={async () => {
                 if (!assessmentFormData.name.trim()) {
-                  toast({ title: "Required", description: "Please enter an assessment name", variant: "destructive" });
+                  toast({ 
+                    title: "⚠️ Assessment Name Required", 
+                    description: "Please enter an assessment name",
+                    variant: "default",
+                    className: "border-orange-500 bg-orange-50 text-orange-900"
+                  });
                   return;
                 }
 
@@ -1263,11 +1331,21 @@ const PartnerPage = () => {
                   // Create new question set linked to partner
                   await createQuestionSet(payload as any);
 
-                  toast({ title: "Success", description: `Assessment "${assessmentFormData.name}" created for ${selectedPartner?.partner_name}` });
+                  toast({ 
+                    title: "✅ Assessment Created", 
+                    description: `Assessment "${assessmentFormData.name}" created for ${selectedPartner?.partner_name}`,
+                    variant: "default",
+                    className: "border-green-500 bg-green-50 text-green-900"
+                  });
                   setShowCreateModal(false);
                   setAssessmentFormData({ name: "", description: "", nameType: "random", isRandom: true });
                 } catch (e: any) {
-                  toast({ title: "Error", description: e.message || "Failed to create assessment", variant: "destructive" });
+                  toast({ 
+                    title: "❌ Unable to Create Assessment", 
+                    description: getFriendlyErrorMessage(e), 
+                    variant: "destructive",
+                    className: "border-red-500 bg-red-50 text-red-900"
+                  });
                 }
               }}>
                 Create

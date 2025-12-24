@@ -35,6 +35,7 @@ import {
   uploadProfileImage,
   getBlocksByDistrict,
   getDistrictsByState,
+  getStudentDataByEmail,
 } from "@/utils/api";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -122,6 +123,8 @@ export function AddApplicantModal({
     block: false,
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [emailExists, setEmailExists] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   const [formData, setFormData] = useState({
     image_url: "",
@@ -355,6 +358,8 @@ export function AddApplicantModal({
         toast({
           title: "Uploading...",
           description: "Please wait while we upload the image...",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
 
         const uploadResult = await uploadProfileImage(file);
@@ -388,6 +393,37 @@ export function AddApplicantModal({
       }
     }
   };
+
+  const handleEmailBlur = async () => {
+  if (!formData.email) return;
+
+  // basic format check
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(formData.email)) return;
+
+  setIsCheckingEmail(true);
+
+  try {
+    const existingStudent = await getStudentDataByEmail(formData.email);
+
+    if (existingStudent) {
+      setErrors((prev) => ({
+        ...prev,
+        email: "This email already exists, you can use another email",
+      }));
+      setEmailExists(true);
+    }
+  } catch (err) {
+    // email NOT found = valid case
+    setEmailExists(false);
+    setErrors((prev) => {
+      const { email, ...rest } = prev;
+      return rest;
+    });
+  } finally {
+    setIsCheckingEmail(false);
+  }
+};
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -691,6 +727,8 @@ export function AddApplicantModal({
           formData.gender &&
           formData.dob &&
           formData.email &&
+          !emailExists &&
+          !errors.email &&
           selectedState &&
           selectedDistrict &&
           formData.block &&
@@ -968,9 +1006,14 @@ export function AddApplicantModal({
                       onChange={(e) =>
                         handleInputChange("email", e.target.value)
                       }
+                      onBlur={handleEmailBlur}
                       placeholder="Enter email address"
                       className={errors.email ? "border-red-500" : ""}
                     />
+                    {isCheckingEmail && (
+                      <p className="text-xs text-muted-foreground">
+                        Checking email...
+                      </p>)}
                     {errors.email && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
@@ -1736,7 +1779,7 @@ export function AddApplicantModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={loading || emailExists ||isCheckingEmail}
             className="w-full sm:w-auto"
           >
             {loading ? (
