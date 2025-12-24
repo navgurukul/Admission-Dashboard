@@ -72,15 +72,15 @@ export const navigation: NavigationItem[] = [
     href: "/admin-view",
     icon: Eye,
     component: AdminView,
-    allowedRoles: [1],
+    allowedRoles: [1, 2],
   },
-  {
+  /* {
     name: "My Interviews",
     href: "/interviews",
     icon: MessageSquare,
     component: Interviews,
     allowedRoles: [1, 2],
-  },
+  }, */
   // { name: "Offer Letters", href: "/offer-letters", icon: Mail, component: OfferLetters, allowedRoles: [1, 2] },
   {
     name: "Question Repository",
