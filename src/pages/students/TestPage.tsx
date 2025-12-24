@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTests } from "@/utils/TestContext";
 import {
@@ -43,6 +43,7 @@ const TestPage: React.FC = () => {
     stateDuration || null,
   );
   const [showConfirm, setShowConfirm] = useState(false);
+  const isSubmitting = useRef(false); // Track submission to prevent duplicates
 
   // Restore progress from localStorage
   useEffect(() => {
@@ -80,7 +81,11 @@ const TestPage: React.FC = () => {
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft <= 0) {
-      handleConfirmSubmit();
+      // Auto-submit when timer reaches 0 (only once)
+      if (!isSubmitting.current) {
+        isSubmitting.current = true;
+        submitTest();
+      }
       return;
     }
 
@@ -115,12 +120,19 @@ const TestPage: React.FC = () => {
 
   const submitTest = async () => {
     setShowConfirm(false);
+    
+    // Prevent duplicate submissions
+    if (isSubmitting.current) {
+      return;
+    }
+    isSubmitting.current = true;
 
     // Get student ID from localStorage
     const studentId = localStorage.getItem("studentId");
     if (!studentId) {
       console.error("Student ID not found");
       alert("Error: Student ID not found. Please log in again.");
+      isSubmitting.current = false;
       return;
     }
 
@@ -204,6 +216,7 @@ const TestPage: React.FC = () => {
       console.error("Error submitting exam:", error);
       alert("Failed to submit exam. Please try again.");
       setShowConfirm(false);
+      isSubmitting.current = false; // Reset on error to allow retry
     }
   };
 
@@ -216,21 +229,21 @@ const TestPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl flex flex-col">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
+      <div className="bg-card rounded-2xl shadow-large p-8 w-full max-w-3xl flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="font-bold text-xl">
+          <h2 className="font-bold text-xl text-primary">
             Question {currentIndex + 1} / {questions.length}
           </h2>
-          <div className="bg-red-100 text-red-600 font-bold px-4 py-2 rounded-lg shadow">
+          <div className="bg-destructive/10 text-destructive font-bold px-4 py-2 rounded-lg shadow-soft">
             ⏳ {formatTime(timeLeft)}
           </div>
         </div>
 
         {/* Question */}
-        <div className="border border-gray-300 rounded-xl p-6 mb-6 bg-gray-50 shadow-inner">
-          <p className="text-lg font-medium text-gray-800 leading-relaxed">
+        <div className="border border-border rounded-xl p-6 mb-6 bg-muted shadow-inner">
+          <p className="text-lg font-medium text-foreground leading-relaxed">
             {questions[currentIndex].question}
           </p>
         </div>
@@ -244,8 +257,8 @@ const TestPage: React.FC = () => {
                 key={idx}
                 className={`block border rounded-lg px-4 py-3 cursor-pointer transition ${
                   answers[qid] === idx
-                    ? "bg-blue-100 border-blue-500"
-                    : "hover:bg-gray-100 border-gray-300"
+                    ? "bg-secondary-purple-light border-secondary-purple text-secondary-purple font-medium shadow-md"
+                    : "hover:bg-muted border-border"
                 }`}
               >
                 <input
@@ -266,7 +279,7 @@ const TestPage: React.FC = () => {
           <button
             disabled={currentIndex === 0}
             onClick={() => setCurrentIndex((i) => i - 1)}
-            className="px-6 py-2 bg-gray-300 rounded-lg font-medium disabled:opacity-50"
+            className="px-6 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium disabled:opacity-50 hover:bg-secondary/80 transition"
           >
             Previous
           </button>
@@ -275,10 +288,10 @@ const TestPage: React.FC = () => {
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
               <DialogTrigger asChild>
                 <button
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium shadow hover:bg-green-700"
+                  className="px-6 py-2 bg-secondary-purple hover:bg-secondary-purple/90 text-white rounded-lg font-medium shadow-soft transition"
                   onClick={handleConfirmSubmit}
                 >
-                  Submit
+                  Submit Test
                 </button>
               </DialogTrigger>
               <DialogContent>
@@ -296,14 +309,14 @@ const TestPage: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={submitTest}>Yes, Submit</Button>
+                  <Button onClick={submitTest} className="bg-secondary-purple hover:bg-secondary-purple/90">Yes, Submit</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           ) : (
             <button
               onClick={() => setCurrentIndex((i) => i + 1)}
-              className="px-6 py-2 bg-orange-500 text-white rounded-lg font-medium shadow hover:bg-orange-600"
+              className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium shadow-soft transition"
             >
               Next
             </button>

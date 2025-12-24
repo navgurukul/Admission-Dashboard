@@ -89,25 +89,25 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-400 to-red-500">
-        <p className="text-white text-lg">Loading test details...</p>
+      <div className="min-h-screen flex items-center justify-center student-bg-gradient">
+        <p className="text-primary-foreground text-lg">Loading test details...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+    <div className="min-h-screen student-bg-gradient flex items-center justify-center">
       <LogoutButton />
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full flex flex-col items-center justify-center">
+      <div className="bg-card rounded-2xl shadow-large p-8 max-w-lg w-full flex flex-col items-center justify-center">
         <h1 className="text-2xl font-semibold mb-4">{content.heading}</h1>
-        <p className="text-gray-600 mb-2">{content.description1}</p>
-        <p className="text-gray-800 font-medium mb-2">{content.description2}</p>
-        <p className="text-gray-800 font-semibold mb-2">
+        <p className="text-muted-foreground mb-2">{content.description1}</p>
+        <p className="text-foreground font-medium mb-2">{content.description2}</p>
+        <p className="text-foreground font-semibold mb-2">
           {content.description3}
         </p>
         <button
           onClick={handleStartTest}
-          className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200 shadow-large"
         >
           {content.buttonText}
         </button>

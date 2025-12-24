@@ -780,10 +780,10 @@ export function AddApplicantModal({
                       className={cn(
                         "flex items-center justify-center w-8 h-8 sm:w-8 sm:h-8 rounded-full border-2 transition-colors",
                         isCurrent
-                          ? "bg-orange-500 border-orange-500 text-white"
+                          ? "bg-primary border-primary text-primary-foreground"
                           : isCompleted
-                            ? "bg-orange-500 border-orange-500 text-white"
-                            : "border-gray-300 text-gray-400",
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-muted-foreground/30 text-muted-foreground",
                       )}
                     >
                       {isCompleted ? (
@@ -796,7 +796,7 @@ export function AddApplicantModal({
                       <div
                         className={cn(
                           "w-6 sm:w-12 h-0.5 mx-1 sm:mx-2",
-                          isCompleted ? "bg-orange-400" : "bg-orange-300",
+                          isCompleted ? "bg-primary" : "bg-muted-foreground/30",
                         )}
                       />
                     )}
@@ -843,7 +843,7 @@ export function AddApplicantModal({
                     <div
                       className={cn(
                         "w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center",
-                        errors.image_url ? "border-red-500" : "border-white",
+                        errors.image_url ? "bg-destructive/10 border-destructive" : "border-white",
                       )}
                     >
                       {imagePreview ? (
@@ -858,7 +858,7 @@ export function AddApplicantModal({
                     </div>
                     <label
                       htmlFor="profile-image"
-                      className="absolute bottom-0 right-0 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full shadow-md cursor-pointer transition-colors"
+                      className="absolute bottom-0 right-0 bg-primary hover:bg-primary-600 text-white p-2 rounded-full shadow-md cursor-pointer transition-colors"
                     >
                       <div className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
                         <svg

@@ -13,6 +13,12 @@ import { User, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { getStudentDataByEmail } from "@/utils/api";
+import studentImage from '@/assets/student-login-image.png';
+import {
+  ADMISSIONS_EMAIL,
+  ADMISSIONS_PHONE_DISPLAY,
+  ADMISSIONS_PHONE_TEL,
+} from "@/lib/const";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 type Student = {
@@ -246,7 +252,7 @@ export default function StudentLogin() {
             title: getContent().successMessage,
             description: (
               <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <CheckCircle2 className="w-5 h-5 text-[hsl(var(--status-active))]" />
                 <span>Welcome back, {googleUser.name}! 🎉</span>
               </div>
             ),
@@ -373,7 +379,7 @@ export default function StudentLogin() {
         title: getContent().successMessage,
         description: (
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <CheckCircle2 className="w-5 h-5 text-[hsl(var(--status-active))]" />
             <span>Welcome back, {data.student.name}! 🎉</span>
           </div>
         ),
@@ -399,28 +405,115 @@ export default function StudentLogin() {
     }
   };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex items-center justify-center space-x-2 mb-2">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Left Side - Image with Improved Contrast */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Darker gradient overlay for better text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/70 via-gray-900/60 to-gray-900/70 z-[1]"></div>
+        <img
+          src={studentImage}
+          alt="Students learning together at NavGurukul"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="relative z-10 flex flex-col justify-center items-center text-white p-12 text-center">
+          <h1 className="text-4xl lg:text-5xl font-bold mb-6 drop-shadow-lg">Welcome to NavGurukul</h1>
+          <p className="text-xl lg:text-2xl mb-4 drop-shadow-md">Empowering students through technology education</p>
+          <p className="text-lg lg:text-xl drop-shadow-md">Join thousands of students on their learning journey</p>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 lg:p-12 student-bg-light min-h-screen lg:min-h-0">
+        <div className="w-full max-w-lg">
+          {/* Branding Section */}
+          <div className="text-center mb-10">
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-secondary-purple to-primary rounded-2xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+                <User className="w-10 h-10 text-white" aria-hidden="true" />
+              </div>
             </div>
-            <CardTitle className="text-2xl font-bold">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
               {getContent().title}
-            </CardTitle>
+            </h1>
+            <p className="text-base sm:text-lg text-muted-foreground">
+              {getContent().description}
+            </p>
           </div>
-          <CardDescription>{getContent().description}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Google Sign In Button */}
-          <div
-            id="google-signin-button-student"
-            ref={googleButtonRef}
-            className="w-full flex justify-center"
-          ></div>
-        </CardContent>
-      </Card>
+
+          {/* Login Card */}
+          <Card className="shadow-2xl border-2 border-border/50 backdrop-blur-sm">
+            <CardContent className="pt-10 pb-10 px-8 sm:px-10">
+              {/* Security Badge */}
+              <div className="flex items-center justify-center gap-2 mb-8 text-sm text-muted-foreground" role="status" aria-label="Secure login badge">
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>Secure Login</span>
+              </div>
+
+              {/* Divider */}
+              <div className="relative mb-10">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-card text-muted-foreground">Sign in with Google</span>
+                </div>
+              </div>
+
+              {/* Google Sign In Button Wrapper with Enhanced Styling */}
+              <div className="mb-10">
+                <div
+                  id="google-signin-button-student"
+                  ref={googleButtonRef}
+                  className="w-full flex justify-center [&_button]:!min-h-[48px] [&_button]:!h-12 [&_button]:transition-all [&_button]:hover:shadow-md [&_button]:hover:scale-[1.02] [&_button]:active:scale-[0.98]"
+                  role="button"
+                  aria-label="Sign in with Google"
+                ></div>
+                {googleLoading && (
+                  <div className="flex items-center justify-center mt-4 text-sm text-muted-foreground" role="status" aria-live="polite">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading...
+                  </div>
+                )}
+              </div>
+
+              {/* Help Text - Friendlier and Better Spaced */}
+              <div className="text-center space-y-3 text-sm pt-6 border-t border-border/50">
+                <p className="text-muted-foreground font-medium">Having trouble signing in?</p>
+                <div className="space-y-2">
+                  <p className="text-foreground">
+                    <span className="text-muted-foreground">Contact us at </span>
+                    <a href={`mailto:${ADMISSIONS_EMAIL}`} className="font-semibold hover:text-primary transition-colors">
+                      {ADMISSIONS_EMAIL}
+                    </a>
+                  </p>
+                  <p className="text-foreground">
+                    <span className="text-muted-foreground">Call us at </span>
+                    <a href={`tel:${ADMISSIONS_PHONE_TEL}`} className="font-semibold hover:text-primary transition-colors">
+                      {ADMISSIONS_PHONE_DISPLAY}
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Footer - Powered by NavGurukul */}
+          {/* <div className="text-center mt-8 px-4">
+            <p className="text-xs text-muted-foreground">
+              By signing in, you agree to our Terms of Service and Privacy Policy
+            </p>
+            <p className="text-xs text-muted-foreground mt-3 flex items-center justify-center gap-1">
+              <span>Powered by</span>
+              <span className="font-semibold text-primary">NavGurukul</span>
+            </p>
+          </div> */}
+        </div>
+      </div>
     </div>
   );
 }

@@ -108,8 +108,8 @@ export function DashboardStats() {
       // change: "+8%",
       // changeType: "increase" as const,
       icon: Clock,
-      color: "text-status-pending",
-      bgColor: "bg-status-pending/10",
+      color: "text-secondary-purple",
+      bgColor: "bg-secondary-purple/10",
     },
     // {
     //   title: "Interviews Scheduled",
@@ -126,8 +126,8 @@ export function DashboardStats() {
       // change: "+16%",
       // changeType: "increase" as const,
       icon: CheckCircle,
-      color: "text-status-active",
-      bgColor: "bg-status-active/10",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
     },
   ];
 
