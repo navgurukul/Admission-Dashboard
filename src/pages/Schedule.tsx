@@ -360,9 +360,9 @@ const Schedule = () => {
             </p>
           </div>
 
-          <Tabs value="my-interviews" className="w-full mb-6">
-            <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-xl" : "grid-cols-1 max-w-xs")}>
-              {isAdmin && (
+          {isAdmin && (
+            <Tabs value="my-interviews" className="w-full mb-6">
+              <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-xl" : "grid-cols-1 max-w-xs")}>
                 <>
                   <TabsTrigger
                     value="interviews"
@@ -379,16 +379,16 @@ const Schedule = () => {
                     Created Slots
                   </TabsTrigger>
                 </>
-              )}
-              <TabsTrigger
-                value="my-interviews"
-                onClick={() => navigate("/admin-view")}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                My Interviews
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+                <TabsTrigger
+                  value="my-interviews"
+                  onClick={() => navigate("/admin-view")}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  My Interviews
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

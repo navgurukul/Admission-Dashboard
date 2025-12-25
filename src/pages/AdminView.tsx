@@ -386,30 +386,28 @@ export default function AdminView() {
           </div>
 
           <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
-            <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-lg" : "grid-cols-1 max-w-xs")}>
-              {isAdmin && (
-                <>
-                  <TabsTrigger
-                    value="interviews"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    Scheduled Interviews
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="slots"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    Created Slots
-                  </TabsTrigger>
-                </>
-              )}
-              <TabsTrigger
-                value="my-interviews"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                My Interviews
-              </TabsTrigger>
-            </TabsList>
+            {isAdmin && (
+              <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-lg" : "grid-cols-1 max-w-xs")}>
+                <TabsTrigger
+                  value="interviews"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  Scheduled Interviews
+                </TabsTrigger>
+                <TabsTrigger
+                  value="slots"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  Created Slots
+                </TabsTrigger>
+                <TabsTrigger
+                  value="my-interviews"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  My Interviews
+                </TabsTrigger>
+              </TabsList>
+            )}
 
             {/* Interviews Tab */}
             {isAdmin && (
@@ -894,6 +892,6 @@ export default function AdminView() {
         onSchedule={handleAdminScheduleMeet}
         isLoading={schedulingInProgress}
       />
-    </div>
+    </div >
   );
 }
