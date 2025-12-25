@@ -1412,11 +1412,6 @@ const ApplicantTable = () => {
         onClose={() => setShowBulkUpdate(false)}
         selectedApplicants={selectedRows}
         onSuccess={refreshData}
-        campusList={campusList}
-        stateList={stateList}
-        castList={castList}
-        qualificationList={qualificationList}
-        currentstatusList={currentstatusList}
       />
       <ApplicantModal
         applicant={applicantToView}

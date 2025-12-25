@@ -69,13 +69,6 @@ interface BulkUpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  campusList?: any[];
-  stateList?: any[];
-  castList?: any[];
-  qualificationList?: any[];
-  currentstatusList?: any[];
-  partnerList?: any[];
-  donorList?: any[];
 }
 
 export function BulkUpdateModal({
@@ -83,13 +76,6 @@ export function BulkUpdateModal({
   isOpen,
   onClose,
   onSuccess,
-  campusList = [],
-  stateList = [],
-  castList = [],
-  qualificationList = [],
-  currentstatusList = [],
-  partnerList = [],
-  donorList = [],
 }: BulkUpdateModalProps) {
   const [updateData, setUpdateData] = useState({
     stageId: "no_change",
@@ -118,6 +104,7 @@ export function BulkUpdateModal({
   const [stateOptions, setStateOptions] = useState<StateOption[]>([]);
   const [districtOptions, setDistrictOptions] = useState<DistrictOption[]>([]);
   const [blockOptions, setBlockOptions] = useState<BlockOption[]>([]);
+  const [loadingStates, setLoadingStates] = useState(false);
 
   const [castOptions, setCastOptions] = useState<
     { value: string; label: string }[]
@@ -135,78 +122,39 @@ export function BulkUpdateModal({
     { value: string; label: string }[]
   >([]);
 
-  // Initialize dropdown options from props when modal opens
+  // Track which dropdowns have been loaded
+  const [loadedDropdowns, setLoadedDropdowns] = useState({
+    cast: false,
+    qualification: false,
+    currentWork: false,
+    partner: false,
+    donor: false,
+  });
+
+  // Initialize dropdown options when modal opens - all loaded on demand
   useEffect(() => {
     if (isOpen) {
-      // Use props if available, otherwise fetch from API
-      if (campusList.length > 0) {
-        setCampusOptions(campusList);
-      } else {
-        fetchCampuses();
-      }
+      // Reset loaded flags when modal opens
+      setLoadedDropdowns({
+        cast: false,
+        qualification: false,
+        currentWork: false,
+        partner: false,
+        donor: false,
+      });
 
-      if (stateList.length > 0) {
-        const states = stateList.map((s: any) => ({
-          value: s.state_code,
-          label: s.state_name,
-        }));
-        setStateOptions(states);
-      } else {
-        fetchStates();
-      }
+      // Fetch campus and state immediately (needed for basic selection)
+      fetchCampuses();
+      fetchStates();
 
-      // Set dropdown options from props
-      if (castList.length > 0) {
-        setCastOptions(
-          castList.map((c: any) => ({
-            value: String(c.id),
-            label: c.cast_name || c.name || `#${c.id}`,
-          }))
-        );
-      }
-
-      if (qualificationList.length > 0) {
-        setQualificationOptions(
-          qualificationList.map((q: any) => ({
-            value: String(q.id),
-            label: q.qualification_name || q.name || `#${q.id}`,
-          }))
-        );
-      }
-
-      if (currentstatusList.length > 0) {
-        setCurrentWorkOptions(
-          currentstatusList.map((s: any) => ({
-            value: String(s.id),
-            label: s.current_status_name || s.name || `#${s.id}`,
-          }))
-        );
-      }
-
-      if (partnerList.length > 0) {
-        setPartnerOptions(
-          partnerList.map((p: any) => ({
-            value: String(p.id),
-            label: p.partner_name || p.name || `#${p.id}`,
-          }))
-        );
-      }
-
-      if (donorList.length > 0) {
-        setDonorOptions(
-          donorList.map((d: any) => ({
-            value: String(d.id),
-            label: d.donor_name || d.name || `#${d.id}`,
-          }))
-        );
-      }
-
-      // Only fetch dropdowns if props are not provided
-      if (castList.length === 0 || qualificationList.length === 0 || currentstatusList.length === 0 || partnerList.length === 0 || donorList.length === 0) {
-        fetchDropdowns();
-      }
+      // Clear options for lazy-loaded dropdowns
+      setCastOptions([]);
+      setQualificationOptions([]);
+      setCurrentWorkOptions([]);
+      setPartnerOptions([]);
+      setDonorOptions([]);
     }
-  }, [isOpen]); // prevent infinite loop
+  }, [isOpen]); // Only depend on isOpen
 
   const fetchCampuses = async () => {
     try {
@@ -218,65 +166,135 @@ export function BulkUpdateModal({
   };
 
   const fetchStates = async () => {
+    setLoadingStates(true);
     try {
+      console.log("🔄 Fetching states...");
       const res = await getAllStates();
+      console.log("✅ States response:", res);
+      
       const states = (res?.data || res || []).map((s: any) => ({
         value: s.state_code,
         label: s.state_name,
       }));
+      
+      console.log("📍 Mapped states:", states);
       setStateOptions(states);
     } catch (err) {
-      console.error("Error fetching states:", err);
+      console.error("❌ Error fetching states:", err);
       setStateOptions([]);
+      toast({
+        title: "Failed to load states",
+        description: "Unable to fetch state list. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingStates(false);
     }
   };
 
-  const fetchDropdowns = async () => {
+  // Lazy load functions for each dropdown
+  const fetchCastOptions = async () => {
+    if (loadedDropdowns.cast) return; // Already loaded
+    
     try {
-      const [castsRes, qualsRes, statusRes, partnersRes, donorsRes] = await Promise.all([
-        castList.length > 0 ? Promise.resolve(castList) : getAllCasts().catch(() => []),
-        qualificationList.length > 0 ? Promise.resolve(qualificationList) : getAllQualification().catch(() => []),
-        currentstatusList.length > 0 ? Promise.resolve(currentstatusList) : getAllStatus().catch(() => []),
-        partnerList.length > 0 ? Promise.resolve(partnerList) : getAllPartners().catch(() => []),
-        donorList.length > 0 ? Promise.resolve(donorList) : getAllDonors().catch(() => []),
-      ]);
-
+      const castsRes = await getAllCasts();
       setCastOptions(
-        (castsRes || []).map((c: any) => ({
-          value: String(c.id),
-          label: c.cast_name || c.name || `#${c.id}`,
-        })),
+        (castsRes || [])
+          .filter((c: any) => c && c.id)
+          .map((c: any) => ({
+            value: String(c.id),
+            label: String(c.cast_name || c.name || `Cast #${c.id}`),
+          }))
+          .filter((opt) => opt.value && opt.label) // Extra safety
       );
-
-      setQualificationOptions(
-        (qualsRes || []).map((q: any) => ({
-          value: String(q.id),
-          label: q.qualification_name || q.name || `#${q.id}`,
-        })),
-      );
-
-      setCurrentWorkOptions(
-        (statusRes || []).map((s: any) => ({
-          value: String(s.id),
-          label: s.current_status_name || s.name || `#${s.id}`,
-        })),
-      );
-
-      setPartnerOptions(
-        (partnersRes || []).map((p: any) => ({
-          value: String(p.id),
-          label: p.partner_name || p.name || `#${p.id}`,
-        })),
-      );
-
-      setDonorOptions(
-        (donorsRes || []).map((d: any) => ({
-          value: String(d.id),
-          label: d.donor_name || d.name || `#${d.id}`,
-        })),
-      );
+      setLoadedDropdowns(prev => ({ ...prev, cast: true }));
     } catch (err) {
-      console.error("Error fetching dropdowns:", err);
+      console.error("Error fetching casts:", err);
+      setCastOptions([]);
+    }
+  };
+
+  const fetchQualificationOptions = async () => {
+    if (loadedDropdowns.qualification) return; // Already loaded
+    
+    try {
+      const qualsRes = await getAllQualification();
+      setQualificationOptions(
+        (qualsRes || [])
+          .filter((q: any) => q && q.id)
+          .map((q: any) => ({
+            value: String(q.id),
+            label: String(q.qualification_name || q.name || `Qualification #${q.id}`),
+          }))
+          .filter((opt) => opt.value && opt.label) // Extra safety
+      );
+      setLoadedDropdowns(prev => ({ ...prev, qualification: true }));
+    } catch (err) {
+      console.error("Error fetching qualifications:", err);
+      setQualificationOptions([]);
+    }
+  };
+
+  const fetchCurrentWorkOptions = async () => {
+    if (loadedDropdowns.currentWork) return; // Already loaded
+    
+    try {
+      const statusRes = await getAllStatus();
+      setCurrentWorkOptions(
+        (statusRes || [])
+          .filter((s: any) => s && s.id)
+          .map((s: any) => ({
+            value: String(s.id),
+            label: String(s.current_status_name || s.name || `Status #${s.id}`),
+          }))
+          .filter((opt) => opt.value && opt.label) // Extra safety
+      );
+      setLoadedDropdowns(prev => ({ ...prev, currentWork: true }));
+    } catch (err) {
+      console.error("Error fetching current work status:", err);
+      setCurrentWorkOptions([]);
+    }
+  };
+
+  const fetchPartnerOptions = async () => {
+    if (loadedDropdowns.partner) return; // Already loaded
+    
+    try {
+      const partnersRes = await getAllPartners();
+      setPartnerOptions(
+        (partnersRes || [])
+          .filter((p: any) => p && p.id)
+          .map((p: any) => ({
+            value: String(p.id),
+            label: String(p.partner_name || p.name || `Partner #${p.id}`),
+          }))
+          .filter((opt) => opt.value && opt.label) // Extra safety
+      );
+      setLoadedDropdowns(prev => ({ ...prev, partner: true }));
+    } catch (err) {
+      console.error("Error fetching partners:", err);
+      setPartnerOptions([]);
+    }
+  };
+
+  const fetchDonorOptions = async () => {
+    if (loadedDropdowns.donor) return; // Already loaded
+    
+    try {
+      const donorsRes = await getAllDonors();
+      setDonorOptions(
+        (donorsRes || [])
+          .filter((d: any) => d && d.id)
+          .map((d: any) => ({
+            value: String(d.id),
+            label: String(d.donor_name || d.name || `Donor #${d.id}`),
+          }))
+          .filter((opt) => opt.value && opt.label) // Extra safety
+      );
+      setLoadedDropdowns(prev => ({ ...prev, donor: true }));
+    } catch (err) {
+      console.error("Error fetching donors:", err);
+      setDonorOptions([]);
     }
   };
 
@@ -553,6 +571,7 @@ export function BulkUpdateModal({
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, partnerId: val }))
                   }
+                  onOpen={fetchPartnerOptions}
                   placeholder="Select partner"
                   searchPlaceholder="Search partner..."
                   emptyText="No partner found."
@@ -573,6 +592,7 @@ export function BulkUpdateModal({
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, donorId: val }))
                   }
+                  onOpen={fetchDonorOptions}
                   placeholder="Select donor"
                   searchPlaceholder="Search donor..."
                   emptyText="No donor found."
@@ -599,9 +619,10 @@ export function BulkUpdateModal({
                   ]}
                   value={updateData.state}
                   onValueChange={(val) => handleStateChange(val)}
-                  placeholder="Select state"
+                  placeholder={loadingStates ? "Loading states..." : "Select state"}
                   searchPlaceholder="Search state..."
-                  emptyText="No state found."
+                  emptyText={loadingStates ? "Loading..." : "No state found."}
+                  disabled={loadingStates}
                 />
               </div>
 
@@ -686,6 +707,7 @@ export function BulkUpdateModal({
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, castId: val }))
                   }
+                  onOpen={fetchCastOptions}
                   placeholder="Select caste"
                   searchPlaceholder="Search caste..."
                   emptyText="No caste found."
@@ -706,6 +728,7 @@ export function BulkUpdateModal({
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, qualificationId: val }))
                   }
+                  onOpen={fetchQualificationOptions}
                   placeholder="Select qualification"
                   searchPlaceholder="Search qualification..."
                   emptyText="No qualification found."
@@ -726,6 +749,7 @@ export function BulkUpdateModal({
                   onValueChange={(val) =>
                     setUpdateData((prev) => ({ ...prev, currentWorkId: val }))
                   }
+                  onOpen={fetchCurrentWorkOptions}
                   placeholder="Select current work"
                   searchPlaceholder="Search current work..."
                   emptyText="No current work found."
