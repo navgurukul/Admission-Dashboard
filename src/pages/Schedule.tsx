@@ -9,6 +9,9 @@ import {
   Trash2,
   Edit,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AddSlotsModal } from "@/components/AddSlotsModal";
 import { EditSlotModal } from "@/components/EditSlotModal";
@@ -19,6 +22,7 @@ import {
   getMyAvailableSlots,
   scheduleInterview,
   deleteInterviewSlot,
+  getCurrentUser,
 } from "@/utils/api";
 import {
   initClient,
@@ -49,6 +53,11 @@ const Schedule = () => {
   const [selectedSlotForEdit, setSelectedSlotForEdit] =
     useState<SlotData | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const currentUser = getCurrentUser();
+  const roleId = currentUser?.user_role_id || 2;
+  const isAdmin = roleId === 1;
 
   // Add state for admin scheduling
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -342,14 +351,44 @@ const Schedule = () => {
 
       <main className="md:ml-64 overflow-auto h-screen">
         <div className="p-4 md:p-8 pt-16 md:pt-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Interview Schedule
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-foreground">
+              {isAdmin ? "Admin View" : "My Dashboard"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mt-2">
               Manage interview slots and availability
             </p>
           </div>
+
+          {isAdmin && (
+            <Tabs value="my-interviews" className="w-full mb-6">
+              <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-xl" : "grid-cols-1 max-w-xs")}>
+                <>
+                  <TabsTrigger
+                    value="interviews"
+                    onClick={() => navigate("/admin-view")}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    Scheduled Interviews
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="slots"
+                    onClick={() => navigate("/admin-view")}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    Created Slots
+                  </TabsTrigger>
+                </>
+                <TabsTrigger
+                  value="my-interviews"
+                  onClick={() => navigate("/admin-view")}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  My Interviews
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

@@ -51,9 +51,9 @@ export function AdmissionsSidebar() {
   };
   // Check if current path is interview related
   const isInterviewActive = (href: string) => {
-    if (href === "/interviews") {
+    if (href === "/admin-view") {
       return (
-        location.pathname === "/interviews" || location.pathname === "/schedule"
+        location.pathname === "/admin-view" || location.pathname === "/schedule"
       );
     }
     return location.pathname === href;
