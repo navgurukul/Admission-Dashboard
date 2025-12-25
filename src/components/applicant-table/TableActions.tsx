@@ -8,10 +8,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface TableActionsProps {
-  onCSVImport: () => void;
+  onCSVImport?: () => void;
   onExportCSV: (exportType?: 'all' | 'filtered' | 'selected') => void;
   onShowFilters: () => void;
-  onAddApplicant: () => void;
+  onAddApplicant?: () => void;
   isExporting?: boolean;
   hasActiveFilters?: boolean;
   searchTerm?: string;
@@ -37,11 +37,13 @@ export const TableActions = ({
   const showDropdown = hasFiltersOrSearch || hasSelection;
 
   return (
-    <>
-      <Button onClick={onCSVImport} variant="outline" size="sm">
-        <Upload className="h-4 w-4 mr-2" />
-        Import CSV
-      </Button>
+    <div className="flex flex-wrap gap-2">
+      {onCSVImport && (
+        <Button onClick={onCSVImport} variant="outline" size="sm" className="flex-shrink-0">
+          <Upload className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Import CSV</span>
+        </Button>
+      )}
 
       {/* Export button with dropdown */}
       {showDropdown ? (
@@ -51,17 +53,18 @@ export const TableActions = ({
               variant="outline" 
               size="sm"
               disabled={isExporting}
+              className="flex-shrink-0"
             >
               {isExporting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Exporting...
+                  <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+                  <span className="hidden md:inline">Exporting...</span>
                 </>
               ) : (
                 <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export CSV
-                  <ChevronDown className="h-4 w-4 ml-2" />
+                  <Download className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Export CSV</span>
+                  <ChevronDown className="h-4 w-4 md:ml-2" />
                 </>
               )}
             </Button>
@@ -91,29 +94,32 @@ export const TableActions = ({
           variant="outline" 
           size="sm"
           disabled={isExporting}
+          className="flex-shrink-0"
         >
           {isExporting ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Exporting...
+              <Loader2 className="h-4 w-4 md:mr-2 animate-spin" />
+              <span className="hidden md:inline">Exporting...</span>
             </>
           ) : (
             <>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
+              <Download className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Export CSV</span>
             </>
           )}
         </Button>
       )}
 
-      <Button onClick={onShowFilters} variant="outline" size="sm">
-        <Filter className="h-4 w-4 mr-2" />
-        Filters
+      <Button onClick={onShowFilters} variant="outline" size="sm" className="flex-shrink-0">
+        <Filter className="h-4 w-4 md:mr-2" />
+        <span className="hidden md:inline">Filters</span>
       </Button>
-      <Button onClick={onAddApplicant} size="sm">
-        <Plus className="h-4 w-4 mr-2" />
-        Add Applicant
-      </Button>
-    </>
+      {onAddApplicant && (
+        <Button onClick={onAddApplicant} size="sm" className="flex-shrink-0">
+          <Plus className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Add Applicant</span>
+        </Button>
+      )}
+    </div>
   );
 };

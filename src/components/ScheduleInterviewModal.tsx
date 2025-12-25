@@ -16,9 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getStudentDataByEmail } from "@/utils/api";
+import { getStudentDataByEmail, getCurrentUser } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { useEffect } from "react";
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ interface ScheduleInterviewModalProps {
     date: string;
     start_time: string;
     end_time: string;
+    slot_type?: string;
     interviewer_email?: string;
     interviewer_name?: string;
     is_booked: boolean;
@@ -70,6 +72,7 @@ export const ScheduleInterviewModal = ({
   const [studentName, setStudentName] = useState("");
   const [topicName, setTopicName] = useState("");
   const [interviewerEmail, setInterviewerEmail] = useState("");
+  const [interviewerName, setInterviewerName] = useState("");
   const [isFetchingStudent, setIsFetchingStudent] = useState(false);
   const [studentDataFetched, setStudentDataFetched] = useState(false);
   const { toast } = useToast();
@@ -78,6 +81,31 @@ export const ScheduleInterviewModal = ({
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
 
+  // Default interviewer email and topic name based on slot data
+  useEffect(() => {
+    if (isOpen) {
+      const user = getCurrentUser();
+
+      // Priority: 1. Slot data interviewer, 2. Current user email
+      const defaultInterviewerEmail = slotData?.interviewer_email || user?.email || "";
+      const defaultInterviewerName = slotData?.interviewer_name || user?.name || "";
+
+      // Always update interviewer details when slot changes
+      setInterviewerEmail(defaultInterviewerEmail);
+      setInterviewerName(defaultInterviewerName);
+
+      // Auto-fill topic based on slot type if slotData is provided (normal mode)
+      if (slotData && !isDirectScheduleMode) {
+        const slotType = (slotData as any).slot_type;
+        if (slotType === "LR") {
+          setTopicName("Learning Round");
+        } else if (slotType === "CFR") {
+          setTopicName("Cultural Fit Round");
+        }
+      }
+    }
+  }, [isOpen, slotData, isDirectScheduleMode]);
+
   // Fetch student details by email
   const handleFetchStudent = useCallback(async () => {
     if (!studentEmail || !studentEmail.includes("@")) {
@@ -85,7 +113,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Invalid Email",
         description: "Please enter a valid email address",
         variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
+        className: "border-primary/50 bg-primary/5 text-primary-dark"
       });
       return;
     }
@@ -93,16 +121,11 @@ export const ScheduleInterviewModal = ({
     setIsFetchingStudent(true);
     try {
       const studentData = await getStudentDataByEmail(studentEmail);
-      
-      console.log("Student API Response:", studentData);
-      
       if (studentData) {
         // Handle different response formats - data.student contains the actual student info
-        const responseData = studentData.data || studentData;
+        const responseData = (studentData as any).data || studentData;
         const student = responseData.student || responseData;
-        
-        console.log("Student Object:", student);
-        
+
         const studentId = student.student_id || student.id;
         const fullName = student.full_name || student.name || 
                         `${student.first_name || ''} ${student.last_name || ''}`.trim();
@@ -130,7 +153,7 @@ export const ScheduleInterviewModal = ({
         title: "❌ Student Not Found",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
+        className: "border-destructive/50 bg-destructive/5 text-destructive-foreground"
       });
       setStudentId("");
       setStudentName("");
@@ -175,7 +198,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Incomplete Information",
         description: "Please fill all required fields",
         variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
+        className: "border-primary/50 bg-primary/5 text-primary-dark"
       });
       return;
     }
@@ -185,7 +208,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Slot Required",
         description: "Please select a date and time slot",
         variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
+        className: "border-primary/50 bg-primary/5 text-primary-dark"
       });
       return;
     }
@@ -196,7 +219,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Invalid Slot",
         description: "Please select a valid slot",
         variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
+        className: "border-primary/50 bg-primary/5 text-primary-dark"
       });
       return;
     }
@@ -208,7 +231,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Interviewer Required",
         description: "Please enter interviewer email",
         variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
+        className: "border-primary/50 bg-primary/5 text-primary-dark"
       });
       return;
     }
@@ -219,8 +242,8 @@ export const ScheduleInterviewModal = ({
         parseInt(studentId),
         studentEmail,
         studentName,
-        finalInterviewerEmail,
-        slotToUse.interviewer_name || finalInterviewerEmail,
+        interviewerEmail,
+        interviewerName || interviewerEmail,
         slotToUse.date,
         slotToUse.start_time,
         slotToUse.end_time,
@@ -242,7 +265,7 @@ export const ScheduleInterviewModal = ({
         title: "❌ Failed to Schedule Interview",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
+        className: "border-destructive/50 bg-destructive/5 text-destructive-foreground"
       });
     }
   };
@@ -268,12 +291,12 @@ export const ScheduleInterviewModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-lg border border-gray-200">
-        <DialogHeader className="pb-4 border-b border-gray-200">
-          <DialogTitle className="flex items-center justify-between text-lg font-semibold text-gray-900">
+      <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-large border border-border">
+        <DialogHeader className="pb-4 border-b border-border">
+          <DialogTitle className="flex items-center justify-between text-lg font-semibold text-foreground">
             <span>Schedule Interview</span>
           </DialogTitle>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Create Google Meet link and schedule the interview
           </p>
         </DialogHeader>
@@ -281,15 +304,15 @@ export const ScheduleInterviewModal = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Date and Slot Selection (only in direct schedule mode) */}
           {isDirectScheduleMode && (
-            <div className="bg-blue-50 border border-orange-200 rounded-lg p-5">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-5">
+              <h3 className="font-semibold text-foreground mb-3 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-primary" />
                 Select Date & Slot
               </h3>
 
               {/* Date Picker */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Select Date <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -298,7 +321,7 @@ export const ScheduleInterviewModal = ({
                     setSelectedDate(e.target.value);
                     setSelectedSlotId(null);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card"
                   required
                 >
                   <option value="">Choose a date</option>
@@ -313,32 +336,47 @@ export const ScheduleInterviewModal = ({
               {/* Slot Selection */}
               {selectedDate && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Select Time Slot <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {slotsForSelectedDate.map((slot) => (
                       <div
                         key={slot.id}
-                        onClick={() => setSelectedSlotId(slot.id)}
-                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                          selectedSlotId === slot.id
-                            ? "border-orange-500 bg-orange-50"
-                            : "border-gray-200 hover:border-orange-300"
-                        }`}
+                        onClick={() => {
+                          setSelectedSlotId(slot.id);
+                          // Auto-fill topic based on slot type
+                          if (slot.slot_type === "LR") {
+                            setTopicName("Learning Round");
+                          } else if (slot.slot_type === "CFR") {
+                            setTopicName("Cultural Fit Round");
+                          }
+                        }}
+                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all hover:scale-102 ${selectedSlotId === slot.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/30 hover:shadow-soft"
+                          }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          <Clock className="w-4 h-4 text-gray-500" />
+                          <Clock className="w-4 h-4 text-muted-foreground" />
                           <span className="font-medium text-sm">
                             {formatTime(slot.start_time)} -{" "}
                             {formatTime(slot.end_time)}
                           </span>
                         </div>
-                        {slot.interviewer_name && (
-                          <p className="text-xs text-gray-600 ml-6">
-                            {slot.interviewer_name}
-                          </p>
-                        )}
+                        <div className="flex items-center justify-between">
+                          {slot.interviewer_name && (
+                            <p className="text-xs text-muted-foreground ml-6">
+                              {slot.interviewer_name}
+                            </p>
+                          )}
+                          {slot.slot_type && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${slot.slot_type === 'LR' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                              }`}>
+                              {slot.slot_type === 'LR' ? 'LR' : 'CFR'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -349,19 +387,19 @@ export const ScheduleInterviewModal = ({
 
           {/* Slot Info (only show when slot is selected) */}
           {currentSlot && (
-            <div className="bg-muted/30 border border-gray-200 rounded-lg p-5">
+            <div className="bg-muted/30 border border-border rounded-lg p-5 shadow-soft">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-orange-600" />
+                <Calendar className="w-5 h-5 mr-2 text-primary" />
                 Selected Slot Details
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Date:</span>
                   <span>{formatDate(currentSlot.date)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-gray-500" />
+                  <Clock className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium">Time:</span>
                   <span>
                     {formatTime(currentSlot.start_time)} -{" "}
@@ -370,14 +408,14 @@ export const ScheduleInterviewModal = ({
                 </div>
                 {currentSlot.interviewer_name && (
                   <div className="flex items-center gap-2 md:col-span-2">
-                    <User className="w-4 h-4 text-gray-500" />
+                    <User className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">Interviewer:</span>
                     <span>{currentSlot.interviewer_name}</span>
                   </div>
                 )}
                 {currentSlot.interviewer_email && (
                   <div className="flex items-center gap-2 md:col-span-2">
-                    <Mail className="w-4 h-4 text-gray-500" />
+                    <Mail className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">Email:</span>
                     <span>{currentSlot.interviewer_email}</span>
                   </div>
@@ -387,14 +425,24 @@ export const ScheduleInterviewModal = ({
           )}
 
           {/* Student Info */}
-          <div className="p-4 bg-muted/30 rounded-lg space-y-4">
-            <h3 className="font-semibold text-gray-900 flex items-center">
-              <User className="w-5 h-5 mr-2 text-orange-600" />
-              Student Information
-            </h3>
-
+          <div className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border">
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Interview Type <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={topicName}
+                readOnly
+                className="w-full px-3 py-2 border border-border rounded-md bg-muted text-foreground cursor-not-allowed font-medium"
+                placeholder="Auto-filled from slot selection"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Student Email <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
@@ -402,7 +450,7 @@ export const ScheduleInterviewModal = ({
                   type="email"
                   value={studentEmail}
                   onChange={(e) => handleEmailChange(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card"
                   placeholder="student@example.com"
                   required
                   disabled={isFetchingStudent}
@@ -411,7 +459,7 @@ export const ScheduleInterviewModal = ({
                   type="button"
                   onClick={handleFetchStudent}
                   disabled={isFetchingStudent || !studentEmail}
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {isFetchingStudent ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -429,20 +477,20 @@ export const ScheduleInterviewModal = ({
             <input type="hidden" value={studentId} required />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Student Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
                 placeholder="Auto-filled from email"
                 required
                 disabled={studentDataFetched}
               />
               {studentDataFetched && (
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1 font-medium">
                   ✓ Student Found
                 </p>
               )}
@@ -450,58 +498,48 @@ export const ScheduleInterviewModal = ({
           </div>
 
           {/* Interviewer Info */}
-          {!currentSlot?.interviewer_email && (
-            <div className="p-4 bg-muted/30 rounded-lg space-y-4">
-              <h3 className="font-semibold text-gray-900 flex items-center">
-                <Mail className="w-5 h-5 mr-2 text-orange-600" />
-                Interviewer Information
-              </h3>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Interviewer Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={interviewerEmail}
-                  onChange={(e) => setInterviewerEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="interviewer@example.com"
-                  required
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Interview Details */}
-          <div className="p-4 bg-muted/30 rounded-lg space-y-4">
-            <h3 className="font-semibold text-gray-900 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-orange-600" />
-              Interview Details
+          <div className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border">
+            <h3 className="font-semibold text-foreground flex items-center">
+              <Mail className="w-5 h-5 mr-2 text-primary" />
+              Interviewer Information
             </h3>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Interview Type <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Interviewer Name <span className="text-red-500">*</span>
               </label>
-              <select
-                value={topicName}
-                onChange={(e) => setTopicName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none"
-                style={{ accentColor: '#f97316' }}
+              <input
+                type="text"
+                value={interviewerName}
+                onChange={(e) => setInterviewerName(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card font-medium mb-3"
+                placeholder="Interviewer Name"
                 required
-              >
-                <option value="">Select Interview Type</option>
-                <option value="Learning Round (LR)">Learning Round (LR)</option>
-                <option value="Cultural Fit Round (CFR)">Cultural Fit Round (CFR)</option>
-              </select>
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Interviewer Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={interviewerEmail}
+                onChange={(e) => setInterviewerEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card font-medium"
+                placeholder="interviewer@example.com"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                You can change the interviewer details if needed
+              </p>
             </div>
           </div>
 
           {/* Info Box */}
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-sm text-orange-800">
-            <p className="font-medium mb-1">What happens next?</p>
-            <ul className="list-disc list-inside space-y-1">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm text-foreground shadow-soft">
+            <p className="font-semibold mb-1 text-primary">What happens next?</p>
+            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
               <li>Google Meet link will be created automatically</li>
               <li>Calendar invites sent to student & interviewer</li>
               <li>Interview details saved to database</li>
@@ -510,19 +548,19 @@ export const ScheduleInterviewModal = ({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <div className="flex gap-3 pt-4 border-t border-border">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isLoading}
-              className="flex-1 py-3"
+              className="flex-1 py-3 hover:bg-primary/5 hover:text-primary transition-all hover:shadow-soft"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-orange-500 hover:orange-600 text-white py-3 font-medium"
+              className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all"
               disabled={isLoading}
             >
               {isLoading ? (

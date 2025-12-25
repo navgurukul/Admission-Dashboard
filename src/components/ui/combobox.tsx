@@ -33,6 +33,7 @@ interface ComboboxProps {
   emptyText?: string
   disabled?: boolean
   className?: string
+  onOpen?: () => void
 }
 
 export const Combobox = React.memo(function Combobox({
@@ -44,6 +45,7 @@ export const Combobox = React.memo(function Combobox({
   emptyText = "No option found.",
   disabled = false,
   className,
+  onOpen,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -55,10 +57,15 @@ export const Combobox = React.memo(function Combobox({
 
   // Filter options based on search query - memoized for performance
   const filteredOptions = React.useMemo(() => {
-    if (!searchQuery) return options
+    // Filter out any invalid options first
+    const validOptions = options.filter(
+      (option) => option && option.value !== undefined && option.label !== undefined && option.label !== null
+    )
+    
+    if (!searchQuery) return validOptions
     
     const query = searchQuery.toLowerCase()
-    return options.filter((option) =>
+    return validOptions.filter((option) =>
       option.label.toLowerCase().includes(query)
     )
   }, [options, searchQuery])
@@ -76,8 +83,11 @@ export const Combobox = React.memo(function Combobox({
     setOpen(newOpen)
     if (!newOpen) {
       setSearchQuery("")
+    } else if (onOpen) {
+      // Call onOpen callback when dropdown opens
+      onOpen()
     }
-  }, [])
+  }, [onOpen])
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -117,23 +127,29 @@ export const Combobox = React.memo(function Combobox({
           >
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup className="overflow-visible">
-              {filteredOptions.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  keywords={[option.label]}
-                  onSelect={handleSelect}
-                  className="cursor-pointer"
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
+              {filteredOptions.map((option) => {
+                // Additional safety check - ensure label is a string
+                const safeLabel = String(option.label || '');
+                const safeValue = String(option.value || '');
+                
+                return (
+                  <CommandItem
+                    key={safeValue}
+                    value={safeValue}
+                    keywords={safeLabel ? [safeLabel] : []}
+                    onSelect={handleSelect}
+                    className="cursor-pointer"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === option.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {safeLabel}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

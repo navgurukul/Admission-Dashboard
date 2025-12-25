@@ -9,6 +9,9 @@ import {
   Trash2,
   Edit,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { AddSlotsModal } from "@/components/AddSlotsModal";
 import { EditSlotModal } from "@/components/EditSlotModal";
@@ -19,6 +22,7 @@ import {
   getMyAvailableSlots,
   scheduleInterview,
   deleteInterviewSlot,
+  getCurrentUser,
 } from "@/utils/api";
 import {
   initClient,
@@ -49,6 +53,11 @@ const Schedule = () => {
   const [selectedSlotForEdit, setSelectedSlotForEdit] =
     useState<SlotData | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const currentUser = getCurrentUser();
+  const roleId = currentUser?.user_role_id || 2;
+  const isAdmin = roleId === 1;
 
   // Add state for admin scheduling
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -342,14 +351,44 @@ const Schedule = () => {
 
       <main className="md:ml-64 overflow-auto h-screen">
         <div className="p-4 md:p-8 pt-16 md:pt-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Interview Schedule
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-foreground">
+              {isAdmin ? "Admin View" : "My Dashboard"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mt-2">
               Manage interview slots and availability
             </p>
           </div>
+
+          {isAdmin && (
+            <Tabs value="my-interviews" className="w-full mb-6">
+              <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-xl" : "grid-cols-1 max-w-xs")}>
+                <>
+                  <TabsTrigger
+                    value="interviews"
+                    onClick={() => navigate("/admin-view")}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    Scheduled Interviews
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="slots"
+                    onClick={() => navigate("/admin-view")}
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    Created Slots
+                  </TabsTrigger>
+                </>
+                <TabsTrigger
+                  value="my-interviews"
+                  onClick={() => navigate("/admin-view")}
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  My Interviews
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -423,7 +462,7 @@ const Schedule = () => {
                       setSelectedSlotForScheduling(null);
                       setIsScheduleModalOpen(true);
                     }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                    className="bg-primary hover:bg-primary/90 text-white shadow-soft hover:shadow-medium transition-all"
                   >
                     <Video className="w-4 h-4 mr-2" />
                     Schedule
@@ -441,7 +480,7 @@ const Schedule = () => {
                     type="date"
                     value={selectedDate}
                     onChange={handleDateChange}
-                    className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
                   />
                 </div>
                 {selectedDate && (
@@ -507,7 +546,7 @@ const Schedule = () => {
                       {availableSlots.map((slot) => (
                         <tr
                           key={slot.id}
-                          className="border-b border-border hover:bg-muted/20 transition-colors"
+                          className="border-b border-border hover:bg-muted/20 transition-all"
                         >
                           {/* Date */}
                           <td className="p-4">
@@ -523,13 +562,12 @@ const Schedule = () => {
                           {/* Slot Type */}
                           <td className="p-4">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                slot.slot_type === "LR"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : slot.slot_type === "CFR"
-                                    ? "bg-purple-100 text-purple-800"
-                                    : "bg-gray-100 text-gray-800"
-                              }`}
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${slot.slot_type === "LR"
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                : slot.slot_type === "CFR"
+                                  ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                                  : "bg-muted text-muted-foreground"
+                                }`}
                             >
                               {slot.slot_type === "LR"
                                 ? "Learning Round"
@@ -556,11 +594,10 @@ const Schedule = () => {
                           {/* Status */}
                           <td className="p-4">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                slot.is_booked
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-green-100 text-green-800"
-                              }`}
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${slot.is_booked
+                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                : "bg-primary/10 text-primary"
+                                }`}
                             >
                               {slot.is_booked ? "Booked" : "Available"}
                             </span>
@@ -569,7 +606,7 @@ const Schedule = () => {
                           {/* Actions */}
                           <td className="p-4">
                             <div className="flex items-center gap-2">
-                              {!slot.is_booked && (
+                              {/* {!slot.is_booked && (
                                 <Button
                                   variant="default"
                                   size="sm"
@@ -577,11 +614,13 @@ const Schedule = () => {
                                     setSelectedSlotForScheduling(slot);
                                     setIsScheduleModalOpen(true);
                                   }}
+                                  className="bg-primary hover:bg-primary/90 text-white shadow-soft hover:shadow-medium transition-all"
                                   title="Schedule interview"
                                 >
                                   <Video className="w-3 h-3 mr-1" />
+                                  Schedule
                                 </Button>
-                              )}
+                              )} */}
 
                               <Button
                                 variant="outline"

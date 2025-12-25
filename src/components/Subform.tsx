@@ -101,24 +101,25 @@ const getEditableFields = (row: any, allFields: RowField[]) => {
 
   // Check if this is a screening round
   const isScreeningRound = allFields.some((f) =>
-    ["question_set_id", "obtained_marks", "exam_centre", "date_of_test"].includes(f.name)
+    ["question_set_id", "obtained_marks", "exam_centre", "date_of_test", "school_id"].includes(f.name)
   );
 
   // For existing rows, check if status field is disabled (round is passed)
-  const statusField = allFields.find((f) => 
+  const statusField = allFields.find((f) =>
     ["status", "learning_round_status", "cultural_fit_status"].includes(f.name)
   );
   
   // If status field is disabled (round passed), only allow comments to be edited
   if (statusField?.disabled) {
+    if (isScreeningRound) {
+      return allFields.filter((f) => f.name === "school_id");
+    }
     return allFields.filter((f) => f.name === "comments");
   }
 
   // For screening round, allow ALL fields except audit info to be edited
   if (isScreeningRound) {
-    return allFields.filter((f) => 
-      !["audit_info", "created_at", "updated_at", "last_updated_by"].includes(f.name)
-    );
+    return allFields.filter((f) => f.name === "school_id");
   }
 
   // For learning/cultural rounds, allow editing of status and comments
@@ -339,13 +340,6 @@ export function InlineSubform({
 
     // Check if there are actual changes (only for existing rows)
     if (row.id && !hasChanges(index)) {
-      toast({
-        title: "ℹ️ No Changes",
-        description: "No changes detected. Please modify a field before saving.",
-        variant: "default",
-        className: "border-blue-500 bg-blue-50 text-blue-900",
-      });
-      // Exit editing mode without saving
       toggleEdit(index, false);
       return;
     }
