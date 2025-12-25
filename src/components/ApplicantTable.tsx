@@ -611,10 +611,10 @@ const ApplicantTable = () => {
    const activeFilterTags = useMemo(() => {
      const tags: { key: string; label: string; onRemove?: () => void }[] = [];
     
-    // Debug: log first student to see available fields
-    if (filteredApplicants && filteredApplicants.length > 0) {
-      console.log('Sample filtered student data:', filteredApplicants[0]);
-    }
+    // // Debug: log first student to see available fields
+    // if (filteredApplicants && filteredApplicants.length > 0) {
+    //   // console.log('Sample filtered student data:', filteredApplicants[0]);
+    // }
     
     // Helper function to get a better label when lists are empty
     const getBetterLabel = (id: any, type: string): string => {
