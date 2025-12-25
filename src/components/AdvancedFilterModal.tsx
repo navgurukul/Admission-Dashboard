@@ -744,7 +744,7 @@ export function AdvancedFilterModal({
                     <span className="text-red-500 ml-1">*</span>
                   )}
               </h3>
-              <Popover>
+              <Popover modal={false}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -782,12 +782,74 @@ export function AdvancedFilterModal({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-0" align="start">
+                <PopoverContent 
+                  className="w-[300px] p-0" 
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                  onInteractOutside={(e) => {
+                    // Prevent closing when clicking inside the popover content
+                    const target = e.target as HTMLElement;
+                    if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]')) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onWheel={(e) => e.stopPropagation()}
+                >
                   <Command>
                     <CommandInput placeholder="Search statuses..." />
-                    <CommandList className="max-h-[200px]">
+                    <CommandList 
+                      className="max-h-[200px] overflow-y-scroll overscroll-contain"
+                      style={{ 
+                        scrollbarWidth: 'thin',
+                        WebkitOverflowScrolling: 'touch'
+                      } as React.CSSProperties}
+                      onWheel={(e) => e.stopPropagation()}
+                    >
                       <CommandEmpty>No status found.</CommandEmpty>
                       <CommandGroup>
+                        {/* All Option */}
+                        <CommandItem
+                          key="all-statuses"
+                          value="all"
+                          onSelect={() => {
+                            setFilters((prev) => {
+                              const currentStatuses = Array.isArray(prev.stage_status)
+                                ? prev.stage_status
+                                : prev.stage_status && prev.stage_status !== "all"
+                                ? [prev.stage_status]
+                                : [];
+                              
+                              // If all are currently selected, deselect all
+                              // Otherwise, select all
+                              const allStatuses = stageStatuses.map((s: any) => s.status_name || s.name);
+                              const isAllSelected = currentStatuses.length === allStatuses.length;
+                              
+                              return {
+                                ...prev,
+                                stage_status: isAllSelected ? "all" : allStatuses,
+                              };
+                            });
+                          }}
+                          className="cursor-pointer font-semibold border-b"
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center w-full">
+                            <Checkbox
+                              checked={
+                                Array.isArray(filters.stage_status) &&
+                                filters.stage_status.length === stageStatuses.length
+                              }
+                              className="mr-2"
+                              onCheckedChange={() => {}}
+                            />
+                            <span className="flex-1">Select All</span>
+                            {Array.isArray(filters.stage_status) &&
+                              filters.stage_status.length === stageStatuses.length && (
+                                <Check className="ml-auto h-4 w-4" />
+                              )}
+                          </div>
+                        </CommandItem>
+                        
                         {stageStatuses.map((status: any) => {
                           const statusName = status.status_name || status.name;
                           const isSelected = Array.isArray(filters.stage_status)
@@ -822,6 +884,7 @@ export function AdvancedFilterModal({
                                 });
                               }}
                               className="cursor-pointer"
+                              onMouseDown={(e) => e.stopPropagation()}
                             >
                               <div className="flex items-center w-full">
                                 <Checkbox
