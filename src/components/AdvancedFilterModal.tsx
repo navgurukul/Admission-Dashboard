@@ -33,7 +33,17 @@ import {
 import { CalendarIcon, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { getFilterStudent, getStatusesByStageId, getAllDonors, getAllPartners } from "@/utils/api";
+import { 
+  getFilterStudent, 
+  getStatusesByStageId, 
+  getAllDonors, 
+  getAllPartners,
+  getCampusesApi,
+  getAllSchools,
+  getAllReligions,
+  getAllStatus,
+  getAllStages
+} from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 // import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
@@ -81,12 +91,7 @@ interface AdvancedFilterModalProps {
   onApplyFilters: (filters: FilterState) => void;
   currentFilters: FilterState;
   students: any[];
-  campusList?: any[];
-  schoolList?: any[];
-  religionList?: any[];
-  qualificationList?: any[];
-  currentstatusList?: any[];
-  stageList?: any[];
+  hideCampusFilter?: boolean; // Optional prop to hide campus field
 }
 
 export function AdvancedFilterModal({
@@ -95,12 +100,7 @@ export function AdvancedFilterModal({
   onApplyFilters,
   currentFilters,
   students,
-  campusList = [],
-  schoolList = [],
-  religionList = [],
-  qualificationList = [],
-  currentstatusList = [],
-  stageList = [],
+  hideCampusFilter = false,
 }: AdvancedFilterModalProps) {
   const [filters, setFilters] = useState<FilterState>(currentFilters);
   const [availableOptions, setAvailableOptions] = useState({
@@ -235,58 +235,28 @@ export function AdvancedFilterModal({
       setFilters(currentFilters);
 
       try {
-        // Only fetch APIs for data not provided via props
-        const apiPromises: Promise<any>[] = [];
-        const apiKeys: string[] = [];
-
-        // Always fetch states (not passed as prop in current setup)
-        apiPromises.push(getStatesList());
-        apiKeys.push('states');
-
-        if (campusList.length === 0) {
-          apiPromises.push(getCampusesList());
-          apiKeys.push('campuses');
-        }
-        if (schoolList.length === 0) {
-          apiPromises.push(getSchoolsList());
-          apiKeys.push('schools');
-        }
-        if (religionList.length === 0) {
-          apiPromises.push(getReligionsList());
-          apiKeys.push('religions');
-        }
-        if (qualificationList.length === 0) {
-          apiPromises.push(getQualificationsList());
-          apiKeys.push('qualifications');
-        }
-        if (currentstatusList.length === 0) {
-          apiPromises.push(getStatusesList());
-          apiKeys.push('statuses');
-        }
-
-        // Fetch donors and partners
-        apiPromises.push(getAllDonors());
-        apiKeys.push('donors');
-        apiPromises.push(getAllPartners());
-        apiKeys.push('partners');
-
-        const results = await Promise.all(apiPromises);
-
-        // Map results to their corresponding keys
-        const apiResults: Record<string, any> = {};
-        apiKeys.forEach((key, index) => {
-          apiResults[key] = results[index];
-        });
-
-        // Use props if available, otherwise use API results
-        const finalCampuses = campusList.length > 0 ? campusList : (apiResults.campuses || []);
-        const finalSchools = schoolList.length > 0 ? schoolList : (apiResults.schools || []);
-        const finalReligions = religionList.length > 0 ? religionList : (apiResults.religions || []);
-        const finalQualifications = qualificationList.length > 0 ? qualificationList : (apiResults.qualifications || []);
-        const finalStatuses = currentstatusList.length > 0 ? currentstatusList : (apiResults.statuses || []);
-        const apiStates = apiResults.states || [];
-        const apiDonors = apiResults.donors || [];
-        const apiPartners = apiResults.partners || [];
+        // Fetch all required data in parallel for optimal performance
+        const [
+          statesData,
+          campusesData,
+          schoolsData,
+          religionsData,
+          qualificationsData,
+          statusesData,
+          donorsData,
+          partnersData,
+          stagesData
+        ] = await Promise.all([
+          getStatesList(),
+          getCampusesApi(),
+          getAllSchools(),
+          getAllReligions(),
+          getQualificationsList(),
+          getAllStatus(),
+          getAllDonors(),
+          getAllPartners(),
+          getAllStages()
+        ]);
 
         // Extract data from students
         const partnersFromStudents = getPartnersFromStudents(students);
@@ -294,7 +264,7 @@ export function AdvancedFilterModal({
         const statesFromStudents = getStatesFromStudents(students);
 
         // Combine API states with states from students
-        const allStates = [...apiStates];
+        const allStates = [...(statesData || [])];
         statesFromStudents.forEach((stateName) => {
           const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
            
@@ -312,14 +282,14 @@ export function AdvancedFilterModal({
         setAvailableOptions({
           partners: partnersFromStudents,
           districts: districtsFromStudents,
-          schools: finalSchools,
-          religions: finalReligions,
-          qualifications: finalQualifications,
-          currentStatuses: finalStatuses,
-          campuses: finalCampuses,
-          stages: stageList.length > 0 ? stageList : [],
-          donors: apiDonors,
-          partnersList: apiPartners,
+          schools: schoolsData || [],
+          religions: religionsData || [],
+          qualifications: qualificationsData || [],
+          currentStatuses: statusesData || [],
+          campuses: campusesData || [],
+          stages: stagesData || [],
+          donors: donorsData || [],
+          partnersList: partnersData || [],
         });
 
         setAvailableStates(allStates);
@@ -975,32 +945,32 @@ export function AdvancedFilterModal({
             <div>
               <h3 className="font-semibold text-sm mb-2">State</h3>
               <Combobox
-                options={[
-                  { value: "all", label: "All States" },
-                  ...availableStates.map((state) => ({
-                    value: state.name,
-                    label: state.name,
-                  })),
-                ]}
-                value={filters.state || "all"}
-                onValueChange={handleStateChange}
-                placeholder="Select State"
-                searchPlaceholder="Search state..."
-                emptyText="No state found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableStates.length} states available */}
-                {isLoading.general && " - Loading..."}
-              </p>
-            </div>
+                  options={[
+                    { value: "all", label: "All States" },
+                    ...availableStates.map((state) => ({
+                      value: state.name,
+                      label: state.name,
+                    })),
+                  ]}
+                  value={filters.state || "all"}
+                  onValueChange={handleStateChange}
+                  placeholder="Select State"
+                  searchPlaceholder="Search state..."
+                  emptyText="No state found."
+                  disabled={isLoading.general}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {/* {availableStates.length} states available */}
+                  {isLoading.general && " - Loading..."}
+                </p>
+              </div>
 
             {/* District / City */}
             <div>
               <h3 className="font-semibold text-sm mb-2">District</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All Districts" },
+                <Combobox
+                  options={[
+                    { value: "all", label: "All Districts" },
                   ...availableDistricts.map((district) => ({
                     value: district.name,
                     label: district.name,
@@ -1035,72 +1005,44 @@ export function AdvancedFilterModal({
               </p>
             </div>
 
-            {/* Partner */}
-            {/* <div>
-              <h3 className="font-semibold text-sm mb-2">Partner</h3>
-              <Select
-                value={filters.partner?.[0] || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    partner: value === "all" ? [] : [value],
-                  }))
-                }
-                disabled={isLoading.general}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={isLoading.general ? "Loading..." : "Select partner"} />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Partners</SelectItem>
-                  {availableOptions.partners.map((partner) => (
-                    <SelectItem key={partner} value={partner}>
-                      {partner}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {availableOptions.partners.length} partners available
-              </p>
-            </div> */}
-
             {/* Campus */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Campus</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All Campuses" },
-                  ...availableOptions.campuses.map((campus) => ({
-                    value: getValue(campus),
-                    label: getDisplayName(campus, "campus_name", "Campus"),
-                  })),
-                ]}
-                value={filters.partner?.[0] || "all"}
-                onValueChange={(value) => {
-                  if (value === "all") {
-                    setFilters((prev) => ({
-                      ...prev,
-                      partner: [],
-                    }));
-                  } else {
-                    setFilters((prev) => ({
-                      ...prev,
-                      partner: [value],
-                    }));
+            {!hideCampusFilter && (
+              <div>
+                <h3 className="font-semibold text-sm mb-2">Campus</h3>
+                <Combobox
+                  options={[
+                    { value: "all", label: "All Campuses" },
+                    ...availableOptions.campuses.map((campus) => ({
+                      value: getValue(campus),
+                      label: getDisplayName(campus, "campus_name", "Campus"),
+                    })),
+                  ]}
+                  value={filters.partner?.[0] || "all"}
+                  onValueChange={(value) => {
+                    if (value === "all") {
+                      setFilters((prev) => ({
+                        ...prev,
+                        partner: [],
+                      }));
+                    } else {
+                      setFilters((prev) => ({
+                        ...prev,
+                        partner: [value],
+                      }));
+                    }
+                  }}
+                  placeholder={
+                    isLoading.general ? "Loading..." : "Select campus"
                   }
-                }}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select campus"
-                }
-                searchPlaceholder="Search campus..."
-                emptyText="No campus found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.campuses.length} campuses available */}
-              </p>
-            </div>
+                  searchPlaceholder="Search campus..."
+                  emptyText="No campus found."
+                  disabled={isLoading.general}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {/* {availableOptions.campuses.length} campuses available */}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Partner and Donor Filters */}
@@ -1109,61 +1051,61 @@ export function AdvancedFilterModal({
             <div>
               <h3 className="font-semibold text-sm mb-2">Partner</h3>
               <Combobox
-                options={[
-                  { value: "all", label: "All Partners" },
-                  ...availableOptions.partnersList.map((partner) => ({
-                    value: getValue(partner),
-                    label: getDisplayName(partner, "partner_name", "Partner"),
-                  })),
-                ]}
-                value={filters.partnerFilter?.[0] || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    partnerFilter: value === "all" ? [] : [value],
-                  }))
-                }
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select partner"
-                }
-                searchPlaceholder="Search partner..."
-                emptyText="No partner found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.partnersList.length} partners available */}
-              </p>
-            </div>
+                  options={[
+                    { value: "all", label: "All Partners" },
+                    ...availableOptions.partnersList.map((partner) => ({
+                      value: getValue(partner),
+                      label: getDisplayName(partner, "partner_name", "Partner"),
+                    })),
+                  ]}
+                  value={filters.partnerFilter?.[0] || "all"}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      partnerFilter: value === "all" ? [] : [value],
+                    }))
+                  }
+                  placeholder={
+                    isLoading.general ? "Loading..." : "Select partner"
+                  }
+                  searchPlaceholder="Search partner..."
+                  emptyText="No partner found."
+                  disabled={isLoading.general}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {/* {availableOptions.partnersList.length} partners available */}
+                </p>
+              </div>
 
             {/* Donor */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Donor</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All Donors" },
-                  ...availableOptions.donors.map((donor) => ({
-                    value: getValue(donor),
-                    label: getDisplayName(donor, "donor_name", "Donor"),
-                  })),
-                ]}
-                value={filters.donor?.[0] || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    donor: value === "all" ? [] : [value],
-                  }))
-                }
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select donor"
-                }
-                searchPlaceholder="Search donor..."
-                emptyText="No donor found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.donors.length} donors available */}
-              </p>
-            </div>
+                <Combobox
+                  options={[
+                    { value: "all", label: "All Donors" },
+                    ...availableOptions.donors.map((donor) => ({
+                      value: getValue(donor),
+                      label: getDisplayName(donor, "donor_name", "Donor"),
+                    })),
+                  ]}
+                  value={filters.donor?.[0] || "all"}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      donor: value === "all" ? [] : [value],
+                    }))
+                  }
+                  placeholder={
+                    isLoading.general ? "Loading..." : "Select donor"
+                  }
+                  searchPlaceholder="Search donor..."
+                  emptyText="No donor found."
+                  disabled={isLoading.general}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {/* {availableOptions.donors.length} donors available */}
+                </p>
+              </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
