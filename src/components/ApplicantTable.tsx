@@ -1054,9 +1054,6 @@ const ApplicantTable = () => {
       case "currentStatus":
         newFilters.currentStatus = [];
         break;
-      case "religion":
-        newFilters.religion = [];
-        break;
       case "donor":
         newFilters.donor = [];
         break;
