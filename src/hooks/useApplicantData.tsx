@@ -69,17 +69,17 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
           statuses,
           questionSets
         ] = await Promise.all([
-          getCampusesApi(),
-          getAllSchools(),
-          getAllReligions(),
-          getAllQualification(),
-          getAllCasts(),
-          getPartners(),
-          getAllDonors(),
-          getAllStates(),
-          getAllStages(),
-          getAllStatuses(),
-          getAllQuestionSets(),
+          getCampusesApi().catch(err => { console.error("Failed to load campuses:", err); return []; }),
+          getAllSchools().catch(err => { console.error("Failed to load schools:", err); return []; }),
+          getAllReligions().catch(err => { console.error("Failed to load religions:", err); return []; }),
+          getAllQualification().catch(err => { console.error("Failed to load qualifications:", err); return []; }),
+          getAllCasts().catch(err => { console.error("Failed to load casts:", err); return []; }),
+          getPartners().catch(err => { console.error("Failed to load partners:", err); return []; }),
+          getAllDonors().catch(err => { console.error("Failed to load donors:", err); return []; }),
+          getAllStates().catch(err => { console.error("Failed to load states:", err); return []; }),
+          getAllStages().catch(err => { console.error("Failed to load stages:", err); return []; }),
+          getAllStatuses().catch(err => { console.error("Failed to load statuses:", err); return []; }),
+          getAllQuestionSets().catch(err => { console.error("Failed to load question sets:", err); return []; }),
         ]);
         
         setCampusList(campuses || []);

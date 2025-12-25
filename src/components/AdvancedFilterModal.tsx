@@ -235,7 +235,7 @@ export function AdvancedFilterModal({
       setFilters(currentFilters);
 
       try {
-        // Fetch all required data in parallel for optimal performance
+        // Fetch all required data in parallel - handle each API independently
         const [
           statesData,
           campusesData,
@@ -247,15 +247,15 @@ export function AdvancedFilterModal({
           partnersData,
           stagesData
         ] = await Promise.all([
-          getStatesList(),
-          getCampusesApi(),
-          getAllSchools(),
-          getAllReligions(),
-          getQualificationsList(),
-          getAllStatus(),
-          getAllDonors(),
-          getAllPartners(),
-          getAllStages()
+          getStatesList().catch(err => { console.error("Failed to load states:", err); return []; }),
+          getCampusesApi().catch(err => { console.error("Failed to load campuses:", err); return []; }),
+          getAllSchools().catch(err => { console.error("Failed to load schools:", err); return []; }),
+          getAllReligions().catch(err => { console.error("Failed to load religions:", err); return []; }),
+          getQualificationsList().catch(err => { console.error("Failed to load qualifications:", err); return []; }),
+          getAllStatus().catch(err => { console.error("Failed to load statuses:", err); return []; }),
+          getAllDonors().catch(err => { console.error("Failed to load donors:", err); return []; }),
+          getAllPartners().catch(err => { console.error("Failed to load partners:", err); return []; }),
+          getAllStages().catch(err => { console.error("Failed to load stages:", err); return []; })
         ]);
 
         // Extract data from students
@@ -301,12 +301,12 @@ export function AdvancedFilterModal({
 
         isInitialLoadDone.current = true;
       } catch (error) {
-        // console.error(" Error loading filter data:", error);
+        console.error("Error loading filter data:", error);
         toast({
-          title: "❌ Unable to Load Data",
-          description: getFriendlyErrorMessage(error),
-          variant: "destructive",
-          className: "border-red-500 bg-red-50 text-red-900",
+          title: "⚠️ Partial Data Load",
+          description: "Some filter options may not be available due to permission or network issues.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
         });
       } finally {
         setIsLoading((prev) => ({ ...prev, general: false }));
@@ -514,6 +514,12 @@ export function AdvancedFilterModal({
           return { ...prev, qualification: [] };
         case "currentStatus":
           return { ...prev, currentStatus: [] };
+        case "religion":
+          return { ...prev, religion: [] };
+        case "donor":
+          return { ...prev, donor: [] };
+        case "partnerFilter":
+          return { ...prev, partnerFilter: [] };
         case "dateRange":
         case "daterange":
           return { ...prev, dateRange: { type: prev.dateRange.type } };
@@ -586,15 +592,54 @@ export function AdvancedFilterModal({
     const statusLabel = status?.current_status_name || status?.name || filters.currentStatus[0];
     activeFilters.push({
       key: "currentStatus",
-      label: `Current: ${statusLabel}`,
+      label: `Current Status: ${statusLabel}`,
     });
   }
+  
+  // Religion - find and display actual name
+  if (filters.religion?.length) {
+    const religion = availableOptions.religions.find((r: any) => String(r.id) === String(filters.religion[0]));
+    const religionLabel = religion?.religion_name || religion?.name || filters.religion[0];
+    activeFilters.push({
+      key: "religion",
+      label: `Religion: ${religionLabel}`,
+    });
+  }
+  
+  // Donor - find and display actual name
+  if (filters.donor?.length) {
+    const donor = availableOptions.donors.find((d: any) => String(d.id) === String(filters.donor[0]));
+    const donorLabel = donor?.donor_name || donor?.name || filters.donor[0];
+    activeFilters.push({
+      key: "donor",
+      label: `Donor: ${donorLabel}`,
+    });
+  }
+  
+  // Partner (organization) - find and display actual name
+  if (filters.partnerFilter?.length) {
+    const partner = availableOptions.partnersList.find((p: any) => String(p.id) === String(filters.partnerFilter[0]));
+    const partnerLabel = partner?.partner_name || partner?.name || filters.partnerFilter[0];
+    activeFilters.push({
+      key: "partnerFilter",
+      label: `Partner: ${partnerLabel}`,
+    });
+  }
+  
   if (filters.dateRange.from || filters.dateRange.to) {
-    const from = filters.dateRange.from ? format(filters.dateRange.from, "PP") : "";
-    const to = filters.dateRange.to ? format(filters.dateRange.to, "PP") : "";
+    const from = filters.dateRange.from ? format(filters.dateRange.from, "dd/MM/yyyy") : "";
+    const to = filters.dateRange.to ? format(filters.dateRange.to, "dd/MM/yyyy") : "";
+    
+    // Make date type more readable
+    const dateTypeLabel = filters.dateRange.type === "applicant" 
+      ? "Created" 
+      : filters.dateRange.type === "lastUpdate" 
+        ? "Updated" 
+        : "Interview";
+    
     activeFilters.push({
       key: "dateRange",
-      label: `${filters.dateRange.type}: ${from}${from && to ? " - " : ""}${to}`,
+      label: `${dateTypeLabel}: ${from}${from && to ? " → " : ""}${to}`,
     });
   }
   // --- end added helpers ---

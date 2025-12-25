@@ -610,6 +610,32 @@ const ApplicantTable = () => {
 
    const activeFilterTags = useMemo(() => {
      const tags: { key: string; label: string; onRemove?: () => void }[] = [];
+    
+    // Debug: log first student to see available fields
+    if (filteredApplicants && filteredApplicants.length > 0) {
+      console.log('Sample filtered student data:', filteredApplicants[0]);
+    }
+    
+    // Helper function to get a better label when lists are empty
+    const getBetterLabel = (id: any, type: string): string => {
+      // If we have filtered data, try to find a matching entry with the name
+      if (filteredApplicants && filteredApplicants.length > 0) {
+        for (const student of filteredApplicants) {
+          if (type === 'donor' && String(student.donor_id) === String(id) && student.donor_name) {
+            return student.donor_name;
+          }
+          if (type === 'qualification' && String(student.question_set_id) === String(id) && student.question_set_name && student.question_set_name !== 'N/A') {
+            return student.question_set_name;
+          }
+          if (type === 'partner' && String(student.partner_id) === String(id) && student.partner_name) {
+            return student.partner_name;
+          }
+        }
+      }
+      
+      // Fallback - just show the ID (API permissions issue)
+      return String(id);
+    };
 
     // Stage chip (only if stage is selected)
     const stageId = (filters as any).stage_id ?? (filters as any).stage;
@@ -686,7 +712,7 @@ const ApplicantTable = () => {
       const quals = (filters as any).qualification.filter((q: any) => q !== "all");
       quals.forEach((q: any) => {
         // Try multiple approaches to find the qualification name
-        let qualLabel = q; // fallback to raw value
+        let qualLabel: string | null = null;
         
         // Try finding in qualificationList by ID
         const fromQualList = qualificationList.find((x: any) => 
@@ -702,12 +728,14 @@ const ApplicantTable = () => {
         );
         
         if (fromQualList) {
-          qualLabel = fromQualList.qualification_name || fromQualList.name || q;
+          qualLabel = fromQualList.qualification_name || fromQualList.name;
         } else if (fromQuestionSet) {
-          qualLabel = fromQuestionSet.name || fromQuestionSet.qualification_name || q;
-        } else {
-          // Last resort: use resolver
-          qualLabel = resolveQuestionSetName(q) || q;
+          qualLabel = fromQuestionSet.name || fromQuestionSet.qualification_name;
+        }
+        
+        // If not found in lists, try resolvers and student data
+        if (!qualLabel) {
+          qualLabel = resolveQuestionSetName(q) || getBetterLabel(q, 'qualification');
         }
         
         tags.push({
@@ -721,10 +749,11 @@ const ApplicantTable = () => {
     if ((filters as any).religion?.length) {
       const rels = (filters as any).religion.filter((r: any) => r !== "all");
       rels.forEach((r: any) => {
-        const rr = religionList.find((x) => x.id === r);
+        const rr = religionList.find((x) => String(x.id) === String(r));
         tags.push({
           key: `religion-${r}`,
           label: `Religion: ${rr?.religion_name || r}`,
+          onRemove: () => handleClearSingleFilter("religion"),
         });
       });
     }
@@ -734,10 +763,12 @@ const ApplicantTable = () => {
       const partners = (filters as any).partnerFilter.filter((p: any) => p !== "all");
       partners.forEach((p: any) => {
         const partner = partnerList.find((pt) => Number(pt.id) === Number(p));
-        const partnerLabel = partner?.partner_name || partner?.name || p;
+        const partnerLabel = partner?.partner_name || partner?.name || getBetterLabel(p, 'partner');
+        
         tags.push({
           key: `partnerFilter-${p}`,
           label: `Partner: ${partnerLabel}`,
+          onRemove: () => handleClearSingleFilter("partnerFilter"),
         });
       });
     }
@@ -747,36 +778,68 @@ const ApplicantTable = () => {
       const donors = (filters as any).donor.filter((d: any) => d !== "all");
       donors.forEach((d: any) => {
         const donor = donorList.find((dn) => Number(dn.id) === Number(d));
-        const donorLabel = donor?.donor_name || donor?.name || d;
+        const donorLabel = donor?.donor_name || donor?.name || getBetterLabel(d, 'donor');
+        
         tags.push({
           key: `donor-${d}`,
           label: `Donor: ${donorLabel}`,
+          onRemove: () => handleClearSingleFilter("donor"),
         });
       });
     }
 
     // State / District / Gender
     if ((filters as any).state && (filters as any).state !== "all") {
-      tags.push({ key: `state-${(filters as any).state}`, label: `State: ${(filters as any).state}` });
+      tags.push({ 
+        key: `state-${(filters as any).state}`, 
+        label: `State: ${(filters as any).state}`,
+        onRemove: () => handleClearSingleFilter("state"),
+      });
     }
     if ((filters as any).district?.length) {
       const dists = (filters as any).district.filter((d: any) => d !== "all");
-      dists.forEach((d: any) => tags.push({ key: `district-${d}`, label: `District: ${d}` }));
+      dists.forEach((d: any) => tags.push({ 
+        key: `district-${d}`, 
+        label: `District: ${d}`,
+        onRemove: () => handleClearSingleFilter("district"),
+      }));
     }
     if ((filters as any).gender && (filters as any).gender !== "all") {
-      tags.push({ key: `gender-${(filters as any).gender}`, label: `Gender: ${(filters as any).gender}` });
+      tags.push({ 
+        key: `gender-${(filters as any).gender}`, 
+        label: `Gender: ${(filters as any).gender}`,
+        onRemove: () => handleClearSingleFilter("gender"),
+      });
     }
 
     // Date range
     if ((filters as any).dateRange?.from && (filters as any).dateRange?.to) {
-      const from = new Date((filters as any).dateRange.from).toLocaleDateString();
-      const to = new Date((filters as any).dateRange.to).toLocaleDateString();
-      const type = (filters as any).dateRange.type || "date";
-      tags.push({ key: `daterange-${from}-${to}`, label: `${type} ${from} → ${to}` });
+      const fromDate = new Date((filters as any).dateRange.from);
+      const toDate = new Date((filters as any).dateRange.to);
+      
+      // Format as dd/MM/yyyy
+      const from = `${String(fromDate.getDate()).padStart(2, '0')}/${String(fromDate.getMonth() + 1).padStart(2, '0')}/${fromDate.getFullYear()}`;
+      const to = `${String(toDate.getDate()).padStart(2, '0')}/${String(toDate.getMonth() + 1).padStart(2, '0')}/${toDate.getFullYear()}`;
+      
+      // Make date type more readable
+      const dateType = (filters as any).dateRange.type;
+      const typeLabel = dateType === "applicant" 
+        ? "Created" 
+        : dateType === "lastUpdate" 
+          ? "Updated" 
+          : dateType === "interview"
+            ? "Interview"
+            : dateType;
+      
+      tags.push({ 
+        key: `daterange-${from}-${to}`, 
+        label: `${typeLabel}: ${from} → ${to}`,
+        onRemove: () => handleClearSingleFilter("dateRange"),
+      });
     }
 
     return tags;
-   }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList]);
+   }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, partnerList, donorList, qualificationList, filteredApplicants]);
   
   // Use resolved campus name in applicant mapping too (handles API returning numeric/string)
    // Apply filters and fetch filtered students
@@ -991,6 +1054,15 @@ const ApplicantTable = () => {
       case "currentStatus":
         newFilters.currentStatus = [];
         break;
+      case "religion":
+        newFilters.religion = [];
+        break;
+      case "donor":
+        newFilters.donor = [];
+        break;
+      case "partnerFilter":
+        newFilters.partnerFilter = [];
+        break;
       case "gender":
         newFilters.gender = undefined;
         break;
@@ -1012,6 +1084,9 @@ const ApplicantTable = () => {
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
+      (newFilters.partnerFilter?.length && newFilters.partnerFilter[0] !== "all") ||
+      (newFilters.donor?.length && newFilters.donor[0] !== "all") ||
+      (newFilters.religion?.length && newFilters.religion[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
