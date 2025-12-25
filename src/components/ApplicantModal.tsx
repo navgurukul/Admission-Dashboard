@@ -241,12 +241,12 @@ export function ApplicantModal({
         setDonorList(donorsData);
         
         // Transform states data to {value, label} format
-        console.log("States API response:", statesData);
+        // console.log("States API response:", statesData);
         const transformedStates = (statesData?.data || statesData || []).map((state: any) => ({
           value: state.state_code || state.value,
           label: state.state_name || state.label
         }));
-        console.log("Transformed states:", transformedStates);
+        // console.log("Transformed states:", transformedStates);
         setStateList(transformedStates);
         
         dataFetchedRef.current = true; // Mark as fetched
@@ -306,19 +306,28 @@ export function ApplicantModal({
   };
 
   // Initialize selected state and district from applicant data
+  // Wait for states to be loaded before trying to set selectedState
   useEffect(() => {
-    if (applicant?.id) {
+    if (applicant?.id && stateList.length > 0) {
       setCurrentApplicant(applicant);
       if (applicant.state) {
         const stateCode = getStateCodeFromNameOrCode(applicant.state);
-        setSelectedState(stateCode);
+        if (stateCode) {
+          setSelectedState(stateCode);
+        }
       }
-      if (applicant.district) {
-        const districtCode = getDistrictCodeFromNameOrCode(applicant.district);
+    }
+  }, [applicant?.id, stateList.length]);
+
+  // Initialize district after districts are loaded
+  useEffect(() => {
+    if (applicant?.district && districtOptions.length > 0 && !selectedDistrict) {
+      const districtCode = getDistrictCodeFromNameOrCode(applicant.district);
+      if (districtCode) {
         setSelectedDistrict(districtCode);
       }
     }
-  }, [applicant]); //, stateOptions, districtOptions
+  }, [applicant?.district, districtOptions.length]);
 
   // Fetch student data on modal open
   useEffect(() => {
@@ -332,16 +341,16 @@ export function ApplicantModal({
           }
           if (updated?.id) {
             setCurrentApplicant(updated);
-            if (updated.state) {
+            
+            // Only set state if stateList is already loaded
+            if (updated.state && stateList.length > 0) {
               const stateCode = getStateCodeFromNameOrCode(updated.state);
-              setSelectedState(stateCode);
+              if (stateCode) {
+                setSelectedState(stateCode);
+              }
             }
-            if (updated.district) {
-              const districtCode = getDistrictCodeFromNameOrCode(
-                updated.district
-              );
-              setSelectedDistrict(districtCode);
-            }
+            
+            // District will be set after districts are loaded
           } else {
             // console.error("Invalid response - no ID found:", response);
           }
@@ -351,7 +360,7 @@ export function ApplicantModal({
       };
       fetchStudent();
     }
-  }, [isOpen, applicant?.id, refreshKey]); // Removed stateOptions and districtOptions to prevent unnecessary API calls
+  }, [isOpen, applicant?.id, refreshKey, stateList.length]);
 
   // Fetch partner name if not available in partnerList
   useEffect(() => {
