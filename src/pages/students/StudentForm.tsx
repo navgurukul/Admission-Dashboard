@@ -401,24 +401,23 @@ const StudentForm: React.FC = () => {
       });
 
       // Verify if image contains human face
-      const isFaceDetected = await detectHumanFace(file);
+      const faceDetectionResult = await detectHumanFace(file);
 
-      if (!isFaceDetected) {
-        // Show error toast
+      if (!faceDetectionResult.success) {
+        // Show error toast with specific message
         toast({
           variant: "destructive",
-          title: content.noFaceDetected || "❌ No Face Detected",
-          description:
-            content.noFaceMessage ||
-            "Please upload an image with a clear human face.",
-          className: "border-red-500 bg-red-50 text-red-900"
+          title: content.noFaceDetected || "❌ Face Verification Failed",
+          description: faceDetectionResult.message,
+          className: "border-red-500 bg-red-50 text-red-900",
+          duration: 5000
         });
         // Clear the file input
         e.target.value = "";
         return;
       }
 
-      // Face detected - upload the image
+      // Face detected successfully - upload the image
       try {
         const uploadResult = await uploadProfileImage(file);
 
