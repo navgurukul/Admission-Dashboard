@@ -1331,11 +1331,6 @@ const ApplicantTable = () => {
         onApplyFilters={handleApplyFilters}
         currentFilters={filters}
         students={students}
-        campusList={campusList}
-        schoolList={schoolList}
-        religionList={religionList}
-        currentstatusList={currentstatusList}
-        stageList={stageList}
       />
       <BulkUpdateModal
         isOpen={showBulkUpdate}
