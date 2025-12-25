@@ -514,8 +514,6 @@ export function AdvancedFilterModal({
           return { ...prev, qualification: [] };
         case "currentStatus":
           return { ...prev, currentStatus: [] };
-        case "religion":
-          return { ...prev, religion: [] };
         case "donor":
           return { ...prev, donor: [] };
         case "partnerFilter":
