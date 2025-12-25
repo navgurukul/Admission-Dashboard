@@ -50,6 +50,18 @@ import {
   submitFinalDecision,
   getBlocksByDistrict,
   getDistrictsByState,
+  getPartnerById,
+  getDonorById,
+  getAllCasts,
+  getAllQualification,
+  getAllStatus,
+  getAllSchools,
+  getCampusesApi,
+  getAllQuestionSets,
+  getAllStages,
+  getAllPartners,
+  getAllDonors,
+  getAllStates,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 // import { Input } from "@/components/ui/input";
@@ -69,33 +81,12 @@ interface ApplicantModalProps {
   applicant: any;
   isOpen: boolean;
   onClose: () => void;
-  // Pre-fetched data from parent
-  castList?: any[];
-  qualificationList?: any[];
-  currentstatusList?: any[];
-  schoolList?: any[];
-  campusList?: any[];
-  questionSetList?: any[];
-  stageList?: any[];
-  partnerList?: any[];
-  donorList?: any[];
-  stateList?: { value: string; label: string }[];
 }
 
 export function ApplicantModal({
   applicant,
   isOpen,
   onClose,
-  castList = [],
-  qualificationList = [],
-  currentstatusList = [],
-  schoolList = [],
-  campusList = [],
-  questionSetList = [],
-  stageList = [],
-  partnerList = [],
-  donorList = [],
-  stateList = [],
 }: ApplicantModalProps) {
   const { toast } = useToast();
   const { hasEditAccess } = usePermissions();
@@ -115,9 +106,26 @@ export function ApplicantModal({
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
   
+  // State for fetched lists
+  const [castList, setCastList] = useState<any[]>([]);
+  const [qualificationList, setQualificationList] = useState<any[]>([]);
+  const [currentstatusList, setCurrentstatusList] = useState<any[]>([]);
+  const [schoolList, setSchoolList] = useState<any[]>([]);
+  const [campusList, setCampusList] = useState<any[]>([]);
+  const [questionSetList, setQuestionSetList] = useState<any[]>([]);
+  const [stageList, setStageList] = useState<any[]>([]);
+  const [partnerList, setPartnerList] = useState<any[]>([]);
+  const [donorList, setDonorList] = useState<any[]>([]);
+  const [stateList, setStateList] = useState<{ value: string; label: string }[]>([]);
+  
+  // State for fetched partner and donor names
+  const [partnerName, setPartnerName] = useState<string | null>(null);
+  const [donorName, setDonorName] = useState<string | null>(null);
+  
   // Refs to track previous values and prevent unnecessary API calls
   const prevStateRef = useRef<string | null>(null);
   const prevDistrictRef = useRef<string | null>(null);
+  const dataFetchedRef = useRef(false); // Track if dropdown data has been fetched
   
   const [openComboboxes, setOpenComboboxes] = useState({
     state: false,
@@ -180,12 +188,75 @@ export function ApplicantModal({
       label: d.donor_name,
     })), [donorList]);
 
-  const stateOptions = useMemo(() => stateList || [], [stateList]);
+  const stateOptions = useMemo(() => {
+    if (!Array.isArray(stateList)) return [];
+    return stateList;
+  }, [stateList]);
+  
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Confirmation dialog state for "Offer Sent"
   const [showOfferSentConfirmation, setShowOfferSentConfirmation] = useState(false);
   const [pendingOfferLetterValue, setPendingOfferLetterValue] = useState<string | null>(null);
+
+  // Fetch all required data when modal opens (only once)
+  useEffect(() => {
+    if (!isOpen || dataFetchedRef.current) return;
+
+    const fetchAllData = async () => {
+      try {
+        // Fetch all lists in parallel for optimization
+        const [
+          castsData,
+          qualificationsData,
+          statusData,
+          schoolsData,
+          campusData,
+          questionSetsData,
+          stagesData,
+          partnersData,
+          donorsData,
+          statesData,
+        ] = await Promise.all([
+          getAllCasts().catch((err) => { console.error("Failed to fetch casts:", err); return []; }),
+          getAllQualification().catch((err) => { console.error("Failed to fetch qualifications:", err); return []; }),
+          getAllStatus().catch((err) => { console.error("Failed to fetch status:", err); return []; }),
+          getAllSchools().catch((err) => { console.error("Failed to fetch schools:", err); return []; }),
+          getCampusesApi().catch((err) => { console.error("Failed to fetch campus:", err); return []; }),
+          getAllQuestionSets().catch((err) => { console.error("Failed to fetch question sets:", err); return []; }),
+          getAllStages().catch((err) => { console.error("Failed to fetch stages:", err); return []; }),
+          getAllPartners().catch((err) => { console.error("Failed to fetch partners:", err); return []; }),
+          getAllDonors().catch((err) => { console.error("Failed to fetch donors:", err); return []; }),
+          getAllStates().catch((err) => { console.error("Failed to fetch states:", err); return []; }),
+        ]);
+
+        setCastList(castsData);
+        setQualificationList(qualificationsData);
+        setCurrentstatusList(statusData);
+        setSchoolList(schoolsData);
+        setCampusList(campusData);
+        setQuestionSetList(questionSetsData);
+        setStageList(stagesData);
+        setPartnerList(partnersData);
+        setDonorList(donorsData);
+        
+        // Transform states data to {value, label} format
+        console.log("States API response:", statesData);
+        const transformedStates = (statesData?.data || statesData || []).map((state: any) => ({
+          value: state.state_code || state.value,
+          label: state.state_name || state.label
+        }));
+        console.log("Transformed states:", transformedStates);
+        setStateList(transformedStates);
+        
+        dataFetchedRef.current = true; // Mark as fetched
+      } catch (error) {
+        console.error("Failed to fetch dropdown data:", error);
+      }
+    };
+
+    fetchAllData();
+  }, [isOpen]); // Only fetch when modal opens and data hasn't been fetched yet
 
   const format = (date: Date, formatStr: string) => {
     if (formatStr === "PPP") {
@@ -281,6 +352,44 @@ export function ApplicantModal({
       fetchStudent();
     }
   }, [isOpen, applicant?.id, refreshKey]); // Removed stateOptions and districtOptions to prevent unnecessary API calls
+
+  // Fetch partner name if not available in partnerList
+  useEffect(() => {
+    const fetchPartnerName = async () => {
+      if (currentApplicant?.partner_id && partners.length === 0) {
+        try {
+          const response = await getPartnerById(currentApplicant.partner_id);
+          if (response?.data?.partner_name) {
+            setPartnerName(response.data.partner_name);
+          }
+        } catch (err) {
+          console.error("Failed to fetch partner name", err);
+        }
+      } else {
+        setPartnerName(null);
+      }
+    };
+    fetchPartnerName();
+  }, [currentApplicant?.partner_id, partners.length]);
+
+  // Fetch donor name if not available in donorList
+  useEffect(() => {
+    const fetchDonorName = async () => {
+      if (currentApplicant?.donor_id && donors.length === 0) {
+        try {
+          const response = await getDonorById(currentApplicant.donor_id);
+          if (response?.data?.donor_name) {
+            setDonorName(response.data.donor_name);
+          }
+        } catch (err) {
+          console.error("Failed to fetch donor name", err);
+        }
+      } else {
+        setDonorName(null);
+      }
+    };
+    fetchDonorName();
+  }, [currentApplicant?.donor_id, donors.length]);
 
   // Set joining date from current applicant
   // useEffect(() => {
@@ -566,7 +675,9 @@ export function ApplicantModal({
   const getLabel = (
     options: { value: string; label: string }[],
     id: any,
-    defaultLabel = ""
+    defaultLabel = "",
+    nameField?: string,
+    fetchedName?: string | null
   ) => {
     // If no id provided, return default
     if (!id) return defaultLabel;
@@ -574,13 +685,25 @@ export function ApplicantModal({
     // Try to find matching option
     const matchedOption = options.find((o) => o.value === id?.toString());
     
-    // If found, return the label; otherwise return the id itself as fallback
-    return matchedOption?.label || id?.toString() || defaultLabel;
+    // If found, return the label
+    if (matchedOption?.label) return matchedOption.label;
+    
+    // If fetchedName is provided (for partner/donor), use it
+    if (fetchedName) return fetchedName;
+    
+    // If nameField is provided, try to get the name from currentApplicant
+    if (nameField && currentApplicant[nameField]) {
+      return currentApplicant[nameField];
+    }
+    
+    // Otherwise return the id itself as fallback
+    return id?.toString() || defaultLabel;
   };
 
   // Helper to convert name back to code (for dropdown value matching)
   const getCode = (options: Array<{ value: string; label: string }>, name: string | null | undefined): string | null => {
     if (!name) return null;
+    if (!Array.isArray(options) || options.length === 0) return null;
     const matchedOption = options.find((o) => o.label === name);
     return matchedOption?.value || null;
   };
@@ -1006,7 +1129,7 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="cast_id"
                     value={currentApplicant.cast_id}
-                    displayValue={getLabel(castes, currentApplicant.cast_id)}
+                    displayValue={getLabel(castes, currentApplicant.cast_id, "", "cast_name")}
                     onUpdate={handleUpdate}
                     options={castes}
                     disabled={!hasEditAccess}
@@ -1022,7 +1145,9 @@ export function ApplicantModal({
                     value={currentApplicant.qualification_id}
                     displayValue={getLabel(
                       qualifications,
-                      currentApplicant.qualification_id
+                      currentApplicant.qualification_id,
+                      "",
+                      "qualification_name"
                     )}
                     onUpdate={handleUpdate}
                     options={qualifications}
@@ -1041,7 +1166,7 @@ export function ApplicantModal({
                         (w) =>
                           w.value ===
                           currentApplicant.current_status_id?.toString()
-                      )?.label || ""
+                      )?.label || currentApplicant.current_status_name || ""
                     }
                     onUpdate={handleUpdate}
                     options={currentWorks}
@@ -1129,7 +1254,10 @@ export function ApplicantModal({
                     value={currentApplicant.partner_id}
                     displayValue={getLabel(
                       partners,
-                      currentApplicant.partner_id
+                      currentApplicant.partner_id,
+                      "",
+                      "partner_name",
+                      partnerName
                     )}
                     onUpdate={handleUpdate}
                     options={partners}
@@ -1146,7 +1274,10 @@ export function ApplicantModal({
                     value={currentApplicant.donor_id}
                     displayValue={getLabel(
                       donors,
-                      currentApplicant.donor_id
+                      currentApplicant.donor_id,
+                      "",
+                      "donor_name",
+                      donorName
                     )}
                     onUpdate={handleUpdate}
                     options={donors}
@@ -1331,7 +1462,9 @@ export function ApplicantModal({
                               value={currentApplicant.campus_id}
                               displayValue={getLabel(
                                 campus,
-                                currentApplicant.campus_id
+                                currentApplicant.campus_id,
+                                "",
+                                "campus_name"
                               )}
                               onUpdate={handleUpdate}
                               options={campus}
@@ -1352,7 +1485,9 @@ export function ApplicantModal({
                         value={currentApplicant.campus_id}
                         displayValue={getLabel(
                           campus,
-                          currentApplicant.campus_id
+                          currentApplicant.campus_id,
+                          "",
+                          "campus_name"
                         )}
                         onUpdate={handleUpdate}
                         options={campus}

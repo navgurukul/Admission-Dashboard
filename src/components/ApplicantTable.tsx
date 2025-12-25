@@ -26,6 +26,7 @@ import { ApplicantModal } from "./ApplicantModal";
 import CSVImportModal from "./CSVImportModal";
 import { BulkOfferResultsModal } from "./BulkOfferResultsModal";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useApplicantFilters } from "@/hooks/useApplicantFilters";
@@ -87,6 +88,7 @@ const ApplicantTable = () => {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
   const { toast } = useToast();
+  const { hasEditAccess } = usePermissions();
   const { triggerRefresh } = useDashboardRefresh();
   const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   // Custom hook for data fetching
@@ -1171,18 +1173,20 @@ const ApplicantTable = () => {
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-            <BulkActions
-              selectedRowsCount={selectedRows.length}
-              onBulkUpdate={() => setShowBulkUpdate(true)}
-              // onBulkUpdate={handleBulkUpdate}
-              onSendOfferLetters={handleSendOfferLetters}
-              onBulkDelete={() => setShowDeleteConfirm(true)}
-            />
+            {hasEditAccess && (
+              <BulkActions
+                selectedRowsCount={selectedRows.length}
+                onBulkUpdate={() => setShowBulkUpdate(true)}
+                // onBulkUpdate={handleBulkUpdate}
+                onSendOfferLetters={handleSendOfferLetters}
+                onBulkDelete={() => setShowDeleteConfirm(true)}
+              />
+            )}
             <TableActions
-              onCSVImport={() => setShowCSVImport(true)}
+              onCSVImport={hasEditAccess ? () => setShowCSVImport(true) : undefined}
               onExportCSV={exportToCSV}
               onShowFilters={() => setShowAdvancedFilters(true)}
-              onAddApplicant={() => setShowAddModal(true)}
+              onAddApplicant={hasEditAccess ? () => setShowAddModal(true) : undefined}
               isExporting={isExporting}
               hasActiveFilters={hasActiveFilters}
               searchTerm={searchTerm}
@@ -1351,16 +1355,7 @@ const ApplicantTable = () => {
           setApplicantToView(null);
           refreshData(); // Refresh the table data when modal closes
         }}
-        castList={castList}
-        qualificationList={qualificationList}
-        currentstatusList={currentstatusList}
-        schoolList={schoolList}
-        campusList={campusList}
-        questionSetList={questionSetList}
-        stageList={stageList}
-        partnerList={partnerList}
-        donorList={donorList}
-        stateList={stateList}
+       
       />
       {/* <ApplicantCommentsModal
         applicantId={applicantForComments?.id || ""}
