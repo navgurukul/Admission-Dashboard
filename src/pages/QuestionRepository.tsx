@@ -14,6 +14,7 @@ import {
   Trash2,
   Eye,
   History,
+  HelpCircle,
 } from "lucide-react";
 import { QuestionEditor } from "@/components/questions/QuestionEditor";
 import { QuestionList } from "@/components/questions/QuestionList";
@@ -29,6 +30,12 @@ import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { QuestionSetManager } from "@/components/questions/QuestionSetManager";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 
 export default function QuestionRepository() {
@@ -44,6 +51,7 @@ export default function QuestionRepository() {
   const [showFilters, setShowFilters] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<any>(null);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const { toast } = useToast();
   const {
@@ -180,6 +188,7 @@ export default function QuestionRepository() {
               Manage and organize assessment questions for admissions screening
             </p>
           </div>
+          
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -195,6 +204,15 @@ export default function QuestionRepository() {
             >
               <Plus className="w-4 h-4" />
               New Question
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowHelpModal(true)}
+              className="text-primary hover:text-primary/80"
+              title="How to use Question Repository"
+            >
+              <HelpCircle className="h-6 w-6" />
             </Button>
           </div>
         </div>
@@ -358,6 +376,89 @@ export default function QuestionRepository() {
         {/* </div>
          */}
       </main>
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpModal} onOpenChange={setShowHelpModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-2xl font-bold text-primary">
+              How to Use Question Repository
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 px-2">
+            <div className="space-y-5">
+              <div className="border-l-4 border-primary pl-4 py-2">
+                <h3 className="font-semibold text-lg mb-2">📝 Step 1: Create Questions</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Click <strong>"New Question"</strong> button (top right)</li>
+                  <li>Select <strong>Question Type</strong> (MCQ) and <strong>Difficulty Level</strong> (Easy/Medium/Hard)</li>
+                  <li>Enter question text in all three languages: <strong>English, Hindi, Marathi</strong></li>
+                  <li>Add 4 options in all three languages</li>
+                  <li>Select the correct answer by clicking the circle (○) next to the right option</li>
+                  <li>Click <strong>"Save Question"</strong> button</li>
+                </ul>
+              </div>
+
+              <div className="border-l-4 border-blue-500 pl-4 py-2">
+                <h3 className="font-semibold text-lg mb-2">📦 Step 2: Bulk Import Questions (Optional)</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Click <strong>"Bulk Import"</strong> button OR go to <strong>"Import"</strong> tab</li>
+                  <li>Click <strong>"Download Template"</strong> to get sample CSV format</li>
+                  <li>Fill the CSV template with your questions data</li>
+                  <li>Either upload the CSV file OR paste CSV content in the text area</li>
+                  <li>Click <strong>"Parse CSV"</strong> button to validate your data</li>
+                  <li>Review parsed questions and click <strong>"Import Questions"</strong></li>
+                </ul>
+              </div>
+
+              <div className="border-l-4 border-green-500 pl-4 py-2">
+                <h3 className="font-semibold text-lg mb-2">📋 Step 3: Create Question Sets</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Go to <strong>"Sets"</strong> tab</li>
+                  <li>Click <strong>"Add Set"</strong> button</li>
+                  <li>Choose: <strong>Random</strong> (auto name) OR <strong>Custom Name</strong></li>
+                  <li>Enter set description (optional)</li>
+                  <li><strong>For Random:</strong> Click <strong>"Create"</strong> - questions will be auto-selected</li>
+                  <li><strong>For Custom Name:</strong> Click <strong>"Next"</strong> → then click <strong>"Pick Questions"</strong></li>
+                  <li><strong>Important:</strong> Must select exactly 5 Easy + 8 Medium + 5 Hard = <strong>18 total questions</strong></li>
+                  <li>Click <strong>"Save Selected Questions"</strong> when done</li>
+                </ul>
+              </div>
+
+              <div className="border-l-4 border-orange-500 pl-4 py-2">
+                <h3 className="font-semibold text-lg mb-2">🔍 Step 4: Search & Filter Questions</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Go to <strong>"Questions"</strong> tab to view all questions</li>
+                  <li>Use <strong>search bar</strong> to find questions by text (searches in all languages)</li>
+                  <li>Click <strong>"Filters"</strong> button to filter by difficulty level or question type</li>
+                  <li>Click <strong>"Clear All"</strong> to reset filters</li>
+                </ul>
+              </div>
+
+              <div className="border-l-4 border-purple-500 pl-4 py-2">
+                <h3 className="font-semibold text-lg mb-2">✏️ Step 5: Edit & Delete</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li><strong>Edit Question:</strong> Click <strong>Edit icon (pencil)</strong> → make changes → Save</li>
+                  <li><strong>Delete Question:</strong> Click <strong>Delete icon (trash)</strong> → confirm deletion</li>
+                  <li><strong>Edit Set:</strong> Go to Sets tab → click <strong>Edit icon</strong> on any set</li>
+                  <li><strong>Delete Set:</strong> Click <strong>Delete icon</strong> → confirm (all questions in set will be removed)</li>
+                </ul>
+              </div>
+
+              <div className="border-l-4 border-red-500 pl-4 py-2">
+                <h3 className="font-semibold text-lg mb-2">📥 Step 6: Download Question Set PDF</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Go to <strong>"Sets"</strong> tab</li>
+                  <li>Click <strong>"Download PDF"</strong> button (top right)</li>
+                  <li>Select question set from dropdown</li>
+                  <li>Choose language: English, Hindi, or Marathi</li>
+                  <li>Click <strong>"Download"</strong> - PDF will be saved to your computer</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
