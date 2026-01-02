@@ -484,8 +484,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
             <CardContent className="space-y-3">
               <p className="text-sm font-medium text-gray-600">
-                You’ve selected <strong>{set.questions.length}</strong> question
-                {set.questions.length !== 1 && "s"}.
+                {set.questions.length > 0 ? (
+                  <>
+                    You've selected <strong>{set.questions.length}</strong> question
+                    {set.questions.length !== 1 && "s"}.
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Click "Pick Questions" to view and manage questions</span>
+                )}
               </p>
 
               {/* <p className="text-xs text-gray-500">
