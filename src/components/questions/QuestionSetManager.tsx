@@ -360,7 +360,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     }
   };
 
-  const defaultSet = sets.find((s) => s.is_default_online_set);
+  // const defaultSet = sets.find((s) => s.is_default_online_set);
 
   const handleDownloadSubmit = async () => {
     if (!downloadFormData.selectedSet) {
@@ -439,14 +439,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           <Download className="h-4 w-4 mr-2" />
           Download PDF
         </Button>
-        {defaultSet && (
+        {/* {defaultSet && (
           <div className="flex items-center gap-2 border border-green-300 rounded-md px-3 py-1.5 bg-green-50">
             <span className="text-sm font-medium text-green-700">Default Set:</span>
             <span className="text-sm font-semibold text-green-800">
               {defaultSet.name}
             </span>
           </div>
-        )}
+        )} */}
       </div>
 
       <div className="flex-1 overflow-auto space-y-4 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -506,7 +506,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                   Pick Questions
                 </Button>
 
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <Checkbox
                     id={`default-${set.id}`}
                     checked={set.is_default_online_set || false}
@@ -544,7 +544,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                   >
                     Mark Default
                   </Label>
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>

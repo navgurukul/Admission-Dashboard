@@ -36,20 +36,26 @@ export const ApplicantTableHeader = ({
         <TableHead className="font-bold min-w-[120px] max-w-[220px] px-3">
           Email
         </TableHead>
+        <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
+          Marks
+        </TableHead>
         <TableHead className="font-bold min-w-[110px] max-w-[130px] px-3">
           Phone Number
         </TableHead>
-        <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
+        {/* <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
           WhatsApp Number
-        </TableHead>
+        </TableHead> */}
         <TableHead className="font-bold min-w-[80px] max-w-[100px] px-3">
           Gender
         </TableHead>
-        <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
+        {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
           Campus
-        </TableHead>
+        </TableHead> */}
         <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
           Current Stage
+        </TableHead>
+        <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
+          Qualifying School
         </TableHead>
         <TableHead className="w-16 font-bold px-3">Actions</TableHead>
       </TableRow>
