@@ -518,10 +518,15 @@ export default function AdminView() {
                                 </TableCell>
                                 <TableCell className="whitespace-nowrap min-w-[100px]">
                                   {interview.meeting_link ? (
-                                    interview.status?.toLowerCase() === "cancelled" ? (
+                                    String(interview.status || "").toLowerCase() === "cancelled" ? (
                                       <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
                                         <Video className="w-4 h-4" />
                                         <span>Cancelled</span>
+                                      </span>
+                                    ) : String(interview.status || "").toLowerCase() === "expired" ? (
+                                      <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                        <Video className="w-4 h-4" />
+                                        <span>Unavailable</span>
                                       </span>
                                     ) : (
                                       <a
@@ -847,15 +852,27 @@ export default function AdminView() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap min-w-[100px]">
                                 {interview.meeting_link ? (
-                                  <a
-                                    href={interview.meeting_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-primary hover:underline"
-                                  >
-                                    <Video className="w-4 h-4" />
-                                    <span>Join</span>
-                                  </a>
+                                  String(interview.status || "").toLowerCase() === "cancelled" ? (
+                                    <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                      <Video className="w-4 h-4" />
+                                      <span>Cancelled</span>
+                                    </span>
+                                  ) : String(interview.status || "").toLowerCase() === "expired" ? (
+                                    <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                      <Video className="w-4 h-4" />
+                                      <span>Unavailable</span>
+                                    </span>
+                                  ) : (
+                                    <a
+                                      href={interview.meeting_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-primary hover:underline"
+                                    >
+                                      <Video className="w-4 h-4" />
+                                      <span>Join</span>
+                                    </a>
+                                  )
                                 ) : (
                                   <span className="text-muted-foreground text-sm">No Link</span>
                                 )}

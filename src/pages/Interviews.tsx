@@ -307,13 +307,14 @@ const Interviews = () => {
                           <Button
                             className="bg-primary hover:bg-primary/90 text-primary-foreground"
                             size="sm"
-                            onClick={() =>
-                              interview.meeting_link &&
-                              window.open(interview.meeting_link, "_blank")
-                            }
-                            disabled={!interview.meeting_link}
+                            onClick={() => {
+                              const isExpired = String(interview.status || "").toLowerCase() === "expired";
+                              if (!isExpired && interview.meeting_link) window.open(interview.meeting_link, "_blank");
+                            }}
+                            disabled={!interview.meeting_link || String(interview.status || "").toLowerCase() === "expired"}
+                            title={String(interview.status || "").toLowerCase() === "expired" ? "This meeting link is available only during the scheduled time." : undefined}
                           >
-                            Join Meeting
+                            {String(interview.status || "").toLowerCase() === "expired" ? "Unavailable" : "Join Meeting"}
                           </Button>
                         </td>
                       </tr>
