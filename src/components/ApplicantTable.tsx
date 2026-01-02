@@ -125,13 +125,30 @@ const ApplicantTable = () => {
         (q) => q.id === student.question_set_id,
       );
 
+      // Get obtained marks from exam_sessions if available
+      let obtainedMarks = 0;
+      let examSchoolName = "N/A";
+      if (student.exam_sessions && Array.isArray(student.exam_sessions) && student.exam_sessions.length > 0) {
+        // Get the latest exam session
+        const latestExam = student.exam_sessions.reduce((latest, current) =>
+          new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+        );
+        obtainedMarks = latestExam.obtained_marks || 0;
+        
+        // Get school from exam session
+        if (latestExam.school_id) {
+          const examSchool = schoolList.find((s) => s.id === latestExam.school_id);
+          examSchoolName = examSchool ? examSchool.school_name : "N/A";
+        }
+      }
+
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
         name: `${student.first_name || ""} ${student.middle_name || ""} ${
           student.last_name || ""
         }`.trim(),
-        school_name: school ? school.school_name : "N/A",
+        school_name: examSchoolName,
         campus_name: campus ? campus.campus_name : "N/A",
         current_status_name: current_status
           ? current_status.current_status_name
@@ -139,6 +156,7 @@ const ApplicantTable = () => {
         religion_name: religion ? religion.religion_name : "N/A",
         question_set_name: questionSet ? questionSet.name : "N/A",
         maximumMarks: questionSet ? questionSet.maximumMarks : 0,
+        obtained_marks: obtainedMarks,
       };
     });
   }, [
