@@ -90,6 +90,8 @@ const StudentForm: React.FC = () => {
 
   // Convert camelCase → snake_case before API call
   const mapFormDataToApi = (data: typeof formData) => {
+    const partnerId = localStorage.getItem("partner_id");
+
     return {
       image_url: data.imageUrl || null,
       first_name: data.firstName,
@@ -110,6 +112,7 @@ const StudentForm: React.FC = () => {
       qualification_id: Number(data.maximumQualification) || null,
       cast_id: Number(data.casteTribe) || null,
       religion_id: Number(data.religion) || null,
+      partner_id: partnerId ? Number(partnerId) : null,
     };
   };
 
@@ -297,7 +300,7 @@ const StudentForm: React.FC = () => {
       }
     };
     fetchReligions();
-     
+
   }, [location.state?.googleEmail]);
 
   const handleInputChange = (
@@ -310,7 +313,7 @@ const StudentForm: React.FC = () => {
     if (name === "firstName" || name === "middleName" || name === "lastName") {
       processedValue = value.replace(/[^A-Za-z\s'-]/g, "");
     }
-    
+
     // For phone fields, strip non-digit characters and limit to 10 digits
     if (name === "whatsappNumber" || name === "alternateNumber") {
       processedValue = value.replace(/\D/g, "").slice(0, 10);
@@ -469,13 +472,13 @@ const StudentForm: React.FC = () => {
 
   const isFormValid = () => {
     const age = getAge(formData.dateOfBirth);
-    
+
     // District is mandatory only if districts are available
     const districtRequired = districts.length > 0 ? formData.districtCode : true;
-    
+
     // Block is mandatory only if blocks are available
     const blockRequired = blocks.length > 0 ? formData.blockCode : true;
-    
+
     return (
       formData.profileImage &&
       formData.firstName &&
@@ -1002,11 +1005,10 @@ const StudentForm: React.FC = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={!!location.state?.googleEmail}
-                className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                  location.state?.googleEmail
+                className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${location.state?.googleEmail
                     ? "bg-gray-100 cursor-not-allowed"
                     : ""
-                }`}
+                  }`}
                 placeholder={content.enterEmail}
               />
               {emailError && (
@@ -1062,8 +1064,8 @@ const StudentForm: React.FC = () => {
                   loadingStates.districts
                     ? content.loading
                     : !formData.stateCode
-                    ? "Select state first"
-                    : content.selectDistrict
+                      ? "Select state first"
+                      : content.selectDistrict
                 }
                 searchPlaceholder="Search district..."
                 emptyText="No district found."
@@ -1089,10 +1091,10 @@ const StudentForm: React.FC = () => {
                   loadingStates.blocks
                     ? content.loading
                     : !formData.districtCode
-                    ? "Select district first"
-                    : blocks.length === 0
-                    ? "No blocks available"
-                    : content.selectBlock
+                      ? "Select district first"
+                      : blocks.length === 0
+                        ? "No blocks available"
+                        : content.selectBlock
                 }
                 searchPlaceholder="Search block..."
                 emptyText="No block found."
