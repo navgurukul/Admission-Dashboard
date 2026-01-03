@@ -127,7 +127,22 @@ export const ApplicantTableRow = ({
         </div>
       </TableCell>
 
-      {/* Phone Number - Simple text field */}
+      {/* Marks */}
+      <TableCell className="min-w-[80px] max-w-[100px] px-2">
+        <div className="truncate">
+          <EditableCell
+            applicant={applicant}
+            field="obtained_marks"
+            displayValue={applicant.obtained_marks || "0"}
+            onUpdate={onUpdate}
+            showPencil={false}
+            showActionButtons={false}
+            disabled={true}
+          />
+        </div>
+      </TableCell>
+
+      {/* Phone Number */}
       <TableCell className="min-w-[110px] max-w-[130px] px-2">
         <div className="truncate">
           <EditableCell
@@ -145,7 +160,7 @@ export const ApplicantTableRow = ({
       </TableCell>
 
       {/* WhatsApp Number - Simple text field */}
-      <TableCell className="min-w-[110px] max-w-[130px] px-2">
+      {/* <TableCell className="min-w-[110px] max-w-[130px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
@@ -157,7 +172,7 @@ export const ApplicantTableRow = ({
             disabled={!hasEditAccess}
           />
         </div>
-      </TableCell>
+      </TableCell> */}
 
       {/* Gender - Simple text field */}
       <TableCell className="min-w-[80px] max-w-[100px] px-2">
@@ -227,7 +242,7 @@ export const ApplicantTableRow = ({
       </TableCell> */}
 
       {/* Campus  */}
-      <TableCell className="min-w-[120px] max-w-[150px] px-2">
+      {/* <TableCell className="min-w-[120px] max-w-[150px] px-2">
         <div className="truncate">
           <EditableCell
             applicant={applicant}
@@ -246,7 +261,7 @@ export const ApplicantTableRow = ({
             tooltipMessage="Current stage update by student details"
           />
         </div>
-      </TableCell>
+      </TableCell> */}
       {/* current Stage*/}
       <TableCell className="min-w-[100px] max-w-[120px] px-2">
         <div className="truncate">
@@ -260,6 +275,23 @@ export const ApplicantTableRow = ({
             showActionButtons={false}
             disabled={true}
             tooltipMessage="Current stage update by student details"
+          />
+        </div>
+      </TableCell>
+
+      {/* Qualifying School */}
+      <TableCell className="min-w-[140px] max-w-[180px] px-2">
+        <div className="truncate">
+          <EditableCell
+            applicant={applicant}
+            field="school_id"
+            displayValue={applicant.school_name || "N/A"}
+            value={applicant.school_id}
+            onUpdate={onUpdate}
+            options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
+            showPencil={false}
+            showActionButtons={false}
+            disabled={!hasEditAccess}
           />
         </div>
       </TableCell>

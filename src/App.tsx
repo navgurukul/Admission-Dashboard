@@ -19,6 +19,7 @@ import PartnerPage from "./pages/Partner";
 import PartnerStudents from "./pages/PartnerStudents";
 import AdminPage from "./pages/Admin";
 import AdminView from "./pages/AdminView";
+import PartnerLanding from "./pages/PartnerLanding";
 // import Student from "./pages/Student";
 import Donor from "./pages/Donor";
 import DonorStudents from "./pages/DonorStudents";
@@ -125,6 +126,10 @@ const App = () => (
                     <PartnerPage />
                   </ProtectedRoute>
                 }
+              />
+              <Route
+                path="/partnerLanding/:slug"
+                element={<PartnerLanding />}
               />
               <Route
                 path="/partners/:id/students"

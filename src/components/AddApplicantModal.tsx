@@ -37,6 +37,7 @@ import {
   getDistrictsByState,
   getStudentDataByEmail,
 } from "@/utils/api";
+import { detectHumanFace } from "@/utils/faceVerification";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
@@ -353,13 +354,38 @@ export function AddApplicantModal({
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Show loading toast
+      toast({
+        title: "Verifying...",
+        description: "Please wait while we verify the image...",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+
+      // Verify if image contains exactly one human face
+      const faceDetectionResult = await detectHumanFace(file);
+
+      if (!faceDetectionResult.success) {
+        // Show error toast with specific message
+        toast({
+          variant: "destructive",
+          title: "❌ Face Verification Failed",
+          description: faceDetectionResult.message,
+          className: "border-red-500 bg-red-50 text-red-900",
+          duration: 5000,
+        });
+        // Clear the file input
+        e.target.value = "";
+        return;
+      }
+
+      // Face verified successfully - now upload the image
       try {
-        // Show loading toast
         toast({
           title: "Uploading...",
-          description: "Please wait while we upload the image...",
+          description: "Face verified! Uploading image...",
           variant: "default",
-          className: "border-orange-500 bg-orange-50 text-orange-900",
+          className: "border-blue-500 bg-blue-50 text-blue-900",
         });
 
         const uploadResult = await uploadProfileImage(file);

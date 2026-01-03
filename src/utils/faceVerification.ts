@@ -3,6 +3,15 @@ import * as faceapi from "@vladmandic/face-api";
 let modelsLoaded = false;
 
 /**
+ * Face detection result interface
+ */
+export interface FaceDetectionResult {
+  success: boolean;
+  message: string;
+  faceCount: number;
+}
+
+/**
  * Load face detection models from CDN
  */
 export const loadFaceDetectionModels = async (): Promise<void> => {
@@ -27,9 +36,9 @@ export const loadFaceDetectionModels = async (): Promise<void> => {
 /**
  * Detect if image contains a human face
  * @param imageFile - The image file to verify
- * @returns Promise<boolean> - true if face detected, false otherwise
+ * @returns Promise<FaceDetectionResult> - Detection result with details
  */
-export const detectHumanFace = async (imageFile: File): Promise<boolean> => {
+export const detectHumanFace = async (imageFile: File): Promise<FaceDetectionResult> => {
   try {
     // Load models if not already loaded
     await loadFaceDetectionModels();
@@ -42,11 +51,35 @@ export const detectHumanFace = async (imageFile: File): Promise<boolean> => {
       .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks();
 
-    // Return true if at least one face is detected
-    return detections.length > 0;
+    const faceCount = detections.length;
+
+    // Check face count
+    if (faceCount === 0) {
+      return {
+        success: false,
+        message: "No face detected in the image. Please upload a clear photo of your face.",
+        faceCount: 0
+      };
+    } else if (faceCount > 1) {
+      return {
+        success: false,
+        message: `Multiple faces detected (${faceCount} faces). Please upload a photo with only one person.`,
+        faceCount
+      };
+    } else {
+      return {
+        success: true,
+        message: "Face detected successfully.",
+        faceCount: 1
+      };
+    }
   } catch (error) {
     console.error("Error detecting face:", error);
-    return false;
+    return {
+      success: false,
+      message: "Error processing image. Please try again.",
+      faceCount: 0
+    };
   }
 };
 
