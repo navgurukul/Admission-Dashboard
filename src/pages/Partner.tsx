@@ -63,7 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet } from "@/utils/api";
+import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName } from "@/utils/api";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -128,6 +128,11 @@ const PartnerPage = () => {
   const [newAssessmentName, setNewAssessmentName] = useState("");
   const [loadingQuestionSets, setLoadingQuestionSets] = useState(false);
   const [partnerSets, setPartnerSets] = useState([]);
+  const [showQuestionsModal, setShowQuestionsModal] = useState(false);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [selectedSetQuestions, setSelectedSetQuestions] = useState<any[]>([]);
+  const [selectedSetName, setSelectedSetName] = useState<string>("");
+  const [questionLanguage, setQuestionLanguage] = useState<"english" | "hindi" | "marathi">("english");
 
   // State for Create Assessment Form
   const [assessmentFormData, setAssessmentFormData] = useState({
@@ -1058,6 +1063,67 @@ const PartnerPage = () => {
           </DialogContent>
         </Dialog>
 
+        {/* QUESTIONS VIEW MODAL */}
+        <Dialog open={showQuestionsModal} onOpenChange={setShowQuestionsModal}>
+          <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Questions for: {selectedSetName}</DialogTitle>
+              <DialogDescription>Select language to view questions</DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center gap-2 mt-2">
+              <Label>Language:</Label>
+              <div className="flex items-center gap-2">
+                <Button variant={questionLanguage === "english" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("english")}>English</Button>
+                <Button variant={questionLanguage === "hindi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("hindi")}>Hindi</Button>
+                <Button variant={questionLanguage === "marathi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("marathi")}>Marathi</Button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto mt-4">
+              {questionsLoading ? (
+                <div className="text-center text-muted-foreground">Loading questions...</div>
+              ) : selectedSetQuestions.length === 0 ? (
+                <div className="text-center text-muted-foreground">No questions available for this assessment.</div>
+              ) : (
+                <div className="space-y-4">
+                  {selectedSetQuestions.map((q: any, idx: number) => {
+                    const questionText = questionLanguage === "english" ? q.english_text : questionLanguage === "hindi" ? q.hindi_text : q.marathi_text;
+                    const options = (questionLanguage === "english" ? q.english_options : questionLanguage === "hindi" ? q.hindi_options : q.marathi_options) || [];
+                    const diffLabel = q.difficulty_level === 1 ? "Easy" : q.difficulty_level === 2 ? "Medium" : q.difficulty_level === 3 ? "Hard" : "";
+
+                    return (
+                      <Card key={q.id || idx} className="shadow-sm border">
+                        <CardHeader className="flex items-start justify-between py-2">
+                          <CardTitle className="text-sm font-medium">{idx + 1}. {questionText}</CardTitle>
+                          <Badge className="text-xs" variant={q.difficulty_level === 1 ? "easy" : q.difficulty_level === 2 ? "medium" : "hard"}>{diffLabel}</Badge>
+                        </CardHeader>
+                        <CardContent className="pt-0 pb-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {options.map((opt: any, i: number) => (
+                              <div key={i} className="p-2 border rounded-md bg-background hover:bg-primary/5 text-sm">
+                                <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
+                                <span className="text-sm">{opt}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {q.answer_key && q.answer_key.length > 0 && (
+                            <div className="text-xs text-muted-foreground mt-3">Answer: {q.answer_key.map((a: any) => String.fromCharCode(64 + a)).join(", ")}</div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* EDIT PARTNER DIALOG */}
         <Dialog open={editDialog.open} onOpenChange={(open) => !open && closeEditDialog()}>
           <DialogContent className="max-w-lg">
@@ -1223,7 +1289,31 @@ const PartnerPage = () => {
                       ) : (
                         partnerSets.map((set: any) => (
                           <TableRow key={set.id}>
-                            <TableCell className="font-medium">{set.name}</TableCell>
+                            <TableCell className="font-medium">
+                              <button
+                                className="text-primary hover:text-primary/80"
+                                onClick={async () => {
+                                  const name = set.name || "";
+                                  setSelectedSetName(name);
+                                  setShowQuestionsModal(true);
+                                  setQuestionsLoading(true);
+                                  try {
+                                    const res = await getQuestionsBySetName(name);
+                                    // API returns object with data array
+                                    const qarr = res?.data || res?.questions || res?.data?.data || [];
+                                    setSelectedSetQuestions(Array.isArray(qarr) ? qarr : []);
+                                  } catch (err) {
+                                    console.error("Failed to load questions for set:", err);
+                                    setSelectedSetQuestions([]);
+                                    toast({ title: "Unable to Load Questions", description: getFriendlyErrorMessage(err), variant: "destructive" });
+                                  } finally {
+                                    setQuestionsLoading(false);
+                                  }
+                                }}
+                              >
+                                {set.name}
+                              </button>
+                            </TableCell>
                             <TableCell>{set.description}</TableCell>
                             <TableCell>{set.created_at ? new Date(set.created_at).toLocaleDateString() : "-"}</TableCell>
                           </TableRow>

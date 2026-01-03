@@ -1281,6 +1281,22 @@ export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
   return dataArray;
 };
 
+// Fetch questions for a given set name from external questions service
+export const getQuestionsBySetName = async (setName: string) => {
+  try {
+    const url = `${BASE_URL}/questions/set/${encodeURIComponent(setName)}`;
+    const headers = {
+      ...(getAuthHeaders(false) as Record<string, string>),
+    };
+
+    const response = await axios.get(url, { headers, timeout: 10000 });
+    return response.data;
+  } catch (error) {
+    console.error("getQuestionsBySetName error:", error);
+    throw error;
+  }
+};
+
 interface QuestionSetMapping {
   question_set_id: number;
   question_id: number;
