@@ -320,7 +320,7 @@ const PartnerPage = () => {
       const updated = [...prev];
       updated[idx] = {
         ...updated[idx],
-        meraki_link: `${window.location.origin}/partnerLanding/${updated[idx].slug}`,
+        meraki_link: `${window.location.origin}${import.meta.env.BASE_URL}partnerLanding/${updated[idx].slug}`,
       };
       return updated;
     });
