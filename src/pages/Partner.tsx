@@ -164,9 +164,9 @@ const PartnerPage = () => {
       setPartners(partnersArray);
       setLoading(false);
     } catch (error) {
-      toast({ 
-        title: "❌ Unable to Load Partners", 
-        description: getFriendlyErrorMessage(error), 
+      toast({
+        title: "❌ Unable to Load Partners",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -194,9 +194,9 @@ const PartnerPage = () => {
       setStates(statesArray);
     } catch (error) {
       console.error("Failed to load states:", error);
-      toast({ 
-        title: "❌ Unable to Load States", 
-        description: getFriendlyErrorMessage(error), 
+      toast({
+        title: "❌ Unable to Load States",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -218,9 +218,9 @@ const PartnerPage = () => {
       setDistricts(districtsArray);
     } catch (error) {
       console.error("Failed to load districts:", error);
-      toast({ 
-        title: "❌ Unable to Load Districts", 
-        description: getFriendlyErrorMessage(error), 
+      toast({
+        title: "❌ Unable to Load Districts",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -315,8 +315,7 @@ const PartnerPage = () => {
       const updated = [...prev];
       updated[idx] = {
         ...updated[idx],
-        // meraki_link: `https://dummy-meraki-link.com/partner/${updated[idx].id}`,
-        meraki_link : "https://play.google.com/store/apps/details?id=org.merakilearn",
+        meraki_link: `${window.location.origin}/partnerLanding/${updated[idx].slug}`,
       };
       return updated;
     });
@@ -451,8 +450,8 @@ const PartnerPage = () => {
         districts: editDialog.form.districts.filter(d => d.trim() !== "").join(',') as any, // Send as string
         // notes: editDialog.form.notes,
       });
-      toast({ 
-        title: "✅ Partner Updated", 
+      toast({
+        title: "✅ Partner Updated",
         description: "Partner details updated successfully.",
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900"
@@ -460,9 +459,9 @@ const PartnerPage = () => {
       closeEditDialog();
       loadPartners();
     } catch (error) {
-      toast({ 
-        title: "❌ Unable to Update Partner", 
-        description: getFriendlyErrorMessage(error), 
+      toast({
+        title: "❌ Unable to Update Partner",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -567,8 +566,8 @@ const PartnerPage = () => {
         districts: cleanDistricts as any, // Send as string
         // notes: addDialog.form.notes,
       });
-      toast({ 
-        title: "✅ Partner Added", 
+      toast({
+        title: "✅ Partner Added",
         description: "Partner added successfully!",
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900"
@@ -576,9 +575,9 @@ const PartnerPage = () => {
       closeAddDialog();
       loadPartners();
     } catch (error) {
-      toast({ 
-        title: "❌ Unable to Create Partner", 
-        description: getFriendlyErrorMessage(error), 
+      toast({
+        title: "❌ Unable to Create Partner",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -610,9 +609,9 @@ const PartnerPage = () => {
       setStudentsLoading(false);
     } catch (error) {
       console.error("Failed to fetch students", error);
-      toast({ 
-        title: "❌ Unable to Load Students", 
-        description: getFriendlyErrorMessage(error), 
+      toast({
+        title: "❌ Unable to Load Students",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -664,17 +663,17 @@ const PartnerPage = () => {
     if (!confirm("Are you sure you want to delete this partner?")) return;
     try {
       await deletePartner(id);
-      toast({ 
-        title: "✅ Partner Deleted", 
+      toast({
+        title: "✅ Partner Deleted",
         description: "Partner deleted successfully.",
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900"
       });
       loadPartners();
     } catch (error) {
-      toast({ 
-        title: "❌ Unable to Delete Partner", 
-        description: getFriendlyErrorMessage(error), 
+      toast({
+        title: "❌ Unable to Delete Partner",
+        description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -759,7 +758,7 @@ const PartnerPage = () => {
                 <div className="flex items-center gap-2">
                   <Button variant="outline" onClick={handleDownloadCSV} size="sm">
                     <Download className="w-4 h-4 mr-2" />
-                    Export 
+                    Export
                   </Button>
                   <Button variant="outline" onClick={() => setFilterDialog(true)} size="sm">
                     <Filter className="w-4 h-4 mr-2" />
@@ -895,14 +894,14 @@ const PartnerPage = () => {
                               {partner.meraki_link ? (
                                 <DropdownMenuItem onClick={() => {
                                   navigator.clipboard.writeText(partner.meraki_link);
-                                  toast({ 
-                                    title: "✅ Link Copied", 
+                                  toast({
+                                    title: "✅ Link Copied",
                                     description: "Link copied to clipboard.",
                                     variant: "default",
                                     className: "border-green-500 bg-green-50 text-green-900"
                                   });
                                 }}>
-                                  <ExternalLink className="mr-2 h-4 w-4" /> Copy Meraki Link
+                                  <ExternalLink className="mr-2 h-4 w-4" /> Copy Test Link
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem onClick={() => handleCreateMerakiLink((page - 1) * ROWS_PER_PAGE + idx)}>
@@ -957,48 +956,48 @@ const PartnerPage = () => {
             </DialogHeader>
             <form onSubmit={handleAddSubmit}>
               <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Partner Name <span className="text-destructive">*</span></Label>
-                <Input
-                  id="name"
-                  value={addDialog.form.name}
-                  onChange={(e) => handleAddFormChange("name", e.target.value)}
-                  placeholder="e.g. NavGurukul"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Emails <span className="text-destructive">*</span></Label>
-                {addDialog.form.emails.map((email, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => handleAddArrayChange("emails", i, e.target.value)}
-                      placeholder="contact@example.com"
-                      required
-                    />
-                    {addDialog.form.emails.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeAddArrayItem("emails", i)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {/* <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
-                <Input
-                  id="slug"
-                  value={addDialog.form.slug}
-                  onChange={(e) => handleAddFormChange("slug", e.target.value)}
-                  placeholder="unique-slug-id"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">Auto-generated from name. Must be unique.</p>
-              </div>
-              {/* <div className="grid gap-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Partner Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="name"
+                    value={addDialog.form.name}
+                    onChange={(e) => handleAddFormChange("name", e.target.value)}
+                    placeholder="e.g. NavGurukul"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Emails <span className="text-destructive">*</span></Label>
+                  {addDialog.form.emails.map((email, i) => (
+                    <div key={i} className="flex gap-2">
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => handleAddArrayChange("emails", i, e.target.value)}
+                        placeholder="contact@example.com"
+                        required
+                      />
+                      {addDialog.form.emails.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeAddArrayItem("emails", i)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {/* <Button variant="link" size="sm" onClick={() => addAddArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="slug"
+                    value={addDialog.form.slug}
+                    onChange={(e) => handleAddFormChange("slug", e.target.value)}
+                    placeholder="unique-slug-id"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Auto-generated from name. Must be unique.</p>
+                </div>
+                {/* <div className="grid gap-2">
                 <Label htmlFor="notes">Notes <span className="text-destructive">*</span></Label>
                 <Input
                   id="notes"
@@ -1008,47 +1007,47 @@ const PartnerPage = () => {
                   required
                 />
               </div> */}
-              <div className="grid gap-2">
-                <Label htmlFor="state">State <span className="text-destructive">*</span></Label>
-                <Combobox
-                  options={states.map((state) => ({
-                    value: state.state_code,
-                    label: state.state_name,
-                  }))}
-                  value={addDialog.form.state}
-                  onValueChange={(value) => handleAddFormChange("state", value)}
-                  placeholder="Select a state"
-                  searchPlaceholder="Search states..."
-                  emptyText="No state found."
-                  className="w-full"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Districts <span className="text-destructive">*</span></Label>
-                {addDialog.form.districts.map((d, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Combobox
-                      options={districts.map((district) => ({
-                        value: district.district_code,
-                        label: district.district_name,
-                      }))}
-                      value={d}
-                      onValueChange={(value) => handleAddArrayChange("districts", i, value)}
-                      placeholder={!addDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
-                      searchPlaceholder="Search districts..."
-                      emptyText="No district found."
-                      disabled={!addDialog.form.state || districts.length === 0}
-                      className="flex-1"
-                    />
-                    {addDialog.form.districts.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button variant="link" size="sm" onClick={() => addAddArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
-              </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="state">State <span className="text-destructive">*</span></Label>
+                  <Combobox
+                    options={states.map((state) => ({
+                      value: state.state_code,
+                      label: state.state_name,
+                    }))}
+                    value={addDialog.form.state}
+                    onValueChange={(value) => handleAddFormChange("state", value)}
+                    placeholder="Select a state"
+                    searchPlaceholder="Search states..."
+                    emptyText="No state found."
+                    className="w-full"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Districts <span className="text-destructive">*</span></Label>
+                  {addDialog.form.districts.map((d, i) => (
+                    <div key={i} className="flex gap-2">
+                      <Combobox
+                        options={districts.map((district) => ({
+                          value: district.district_code,
+                          label: district.district_name,
+                        }))}
+                        value={d}
+                        onValueChange={(value) => handleAddArrayChange("districts", i, value)}
+                        placeholder={!addDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
+                        searchPlaceholder="Search districts..."
+                        emptyText="No district found."
+                        disabled={!addDialog.form.state || districts.length === 0}
+                        className="flex-1"
+                      />
+                      {addDialog.form.districts.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeAddArrayItem("districts", i)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button variant="link" size="sm" onClick={() => addAddArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeAddDialog}>Cancel</Button>
@@ -1066,45 +1065,45 @@ const PartnerPage = () => {
             </DialogHeader>
             <form onSubmit={handleEditSubmit}>
               <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Partner Name <span className="text-destructive">*</span></Label>
-                <Input 
-                  id="edit-name" 
-                  value={editDialog.form.name} 
-                  onChange={(e) => handleEditFormChange("name", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Emails <span className="text-destructive">*</span></Label>
-                {editDialog.form.emails.map((email, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => handleEditArrayChange("emails", i, e.target.value)}
-                      placeholder="contact@example.com"
-                      required
-                    />
-                    {editDialog.form.emails.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeEditArrayItem("emails", i)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                {/* <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-slug">Slug <span className="text-destructive">*</span></Label>
-                <Input 
-                  id="edit-slug" 
-                  value={editDialog.form.slug} 
-                  onChange={(e) => handleEditFormChange("slug", e.target.value)}
-                  required
-                />
-              </div>
-              {/* <div className="grid gap-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Partner Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="edit-name"
+                    value={editDialog.form.name}
+                    onChange={(e) => handleEditFormChange("name", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Emails <span className="text-destructive">*</span></Label>
+                  {editDialog.form.emails.map((email, i) => (
+                    <div key={i} className="flex gap-2">
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => handleEditArrayChange("emails", i, e.target.value)}
+                        placeholder="contact@example.com"
+                        required
+                      />
+                      {editDialog.form.emails.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEditArrayItem("emails", i)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {/* <Button variant="link" size="sm" onClick={() => addEditArrayItem("emails")} className="justify-start px-0 text-primary">+ Add another email</Button> */}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-slug">Slug <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="edit-slug"
+                    value={editDialog.form.slug}
+                    onChange={(e) => handleEditFormChange("slug", e.target.value)}
+                    required
+                  />
+                </div>
+                {/* <div className="grid gap-2">
                 <Label htmlFor="edit-notes">Notes <span className="text-destructive">*</span></Label>
                 <Input
                   id="edit-notes"
@@ -1113,47 +1112,47 @@ const PartnerPage = () => {
                   required
                 />
               </div> */}
-              <div className="grid gap-2">
-                <Label htmlFor="edit-state">State <span className="text-destructive">*</span></Label>
-                <Combobox
-                  options={states.map((state) => ({
-                    value: state.state_code,
-                    label: state.state_name,
-                  }))}
-                  value={editDialog.form.state}
-                  onValueChange={(value) => handleEditFormChange("state", value)}
-                  placeholder="Select a state"
-                  searchPlaceholder="Search states..."
-                  emptyText="No state found."
-                  className="w-full"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Districts <span className="text-destructive">*</span></Label>
-                {editDialog.form.districts.map((d, i) => (
-                  <div key={i} className="flex gap-2">
-                    <Combobox
-                      options={districts.map((district) => ({
-                        value: district.district_code,
-                        label: district.district_name,
-                      }))}
-                      value={d}
-                      onValueChange={(value) => handleEditArrayChange("districts", i, value)}
-                      placeholder={!editDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
-                      searchPlaceholder="Search districts..."
-                      emptyText="No district found."
-                      disabled={!editDialog.form.state || districts.length === 0}
-                      className="flex-1"
-                    />
-                    {editDialog.form.districts.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button type="button" variant="link" size="sm" onClick={() => addEditArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
-              </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-state">State <span className="text-destructive">*</span></Label>
+                  <Combobox
+                    options={states.map((state) => ({
+                      value: state.state_code,
+                      label: state.state_name,
+                    }))}
+                    value={editDialog.form.state}
+                    onValueChange={(value) => handleEditFormChange("state", value)}
+                    placeholder="Select a state"
+                    searchPlaceholder="Search states..."
+                    emptyText="No state found."
+                    className="w-full"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Districts <span className="text-destructive">*</span></Label>
+                  {editDialog.form.districts.map((d, i) => (
+                    <div key={i} className="flex gap-2">
+                      <Combobox
+                        options={districts.map((district) => ({
+                          value: district.district_code,
+                          label: district.district_name,
+                        }))}
+                        value={d}
+                        onValueChange={(value) => handleEditArrayChange("districts", i, value)}
+                        placeholder={!editDialog.form.state ? "Select state first" : districts.length === 0 ? "Loading districts..." : "Select district"}
+                        searchPlaceholder="Search districts..."
+                        emptyText="No district found."
+                        disabled={!editDialog.form.state || districts.length === 0}
+                        className="flex-1"
+                      />
+                      {editDialog.form.districts.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeEditArrayItem("districts", i)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button type="button" variant="link" size="sm" onClick={() => addEditArrayItem("districts")} className="justify-start px-0 text-primary">+ Add another district</Button>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={closeEditDialog}>Cancel</Button>
@@ -1308,8 +1307,8 @@ const PartnerPage = () => {
               <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
               <Button onClick={async () => {
                 if (!assessmentFormData.name.trim()) {
-                  toast({ 
-                    title: "⚠️ Assessment Name Required", 
+                  toast({
+                    title: "⚠️ Assessment Name Required",
                     description: "Please enter an assessment name",
                     variant: "default",
                     className: "border-orange-500 bg-orange-50 text-orange-900"
@@ -1331,8 +1330,8 @@ const PartnerPage = () => {
                   // Create new question set linked to partner
                   await createQuestionSet(payload as any);
 
-                  toast({ 
-                    title: "✅ Assessment Created", 
+                  toast({
+                    title: "✅ Assessment Created",
                     description: `Assessment "${assessmentFormData.name}" created for ${selectedPartner?.partner_name}`,
                     variant: "default",
                     className: "border-green-500 bg-green-50 text-green-900"
@@ -1340,9 +1339,9 @@ const PartnerPage = () => {
                   setShowCreateModal(false);
                   setAssessmentFormData({ name: "", description: "", nameType: "random", isRandom: true });
                 } catch (e: any) {
-                  toast({ 
-                    title: "❌ Unable to Create Assessment", 
-                    description: getFriendlyErrorMessage(e), 
+                  toast({
+                    title: "❌ Unable to Create Assessment",
+                    description: getFriendlyErrorMessage(e),
                     variant: "destructive",
                     className: "border-red-500 bg-red-50 text-red-900"
                   });
