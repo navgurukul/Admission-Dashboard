@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
-import { getStudents, getFilterStudent, getAllStages } from "@/utils/api";
+import { getStudents, getFilterStudent, getAllStages, getStatusesByStageId } from "@/utils/api";
 
 interface DashboardMetrics {
   totalApplicants: number;
@@ -57,21 +57,37 @@ export function DashboardStats() {
       // Fetch active applications - students at "Final Decision" stage using stage_id
       let activeApplications = 0;
       if (finalDecisionStageId) {
-        const finalDecisionResponse = await getFilterStudent({
-          stage_id: finalDecisionStageId,
-          stage_status:"Offer Sent"
-        });
-        activeApplications = finalDecisionResponse?.length || 0;
+        // Fetch statuses for Final Decision stage
+        const finalDecisionStatuses = await getStatusesByStageId(finalDecisionStageId);
+        const offerSentStatus = finalDecisionStatuses.find(
+          (s: any) => s.status_name === "Offer Sent" || s.name === "Offer Sent"
+        );
+
+        if (offerSentStatus) {
+          const finalDecisionResponse = await getFilterStudent({
+            stage_id: finalDecisionStageId,
+            stage_status: offerSentStatus.id
+          });
+          activeApplications = finalDecisionResponse?.length || 0;
+        }
       }
 
       // Fetch onboarded students - filter by Onboarded stage using stage_id
       let successfullyOnboarded = 0;
       if (onboardedStageId) {
-        const onboardedResponse = await getFilterStudent({
-          stage_id: onboardedStageId,
-          stage_status: "Onboarded",
-        });
-        successfullyOnboarded = onboardedResponse?.length || 0;
+        // Fetch statuses for Onboarded stage
+        const onboardedStatuses = await getStatusesByStageId(onboardedStageId);
+        const onboardedStatus = onboardedStatuses.find(
+          (s: any) => s.status_name === "Onboarded" || s.name === "Onboarded"
+        );
+
+        if (onboardedStatus) {
+          const onboardedResponse = await getFilterStudent({
+            stage_id: onboardedStageId,
+            stage_status: onboardedStatus.id,
+          });
+          successfullyOnboarded = onboardedResponse?.length || 0;
+        }
       }
 
       const interviewsScheduled = 0;
