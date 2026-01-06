@@ -24,6 +24,7 @@ import { StatusBadge } from "./StatusBadge";
 // import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
 // import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
+import { TransitionsModal } from "./TransitionsModal";
 // import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 // import { Calendar } from "lucide-react";
 // import {
@@ -62,6 +63,7 @@ import {
   getAllPartners,
   getAllDonors,
   getAllStates,
+  getFeedbacks,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 // import { Input } from "@/components/ui/input";
@@ -92,6 +94,8 @@ export function ApplicantModal({
   const { hasEditAccess } = usePermissions();
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showTransitionsModal, setShowTransitionsModal] = useState(false);
+  const [transitionsData, setTransitionsData] = useState<any>(null);
   // const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [joiningDate, setJoiningDate] = useState("");
@@ -105,7 +109,7 @@ export function ApplicantModal({
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
-  
+
   // State for fetched lists
   const [castList, setCastList] = useState<any[]>([]);
   const [qualificationList, setQualificationList] = useState<any[]>([]);
@@ -117,16 +121,16 @@ export function ApplicantModal({
   const [partnerList, setPartnerList] = useState<any[]>([]);
   const [donorList, setDonorList] = useState<any[]>([]);
   const [stateList, setStateList] = useState<{ value: string; label: string }[]>([]);
-  
+
   // State for fetched partner and donor names
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [donorName, setDonorName] = useState<string | null>(null);
-  
+
   // Refs to track previous values and prevent unnecessary API calls
   const prevStateRef = useRef<string | null>(null);
   const prevDistrictRef = useRef<string | null>(null);
   const dataFetchedRef = useRef(false); // Track if dropdown data has been fetched
-  
+
   const [openComboboxes, setOpenComboboxes] = useState({
     state: false,
     district: false,
@@ -134,55 +138,55 @@ export function ApplicantModal({
   });
 
   // Transform props data to the format expected by the component
-  const castes = useMemo(() => 
+  const castes = useMemo(() =>
     (castList || []).map((c: any) => ({
       value: c.id?.toString(),
       label: c.cast_name,
     })), [castList]);
 
-  const qualifications = useMemo(() => 
+  const qualifications = useMemo(() =>
     (qualificationList || []).map((q: any) => ({
       value: q.id?.toString(),
       label: q.qualification_name,
     })), [qualificationList]);
 
-  const currentWorks = useMemo(() => 
+  const currentWorks = useMemo(() =>
     (currentstatusList || []).map((w: any) => ({
       value: w.id?.toString(),
       label: w.current_status_name,
     })), [currentstatusList]);
 
-  const schools = useMemo(() => 
+  const schools = useMemo(() =>
     (schoolList || []).map((c: any) => ({
       value: c.id?.toString(),
       label: c.school_name,
     })), [schoolList]);
 
-  const campus = useMemo(() => 
+  const campus = useMemo(() =>
     (campusList || []).map((c: any) => ({
       value: c.id?.toString(),
       label: c.campus_name,
     })), [campusList]);
 
-  const questionSets = useMemo(() => 
+  const questionSets = useMemo(() =>
     (questionSetList || []).map((qs: any) => ({
       value: qs.id?.toString(),
       label: qs.name,
     })), [questionSetList]);
 
-  const stages = useMemo(() => 
+  const stages = useMemo(() =>
     (stageList || []).map((s: any) => ({
       id: s.id,
       name: s.stage_name || s.name,
     })), [stageList]);
 
-  const partners = useMemo(() => 
+  const partners = useMemo(() =>
     (partnerList || []).map((p: any) => ({
       value: p.id?.toString(),
       label: p.partner_name,
     })), [partnerList]);
 
-  const donors = useMemo(() => 
+  const donors = useMemo(() =>
     (donorList || []).map((d: any) => ({
       value: d.id?.toString(),
       label: d.donor_name,
@@ -192,7 +196,7 @@ export function ApplicantModal({
     if (!Array.isArray(stateList)) return [];
     return stateList;
   }, [stateList]);
-  
+
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Confirmation dialog state for "Offer Sent"
@@ -239,7 +243,7 @@ export function ApplicantModal({
         setStageList(stagesData);
         setPartnerList(partnersData);
         setDonorList(donorsData);
-        
+
         // Transform states data to {value, label} format
         // console.log("States API response:", statesData);
         const transformedStates = (statesData?.data || statesData || []).map((state: any) => ({
@@ -248,7 +252,7 @@ export function ApplicantModal({
         }));
         // console.log("Transformed states:", transformedStates);
         setStateList(transformedStates);
-        
+
         dataFetchedRef.current = true; // Mark as fetched
       } catch (error) {
         console.error("Failed to fetch dropdown data:", error);
@@ -341,7 +345,7 @@ export function ApplicantModal({
           }
           if (updated?.id) {
             setCurrentApplicant(updated);
-            
+
             // Only set state if stateList is already loaded
             if (updated.state && stateList.length > 0) {
               const stateCode = getStateCodeFromNameOrCode(updated.state);
@@ -349,7 +353,7 @@ export function ApplicantModal({
                 setSelectedState(stateCode);
               }
             }
-            
+
             // District will be set after districts are loaded
           } else {
             // console.error("Invalid response - no ID found:", response);
@@ -471,13 +475,13 @@ export function ApplicantModal({
       try {
         const blocksRes = await getBlocksByDistrict(selectedDistrict);
         const blocks = blocksRes?.data || blocksRes || [];
-        
+
         // Use id as value and block_name as label
         const mappedBlocks = blocks.map((b: any) => ({
           value: String(b.id), // Use id as value since block_code is not available
           label: b.block_name, // Use block_name for display
         }));
-        
+
         setBlockOptions(mappedBlocks);
       } catch (err) {
         // console.error("Failed to fetch blocks:", err);
@@ -496,15 +500,15 @@ export function ApplicantModal({
     const currentOfferStatus = currentApplicant.final_decisions?.[0]?.offer_letter_status;
 
     if (!currentApplicant.campus_id) {
-        toast({
-          title: "⚠️ Campus Required",
-          description: "Please select a campus before proceeding with the offer letter status.",
-          variant: "destructive",
-          className: "border-orange-500 bg-orange-50 text-orange-900",
-        });
-        return;
-      }
-    
+      toast({
+        title: "⚠️ Campus Required",
+        description: "Please select a campus before proceeding with the offer letter status.",
+        variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
     // Prevent changing back to "Offer Pending" if already sent or beyond
     if (value === "Offer Pending" && currentOfferStatus && currentOfferStatus !== "Offer Pending") {
       toast({
@@ -527,7 +531,7 @@ export function ApplicantModal({
           className: "border-blue-500 bg-blue-50 text-blue-900",
           duration: 4000,
         });
-        return; 
+        return;
       }
 
       // Show confirmation dialog before proceeding
@@ -681,6 +685,10 @@ export function ApplicantModal({
     }
   };
 
+  const handleTransitions = async () => {
+    setShowTransitionsModal(true);
+  };
+
   const getLabel = (
     options: { value: string; label: string }[],
     id: any,
@@ -690,21 +698,21 @@ export function ApplicantModal({
   ) => {
     // If no id provided, return default
     if (!id) return defaultLabel;
-    
+
     // Try to find matching option
     const matchedOption = options.find((o) => o.value === id?.toString());
-    
+
     // If found, return the label
     if (matchedOption?.label) return matchedOption.label;
-    
+
     // If fetchedName is provided (for partner/donor), use it
     if (fetchedName) return fetchedName;
-    
+
     // If nameField is provided, try to get the name from currentApplicant
     if (nameField && currentApplicant[nameField]) {
       return currentApplicant[nameField];
     }
-    
+
     // Otherwise return the id itself as fallback
     return id?.toString() || defaultLabel;
   };
@@ -725,9 +733,9 @@ export function ApplicantModal({
 
     // Convert state code to name before sending to API
     const stateName = stateOptions.find((opt) => opt.value === value)?.label || value;
-    
+
     if (currentApplicant?.id) {
-      await updateStudent(currentApplicant.id, { 
+      await updateStudent(currentApplicant.id, {
         state: stateName,  // Send NAME to API (e.g., "Tripura")
         district: null,
         block: null
@@ -743,9 +751,9 @@ export function ApplicantModal({
 
     // Convert district code to name before sending to API
     const districtName = districtOptions.find((opt) => opt.value === value)?.label || value;
-    
+
     if (currentApplicant?.id) {
-      await updateStudent(currentApplicant.id, { 
+      await updateStudent(currentApplicant.id, {
         district: districtName,  // Send NAME to API (e.g., "North District")
         block: null
       });
@@ -756,19 +764,19 @@ export function ApplicantModal({
 
   const handleBlockChange = async (value: string) => {
     if (!currentApplicant?.id) return;
-    
+
     try {
       // Convert block id to name before sending to API
       const blockName = blockOptions.find((opt) => opt.value === value)?.label || value;
-      
-      await updateStudent(currentApplicant.id, { 
+
+      await updateStudent(currentApplicant.id, {
         block: blockName  // Send NAME to API (e.g., "Block A")
       });
-      
+
       // Refresh applicant data
       await handleUpdate();
-      
-      toast({ 
+
+      toast({
         title: "✅ Block Updated",
         description: "Block has been updated successfully",
         variant: "default",
@@ -831,7 +839,7 @@ export function ApplicantModal({
               onChange={(e) => {
                 const value = e.target.value;
                 const numValue = Number(value);
-                
+
                 // Only allow if value is empty, or within valid range (0 to maxMarks)
                 if (value === "" || (numValue >= 0 && numValue <= maxMarks)) {
                   updateRow?.("obtained_marks", value);
@@ -1008,6 +1016,14 @@ export function ApplicantModal({
           <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
             <DialogTitle className="text-lg sm:text-xl">Applicant Details</DialogTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTransitions}
+                className="flex items-center gap-2"
+              >
+                Transitions
+              </Button>
               {/* <Button
                 variant="outline"
                 size="sm"
@@ -1074,7 +1090,7 @@ export function ApplicantModal({
                     disabled={!hasEditAccess}
                   />
                 </div>
-                 <div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Email
                   </label>
@@ -1112,7 +1128,7 @@ export function ApplicantModal({
                     disabled={!hasEditAccess}
                   />
                 </div>
-    
+
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Gender
@@ -1343,8 +1359,8 @@ export function ApplicantModal({
             updateApi={screeningUpdate}
             onSave={handleUpdate}
             disableAdd={isScreeningPassed}
-            // disabled={!hasEditAccess}
-            // disabledReason={!hasEditAccess ? "You do not have edit access" : undefined}
+          // disabled={!hasEditAccess}
+          // disabledReason={!hasEditAccess ? "You do not have edit access" : undefined}
           />
 
           {/* Learning & Cultural Fit Rounds */}
@@ -1395,7 +1411,7 @@ export function ApplicantModal({
                     ? "Student need to pass Screening Round"
                     // : !hasEditAccess
                     //   ? "You do not have edit access"
-                      : undefined
+                    : undefined
                 }
               />
             </div>
@@ -1446,7 +1462,7 @@ export function ApplicantModal({
                     ? "Student need to pass Learning Round"
                     // : !hasEditAccess
                     //   ? "You do not have edit access"
-                      : undefined
+                    : undefined
                 }
               />
             </div>
@@ -1795,6 +1811,16 @@ export function ApplicantModal({
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {showTransitionsModal && (
+        <TransitionsModal
+          isOpen={showTransitionsModal}
+          onClose={() => setShowTransitionsModal(false)}
+          studentId={currentApplicant?.id}
+          stages={stages}
+          statuses={currentstatusList}
         />
       )}
 
