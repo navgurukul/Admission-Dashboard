@@ -33,10 +33,10 @@ import {
 import { CalendarIcon, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  getFilterStudent, 
-  getStatusesByStageId, 
-  getAllDonors, 
+import {
+  getFilterStudent,
+  getStatusesByStageId,
+  getAllDonors,
   getAllPartners,
   getCampusesApi,
   getAllSchools,
@@ -267,12 +267,12 @@ export function AdvancedFilterModal({
         const allStates = [...(statesData || [])];
         statesFromStudents.forEach((stateName) => {
           const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
-           
+
           // Check if state already exists by name or code
           const existsInApi = allStates.find(
             (s) => s.name === stateName || s.state_code === stateName || s.id === stateName
           );
-          
+
           // Only add if it's not a state code and doesn't exist in API states
           if (!isStateCode && !existsInApi) {
             allStates.push({ id: stateName, name: stateName });
@@ -314,7 +314,7 @@ export function AdvancedFilterModal({
     };
 
     loadFilterData();
-     
+
   }, [isOpen]); // Only depend on isOpen to prevent infinite loops and freezing
 
   const resetFilters = () => {
@@ -339,7 +339,7 @@ export function AdvancedFilterModal({
   };
 
   const handleApplyFilters = () => {
-    
+
     // Validate date range - if start is selected, end must be selected
     if (filters.dateRange.from && !filters.dateRange.to) {
       toast({
@@ -380,7 +380,7 @@ export function AdvancedFilterModal({
       const hasStageStatus = Array.isArray(filters.stage_status)
         ? filters.stage_status.length > 0
         : filters.stage_status && filters.stage_status !== "all";
-        
+
       if (!hasStageStatus) {
         toast({
           title: "⚠️ Stage Status Required",
@@ -403,7 +403,7 @@ export function AdvancedFilterModal({
 
     // Remove the old 'status' field if it exists
     delete processedFilters.status;
-    
+
     // console.log("Current Filters:", processedFilters);
     onApplyFilters(processedFilters);
     onClose();
@@ -469,11 +469,11 @@ export function AdvancedFilterModal({
       const currentStatuses = Array.isArray(prev.stage_status)
         ? prev.stage_status
         : prev.stage_status && prev.stage_status !== "all"
-        ? [prev.stage_status]
-        : [];
-      
+          ? [prev.stage_status]
+          : [];
+
       const newStatuses = currentStatuses.filter((s) => s !== statusToRemove);
-      
+
       // If removing the last status and stage has statuses available, also clear the stage
       if (newStatuses.length === 0 && stageStatuses.length > 0) {
         return {
@@ -483,7 +483,7 @@ export function AdvancedFilterModal({
           stage_status: "all",
         };
       }
-      
+
       return {
         ...prev,
         stage_status: newStatuses.length > 0 ? newStatuses : "all",
@@ -528,24 +528,24 @@ export function AdvancedFilterModal({
   };
 
   const activeFilters: { key: string; label: string; onRemove?: () => void }[] = [];
-  
+
   // Stage chip (only if stage is selected)
   const hasStage = filters.stage && filters.stage !== "all";
   if (hasStage) {
-    activeFilters.push({ 
-      key: "stage", 
+    activeFilters.push({
+      key: "stage",
       label: `Stage: ${filters.stage}`,
       onRemove: () => clearSingleFilter("stage")
     });
   }
-  
+
   // Individual stage status chips
-  const stageStatusArray = Array.isArray(filters.stage_status) 
-    ? filters.stage_status 
-    : filters.stage_status && filters.stage_status !== "all" 
-      ? [filters.stage_status] 
+  const stageStatusArray = Array.isArray(filters.stage_status)
+    ? filters.stage_status
+    : filters.stage_status && filters.stage_status !== "all"
+      ? [filters.stage_status]
       : [];
-  
+
   stageStatusArray.forEach((status) => {
     activeFilters.push({
       key: `stage_status-${status}`,
@@ -553,17 +553,17 @@ export function AdvancedFilterModal({
       onRemove: () => removeSingleStageStatus(status)
     });
   });
-  
+
   if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}` });
   if (filters.district?.length) activeFilters.push({ key: "district", label: `District: ${filters.district[0]}` });
-  
+
   // Campus - find and display actual name
   if (filters.partner?.length) {
     const campus = availableOptions.campuses.find((c: any) => String(c.id) === String(filters.partner[0]));
     const campusLabel = campus?.campus_name || campus?.name || filters.partner[0];
     activeFilters.push({ key: "partner", label: `Campus: ${campusLabel}` });
   }
-  
+
   // School - find and display actual name
   if (filters.school?.length) {
     const school = availableOptions.schools.find((s: any) => String(s.id) === String(filters.school[0]));
@@ -573,7 +573,7 @@ export function AdvancedFilterModal({
       label: `School: ${schoolLabel}`,
     });
   }
-  
+
   // Qualification - find and display actual name
   if (filters.qualification?.length) {
     const qualification = availableOptions.qualifications.find((q: any) => String(q.id) === String(filters.qualification[0]));
@@ -583,7 +583,7 @@ export function AdvancedFilterModal({
       label: `Qualification: ${qualLabel}`,
     });
   }
-  
+
   // Current Status - find and display actual name
   if (filters.currentStatus?.length) {
     const status = availableOptions.currentStatuses.find((s: any) => String(s.id) === String(filters.currentStatus[0]));
@@ -593,7 +593,7 @@ export function AdvancedFilterModal({
       label: `Current Status: ${statusLabel}`,
     });
   }
-  
+
   // Religion - find and display actual name
   if (filters.religion?.length) {
     const religion = availableOptions.religions.find((r: any) => String(r.id) === String(filters.religion[0]));
@@ -603,7 +603,7 @@ export function AdvancedFilterModal({
       label: `Religion: ${religionLabel}`,
     });
   }
-  
+
   // Donor - find and display actual name
   if (filters.donor?.length) {
     const donor = availableOptions.donors.find((d: any) => String(d.id) === String(filters.donor[0]));
@@ -613,7 +613,7 @@ export function AdvancedFilterModal({
       label: `Donor: ${donorLabel}`,
     });
   }
-  
+
   // Partner (organization) - find and display actual name
   if (filters.partnerFilter?.length) {
     const partner = availableOptions.partnersList.find((p: any) => String(p.id) === String(filters.partnerFilter[0]));
@@ -623,25 +623,25 @@ export function AdvancedFilterModal({
       label: `Partner: ${partnerLabel}`,
     });
   }
-  
+
   if (filters.dateRange.from || filters.dateRange.to) {
     const from = filters.dateRange.from ? format(filters.dateRange.from, "dd/MM/yyyy") : "";
     const to = filters.dateRange.to ? format(filters.dateRange.to, "dd/MM/yyyy") : "";
-    
+
     // Make date type more readable
-    const dateTypeLabel = filters.dateRange.type === "applicant" 
-      ? "Created" 
-      : filters.dateRange.type === "lastUpdate" 
-        ? "Updated" 
+    const dateTypeLabel = filters.dateRange.type === "applicant"
+      ? "Created"
+      : filters.dateRange.type === "lastUpdate"
+        ? "Updated"
         : "Interview";
-    
+
     activeFilters.push({
       key: "dateRange",
       label: `${dateTypeLabel}: ${from}${from && to ? " → " : ""}${to}`,
     });
   }
   // --- end added helpers ---
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
@@ -774,7 +774,7 @@ export function AdvancedFilterModal({
                       filters.stage &&
                         filters.stage !== "all" &&
                         stageStatuses.length > 0 &&
-                        (!filters.stage_status || 
+                        (!filters.stage_status ||
                           (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) ||
                           filters.stage_status === "all")
                         ? "border-red-300"
@@ -785,18 +785,18 @@ export function AdvancedFilterModal({
                       {!filters.stage || filters.stage === "all"
                         ? "Select stage first"
                         : isLoading.general
-                            ? "Loading statuses..."
-                            : stageStatuses.length === 0
-                              ? "No statuses available - Stage can be applied"
-                              : Array.isArray(filters.stage_status) && filters.stage_status.length > 0
-                                ? `${filters.stage_status.length} selected`
-                                : "Select statuses (required)"}
+                          ? "Loading statuses..."
+                          : stageStatuses.length === 0
+                            ? "No statuses available - Stage can be applied"
+                            : Array.isArray(filters.stage_status) && filters.stage_status.length > 0
+                              ? `${filters.stage_status.length} selected`
+                              : "Select statuses (required)"}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent 
-                  className="w-[300px] p-0" 
+                <PopoverContent
+                  className="w-[300px] p-0"
                   align="start"
                   onOpenAutoFocus={(e) => e.preventDefault()}
                   onInteractOutside={(e) => {
@@ -810,9 +810,9 @@ export function AdvancedFilterModal({
                 >
                   <Command>
                     <CommandInput placeholder="Search statuses..." />
-                    <CommandList 
+                    <CommandList
                       className="max-h-[200px] overflow-y-scroll overscroll-contain"
-                      style={{ 
+                      style={{
                         scrollbarWidth: 'thin',
                         WebkitOverflowScrolling: 'touch'
                       } as React.CSSProperties}
@@ -829,14 +829,14 @@ export function AdvancedFilterModal({
                               const currentStatuses = Array.isArray(prev.stage_status)
                                 ? prev.stage_status
                                 : prev.stage_status && prev.stage_status !== "all"
-                                ? [prev.stage_status]
-                                : [];
-                              
+                                  ? [prev.stage_status]
+                                  : [];
+
                               // If all are currently selected, deselect all
                               // Otherwise, select all
-                              const allStatuses = stageStatuses.map((s: any) => s.status_name || s.name);
+                              const allStatuses = stageStatuses.map((s: any) => String(s.id));
                               const isAllSelected = currentStatuses.length === allStatuses.length;
-                              
+
                               return {
                                 ...prev,
                                 stage_status: isAllSelected ? "all" : allStatuses,
@@ -853,7 +853,7 @@ export function AdvancedFilterModal({
                                 filters.stage_status.length === stageStatuses.length
                               }
                               className="mr-2"
-                              onCheckedChange={() => {}}
+                              onCheckedChange={() => { }}
                             />
                             <span className="flex-1">Select All</span>
                             {Array.isArray(filters.stage_status) &&
@@ -862,13 +862,14 @@ export function AdvancedFilterModal({
                               )}
                           </div>
                         </CommandItem>
-                        
+
                         {stageStatuses.map((status: any) => {
                           const statusName = status.status_name || status.name;
+                          const statusId = String(status.id);
                           const isSelected = Array.isArray(filters.stage_status)
-                            ? filters.stage_status.includes(statusName)
-                            : filters.stage_status === statusName;
-                          
+                            ? filters.stage_status.includes(statusId)
+                            : filters.stage_status === statusId;
+
                           return (
                             <CommandItem
                               key={status.id || statusName}
@@ -878,18 +879,18 @@ export function AdvancedFilterModal({
                                   const currentStatuses = Array.isArray(prev.stage_status)
                                     ? prev.stage_status
                                     : prev.stage_status && prev.stage_status !== "all"
-                                    ? [prev.stage_status]
-                                    : [];
-                                  
+                                      ? [prev.stage_status]
+                                      : [];
+
                                   let newStatuses: string[];
                                   if (isSelected) {
                                     // Remove from selection
-                                    newStatuses = currentStatuses.filter((s) => s !== statusName);
+                                    newStatuses = currentStatuses.filter((s) => s !== statusId);
                                   } else {
                                     // Add to selection
-                                    newStatuses = [...currentStatuses, statusName];
+                                    newStatuses = [...currentStatuses, statusId];
                                   }
-                                  
+
                                   return {
                                     ...prev,
                                     stage_status: newStatuses.length > 0 ? newStatuses : "all",
@@ -903,7 +904,7 @@ export function AdvancedFilterModal({
                                 <Checkbox
                                   checked={isSelected}
                                   className="mr-2"
-                                  onCheckedChange={() => {}}
+                                  onCheckedChange={() => { }}
                                 />
                                 <span className="flex-1">{statusName}</span>
                                 {isSelected && (
@@ -988,32 +989,32 @@ export function AdvancedFilterModal({
             <div>
               <h3 className="font-semibold text-sm mb-2">State</h3>
               <Combobox
-                  options={[
-                    { value: "all", label: "All States" },
-                    ...availableStates.map((state) => ({
-                      value: state.name,
-                      label: state.name,
-                    })),
-                  ]}
-                  value={filters.state || "all"}
-                  onValueChange={handleStateChange}
-                  placeholder="Select State"
-                  searchPlaceholder="Search state..."
-                  emptyText="No state found."
-                  disabled={isLoading.general}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {/* {availableStates.length} states available */}
-                  {isLoading.general && " - Loading..."}
-                </p>
-              </div>
+                options={[
+                  { value: "all", label: "All States" },
+                  ...availableStates.map((state) => ({
+                    value: state.name,
+                    label: state.name,
+                  })),
+                ]}
+                value={filters.state || "all"}
+                onValueChange={handleStateChange}
+                placeholder="Select State"
+                searchPlaceholder="Search state..."
+                emptyText="No state found."
+                disabled={isLoading.general}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableStates.length} states available */}
+                {isLoading.general && " - Loading..."}
+              </p>
+            </div>
 
             {/* District / City */}
             <div>
               <h3 className="font-semibold text-sm mb-2">District</h3>
-                <Combobox
-                  options={[
-                    { value: "all", label: "All Districts" },
+              <Combobox
+                options={[
+                  { value: "all", label: "All Districts" },
                   ...availableDistricts.map((district) => ({
                     value: district.name,
                     label: district.name,
@@ -1094,61 +1095,61 @@ export function AdvancedFilterModal({
             <div>
               <h3 className="font-semibold text-sm mb-2">Partner</h3>
               <Combobox
-                  options={[
-                    { value: "all", label: "All Partners" },
-                    ...availableOptions.partnersList.map((partner) => ({
-                      value: getValue(partner),
-                      label: getDisplayName(partner, "partner_name", "Partner"),
-                    })),
-                  ]}
-                  value={filters.partnerFilter?.[0] || "all"}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      partnerFilter: value === "all" ? [] : [value],
-                    }))
-                  }
-                  placeholder={
-                    isLoading.general ? "Loading..." : "Select partner"
-                  }
-                  searchPlaceholder="Search partner..."
-                  emptyText="No partner found."
-                  disabled={isLoading.general}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {/* {availableOptions.partnersList.length} partners available */}
-                </p>
-              </div>
+                options={[
+                  { value: "all", label: "All Partners" },
+                  ...availableOptions.partnersList.map((partner) => ({
+                    value: getValue(partner),
+                    label: getDisplayName(partner, "partner_name", "Partner"),
+                  })),
+                ]}
+                value={filters.partnerFilter?.[0] || "all"}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    partnerFilter: value === "all" ? [] : [value],
+                  }))
+                }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select partner"
+                }
+                searchPlaceholder="Search partner..."
+                emptyText="No partner found."
+                disabled={isLoading.general}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.partnersList.length} partners available */}
+              </p>
+            </div>
 
             {/* Donor */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Donor</h3>
-                <Combobox
-                  options={[
-                    { value: "all", label: "All Donors" },
-                    ...availableOptions.donors.map((donor) => ({
-                      value: getValue(donor),
-                      label: getDisplayName(donor, "donor_name", "Donor"),
-                    })),
-                  ]}
-                  value={filters.donor?.[0] || "all"}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      donor: value === "all" ? [] : [value],
-                    }))
-                  }
-                  placeholder={
-                    isLoading.general ? "Loading..." : "Select donor"
-                  }
-                  searchPlaceholder="Search donor..."
-                  emptyText="No donor found."
-                  disabled={isLoading.general}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {/* {availableOptions.donors.length} donors available */}
-                </p>
-              </div>
+              <Combobox
+                options={[
+                  { value: "all", label: "All Donors" },
+                  ...availableOptions.donors.map((donor) => ({
+                    value: getValue(donor),
+                    label: getDisplayName(donor, "donor_name", "Donor"),
+                  })),
+                ]}
+                value={filters.donor?.[0] || "all"}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    donor: value === "all" ? [] : [value],
+                  }))
+                }
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select donor"
+                }
+                searchPlaceholder="Search donor..."
+                emptyText="No donor found."
+                disabled={isLoading.general}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {/* {availableOptions.donors.length} donors available */}
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
