@@ -2561,3 +2561,103 @@ export const getStudentsByDonorId = async (id: number | string, page: number = 1
   return data;
 }
 
+// Get Feedbacks
+export const getFeedbacks = async (): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/feedback/getFeedbacks`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch feedbacks");
+  }
+
+  return data;
+};
+
+// Create Feedback
+export const createFeedback = async (payload: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/feedback/createFeedback`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create feedback");
+  }
+
+  return data;
+};
+
+// Get Feedback By ID
+export const getFeedbackById = async (id: number): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/feedback/getFeedbackById/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to get feedback");
+  }
+
+  return data;
+};
+
+// Get Feedbacks By Student ID
+export const getFeedbacksByStudentId = async (student_id: number): Promise<any> => {
+  const response = await fetch(
+    `${BASE_URL}/feedback/getFeedbacksByStudent/${student_id}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch student feedbacks");
+  }
+
+  return data;
+};
+
+// Update Feedback
+export const updateFeedback = async (id: number, payload: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/feedback/updateFeedback/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update feedback");
+  }
+
+  return data;
+};
+
+// Delete Feedback
+export const deleteFeedback = async (id: number): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/feedback/deleteFeedback/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to delete feedback");
+  }
+
+  return data;
+};
