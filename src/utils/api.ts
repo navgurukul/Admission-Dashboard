@@ -1893,12 +1893,53 @@ export const getAllStates = async () => {
 };
 
 //  Get districts by state_code
-export const getDistrictsByState = async (stateCode: string) => {
-  const response = await fetch(`${BASE_URL}/states/getByState/${stateCode}`, {
-    method: "GET",
-  });
+export const getDistrictsByState = async (
+  stateIdentifier: string | number,
+) => {
+  // External API expects a numeric state_id. Accept either id or state code.
+  let stateId: string | number = stateIdentifier;
+
+  if (typeof stateIdentifier === "string" && !/^[0-9]+$/.test(stateIdentifier)) {
+    try {
+      const statesRes = await getAllStates();
+      let statesArray: any[] = [];
+
+      if (Array.isArray(statesRes)) {
+        statesArray = statesRes;
+      } else if (statesRes && Array.isArray(statesRes.data)) {
+        statesArray = statesRes.data;
+      } else if (statesRes && statesRes.states) {
+        statesArray = statesRes.states;
+      } else if (statesRes && statesRes.result) {
+        statesArray = statesRes.result;
+      }
+
+      const found = statesArray.find(
+        (s: any) =>
+          String(s.state_code).toLowerCase() === String(stateIdentifier).toLowerCase() ||
+          String(s.code).toLowerCase() === String(stateIdentifier).toLowerCase() ||
+          String(s.name).toLowerCase() === String(stateIdentifier).toLowerCase(),
+      );
+
+      if (found) {
+        stateId = found.id ?? found.state_id ?? found.ID ?? found.stateId ?? stateIdentifier;
+      }
+    } catch (err) {
+      // ignore and let the downstream API return an error if unresolved
+    }
+  }
+
+  const response = await fetch(
+    `${BASE_URL}/districts/getByState?state_id=${encodeURIComponent(
+      String(stateId),
+    )}`,
+    {
+      method: "GET",
+    },
+  );
+
   if (!response.ok)
-    throw new Error(`Failed to fetch districts for ${stateCode}`);
+    throw new Error(`Failed to fetch districts for ${stateIdentifier}`);
   return await response.json();
 };
 
