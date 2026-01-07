@@ -363,6 +363,10 @@ const PartnerPage = () => {
     // Let's find the original index in `partners` array.
     const originalIndex = partners.findIndex(p => p.id === partner.id);
 
+    // Try to find the state ID if we have codes
+    const stateObj = states.find(s => s.state_code === partner.state || s.id == partner.state);
+    const stateValue = stateObj ? String(stateObj.id) : (partner.state || "");
+
     setEditDialog({
       open: true,
       idx: originalIndex,
@@ -375,14 +379,14 @@ const PartnerPage = () => {
           partner.districts && partner.districts.length > 0
             ? [...partner.districts]
             : [""],
-        state: partner.state || "",
+        state: stateValue,
       },
     });
 
     // Load districts if state exists
-    if (partner.state) {
-      // partner.state is already state_code
-      loadDistricts(partner.state);
+    if (stateValue) {
+      // stateValue is now state numeric ID (as string)
+      loadDistricts(stateValue);
     }
   };
 
@@ -1045,7 +1049,7 @@ const PartnerPage = () => {
                   <Label htmlFor="state">State <span className="text-destructive">*</span></Label>
                   <Combobox
                     options={states.map((state) => ({
-                      value: state.state_code,
+                      value: String(state.id),
                       label: state.state_name,
                     }))}
                     value={addDialog.form.state}
@@ -1062,7 +1066,7 @@ const PartnerPage = () => {
                     <div key={i} className="flex gap-2">
                       <Combobox
                         options={districts.map((district) => ({
-                          value: district.district_code,
+                          value: String(district.id),
                           label: district.district_name,
                         }))}
                         value={d}
@@ -1211,7 +1215,7 @@ const PartnerPage = () => {
                   <Label htmlFor="edit-state">State <span className="text-destructive">*</span></Label>
                   <Combobox
                     options={states.map((state) => ({
-                      value: state.state_code,
+                      value: String(state.id),
                       label: state.state_name,
                     }))}
                     value={editDialog.form.state}
@@ -1228,7 +1232,7 @@ const PartnerPage = () => {
                     <div key={i} className="flex gap-2">
                       <Combobox
                         options={districts.map((district) => ({
-                          value: district.district_code,
+                          value: String(district.id),
                           label: district.district_name,
                         }))}
                         value={d}
