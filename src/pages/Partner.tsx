@@ -63,7 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { getPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName } from "@/utils/api";
+import { getPartners, getAllPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName } from "@/utils/api";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -142,31 +142,49 @@ const PartnerPage = () => {
     isRandom: true
   });
 
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalPartnersCount, setTotalPartnersCount] = useState(0);
+  const [allPartnersForStats, setAllPartnersForStats] = useState([]);
+
   // Cleaned up old picker states
   // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
   // const [pendingAssessment, setPendingAssessment] = useState<any>(null);
 
-  const loadPartners = async () => {
+  const loadPartners = async (p = page) => {
     setLoading(true);
     try {
-      const data = await getPartners();
-      // Stronger check to ensure we get an array
+      const response = await getPartners(p, ROWS_PER_PAGE);
+
+      // Extract data based on typical API structure
       let partnersArray = [];
-      if (Array.isArray(data)) {
-        partnersArray = data;
-      } else if (data && Array.isArray(data.data)) {
-        partnersArray = data.data;
+      let total = 0;
+      let pages = 1;
+
+      if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+        partnersArray = response.data.data;
+        total = response.data.total || partnersArray.length;
+        pages = response.data.totalPages || Math.ceil(total / ROWS_PER_PAGE);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        partnersArray = response.data;
+        total = response.total || partnersArray.length;
+        pages = response.totalPages || Math.ceil(total / ROWS_PER_PAGE);
+      } else if (Array.isArray(response)) {
+        partnersArray = response;
+        total = response.length;
+        pages = 1;
       }
 
       // Normalize districts to be always an array
-      partnersArray = partnersArray.map(p => ({
+      const normalizedPartners = partnersArray.map(p => ({
         ...p,
         districts: Array.isArray(p.districts)
           ? p.districts
           : (typeof p.districts === 'string' ? (p.districts as string).split(',').map(d => d.trim()) : [])
       }));
 
-      setPartners(partnersArray);
+      setPartners(normalizedPartners);
+      setTotalPartnersCount(total);
+      setTotalPages(pages);
       setLoading(false);
     } catch (error) {
       toast({
@@ -180,8 +198,21 @@ const PartnerPage = () => {
   };
 
   useEffect(() => {
-    loadPartners();
+    loadPartners(page);
+  }, [page]);
+
+  useEffect(() => {
     loadStates();
+    // Load all partners once for global stats and districts filter
+    const fetchGlobalStats = async () => {
+      try {
+        const all = await getAllPartners();
+        setAllPartnersForStats(all);
+      } catch (e) {
+        console.error("Failed to load global stats", e);
+      }
+    };
+    fetchGlobalStats();
   }, []);
 
   const loadStates = async () => {
@@ -261,18 +292,16 @@ const PartnerPage = () => {
     setPage(1);
   }, [searchQuery, filters]);
 
-  const paginatedPartners = filteredPartners.slice(
-    (page - 1) * ROWS_PER_PAGE,
-    page * ROWS_PER_PAGE,
-  );
-  const totalPages = Math.ceil(filteredPartners.length / ROWS_PER_PAGE);
+  // We use partners directly since it's now paginated by the server
+  const paginatedPartners = filteredPartners;
+  // totalPages is now handled by state
 
   // Stats
-  const totalPartners = partners.length;
+  const totalPartners = totalPartnersCount;
   const activeDistricts = new Set(
-    partners.flatMap((p) => p.districts || []),
+    allPartnersForStats.flatMap((p) => p.districts || []),
   ).size;
-  const totalStudents = partners.reduce((acc, curr) => acc + (curr.student_count || 0), 0); // Assuming student_count exists or 0
+  const totalStudents = allPartnersForStats.reduce((acc, curr) => acc + (curr.student_count || 0), 0);
 
 
   // CSV Download
@@ -285,7 +314,7 @@ const PartnerPage = () => {
       // "Notes",
       "Meraki Link"
     ];
-    const rows = paginatedPartners.map((partner) => [
+    const rows = allPartnersForStats.map((partner) => [
       partner.partner_name,
       partner.email,
       partner.slug,
@@ -925,7 +954,7 @@ const PartnerPage = () => {
             {/* Pagination */}
             <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
               <div className="text-xs text-muted-foreground">
-                Showing <strong>{(page - 1) * ROWS_PER_PAGE + 1}</strong> to <strong>{Math.min(page * ROWS_PER_PAGE, filteredPartners.length)}</strong> of <strong>{filteredPartners.length}</strong>
+                Showing <strong>{(page - 1) * ROWS_PER_PAGE + 1}</strong> to <strong>{Math.min(page * ROWS_PER_PAGE, totalPartnersCount)}</strong> of <strong>{totalPartnersCount}</strong>
               </div>
               <div className="flex items-center space-x-2">
                 <Button

@@ -797,18 +797,8 @@ export const updateReligion = async (
 
 // Get All Partners
 export const getAllPartners = async (): Promise<any[]> => {
-  const response = await fetch(`${BASE_URL}/partners/getPartners`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+  const data = await getPartners(1, 1000);
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch partners");
-  }
-
-  // Handle different response formats based on other APIs
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
@@ -2403,8 +2393,8 @@ export const createPartner = async (payload: Partial<Partner>) => {
   return data;
 };
 
-export const getPartners = async () => {
-  const response = await fetch(`${BASE_URL}/partners/getPartners`, {
+export const getPartners = async (page: number = 1, limit: number = 10) => {
+  const response = await fetch(`${BASE_URL}/partners/getPartners?page=${page}&pageSize=${limit}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -2413,15 +2403,6 @@ export const getPartners = async () => {
 
   if (!response.ok) {
     throw new Error(data.message || "Failed to fetch partners");
-  }
-
-  // Handle potential nested data structure like other APIs
-  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    return data.data.data;
-  } else if (data && data.data && Array.isArray(data.data)) {
-    return data.data;
-  } else if (Array.isArray(data)) {
-    return data;
   }
 
   return data;
