@@ -42,6 +42,7 @@ import {
   searchStudentsApi,
   getFilterStudent,
   sendBulkOfferLetters,
+  getStatusesByStageId,
 } from "@/utils/api";
 import { exportApplicantsToCSV } from "@/utils/exportApplicants";
 import {
@@ -91,6 +92,7 @@ const ApplicantTable = () => {
   const { hasEditAccess } = usePermissions();
   const { triggerRefresh } = useDashboardRefresh();
   const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
+  const [stageStatuses, setStageStatuses] = useState<any[]>([]);
   // Custom hook for data fetching
   const {
     students,
@@ -145,9 +147,8 @@ const ApplicantTable = () => {
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
-        name: `${student.first_name || ""} ${student.middle_name || ""} ${
-          student.last_name || ""
-        }`.trim(),
+        name: `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""
+          }`.trim(),
         school_name: examSchoolName,
         campus_name: campus ? campus.campus_name : "N/A",
         current_status_name: current_status
@@ -204,6 +205,28 @@ const ApplicantTable = () => {
   useEffect(() => {
     setSelectedRows([]);
   }, [searchTerm, hasActiveFilters]);
+
+  // Fetch stage statuses when filters change
+  useEffect(() => {
+    const fetchStageStatuses = async () => {
+      const stageId = (filters as any).stage_id;
+      if (!stageId || (filters as any).stage === "all") {
+        setStageStatuses([]);
+        return;
+      }
+
+      try {
+        const response = await getStatusesByStageId(stageId);
+        const statusesData = response?.data || response || [];
+        setStageStatuses(statusesData);
+      } catch (error) {
+        console.error("Error fetching stage statuses:", error);
+        setStageStatuses([]);
+      }
+    };
+
+    fetchStageStatuses();
+  }, [filters]);
 
   // Track if pagination/itemsPerPage is actively changing (not just data refresh)
   const [isPaginationChanging, setIsPaginationChanging] = useState(false);
@@ -340,21 +363,18 @@ const ApplicantTable = () => {
       
       toast({
         title: "⚠️ Campus Required",
-        description: `You’ve selected ${selectedStudents.length} students, but ${studentsWithoutCampus.length} ${
-    studentsWithoutCampus.length === 1 ? "student doesn’t" : "students don’t"
-  } have a campus assigned${
-    studentNames
-      ? `. Please assign a campus to: ${studentNames}${
-          moreCount > 0 ? ` and ${moreCount} others` : ""
-        }`
-      : ""
-  }. Once campus is assigned, you can send offer letters.`,
+        description: `You’ve selected ${selectedStudents.length} students, but ${studentsWithoutCampus.length} ${studentsWithoutCampus.length === 1 ? "student doesn’t" : "students don’t"
+          } have a campus assigned${studentNames
+            ? `. Please assign a campus to: ${studentNames}${moreCount > 0 ? ` and ${moreCount} others` : ""
+            }`
+            : ""
+          }. Once campus is assigned, you can send offer letters.`,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
         duration: 8000,
       });
-      
-      return; 
+
+      return;
     }
 
     // All students have campus - show confirmation dialog
@@ -362,7 +382,7 @@ const ApplicantTable = () => {
   };
 
   const handleSendBulkOfferLetters = async () => {
-  
+
     try {
       const studentIds = selectedRows.map((id) => Number(id));
       const result = await sendBulkOfferLetters(studentIds);
@@ -626,14 +646,14 @@ const ApplicantTable = () => {
     return String(value);
   };
 
-   const activeFilterTags = useMemo(() => {
-     const tags: { key: string; label: string; onRemove?: () => void }[] = [];
-    
+  const activeFilterTags = useMemo(() => {
+    const tags: { key: string; label: string; onRemove?: () => void }[] = [];
+
     // // Debug: log first student to see available fields
     // if (filteredApplicants && filteredApplicants.length > 0) {
     //   // console.log('Sample filtered student data:', filteredApplicants[0]);
     // }
-    
+
     // Helper function to get a better label when lists are empty
     const getBetterLabel = (id: any, type: string): string => {
       // If we have filtered data, try to find a matching entry with the name
@@ -672,17 +692,20 @@ const ApplicantTable = () => {
     
     // Individual stage status chips
     const stageStatusValue = (filters as any).stage_status;
-    const stageStatusArray = Array.isArray(stageStatusValue) 
-      ? stageStatusValue 
-      : stageStatusValue && stageStatusValue !== "all" 
-        ? [stageStatusValue] 
+    const stageStatusArray = Array.isArray(stageStatusValue)
+      ? stageStatusValue
+      : stageStatusValue && stageStatusValue !== "all"
+        ? [stageStatusValue]
         : [];
-    
-    stageStatusArray.forEach((status: string) => {
+
+    stageStatusArray.forEach((statusId: string) => {
+      const statusObj = stageStatuses.find((s: any) => String(s.id) === String(statusId));
+      const statusLabel = statusObj?.status_name || statusObj?.name || statusId;
+
       tags.push({
-        key: `stage_status-${status}`,
-        label: `Status: ${status}`,
-        onRemove: () => handleRemoveSingleStageStatus(status)
+        key: `stage_status-${statusId}`,
+        label: `Status: ${statusLabel}`,
+        onRemove: () => handleRemoveSingleStageStatus(statusId)
       });
     });
 
@@ -731,31 +754,31 @@ const ApplicantTable = () => {
       quals.forEach((q: any) => {
         // Try multiple approaches to find the qualification name
         let qualLabel: string | null = null;
-        
+
         // Try finding in qualificationList by ID
-        const fromQualList = qualificationList.find((x: any) => 
-          String(x.id) === String(q) || 
-          x.qualification_name === q || 
+        const fromQualList = qualificationList.find((x: any) =>
+          String(x.id) === String(q) ||
+          x.qualification_name === q ||
           x.name === q
         );
-        
+
         // Try finding in questionSetList by ID
-        const fromQuestionSet = questionSetList.find((x: any) => 
-          String(x.id) === String(q) || 
+        const fromQuestionSet = questionSetList.find((x: any) =>
+          String(x.id) === String(q) ||
           x.name === q
         );
-        
+
         if (fromQualList) {
           qualLabel = fromQualList.qualification_name || fromQualList.name;
         } else if (fromQuestionSet) {
           qualLabel = fromQuestionSet.name || fromQuestionSet.qualification_name;
         }
-        
+
         // If not found in lists, try resolvers and student data
         if (!qualLabel) {
           qualLabel = resolveQuestionSetName(q) || getBetterLabel(q, 'qualification');
         }
-        
+
         tags.push({
           key: `qualification-${q}`,
           label: `Qualification: ${qualLabel}`,
@@ -808,23 +831,23 @@ const ApplicantTable = () => {
 
     // State / District / Gender
     if ((filters as any).state && (filters as any).state !== "all") {
-      tags.push({ 
-        key: `state-${(filters as any).state}`, 
+      tags.push({
+        key: `state-${(filters as any).state}`,
         label: `State: ${(filters as any).state}`,
         onRemove: () => handleClearSingleFilter("state"),
       });
     }
     if ((filters as any).district?.length) {
       const dists = (filters as any).district.filter((d: any) => d !== "all");
-      dists.forEach((d: any) => tags.push({ 
-        key: `district-${d}`, 
+      dists.forEach((d: any) => tags.push({
+        key: `district-${d}`,
         label: `District: ${d}`,
         onRemove: () => handleClearSingleFilter("district"),
       }));
     }
     if ((filters as any).gender && (filters as any).gender !== "all") {
-      tags.push({ 
-        key: `gender-${(filters as any).gender}`, 
+      tags.push({
+        key: `gender-${(filters as any).gender}`,
         label: `Gender: ${(filters as any).gender}`,
         onRemove: () => handleClearSingleFilter("gender"),
       });
@@ -841,29 +864,29 @@ const ApplicantTable = () => {
       
       // Make date type more readable
       const dateType = (filters as any).dateRange.type;
-      const typeLabel = dateType === "applicant" 
-        ? "Created" 
-        : dateType === "lastUpdate" 
-          ? "Updated" 
+      const typeLabel = dateType === "applicant"
+        ? "Created"
+        : dateType === "lastUpdate"
+          ? "Updated"
           : dateType === "interview"
             ? "Interview"
             : dateType;
-      
-      tags.push({ 
-        key: `daterange-${from}-${to}`, 
+
+      tags.push({
+        key: `daterange-${from}-${to}`,
         label: `${typeLabel}: ${from} → ${to}`,
         onRemove: () => handleClearSingleFilter("dateRange"),
       });
     }
 
     return tags;
-   }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, partnerList, donorList, qualificationList, filteredApplicants]);
-  
+  }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, partnerList, donorList, qualificationList, filteredApplicants]);
+
   // Use resolved campus name in applicant mapping too (handles API returning numeric/string)
-   // Apply filters and fetch filtered students
-   const handleApplyFilters = async (newFilters: any) => {
-     console.log("Applying filters:", newFilters);
-     setFilters(newFilters);
+  // Apply filters and fetch filtered students
+  const handleApplyFilters = async (newFilters: any) => {
+    console.log("Applying filters:", newFilters);
+    setFilters(newFilters);
 
     // Check if any meaningful filters are applied
     const hasFilters =
@@ -903,9 +926,8 @@ const ApplicantTable = () => {
 
       toast({
         title: "✅ Filters Applied",
-        description: `Found ${
-          results?.length || 0
-        } applicants matching your criteria`,
+        description: `Found ${results?.length || 0
+          } applicants matching your criteria`,
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900",
       });
@@ -960,11 +982,11 @@ const ApplicantTable = () => {
     const currentStatuses = Array.isArray((filters as any).stage_status)
       ? (filters as any).stage_status
       : (filters as any).stage_status && (filters as any).stage_status !== "all"
-      ? [(filters as any).stage_status]
-      : [];
-    
+        ? [(filters as any).stage_status]
+        : [];
+
     const newStatuses = currentStatuses.filter((s: string) => s !== statusToRemove);
-    
+
     // If removing the last status, also clear the stage
     // (because a stage with statuses available requires at least one status to be selected)
     let newFilters;
@@ -1322,8 +1344,8 @@ const ApplicantTable = () => {
               ))}
             </div>
           )}
-           <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-         </div>
+          <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+        </div>
 
         <div className="flex-1 border rounded-md overflow-hidden relative">
           <div className="h-full overflow-auto">
