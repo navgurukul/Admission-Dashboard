@@ -546,11 +546,13 @@ export function AdvancedFilterModal({
       ? [filters.stage_status]
       : [];
 
-  stageStatusArray.forEach((status) => {
+  stageStatusArray.forEach((statusId) => {
+    const statusObj = stageStatuses.find((s: any) => String(s.id) === String(statusId));
+    const statusLabel = statusObj?.status_name || statusObj?.name || statusId;
     activeFilters.push({
-      key: `stage_status-${status}`,
-      label: `Status: ${status}`,
-      onRemove: () => removeSingleStageStatus(status)
+      key: `stage_status-${statusId}`,
+      label: `Status: ${statusLabel}`,
+      onRemove: () => removeSingleStageStatus(statusId)
     });
   });
 
