@@ -797,15 +797,29 @@ export const updateReligion = async (
 
 // Get All Partners
 export const getAllPartners = async (): Promise<any[]> => {
-  const data = await getPartners(1, 1000);
+  try {
+    const data = await getPartners(1, 1000);
 
-  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    return data.data.data;
-  } else if (data && data.data && Array.isArray(data.data)) {
-    return data.data;
-  } else if (Array.isArray(data)) {
-    return data;
-  } else {
+    // Handle nested structure: data.data.data
+    if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
+      return data.data.data;
+    }
+    // Handle structure: data.data
+    if (data && data.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    // Handle structure: data (if it's already an array)
+    if (Array.isArray(data)) {
+      return data;
+    }
+    // Handle potential response structure from findByFilter: { result: [...] }
+    if (data && data.result && Array.isArray(data.result)) {
+      return data.result;
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Error in getAllPartners:", error);
     return [];
   }
 };
