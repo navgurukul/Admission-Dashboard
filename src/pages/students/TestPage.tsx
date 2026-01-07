@@ -18,7 +18,7 @@ const STORAGE_KEY = "student_test_progress";
 interface Question {
   id: number;
   question: string;
-  options: string[];
+  options: Array<string | { id?: number; text?: string; label?: string }>;
   difficulty_level: number;
   answer: number; // store the index of the correct option
 }
@@ -252,6 +252,11 @@ const TestPage: React.FC = () => {
         <div className="space-y-3">
           {questions[currentIndex].options.map((opt, idx) => {
             const qid = questions[currentIndex].id;
+            const display =
+              typeof opt === "string"
+                ? opt
+                : opt?.text ?? opt?.label ?? JSON.stringify(opt);
+
             return (
               <label
                 key={idx}
@@ -268,7 +273,7 @@ const TestPage: React.FC = () => {
                   onChange={() => handleAnswer(idx)}
                   className="hidden"
                 />
-                {opt}
+                {display}
               </label>
             );
           })}
