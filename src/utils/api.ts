@@ -1672,39 +1672,35 @@ export const getAllStatuses = async (): Promise<CurrentStatus[]> => {
   }
 };
 
-// Get all campuses
+// Get campuses with pagination
+export const getCampuses = async (page: number = 1, limit: number = 10) => {
+  const response = await fetch(`${BASE_URL}/campuses/getCampuses?page=${page}&pageSize=${limit}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch campuses");
+  }
+
+  return data;
+};
+
+// Get all campuses (legacy/convenience)
 export const getCampusesApi = async (): Promise<
   { id: number; campus_name: string }[]
 > => {
-  const response = await fetch(`${BASE_URL}/campuses/getCampuses`);
-  const data = await response.json();
+  const data = await getCampuses(1, 1000);
 
   let campusesData: any[] = [];
-  if (Array.isArray(data)) {
-    campusesData = data;
-  } else if (data.data && Array.isArray(data.data)) {
-    campusesData = data.data;
-  } else if (
-    data.data &&
-    typeof data.data === "object" &&
-    data.data.data &&
-    Array.isArray(data.data.data)
-  ) {
+  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     campusesData = data.data.data;
-  } else if (
-    data.data &&
-    typeof data.data === "object" &&
-    data.data.campuses &&
-    Array.isArray(data.data.campuses)
-  ) {
-    campusesData = data.data.campuses;
-  } else if (
-    data.data &&
-    typeof data.data === "object" &&
-    data.data.result &&
-    Array.isArray(data.data.result)
-  ) {
-    campusesData = data.data.result;
+  } else if (data && data.data && Array.isArray(data.data)) {
+    campusesData = data.data;
+  } else if (Array.isArray(data)) {
+    campusesData = data;
   } else if (data.campuses && Array.isArray(data.campuses)) {
     campusesData = data.campuses;
   } else if (data.result && Array.isArray(data.result)) {
