@@ -54,6 +54,8 @@ const StudentForm: React.FC = () => {
   const [districts, setDistricts] = useState<District[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [emailError, setEmailError] = useState("");
+  const [alternateError, setAlternateError] = useState("");
+  const [whatsappError, setWhatsappError] = useState("");
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
@@ -375,6 +377,23 @@ const StudentForm: React.FC = () => {
     setFormData(newFormData);
     localStorage.setItem("studentFormData", JSON.stringify(newFormData));
 
+    // Live validation for alternate and whatsapp numbers
+    if (name === "alternateNumber") {
+      if (processedValue && processedValue.length !== 10) {
+        setAlternateError("Enter a valid 10-digit number");
+      } else {
+        setAlternateError("");
+      }
+    }
+
+    if (name === "whatsappNumber") {
+      if (processedValue && processedValue.length !== 10) {
+        setWhatsappError("Enter a valid 10-digit WhatsApp number");
+      } else {
+        setWhatsappError("");
+      }
+    }
+
     // Live email validation
     if (name === "email") {
       if (!validateEmail(processedValue)) {
@@ -532,6 +551,15 @@ const StudentForm: React.FC = () => {
       return toast({
         title: "⚠️ Invalid WhatsApp Number",
         description: "Enter a valid 10-digit WhatsApp number.",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
+    }
+
+    if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
+      return toast({
+        title: "⚠️ Invalid Alternate Number",
+        description: "Enter a valid 10-digit alternate number or leave it empty.",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900"
       });
@@ -979,6 +1007,9 @@ const StudentForm: React.FC = () => {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={content.enterWhatsapp}
               />
+              {whatsappError && (
+                <p className="text-destructive text-sm mt-1">{whatsappError}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -994,6 +1025,9 @@ const StudentForm: React.FC = () => {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={content.enterAlternate}
               />
+              {alternateError && (
+                <p className="text-destructive text-sm mt-1">{alternateError}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

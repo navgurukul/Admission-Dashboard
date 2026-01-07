@@ -114,25 +114,7 @@ const Instructions: React.FC = () => {
 
         {/* Navigation */}
         <div className="flex justify-between mt-6">
-          <button
-            onClick={handlePrevious}
-            className="text-muted-foreground hover:text-foreground flex items-center"
-          >
-            <svg
-              className="w-4 h-4 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            {content.back}
-          </button>
+          <div />
           <button
             onClick={handleNext}
             className="text-primary hover:text-primary/80 flex items-center"

@@ -43,7 +43,7 @@ interface FilterState {
 }
 
 const TABS = [
-  { key: "overview", label: "Overview" },
+  // { key: "overview", label: "Overview" },
   { key: "student", label: "Student Data" },
 ];
 
