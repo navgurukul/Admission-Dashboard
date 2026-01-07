@@ -23,6 +23,7 @@ import { toast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 import {
+  getCampuses,
   getCampusesApi,
   createCampusApi,
   updateCampusApi,
@@ -41,6 +42,8 @@ const CampusPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalCampusesCount, setTotalCampusesCount] = useState(0);
   const itemsPerPage = 10;
 
   const [addDialog, setAddDialog] = useState(false);
@@ -52,12 +55,34 @@ const CampusPage: React.FC = () => {
   const [selectedCampus, setSelectedCampus] = useState<Campus | null>(null);
 
   // Reusable fetch function
-  const fetchCampuses = async (showLoader = false) => {
+  const fetchCampuses = async (showLoader = false, page = currentPage) => {
     if (showLoader) setLoading(true);
     try {
-      const data = await getCampusesApi();
-      console.log("campus Data", data);
-      setCampuses(data);
+      const response = await getCampuses(page, itemsPerPage);
+      console.log("campus Data", response);
+
+      let campusArray = [];
+      let total = 0;
+      let pages = 0;
+
+      // Robust extraction similar to Partner.tsx
+      if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+        campusArray = response.data.data;
+        total = response.data.totalCount || response.data.total || campusArray.length;
+        pages = response.data.totalPages || Math.ceil(total / itemsPerPage);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        campusArray = response.data;
+        total = response.totalCount || response.total || response.data.totalCount || campusArray.length;
+        pages = response.totalPages || response.data.totalPages || Math.ceil(total / itemsPerPage);
+      } else if (Array.isArray(response)) {
+        campusArray = response;
+        total = response.length;
+        pages = Math.ceil(total / itemsPerPage);
+      }
+
+      setCampuses(campusArray);
+      setTotalPages(pages);
+      setTotalCampusesCount(total);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unknown error occurred",
@@ -67,22 +92,19 @@ const CampusPage: React.FC = () => {
     }
   };
 
-  // Fetch on mount
+  // Fetch on mount and when page changes
   useEffect(() => {
     fetchCampuses(true);
-  }, []);
+  }, [currentPage]);
 
-  // Filter + pagination
-  const filteredCampuses = campuses.filter((c) =>
-    c.campus_name.toLowerCase().includes(search.toLowerCase()),
-  );
-  const totalPages = Math.ceil(filteredCampuses.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredCampuses.slice(
-    indexOfFirstItem,
-    indexOfLastItem,
-  );
+  // Filter and Slice (Slice added to ensure only itemsPerPage are shown)
+  const filteredCampuses = campuses
+    .filter((c) =>
+      c.campus_name.toLowerCase().includes(search.toLowerCase()),
+    )
+    .slice(0, itemsPerPage);
+
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
@@ -137,76 +159,76 @@ const CampusPage: React.FC = () => {
 
   // Update campus
   const handleUpdateCampus = async (id: number, campus_name: string) => {
-  // Get the old campus name before updating
-  const oldCampus = campuses.find(c => c.id === id);
-  const oldName = oldCampus?.campus_name || "";
-  
-  setActionLoading(true);
-  try {
-    await updateCampusApi(id, campus_name);
-    setEditDialog(false);
-    setSelectedCampus(null);
-    toast({
-      title: "✅ Campus Updated",
-      description: `Campus name updated from "${oldName}" to "${campus_name}".`,
-      variant: "default",
-      className: "border-green-500 bg-green-50 text-green-900",
-    });
-    await fetchCampuses(false);
-  } catch (err) {
-    toast({
-      title: "❌ Unable to Update Campus",
-      description: getFriendlyErrorMessage(err),
-      variant: "destructive",
-      className: "border-red-500 bg-red-50 text-red-900",
-    });
-  } finally {
-    setActionLoading(false);
-  }
-};
+    // Get the old campus name before updating
+    const oldCampus = campuses.find(c => c.id === id);
+    const oldName = oldCampus?.campus_name || "";
+
+    setActionLoading(true);
+    try {
+      await updateCampusApi(id, campus_name);
+      setEditDialog(false);
+      setSelectedCampus(null);
+      toast({
+        title: "✅ Campus Updated",
+        description: `Campus name updated from "${oldName}" to "${campus_name}".`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+      await fetchCampuses(false);
+    } catch (err) {
+      toast({
+        title: "❌ Unable to Update Campus",
+        description: getFriendlyErrorMessage(err),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Delete campus
   const handleDeleteCampus = async (id: number, campus_name: string) => {
-  setActionLoading(true);
-  try {
-    await deleteCampusApi(id);
-    setDeleteDialog(false);
-    setSelectedCampus(null);
-    toast({
-      title: "✅ Campus Deleted",
-      description: `"${campus_name}" has been deleted.`,
-      variant: "default",
-      className: "border-green-500 bg-green-50 text-green-900",
-    });
-    await fetchCampuses(false);
-    setCurrentPage(1);
-  } catch (error: any) {
-    // Try multiple paths to get the error message
-    const fullErrorMessage = 
-      error?.data?.message || 
-      error?.response?.data?.message ||
-      error?.message ||
-      "An unexpected error occurred.";
-    
-    // Check if it's a student records association error
-    const isStudentRecordsError = fullErrorMessage && (
-      fullErrorMessage.toLowerCase().includes("associated with") ||
-      fullErrorMessage.toLowerCase().includes("student records") 
-    );
-    
-    // Use orange for student records error (warning), red for others (error)
-    const isWarning = isStudentRecordsError;
-    
-    toast({
-      title: isWarning ? "⚠️ Unable to Delete Campus" : "❌ Unable to Delete Campus",
-      description: fullErrorMessage || "An unexpected error occurred.",
-      variant: isWarning ? "default" : "destructive",
-      className: isWarning ? "border-orange-500 bg-orange-50 text-orange-900" : "border-red-500 bg-red-50 text-red-900",
-    });
-  } finally {
-    setActionLoading(false);
-  }
-};
+    setActionLoading(true);
+    try {
+      await deleteCampusApi(id);
+      setDeleteDialog(false);
+      setSelectedCampus(null);
+      toast({
+        title: "✅ Campus Deleted",
+        description: `"${campus_name}" has been deleted.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+      await fetchCampuses(false);
+      setCurrentPage(1);
+    } catch (error: any) {
+      // Try multiple paths to get the error message
+      const fullErrorMessage =
+        error?.data?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "An unexpected error occurred.";
+
+      // Check if it's a student records association error
+      const isStudentRecordsError = fullErrorMessage && (
+        fullErrorMessage.toLowerCase().includes("associated with") ||
+        fullErrorMessage.toLowerCase().includes("student records")
+      );
+
+      // Use orange for student records error (warning), red for others (error)
+      const isWarning = isStudentRecordsError;
+
+      toast({
+        title: isWarning ? "⚠️ Unable to Delete Campus" : "❌ Unable to Delete Campus",
+        description: fullErrorMessage || "An unexpected error occurred.",
+        variant: isWarning ? "default" : "destructive",
+        className: isWarning ? "border-orange-500 bg-orange-50 text-orange-900" : "border-red-500 bg-red-50 text-red-900",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-background">
@@ -256,14 +278,14 @@ const CampusPage: React.FC = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {currentItems.length === 0 ? (
+                      {filteredCampuses.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={3} className="text-center">
                             No campuses found.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        currentItems.map((campus, index) => (
+                        filteredCampuses.map((campus, index) => (
                           <TableRow key={campus.id}>
                             <TableCell>
                               {indexOfFirstItem + index + 1}
@@ -313,9 +335,9 @@ const CampusPage: React.FC = () => {
                   {/* Showing items range */}
                   <p className="text-sm text-muted-foreground">
                     Showing{" "}
-                    {filteredCampuses.length === 0 ? 0 : indexOfFirstItem + 1} –{" "}
-                    {Math.min(indexOfLastItem, filteredCampuses.length)} of{" "}
-                    {filteredCampuses.length}
+                    {totalCampusesCount === 0 ? 0 : indexOfFirstItem + 1} –{" "}
+                    {Math.min(currentPage * itemsPerPage, totalCampusesCount)} of{" "}
+                    {totalCampusesCount}
                   </p>
 
                   {/* Pagination buttons */}

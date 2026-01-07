@@ -421,35 +421,35 @@ export function AddApplicantModal({
   };
 
   const handleEmailBlur = async () => {
-  if (!formData.email) return;
+    if (!formData.email) return;
 
-  // basic format check
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(formData.email)) return;
+    // basic format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) return;
 
-  setIsCheckingEmail(true);
+    setIsCheckingEmail(true);
 
-  try {
-    const existingStudent = await getStudentDataByEmail(formData.email);
+    try {
+      const existingStudent = await getStudentDataByEmail(formData.email);
 
-    if (existingStudent) {
-      setErrors((prev) => ({
-        ...prev,
-        email: "This email already exists, you can use another email",
-      }));
-      setEmailExists(true);
+      if (existingStudent) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "This email already exists, you can use another email",
+        }));
+        setEmailExists(true);
+      }
+    } catch (err) {
+      // email NOT found = valid case
+      setEmailExists(false);
+      setErrors((prev) => {
+        const { email, ...rest } = prev;
+        return rest;
+      });
+    } finally {
+      setIsCheckingEmail(false);
     }
-  } catch (err) {
-    // email NOT found = valid case
-    setEmailExists(false);
-    setErrors((prev) => {
-      const { email, ...rest } = prev;
-      return rest;
-    });
-  } finally {
-    setIsCheckingEmail(false);
-  }
-};
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -1282,7 +1282,7 @@ export function AddApplicantModal({
                       Caste *
                     </Label>
                     <Combobox
-                      options={castList?.map((caste) => ({
+                      options={(Array.isArray(castList) ? castList : [])?.map((caste: any) => ({
                         value: String(caste.id),
                         label: caste.cast_name,
                       })) || []}
@@ -1314,7 +1314,7 @@ export function AddApplicantModal({
                       Qualification *
                     </Label>
                     <Combobox
-                      options={qualificationList?.map((q) => ({
+                      options={(Array.isArray(qualificationList) ? qualificationList : [])?.map((q: any) => ({
                         value: String(q.id),
                         label: q.qualification_name,
                       })) || []}
@@ -1353,7 +1353,7 @@ export function AddApplicantModal({
                       Current Work *
                     </Label>
                     <Combobox
-                      options={currentstatusList?.map((work) => ({
+                      options={(Array.isArray(currentstatusList) ? currentstatusList : [])?.map((work: any) => ({
                         value: String(work.id),
                         label: work.current_status_name,
                       })) || []}
@@ -1383,7 +1383,7 @@ export function AddApplicantModal({
                       </p>
                     )}
                   </div>
-{/* 
+                  {/* 
                   <div className="space-y-2">
                     <Label htmlFor="campus_id" className="text-sm font-medium">
                       Campus *
@@ -1426,7 +1426,7 @@ export function AddApplicantModal({
                       Religion *
                     </Label>
                     <Combobox
-                      options={religionList?.map((r) => ({
+                      options={(Array.isArray(religionList) ? religionList : [])?.map((r: any) => ({
                         value: String(r.id),
                         label: r.religion_name,
                       })) || []}
@@ -1463,7 +1463,7 @@ export function AddApplicantModal({
                       Partner
                     </Label>
                     <Combobox
-                      options={partnerList?.map((p) => ({
+                      options={(Array.isArray(partnerList) ? partnerList : [])?.map((p: any) => ({
                         value: String(p.id),
                         label: p.partner_name,
                       })) || []}
@@ -1491,7 +1491,7 @@ export function AddApplicantModal({
                       Donor
                     </Label>
                     <Combobox
-                      options={donorList?.map((d) => ({
+                      options={(Array.isArray(donorList) ? donorList : [])?.map((d: any) => ({
                         value: String(d.id),
                         label: d.donor_name,
                       })) || []}
@@ -1598,7 +1598,7 @@ export function AddApplicantModal({
                       Question Set *
                     </Label>
                     <Combobox
-                      options={questionSetList?.map((set) => ({
+                      options={(Array.isArray(questionSetList) ? questionSetList : [])?.map((set: any) => ({
                         value: String(set.id),
                         label: set.name,
                       })) || []}
@@ -1759,7 +1759,7 @@ export function AddApplicantModal({
                       Qualifying School
                     </Label>
                     <Combobox
-                      options={schoolList?.map((school) => ({
+                      options={(Array.isArray(schoolList) ? schoolList : [])?.map((school: any) => ({
                         value: String(school.id),
                         label: school.school_name,
                       })) || []}

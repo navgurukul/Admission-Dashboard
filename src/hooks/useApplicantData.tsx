@@ -10,7 +10,7 @@ import {
   getAllQuestionSets,
   getAllQualification,
   getAllCasts,
-  getPartners,
+  getAllPartners,
   getAllDonors,
   getAllStates,
 } from "@/utils/api";
@@ -57,13 +57,13 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
     const fetchAllOptions = async () => {
       try {
         const [
-          campuses, 
-          schools, 
-          religions, 
-          qualifications, 
-          casts, 
-          partners, 
-          donors, 
+          campuses,
+          schools,
+          religions,
+          qualifications,
+          casts,
+          partners,
+          donors,
           states,
           stages,
           statuses,
@@ -74,7 +74,7 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
           getAllReligions().catch(err => { console.error("Failed to load religions:", err); return []; }),
           getAllQualification().catch(err => { console.error("Failed to load qualifications:", err); return []; }),
           getAllCasts().catch(err => { console.error("Failed to load casts:", err); return []; }),
-          getPartners().catch(err => { console.error("Failed to load partners:", err); return []; }),
+          getAllPartners().catch(err => { console.error("Failed to load partners:", err); return []; }),
           getAllDonors().catch(err => { console.error("Failed to load donors:", err); return []; }),
           getAllStates().catch(err => { console.error("Failed to load states:", err); return []; }),
           getAllStages().catch(err => { console.error("Failed to load stages:", err); return []; }),
