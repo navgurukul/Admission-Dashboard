@@ -438,53 +438,164 @@ export const deleteRole = async (id: string | number): Promise<void> => {
 
 // Learning Round APIs
 export const submitLearningRound = async (row: any) => {
-  return fetch(`${BASE_URL}/students/submit/learningRoundFeedback`, {
+  const response = await fetch(`${BASE_URL}/students/submit/learningRoundFeedback`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
+
+  if (response.ok && row.student_id) {
+    const data = await response.clone().json();
+    const status = row.learning_round_status || data?.data?.learning_round_status || data?.learning_round_status;
+    if (status) {
+      await triggerStudentStatusUpdate(row.student_id, "learning", status);
+    }
+  }
+  return response;
 };
 
 export const updateLearningRound = async (id: number, row: any) => {
-  return fetch(`${BASE_URL}/students/update/learningRoundFeedback/${id}`, {
+  const response = await fetch(`${BASE_URL}/students/update/learningRoundFeedback/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
+
+  if (response.ok) {
+    // For updates, we might need to get student_id if not in row
+    const studentId = row.student_id;
+    const status = row.learning_round_status;
+    if (studentId && status) {
+      await triggerStudentStatusUpdate(studentId, "learning", status);
+    }
+  }
+  return response;
 };
 
 // screening round Round APIs
 export const submitScreeningRound = async (row: any) => {
-  return fetch(`${BASE_URL}/students/submit/screeningRoundFeedback`, {
+  const response = await fetch(`${BASE_URL}/students/submit/screeningRoundFeedback`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
+
+  if (response.ok && row.student_id) {
+    const data = await response.clone().json();
+    const status = row.status || data?.data?.status || data?.status;
+    if (status) {
+      await triggerStudentStatusUpdate(row.student_id, "screening", status);
+    }
+  }
+  return response;
 };
 
 export const updateScreeningRound = async (id: number, row: any) => {
-  return fetch(`${BASE_URL}/students/update/screeningRoundFeedback/${id}`, {
+  const response = await fetch(`${BASE_URL}/students/update/screeningRoundFeedback/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
+
+  if (response.ok) {
+    const studentId = row.student_id;
+    const status = row.status;
+    if (studentId && status) {
+      await triggerStudentStatusUpdate(studentId, "screening", status);
+    }
+  }
+  return response;
 };
 
 // Cultural Fit APIs
 export const submitCulturalFit = async (row: any) => {
-  return fetch(`${BASE_URL}/students/submit/culturalFitRoundFeedback`, {
+  const response = await fetch(`${BASE_URL}/students/submit/culturalFitRoundFeedback`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
+
+  if (response.ok && row.student_id) {
+    const data = await response.clone().json();
+    const status = row.cultural_fit_status || data?.data?.cultural_fit_status || data?.cultural_fit_status;
+    if (status) {
+      await triggerStudentStatusUpdate(row.student_id, "cultural", status);
+    }
+  }
+  return response;
 };
 
 export const updateCulturalFit = async (id: number, row: any) => {
-  return fetch(`${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`, {
+  const response = await fetch(`${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(row),
   });
+
+  if (response.ok) {
+    const studentId = row.student_id;
+    const status = row.cultural_fit_status;
+    if (studentId && status) {
+      await triggerStudentStatusUpdate(studentId, "cultural", status);
+    }
+  }
+  return response;
+};
+
+export const updateStudentStatus = async (payload: {
+  student_id: number;
+  stage_id: number;
+  stage_status_id: number;
+}) => {
+  return fetch(`${BASE_URL}/students/updateStudentStatus`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+};
+
+/**
+ * Helper to trigger student status update based on round and feedback status
+ */
+export const triggerStudentStatusUpdate = async (
+  studentId: number,
+  roundType: "screening" | "learning" | "cultural",
+  status: string
+) => {
+  let stageId: number;
+  let stageStatusId: number | null = null;
+
+  const normalizedStatus = status.toLowerCase();
+
+  switch (roundType) {
+    case "screening":
+      stageId = 3;
+      if (normalizedStatus.includes("pass")) stageStatusId = 5;
+      else if (normalizedStatus.includes("fail")) stageStatusId = 4;
+      break;
+    case "learning":
+      stageId = 4;
+      if (normalizedStatus.includes("pass")) stageStatusId = 9;
+      else if (normalizedStatus.includes("fail")) stageStatusId = 14;
+      break;
+    case "cultural":
+      stageId = 4;
+      if (normalizedStatus.includes("pass")) stageStatusId = 26;
+      else if (normalizedStatus.includes("fail")) stageStatusId = 18;
+      break;
+  }
+
+  if (stageStatusId !== null) {
+    try {
+      await updateStudentStatus({
+        student_id: studentId,
+        stage_id: stageId,
+        stage_status_id: stageStatusId,
+      });
+    } catch (error) {
+      console.error("Failed to update student status automatically:", error);
+    }
+  }
 };
 
 // Map to dynamically select API based on type

@@ -813,10 +813,10 @@ export function ApplicantModal({
       options: [
         { value: "Screening Test Pass", label: "Screening Test Pass" },
         { value: "Screening Test Fail", label: "Screening Test Fail" },
-        {
-          value: "Created Student Without Exam",
-          label: "Created Student Without Exam",
-        },
+        // {
+        //   value: "Created Student Without Exam",
+        //   label: "Created Student Without Exam",
+        // },
       ],
     },
     {
