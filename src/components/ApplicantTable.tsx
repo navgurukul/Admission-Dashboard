@@ -137,7 +137,7 @@ const ApplicantTable = () => {
           new Date(current.created_at) > new Date(latest.created_at) ? current : latest
         );
         obtainedMarks = latestExam.obtained_marks || 0;
-        
+
         // Get school from exam session
         if (latestExam.school_id) {
           const examSchool = schoolList.find((s) => s.id === latestExam.school_id);
@@ -185,6 +185,10 @@ const ApplicantTable = () => {
     setIsFiltering,
     hasActiveFilters,
     setHasActiveFilters,
+    filteredTotalCount,
+    setFilteredTotalCount,
+    filteredTotalPages,
+    setFilteredTotalPages,
     filteredApplicants,
   } = useApplicantFilters(
     applicantsToDisplay,
@@ -249,6 +253,32 @@ const ApplicantTable = () => {
     }
   }, [isStudentsFetching, isPaginationChanging]);
 
+  // Refetch filtered data when page or limit changes
+  useEffect(() => {
+    if (hasActiveFilters && !isSearching) {
+      const fetchFilteredData = async () => {
+        try {
+          setIsFiltering(true);
+          const apiParams = transformFiltersToAPI(filters);
+          const apiParamsWithPagination = {
+            ...apiParams,
+            page: currentPage,
+            limit: itemsPerPage,
+          };
+          const response = await getFilterStudent(apiParamsWithPagination);
+          setFilteredStudents(response.data || []);
+          setFilteredTotalCount(response.total || 0);
+          setFilteredTotalPages(response.totalPages || 1);
+        } catch (error) {
+          console.error("Error refetching filtered data:", error);
+        } finally {
+          setIsFiltering(false);
+        }
+      };
+      fetchFilteredData();
+    }
+  }, [currentPage, itemsPerPage, hasActiveFilters, filters]);
+
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
     setSelectedRows((prev) =>
@@ -267,7 +297,7 @@ const ApplicantTable = () => {
   const refreshData = useCallback(async () => {
     // Trigger dashboard stats refresh
     triggerRefresh();
-    
+
     // If searching, re-run the search to get updated data
     if (searchTerm.trim()) {
       try {
@@ -281,9 +311,15 @@ const ApplicantTable = () => {
     else if (hasActiveFilters && filters) {
       try {
         const apiParams = transformFiltersToAPI(filters);
-        // console.log("Refreshing filtered data with params:", apiParams);
-        const results = await getFilterStudent(apiParams);
-        setFilteredStudents(results || []);
+        const apiParamsWithPagination = {
+          ...apiParams,
+          page: currentPage,
+          limit: itemsPerPage,
+        };
+        const response = await getFilterStudent(apiParamsWithPagination);
+        setFilteredStudents(response.data || []);
+        setFilteredTotalCount(response.total || 0);
+        setFilteredTotalPages(response.totalPages || 1);
       } catch (error: any) {
         console.error("Error refreshing filtered data:", error);
         toast({
@@ -347,21 +383,21 @@ const ApplicantTable = () => {
     const selectedStudents = filteredApplicants.filter((applicant) =>
       selectedRows.includes(applicant.id)
     );
-    
+
     // Check for students without campus (check campus_name)
     const studentsWithoutCampus = selectedStudents.filter(
       (student) => !student.campus_name || student.campus_name === "N/A"
     );
-    
+
     if (studentsWithoutCampus.length > 0) {
       // Show names of first 3 students without campus
       const studentNames = studentsWithoutCampus
         .slice(0, 3)
         .map((s) => s.name || `${s.first_name} ${s.last_name}`)
         .join(", ");
-      
+
       const moreCount = studentsWithoutCampus.length - 3;
-      
+
       toast({
         title: "⚠️ Campus Required",
         description: `You’ve selected ${selectedStudents.length} students, but ${studentsWithoutCampus.length} ${studentsWithoutCampus.length === 1 ? "student doesn’t" : "students don’t"
@@ -520,12 +556,12 @@ const ApplicantTable = () => {
     if (filterState.stage_id) {
       apiParams.stage_id = filterState.stage_id;
     }
-    
+
     // Stage Status
     if (filterState.stage_status && filterState.stage_status !== "all") {
       apiParams.stage_status = filterState.stage_status;
     }
-    
+
     // Qualification ID
     if (
       filterState.qualification?.length &&
@@ -671,7 +707,7 @@ const ApplicantTable = () => {
           }
         }
       }
-      
+
       // Fallback - just show the ID (API permissions issue)
       return String(id);
     };
@@ -679,18 +715,18 @@ const ApplicantTable = () => {
     // Stage chip (only if stage is selected)
     const stageId = (filters as any).stage_id ?? (filters as any).stage;
     const hasStage = stageId && stageId !== "all";
-    
+
     if (hasStage) {
       const stageObj = stageList.find((s) => s.id === stageId) as any;
       const stageName = stageObj?.stage_name || stageObj?.name || stageId || "Stage";
-      
+
       tags.push({
         key: `stage-${stageId}`,
         label: `Stage: ${stageName}`,
         onRemove: () => handleClearSingleFilter("stage")
       });
     }
-    
+
     // Individual stage status chips
     const stageStatusValue = (filters as any).stage_status;
     const stageStatusArray = Array.isArray(stageStatusValue)
@@ -806,7 +842,7 @@ const ApplicantTable = () => {
       partners.forEach((p: any) => {
         const partner = partnerList.find((pt) => Number(pt.id) === Number(p));
         const partnerLabel = partner?.partner_name || partner?.name || getBetterLabel(p, 'partner');
-        
+
         tags.push({
           key: `partnerFilter-${p}`,
           label: `Partner: ${partnerLabel}`,
@@ -821,7 +857,7 @@ const ApplicantTable = () => {
       donors.forEach((d: any) => {
         const donor = donorList.find((dn) => Number(dn.id) === Number(d));
         const donorLabel = donor?.donor_name || donor?.name || getBetterLabel(d, 'donor');
-        
+
         tags.push({
           key: `donor-${d}`,
           label: `Donor: ${donorLabel}`,
@@ -858,11 +894,11 @@ const ApplicantTable = () => {
     if ((filters as any).dateRange?.from && (filters as any).dateRange?.to) {
       const fromDate = new Date((filters as any).dateRange.from);
       const toDate = new Date((filters as any).dateRange.to);
-      
+
       // Format as dd/MM/yyyy
       const from = `${String(fromDate.getDate()).padStart(2, '0')}/${String(fromDate.getMonth() + 1).padStart(2, '0')}/${fromDate.getFullYear()}`;
       const to = `${String(toDate.getDate()).padStart(2, '0')}/${String(toDate.getMonth() + 1).padStart(2, '0')}/${toDate.getFullYear()}`;
-      
+
       // Make date type more readable
       const dateType = (filters as any).dateRange.type;
       const typeLabel = dateType === "applicant"
@@ -921,13 +957,21 @@ const ApplicantTable = () => {
       const apiParams = transformFiltersToAPI(newFilters);
 
       // Call the filter API
-      const results = await getFilterStudent(apiParams);
-      setFilteredStudents(results || []);
+      const apiParamsWithPagination = {
+        ...apiParams,
+        page: 1,
+        limit: itemsPerPage,
+      };
+
+      const response = await getFilterStudent(apiParamsWithPagination);
+      setFilteredStudents(response.data || []);
+      setFilteredTotalCount(response.total || 0);
+      setFilteredTotalPages(response.totalPages || 1);
       setCurrentPage(1); // Reset to first page when filters are applied
 
       toast({
         title: "✅ Filters Applied",
-        description: `Found ${results?.length || 0
+        description: `Found ${response.total || 0
           } applicants matching your criteria`,
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900",
@@ -1034,13 +1078,20 @@ const ApplicantTable = () => {
       try {
         setIsFiltering(true);
         const apiParams = transformFiltersToAPI(newFilters);
-        const results = await getFilterStudent(apiParams);
-        setFilteredStudents(results || []);
+        const apiParamsWithPagination = {
+          ...apiParams,
+          page: 1,
+          limit: itemsPerPage,
+        };
+        const response = await getFilterStudent(apiParamsWithPagination);
+        setFilteredStudents(response.data || []);
+        setFilteredTotalCount(response.total || 0);
+        setFilteredTotalPages(response.totalPages || 1);
         setCurrentPage(1);
 
         toast({
           title: "✅ Filter Removed",
-          description: `Found ${results?.length || 0} applicants matching your criteria`,
+          description: `Found ${response.total || 0} applicants matching your criteria`,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
@@ -1146,13 +1197,20 @@ const ApplicantTable = () => {
       try {
         setIsFiltering(true);
         const apiParams = transformFiltersToAPI(newFilters);
-        const results = await getFilterStudent(apiParams);
-        setFilteredStudents(results || []);
+        const apiParamsWithPagination = {
+          ...apiParams,
+          page: 1,
+          limit: itemsPerPage,
+        };
+        const response = await getFilterStudent(apiParamsWithPagination);
+        setFilteredStudents(response.data || []);
+        setFilteredTotalCount(response.total || 0);
+        setFilteredTotalPages(response.totalPages || 1);
         setCurrentPage(1);
 
         toast({
           title: "✅ Filter Removed",
-          description: `Found ${results?.length || 0} applicants matching your criteria`,
+          description: `Found ${response.total || 0} applicants matching your criteria`,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
@@ -1196,7 +1254,7 @@ const ApplicantTable = () => {
 
     try {
       setIsExporting(true);
-      
+
       // Get the full applicant data for selected rows if export type is 'selected'
       let selectedApplicantsData: any[] = [];
       if (exportType === 'selected') {
@@ -1225,7 +1283,7 @@ const ApplicantTable = () => {
     if (searchTerm.trim()) {
       return searchResults.length;
     } else if (hasActiveFilters) {
-      return filteredStudents.length;
+      return filteredTotalCount;
     } else {
       return totalStudents;
     }
@@ -1235,9 +1293,13 @@ const ApplicantTable = () => {
 
   // Calculate total pages based on current view
   const totalPages = useMemo(() => {
-    // For search and filter modes, use client-side pagination
-    if (searchTerm.trim() || hasActiveFilters) {
+    // For search mode, use client-side pagination
+    if (searchTerm.trim()) {
       return Math.max(1, Math.ceil(currentTotalCount / itemsPerPage));
+    }
+    // For filter mode, use server-side filtered pagination
+    if (hasActiveFilters) {
+      return filteredTotalPages;
     }
     // For normal mode, use server-side pagination count
     return totalPagesFromAPI;
@@ -1247,17 +1309,19 @@ const ApplicantTable = () => {
     currentTotalCount,
     itemsPerPage,
     totalPagesFromAPI,
+    filteredTotalPages,
   ]);
 
-  // Apply pagination to filtered results (only for search/filter mode)
+  // Apply pagination to search results (only for search mode)
+  // For filter and normal mode, data is already paginated by the server
   const paginatedApplicants = useMemo(() => {
-    // For search or filter mode, apply client-side pagination
-    if (searchTerm.trim() || hasActiveFilters) {
+    // For search mode, apply client-side pagination
+    if (searchTerm.trim()) {
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
       return filteredApplicants.slice(startIndex, endIndex);
     }
-    // For normal mode, use data directly from server (already paginated)
+    // For filter or normal mode, use data directly from server (already paginated)
     return filteredApplicants;
   }, [
     searchTerm,
@@ -1279,9 +1343,9 @@ const ApplicantTable = () => {
             <CardTitle>Applicants</CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
               {searchTerm
-                ? `${filteredApplicants.length} applicants found (search)`
+                ? `${currentTotalCount} applicants found (search)`
                 : hasActiveFilters
-                  ? `${filteredApplicants.length} applicants found (filtered)`
+                  ? `${currentTotalCount} applicants found (filtered)`
                   : `${totalStudents} total applicants`}
             </CardDescription>
           </div>
@@ -1303,7 +1367,7 @@ const ApplicantTable = () => {
               isExporting={isExporting}
               hasActiveFilters={hasActiveFilters}
               searchTerm={searchTerm}
-              filteredCount={filteredApplicants.length}
+              filteredCount={currentTotalCount}
               selectedCount={selectedRows.length}
             />
             {hasActiveFilters && (
@@ -1459,7 +1523,7 @@ const ApplicantTable = () => {
           setApplicantToView(null);
           refreshData(); // Refresh the table data when modal closes
         }}
-       
+
       />
       {/* <ApplicantCommentsModal
         applicantId={applicantForComments?.id || ""}

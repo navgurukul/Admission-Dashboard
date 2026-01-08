@@ -6,7 +6,7 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 interface FilterState {
   stage: string;
   stage_status: string;
-  stage_id:number;
+  stage_id: number;
   examMode: string;
   interviewMode: string;
   partner: any[];
@@ -121,9 +121,8 @@ export const useApplicantFilters = (
 
       return {
         ...student,
-        name: `${student.first_name || ""} ${student.middle_name || ""} ${
-          student.last_name || ""
-        }`.trim(),
+        name: `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""
+          }`.trim(),
         // Use the name from filter API if available, otherwise lookup by ID
         school_name:
           student.school_name || (school ? school.school_name : "N/A"),
@@ -153,6 +152,9 @@ export const useApplicantFilters = (
     questionSetList,
   ]);
 
+  const [filteredTotalCount, setFilteredTotalCount] = useState(0);
+  const [filteredTotalPages, setFilteredTotalPages] = useState(1);
+
   return {
     searchTerm,
     setSearchTerm,
@@ -163,6 +165,10 @@ export const useApplicantFilters = (
     isSearching,
     filteredStudents,
     setFilteredStudents,
+    filteredTotalCount,
+    setFilteredTotalCount,
+    filteredTotalPages,
+    setFilteredTotalPages,
     isFiltering,
     setIsFiltering,
     hasActiveFilters,
