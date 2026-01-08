@@ -174,13 +174,22 @@ const PartnerPage = () => {
         pages = 1;
       }
 
-      // Normalize districts to be always an array
-      const normalizedPartners = partnersArray.map(p => ({
-        ...p,
-        districts: Array.isArray(p.districts)
-          ? p.districts
-          : (typeof p.districts === 'string' ? (p.districts as string).split(',').map(d => d.trim()) : [])
-      }));
+      // Normalize districts: 'districts' for IDs, 'displayDistricts' for Names
+      const normalizedPartners = partnersArray.map(p => {
+        const districtIds = Array.isArray(p.districts)
+          ? p.districts.map(String)
+          : (p.districts ? (typeof p.districts === 'string' ? p.districts.split(',').map(d => d.trim()).filter(Boolean) : [String(p.districts)]) : []);
+
+        const displayDistricts = p.district_name
+          ? (typeof p.district_name === 'string' ? p.district_name.split(',').map(d => d.trim()).filter(Boolean) : [p.district_name])
+          : districtIds;
+
+        return {
+          ...p,
+          districts: districtIds,
+          displayDistricts: displayDistricts
+        };
+      });
 
       setPartners(normalizedPartners);
       setTotalPartnersCount(total);
@@ -207,7 +216,23 @@ const PartnerPage = () => {
     const fetchGlobalStats = async () => {
       try {
         const all = await getAllPartners();
-        setAllPartnersForStats(all);
+        // Normalize districts for global stats as well
+        const normalizedAll = (all || []).map(p => {
+          const districtIds = Array.isArray(p.districts)
+            ? p.districts.map(String)
+            : (p.districts ? (typeof p.districts === 'string' ? p.districts.split(',').map(d => d.trim()).filter(Boolean) : [String(p.districts)]) : []);
+
+          const displayDistricts = p.district_name
+            ? (typeof p.district_name === 'string' ? p.district_name.split(',').map(d => d.trim()).filter(Boolean) : [p.district_name])
+            : districtIds;
+
+          return {
+            ...p,
+            districts: districtIds,
+            displayDistricts: displayDistricts
+          };
+        });
+        setAllPartnersForStats(normalizedAll);
       } catch (e) {
         console.error("Failed to load global stats", e);
       }
@@ -272,7 +297,7 @@ const PartnerPage = () => {
       partner.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       partner.slug?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDistrict = filters.district
-      ? (partner.districts || []).some((d) =>
+      ? (partner.displayDistricts || []).some((d) =>
         d.toLowerCase().includes(filters.district.toLowerCase()),
       )
       : true;
@@ -299,7 +324,7 @@ const PartnerPage = () => {
   // Stats
   const totalPartners = totalPartnersCount;
   const activeDistricts = new Set(
-    allPartnersForStats.flatMap((p) => p.districts || []),
+    allPartnersForStats.flatMap((p) => p.displayDistricts || []),
   ).size;
   const totalStudents = allPartnersForStats.reduce((acc, curr) => acc + (curr.student_count || 0), 0);
 
@@ -318,7 +343,7 @@ const PartnerPage = () => {
       partner.partner_name,
       partner.email,
       partner.slug,
-      (partner.districts || []).join("; "),
+      (partner.displayDistricts || []).join("; "),
       // partner.notes,
       partner.meraki_link || "-",
     ]);
@@ -893,10 +918,10 @@ const PartnerPage = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {(partner.districts || []).map((d, i) => (
+                            {(partner.displayDistricts || []).map((d, i) => (
                               <Badge key={i} variant="secondary" className="text-[10px] px-1 py-0">{d}</Badge>
                             ))}
-                            {(!partner.districts || partner.districts.length === 0) && <span className="text-xs text-muted-foreground">-</span>}
+                            {(!partner.displayDistricts || partner.displayDistricts.length === 0) && <span className="text-xs text-muted-foreground">-</span>}
                           </div>
                         </TableCell>
                         <TableCell>
