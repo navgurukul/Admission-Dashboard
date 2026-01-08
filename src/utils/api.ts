@@ -998,6 +998,27 @@ export const deleteReligion = async (id: string): Promise<void> => {
   }
 };
 
+export interface StudentStats {
+  totalStudents: number;
+  offerLetterSent: number;
+  onboarded: number;
+}
+
+export const getStudentsStats = async (): Promise<StudentStats> => {
+  const response = await fetch(`${BASE_URL}/students/getStudentsStats`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch student stats");
+  }
+
+  return data.data;
+};
+
 // Get All Students
 export const getStudents = async (page, limit) => {
   const response = await apiRequest(

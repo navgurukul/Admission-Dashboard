@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { TrendingUp, Users, Clock, CheckCircle } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
-import { getStudents, getFilterStudent, getAllStages, getStatusesByStageId } from "@/utils/api";
+import { getStudentsStats } from "@/utils/api";
 
 interface DashboardMetrics {
   totalApplicants: number;
@@ -11,8 +11,6 @@ interface DashboardMetrics {
   successfullyOnboarded: number;
 }
 
-// Cache stages at module level to avoid refetching
-let cachedStages: any[] | null = null;
 
 export function DashboardStats() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -34,68 +32,13 @@ export function DashboardStats() {
         return;
       }
 
-      // Use cached stages or fetch if not available
-      let stages = cachedStages;
-      if (!stages) {
-        stages = await getAllStages();
-        cachedStages = stages;
-      }
-      
-      const finalDecisionStage = stages.find(
-        (stage: any) => stage.stage_name === "Final Decision",
-      );
-      const onboardedStage = stages.find(
-        (stage: any) => stage.stage_name === "Onboarded",
-      );
-      const finalDecisionStageId = finalDecisionStage?.id;
-      const onboardedStageId = onboardedStage?.id;
+      const statsData = await getStudentsStats();
 
-      // Fetch total students - just get first page to get total count
-      const studentsResponse = await getStudents(1, 10);
-      const totalApplicants = studentsResponse?.totalCount || 0;
-
-      // Fetch active applications - students at "Final Decision" stage using stage_id
-      let activeApplications = 0;
-      if (finalDecisionStageId) {
-        // Fetch statuses for Final Decision stage
-        const finalDecisionStatuses = await getStatusesByStageId(finalDecisionStageId);
-        const offerSentStatus = finalDecisionStatuses.find(
-          (s: any) => s.status_name === "Offer Sent" || s.name === "Offer Sent"
-        );
-
-        if (offerSentStatus) {
-          const finalDecisionResponse = await getFilterStudent({
-            stage_id: finalDecisionStageId,
-            stage_status: offerSentStatus.id
-          });
-          activeApplications = finalDecisionResponse?.length || 0;
-        }
-      }
-
-      // Fetch onboarded students - filter by Onboarded stage using stage_id
-      let successfullyOnboarded = 0;
-      if (onboardedStageId) {
-        // Fetch statuses for Onboarded stage
-        const onboardedStatuses = await getStatusesByStageId(onboardedStageId);
-        const onboardedStatus = onboardedStatuses.find(
-          (s: any) => s.status_name === "Onboarded" || s.name === "Onboarded"
-        );
-
-        if (onboardedStatus) {
-          const onboardedResponse = await getFilterStudent({
-            stage_id: onboardedStageId,
-            stage_status: onboardedStatus.id,
-          });
-          successfullyOnboarded = onboardedResponse?.length || 0;
-        }
-      }
-
-      const interviewsScheduled = 0;
       setMetrics({
-        totalApplicants,
-        activeApplications,
-        interviewsScheduled,
-        successfullyOnboarded,
+        totalApplicants: statsData.totalStudents || 0,
+        activeApplications: statsData.offerLetterSent || 0,
+        interviewsScheduled: 0,
+        successfullyOnboarded: statsData.onboarded || 0,
       });
     } catch (error) {
       console.error("Error calculating metrics:", error);
