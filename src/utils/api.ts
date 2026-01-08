@@ -1251,7 +1251,7 @@ export const createStudent = async (studentData: any): Promise<any> => {
   return data;
 };
 
-export const getFilterStudent = async (filters: any): Promise<any[]> => {
+export const getFilterStudent = async (filters: any): Promise<{ data: any[], total: number, totalPages: number }> => {
   const query = new URLSearchParams(filters).toString();
   const response = await fetch(`${BASE_URL}/students/filter?${query}`, {
     method: "GET",
@@ -1264,19 +1264,15 @@ export const getFilterStudent = async (filters: any): Promise<any[]> => {
     throw new Error(data.message || "Failed to fetch statuses");
   }
 
-  // Return the data array from the response
-  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    return data.data.data;
-  } else if (data && data.data && Array.isArray(data.data)) {
-    return data.data;
-  } else if (data && data.statuses && Array.isArray(data.statuses)) {
-    return data.statuses;
-  } else if (Array.isArray(data)) {
-    return data;
-  } else {
-    console.error("Data structure:", JSON.stringify(data, null, 2));
-    return [];
-  }
+  // Return the data array and pagination info
+  const students = data?.data?.data || data?.data || data?.statuses || (Array.isArray(data) ? data : []);
+  const pagination = data?.data?.pagination || data?.pagination || {};
+
+  return {
+    data: students,
+    total: Number(pagination.total) || students.length,
+    totalPages: Number(pagination.totalPages) || 1
+  };
 };
 
 // post student exam submission

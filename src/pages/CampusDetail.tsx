@@ -124,8 +124,12 @@ const CampusDetail = () => {
 
     const fetchStudents = async () => {
       try {
-        const studentsData = await getFilterStudent({ campus_id: Number(id) });
-        setStudents(studentsData || []);
+        const response = await getFilterStudent({
+          campus_id: Number(id),
+          limit: 1000 // Get many for client-side pagination in this view
+        });
+        const studentsData = response.data || [];
+        setStudents(studentsData);
         setFilteredStudentsData([]);
 
         // If on overview tab, calculate school capacities from student data
@@ -285,12 +289,12 @@ const CampusDetail = () => {
     
     // Individual stage status chips
     const stageStatusValue = (filters as any).stage_status;
-    const stageStatusArray = Array.isArray(stageStatusValue) 
-      ? stageStatusValue 
-      : stageStatusValue && stageStatusValue !== "all" 
-        ? [stageStatusValue] 
+    const stageStatusArray = Array.isArray(stageStatusValue)
+      ? stageStatusValue
+      : stageStatusValue && stageStatusValue !== "all"
+        ? [stageStatusValue]
         : [];
-    
+
     stageStatusArray.forEach((status: string) => {
       tags.push({
         key: `stage_status-${status}`,
@@ -330,15 +334,15 @@ const CampusDetail = () => {
       const quals = (filters as any).qualification.filter((q: any) => q !== "all");
       quals.forEach((q: any) => {
         let qualLabel = q;
-        
-        const fromQualList = qualificationList.find((x: any) => 
-          String(x.id) === String(q) || 
-          x.qualification_name === q || 
+
+        const fromQualList = qualificationList.find((x: any) =>
+          String(x.id) === String(q) ||
+          x.qualification_name === q ||
           x.name === q
         );
-        
-        const fromQuestionSet = questionSetList.find((x: any) => 
-          String(x.id) === String(q) || 
+
+        const fromQuestionSet = questionSetList.find((x: any) =>
+          String(x.id) === String(q) ||
           x.name === q
         );
         
@@ -455,9 +459,9 @@ const CampusDetail = () => {
     const currentStatuses = Array.isArray((filters as any).stage_status)
       ? (filters as any).stage_status
       : (filters as any).stage_status && (filters as any).stage_status !== "all"
-      ? [(filters as any).stage_status]
-      : [];
-    
+        ? [(filters as any).stage_status]
+        : [];
+
     const newStatuses = currentStatuses.filter((s: string) => s !== statusToRemove);
     
     let newFilters;
@@ -562,13 +566,16 @@ const CampusDetail = () => {
       try {
         setLoading(true);
         const apiParams = transformFiltersToAPI(newFilters);
-        const results = await getFilterStudent(apiParams);
-        setFilteredStudentsData(results || []);
+        const response = await getFilterStudent({
+          ...apiParams,
+          limit: 1000 // Get many for client-side pagination in this view
+        });
+        setFilteredStudentsData(response.data || []);
         setStudentPage(1);
 
         toast({
           title: "✅ Filter Removed",
-          description: `Found ${results?.length || 0} students matching your criteria`,
+          description: `Found ${response.total || 0} students matching your criteria`,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
@@ -832,8 +839,11 @@ const CampusDetail = () => {
                       setHasActiveFilters(true);
                       setLoading(true);
                       try {
-                        const results = await getFilterStudent(apiParams);
-                        setFilteredStudentsData(results || []);
+                        const response = await getFilterStudent({
+                          ...apiParams,
+                          limit: 1000 // Get many for client-side pagination in this view
+                        });
+                        setFilteredStudentsData(response.data || []);
                       } catch (error) {
                         console.error(
                           "Error fetching filtered students:",
