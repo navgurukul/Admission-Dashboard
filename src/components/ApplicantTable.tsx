@@ -112,6 +112,7 @@ const ApplicantTable = () => {
     partnerList,
     donorList,
     stateList,
+    stageStatusList,
   } = useApplicantData(currentPage, itemsPerPage);
 
   // Map student data with related info
@@ -1392,6 +1393,7 @@ const ApplicantTable = () => {
                       campusList={campusList}
                       religionList={religionList}
                       currentstatusList={currentstatusList}
+                      stageStatusList={stageStatusList}
                       questionSetList={questionSetList}
                     />
                   ))

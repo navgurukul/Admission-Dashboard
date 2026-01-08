@@ -13,6 +13,7 @@ import {
   getAllPartners,
   getAllDonors,
   getAllStates,
+  getStatusesByStageId,
 } from "@/utils/api";
 
 export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
@@ -28,6 +29,7 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
   const [partnerList, setPartnerList] = useState<any[]>([]);
   const [donorList, setDonorList] = useState<any[]>([]);
   const [stateList, setStateList] = useState<{ value: string; label: string }[]>([]);
+  const [stageStatusList, setStageStatusList] = useState<any[]>([]);
 
   // Fetch students with server-side pagination
   const {
@@ -66,7 +68,12 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
           donors,
           states,
           stages,
-          statuses,
+          currentStatuses,
+          stage1Statuses,
+          stage2Statuses,
+          stage3Statuses,
+          stage4Statuses,
+          stage5Statuses,
           questionSets
         ] = await Promise.all([
           getCampusesApi().catch(err => { console.error("Failed to load campuses:", err); return []; }),
@@ -79,9 +86,14 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
           getAllStates().catch(err => { console.error("Failed to load states:", err); return []; }),
           getAllStages().catch(err => { console.error("Failed to load stages:", err); return []; }),
           getAllStatuses().catch(err => { console.error("Failed to load statuses:", err); return []; }),
+          getStatusesByStageId(1).catch(err => { console.error("Failed to load stage 1 statuses:", err); return []; }),
+          getStatusesByStageId(2).catch(err => { console.error("Failed to load stage 2 statuses:", err); return []; }),
+          getStatusesByStageId(3).catch(err => { console.error("Failed to load stage 3 statuses:", err); return []; }),
+          getStatusesByStageId(4).catch(err => { console.error("Failed to load stage 4 statuses:", err); return []; }),
+          getStatusesByStageId(5).catch(err => { console.error("Failed to load stage 5 statuses:", err); return []; }),
           getAllQuestionSets().catch(err => { console.error("Failed to load question sets:", err); return []; }),
         ]);
-        
+
         setCampusList(campuses || []);
         setSchoolsList(schools || []);
         setReligionList(religions || []);
@@ -90,9 +102,24 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
         setPartnerList(partners || []);
         setDonorList(donors || []);
         setStageList(stages || []);
-        setcurrentstatusList(statuses || []);
+        setcurrentstatusList(currentStatuses || []);
         setQuestionSetList(questionSets || []);
-        
+
+        // Merge all stage statuses into one list for mapping
+        const allStageStatuses = [
+          ...(stage1Statuses || []),
+          ...(stage2Statuses || []),
+          ...(stage3Statuses || []),
+          ...(stage4Statuses || []),
+          ...(stage5Statuses || []),
+          // Also include general statuses (mapped to same structure)
+          ...(currentStatuses || []).map((s: any) => ({
+            id: s.id,
+            status_name: s.current_status_name || s.status_name || s.name
+          }))
+        ];
+        setStageStatusList(allStageStatuses);
+
         // Map states to { value, label } format
         const statesData = states?.data || states || [];
         const mappedStates = statesData.map((s: any) => ({
@@ -128,5 +155,6 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
     partnerList,
     donorList,
     stateList,
+    stageStatusList,
   };
 };
