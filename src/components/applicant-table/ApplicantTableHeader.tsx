@@ -51,8 +51,9 @@ export const ApplicantTableHeader = ({
         {/* <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
           Campus
         </TableHead> */}
+
         <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-          Current Stage
+          Status
         </TableHead>
         <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
           Qualifying School

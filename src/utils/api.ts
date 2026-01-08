@@ -559,13 +559,13 @@ export const updateStudentStatus = async (payload: {
  */
 export const triggerStudentStatusUpdate = async (
   studentId: number,
-  roundType: "screening" | "learning" | "cultural",
+  roundType: "screening" | "learning" | "cultural" | "final" | "onboarded",
   status: string
 ) => {
   let stageId: number;
   let stageStatusId: number | null = null;
 
-  const normalizedStatus = status.toLowerCase();
+  const normalizedStatus = status.toLowerCase().trim();
 
   switch (roundType) {
     case "screening":
@@ -583,6 +583,22 @@ export const triggerStudentStatusUpdate = async (
       if (normalizedStatus.includes("pass")) stageStatusId = 26;
       else if (normalizedStatus.includes("fail")) stageStatusId = 18;
       break;
+    case "final":
+      stageId = 5;
+      if (normalizedStatus === "offer declined") stageStatusId = 10;
+      else if (normalizedStatus === "selected but not joined") stageStatusId = 11;
+      else if (normalizedStatus === "offer letter sent") stageStatusId = 13;
+      else if (normalizedStatus === "offer accepted") stageStatusId = 16;
+      else if (normalizedStatus === "offer sent") stageStatusId = 19;
+      else if (normalizedStatus === "decision pending based on diversity") stageStatusId = 20;
+      else if (normalizedStatus === "diversity failed") stageStatusId = 21;
+      break;
+    case "onboarded":
+      stageId = 6;
+      if (normalizedStatus === "onboarded") stageStatusId = 17;
+      break;
+    default:
+      return;
   }
 
   if (stageStatusId !== null) {
@@ -613,12 +629,20 @@ export const API_MAP: Record<
 
 // update
 export const submitFinalDecision = async (payload: any) => {
-  // console.log("payload",payload)
-  return fetch(`${BASE_URL}/students/submit/finalDecision`, {
+  const response = await fetch(`${BASE_URL}/students/submit/finalDecision`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
   });
+
+  if (response.ok && payload.student_id) {
+    if (payload.onboarded_status) {
+      await triggerStudentStatusUpdate(payload.student_id, "onboarded", payload.onboarded_status);
+    } else if (payload.offer_letter_status) {
+      await triggerStudentStatusUpdate(payload.student_id, "final", payload.offer_letter_status);
+    }
+  }
+  return response;
 };
 
 // Slot booking for students side
