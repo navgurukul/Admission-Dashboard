@@ -36,6 +36,7 @@ interface ApplicantTableRowProps {
   religionList: any[];
   // casteList: any[];
   currentstatusList: any[];
+  stageStatusList?: any[];
   questionSetList: any[];
 }
 
@@ -52,6 +53,7 @@ export const ApplicantTableRow = ({
   religionList,
   // casteList,
   currentstatusList,
+  stageStatusList = [],
   questionSetList,
 }: ApplicantTableRowProps) => {
   const [showImageModal, setShowImageModal] = useState(false);
@@ -74,6 +76,19 @@ export const ApplicantTableRow = ({
   };
 
   const getLatestStatus = (applicant: any) => {
+    // 0. Stage Status Mapping (Priority)
+    if (applicant.stage_status_id) {
+      const statusObj = (stageStatusList || []).find(
+        (s) => Number(s.id) === Number(applicant.stage_status_id)
+      );
+      if (statusObj?.status_name) return statusObj.status_name;
+    }
+
+    // 0.1. Directly provided status
+    if (applicant.status && typeof applicant.status === "string" && applicant.status !== "N/A") {
+      return applicant.status;
+    }
+
     // 1. Onboarding Status
     const onboardedStatus = applicant.final_decisions?.[0]?.onboarded_status;
     if (onboardedStatus) return onboardedStatus;
