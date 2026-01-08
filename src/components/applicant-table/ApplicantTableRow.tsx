@@ -89,12 +89,22 @@ export const ApplicantTableRow = ({
       return applicant.status;
     }
 
+    // 0.2. Mapped current status name (from ApplicantTable)
+    if (applicant.current_status_name && applicant.current_status_name !== "N/A") {
+      return applicant.current_status_name;
+    }
+
+    // 0.3. Stage name fallback (especially for Onboarded)
+    if (applicant.stage_name && (applicant.stage_name.toLowerCase() === "onboarded" || applicant.stage_name.toLowerCase() === "onboard")) {
+      return "Onboarded";
+    }
+
     // 1. Onboarding Status
-    const onboardedStatus = applicant.final_decisions?.[0]?.onboarded_status;
+    const onboardedStatus = applicant.onboarded_status || applicant.final_decisions?.[0]?.onboarded_status;
     if (onboardedStatus) return onboardedStatus;
 
     // 2. Offer Letter Status
-    const offerStatus = applicant.final_decisions?.[0]?.offer_letter_status;
+    const offerStatus = applicant.offer_letter_status || applicant.final_decisions?.[0]?.offer_letter_status;
     if (offerStatus) return offerStatus;
 
     // 3. Cultural Fit Round
