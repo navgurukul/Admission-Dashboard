@@ -73,6 +73,39 @@ export const ApplicantTableRow = ({
       .slice(0, 2);
   };
 
+  const getLatestStatus = (applicant: any) => {
+    // 1. Onboarding Status
+    const onboardedStatus = applicant.final_decisions?.[0]?.onboarded_status;
+    if (onboardedStatus) return onboardedStatus;
+
+    // 2. Offer Letter Status
+    const offerStatus = applicant.final_decisions?.[0]?.offer_letter_status;
+    if (offerStatus) return offerStatus;
+
+    // 3. Cultural Fit Round
+    const cfrRounds = applicant.interview_cultural_fit_round || [];
+    if (cfrRounds.length > 0) {
+      const lastCfr = cfrRounds[cfrRounds.length - 1];
+      if (lastCfr?.cultural_fit_status) return lastCfr.cultural_fit_status;
+    }
+
+    // 4. Learning Round
+    const learnerRounds = applicant.interview_learner_round || [];
+    if (learnerRounds.length > 0) {
+      const lastLr = learnerRounds[learnerRounds.length - 1];
+      if (lastLr?.learning_round_status) return lastLr.learning_round_status;
+    }
+
+    // 5. Screening Round
+    const examSessions = applicant.exam_sessions || [];
+    if (examSessions.length > 0) {
+      const lastSession = examSessions[examSessions.length - 1];
+      if (lastSession?.status) return lastSession.status;
+    }
+
+    return "N/A";
+  };
+
   return (
     <TableRow key={applicant.id}>
       {/* Checkbox */}
@@ -262,20 +295,12 @@ export const ApplicantTableRow = ({
           />
         </div>
       </TableCell> */}
-      {/* current Stage*/}
-      <TableCell className="min-w-[100px] max-w-[120px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="stage_name"
-            displayValue={applicant.stage_name || "N/A"}
-            value={applicant.stage_name}
-            onUpdate={onUpdate}
-            showPencil={false}
-            showActionButtons={false}
-            disabled={true}
-            tooltipMessage="Current stage update by student details"
-          />
+
+
+      {/* Status */}
+      <TableCell className="min-w-[120px] max-w-[150px] px-2">
+        <div className="truncate text-sm">
+          {getLatestStatus(applicant)}
         </div>
       </TableCell>
 

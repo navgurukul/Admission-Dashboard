@@ -1371,7 +1371,7 @@ const ApplicantTable = () => {
                 ) : paginatedApplicants.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={13}
+                      colSpan={12}
                       className="text-center text-muted-foreground py-6"
                     >
                       No applicants found.
