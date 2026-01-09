@@ -134,7 +134,7 @@ export function AdvancedFilterModal({
 
   useEffect(() => {
     const fetchStageStatuses = async () => {
-      if (!filters.stage_id || filters.stage === "all" || filters.stage.toLowerCase() === "sourcing") {
+      if (!filters.stage_id || filters.stage === "all") {
         setStageStatuses([]);
         setFilters((prev) => ({ ...prev, stage_status: "all" }));
         return;
@@ -396,10 +396,6 @@ export function AdvancedFilterModal({
     const processedFilters: any = {
       ...filters,
     };
-    // Hide stage_status if stage is sourcing (since backend doesn't filter on it)
-    if (filters.stage && filters.stage.toLowerCase() === "sourcing") {
-      processedFilters.stage_status = "all";
-    }
 
     // Remove the old 'status' field if it exists
     delete processedFilters.status;
