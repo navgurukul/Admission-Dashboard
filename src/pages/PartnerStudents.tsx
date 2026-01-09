@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Download, Eye } from "lucide-react";
-import { getStudentsByPartnerId, getPartnerById } from "@/utils/api";
+import { getStudentsByPartnerId, getPartnerById, getCampusesApi } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,6 +122,7 @@ const PartnerStudents = () => {
     const [students, setStudents] = useState([]);
     const [chartStudents, setChartStudents] = useState([]); // Separate state for full data (chart)
     const [partner, setPartner] = useState(null); // To show partner name header
+    const [campuses, setCampuses] = useState<{ id: number; campus_name: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [chartLoading, setChartLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -134,8 +135,18 @@ const PartnerStudents = () => {
             loadData();
             loadPartnerDetails();
             loadChartData();
+            loadCampuses();
         }
     }, [id, page]);
+
+    const loadCampuses = async () => {
+        try {
+            const data = await getCampusesApi();
+            setCampuses(data || []);
+        } catch (error) {
+            console.error("Failed to load campuses", error);
+        }
+    };
 
     const loadPartnerDetails = async () => {
         try {
@@ -268,6 +279,82 @@ const PartnerStudents = () => {
         }));
     }, [chartStudents]);
 
+    const campusData = React.useMemo(() => {
+        const dataMap: Record<string, number> = {};
+        chartStudents.forEach((student) => {
+            // Check for various possible campus name fields
+            let campusName = student.campus_name || student.campus?.campus_name || student.campus?.name;
+
+            // If name is still missing and we have an ID, try mapping from campuses list
+            if (!campusName && student.campus_id) {
+                const matchedCampus = campuses.find(c => String(c.id) === String(student.campus_id));
+                if (matchedCampus) {
+                    campusName = matchedCampus.campus_name;
+                } else {
+                    campusName = `ID: ${student.campus_id}`;
+                }
+            }
+
+            const finalKey = campusName || "No Campus Assigned";
+            dataMap[finalKey] = (dataMap[finalKey] || 0) + 1;
+        });
+        return Object.keys(dataMap).map((key) => ({
+            name: key,
+            value: dataMap[key],
+        }));
+    }, [chartStudents, campuses]);
+
+    const renderCampusChart = () => (
+        <div className="flex flex-col items-center w-full">
+            <div className="flex flex-col items-center mb-6">
+                <h2 className="text-2xl font-semibold">Campus-wise Students Distribution</h2>
+                <span className="text-sm text-muted-foreground mt-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold">
+                    Total Campuses: {campusData.length}
+                </span>
+            </div>
+            <div className="h-[500px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={campusData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={renderCustomizedLabel}
+                            innerRadius={80}
+                            outerRadius={140}
+                            fill="#8884d8"
+                            dataKey="value"
+                            paddingAngle={2}
+                        >
+                            {campusData.map((entry, index) => (
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={COLORS[index % COLORS.length]}
+                                />
+                            ))}
+                        </Pie>
+                        <Tooltip />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* Campus Legend */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 mt-8 max-w-5xl mx-auto text-xs">
+                {campusData.map((data, index) => (
+                    <div key={data.name} className="flex items-center gap-2">
+                        <div
+                            className="w-3 h-3 flex-shrink-0"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="text-muted-foreground font-medium">({data.value})</span>
+                        <span className="text-muted-foreground">{data.name}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
     const renderUnifiedChart = () => (
         <div className="flex flex-col items-center">
             <div className="flex flex-col items-center mb-6">
@@ -316,6 +403,8 @@ const PartnerStudents = () => {
                     </div>
                 ))}
             </div>
+
+            {/* Added Campus Chart hidden in unified call since we use tabs now */}
         </div>
     );
 
@@ -350,17 +439,27 @@ const PartnerStudents = () => {
                                 </div>
                             ) : chartStudents.length > 0 ? (
                                 <Tabs defaultValue="graph" className="w-full">
-                                    <TabsList className="grid w-fit grid-cols-1 mb-8 mx-auto border border-orange-200">
+                                    <TabsList className="grid w-fit grid-cols-2 mb-8 mx-auto border border-orange-200">
                                         <TabsTrigger
                                             value="graph"
                                             className="data-[state=active]:bg-orange-500 data-[state=active]:text-white rounded-none px-12"
                                         >
                                             GRAPH DATA
                                         </TabsTrigger>
+                                        <TabsTrigger
+                                            value="campus"
+                                            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white rounded-none px-12"
+                                        >
+                                            CAMPUS DATA
+                                        </TabsTrigger>
                                     </TabsList>
 
                                     <TabsContent value="graph" className="py-4">
                                         {renderUnifiedChart()}
+                                    </TabsContent>
+
+                                    <TabsContent value="campus" className="py-4">
+                                        {renderCampusChart()}
                                     </TabsContent>
                                 </Tabs>
                             ) : (
