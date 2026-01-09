@@ -1265,10 +1265,26 @@ const ApplicantTable = () => {
         );
       }
 
+      // Prepare filter parameters for filtered export
+      let filterParams = null;
+      if (exportType === 'filtered' && hasActiveFilters) {
+        filterParams = transformFiltersToAPI(filters);
+      }
+
+      // Determine what data to pass based on export type
+      // For 'all' export without filters/search, pass empty array to trigger API fetch
+      // For 'selected' export, pass selected data
+      // For 'filtered' export, pass filter params (not paginated data)
+      // For search, pass search results
+      const shouldPassFilteredData = exportType === 'selected' ||
+        (searchTerm.trim().length > 0 && exportType === 'filtered');
+
       await exportApplicantsToCSV({
         questionSetList,
-        filteredData: filteredApplicants, // Pass current filtered/searched data
-        selectedData: selectedApplicantsData, // Pass selected applicants data
+        filteredData: shouldPassFilteredData ? filteredApplicants : [],
+        selectedData: selectedApplicantsData,
+        filterParams: filterParams, // Pass filter parameters for batch fetching
+        searchTerm: searchTerm.trim(), // Pass search term
         exportType,
         toast,
       });
