@@ -26,33 +26,87 @@ import {
     ResponsiveContainer,
 } from "recharts";
 
+const LIFECYCLE_STATUSES = [
+    "Culture fit round Pass",
+    "Offer Letter Sent",
+    "Pending Travel Plans",
+    "Finalized Travel Plans",
+    "Joined",
+    "Deferred Joining",
+    "Algebra Interview Pending (3rd Round)",
+    "Screening Test Pass",
+    "Learning Round Pass",
+    "Pending Parent Conversations",
+    "Became Disinterested",
+    "Unreachable",
+    "Screening Test Fail",
+    "Learning round Fail",
+    "Algebra Interview Failed",
+    "Tution Group",
+];
+
 const COLORS = [
-    "#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d",
-    "#a4de6c", "#d0ed57", "#ffc658", "#ff8042", "#ffbb28", "#8dd1e1",
-    "#83a6ed", "#8e44ad", "#e74c3c", "#3498db", "#2ecc71", "#f1c40f"
+    "#92D050", // Culture fit round Pass
+    "#C6E0B4", // Offer Letter Sent
+    "#FFD966", // Pending Travel Plans
+    "#D18E4E", // Finalized Travel Plans
+    "#C00000", // Joined
+    "#E06666", // Deferred Joining
+    "#F6B26B", // Algebra Interview Pending (3rd Round)
+    "#BC8E8E", // Screening Test Pass
+    "#8E7CC3", // Learning Round Pass
+    "#762A83", // Pending Parent Conversations
+    "#6B3434", // Became Disinterested
+    "#7F7F7F", // Unreachable
+    "#A2AD91", // Screening Test Fail
+    "#76A5AF", // Learning round Fail
+    "#3D85C6", // Algebra Interview Failed
+    "#54B46E", // Tution Group
 ];
 
 const RADIAN = Math.PI / 180;
 
 // Simplified version for all labels to be visible always
 const renderCustomizedLabel = (props: any) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, percent, index, value, fill, payload } = props;
-    const name = props.name || payload?.name || "Unknown";
-    const sin = Math.sin(-RADIAN * midAngle);
-    const cos = Math.cos(-RADIAN * midAngle);
-    const sx = cx + (outerRadius) * cos;
-    const sy = cy + (outerRadius) * sin;
-    const mx = cx + (outerRadius + 30) * cos;
-    const my = cy + (outerRadius + 30) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+    const { cx, cy, midAngle, outerRadius, percent, value, fill, payload, index } = props;
+    const name = payload.name;
+    const RADIAN = Math.PI / 180;
+
+    // Adjust these values to position labels further out
+    const radius = outerRadius + 60;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    const textAnchor = x > cx ? 'start' : 'end';
+
+    // Create lines to labels
+    const sx = cx + outerRadius * Math.cos(-midAngle * RADIAN);
+    const sy = cy + outerRadius * Math.sin(-midAngle * RADIAN);
+    const mx = cx + (outerRadius + 30) * Math.cos(-midAngle * RADIAN);
+    const my = cy + (outerRadius + 30) * Math.sin(-midAngle * RADIAN);
+    const ex = x > cx ? mx + 20 : mx - 20;
     const ey = my;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
 
     return (
         <g>
             <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-            <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={4} textAnchor={textAnchor} fill="#333" fontSize={10}>
+            <rect
+                x={x > cx ? ex : ex - 180}
+                y={ey - 10}
+                width={180}
+                height={20}
+                fill={fill}
+                rx={2}
+            />
+            <text
+                x={x > cx ? ex + 5 : ex - 5}
+                y={ey}
+                dy={4}
+                textAnchor={textAnchor}
+                fill="white"
+                fontSize={10}
+                fontWeight="bold"
+            >
                 {`${value} ${name} (${(percent * 100).toFixed(2)}%)`}
             </text>
         </g>
@@ -139,9 +193,9 @@ const PartnerStudents = () => {
             setStudents(studentList);
             setTotal(totalCount);
         } catch (error) {
-            toast({ 
-                title: "❌ Unable to Load Students", 
-                description: getFriendlyErrorMessage(error), 
+            toast({
+                title: "❌ Unable to Load Students",
+                description: getFriendlyErrorMessage(error),
                 variant: "destructive",
                 className: "border-red-500 bg-red-50 text-red-900"
             });
@@ -156,54 +210,112 @@ const PartnerStudents = () => {
     };
 
     // Helper to process data for charts
-    const processChartData = (getDataFn: (student: any) => string) => {
-        const dataMap = {};
-        chartStudents.forEach((student) => {
-            const key = getDataFn(student) || "Unknown/Pending";
-            dataMap[key] = (dataMap[key] || 0) + 1;
-        });
-        return Object.keys(dataMap).map((key) => ({
-            name: key,
-            value: dataMap[key],
-        }));
+    // Unified lifecycle status helper
+    const getLifecycleStatus = (student: any) => {
+        const onboardedStatus = student.final_decisions?.[0]?.onboarded_status;
+        const offerStatus = student.final_decisions?.[0]?.offer_letter_status;
+        const cultureStatus = student.interview_cultural_fit_round?.[0]?.cultural_fit_status;
+        const learningStatus = student.interview_learner_round?.[0]?.learning_round_status;
+        const screeningStatus = student.exam_sessions?.[0]?.status;
+
+        // Joined / Onboarded
+        if (onboardedStatus === "Onboarded") return "Joined";
+        if (offerStatus === "Offer Accepted") return "Joined";
+
+        // Offer statuses
+        if (offerStatus === "Offer Sent") return "Offer Letter Sent";
+        if (offerStatus === "Offer Declined") return "Became Disinterested";
+        if (offerStatus === "Deferred Joining") return "Deferred Joining";
+
+        // Culture fit
+        if (cultureStatus?.toLowerCase().includes("pass")) return "Culture fit round Pass";
+        if (cultureStatus?.toLowerCase().includes("fail")) return "Became Disinterested";
+
+        // Learning round
+        if (learningStatus?.toLowerCase().includes("pass")) return "Learning Round Pass";
+        if (learningStatus?.toLowerCase().includes("fail")) return "Learning round Fail";
+
+        // Screening
+        if (screeningStatus?.toLowerCase().includes("pass")) return "Screening Test Pass";
+        if (screeningStatus?.toLowerCase().includes("fail")) return "Screening Test Fail";
+
+        // Fallbacks based on current_status or stage
+        const currStatus = student.current_status || "";
+        if (currStatus.includes("Algebra Interview Pending")) return "Algebra Interview Pending (3rd Round)";
+        if (currStatus.includes("Travel Plans Pending")) return "Pending Travel Plans";
+        if (currStatus.includes("Unreachable")) return "Unreachable";
+        if (currStatus.includes("Parent Conversation")) return "Pending Parent Conversations";
+        if (currStatus.includes("Disinterested")) return "Became Disinterested";
+        if (currStatus.includes("Tution Group")) return "Tution Group";
+
+        return "Unreachable"; // Default fallback
     };
 
-    const statusData = React.useMemo(() => processChartData(s => s.current_status), [chartStudents]);
-    const stageData = React.useMemo(() => processChartData(s => s.stage), [chartStudents]);
+    const lifecycleData = React.useMemo(() => {
+        const counts: Record<string, number> = {};
+        LIFECYCLE_STATUSES.forEach(status => counts[status] = 0);
 
-    // Detailed lifecycle data
-    const screeningData = React.useMemo(() => processChartData(s => s.exam_sessions?.[0]?.status), [chartStudents]);
-    const learningData = React.useMemo(() => processChartData(s => s.interview_learner_round?.[0]?.learning_round_status), [chartStudents]);
-    const cultureData = React.useMemo(() => processChartData(s => s.interview_cultural_fit_round?.[0]?.cultural_fit_status), [chartStudents]);
-    const offerData = React.useMemo(() => processChartData(s => s.final_decisions?.[0]?.offer_letter_status), [chartStudents]);
+        chartStudents.forEach(student => {
+            const status = getLifecycleStatus(student);
+            if (counts[status] !== undefined) {
+                counts[status]++;
+            }
+        });
 
-    const renderPieChart = (data: any[]) => (
-        <div className="h-[500px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                    <Pie
-                        data={data}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={renderCustomizedLabel}
-                        innerRadius={80}
-                        outerRadius={120}
-                        fill="#8884d8"
-                        dataKey="value"
-                        paddingAngle={2}
-                    >
-                        {data.map((entry, index) => (
-                            <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                            />
-                        ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend verticalAlign="bottom" height={36} iconType="square" />
-                </PieChart>
-            </ResponsiveContainer>
+        return LIFECYCLE_STATUSES.map(status => ({
+            name: status,
+            value: counts[status]
+        }));
+    }, [chartStudents]);
+
+    const renderUnifiedChart = () => (
+        <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center mb-6">
+                <h2 className="text-2xl font-semibold">Progress Made Graph</h2>
+                <span className="text-sm text-muted-foreground mt-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold">
+                    Total Students: {chartStudents.length}
+                </span>
+            </div>
+            <div className="h-[600px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={lifecycleData}
+                            cx="50%"
+                            cy="45%"
+                            labelLine={false}
+                            label={renderCustomizedLabel}
+                            innerRadius={80}
+                            outerRadius={160}
+                            fill="#8884d8"
+                            dataKey="value"
+                            paddingAngle={1}
+                        >
+                            {lifecycleData.map((entry, index) => (
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={COLORS[index % COLORS.length]}
+                                />
+                            ))}
+                        </Pie>
+                        <Tooltip />
+                    </PieChart>
+                </ResponsiveContainer>
+            </div>
+
+            {/* Custom Premium Legend */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 mt-8 max-w-5xl mx-auto text-xs">
+                {lifecycleData.map((data, index) => (
+                    <div key={data.name} className="flex items-center gap-2">
+                        <div
+                            className="w-3 h-3 flex-shrink-0"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="text-muted-foreground font-medium">({data.value})</span>
+                        <span className="text-muted-foreground">{data.name}</span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 
@@ -237,33 +349,18 @@ const PartnerStudents = () => {
                                     Loading chart data...
                                 </div>
                             ) : chartStudents.length > 0 ? (
-                                <Tabs defaultValue="status" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 max-w-[800px] mb-8 mx-auto">
-                                        <TabsTrigger value="status">Status</TabsTrigger>
-                                        <TabsTrigger value="stage">Stage</TabsTrigger>
-                                        <TabsTrigger value="screening">Screening</TabsTrigger>
-                                        <TabsTrigger value="learning">Learning</TabsTrigger>
-                                        <TabsTrigger value="culture">Culture Fit</TabsTrigger>
-                                        <TabsTrigger value="offer">Offer</TabsTrigger>
+                                <Tabs defaultValue="graph" className="w-full">
+                                    <TabsList className="grid w-fit grid-cols-1 mb-8 mx-auto border border-orange-200">
+                                        <TabsTrigger
+                                            value="graph"
+                                            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white rounded-none px-12"
+                                        >
+                                            GRAPH DATA
+                                        </TabsTrigger>
                                     </TabsList>
 
-                                    <TabsContent value="status" className="flex justify-center">
-                                        {renderPieChart(statusData)}
-                                    </TabsContent>
-                                    <TabsContent value="stage" className="flex justify-center">
-                                        {renderPieChart(stageData)}
-                                    </TabsContent>
-                                    <TabsContent value="screening" className="flex justify-center">
-                                        {renderPieChart(screeningData)}
-                                    </TabsContent>
-                                    <TabsContent value="learning" className="flex justify-center">
-                                        {renderPieChart(learningData)}
-                                    </TabsContent>
-                                    <TabsContent value="culture" className="flex justify-center">
-                                        {renderPieChart(cultureData)}
-                                    </TabsContent>
-                                    <TabsContent value="offer" className="flex justify-center">
-                                        {renderPieChart(offerData)}
+                                    <TabsContent value="graph" className="py-4">
+                                        {renderUnifiedChart()}
                                     </TabsContent>
                                 </Tabs>
                             ) : (
