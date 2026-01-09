@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
 import { AdvancedFilterModal } from "@/components/AdvancedFilterModal";
-import { getFilterStudent, getCampusById } from "@/utils/api";
+import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats } from "@/utils/api";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useToast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
@@ -58,6 +58,8 @@ const CampusDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [campusName, setCampusName] = useState("");
+  const [campusStats, setCampusStats] = useState<CampusStudentStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const navigate = useNavigate();
   const [studentPage, setStudentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -111,6 +113,27 @@ const CampusDetail = () => {
     };
 
     fetchCampusDetails();
+  }, [id]);
+
+  // Fetch campus stats
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchStats = async () => {
+      setStatsLoading(true);
+      try {
+        const response = await getCampusStudentStats(Number(id));
+        if (response.success && response.data) {
+          setCampusStats(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch campus stats:", error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
   }, [id]);
 
   // Fetch students data (used for both overview and student tabs)
@@ -294,18 +317,18 @@ const CampusDetail = () => {
     // Stage chip
     const stageId = (filters as any).stage_id ?? (filters as any).stage;
     const hasStage = stageId && stageId !== "all";
-    
+
     if (hasStage) {
       const stageObj = stageList.find((s) => s.id === stageId) as any;
       const stageName = stageObj?.stage_name || stageObj?.name || stageId || "Stage";
-      
+
       tags.push({
         key: `stage-${stageId}`,
         label: `Stage: ${stageName}`,
         onRemove: () => handleClearSingleFilter("stage")
       });
     }
-    
+
     // Individual stage status chips
     const stageStatusValue = (filters as any).stage_status;
     const stageStatusArray = Array.isArray(stageStatusValue)
@@ -368,7 +391,7 @@ const CampusDetail = () => {
           String(x.id) === String(q) ||
           x.name === q
         );
-        
+
         if (fromQualList) {
           qualLabel = fromQualList.qualification_name || fromQualList.name || q;
         } else if (fromQuestionSet) {
@@ -376,7 +399,7 @@ const CampusDetail = () => {
         } else {
           qualLabel = resolveQuestionSetName(q) || q;
         }
-        
+
         tags.push({
           key: `qualification-${q}`,
           label: `Qualification: ${qualLabel}`,
@@ -486,7 +509,7 @@ const CampusDetail = () => {
         : [];
 
     const newStatuses = currentStatuses.filter((s: string) => s !== statusToRemove);
-    
+
     let newFilters;
     if (newStatuses.length === 0) {
       newFilters = {
@@ -686,8 +709,36 @@ const CampusDetail = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {activeTab === "overview" && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4 flex flex-col items-center justify-center">
+                    <p className="text-sm font-medium text-blue-600 mb-1">Total Students</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {statsLoading ? "..." : campusStats?.totalStudentsInCampus || 0}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-4 flex flex-col items-center justify-center">
+                    <p className="text-sm font-medium text-green-600 mb-1">Students With School</p>
+                    <p className="text-2xl font-bold text-green-900">
+                      {statsLoading ? "..." : campusStats?.studentsWithSchool || 0}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-orange-50 border-orange-200">
+                  <CardContent className="p-4 flex flex-col items-center justify-center">
+                    <p className="text-sm font-medium text-orange-600 mb-1">Students Without School</p>
+                    <p className="text-2xl font-bold text-orange-900">
+                      {statsLoading ? "..." : campusStats?.studentsWithoutSchool || 0}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
             {activeTab === "overview" &&
-              (loading ? (
+              (loading || statsLoading ? (
                 <p>Loading...</p>
               ) : error ? (
                 <p className="text-red-500">{error}</p>
@@ -705,13 +756,32 @@ const CampusDetail = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {programs.map((school, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell>{school.name}</TableCell>
-                        <TableCell>{school.capacity}</TableCell>
-                      </TableRow>
-                    ))}
+                    {campusStats ? (
+                      <>
+                        {Object.entries(campusStats.schoolBreakdown).map(([name, count], idx) => (
+                          <TableRow key={name}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell>{name}</TableCell>
+                            <TableCell>{count}</TableCell>
+                          </TableRow>
+                        ))}
+                        {campusStats.studentsWithoutSchool > 0 && (
+                          <TableRow>
+                            <TableCell>{Object.keys(campusStats.schoolBreakdown).length + 1}</TableCell>
+                            <TableCell>Not Allotted Schools</TableCell>
+                            <TableCell>{campusStats.studentsWithoutSchool}</TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    ) : (
+                      programs.map((school, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell>{school.name}</TableCell>
+                          <TableCell>{school.capacity}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               ))}
@@ -748,7 +818,7 @@ const CampusDetail = () => {
                     </Button>
                   )}
                 </div>
-                
+
                 {/* Filter Tags */}
                 {activeFilterTags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
@@ -773,7 +843,7 @@ const CampusDetail = () => {
                     ))}
                   </div>
                 )}
-                
+
                 <AdvancedFilterModal
                   isOpen={showFilterModal}
                   onClose={() => setShowFilterModal(false)}

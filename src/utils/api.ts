@@ -1879,6 +1879,29 @@ export const getCampusById = async (id: number) => {
   return response.json();
 };
 
+export interface CampusStudentStats {
+  campusId: number;
+  totalStudentsInCampus: number;
+  studentsWithSchool: number;
+  studentsWithoutSchool: number;
+  schoolBreakdown: {
+    [key: string]: number;
+  };
+}
+
+// Get campus student stats
+export const getCampusStudentStats = async (
+  id: number,
+): Promise<{ success: boolean; data: CampusStudentStats }> => {
+  const response = await fetch(`${BASE_URL}/students/getCampusStudentStats/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) throw new Error("Failed to fetch campus student stats");
+  return response.json();
+};
+
 // Create campus
 export const createCampusApi = async (campusName: string) => {
   const response = await fetch(`${BASE_URL}/campuses/createCampus`, {
