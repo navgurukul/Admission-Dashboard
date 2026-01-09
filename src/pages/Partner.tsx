@@ -1160,7 +1160,7 @@ const PartnerPage = () => {
                             {options.map((opt: any, i: number) => (
                               <div key={i} className="p-2 border rounded-md bg-background hover:bg-primary/5 text-sm">
                                 <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
-                                <span className="text-sm">{opt}</span>
+                                <span className="text-sm">{typeof opt === "object" && opt !== null ? opt.text : opt}</span>
                               </div>
                             ))}
                           </div>
