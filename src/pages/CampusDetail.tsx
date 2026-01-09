@@ -43,7 +43,7 @@ interface FilterState {
 }
 
 const TABS = [
-  // { key: "overview", label: "Overview" },
+  { key: "overview", label: "Overview" },
   { key: "student", label: "Student Data" },
 ];
 
@@ -127,7 +127,7 @@ const CampusDetail = () => {
       try {
         const response = await getFilterStudent({
           campus_id: Number(id),
-          limit: 1000 // Get many for client-side pagination in this view
+          limit: 100 // Get many for client-side pagination in this view
         });
         const studentsData = response.data || [];
         setStudents(studentsData);
@@ -591,7 +591,7 @@ const CampusDetail = () => {
         const apiParams = transformFiltersToAPI(newFilters);
         const response = await getFilterStudent({
           ...apiParams,
-          limit: 1000 // Get many for client-side pagination in this view
+          limit: 100 // Get many for client-side pagination in this view
         });
         setFilteredStudentsData(response.data || []);
         setStudentPage(1);
@@ -864,7 +864,7 @@ const CampusDetail = () => {
                       try {
                         const response = await getFilterStudent({
                           ...apiParams,
-                          limit: 1000 // Get many for client-side pagination in this view
+                          limit: 100 // Get many for client-side pagination in this view
                         });
                         setFilteredStudentsData(response.data || []);
                       } catch (error) {
