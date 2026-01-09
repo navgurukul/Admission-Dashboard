@@ -1,9 +1,11 @@
-import { getStudents } from "./api";
+import { getStudents, getFilterStudent, searchStudentsApi } from "./api";
 
 interface ExportOptions {
   questionSetList: any[];
   filteredData?: any[]; //filtered/searched data to export
   selectedData?: any[]; //selected applicants data to export
+  filterParams?: any; // Filter parameters for batch fetching
+  searchTerm?: string; // Search term for search export
   exportType?: 'all' | 'filtered' | 'selected'; // 'all' = all data, 'filtered' = current filtered/searched data, 'selected' = selected rows only
   toast: (options: {
     title: string;
@@ -22,6 +24,8 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
     questionSetList,
     filteredData = [],
     selectedData = [],
+    filterParams = null,
+    searchTerm = "",
     exportType = 'all', // Default: export all data
     toast,
   } = options;
@@ -34,30 +38,117 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
     if (exportType === 'selected' && selectedData.length > 0) {
       // Export selected applicants
       allStudents = selectedData;
-      
+
       toast({
         title: "Preparing Export",
         description: `Exporting ${selectedData.length} selected applicants...`,
       });
-    } else if (exportType === 'filtered' && filteredData.length > 0) {
-      // Export filtered/searched data
-      allStudents = filteredData;
-      
+    } else if (exportType === 'filtered' && searchTerm) {
+      // Export search results
       toast({
         title: "Preparing Export",
-        description: `Exporting ${filteredData.length} filtered/searched applicants...`,
+        description: "Fetching search results...",
       });
+
+      const searchResults = await searchStudentsApi(searchTerm);
+      allStudents = searchResults || [];
+
+      toast({
+        title: "Data Loaded",
+        description: `Found ${allStudents.length} applicants matching your search.`,
+        duration: 2000,
+      });
+    } else if (exportType === 'filtered' && filterParams) {
+      // Export filtered data - fetch ALL filtered results in batches
+      toast({
+        title: "Preparing Export",
+        description: "Fetching filtered applicants...",
+      });
+
+      const batchSize = 1000;
+      const firstBatch = await getFilterStudent({
+        ...filterParams,
+        page: 1,
+        limit: batchSize,
+      });
+
+      const totalCount = firstBatch.total || 0;
+      const totalPages = firstBatch.totalPages || 1;
+
+      allStudents = firstBatch.data || [];
+
+      // If there are more pages, fetch them
+      if (totalPages > 1) {
+        toast({
+          title: "Fetching Filtered Data",
+          description: `Loading ${totalCount} filtered applicants (page 1 of ${totalPages})...`,
+          duration: 2000,
+        });
+
+        for (let page = 2; page <= totalPages; page++) {
+          toast({
+            title: "Fetching Filtered Data",
+            description: `Loading ${totalCount} filtered applicants (page ${page} of ${totalPages})...`,
+            duration: 1000,
+          });
+
+          const batch = await getFilterStudent({
+            ...filterParams,
+            page,
+            limit: batchSize,
+          });
+          allStudents = [...allStudents, ...(batch.data || [])];
+        }
+
+        toast({
+          title: "Data Loaded",
+          description: `Successfully loaded ${allStudents.length} filtered applicants. Preparing CSV...`,
+          duration: 2000,
+        });
+      }
     } else {
-      // Fetch ALL students from database
+      // Fetch ALL students from database in batches
       toast({
         title: "Preparing Export",
         description: "Fetching all applicants...",
       });
 
-      const allStudentsResponse = await getStudents(1, 100000);
-      allStudents = allStudentsResponse.data || [];
+      // First, fetch page 1 to get total count
+      const batchSize = 1000;
+      const firstBatch = await getStudents(1, batchSize);
+      const totalCount = firstBatch.totalCount || 0;
+      const totalPages = firstBatch.totalPages || 1;
+
+      allStudents = firstBatch.data || [];
+
+      // If there are more pages, fetch them
+      if (totalPages > 1) {
+        toast({
+          title: "Fetching Data",
+          description: `Loading ${totalCount} applicants (page 1 of ${totalPages})...`,
+          duration: 2000,
+        });
+
+        // Fetch remaining pages
+        for (let page = 2; page <= totalPages; page++) {
+          toast({
+            title: "Fetching Data",
+            description: `Loading ${totalCount} applicants (page ${page} of ${totalPages})...`,
+            duration: 1000,
+          });
+
+          const batch = await getStudents(page, batchSize);
+          allStudents = [...allStudents, ...(batch.data || [])];
+        }
+
+        toast({
+          title: "Data Loaded",
+          description: `Successfully loaded ${allStudents.length} applicants. Preparing CSV...`,
+          duration: 2000,
+        });
+      }
     }
-  
+
     // Map all students with related data (using resolved names from API)
     dataToExport = allStudents.map((student: any) => {
       const questionSet = questionSetList.find(
@@ -67,9 +158,8 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
-        name: `${student.first_name || ""} ${student.middle_name || ""} ${
-          student.last_name || ""
-        }`.trim(),
+        name: `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""
+          }`.trim(),
         question_set_name: questionSet ? questionSet.name : "N/A",
         maximumMarks: questionSet ? questionSet.maximumMarks : 0,
         // All other resolved names come directly from API response:
@@ -181,7 +271,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       const culturalFitRounds = applicant.interview_cultural_fit_round || [];
       const finalDecisions = applicant.final_decisions || [];
 
-    //    console.log(applicant)
+      //    console.log(applicant)
 
 
       const examSession =
@@ -254,8 +344,8 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
         ),
         formatValue(
           finalDecision.onboarded_status ||
-            applicant.onboarded_status ||
-            applicant.joining_status,
+          applicant.onboarded_status ||
+          applicant.joining_status,
         ),
         formatValue(finalDecision.final_notes || applicant.final_notes),
         formatDate(finalDecision.joining_date || applicant.joining_date),
