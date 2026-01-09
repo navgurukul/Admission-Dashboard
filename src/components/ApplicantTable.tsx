@@ -736,7 +736,8 @@ const ApplicantTable = () => {
         : [];
 
     stageStatusArray.forEach((statusId: string) => {
-      const statusObj = stageStatuses.find((s: any) => String(s.id) === String(statusId));
+      // Find the status name from stageStatusList (which now includes all stages)
+      const statusObj = stageStatusList.find((s: any) => String(s.id) === String(statusId));
       const statusLabel = statusObj?.status_name || statusObj?.name || statusId;
 
       tags.push({
@@ -776,11 +777,12 @@ const ApplicantTable = () => {
     if ((filters as any).currentStatus?.length) {
       const curr = (filters as any).currentStatus.filter((c: any) => c !== "all");
       curr.forEach((c: any) => {
-        const cs = currentstatusList.find((st) => Number(st.id) === Number(c));
-        const csLabel = cs?.current_status_name || resolveCurrentStatusName(c) || c;
+        const cs = currentstatusList.find((st: any) => String(st.id) === String(c));
+        const csLabel = cs?.current_status_name || cs?.name || resolveCurrentStatusName(c) || c;
         tags.push({
           key: `currentStatus-${c}`,
           label: `Current Status: ${csLabel}`,
+          onRemove: () => handleClearSingleFilter("currentStatus")
         });
       });
     }
@@ -917,7 +919,7 @@ const ApplicantTable = () => {
     }
 
     return tags;
-  }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, partnerList, donorList, qualificationList, filteredApplicants]);
+  }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, partnerList, donorList, qualificationList, filteredApplicants, stageStatusList]);
 
   // Use resolved campus name in applicant mapping too (handles API returning numeric/string)
   // Apply filters and fetch filtered students
@@ -1263,10 +1265,26 @@ const ApplicantTable = () => {
         );
       }
 
+      // Prepare filter parameters for filtered export
+      let filterParams = null;
+      if (exportType === 'filtered' && hasActiveFilters) {
+        filterParams = transformFiltersToAPI(filters);
+      }
+
+      // Determine what data to pass based on export type
+      // For 'all' export without filters/search, pass empty array to trigger API fetch
+      // For 'selected' export, pass selected data
+      // For 'filtered' export, pass filter params (not paginated data)
+      // For search, pass search results
+      const shouldPassFilteredData = exportType === 'selected' ||
+        (searchTerm.trim().length > 0 && exportType === 'filtered');
+
       await exportApplicantsToCSV({
         questionSetList,
-        filteredData: filteredApplicants, // Pass current filtered/searched data
-        selectedData: selectedApplicantsData, // Pass selected applicants data
+        filteredData: shouldPassFilteredData ? filteredApplicants : [],
+        selectedData: selectedApplicantsData,
+        filterParams: filterParams, // Pass filter parameters for batch fetching
+        searchTerm: searchTerm.trim(), // Pass search term
         exportType,
         toast,
       });

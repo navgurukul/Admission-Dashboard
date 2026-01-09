@@ -74,6 +74,7 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
           stage3Statuses,
           stage4Statuses,
           stage5Statuses,
+          stage6Statuses,
           questionSets
         ] = await Promise.all([
           getCampusesApi().catch(err => { console.error("Failed to load campuses:", err); return []; }),
@@ -91,6 +92,7 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
           getStatusesByStageId(3).catch(err => { console.error("Failed to load stage 3 statuses:", err); return []; }),
           getStatusesByStageId(4).catch(err => { console.error("Failed to load stage 4 statuses:", err); return []; }),
           getStatusesByStageId(5).catch(err => { console.error("Failed to load stage 5 statuses:", err); return []; }),
+          getStatusesByStageId(6).catch(err => { console.error("Failed to load stage 6 statuses:", err); return []; }),
           getAllQuestionSets().catch(err => { console.error("Failed to load question sets:", err); return []; }),
         ]);
 
@@ -112,6 +114,7 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
           ...(stage3Statuses || []),
           ...(stage4Statuses || []),
           ...(stage5Statuses || []),
+          ...(stage6Statuses || []),
           // Also include general statuses (mapped to same structure)
           ...(currentStatuses || []).map((s: any) => ({
             id: s.id,
@@ -142,7 +145,7 @@ export const useApplicantData = (currentPage: number, itemsPerPage: number) => {
     isStudentsLoading,
     isStudentsFetching,
     refetchStudents,
-    
+
     // Option lists
     campusList,
     schoolList,
