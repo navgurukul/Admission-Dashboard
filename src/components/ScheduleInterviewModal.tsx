@@ -75,6 +75,7 @@ export const ScheduleInterviewModal = ({
   const [interviewerName, setInterviewerName] = useState("");
   const [isFetchingStudent, setIsFetchingStudent] = useState(false);
   const [studentDataFetched, setStudentDataFetched] = useState(false);
+  const [completeStudentData, setCompleteStudentData] = useState<any>(null);
   const { toast } = useToast();
 
   // New states for date and slot selection
@@ -120,43 +121,42 @@ export const ScheduleInterviewModal = ({
 
     setIsFetchingStudent(true);
     try {
-      const studentData = await getStudentDataByEmail(studentEmail);
-      if (studentData) {
-        // Handle different response formats - data.student contains the actual student info
-        const responseData = (studentData as any).data || studentData;
-        const student = responseData.student || responseData;
-
-        const studentId = student.student_id || student.id;
-        const fullName = student.full_name || student.name || 
-                        `${student.first_name || ''} ${student.last_name || ''}`.trim();
+      const response = await getStudentDataByEmail(studentEmail);
+      
+      // Normalize the response - handle both axios.data and nested data.data structures
+      const payload = (response as any)?.data ?? response;
+      const studentData = payload?.student ?? payload;
+      
+      const studentId = studentData.student_id || studentData.id;
+      const fullName = studentData.full_name || studentData.name || 
+                      `${studentData.first_name || ''} ${studentData.last_name || ''}`.trim();
+      
+      if (studentId) {
+        setStudentId(String(studentId));
+        setStudentName(fullName);
+        setCompleteStudentData(payload); // Store the complete payload with all interview data
+        setStudentDataFetched(true);
         
-        // console.log("Extracted - ID:", studentId, "Name:", fullName);
-        
-        if (studentId) {
-          setStudentId(String(studentId));
-          setStudentName(fullName);
-          setStudentDataFetched(true);
-          
-          toast({
-            title: "✅ Student Found",
-            description: `${fullName} has been successfully found`,
-            variant: "default",
-            className: "border-green-500 bg-green-50 text-green-900"
-          });
-        } else {
-          throw new Error("Student ID not found in response");
-        }
+        toast({
+          title: "✅ Student Found",
+          description: `${fullName} has been successfully found`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900"
+        });
+      } else {
+        throw new Error("Student ID not found in response");
       }
     } catch (error: any) {
       console.error("Error fetching student:", error);
       toast({
-        title: "❌ Student Not Found",
+        title: "Student Not Found",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
-        className: "border-destructive/50 bg-destructive/5 text-destructive-foreground"
+        className: "border-destructive/50 bg-destructive text-destructive-foreground"
       });
       setStudentId("");
       setStudentName("");
+      setCompleteStudentData(null);
       setStudentDataFetched(false);
     } finally {
       setIsFetchingStudent(false);
@@ -169,9 +169,146 @@ export const ScheduleInterviewModal = ({
     if (studentDataFetched) {
       setStudentId("");
       setStudentName("");
+      setCompleteStudentData(null);
       setStudentDataFetched(false);
     }
   };
+
+  // Helper function to check interview round status
+  const getInterviewRoundStatus = () => {
+    if (!completeStudentData || !studentDataFetched) {
+      return null;
+    }
+
+    const lrSchedules = completeStudentData.interview_schedules_lr || [];
+    const cfrSchedules = completeStudentData.interview_schedules_cfr || [];
+    const lrRounds = completeStudentData.interview_learner_round || [];
+    const cfrRounds = completeStudentData.interview_cultural_fit_round || [];
+    const examSessions = completeStudentData.exam_sessions || [];
+
+    // Check if student has passed screening test (exam_sessions)
+    const hasPassedScreening = examSessions.some((exam: any) => 
+      exam.exam_status?.toLowerCase().includes('pass')
+    );
+    
+    // Filter schedules by status - only consider "scheduled" status
+    const activeLRSchedules = lrSchedules.filter((schedule: any) => 
+      schedule.status?.toLowerCase() === 'scheduled'
+    );
+    const activeCFRSchedules = cfrSchedules.filter((schedule: any) => 
+      schedule.status?.toLowerCase() === 'scheduled'
+    );
+
+    // Check if student has passed LR round
+    const hasPassedLR = lrRounds.some((round: any) => 
+      round.learning_round_status?.toLowerCase().includes('pass')
+    );
+
+    // Check if student has passed CFR round
+    const hasPassedCFR = cfrRounds.some((round: any) => 
+      round.cultural_fit_round_status?.toLowerCase().includes('pass')
+    );
+
+    // Determine the current slot type from slotData or selected slot
+    const currentSlot = isDirectScheduleMode
+      ? allAvailableSlots.find((s) => s.id === selectedSlotId)
+      : slotData;
+    
+    const slotType = currentSlot ? (currentSlot as any).slot_type : null;
+
+    // Check for LR round
+    if (slotType === "LR") {
+      // First check if student has passed screening test
+      if (!hasPassedScreening) {
+        return {
+          canBook: false,
+          message: "Student must pass screening test before LR booking",
+          type: "warning"
+        };
+      }
+      if (activeLRSchedules.length > 0) {
+        return {
+          canBook: false,
+          message: "Student already has LR interview scheduled",
+          type: "warning"
+        };
+      }
+      if (hasPassedLR) {
+        return {
+          canBook: false,
+          message: "Student has already passed LR round",
+          type: "info"
+        };
+      }
+      if (lrRounds.length > 0) {
+        // Has attempted LR but not passed - allow rebooking
+        return {
+          canBook: true,
+          message: "Student is eligible for LR slot booking (reattempt)",
+          type: "success"
+        };
+      }
+      return {
+        canBook: true,
+        message: "Student is eligible for LR slot booking",
+        type: "success"
+      };
+    }
+
+    // Check for CFR round
+    if (slotType === "CFR") {
+      // First check if student has passed screening test
+      if (!hasPassedScreening) {
+        return {
+          canBook: false,
+          message: "Student must pass screening or Learning round before CFR slot booking",
+          type: "warning"
+        };
+      }
+
+       // Check if LR is passed before allowing CFR booking
+      if (!hasPassedLR) {
+        return {
+          canBook: false,
+          message: "Student must pass LR round before CFR booking",
+          type: "warning"
+        };
+      }
+
+      if (activeCFRSchedules.length > 0) {
+        return {
+          canBook: false,
+          message: "Student already has CFR interview scheduled",
+          type: "warning"
+        };
+      }
+      if (hasPassedCFR) {
+        return {
+          canBook: false,
+          message: "Student has already passed CFR round",
+          type: "info"
+        };
+      }
+     
+      if (cfrRounds.length > 0) {
+        // Has attempted CFR but not passed - allow rebooking
+        return {
+          canBook: true,
+          message: "Student is eligible for CFR slot booking (reattempt)",
+          type: "success"
+        };
+      }
+      return {
+        canBook: true,
+        message: "Student is eligible for CFR slot booking",
+        type: "success"
+      };
+    }
+
+    return null;
+  };
+
+  const interviewStatus = getInterviewRoundStatus();
 
   if (!isOpen) return null;
 
@@ -198,7 +335,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Incomplete Information",
         description: "Please fill all required fields",
         variant: "default",
-        className: "border-primary/50 bg-primary/5 text-primary-dark"
+        className: "border-primary/50 bg-primary text-primary-dark"
       });
       return;
     }
@@ -489,7 +626,21 @@ export const ScheduleInterviewModal = ({
                 required
                 disabled={studentDataFetched}
               />
-              {studentDataFetched && (
+              {studentDataFetched && interviewStatus && (
+                <div className={`text-xs mt-2 px-3 py-2 rounded-md flex items-start gap-2 font-medium ${
+                  interviewStatus.type === 'success' 
+                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                    : interviewStatus.type === 'warning'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                }`}>
+                  <span className="text-base">
+                    {interviewStatus.type === 'success' ? '✓' : interviewStatus.type === 'warning' ? '⚠️' : 'ℹ️'}
+                  </span>
+                  <span>{interviewStatus.message}</span>
+                </div>
+              )}
+              {studentDataFetched && !interviewStatus && (
                 <p className="text-xs text-green-600 mt-1 flex items-center gap-1 font-medium">
                   ✓ Student Found
                 </p>
@@ -560,8 +711,8 @@ export const ScheduleInterviewModal = ({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all"
-              disabled={isLoading}
+              className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || (interviewStatus && !interviewStatus.canBook)}
             >
               {isLoading ? (
                 <>
@@ -571,7 +722,9 @@ export const ScheduleInterviewModal = ({
               ) : (
                 <>
                   <Calendar className="w-4 h-4 mr-2" />
-                  Schedule & Create Meet Link
+                  {interviewStatus && !interviewStatus.canBook 
+                    ? 'Cannot Schedule - Already Booked' 
+                    : 'Schedule & Create Meet Link'}
                 </>
               )}
             </Button>
