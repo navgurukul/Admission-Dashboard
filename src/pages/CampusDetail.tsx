@@ -92,6 +92,7 @@ const CampusDetail = () => {
     qualificationList,
     partnerList,
     donorList,
+    stageStatusList,
   } = useApplicantData(1, 10);
 
   // Fetch campus details
@@ -180,36 +181,54 @@ const CampusDetail = () => {
 
   // Use filtered data if filters are active, otherwise use all students
   const displayStudents = hasActiveFilters ? filteredStudentsData : students;
-  const paginatedStudents = displayStudents.slice(
+  // Filtered students based on search and filters
+  const processedStudents = useMemo(() => {
+    return displayStudents.filter((student) => {
+      // 1. Search filter
+      const search = searchTerm.toLowerCase();
+      const matchesSearch =
+        !search ||
+        (student.first_name && student.first_name.toLowerCase().includes(search)) ||
+        (student.last_name && student.last_name.toLowerCase().includes(search)) ||
+        (student.email && student.email.toLowerCase().includes(search)) ||
+        (student.phone_number && student.phone_number.includes(search));
+
+      if (!matchesSearch) return false;
+
+      // 2. Additional client-side filters (sync with state if needed)
+      // Note: Most filters are handled by API via filteredStudentsData, 
+      // but we keep these for 'students' (unfiltered view) or extra safety.
+
+      if (filters.stage && filters.stage !== "all" && student.stage_name !== filters.stage)
+        return false;
+
+      if (filters.stage_status && filters.stage_status !== "all") {
+        const statusArray = Array.isArray(filters.stage_status)
+          ? filters.stage_status
+          : [filters.stage_status];
+
+        const hasMatch = statusArray.some(s =>
+          String(s) === String(student.stage_status_id) ||
+          String(s) === String(student.current_status_id) ||
+          s === student.current_status_name
+        );
+
+        if (!hasMatch) return false;
+      }
+
+      return true;
+    });
+  }, [displayStudents, searchTerm, filters]);
+
+  const paginatedStudents = processedStudents.slice(
     (studentPage - 1) * rowsPerPage,
     studentPage * rowsPerPage,
   );
-  const totalStudentPages = Math.ceil(displayStudents.length / rowsPerPage);
+
+  const totalStudentPages = Math.ceil(processedStudents.length / rowsPerPage);
   const startIdx =
-    displayStudents.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
-  const endIdx = Math.min(studentPage * rowsPerPage, displayStudents.length);
-
-  // Filtered students based on search and filters
-  const filteredStudents = paginatedStudents.filter((student) => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch =
-      (student.first_name &&
-        student.first_name.toLowerCase().includes(search)) ||
-      (student.last_name && student.last_name.toLowerCase().includes(search)) ||
-      (student.email && student.email.toLowerCase().includes(search)) ||
-      (student.phone_number && student.phone_number.includes(search));
-
-    let matchesFilters = true;
-    if (filters.stage !== "all" && student.stage_name !== filters.stage)
-      matchesFilters = false;
-    if (
-      filters.stage_status !== "all" &&
-      student.current_status_name !== filters.stage_status
-    )
-      matchesFilters = false;
-
-    return matchesSearch && matchesFilters;
-  });
+    processedStudents.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
+  const endIdx = Math.min(studentPage * rowsPerPage, processedStudents.length);
 
   // Helper functions to resolve names from IDs (duplicate from ApplicantTable)
   const resolveCampusName = (value: any) => {
@@ -296,9 +315,13 @@ const CampusDetail = () => {
         : [];
 
     stageStatusArray.forEach((status: string) => {
+      // Try to find the status name from stageStatusList
+      const statusObj = stageStatusList.find((s: any) => String(s.id) === String(status));
+      const statusLabel = statusObj?.status_name || statusObj?.name || status;
+
       tags.push({
         key: `stage_status-${status}`,
-        label: `Status: ${status}`,
+        label: `Status: ${statusLabel}`,
         onRemove: () => handleRemoveSingleStageStatus(status)
       });
     });
@@ -420,7 +443,7 @@ const CampusDetail = () => {
     }
 
     return tags;
-  }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, qualificationList, partnerList, donorList]);
+  }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, qualificationList, partnerList, donorList, stageStatusList]);
 
   // Clear all filters
   const handleClearFilters = () => {
@@ -868,14 +891,14 @@ const CampusDetail = () => {
                   <p>Loading students...</p>
                 ) : error ? (
                   <p className="text-destructive">{error}</p>
-                ) : filteredStudents.length === 0 ? (
+                ) : paginatedStudents.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
                     No students found
                   </p>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {filteredStudents.map((student, idx) => (
+                      {paginatedStudents.map((student, idx) => (
                         <div
                           key={student.id}
                           className="bg-card rounded-xl p-6 shadow-soft border border-border"
@@ -987,7 +1010,7 @@ const CampusDetail = () => {
                         </select>
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {startIdx}-{endIdx} of {displayStudents.length}
+                        {startIdx}-{endIdx} of {processedStudents.length}
                       </span>
                       <div className="flex items-center gap-1">
                         <button

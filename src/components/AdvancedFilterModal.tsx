@@ -588,8 +588,9 @@ export function AdvancedFilterModal({
 
   // Current Status - find and display actual name
   if (filters.currentStatus?.length) {
-    const status = availableOptions.currentStatuses.find((s: any) => String(s.id) === String(filters.currentStatus[0]));
-    const statusLabel = status?.current_status_name || status?.name || filters.currentStatus[0];
+    const statusId = filters.currentStatus[0];
+    const status = availableOptions.currentStatuses.find((s: any) => String(s.id) === String(statusId));
+    const statusLabel = status?.current_status_name || status?.name || statusId;
     activeFilters.push({
       key: "currentStatus",
       label: `Current Status: ${statusLabel}`,
