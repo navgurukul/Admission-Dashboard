@@ -149,10 +149,19 @@ export function EditableCell({
       return;
     }
 
-    if (
-      field === "dob" &&
-      cellValue
-    ) {
+    // Validate date of birth - cannot be empty and minimum age 16.5 years
+    if (field === "dob") {
+      // Check if date is empty
+      if (!cellValue || cellValue === "" || cellValue === null) {
+        toast({
+          title: "⚠️ Date of Birth Required",
+          description: "Please select a date of birth. This field cannot be empty.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+        });
+        return;
+      }
+
       const selectedDate = new Date(cellValue);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to compare only dates
@@ -161,6 +170,20 @@ export function EditableCell({
         toast({
           title: "⚠️ Invalid Date of Birth",
           description: "Date of birth cannot be in the future",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+        });
+        return;
+      }
+
+      // Calculate age in years (including decimal for months)
+      const ageInMilliseconds = today.getTime() - selectedDate.getTime();
+      const ageInYears = ageInMilliseconds / (365.25 * 24 * 60 * 60 * 1000);
+      
+      if (ageInYears < 16.5) {
+        toast({
+          title: "⚠️ Age Requirement Not Met",
+          description: "Applicant must be at least 16.5 years old (16 years and 6 months)",
           variant: "default",
           className: "border-orange-500 bg-orange-50 text-orange-900",
         });
@@ -384,6 +407,16 @@ export function EditableCell({
     if (field === "dob") {
       const dateValue = cellValue ? new Date(cellValue) : undefined;
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Calculate minimum allowed date (16.5 years ago from today)
+      const minAllowedDate = new Date(today);
+      minAllowedDate.setFullYear(today.getFullYear() - 16);
+      minAllowedDate.setMonth(today.getMonth() - 6); // Subtract 6 months for the 0.5 year
+      
+      // Calculate maximum allowed date for year selector (earliest possible DOB)
+      const maxYearForSelector = today.getFullYear() - 16;
+      const minYearForSelector = 1940;
       
       return (
         <div className="flex flex-col gap-1 w-full relative z-50">
@@ -417,6 +450,11 @@ export function EditableCell({
                 sideOffset={5}
               >
                 <div className="p-3 space-y-2">
+                  {/* Age Requirement Notice */}
+                  <div className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 rounded px-2 py-1.5 mb-2">
+                    ℹ️ Minimum age: 16 years 6 months
+                  </div>
+                  
                   {/* Year and Month Selectors */}
                   <div className="flex gap-2 pb-2 border-b">
                     <select
@@ -441,7 +479,7 @@ export function EditableCell({
                       }}
                       className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-ring"
                     >
-                      {Array.from({ length: today.getFullYear() - 1940 + 1 }, (_, i) => 1940 + i).reverse().map(year => (
+                      {Array.from({ length: maxYearForSelector - minYearForSelector + 1 }, (_, i) => minYearForSelector + i).reverse().map(year => (
                         <option key={year} value={year}>{year}</option>
                       ))}
                     </select>
@@ -458,7 +496,15 @@ export function EditableCell({
                         setDatePickerOpen(false);
                       }
                     }}
-                    disabled={(date) => date > today}
+                    disabled={(date) => {
+                      // Disable future dates
+                      if (date > today) return true;
+                      
+                      // Disable dates that would make age < 16.5 years
+                      if (date > minAllowedDate) return true;
+                      
+                      return false;
+                    }}
                     month={dateValue || new Date(2000, 0)}
                     onMonthChange={(month) => {
                       setCellValue(month.toISOString().split('T')[0]);
@@ -484,17 +530,6 @@ export function EditableCell({
 
                   {/* Quick Actions */}
                   <div className="flex gap-2 pt-2 border-t">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        const today = new Date();
-                        setCellValue(today.toISOString().split('T')[0]);
-                      }}
-                      variant="outline"
-                      className="flex-1 h-6 text-xs"
-                    >
-                      Today
-                    </Button>
                     <Button
                       size="sm"
                       onClick={() => {
