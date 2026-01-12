@@ -2578,8 +2578,16 @@ export const createPartner = async (payload: Partial<Partner>) => {
   return data;
 };
 
-export const getPartners = async (page: number = 1, limit: number = 10) => {
-  const response = await fetch(`${BASE_URL}/partners/getPartners?page=${page}&pageSize=${limit}`, {
+export const getPartners = async (page: number = 1, limit: number = 10, partnerName?: string) => {
+  // Build query parameters
+  let queryParams = `page=${page}&pageSize=${limit}`;
+  
+  // Only add partner_name if it's provided and not empty
+  if (partnerName && partnerName.trim()) {
+    queryParams += `&partner_name=${encodeURIComponent(partnerName.trim())}`;
+  }
+
+  const response = await fetch(`${BASE_URL}/partners/getPartners?${queryParams}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });

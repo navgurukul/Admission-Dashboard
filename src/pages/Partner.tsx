@@ -103,6 +103,7 @@ const PartnerPage = () => {
     form: defaultPartnerForm,
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [filterDialog, setFilterDialog] = useState(false);
   const [filters, setFilters] = useState({
     district: "",
@@ -151,10 +152,11 @@ const PartnerPage = () => {
   // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
   // const [pendingAssessment, setPendingAssessment] = useState<any>(null);
 
-  const loadPartners = async (p = page) => {
+  const loadPartners = async (p = page, search = searchQuery) => {
     setLoading(true);
     try {
-      const response = await getPartners(p, rowsPerPage); // Use rowsPerPage state
+      // Pass search query to API
+      const response = await getPartners(p, rowsPerPage, search || ""); // Use rowsPerPage state and search
 
       // Extract data based on typical API structure
       let partnersArray = [];
@@ -207,9 +209,18 @@ const PartnerPage = () => {
     }
   };
 
+  // Debounce search query to avoid excessive API calls
   useEffect(() => {
-    loadPartners(page);
-  }, [page, rowsPerPage]); // Add rowsPerPage to dependencies
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    loadPartners(page, debouncedSearchQuery);
+  }, [page, rowsPerPage, debouncedSearchQuery]); // Use debouncedSearchQuery
 
   useEffect(() => {
     loadStates();
@@ -290,13 +301,9 @@ const PartnerPage = () => {
     }
   };
 
-  // Filter partners based on search query and filters
+  // Filter partners based on additional client-side filters (district, slug, email domain)
+  // Search by name is handled server-side via API
   const filteredPartners = partners.filter((partner) => {
-    const matchesSearch =
-      !searchQuery.trim() ||
-      partner.partner_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.slug?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDistrict = filters.district
       ? (partner.displayDistricts || []).some((d) =>
         d.toLowerCase().includes(filters.district.toLowerCase()),
@@ -309,14 +316,14 @@ const PartnerPage = () => {
       ? partner.email?.toLowerCase().endsWith(filters.emailDomain.toLowerCase())
       : true;
     return (
-      matchesSearch && matchesDistrict && matchesSlug && matchesEmailDomain
+      matchesDistrict && matchesSlug && matchesEmailDomain
     );
   });
 
   // Reset page to 1 when search or filters change
   React.useEffect(() => {
     setPage(1);
-  }, [searchQuery, filters]);
+  }, [debouncedSearchQuery, filters]);
 
   // We use partners directly since it's now paginated by the server
   const paginatedPartners = filteredPartners;
