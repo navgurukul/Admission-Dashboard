@@ -380,23 +380,23 @@ const DonorPage = () => {
               {/* Pagination Controls */}
                    {!loading && totalDonors > 0 && (
                 <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalDonors)}</strong> of <strong>{totalDonors}</strong>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex items-center gap-2">
-                      <Label className="text-xs text-muted-foreground whitespace-nowrap">Rows:</Label>
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
                       <select
                         value={rowsPerPage}
                         onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                        className="border rounded px-2 py-1 text-xs h-8"
+                        className="border rounded px-2 py-1 text-sm h-8"
                       >
                         <option value={10}>10</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                       </select>
                     </div>
-                    <span className="text-xs text-muted-foreground px-2">
+                    <span className="text-sm text-muted-foreground px-2">
                       Page <strong>{page}</strong> of <strong>{totalPages}</strong>
                     </span>
                     <Button
