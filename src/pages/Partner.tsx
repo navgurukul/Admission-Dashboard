@@ -96,6 +96,7 @@ const PartnerPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10); // Add this state
   const [editDialog, setEditDialog] = useState({
     open: false,
     idx: null,
@@ -153,7 +154,7 @@ const PartnerPage = () => {
   const loadPartners = async (p = page) => {
     setLoading(true);
     try {
-      const response = await getPartners(p, ROWS_PER_PAGE);
+      const response = await getPartners(p, rowsPerPage); // Use rowsPerPage state
 
       // Extract data based on typical API structure
       let partnersArray = [];
@@ -163,11 +164,11 @@ const PartnerPage = () => {
       if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
         partnersArray = response.data.data;
         total = response.data.total || partnersArray.length;
-        pages = response.data.totalPages || Math.ceil(total / ROWS_PER_PAGE);
+        pages = response.data.totalPages || Math.ceil(total / rowsPerPage); // Use rowsPerPage
       } else if (response && response.data && Array.isArray(response.data)) {
         partnersArray = response.data;
         total = response.total || partnersArray.length;
-        pages = response.totalPages || Math.ceil(total / ROWS_PER_PAGE);
+        pages = response.totalPages || Math.ceil(total / rowsPerPage); // Use rowsPerPage
       } else if (Array.isArray(response)) {
         partnersArray = response;
         total = response.length;
@@ -208,7 +209,7 @@ const PartnerPage = () => {
 
   useEffect(() => {
     loadPartners(page);
-  }, [page]);
+  }, [page, rowsPerPage]); // Add rowsPerPage to dependencies
 
   useEffect(() => {
     loadStates();
@@ -980,12 +981,30 @@ const PartnerPage = () => {
                 </TableBody>
               </Table>
             </div>
-            {/* Pagination */}
+                {/* Pagination */}
             <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
-              <div className="text-xs text-muted-foreground">
-                Showing <strong>{(page - 1) * ROWS_PER_PAGE + 1}</strong> to <strong>{Math.min(page * ROWS_PER_PAGE, totalPartnersCount)}</strong> of <strong>{totalPartnersCount}</strong>
+              <div className="text-sm text-muted-foreground">
+                Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalPartnersCount)}</strong> of <strong>{totalPartnersCount}</strong>
               </div>
               <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setPage(1); // Reset to first page when changing rows per page
+                    }}
+                    className="border rounded px-2 py-1 text-sm h-8"
+                  >
+                    <option value={10}>10</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+                </span>
                 <Button
                   variant="outline"
                   size="sm"

@@ -18,6 +18,7 @@ import {
 import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
@@ -44,7 +45,7 @@ const CampusPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalCampusesCount, setTotalCampusesCount] = useState(0);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
@@ -95,7 +96,7 @@ const CampusPage: React.FC = () => {
   // Fetch on mount and when page changes
   useEffect(() => {
     fetchCampuses(true);
-  }, [currentPage]);
+  }, [currentPage, itemsPerPage]);
 
   // Filter and Slice (Slice added to ensure only itemsPerPage are shown)
   const filteredCampuses = campuses
@@ -331,22 +332,35 @@ const CampusPage: React.FC = () => {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-2">
-                  {/* Showing items range */}
-                  <p className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    {totalCampusesCount === 0 ? 0 : indexOfFirstItem + 1} –{" "}
-                    {Math.min(currentPage * itemsPerPage, totalCampusesCount)} of{" "}
-                    {totalCampusesCount}
-                  </p>
-
-                  {/* Pagination buttons */}
-                  <div className="flex gap-2">
+                <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
+                  <div className="text-sm text-muted-foreground">
+                    Showing <strong>{totalCampusesCount === 0 ? 0 : indexOfFirstItem + 1}</strong> - <strong>{Math.min(currentPage * itemsPerPage, totalCampusesCount)}</strong> of <strong>{totalCampusesCount}</strong>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                          setItemsPerPage(Number(e.target.value));
+                          setCurrentPage(1); // Reset to first page when changing rows per page
+                        }}
+                        className="border rounded px-2 py-1 text-sm h-8"
+                      >
+                        <option value={10}>10</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                    <span className="text-sm text-muted-foreground px-2">
+                      Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                    </span>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handlePrevPage}
                       disabled={currentPage === 1}
+                      className="h-8"
                     >
                       Previous
                     </Button>
@@ -355,6 +369,7 @@ const CampusPage: React.FC = () => {
                       size="sm"
                       onClick={handleNextPage}
                       disabled={currentPage === totalPages || totalPages === 0}
+                      className="h-8"
                     >
                       Next
                     </Button>

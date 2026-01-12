@@ -378,67 +378,44 @@ const DonorPage = () => {
 
 
               {/* Pagination Controls */}
-              {!loading && totalDonors > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 pt-4 pb-2">
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-muted-foreground">
-                      Showing <span className="font-medium">{(page - 1) * rowsPerPage + 1}</span> - <span className="font-medium">{Math.min(page * rowsPerPage, totalDonors)}</span> of <span className="font-medium">{totalDonors}</span> donors
-                    </div>
+                   {!loading && totalDonors > 0 && (
+                <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
+                  <div className="text-sm text-muted-foreground">
+                    Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalDonors)}</strong> of <strong>{totalDonors}</strong>
+                  </div>
+                  <div className="flex items-center space-x-2">
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</Label>
+                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
                       <select
                         value={rowsPerPage}
                         onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                        className="border rounded px-2 py-1 text-sm"
+                        className="border rounded px-2 py-1 text-sm h-8"
                       >
-                       
                         <option value={10}>10</option>
-
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                       </select>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground px-2">
+                      Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+                    </span>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(1)}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                    >
-                      First
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
+                      className="h-8"
                     >
                       Previous
                     </Button>
-
-                    {/* Page indicator */}
-                    <span className="text-sm text-muted-foreground px-2">
-                      Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
-                    </span>
-
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={page === totalPages}
+                      className="h-8"
                     >
                       Next
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(totalPages)}
-                      disabled={page === totalPages}
-                    >
-                      Last
                     </Button>
                   </div>
                 </div>

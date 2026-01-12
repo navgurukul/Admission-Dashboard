@@ -571,6 +571,9 @@ export default function AdminView() {
                               <option value={100}>100</option>
                             </select>
                           </div>
+                            <span className="px-3 py-1 text-sm">
+                            Page {interviewCurrentPage} of {interviewTotalPages}
+                          </span>
                           <button
                             onClick={() => setInterviewCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={interviewCurrentPage === 1}
@@ -578,9 +581,7 @@ export default function AdminView() {
                           >
                             Previous
                           </button>
-                          <span className="px-3 py-1 text-sm">
-                            Page {interviewCurrentPage} of {interviewTotalPages}
-                          </span>
+                        
                           <button
                             onClick={() => setInterviewCurrentPage(prev => Math.min(interviewTotalPages, prev + 1))}
                             disabled={interviewCurrentPage === interviewTotalPages}
@@ -733,6 +734,9 @@ export default function AdminView() {
                               <option value={100}>100</option>
                             </select>
                           </div>
+                           <span className="px-3 py-1 text-sm">
+                            Page {slotCurrentPage} of {slotTotalPages}
+                          </span>
                           <button
                             onClick={() => setSlotCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={slotCurrentPage === 1}
@@ -740,9 +744,6 @@ export default function AdminView() {
                           >
                             Previous
                           </button>
-                          <span className="px-3 py-1 text-sm">
-                            Page {slotCurrentPage} of {slotTotalPages}
-                          </span>
                           <button
                             onClick={() => setSlotCurrentPage(prev => Math.min(slotTotalPages, prev + 1))}
                             disabled={slotCurrentPage === slotTotalPages}
