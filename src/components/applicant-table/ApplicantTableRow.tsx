@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -14,12 +14,19 @@ import { EditableCell } from "./EditableCell";
 import StatusDropdown from "./StatusDropdown";
 import StageDropdown from "./StageDropdown";
 import { CampusSelector } from "../CampusSelector";
+import { getDistrictsByState, getBlocksByDistrict } from "@/utils/api";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { usePermissions } from "@/hooks/usePermissions";
 
 interface ApplicantTableRowProps {
@@ -38,6 +45,14 @@ interface ApplicantTableRowProps {
   currentstatusList: any[];
   stageStatusList?: any[];
   questionSetList: any[];
+  partnerList?: any[];
+  donorList?: any[];
+  castList?: any[];
+  qualificationList?: any[];
+  stateList?: any[];
+  districtList?: any[];
+  blockList?: any[];
+  isColumnVisible: (columnId: string) => boolean;
 }
 
 export const ApplicantTableRow = ({
@@ -55,9 +70,100 @@ export const ApplicantTableRow = ({
   currentstatusList,
   stageStatusList = [],
   questionSetList,
+  partnerList = [],
+  donorList = [],
+  castList = [],
+  qualificationList = [],
+  stateList = [],
+  districtList = [],
+  blockList = [],
+  isColumnVisible,
 }: ApplicantTableRowProps) => {
   const [showImageModal, setShowImageModal] = useState(false);
   const { hasEditAccess } = usePermissions();
+  
+  // State for dynamic district and block options
+  const [districtOptions, setDistrictOptions] = useState<{ id: string | number; name: string }[]>([]);
+  const [blockOptions, setBlockOptions] = useState<{ id: string | number; name: string }[]>([]);
+  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+
+  // Fetch districts when state is present
+  useEffect(() => {
+    const fetchDistricts = async () => {
+      if (!applicant.state) {
+        setDistrictOptions([]);
+        setBlockOptions([]);
+        return;
+      }
+
+      setIsLoadingDistricts(true);
+      try {
+        const stateObj = stateList.find(
+          (s: any) => 
+            s.label === applicant.state || 
+            s.state_name === applicant.state ||
+            s.value === applicant.state ||
+            s.state_code === applicant.state
+        );
+        
+        const stateCode = stateObj?.value || stateObj?.state_code || applicant.state;
+        const response = await getDistrictsByState(stateCode);
+        const districts = response?.data || response || [];
+        
+        const mapped = districts.map((d: any) => ({
+          id: d.district_code || d.value || d.id,
+          name: d.district_name || d.label || d.name
+        }));
+        
+        setDistrictOptions(mapped);
+      } catch (error) {
+        console.error("Failed to fetch districts:", error);
+        setDistrictOptions([]);
+      } finally {
+        setIsLoadingDistricts(false);
+      }
+    };
+
+    fetchDistricts();
+  }, [applicant.state, stateList]);
+
+  // Fetch blocks when district is present
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      if (!applicant.district || districtOptions.length === 0) {
+        setBlockOptions([]);
+        return;
+      }
+
+      setIsLoadingBlocks(true);
+      try {
+        const districtObj = districtOptions.find(
+          (d: any) => 
+            d.name === applicant.district ||
+            d.district_name === applicant.district
+        );
+        
+        const districtCode = districtObj?.id || applicant.district;
+        const response = await getBlocksByDistrict(districtCode);
+        const blocks = response?.data || response || [];
+        
+        const mapped = blocks.map((b: any) => ({
+          id: b.id || b.block_code || b.value,
+          name: b.block_name || b.label || b.name
+        }));
+        
+        setBlockOptions(mapped);
+      } catch (error) {
+        console.error("Failed to fetch blocks:", error);
+        setBlockOptions([]);
+      } finally {
+        setIsLoadingBlocks(false);
+      }
+    };
+
+    fetchBlocks();
+  }, [applicant.district, districtOptions]);
 
   const fullName =
     [applicant.first_name, applicant.middle_name, applicant.last_name]
@@ -131,110 +237,149 @@ export const ApplicantTableRow = ({
     return "N/A";
   };
 
+  // Helper function to format audit information
+  const formatAuditInfo = (data: any) => {
+    if (!data) return "N/A";
+
+    const formatDate = (dateString: string) => {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    };
+
+    const parts = [];
+    
+    if (data.created_at) {
+      parts.push(`Created: ${formatDate(data.created_at)}`);
+    }
+    
+    if (data.updated_at) {
+      parts.push(`Updated: ${formatDate(data.updated_at)}`);
+    }
+    
+    // Check for various user field names
+    const userName = data.last_updated_by || 
+                     data.last_status_updated_by || 
+                     data.created_by || 
+                     data.updated_by ||
+                     data.user_name ||
+                     data.username;
+    
+    if (userName) {
+      parts.push(`By: ${userName}`);
+    }
+    
+    return parts.length > 0 ? parts.join('\n') : 'N/A';
+  };
+
   return (
     <TableRow key={applicant.id}>
       {/* Checkbox */}
-      <TableCell className="sticky left-0 z-30 bg-white w-12 px-2">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => onSelect(applicant.id)}
-          aria-label={`Select ${fullName}`}
-        />
-      </TableCell>
+      {isColumnVisible('checkbox') && (
+        <TableCell className="sticky left-0 z-30 bg-white w-12 px-2">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onSelect(applicant.id)}
+            aria-label={`Select ${fullName}`}
+          />
+        </TableCell>
+      )}
 
       {/* Profile Image */}
-      <TableCell className="w-12 px-2">
-        <Avatar
-          className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
-          onClick={() => setShowImageModal(true)}
-        >
-          <AvatarImage
-            src={applicant.image_url || applicant.image}
-            alt={fullName}
-          />
-          <AvatarFallback className="text-xs">
-            {getInitials(fullName)}
-          </AvatarFallback>
-        </Avatar>
-      </TableCell>
+      {isColumnVisible('image') && (
+        <TableCell className="w-12 px-2">
+          <Avatar
+            className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
+            onClick={() => setShowImageModal(true)}
+          >
+            <AvatarImage
+              src={applicant.image_url || applicant.image}
+              alt={fullName}
+            />
+            <AvatarFallback className="text-xs">
+              {getInitials(fullName)}
+            </AvatarFallback>
+          </Avatar>
+        </TableCell>
+      )}
 
       {/* Full Name - Editable */}
-      <TableCell className="sticky left-10  bg-white z-20 min-w-[150px] max-w-[180px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="first_name"
-            displayValue={fullName}
-            onUpdate={onUpdate}
-            disabled={true}
-          />
-        </div>
-      </TableCell>
+      {isColumnVisible('name') && (
+        <TableCell className="sticky left-10  bg-white z-20 min-w-[150px] max-w-[180px] px-2">
+          <div className="truncate">
+            <EditableCell
+              applicant={applicant}
+              field="first_name"
+              displayValue={fullName}
+              onUpdate={onUpdate}
+              disabled={true}
+            />
+          </div>
+        </TableCell>
+      )}
 
-      <TableCell className="min-w-[120px] max-w-[220px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="email"
-            displayValue={applicant.email || "No Email"}
-            onUpdate={onUpdate}
-            showPencil={hasEditAccess}
-            showActionButtons={false}
-            disabled={!hasEditAccess}
-          />
-        </div>
-      </TableCell>
-
-      {/* Marks */}
-      <TableCell className="min-w-[80px] max-w-[100px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="obtained_marks"
-            displayValue={applicant.obtained_marks || "0"}
-            onUpdate={onUpdate}
-            showPencil={false}
-            showActionButtons={false}
-            disabled={true}
-          />
-        </div>
-      </TableCell>
+      {/* Email */}
+      {isColumnVisible('email') && (
+        <TableCell className="min-w-[120px] max-w-[220px] px-2">
+          <div className="truncate">
+            <EditableCell
+              applicant={applicant}
+              field="email"
+              displayValue={applicant.email || "No Email"}
+              onUpdate={onUpdate}
+              showPencil={hasEditAccess}
+              showActionButtons={false}
+              disabled={!hasEditAccess}
+            />
+          </div>
+        </TableCell>
+      )}
 
       {/* Phone Number */}
-      <TableCell className="min-w-[110px] max-w-[130px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="phone_number"
-            displayValue={
-              applicant.phone_number || applicant.mobile_no || "No phone"
-            }
-            onUpdate={onUpdate}
-            showPencil={hasEditAccess}
-            showActionButtons={false}
-            disabled={!hasEditAccess}
-          />
-        </div>
-      </TableCell>
+      {isColumnVisible('phone') && (
+        <TableCell className="min-w-[110px] max-w-[130px] px-2">
+          <div className="truncate">
+            <EditableCell
+              applicant={applicant}
+              field="phone_number"
+              displayValue={
+                applicant.phone_number || applicant.mobile_no || "No phone"
+              }
+              onUpdate={onUpdate}
+              showPencil={hasEditAccess}
+              showActionButtons={false}
+              disabled={!hasEditAccess}
+            />
+          </div>
+        </TableCell>
+      )}
 
-      {/* WhatsApp Number - Simple text field */}
-      {/* <TableCell className="min-w-[110px] max-w-[130px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="whatsapp_number"
-            displayValue={applicant.whatsapp_number || "No WhatsApp"}
-            onUpdate={onUpdate}
-            showPencil={hasEditAccess}
-            showActionButtons={false}
-            disabled={!hasEditAccess}
-          />
-        </div>
-      </TableCell> */}
+      {/* WhatsApp Number */}
+      {isColumnVisible('whatsapp') && (
+        <TableCell className="min-w-[110px] max-w-[130px] px-2">
+          <div className="truncate">
+            <EditableCell
+              applicant={applicant}
+              field="whatsapp_number"
+              displayValue={applicant.whatsapp_number || "No WhatsApp"}
+              onUpdate={onUpdate}
+              showPencil={hasEditAccess}
+              showActionButtons={false}
+              disabled={!hasEditAccess}
+            />
+          </div>
+        </TableCell>
+      )}
 
-      {/* Gender - Simple text field */}
-      <TableCell className="min-w-[80px] max-w-[100px] px-2">
-        <div className="truncate">
+      {/* Gender */}
+      {isColumnVisible('gender') && (
+        <TableCell className="min-w-[80px] max-w-[100px] px-2">
           <EditableCell
             applicant={applicant}
             field="gender"
@@ -245,93 +390,256 @@ export const ApplicantTableRow = ({
               { id: "other", name: "Other" },
             ]}
             onUpdate={onUpdate}
-            showPencil={false}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
             disabled={!hasEditAccess}
           />
-        </div>
-      </TableCell>
+        </TableCell>
+      )}
 
-      {/* City - Simple text field */}
-      {/* <TableCell className="min-w-[90px] max-w-[120px] px-2">
-        <div className="truncate">
-          <EditableCell
-            applicant={applicant}
-            field="city"
-            displayValue={applicant.city || "Not specified"}
-            onUpdate={onUpdate}
-            showPencil={true}
-            showActionButtons={false}
-          />
-        </div>
-      </TableCell> */}
+      {/* DOB */}
+      {isColumnVisible('dob') && (
+        <TableCell className="min-w-[100px] max-w-[120px] px-2">
+          <div className="truncate">
+            <EditableCell
+              applicant={applicant}
+              field="dob"
+              displayValue={applicant.dob ? new Date(applicant.dob).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              }) : "N/A"}
+              onUpdate={onUpdate}
+              showPencil={hasEditAccess}
+              showActionButtons={true}
+              disabled={!hasEditAccess}
+            />
+          </div>
+        </TableCell>
+      )}
 
-      {/* State - Simple text field */}
-      {/* <TableCell className="min-w-[100px] max-w-[140px] px-2">
-        <div className="truncate">
+      {/* State */}
+      {isColumnVisible('state') && (
+        <TableCell className="min-w-[140px] px-2">
           <EditableCell
             applicant={applicant}
             field="state"
             displayValue={applicant.state || "Not specified"}
             onUpdate={onUpdate}
-            showPencil={true}
+            options={stateList.map((s: any) => ({ 
+              id: s.state_code || s.value || s.id, 
+              name: s.state_name || s.label || s.name 
+            }))}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
+            disabled={!hasEditAccess}
           />
-        </div>
-      </TableCell> */}
+        </TableCell>
+      )}
 
-      {/* School*/}
-      {/* <TableCell className="min-w-[120px] max-w-[150px] px-2">
-        <div className="truncate">
+      {/* District */}
+      {isColumnVisible('district') && (
+        <TableCell className="min-w-[140px] px-2">
           <EditableCell
             applicant={applicant}
-            field="school_id"
-            displayValue={
-              schoolList.find((s) => s.id === applicant.school_id)
-                ?.school_name || "N/A"
-            }
-            value={applicant.school_id}
+            field="district"
+            displayValue={isLoadingDistricts ? "Loading..." : (applicant.district || "N/A")}
             onUpdate={onUpdate}
-            options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
-            showPencil={false}
+            options={districtOptions}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
+            disabled={!hasEditAccess || isLoadingDistricts || !applicant.state}
+            placeholder={!applicant.state ? "Select state first" : "Select district"}
           />
-        </div>
-      </TableCell> */}
+        </TableCell>
+      )}
 
-      {/* Campus  */}
-      {/* <TableCell className="min-w-[120px] max-w-[150px] px-2">
-        <div className="truncate">
+      {/* Block */}
+      {isColumnVisible('block') && (
+        <TableCell className="min-w-[140px] px-2">
+          <EditableCell
+            applicant={applicant}
+            field="block"
+            displayValue={isLoadingBlocks ? "Loading..." : (applicant.block || "N/A")}
+            onUpdate={onUpdate}
+            options={blockOptions}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
+            showActionButtons={false}
+            disabled={!hasEditAccess || isLoadingBlocks || !applicant.district}
+            placeholder={!applicant.district ? "Select district first" : "Select block"}
+          />
+        </TableCell>
+      )}
+
+      {/* Pincode */}
+      {isColumnVisible('pincode') && (
+        <TableCell className="min-w-[80px] max-w-[100px] px-2">
+          <div className="truncate">
+            <EditableCell
+              applicant={applicant}
+              field="pin_code"
+              displayValue={applicant.pin_code || "N/A"}
+              onUpdate={onUpdate}
+              showPencil={hasEditAccess}
+              showActionButtons={false}
+              disabled={!hasEditAccess}
+            />
+          </div>
+        </TableCell>
+      )}
+
+      {/* Cast */}
+      {isColumnVisible('cast') && (
+        <TableCell className="min-w-[100px] max-w-[120px] px-2">
+          <EditableCell
+            applicant={applicant}
+            field="cast_id"
+            displayValue={applicant.cast || castList.find((c) => c.id === applicant.cast_id)?.cast_name || "N/A"}
+            value={applicant.cast_id}
+            onUpdate={onUpdate}
+            options={castList.map((c) => ({ id: c.id, name: c.cast_name }))}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
+            showActionButtons={false}
+            disabled={!hasEditAccess}
+          />
+        </TableCell>
+      )}
+
+      {/* Religion */}
+      {isColumnVisible('religion') && (
+        <TableCell className="min-w-[100px] max-w-[120px] px-2">
+          <EditableCell
+            applicant={applicant}
+            field="religion_id"
+            displayValue={applicant.religion_name || "N/A"}
+            value={applicant.religion_id}
+            onUpdate={onUpdate}
+            options={religionList.map((r) => ({ id: r.id, name: r.religion_name }))}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
+            showActionButtons={false}
+            disabled={!hasEditAccess}
+          />
+        </TableCell>
+      )}
+
+      {/* Qualification */}
+      {isColumnVisible('qualification') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <EditableCell
+            applicant={applicant}
+            field="qualification_id"
+            displayValue={applicant.qualification || qualificationList.find((q) => q.id === applicant.qualification_id)?.qualification_name || "N/A"}
+            value={applicant.qualification_id}
+            onUpdate={onUpdate}
+            options={qualificationList.map((q) => ({ id: q.id, name: q.qualification_name }))}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
+            showActionButtons={false}
+            disabled={!hasEditAccess}
+          />
+        </TableCell>
+      )}
+
+      {/* Current Status */}
+      {isColumnVisible('current_status') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <EditableCell
+            applicant={applicant}
+            field="current_status_id"
+            displayValue={applicant.current_status_name || "N/A"}
+            value={applicant.current_status_id}
+            onUpdate={onUpdate}
+            options={currentstatusList.map((s) => ({ id: s.id, name: s.current_status_name }))}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
+            showActionButtons={false}
+            disabled={!hasEditAccess}
+          />
+        </TableCell>
+      )}
+       {/* Status */}
+      {isColumnVisible('status') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <div className="truncate text-sm">
+            {getLatestStatus(applicant)}
+          </div>
+        </TableCell>
+      )}
+
+      {/* Campus */}
+      {isColumnVisible('campus') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
           <EditableCell
             applicant={applicant}
             field="campus_id"
-            // displayValue={
-            //   campusList.find((s) => s.id === applicant.campus_id)
-            //     ?.campus_name || "N/A"
-            // }
             displayValue={applicant.campus_name || "N/A"}
             value={applicant.campus_id}
             onUpdate={onUpdate}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
-            showPencil={false}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
             disabled={!hasEditAccess}
             tooltipMessage="Current stage update by student details"
           />
-        </div>
-      </TableCell> */}
+        </TableCell>
+      )}
 
+      {/* Partner */}
+      {isColumnVisible('partner') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <EditableCell
+            applicant={applicant}
+            field="partner_id"
+            displayValue={
+              applicant.partner_name || 
+              applicant.partner?.partner_name || 
+              partnerList.find((p) => p.id === applicant.partner_id)?.partner_name || 
+              "N/A"
+            }
+            value={applicant.partner_id}
+            onUpdate={onUpdate}
+            options={partnerList.map((p) => ({ id: p.id, name: p.partner_name }))}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
+            showActionButtons={false}
+            disabled={!hasEditAccess}
+          />
+        </TableCell>
+      )}
 
-      {/* Status */}
-      <TableCell className="min-w-[120px] max-w-[150px] px-2">
-        <div className="truncate text-sm">
-          {getLatestStatus(applicant)}
-        </div>
-      </TableCell>
+      {/* Donor */}
+      {isColumnVisible('donor') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <EditableCell
+            applicant={applicant}
+            field="donor_id"
+            displayValue={
+              applicant.donor_name || 
+              applicant.donor?.donor_name || 
+              donorList.find((d) => d.id === applicant.donor_id)?.donor_name || 
+              "N/A"
+            }
+            value={applicant.donor_id}
+            onUpdate={onUpdate}
+            options={donorList.map((d) => ({ id: d.id, name: d.donor_name }))}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
+            showActionButtons={false}
+            disabled={!hasEditAccess}
+          />
+        </TableCell>
+      )}
 
       {/* Qualifying School */}
-      <TableCell className="min-w-[140px] max-w-[180px] px-2">
-        <div className="truncate">
+      {isColumnVisible('school') && (
+        <TableCell className="min-w-[140px] max-w-[180px] px-2">
           <EditableCell
             applicant={applicant}
             field="school_id"
@@ -339,36 +647,343 @@ export const ApplicantTableRow = ({
             value={applicant.school_id}
             onUpdate={onUpdate}
             options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
-            showPencil={false}
+            forceTextDisplay={true}
+            showPencil={hasEditAccess}
             showActionButtons={false}
             disabled={!hasEditAccess}
           />
-        </div>
-      </TableCell>
+        </TableCell>
+      )}
+
+      {/* Screening Round Fields */}
+      {isColumnVisible('screening_status') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.exam_sessions?.[0]?.status || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('screening_obtained_marks') && (
+        <TableCell className="min-w-[100px] max-w-[120px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.exam_sessions?.[0]?.obtained_marks ?? "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('screening_exam_centre') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.exam_sessions?.[0]?.exam_centre || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('screening_audit') && (
+        <TableCell className="min-w-[200px] max-w-[250px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-not-allowed opacity-70 text-xs whitespace-pre-line">
+                  {formatAuditInfo(applicant.exam_sessions?.[0])}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {/* Learning Round Fields */}
+      {isColumnVisible('lr_status') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.interview_learner_round?.[0]?.learning_round_status || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('lr_comments') && (
+        <TableCell className="min-w-[150px] max-w-[200px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.interview_learner_round?.[0]?.comments || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('lr_audit') && (
+        <TableCell className="min-w-[200px] max-w-[250px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-not-allowed opacity-70 text-xs whitespace-pre-line">
+                  {formatAuditInfo(applicant.interview_learner_round?.[0])}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {/* CFR Round Fields */}
+      {isColumnVisible('cfr_status') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('cfr_comments') && (
+        <TableCell className="min-w-[150px] max-w-[200px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.interview_cultural_fit_round?.[0]?.comments || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('cfr_audit') && (
+        <TableCell className="min-w-[200px] max-w-[250px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-not-allowed opacity-70 text-xs whitespace-pre-line">
+                  {formatAuditInfo(applicant.interview_cultural_fit_round?.[0])}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {/* Final Decision Fields */}
+      {isColumnVisible('offer_letter_status') && (
+        <TableCell className="min-w-[140px] max-w-[180px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.final_decisions?.[0]?.offer_letter_status || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('onboarded_status') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.final_decisions?.[0]?.onboarded_status || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('final_notes') && (
+        <TableCell className="min-w-[150px] max-w-[200px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.final_decisions?.[0]?.final_notes || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('joining_date') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.final_decisions?.[0]?.joining_date
+                    ? new Date(applicant.final_decisions[0].joining_date).toLocaleDateString()
+                    : "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('offer_sent_by') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate cursor-not-allowed opacity-70">
+                  {applicant.final_decisions?.[0]?.offer_letter_sent_by || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {isColumnVisible('offer_audit') && (
+        <TableCell className="min-w-[200px] max-w-[250px] px-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-not-allowed opacity-70 text-xs whitespace-pre-line">
+                  {formatAuditInfo(applicant.final_decisions?.[0])}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>To update, please use detail view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+
+      {/* Communication Notes */}
+      {isColumnVisible('notes') && (
+       
+         
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <div className="truncate text-sm">
+            {applicant.communication_notes || "N/A"}
+          </div>
+        </TableCell>
+      )}
+
+      {/* Created At */}
+      {isColumnVisible('created_at') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <div className="truncate text-sm">
+            {applicant.created_at ? new Date(applicant.created_at).toLocaleDateString() : "N/A"}
+          </div>
+        </TableCell>
+      )}
+
+      {/* Updated At */}
+      {isColumnVisible('updated_at') && (
+        <TableCell className="min-w-[120px] max-w-[150px] px-2">
+          <div className="truncate text-sm">
+            {applicant.updated_at ? new Date(applicant.updated_at).toLocaleDateString() : "N/A"}
+          </div>
+        </TableCell>
+      )}
 
       {/* Actions - Dropdown menu (... button) */}
-      <TableCell className="w-16 px-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            side="bottom"
-            sideOffset={5}
-            className="bg-background border border-border shadow-lg z-50"
-          >
-            <DropdownMenuItem onClick={() => onViewDetails(applicant)}>
-              View Details
-            </DropdownMenuItem>
-            {/* <DropdownMenuItem onClick={() => onViewComments(applicant)}>
-              Comments
-            </DropdownMenuItem> */}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
+      {isColumnVisible('actions') && (
+        <TableCell className="w-16 px-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              side="bottom"
+              sideOffset={5}
+              className="bg-background border border-border shadow-lg z-50"
+            >
+              <DropdownMenuItem onClick={() => onViewDetails(applicant)}>
+                View Details
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      )}
 
       {/* Image Preview Modal */}
       <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
