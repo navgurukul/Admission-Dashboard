@@ -37,6 +37,7 @@ import { ApplicantTableRow } from "./applicant-table/ApplicantTableRow";
 import { ApplicantTableHeader } from "./applicant-table/ApplicantTableHeader";
 import { Pagination } from "./applicant-table/Pagination";
 import { SearchBar } from "./applicant-table/SearchBar";
+import { ColumnVisibility, ColumnConfig } from "./applicant-table/ColumnVisibility";
 import {
   deleteStudent,
   searchStudentsApi,
@@ -87,6 +88,95 @@ const ApplicantTable = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<ColumnConfig[]>(() => {
+    // Try to load from localStorage with versioning
+    const saved = localStorage.getItem('applicantTableColumns_v3');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved columns:', e);
+      }
+    }
+    
+    // Default columns configuration - Ordered to match ApplicantModal
+    return [
+      // Selection & Image
+      { id: 'checkbox', label: 'Select', visible: true },
+      { id: 'image', label: 'Image', visible: true  },
+      
+      // Personal Information (matching ApplicantModal order)
+      { id: 'name', label: 'Name', visible: true},
+      { id: 'email', label: 'Email', visible: true },
+      { id: 'phone', label: 'Phone', visible: true },
+      { id: 'whatsapp', label: 'WhatsApp', visible: false },
+      { id: 'gender', label: 'Gender', visible: true },
+      { id: 'dob', label: 'DOB', visible: false },
+      { id: 'cast', label: 'Cast', visible: false },
+      { id: 'religion', label: 'Religion', visible: false },
+      { id: 'qualification', label: 'Qualification', visible: false },
+      { id: 'current_status', label: 'Current Status', visible: false },
+      
+      // Address Information
+      { id: 'state', label: 'State', visible: false },
+      { id: 'district', label: 'District', visible: false },
+      { id: 'block', label: 'Block', visible: false },
+      { id: 'pincode', label: 'Pincode', visible: false },
+      
+      // Partner & Donor
+      { id: 'partner', label: 'Partner', visible: false },
+      { id: 'donor', label: 'Donor', visible: false },
+      
+      // Screening Round Fields
+      { id: 'screening_status', label: 'Screening Status', visible: false },
+      { id: 'screening_obtained_marks', label: 'Screening Marks', visible: true },
+      { id: 'screening_exam_centre', label: 'Screening Centre', visible: false },
+      { id: 'screening_audit', label: 'Screening Audit', visible: false },
+      
+      // Learning Round Fields
+      { id: 'lr_status', label: 'LR Status', visible: false },
+      { id: 'lr_comments', label: 'LR Comments', visible: false },
+      { id: 'lr_audit', label: 'LR Audit', visible: false },
+      
+      // CFR Round Fields
+      { id: 'cfr_status', label: 'CFR Status', visible: false },
+      { id: 'cfr_comments', label: 'CFR Comments', visible: false },
+      { id: 'cfr_audit', label: 'CFR Audit', visible: false },
+      
+      // Final Decision Fields
+      { id: 'offer_letter_status', label: 'Offer Letter Status', visible: false },
+      { id: 'onboarded_status', label: 'Onboarded Status', visible: false },
+      { id: 'final_notes', label: 'Final Notes', visible: false },
+      { id: 'joining_date', label: 'Joining Date', visible: false },
+      { id: 'offer_sent_by', label: 'Offer Sent By', visible: false },
+      { id: 'offer_audit', label: 'Offer Audit', visible: false },
+      
+      // Status & School
+      { id: 'status', label: 'Status', visible: true },
+      { id: 'campus', label: 'Campus', visible: false },
+      { id: 'school', label: 'School', visible: true },
+      
+      // Communication & Timestamps
+      { id: 'notes', label: 'Communication Notes', visible: false },
+      { id: 'created_at', label: 'Created At', visible: false },
+      { id: 'updated_at', label: 'Updated At', visible: false },
+      
+      // Actions
+      { id: 'actions', label: 'Actions', visible: true, locked: true },
+    ];
+  });
+
+  // Clean up old localStorage keys on mount
+  useEffect(() => {
+    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2'];
+    oldKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+  }, []);
 
   const { toast } = useToast();
   const { hasEditAccess } = usePermissions();
@@ -294,6 +384,60 @@ const ApplicantTable = () => {
     );
   }, [filteredApplicants]);
 
+  // Column visibility handlers
+  const handleColumnToggle = useCallback((columnId: string) => {
+    setVisibleColumns(prev => {
+      const updated = prev.map(col => 
+        col.id === columnId && !col.locked
+          ? { ...col, visible: !col.visible }
+          : col
+      );
+      // Save to localStorage with versioning
+      localStorage.setItem('applicantTableColumns_v3', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const handleResetToDefault = useCallback(() => {
+    // Default visible columns - only the essential ones
+    const defaultColumns = [
+      { id: 'checkbox', label: 'Select', visible: true, locked: true },
+      { id: 'image', label: 'Image', visible: true, locked: true },
+      { id: 'name', label: 'Name', visible: true, locked: true },
+      { id: 'email', label: 'Email', visible: true, locked: true },
+      { id: 'screening_obtained_marks', label: 'Screening Marks', visible: true, locked: false },
+      { id: 'phone', label: 'Phone', visible: true, locked: true },
+      { id: 'gender', label: 'Gender', visible: true, locked: false },
+      { id: 'status', label: 'Status', visible: true, locked: false },
+      { id: 'school', label: 'School', visible: true, locked: false },
+      { id: 'actions', label: 'Actions', visible: true, locked: true },
+    ];
+
+    // Reset all columns to their default visibility
+    setVisibleColumns(prev => {
+      const updated = prev.map(col => {
+        const defaultCol = defaultColumns.find(d => d.id === col.id);
+        return defaultCol 
+          ? { ...col, visible: defaultCol.visible }
+          : { ...col, visible: false }; // All other columns hidden by default
+      });
+      // Save to localStorage
+      localStorage.setItem('applicantTableColumns_v3', JSON.stringify(updated));
+      return updated;
+    });
+
+    toast({
+      title: "Columns Reset",
+      description: "Column visibility has been reset to default settings.",
+      duration: 3000,
+    });
+  }, [toast]);
+
+  const isColumnVisible = useCallback((columnId: string) => {
+    const column = visibleColumns.find(col => col.id === columnId);
+    return column?.visible ?? true;
+  }, [visibleColumns]);
+
   const refreshData = useCallback(async () => {
     // Trigger dashboard stats refresh
     triggerRefresh();
@@ -336,6 +480,14 @@ const ApplicantTable = () => {
       refetchStudents();
     }
   }, [searchTerm, hasActiveFilters, filters, refetchStudents, toast, triggerRefresh]);
+
+  // Lightweight update handler for inline edits - refreshes data to show changes
+  const handleInlineUpdate = useCallback(() => {
+    // Refetch student data to display updated values
+    refetchStudents();
+    // Also trigger dashboard stats refresh
+    triggerRefresh();
+  }, [refetchStudents, triggerRefresh]);
 
   // Bulk actions
   const handleBulkDelete = async () => {
@@ -1388,6 +1540,11 @@ const ApplicantTable = () => {
               filteredCount={currentTotalCount}
               selectedCount={selectedRows.length}
             />
+            <ColumnVisibility
+              columns={visibleColumns}
+              onColumnToggle={handleColumnToggle}
+              onResetToDefault={handleResetToDefault}
+            />
             {hasActiveFilters && (
               <button
                 onClick={handleClearFilters}
@@ -1437,6 +1594,7 @@ const ApplicantTable = () => {
                 selectedRows={selectedRows}
                 filteredApplicants={filteredApplicants}
                 handleSelectAllRows={handleSelectAllRows}
+                isColumnVisible={isColumnVisible}
               />
 
               <TableBody>
@@ -1467,16 +1625,22 @@ const ApplicantTable = () => {
                       applicant={applicant}
                       isSelected={selectedRows.includes(applicant.id)}
                       onSelect={handleCheckboxChange}
-                      onUpdate={refreshData}
+                      onUpdate={handleInlineUpdate}
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
-                      onCampusChange={refreshData}
+                      onCampusChange={handleInlineUpdate}
                       schoolList={schoolList}
                       campusList={campusList}
                       religionList={religionList}
                       currentstatusList={currentstatusList}
                       stageStatusList={stageStatusList}
                       questionSetList={questionSetList}
+                      partnerList={partnerList}
+                      donorList={donorList}
+                      castList={castList}
+                      qualificationList={qualificationList}
+                      stateList={stateList}
+                      isColumnVisible={isColumnVisible}
                     />
                   ))
                 )}

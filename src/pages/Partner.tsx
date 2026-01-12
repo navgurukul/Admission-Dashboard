@@ -96,12 +96,14 @@ const PartnerPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10); // Add this state
   const [editDialog, setEditDialog] = useState({
     open: false,
     idx: null,
     form: defaultPartnerForm,
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [filterDialog, setFilterDialog] = useState(false);
   const [filters, setFilters] = useState({
     district: "",
@@ -150,10 +152,11 @@ const PartnerPage = () => {
   // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
   // const [pendingAssessment, setPendingAssessment] = useState<any>(null);
 
-  const loadPartners = async (p = page) => {
+  const loadPartners = async (p = page, search = searchQuery) => {
     setLoading(true);
     try {
-      const response = await getPartners(p, ROWS_PER_PAGE);
+      // Pass search query to API
+      const response = await getPartners(p, rowsPerPage, search || ""); // Use rowsPerPage state and search
 
       // Extract data based on typical API structure
       let partnersArray = [];
@@ -163,11 +166,11 @@ const PartnerPage = () => {
       if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
         partnersArray = response.data.data;
         total = response.data.total || partnersArray.length;
-        pages = response.data.totalPages || Math.ceil(total / ROWS_PER_PAGE);
+        pages = response.data.totalPages || Math.ceil(total / rowsPerPage); // Use rowsPerPage
       } else if (response && response.data && Array.isArray(response.data)) {
         partnersArray = response.data;
         total = response.total || partnersArray.length;
-        pages = response.totalPages || Math.ceil(total / ROWS_PER_PAGE);
+        pages = response.totalPages || Math.ceil(total / rowsPerPage); // Use rowsPerPage
       } else if (Array.isArray(response)) {
         partnersArray = response;
         total = response.length;
@@ -206,9 +209,18 @@ const PartnerPage = () => {
     }
   };
 
+  // Debounce search query to avoid excessive API calls
   useEffect(() => {
-    loadPartners(page);
-  }, [page]);
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    loadPartners(page, debouncedSearchQuery);
+  }, [page, rowsPerPage, debouncedSearchQuery]); // Use debouncedSearchQuery
 
   useEffect(() => {
     loadStates();
@@ -289,13 +301,9 @@ const PartnerPage = () => {
     }
   };
 
-  // Filter partners based on search query and filters
+  // Filter partners based on additional client-side filters (district, slug, email domain)
+  // Search by name is handled server-side via API
   const filteredPartners = partners.filter((partner) => {
-    const matchesSearch =
-      !searchQuery.trim() ||
-      partner.partner_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.slug?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDistrict = filters.district
       ? (partner.displayDistricts || []).some((d) =>
         d.toLowerCase().includes(filters.district.toLowerCase()),
@@ -308,14 +316,14 @@ const PartnerPage = () => {
       ? partner.email?.toLowerCase().endsWith(filters.emailDomain.toLowerCase())
       : true;
     return (
-      matchesSearch && matchesDistrict && matchesSlug && matchesEmailDomain
+      matchesDistrict && matchesSlug && matchesEmailDomain
     );
   });
 
   // Reset page to 1 when search or filters change
   React.useEffect(() => {
     setPage(1);
-  }, [searchQuery, filters]);
+  }, [debouncedSearchQuery, filters]);
 
   // We use partners directly since it's now paginated by the server
   const paginatedPartners = filteredPartners;
@@ -980,12 +988,30 @@ const PartnerPage = () => {
                 </TableBody>
               </Table>
             </div>
-            {/* Pagination */}
+                {/* Pagination */}
             <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
-              <div className="text-xs text-muted-foreground">
-                Showing <strong>{(page - 1) * ROWS_PER_PAGE + 1}</strong> to <strong>{Math.min(page * ROWS_PER_PAGE, totalPartnersCount)}</strong> of <strong>{totalPartnersCount}</strong>
+              <div className="text-sm text-muted-foreground">
+                Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalPartnersCount)}</strong> of <strong>{totalPartnersCount}</strong>
               </div>
               <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setPage(1); // Reset to first page when changing rows per page
+                    }}
+                    className="border rounded px-2 py-1 text-sm h-8"
+                  >
+                    <option value={10}>10</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
