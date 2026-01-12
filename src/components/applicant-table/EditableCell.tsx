@@ -452,7 +452,7 @@ export function EditableCell({
                 <div className="p-3 space-y-2">
                   {/* Age Requirement Notice */}
                   <div className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 rounded px-2 py-1.5 mb-2">
-                    ℹ️ Minimum age: 16 years 6 months
+                    ℹ️ Required | Minimum age: 16 years 6 months
                   </div>
                   
                   {/* Year and Month Selectors */}
@@ -528,37 +528,11 @@ export function EditableCell({
                     }}
                   />
 
-                  {/* Quick Actions */}
-                  <div className="flex gap-2 pt-2 border-t">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setCellValue("");
-                        setDatePickerOpen(false);
-                      }}
-                      variant="outline"
-                      className="flex-1 h-6 text-xs"
-                    >
-                      Clear
-                    </Button>
-                  </div>
+                  {/* Note: Clear button removed since DOB is required */}
                 </div>
               </PopoverContent>
             </Popover>
-            {/* Clear button (X) like other fields */}
-            {cellValue && !disabled && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setCellValue("");
-                }}
-                className="h-7 w-7 p-0 hover:bg-muted"
-                disabled={isUpdating}
-              >
-                ✕
-              </Button>
-            )}
+            {/* Note: Clear button (X) removed since DOB is required field */}
           </div>
           {showActionButtons && (
             <div className="flex gap-2 mt-1">
