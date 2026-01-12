@@ -53,7 +53,7 @@ interface ScheduleInterviewModalProps {
     date: string,
     startTime: string,
     endTime: string,
-    topicName: string,
+    topicName: string
   ) => Promise<void>;
   isLoading: boolean;
 }
@@ -88,8 +88,10 @@ export const ScheduleInterviewModal = ({
       const user = getCurrentUser();
 
       // Priority: 1. Slot data interviewer, 2. Current user email
-      const defaultInterviewerEmail = slotData?.interviewer_email || user?.email || "";
-      const defaultInterviewerName = slotData?.interviewer_name || user?.name || "";
+      const defaultInterviewerEmail =
+        slotData?.interviewer_email || user?.email || "";
+      const defaultInterviewerName =
+        slotData?.interviewer_name || user?.name || "";
 
       // Always update interviewer details when slot changes
       setInterviewerEmail(defaultInterviewerEmail);
@@ -114,7 +116,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Invalid Email",
         description: "Please enter a valid email address",
         variant: "default",
-        className: "border-primary/50 bg-primary/5 text-primary-dark"
+        className: "border-primary/50 bg-primary/5 text-primary-dark",
       });
       return;
     }
@@ -122,26 +124,25 @@ export const ScheduleInterviewModal = ({
     setIsFetchingStudent(true);
     try {
       const response = await getStudentDataByEmail(studentEmail);
-      
       // Normalize the response - handle both axios.data and nested data.data structures
       const payload = (response as any)?.data ?? response;
       const studentData = payload?.student ?? payload;
-      
       const studentId = studentData.student_id || studentData.id;
-      const fullName = studentData.full_name || studentData.name || 
-                      `${studentData.first_name || ''} ${studentData.last_name || ''}`.trim();
-      
+      const fullName =
+        studentData.full_name ||
+        studentData.name ||
+        `${studentData.first_name || ""} ${studentData.last_name || ""}`.trim();
+
       if (studentId) {
         setStudentId(String(studentId));
         setStudentName(fullName);
         setCompleteStudentData(payload); // Store the complete payload with all interview data
         setStudentDataFetched(true);
-        
         toast({
           title: "✅ Student Found",
           description: `${fullName} has been successfully found`,
           variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900"
+          className: "border-green-500 bg-green-50 text-green-900",
         });
       } else {
         throw new Error("Student ID not found in response");
@@ -152,7 +153,8 @@ export const ScheduleInterviewModal = ({
         title: "Student Not Found",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
-        className: "border-destructive/50 bg-destructive text-destructive-foreground"
+        className:
+          "border-destructive/50 bg-destructive text-destructive-foreground",
       });
       setStudentId("");
       setStudentName("");
@@ -187,33 +189,35 @@ export const ScheduleInterviewModal = ({
     const examSessions = completeStudentData.exam_sessions || [];
 
     // Check if student has passed screening test (exam_sessions)
-    const hasPassedScreening = examSessions.some((exam: any) => 
-      exam.exam_status?.toLowerCase().includes('pass')
+    const hasPassedScreening = examSessions.some(
+      (exam: any) =>
+        exam.status?.toLowerCase().includes("pass")
     );
-    
+
+    console.log(hasPassedScreening);
     // Filter schedules by status - only consider "scheduled" status
-    const activeLRSchedules = lrSchedules.filter((schedule: any) => 
-      schedule.status?.toLowerCase() === 'scheduled'
+    const activeLRSchedules = lrSchedules.filter(
+      (schedule: any) => schedule.status?.toLowerCase() === "scheduled"
     );
-    const activeCFRSchedules = cfrSchedules.filter((schedule: any) => 
-      schedule.status?.toLowerCase() === 'scheduled'
+    const activeCFRSchedules = cfrSchedules.filter(
+      (schedule: any) => schedule.status?.toLowerCase() === "scheduled"
     );
 
     // Check if student has passed LR round
-    const hasPassedLR = lrRounds.some((round: any) => 
-      round.learning_round_status?.toLowerCase().includes('pass')
+    const hasPassedLR = lrRounds.some((round: any) =>
+      round.learning_round_status?.toLowerCase().includes("pass")
     );
 
     // Check if student has passed CFR round
-    const hasPassedCFR = cfrRounds.some((round: any) => 
-      round.cultural_fit_round_status?.toLowerCase().includes('pass')
+    const hasPassedCFR = cfrRounds.some((round: any) =>
+      round.cultural_fit_round_status?.toLowerCase().includes("pass")
     );
 
     // Determine the current slot type from slotData or selected slot
     const currentSlot = isDirectScheduleMode
       ? allAvailableSlots.find((s) => s.id === selectedSlotId)
       : slotData;
-    
+
     const slotType = currentSlot ? (currentSlot as any).slot_type : null;
 
     // Check for LR round
@@ -222,22 +226,22 @@ export const ScheduleInterviewModal = ({
       if (!hasPassedScreening) {
         return {
           canBook: false,
-          message: "Student must pass screening test before LR booking",
-          type: "warning"
+          message: "Student must pass screening test before LR slot booking",
+          type: "warning",
         };
       }
       if (activeLRSchedules.length > 0) {
         return {
           canBook: false,
           message: "Student already has LR interview scheduled",
-          type: "warning"
+          type: "warning",
         };
       }
       if (hasPassedLR) {
         return {
           canBook: false,
           message: "Student has already passed LR round",
-          type: "info"
+          type: "info",
         };
       }
       if (lrRounds.length > 0) {
@@ -245,13 +249,13 @@ export const ScheduleInterviewModal = ({
         return {
           canBook: true,
           message: "Student is eligible for LR slot booking (reattempt)",
-          type: "success"
+          type: "success",
         };
       }
       return {
         canBook: true,
         message: "Student is eligible for LR slot booking",
-        type: "success"
+        type: "success",
       };
     }
 
@@ -261,17 +265,18 @@ export const ScheduleInterviewModal = ({
       if (!hasPassedScreening) {
         return {
           canBook: false,
-          message: "Student must pass screening or Learning round before CFR slot booking",
-          type: "warning"
+          message:
+            "Student must pass screening or Learning round before CFR slot booking",
+          type: "warning",
         };
       }
 
-       // Check if LR is passed before allowing CFR booking
+      // Check if LR is passed before allowing CFR booking
       if (!hasPassedLR) {
         return {
           canBook: false,
           message: "Student must pass LR round before CFR booking",
-          type: "warning"
+          type: "warning",
         };
       }
 
@@ -279,29 +284,29 @@ export const ScheduleInterviewModal = ({
         return {
           canBook: false,
           message: "Student already has CFR interview scheduled",
-          type: "warning"
+          type: "warning",
         };
       }
       if (hasPassedCFR) {
         return {
           canBook: false,
           message: "Student has already passed CFR round",
-          type: "info"
+          type: "info",
         };
       }
-     
+
       if (cfrRounds.length > 0) {
         // Has attempted CFR but not passed - allow rebooking
         return {
           canBook: true,
           message: "Student is eligible for CFR slot booking (reattempt)",
-          type: "success"
+          type: "success",
         };
       }
       return {
         canBook: true,
         message: "Student is eligible for CFR slot booking",
-        type: "success"
+        type: "success",
       };
     }
 
@@ -314,7 +319,7 @@ export const ScheduleInterviewModal = ({
 
   // Get unique dates from available slots
   const availableDates = Array.from(
-    new Set(allAvailableSlots.filter((s) => !s.is_booked).map((s) => s.date)),
+    new Set(allAvailableSlots.filter((s) => !s.is_booked).map((s) => s.date))
   ).sort();
 
   // Get slots for selected date
@@ -335,7 +340,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Incomplete Information",
         description: "Please fill all required fields",
         variant: "default",
-        className: "border-primary/50 bg-primary text-primary-dark"
+        className: "border-primary/50 bg-primary text-primary-dark",
       });
       return;
     }
@@ -345,7 +350,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Slot Required",
         description: "Please select a date and time slot",
         variant: "default",
-        className: "border-primary/50 bg-primary/5 text-primary-dark"
+        className: "border-primary/50 bg-primary/5 text-primary-dark",
       });
       return;
     }
@@ -356,7 +361,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Invalid Slot",
         description: "Please select a valid slot",
         variant: "default",
-        className: "border-primary/50 bg-primary/5 text-primary-dark"
+        className: "border-primary/50 bg-primary/5 text-primary-dark",
       });
       return;
     }
@@ -368,7 +373,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Interviewer Required",
         description: "Please enter interviewer email",
         variant: "default",
-        className: "border-primary/50 bg-primary/5 text-primary-dark"
+        className: "border-primary/50 bg-primary/5 text-primary-dark",
       });
       return;
     }
@@ -384,7 +389,7 @@ export const ScheduleInterviewModal = ({
         slotToUse.date,
         slotToUse.start_time,
         slotToUse.end_time,
-        topicName,
+        topicName
       );
 
       // Reset form
@@ -402,7 +407,8 @@ export const ScheduleInterviewModal = ({
         title: "❌ Failed to Schedule Interview",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
-        className: "border-destructive/50 bg-destructive/5 text-destructive-foreground"
+        className:
+          "border-destructive/50 bg-destructive/5 text-destructive-foreground",
       });
     }
   };
@@ -489,10 +495,11 @@ export const ScheduleInterviewModal = ({
                             setTopicName("Cultural Fit Round");
                           }
                         }}
-                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all hover:scale-102 ${selectedSlotId === slot.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/30 hover:shadow-soft"
-                          }`}
+                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all hover:scale-102 ${
+                          selectedSlotId === slot.id
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/30 hover:shadow-soft"
+                        }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <Clock className="w-4 h-4 text-muted-foreground" />
@@ -508,9 +515,14 @@ export const ScheduleInterviewModal = ({
                             </p>
                           )}
                           {slot.slot_type && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${slot.slot_type === 'LR' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                              }`}>
-                              {slot.slot_type === 'LR' ? 'LR' : 'CFR'}
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                slot.slot_type === "LR"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-purple-100 text-purple-700"
+                              }`}
+                            >
+                              {slot.slot_type === "LR" ? "LR" : "CFR"}
                             </span>
                           )}
                         </div>
@@ -563,7 +575,6 @@ export const ScheduleInterviewModal = ({
 
           {/* Student Info */}
           <div className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border">
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Interview Type <span className="text-red-500">*</span>
@@ -627,15 +638,21 @@ export const ScheduleInterviewModal = ({
                 disabled={studentDataFetched}
               />
               {studentDataFetched && interviewStatus && (
-                <div className={`text-xs mt-2 px-3 py-2 rounded-md flex items-start gap-2 font-medium ${
-                  interviewStatus.type === 'success' 
-                    ? 'bg-green-50 text-green-700 border border-green-200' 
-                    : interviewStatus.type === 'warning'
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : 'bg-blue-50 text-blue-700 border border-blue-200'
-                }`}>
+                <div
+                  className={`text-xs mt-2 px-3 py-2 rounded-md flex items-start gap-2 font-medium ${
+                    interviewStatus.type === "success"
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : interviewStatus.type === "warning"
+                        ? "bg-amber-50 text-amber-700 border border-amber-200"
+                        : "bg-blue-50 text-blue-700 border border-blue-200"
+                  }`}
+                >
                   <span className="text-base">
-                    {interviewStatus.type === 'success' ? '✓' : interviewStatus.type === 'warning' ? '⚠️' : 'ℹ️'}
+                    {interviewStatus.type === "success"
+                      ? "✓"
+                      : interviewStatus.type === "warning"
+                        ? "⚠️"
+                        : "ℹ️"}
                   </span>
                   <span>{interviewStatus.message}</span>
                 </div>
@@ -689,7 +706,9 @@ export const ScheduleInterviewModal = ({
 
           {/* Info Box */}
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm text-foreground shadow-soft">
-            <p className="font-semibold mb-1 text-primary">What happens next?</p>
+            <p className="font-semibold mb-1 text-primary">
+              What happens next?
+            </p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
               <li>Google Meet link will be created automatically</li>
               <li>Calendar invites sent to student & interviewer</li>
@@ -712,7 +731,9 @@ export const ScheduleInterviewModal = ({
             <Button
               type="submit"
               className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isLoading || (interviewStatus && !interviewStatus.canBook)}
+              disabled={
+                isLoading || (interviewStatus && !interviewStatus.canBook)
+              }
             >
               {isLoading ? (
                 <>
@@ -722,9 +743,9 @@ export const ScheduleInterviewModal = ({
               ) : (
                 <>
                   <Calendar className="w-4 h-4 mr-2" />
-                  {interviewStatus && !interviewStatus.canBook 
-                    ? 'Cannot Schedule - Already Booked' 
-                    : 'Schedule & Create Meet Link'}
+                  {interviewStatus && !interviewStatus.canBook
+                    ? "Cannot Schedule - Already Booked"
+                    : "Schedule & Create Meet Link"}
                 </>
               )}
             </Button>
