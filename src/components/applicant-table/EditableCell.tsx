@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
+import { Pencil, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { updateStudent } from "@/utils/api";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
@@ -13,6 +13,13 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type Option = {
   id?: number | string;
@@ -29,6 +36,8 @@ interface EditableCellProps {
   onUpdate?: (value: any) => void;
   showPencil?: boolean;
   options?: Option[];
+  fetchOptions?: () => Promise<Option[]>; // NEW: Lazy loading callback
+  forceTextDisplay?: boolean; // NEW: Force text display even if options exist
   showActionButtons?: boolean;
   disabled?: boolean;
   renderInput?: (props: {
@@ -57,6 +66,8 @@ export function EditableCell({
   onUpdate,
   showPencil = false,
   options,
+  fetchOptions,
+  forceTextDisplay = false,
   showActionButtons = true,
   disabled,
   renderInput,
@@ -69,6 +80,7 @@ export function EditableCell({
   } | null>(null);
   const [cellValue, setCellValue] = useState<any>(value ?? displayValue ?? "");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const { toast } = useToast();
 
   // Memoize normalized options to prevent recalculation on every render
@@ -135,6 +147,25 @@ export function EditableCell({
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
+    }
+
+    if (
+      field === "dob" &&
+      cellValue
+    ) {
+      const selectedDate = new Date(cellValue);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+      
+      if (selectedDate > today) {
+        toast({
+          title: "⚠️ Invalid Date of Birth",
+          description: "Date of birth cannot be in the future",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+        });
+        return;
+      }
     }
 
     if (!editingCell || isUpdating) return;
@@ -225,6 +256,12 @@ export function EditableCell({
         className: "border-green-500 bg-green-50 text-green-900",
       });
       setCellValue(payload[field]);
+      
+      // Exit edit mode for forceTextDisplay fields after successful update
+      if (forceTextDisplay) {
+        setEditingCell(null);
+      }
+      
       if (onUpdate) {
         onUpdate(newValue); // Pass the code/id for state management, but API gets the name
       }
@@ -239,11 +276,12 @@ export function EditableCell({
     } finally {
       setIsUpdating(false);
     }
-  }, [applicant, field, isUpdating, onUpdate, toast, normalizedOptions]);
+  }, [applicant, field, isUpdating, onUpdate, toast, normalizedOptions, forceTextDisplay]);
 
   const isEditing =
     editingCell?.id === applicant.id && editingCell?.field === field;
-  const isDropdownField = normalizedOptions.length > 0;
+  // If forceTextDisplay is true, only show dropdown when actively editing
+  const isDropdownField = forceTextDisplay ? (normalizedOptions.length > 0 && isEditing) : (normalizedOptions.length > 0);
 
   const getCurrentDropdownValue = () => {
     // Priority: 1. value prop, 2. Try to match displayValue with options, 3. "none"
@@ -304,7 +342,10 @@ export function EditableCell({
           searchPlaceholder="Search..."
           emptyText="No option found."
           disabled={isUpdating || disabled}
-          className={disabled ? '!opacity-100 !cursor-default' : ''}
+          className={cn(
+            'max-w-full overflow-hidden',
+            disabled ? '!opacity-100 !cursor-default' : ''
+          )}
         />
       );
     }
@@ -339,6 +380,176 @@ export function EditableCell({
   }
 
   if (isEditing) {
+    // Special rendering for DOB field with calendar picker
+    if (field === "dob") {
+      const dateValue = cellValue ? new Date(cellValue) : undefined;
+      const today = new Date();
+      
+      return (
+        <div className="flex flex-col gap-1 w-full relative z-50">
+          <div className="flex items-center gap-1">
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "flex-1 h-7 justify-start text-left font-normal text-xs px-2 border-0 shadow-none hover:bg-muted/50",
+                    !cellValue && "text-muted-foreground"
+                  )}
+                  disabled={isUpdating || disabled}
+                >
+                  <CalendarIcon className="mr-2 h-3 w-3" />
+                  {cellValue ? (
+                    new Date(cellValue).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })
+                  ) : (
+                    <span>Pick DOB</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-auto p-0 z-[100]" 
+                align="center"
+                side="bottom"
+                sideOffset={5}
+              >
+                <div className="p-3 space-y-2">
+                  {/* Year and Month Selectors */}
+                  <div className="flex gap-2 pb-2 border-b">
+                    <select
+                      value={dateValue?.getMonth() ?? new Date().getMonth()}
+                      onChange={(e) => {
+                        const currentDate = dateValue || new Date(2000, 0, 1);
+                        const newDate = new Date(currentDate.getFullYear(), parseInt(e.target.value), 1);
+                        setCellValue(newDate.toISOString().split('T')[0]);
+                      }}
+                      className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-ring"
+                    >
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, idx) => (
+                        <option key={idx} value={idx}>{month}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={dateValue?.getFullYear() ?? 2000}
+                      onChange={(e) => {
+                        const currentDate = dateValue || new Date(2000, 0, 1);
+                        const newDate = new Date(parseInt(e.target.value), currentDate.getMonth(), 1);
+                        setCellValue(newDate.toISOString().split('T')[0]);
+                      }}
+                      className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-ring"
+                    >
+                      {Array.from({ length: today.getFullYear() - 1940 + 1 }, (_, i) => 1940 + i).reverse().map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Calendar */}
+                  <Calendar
+                    mode="single"
+                    selected={dateValue}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        const formattedDate = newDate.toISOString().split('T')[0];
+                        setCellValue(formattedDate);
+                        setDatePickerOpen(false);
+                      }
+                    }}
+                    disabled={(date) => date > today}
+                    month={dateValue || new Date(2000, 0)}
+                    onMonthChange={(month) => {
+                      setCellValue(month.toISOString().split('T')[0]);
+                    }}
+                    className="rounded-md"
+                    classNames={{
+                      months: "flex flex-col sm:flex-row",
+                      month: "space-y-2",
+                      caption: "hidden",
+                      table: "w-full border-collapse",
+                      head_row: "flex",
+                      head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.7rem]",
+                      row: "flex w-full mt-1",
+                      cell: "h-8 w-8 text-center text-xs p-0 relative",
+                      day: "h-8 w-8 p-0 font-normal hover:bg-muted rounded-md",
+                      day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                      day_today: "bg-accent text-accent-foreground",
+                      day_outside: "text-muted-foreground opacity-50",
+                      day_disabled: "text-muted-foreground opacity-30",
+                      day_hidden: "invisible",
+                    }}
+                  />
+
+                  {/* Quick Actions */}
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const today = new Date();
+                        setCellValue(today.toISOString().split('T')[0]);
+                      }}
+                      variant="outline"
+                      className="flex-1 h-6 text-xs"
+                    >
+                      Today
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setCellValue("");
+                        setDatePickerOpen(false);
+                      }}
+                      variant="outline"
+                      className="flex-1 h-6 text-xs"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            {/* Clear button (X) like other fields */}
+            {cellValue && !disabled && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setCellValue("");
+                }}
+                className="h-7 w-7 p-0 hover:bg-muted"
+                disabled={isUpdating}
+              >
+                ✕
+              </Button>
+            )}
+          </div>
+          {showActionButtons && (
+            <div className="flex gap-2 mt-1">
+              <Button
+                size="sm"
+                onClick={saveCellEdit}
+                className="h-6 px-2"
+                disabled={isUpdating || disabled}
+              >
+                {isUpdating ? "..." : "✓"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={cancelCellEdit}
+                className="h-6 px-2"
+                disabled={isUpdating}
+              >
+                ✕
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col gap-1 w-full">
         {renderInput ? (
