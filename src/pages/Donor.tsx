@@ -21,13 +21,11 @@ import {
   Users,
   Handshake,
   Search,
-  Filter,
   Plus,
   MoreVertical,
   Pencil,
   Trash2,
-  Eye,
-  X
+  Eye
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
@@ -46,11 +44,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { createDonor, getDonors, updateDonor, deleteDonor, Donor } from "@/utils/api";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
-import { DonorFilterModal } from "@/components/DonorFilterModal";
 
 const DonorPage = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
-  const [allDonors, setAllDonors] = useState<Donor[]>([]); // Store all donors for filtering
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -58,12 +54,6 @@ const DonorPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalDonors, setTotalDonors] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
-  const [filters, setFilters] = useState({
-    city: "all",
-    state: "all",
-    country: "all",
-  });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -106,7 +96,6 @@ const DonorPage = () => {
       const pages = response?.data?.totalPages || 0;
 
       setDonors(donorList);
-      setAllDonors(donorList); // Store for client-side filtering
       setTotalDonors(total);
       setTotalPages(pages);
     } catch (error) {
@@ -115,51 +104,6 @@ const DonorPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Apply client-side filters
-  const applyFilters = (donorList: Donor[]) => {
-    let filtered = [...donorList];
-
-    // Apply location filters
-    if (filters.city && filters.city !== "all") {
-      filtered = filtered.filter((d) => d.donor_city === filters.city);
-    }
-    if (filters.state && filters.state !== "all") {
-      filtered = filtered.filter((d) => d.donor_state === filters.state);
-    }
-    if (filters.country && filters.country !== "all") {
-      filtered = filtered.filter((d) => d.donor_country === filters.country);
-    }
-
-    return filtered;
-  };
-
-  // Get filtered donors
-  const filteredDonors = applyFilters(donors);
-
-  // Count active filters
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (filters.city && filters.city !== "all") count++;
-    if (filters.state && filters.state !== "all") count++;
-    if (filters.country && filters.country !== "all") count++;
-    return count;
-  };
-
-  const activeFilterCount = getActiveFilterCount();
-
-  const handleApplyFilters = (newFilters: typeof filters) => {
-    setFilters(newFilters);
-    setPage(1); // Reset to first page when filters change
-  };
-
-  const handleClearFilters = () => {
-    setFilters({
-      city: "all",
-      state: "all",
-      country: "all",
-    });
   };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
@@ -340,30 +284,11 @@ const DonorPage = () => {
                 <div className="flex flex-col mr-10">
                   <CardTitle>All Donors</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {filteredDonors.length} {filteredDonors.length === 1 ? 'donor' : 'donors'} 
-                    {debouncedSearchQuery || activeFilterCount > 0 ? ' (filtered)' : ' total'}
+                    {donors.length} {donors.length === 1 ? 'donor' : 'donors'} 
+                    {debouncedSearchQuery ? ' (Search)' : ' total'}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                  {/* <div className="relative">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        console.log("Filter button clicked, current state:", filterModalOpen);
-                        setFilterModalOpen(true);
-                        console.log("Filter modal state set to true");
-                      }}
-                      className="gap-2"
-                    >
-                      <Filter className="h-4 w-4" />
-                      Filters
-                      {activeFilterCount > 0 && (
-                        <Badge variant="secondary" className="ml-1 px-1.5 py-0 h-5">
-                          {activeFilterCount}
-                        </Badge>
-                      )}
-                    </Button>
-                  </div> */}
                   <Button onClick={() => {
                     setFormData({
                       donor_name: "",
@@ -394,48 +319,6 @@ const DonorPage = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-
-                {/* Active Filters Display */}
-                {activeFilterCount > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-muted-foreground">Active filters:</span>
-                    {filters.city && filters.city !== "all" && (
-                      <Badge variant="secondary" className="gap-1">
-                        City: {filters.city}
-                        <X
-                          className="h-3 w-3 cursor-pointer hover:text-destructive"
-                          onClick={() => setFilters((prev) => ({ ...prev, city: "all" }))}
-                        />
-                      </Badge>
-                    )}
-                    {filters.state && filters.state !== "all" && (
-                      <Badge variant="secondary" className="gap-1">
-                        State: {filters.state}
-                        <X
-                          className="h-3 w-3 cursor-pointer hover:text-destructive"
-                          onClick={() => setFilters((prev) => ({ ...prev, state: "all" }))}
-                        />
-                      </Badge>
-                    )}
-                    {filters.country && filters.country !== "all" && (
-                      <Badge variant="secondary" className="gap-1">
-                        Country: {filters.country}
-                        <X
-                          className="h-3 w-3 cursor-pointer hover:text-destructive"
-                          onClick={() => setFilters((prev) => ({ ...prev, country: "all" }))}
-                        />
-                      </Badge>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearFilters}
-                      className="h-7 text-xs"
-                    >
-                      Clear all
-                    </Button>
-                  </div>
-                )}
               </div>
               <Table>
                 <TableHeader>
@@ -455,16 +338,16 @@ const DonorPage = () => {
                     <TableRow>
                       <TableCell colSpan={8} className="h-24 text-center">Loading...</TableCell>
                     </TableRow>
-                  ) : filteredDonors.length === 0 ? (
+                  ) : donors.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                        {debouncedSearchQuery || activeFilterCount > 0 
-                          ? "No donors match your search or filters." 
+                        {debouncedSearchQuery 
+                          ? "No donors match your search." 
                           : "No donors found."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredDonors.map((donor) => (
+                    donors.map((donor) => (
                       <TableRow key={donor.id}>
                         <TableCell>
                           <span
@@ -510,7 +393,7 @@ const DonorPage = () => {
 
 
               {/* Pagination Controls */}
-                   {!loading && filteredDonors.length > 0 && (
+                   {!loading && donors.length > 0 && (
                 <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
                   <div className="text-sm text-muted-foreground">
                     Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalDonors)}</strong> of <strong>{totalDonors}</strong>
@@ -741,15 +624,6 @@ const DonorPage = () => {
           </form>
         </DialogContent>
       </Dialog >
-
-      {/* Filter Modal */}
-      {/* <DonorFilterModal
-        isOpen={filterModalOpen}
-        onClose={() => setFilterModalOpen(false)}
-        onApplyFilters={handleApplyFilters}
-        currentFilters={filters}
-        donors={allDonors}
-      /> */}
 
     </div >
   );
