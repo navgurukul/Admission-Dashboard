@@ -11,6 +11,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   getAllUsers,
   getAllRolesNew,
@@ -34,6 +35,7 @@ const AdminPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const { debouncedValue: debouncedSearchQuery, isPending: isSearchPending } = useDebounce(searchQuery, 800);
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [phoneError, setPhoneError] = useState<string>("");
@@ -105,10 +107,10 @@ const AdminPage: React.FC = () => {
   // Fetch users when page changes or search is cleared
   useEffect(() => {
     // Only fetch users from server when not searching
-    if (!searchQuery.trim()) {
+    if (!debouncedSearchQuery.trim()) {
       fetchUsers(page);
     }
-  }, [page, searchQuery]);
+  }, [page, debouncedSearchQuery]);
 
   // Fetch roles once on mount
   useEffect(() => {
@@ -118,16 +120,16 @@ const AdminPage: React.FC = () => {
   // Search with debouncing
   useEffect(() => {
     // Don't do anything if search is empty
-    if (!searchQuery.trim()) {
+    if (!debouncedSearchQuery.trim()) {
       setSearchResults([]);
       setIsSearching(false);
       return;
     }
 
-    const delayDebounce = setTimeout(async () => {
+    const performSearch = async () => {
       try {
         setIsSearching(true);
-        const results = await searchUsers(searchQuery.trim());
+        const results = await searchUsers(debouncedSearchQuery.trim());
         setSearchResults(results || []);
       } catch (err) {
         console.error("Error searching users:", err);
@@ -135,15 +137,17 @@ const AdminPage: React.FC = () => {
       } finally {
         setIsSearching(false);
       }
-    }, 500);
+    };
 
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery]);
+    performSearch();
+  }, [debouncedSearchQuery]);
 
   // Reset to page 1 when search query changes
   useEffect(() => {
-    setPage(1);
-  }, [searchQuery]);
+    if (page !== 1 && debouncedSearchQuery.trim() !== searchQuery.trim()) {
+      setPage(1);
+    }
+  }, [debouncedSearchQuery]);
 
   const handleAddUserSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -541,12 +545,12 @@ const AdminPage: React.FC = () => {
             </div>
 
             {/* Table */}
-            {loading || isSearching ? (
+            {loading || isSearching || isSearchPending ? (
               <div className="bg-card rounded-xl shadow-sm border border-border p-12">
                 <div className="flex flex-col items-center justify-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                   <div className="text-lg text-muted-foreground mt-4">
-                    {isSearching ? "Searching users..." : "Loading users..."}
+                    {isSearching || isSearchPending ? "Searching users..." : "Loading users..."}
                   </div>
                 </div>
               </div>

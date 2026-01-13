@@ -73,10 +73,10 @@ export const ColumnVisibility = ({
           Columns
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[400px] sm:w-[400px] p-0">
-        <div className="flex flex-col h-full">
+      <SheetContent side="right" className="w-[400px] sm:w-[400px] p-0 z-[100]">
+        <div className="flex flex-col h-full max-h-screen">
           {/* Header */}
-          <SheetHeader className="px-6 py-4 border-b">
+          <SheetHeader className="px-6 py-4 border-b flex-shrink-0">
             <SheetTitle>Column Visibility</SheetTitle>
             <SheetDescription>
               Select which columns to display in the table
@@ -84,7 +84,7 @@ export const ColumnVisibility = ({
           </SheetHeader>
 
           {/* Search Box */}
-          <div className="px-6 py-4 border-b">
+          <div className="px-6 py-4 border-b flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -93,21 +93,11 @@ export const ColumnVisibility = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
-              {/* {searchTerm && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )} */}
             </div>
           </div>
 
           {/* Select All / Reset to Default Buttons */}
-          <div className="px-6 py-3 border-b bg-muted/20">
+          <div className="px-6 py-3 border-b bg-muted/20 flex-shrink-0">
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -136,7 +126,7 @@ export const ColumnVisibility = ({
           </div>
 
           {/* Column List */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
             <div className="space-y-1">
               {filteredColumns.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -158,7 +148,7 @@ export const ColumnVisibility = ({
                       className="pointer-events-none"
                     />
                     <label
-                      className={`text-sm font-medium leading-none ${
+                      className={`text-sm font-medium leading-none flex-1 ${
                         column.locked ? "cursor-not-allowed" : "cursor-pointer"
                       }`}
                     >
@@ -171,7 +161,7 @@ export const ColumnVisibility = ({
           </div>
 
           {/* Footer with Stats */}
-          <div className="px-6 py-4 border-t bg-muted/30">
+          <div className="px-6 py-4 border-t bg-muted/30 flex-shrink-0">
             <div className="text-sm text-muted-foreground">
               {displayColumns.filter((c) => c.visible).length} of {displayColumns.length} columns visible
             </div>

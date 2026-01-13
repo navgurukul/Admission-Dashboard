@@ -27,6 +27,7 @@ import {
 import { ApplicantModal } from "@/components/ApplicantModal";
 import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
 import { useToast } from "@/components/ui/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   initClient,
@@ -56,11 +57,13 @@ export default function AdminView() {
 
   // Search and filter states for interviews
   const [interviewSearchTerm, setInterviewSearchTerm] = useState("");
+  const { debouncedValue: debouncedInterviewSearch, isPending: isInterviewSearching } = useDebounce(interviewSearchTerm, 800);
   const [interviewDateFilter, setInterviewDateFilter] = useState("");
   const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
 
   // Search and filter states for slots
   const [slotSearchTerm, setSlotSearchTerm] = useState("");
+  const { debouncedValue: debouncedSlotSearch, isPending: isSlotSearching } = useDebounce(slotSearchTerm, 800);
   const [slotDateFilter, setSlotDateFilter] = useState("");
   const [slotTypeFilter, setSlotTypeFilter] = useState("");
 
@@ -98,23 +101,15 @@ export default function AdminView() {
   useEffect(() => {
     if (activeTab !== "interviews") return;
 
-    const timeoutId = setTimeout(() => {
-      fetchInterviews();
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [activeTab, interviewCurrentPage, interviewDateFilter, interviewSearchTerm, interviewSlotTypeFilter, itemsPerPage]);
+    fetchInterviews();
+  }, [activeTab, interviewCurrentPage, interviewDateFilter, debouncedInterviewSearch, interviewSlotTypeFilter, itemsPerPage]);
 
   // Only fetch slots when slots tab is active
   useEffect(() => {
     if (activeTab !== "slots") return;
 
-    const timeoutId = setTimeout(() => {
-      fetchSlots();
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [activeTab, slotCurrentPage, slotDateFilter, slotSearchTerm, slotTypeFilter, itemsPerPage]);
+    fetchSlots();
+  }, [activeTab, slotCurrentPage, slotDateFilter, debouncedSlotSearch, slotTypeFilter, itemsPerPage]);
 
   // Optimized fetch: Only fetch my interviews when my-interviews tab is active
   useEffect(() => {
@@ -123,15 +118,33 @@ export default function AdminView() {
     fetchMyInterviews();
   }, [activeTab, myInterviewDateFilter]);
 
+  // Reset to page 1 when search or filters change for interviews
+  useEffect(() => {
+    if (activeTab === "interviews" && interviewCurrentPage !== 1) {
+      setInterviewCurrentPage(1);
+    }
+  }, [debouncedInterviewSearch, interviewDateFilter, interviewSlotTypeFilter]);
+
+  // Reset to page 1 when search or filters change for slots
+  useEffect(() => {
+    if (activeTab === "slots" && slotCurrentPage !== 1) {
+      setSlotCurrentPage(1);
+    }
+  }, [debouncedSlotSearch, slotDateFilter, slotTypeFilter]);
+
   const fetchInterviews = async () => {
     try {
       setInterviewsLoading(true);
+      
+      // Trim the search query and only pass it if it's not empty
+      const trimmedSearch = debouncedInterviewSearch?.trim() || "";
+      
       const response = await getAllInterviewSchedules({
         page: interviewCurrentPage,
         pageSize: itemsPerPage,
         slot_type: interviewSlotTypeFilter && interviewSlotTypeFilter !== 'all' ? interviewSlotTypeFilter : undefined,
         date: interviewDateFilter || undefined,
-        search: interviewSearchTerm || undefined,
+        search: trimmedSearch || undefined,
       });
 
       if (response.success && response.data) {
@@ -156,12 +169,16 @@ export default function AdminView() {
   const fetchSlots = async () => {
     try {
       setSlotsLoading(true);
+      
+      // Trim the search query and only pass it if it's not empty
+      const trimmedSearch = debouncedSlotSearch?.trim() || "";
+      
       const response = await getAllSlots({
         page: slotCurrentPage,
         pageSize: itemsPerPage,
         slot_type: slotTypeFilter && slotTypeFilter !== 'all' ? slotTypeFilter : undefined,
         date: slotDateFilter || undefined,
-        search: slotSearchTerm || undefined,
+        search: trimmedSearch || undefined,
       });
 
       if (response.success && response.data) {
@@ -453,9 +470,14 @@ export default function AdminView() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {interviewsLoading ? (
+                    {interviewsLoading || isInterviewSearching ? (
                       <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <p className="text-sm text-muted-foreground">
+                            {isInterviewSearching ? "Searching..." : "Loading..."}
+                          </p>
+                        </div>
                       </div>
                     ) : interviews.length === 0 ? (
                       <div className="text-center py-12">
@@ -476,6 +498,7 @@ export default function AdminView() {
                               <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
                               <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
                               <TableHead className="font-semibold min-w-[100px]">Meeting Link</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Scheduled By</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -543,7 +566,11 @@ export default function AdminView() {
                                     <span className="text-muted-foreground text-sm">No Link</span>
                                   )}
                                 </TableCell>
+                                  <TableCell className="whitespace-nowrap min-w-[100px]">
+                                  <span className="text-sm">{interview.created_by || "N/A"}</span>
+                                </TableCell>
                               </TableRow>
+                              
                             ))}
                           </TableBody>
                         </Table>
@@ -641,9 +668,14 @@ export default function AdminView() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {slotsLoading ? (
+                    {slotsLoading || isSlotSearching ? (
                       <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                          <p className="text-sm text-muted-foreground">
+                            {isSlotSearching ? "Searching..." : "Loading..."}
+                          </p>
+                        </div>
                       </div>
                     ) : slots.length === 0 ? (
                       <div className="text-center py-12">

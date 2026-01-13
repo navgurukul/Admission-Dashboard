@@ -25,6 +25,7 @@ import { QuestionFilters } from "@/components/questions/QuestionFilters";
 import { DifficultyLevelManager } from "@/components/difficulty-levels/DifficultyLevelManager";
 // import { TagManagement } from '@/components/questions/TagManagement';
 import { useQuestions } from "@/hooks/useQuestions";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/use-toast";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { QuestionSetManager } from "@/components/questions/QuestionSetManager";
@@ -42,6 +43,7 @@ export default function QuestionRepository() {
   const [activeTab, setActiveTab] = useState("list");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const { debouncedValue: debouncedSearchTerm, isPending: isSearching } = useDebounce(searchTerm, 800);
   const [filters, setFilters] = useState({
     status: "All",
     difficulty_level: "All",
@@ -64,7 +66,7 @@ export default function QuestionRepository() {
     restoreQuestion,
     difficultyLevels,
     refetch,
-  } = useQuestions(filters, searchTerm);
+  } = useQuestions(filters, debouncedSearchTerm);
 
   useEffect(() => { }, [questions]);
 
@@ -273,7 +275,7 @@ export default function QuestionRepository() {
                 <div className="flex-1 overflow-auto">
                   <QuestionList
                     questions={questions}
-                    loading={loading}
+                    loading={loading || isSearching}
                     onEdit={(q) => {
                       handleEditQuestion(q);
                       setActiveTab("editor");

@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { createDonor, getDonors, updateDonor, deleteDonor, Donor } from "@/utils/api";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
@@ -49,7 +50,7 @@ const DonorPage = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const { debouncedValue: debouncedSearchQuery, isPending: isSearching } = useDebounce(searchQuery, 800);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalDonors, setTotalDonors] = useState(0);
@@ -71,15 +72,6 @@ const DonorPage = () => {
     donor_country: ""
   });
 
-  // Debounce the search input so we don't spam the API while typing.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery.trim());
-    }, 350);
-
-    return () => clearTimeout(t);
-  }, [searchQuery]);
-
   useEffect(() => {
     loadDonors();
   }, [page, rowsPerPage, debouncedSearchQuery]);
@@ -87,7 +79,10 @@ const DonorPage = () => {
   const loadDonors = async () => {
     setLoading(true);
     try {
-      const response = await getDonors(page, rowsPerPage, debouncedSearchQuery);
+      // Trim the search query and only pass it if it's not empty
+      const trimmedSearch = debouncedSearchQuery?.trim() || "";
+      
+      const response = await getDonors(page, rowsPerPage, trimmedSearch);
     
       // Extract data from nested structure
       // API returns: { success, data: { data: [...], total, page, pageSize, totalPages } }
@@ -223,7 +218,9 @@ const DonorPage = () => {
 
   useEffect(() => {
     // Reset to page 1 when search query changes (so results start from first page)
-    if (page !== 1) setPage(1);
+    if (page !== 1 && debouncedSearchQuery?.trim() !== searchQuery?.trim()) {
+      setPage(1);
+    }
   }, [debouncedSearchQuery]);
 
   useEffect(() => {
@@ -334,9 +331,14 @@ const DonorPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading || isSearching ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">Loading...</TableCell>
+                      <TableCell colSpan={8} className="h-24 text-center">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                          {isSearching ? "Searching..." : "Loading..."}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ) : donors.length === 0 ? (
                     <TableRow>
