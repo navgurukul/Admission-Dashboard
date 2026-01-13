@@ -138,7 +138,7 @@ export const ApplicantTableHeader = ({
           </TableHead>
         )}
         {isColumnVisible('screening_obtained_marks') && (
-          <TableHead className="font-bold min-w-[100px] max-w-[120px] px-3">
+          <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
             Screening Marks
           </TableHead>
         )}
@@ -218,7 +218,7 @@ export const ApplicantTableHeader = ({
 
         {isColumnVisible('notes') && (
           <TableHead className="font-bold min-w-[150px] max-w-[200px] px-3">
-            Notes
+            Communication Notes
           </TableHead>
         )}
         {isColumnVisible('created_at') && (

@@ -853,7 +853,7 @@ const PartnerPage = () => {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search by name, email, or slug..."
+                    placeholder="Search by name"
                     className="pl-9 bg-background"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
