@@ -124,12 +124,12 @@ export const useReferenceData = () => {
   }, [fetchReferenceData]);
 
   const fetchPartners = useCallback(() => {
-
+    console.log('🔵 fetchPartners called - lazy loading on-demand');
     return fetchReferenceData("partners", getAllPartners, setPartnerList);
   }, [fetchReferenceData]);
 
   const fetchDonors = useCallback(() => {
- 
+    console.log('🔵 fetchDonors called - lazy loading on-demand');
     return fetchReferenceData("donors", getAllDonors, setDonorList);
   }, [fetchReferenceData]);
 
@@ -150,44 +150,27 @@ export const useReferenceData = () => {
   }, [fetchReferenceData]);
 
   // Fetch all reference data at once (for cases where we need everything)
+  // ✅ FULL ON-DEMAND OPTIMIZATION: ALL dropdown fields load only when user clicks to edit
+  // No API calls on initial page load - everything loads on-demand
   const fetchAllReferenceData = useCallback(async () => {
     // Skip if already loaded or currently loading
-    if (campusList.length > 0 || isLoading) {
+    if (isLoading) {
       return;
     }
     
     setIsLoading(true);
     try {
+      // ❌ ALL fields now load on-demand when user clicks to edit:
+      // Campuses, CurrentStatuses, Stages, Schools, Religions, QuestionSets, 
+      // Qualifications, Casts, Partners, Donors, States
       await Promise.all([
-        fetchCampuses(),
-        fetchSchools(),
-        fetchCurrentStatuses(),
-        fetchStages(),
-        fetchReligions(),
-        fetchQuestionSets(),
-        fetchQualifications(),
-        fetchCasts(),
-        fetchPartners(),
-        fetchDonors(),
-        fetchStates(),
+        // Empty - all data loads on-demand
       ]);
     } finally {
       setIsLoading(false);
     }
   }, [
-    campusList.length,
     isLoading,
-    fetchCampuses,
-    fetchSchools,
-    fetchCurrentStatuses,
-    fetchStages,
-    fetchReligions,
-    fetchQuestionSets,
-    fetchQualifications,
-    fetchCasts,
-    fetchPartners,
-    fetchDonors,
-    fetchStates,
   ]);
 
   return {

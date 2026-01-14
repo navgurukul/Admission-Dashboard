@@ -263,6 +263,11 @@ export const ApplicantTableRow = ({
       if (lastSession?.status) return lastSession.status;
     }
 
+    // 6. Final Fallback: Show stage name if available (e.g., "Sourcing")
+    if (applicant.stage_name && applicant.stage_name !== "N/A") {
+      return applicant.stage_name;
+    }
+
     return "N/A";
   };
 
@@ -469,9 +474,10 @@ export const ApplicantTableRow = ({
               name: s.state_name || s.label || s.name 
             }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={false}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={true}
+            tooltipMessage="Update state from Applicant Details view"
           />
         </TableCell>
       )}
@@ -499,9 +505,10 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingDistricts}
             options={districtOptions}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={false}
             showActionButtons={false}
-            disabled={!hasEditAccess || isLoadingDistricts || !applicant.state}
+            disabled={true}
+            tooltipMessage="Update district from Applicant Details view"
             placeholder={!applicant.state ? "Select state first" : "Select district"}
           />
         </TableCell>
@@ -524,9 +531,10 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingBlocks}
             options={blockOptions}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={false}
             showActionButtons={false}
-            disabled={!hasEditAccess || isLoadingBlocks || !applicant.district}
+            disabled={true}
+            tooltipMessage="Update block from Applicant Details view"
             placeholder={!applicant.district ? "Select district first" : "Select block"}
           />
         </TableCell>
@@ -555,7 +563,7 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="cast_id"
-            displayValue={applicant.cast || castList.find((c) => c.id === applicant.cast_id)?.cast_name || "N/A"}
+            displayValue={applicant.cast_name || castList.find((c) => c.id === applicant.cast_id)?.cast_name || "N/A"}
             value={applicant.cast_id}
             onUpdate={onUpdate}
             onEditStart={() => ensureFieldDataLoaded?.('cast_id')}
@@ -595,7 +603,7 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="qualification_id"
-            displayValue={applicant.qualification || qualificationList.find((q) => q.id === applicant.qualification_id)?.qualification_name || "N/A"}
+            displayValue={applicant.qualification_name || qualificationList.find((q) => q.id === applicant.qualification_id)?.qualification_name || "N/A"}
             value={applicant.qualification_id}
             onUpdate={onUpdate}
             onEditStart={() => ensureFieldDataLoaded?.('qualification_id')}
@@ -612,26 +620,42 @@ export const ApplicantTableRow = ({
       {/* Current Status */}
       {isColumnVisible('current_status') && (
         <TableCell className="min-w-[120px] max-w-[150px] px-2">
-          <EditableCell
-            applicant={applicant}
-            field="current_status_id"
-            displayValue={applicant.current_status_name || "N/A"}
-            value={applicant.current_status_id}
-            onUpdate={onUpdate}
-            options={currentstatusList.map((s) => ({ id: s.id, name: s.current_status_name }))}
-            forceTextDisplay={true}
-            showPencil={hasEditAccess}
-            showActionButtons={false}
-            disabled={!hasEditAccess}
-          />
+          {applicant.current_status_name ? (
+            <EditableCell
+              applicant={applicant}
+              field="current_status_id"
+              displayValue={applicant.current_status_name}
+              value={applicant.current_status_id}
+              onUpdate={onUpdate}
+              onEditStart={() => ensureFieldDataLoaded?.('current_status_id')}
+              isLoadingOptions={isLoadingReferenceData}
+              options={currentstatusList.map((s) => ({ id: s.id, name: s.current_status_name }))}
+              forceTextDisplay={true}
+              showPencil={hasEditAccess}
+              showActionButtons={false}
+              disabled={!hasEditAccess}
+            />
+          ) : (
+            <div className="text-muted-foreground text-sm">-</div>
+          )}
         </TableCell>
       )}
-       {/* Status */}
+       {/* Status - Display stage_name directly */}
       {isColumnVisible('status') && (
         <TableCell className="min-w-[120px] max-w-[150px] px-2">
-          <div className="truncate text-sm">
-            {getLatestStatus(applicant)}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate text-sm cursor-help opacity-70">
+                  {applicant.stage_name || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Stage: {applicant.stage_name || "Not Set"}</p>
+                <p className="text-xs text-muted-foreground mt-1">Update stage from Applicant Details view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </TableCell>
       )}
 
@@ -644,6 +668,8 @@ export const ApplicantTableRow = ({
             displayValue={applicant.campus_name || "N/A"}
             value={applicant.campus_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('campus_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}

@@ -739,12 +739,6 @@ export function EditableCell({
           startCellEdit(applicant.id, field, value ?? displayValue);
         }
       }}
-      onMouseEnter={() => {
-        // Pre-load data on hover for smooth UX
-        if (!disabled && !isUpdating && onEditStart && normalizedOptions.length === 0) {
-          onEditStart();
-        }
-      }}
       title={
         disabled && tooltipMessage
           ? tooltipMessage

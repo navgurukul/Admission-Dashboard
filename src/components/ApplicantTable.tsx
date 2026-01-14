@@ -210,7 +210,10 @@ const ApplicantTable = () => {
     donorList,
     stateList,
     fetchAllReferenceData,
-    // Individual fetch functions for field-specific loading
+    // Individual fetch functions for field-specific loading (ALL on-demand)
+    fetchCampuses,
+    fetchCurrentStatuses,
+    fetchStages,
     fetchCasts,
     fetchQualifications,
     fetchReligions,
@@ -241,11 +244,29 @@ const ApplicantTable = () => {
     }
   }, [campusList.length, fetchAllReferenceData]);
 
-  // ✅ NEW: Field-specific data loading callbacks
+  // ✅ NEW: Field-specific data loading callbacks - ALL fields load on-demand
   const ensureFieldDataLoaded = useCallback(async (field: string) => {
     console.log(`🔧 Loading data for field: ${field}`);
     
     switch (field) {
+      case 'campus_id':
+        if (campusList.length === 0) {
+          console.log('📥 Fetching campuses...');
+          await fetchCampuses();
+        }
+        break;
+      case 'current_status_id':
+        if (currentstatusList.length === 0) {
+          console.log('📥 Fetching current statuses...');
+          await fetchCurrentStatuses();
+        }
+        break;
+      case 'stage_id':
+        if (stageList.length === 0) {
+          console.log('📥 Fetching stages...');
+          await fetchStages();
+        }
+        break;
       case 'state':
         if (stateList.length === 0) {
           console.log('📥 Fetching states...');
@@ -294,6 +315,9 @@ const ApplicantTable = () => {
     
     console.log(`✅ Data loaded for field: ${field}`);
   }, [
+    campusList.length,
+    currentstatusList.length,
+    stageList.length,
     stateList.length,
     castList.length,
     qualificationList.length,
@@ -301,6 +325,9 @@ const ApplicantTable = () => {
     partnerList.length,
     donorList.length,
     schoolList.length,
+    fetchCampuses,
+    fetchCurrentStatuses,
+    fetchStages,
     fetchStates,
     fetchCasts,
     fetchQualifications,
@@ -539,11 +566,7 @@ const ApplicantTable = () => {
   const isColumnVisible = useCallback((columnId: string) => {
     const column = visibleColumns.find(col => col.id === columnId);
     return column?.visible ?? true;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // Note: We intentionally keep dependencies empty because:
-  // 1. Column visibility is UI-only state
-  // 2. It should NOT trigger data refetches or API calls
-  // 3. The function captures the latest visibleColumns via closure
+  }, [visibleColumns]); // Update when column visibility changes
 
   const refreshData = useCallback(async () => {
     // Trigger dashboard stats refresh
