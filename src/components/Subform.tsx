@@ -39,6 +39,7 @@ interface InlineSubformProps {
   disabled?: boolean;
   disabledReason?: string;
   disableAdd?: boolean;
+  customActions?: React.ReactNode; // Custom action buttons to display alongside Add Row
 }
 
 // Map payload based on round type
@@ -238,6 +239,7 @@ export function InlineSubform({
   disabled,
   disabledReason,
   disableAdd,
+  customActions,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
   const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
@@ -272,7 +274,25 @@ export function InlineSubform({
       );
     });
 
-    if (idsChanged || rows.length === 0 || auditInfoChanged) {
+    // Check if schedule_info has changed (from "—" to array or vice versa)
+    const scheduleInfoChanged = initialData.some((newRow) => {
+      const existingRow = rows.find((r) => r.id === newRow.id);
+      if (!existingRow) return false;
+      
+      const newSchedule = newRow.schedule_info;
+      const existingSchedule = existingRow.schedule_info;
+      
+      // Check if one is "—" and the other is an array, or array lengths differ
+      const newIsArray = Array.isArray(newSchedule);
+      const existingIsArray = Array.isArray(existingSchedule);
+      
+      if (newIsArray !== existingIsArray) return true;
+      if (newIsArray && existingIsArray && newSchedule.length !== existingSchedule.length) return true;
+      
+      return false;
+    });
+
+    if (idsChanged || rows.length === 0 || auditInfoChanged || scheduleInfoChanged) {
       const mappedData = initialData.map((r) => ({ ...r }));
       setRows(mappedData);
       setOriginalRows(mappedData);
@@ -556,36 +576,42 @@ export function InlineSubform({
     <div className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-semibold">{title}</h3>
-        {disabled || disableAdd ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="inline-block">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={addRow}
-                    disabled={true}
-                    className="opacity-50 cursor-not-allowed"
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> Add Row
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {disableAdd 
-                    ? "Cannot add more rows - round already passed" 
-                    : disabledReason || "Action disabled"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          <Button size="sm" variant="outline" onClick={addRow}>
-            <Plus className="h-4 w-4 mr-1" /> Add Row
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Custom action buttons (e.g., Schedule Interview) */}
+          {customActions}
+          
+          {/* Add Row button */}
+          {disabled || disableAdd ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={addRow}
+                      disabled={true}
+                      className="opacity-50 cursor-not-allowed"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add Row
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {disableAdd 
+                      ? "Cannot add more rows - round already passed" 
+                      : disabledReason || "Action disabled"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button size="sm" variant="outline" onClick={addRow}>
+              <Plus className="h-4 w-4 mr-1" /> Add Row
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table container: allow vertical and horizontal scrolling if content is large */}
@@ -625,7 +651,10 @@ export function InlineSubform({
                               : "w-auto"
                         }`}
                     >
-                      {!isEditable && (f.type === "readonly" || isAuditField) ? (
+                      {!isEditable && f.type === "component" && f.component ? (
+                        // Render component field directly (no wrapper)
+                        <f.component row={row} />
+                      ) : !isEditable && (f.type === "readonly" || isAuditField) ? (
                         <div className={`p-2 rounded w-full break-words ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>
                           {getDisplayValue(row, f)}
                         </div>

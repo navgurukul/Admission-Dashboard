@@ -2313,6 +2313,49 @@ export const scheduleInterview = async (payload: any): Promise<any> => {
   return data;
 };
 
+// Get interview schedule by student ID
+export const getInterviewByStudentId = async (
+  studentId: number,
+): Promise<ScheduledInterview[]> => {
+  const url = `${BASE_URL}/interview-schedules/getByStudentId/${studentId}`;
+
+  const headers = getAuthHeaders();
+  const response = await fetch(url, {
+    method: "GET",
+    headers: headers,
+  });
+
+  const responseText = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    // console.error(' Failed to parse response as JSON');
+    throw new Error("Invalid response format from server");
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      throw new Error("Session expired. Please login again.");
+    }
+
+    throw new Error(data.message || "Failed to fetch interview schedule");
+  }
+
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else if (data?.interviews && Array.isArray(data.interviews)) {
+    return data.interviews;
+  } else {
+    return [];
+  }
+};
+
 // Get scheduled interviews by date
 export const getScheduledInterviews = async (
   date?: string,

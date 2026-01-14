@@ -161,7 +161,7 @@ const ScreeningResultPage: React.FC = () => {
             <p className="text-muted-foreground mb-6">
               You can use this study guide for more maths practice{" "}
               <a
-                href="https://www.khanacademy.org/math"
+                href="https://www.youtube.com/watch?v=zmPhzTk3nZs"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 font-medium underline hover:text-blue-800"

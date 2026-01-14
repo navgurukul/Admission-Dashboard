@@ -41,6 +41,7 @@ interface ScheduleInterviewModalProps {
     interviewer_email?: string;
     interviewer_name?: string;
     is_booked: boolean;
+    status?: string;
   }>;
   isDirectScheduleMode?: boolean;
   onSchedule: (
@@ -315,17 +316,40 @@ export const ScheduleInterviewModal = ({
 
   const interviewStatus = getInterviewRoundStatus();
 
+  // Get unique dates from available slots (only Available status and future dates)
+  // IMPORTANT: Must be before early return to follow Rules of Hooks
+  const availableDates = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset to start of day
+
+    return Array.from(
+      new Set(
+        allAvailableSlots
+          .filter((s) => {
+            const slotDate = new Date(s.date);
+            slotDate.setHours(0, 0, 0, 0);
+            // Filter: not booked, has "Available" status, and is today or future date
+            return !s.is_booked && 
+                   s.status === "Available"
+          })
+          .map((s) => s.date)
+      )
+    ).sort();
+  }, [allAvailableSlots]);
+
+  // Get slots for selected date (only Available status)
+  // IMPORTANT: Must be before early return to follow Rules of Hooks
+  const slotsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return [];
+    
+    return allAvailableSlots.filter(
+      (s) => s.date === selectedDate && 
+             !s.is_booked && 
+             s.status === "Available"
+    );
+  }, [selectedDate, allAvailableSlots]);
+
   if (!isOpen) return null;
-
-  // Get unique dates from available slots
-  const availableDates = Array.from(
-    new Set(allAvailableSlots.filter((s) => !s.is_booked).map((s) => s.date))
-  ).sort();
-
-  // Get slots for selected date
-  const slotsForSelectedDate = selectedDate
-    ? allAvailableSlots.filter((s) => s.date === selectedDate && !s.is_booked)
-    : [];
 
   // Get selected slot details
   const currentSlot = isDirectScheduleMode
