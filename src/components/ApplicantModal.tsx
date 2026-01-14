@@ -117,6 +117,7 @@ const ScheduleInfoDisplay = ({ row }: any) => {
         const startTime = schedule.start_time || "—";
         const endTime = schedule.end_time || "—";
         const createdBy = schedule.created_by || "—";
+        const studentName = schedule.student_name || "—";
         const interviewerName = schedule.interviewer_name || "—";
         const interviewerEmail = schedule.interviewer_email || "—";
         const meetingLink = schedule.meeting_link || "";
@@ -124,6 +125,9 @@ const ScheduleInfoDisplay = ({ row }: any) => {
 
         return (
           <div key={index} className={index > 0 ? "pt-2 border-t border-gray-200" : ""}>
+            <div className="mb-0.5">
+              <span className="font-semibold">Student:</span> {studentName}
+            </div>
             <div className="mb-0.5">
               <span className="font-semibold">Date:</span> {date} ({startTime} - {endTime})
             </div>
@@ -433,10 +437,15 @@ export function ApplicantModal({
 
   // Handle opening schedule modal
   const handleOpenScheduleModal = useCallback(async (roundType: "LR" | "CFR") => {
+    console.log("Opening schedule modal with applicant:", {
+      id: currentApplicant?.id,
+      email: currentApplicant?.email,
+      name: currentApplicant?.name
+    });
     setScheduleRoundType(roundType);
     setIsScheduleModalOpen(true);
     await fetchAvailableSlots(roundType);
-  }, [fetchAvailableSlots]);
+  }, [fetchAvailableSlots, currentApplicant]);
 
   // Handle schedule interview with Google Calendar integration
   const handleScheduleInterview = useCallback(async (
@@ -1747,7 +1756,6 @@ Interviewer: ${interviewerName}`;
                             onClick={() => handleOpenScheduleModal("LR")}
                             disabled={
                               isStageDisabled(currentApplicant, "LR") || 
-                              !hasEditAccess || 
                               isLearningPassed || 
                               hasScheduledLRInterview
                             }
@@ -1759,7 +1767,6 @@ Interviewer: ${interviewerName}`;
                         </div>
                       </TooltipTrigger>
                       {(isStageDisabled(currentApplicant, "LR") || 
-                        !hasEditAccess || 
                         isLearningPassed || 
                         hasScheduledLRInterview) && (
                         <TooltipContent>
@@ -1845,7 +1852,6 @@ Interviewer: ${interviewerName}`;
                             onClick={() => handleOpenScheduleModal("CFR")}
                             disabled={
                               isStageDisabled(currentApplicant, "CFR") || 
-                              !hasEditAccess || 
                               isCulturalPassed || 
                               hasScheduledCFRInterview
                             }
@@ -1857,7 +1863,6 @@ Interviewer: ${interviewerName}`;
                         </div>
                       </TooltipTrigger>
                       {(isStageDisabled(currentApplicant, "CFR") || 
-                        !hasEditAccess || 
                         isCulturalPassed || 
                         hasScheduledCFRInterview) && (
                         <TooltipContent>
@@ -1868,7 +1873,7 @@ Interviewer: ${interviewerName}`;
                                 ? "Interview already scheduled for this round"
                                 : isStageDisabled(currentApplicant, "CFR")
                                   ? "Student needs to pass Learning Round"
-                                  : "You do not have edit access"}
+                                  : "Action disabled"}
                           </p>
                         </TooltipContent>
                       )}
@@ -2313,6 +2318,9 @@ Interviewer: ${interviewerName}`;
         allAvailableSlots={availableSlots}
         isDirectScheduleMode={true}
         isLoading={schedulingInProgress}
+        initialStudentId={currentApplicant?.id?.toString()}
+        initialStudentEmail={currentApplicant?.email}
+        initialStudentName={currentApplicant?.name}
       />
 
       {/* {showCommentsModal && (

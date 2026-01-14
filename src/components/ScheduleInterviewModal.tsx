@@ -57,6 +57,9 @@ interface ScheduleInterviewModalProps {
     topicName: string
   ) => Promise<void>;
   isLoading: boolean;
+  initialStudentId?: string;
+  initialStudentEmail?: string;
+  initialStudentName?: string;
 }
 
 export const ScheduleInterviewModal = ({
@@ -67,6 +70,9 @@ export const ScheduleInterviewModal = ({
   isDirectScheduleMode = false,
   onSchedule,
   isLoading,
+  initialStudentId,
+  initialStudentEmail,
+  initialStudentName,
 }: ScheduleInterviewModalProps) => {
   const [studentId, setStudentId] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
@@ -82,6 +88,78 @@ export const ScheduleInterviewModal = ({
   // New states for date and slot selection
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
+
+  // Auto-fetch student data when modal opens with initial data
+  useEffect(() => {
+    const autoFetchStudentData = async () => {
+      // Only run when modal opens AND we have initial student data
+      if (!isOpen) {
+        // Reset all fields when modal closes
+        setStudentId("");
+        setStudentEmail("");
+        setStudentName("");
+        setStudentDataFetched(false);
+        setCompleteStudentData(null);
+        setSelectedDate("");
+        setSelectedSlotId(null);
+        setTopicName("");
+        setIsFetchingStudent(false);
+        return;
+      }
+
+      // Modal is open - check if we have at least student ID and email to auto-fetch
+      if (initialStudentId && initialStudentEmail) {
+        console.log("Auto-fetching student data for:", initialStudentEmail);
+        
+        // Set initial values immediately
+        setStudentId(initialStudentId);
+        setStudentEmail(initialStudentEmail);
+        if (initialStudentName) {
+          setStudentName(initialStudentName);
+        }
+        
+        // Automatically fetch complete student data
+        setIsFetchingStudent(true);
+        try {
+          const response = await getStudentDataByEmail(initialStudentEmail);
+          console.log("Student data fetched:", response);
+          
+          // Normalize the response - handle both axios.data and nested data.data structures
+          const payload = (response as any)?.data ?? response;
+          const studentData = payload?.student ?? payload;
+          
+          // Update with fetched data
+          const studentId = studentData.student_id || studentData.id;
+          const fullName =
+            studentData.full_name ||
+            studentData.name ||
+            `${studentData.first_name || ""} ${studentData.last_name || ""}`.trim();
+          
+          if (studentId) {
+            setStudentId(String(studentId));
+            setStudentName(fullName);
+            setCompleteStudentData(payload);
+            setStudentDataFetched(true);
+            console.log("Student data set successfully:", fullName);
+          } else {
+            console.warn("No student ID found in response");
+            // Still mark as fetched to keep fields disabled with initial data
+            setStudentDataFetched(true);
+          }
+        } catch (error) {
+          console.error("Failed to fetch student data:", error);
+          // Still mark as fetched to keep fields disabled with initial data
+          setStudentDataFetched(true);
+        } finally {
+          setIsFetchingStudent(false);
+        }
+      } else {
+        console.log("Auto-fetch conditions not met - missing student ID or email:", { isOpen, initialStudentId, initialStudentEmail, initialStudentName });
+      }
+    };
+
+    autoFetchStudentData();
+  }, [isOpen, initialStudentId, initialStudentEmail, initialStudentName]);
 
   // Default interviewer email and topic name based on slot data
   useEffect(() => {
@@ -622,15 +700,15 @@ export const ScheduleInterviewModal = ({
                   type="email"
                   value={studentEmail}
                   onChange={(e) => handleEmailChange(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card"
+                  className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
                   placeholder="student@example.com"
                   required
-                  disabled={isFetchingStudent}
+                  disabled={isFetchingStudent || studentDataFetched}
                 />
                 <Button
                   type="button"
                   onClick={handleFetchStudent}
-                  disabled={isFetchingStudent || !studentEmail}
+                  disabled={isFetchingStudent || !studentEmail || studentDataFetched}
                   className="bg-primary hover:bg-primary/90"
                 >
                   {isFetchingStudent ? (
@@ -641,7 +719,7 @@ export const ScheduleInterviewModal = ({
                 </Button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Enter email and click search to student details
+                {studentDataFetched ? "Student details loaded" : "Enter email and click search to student details"}
               </p>
             </div>
 
