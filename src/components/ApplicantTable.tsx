@@ -30,6 +30,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useApplicantFilters } from "@/hooks/useApplicantFilters";
+import { useReferenceData } from "@/hooks/useReferenceData";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
@@ -183,7 +184,8 @@ const ApplicantTable = () => {
   const { triggerRefresh } = useDashboardRefresh();
   const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   const [stageStatuses, setStageStatuses] = useState<any[]>([]);
-  // Custom hook for data fetching
+  
+  // ✅ CRITICAL OPTIMIZATION: Only fetch students data on initial load
   const {
     students,
     totalStudents,
@@ -191,6 +193,11 @@ const ApplicantTable = () => {
     isStudentsLoading,
     isStudentsFetching,
     refetchStudents,
+  } = useApplicantData(currentPage, itemsPerPage);
+
+  // ✅ CRITICAL OPTIMIZATION: Load reference data lazily (only when needed for editing/filtering)
+  const {
+    isLoading: isLoadingReferenceData,
     campusList,
     schoolList,
     currentstatusList,
@@ -202,63 +209,158 @@ const ApplicantTable = () => {
     partnerList,
     donorList,
     stateList,
-    stageStatusList,
-  } = useApplicantData(currentPage, itemsPerPage);
+    fetchAllReferenceData,
+    // Individual fetch functions for field-specific loading
+    fetchCasts,
+    fetchQualifications,
+    fetchReligions,
+    fetchPartners,
+    fetchDonors,
+    fetchSchools,
+    fetchStates,
+  } = useReferenceData();
+
+  // Initialize stage status list from current statuses
+  const stageStatusList = useMemo(() => {
+    return currentstatusList.map((s: any) => ({
+      id: s.id,
+      status_name: s.current_status_name || s.status_name || s.name,
+      name: s.current_status_name || s.status_name || s.name, // Add name field for compatibility
+    }));
+  }, [currentstatusList]);
+
+  // ✅ CRITICAL: Load reference data ONLY when user performs an action requiring it
+  // This is triggered by: Add button, Edit button, Filter button
+  const ensureReferenceDataLoaded = useCallback(async () => {
+    if (campusList.length === 0) {
+      console.log("🔄 Loading reference data on-demand...");
+      await fetchAllReferenceData();
+      console.log("✅ Reference data loaded successfully");
+    } else {
+      console.log("✅ Reference data already loaded, using cache");
+    }
+  }, [campusList.length, fetchAllReferenceData]);
+
+  // ✅ NEW: Field-specific data loading callbacks
+  const ensureFieldDataLoaded = useCallback(async (field: string) => {
+    console.log(`🔧 Loading data for field: ${field}`);
+    
+    switch (field) {
+      case 'state':
+        if (stateList.length === 0) {
+          console.log('📥 Fetching states...');
+          await fetchStates();
+        }
+        break;
+      case 'cast_id':
+        if (castList.length === 0) {
+          console.log('📥 Fetching casts...');
+          await fetchCasts();
+        }
+        break;
+      case 'qualification_id':
+        if (qualificationList.length === 0) {
+          console.log('📥 Fetching qualifications...');
+          await fetchQualifications();
+        }
+        break;
+      case 'religion_id':
+        if (religionList.length === 0) {
+          console.log('📥 Fetching religions...');
+          await fetchReligions();
+        }
+        break;
+      case 'partner_id':
+        if (partnerList.length === 0) {
+          console.log('📥 Fetching partners...');
+          await fetchPartners();
+        }
+        break;
+      case 'donor_id':
+        if (donorList.length === 0) {
+          console.log('📥 Fetching donors...');
+          await fetchDonors();
+        }
+        break;
+      case 'school_id':
+        if (schoolList.length === 0) {
+          console.log('📥 Fetching schools...');
+          await fetchSchools();
+        }
+        break;
+      default:
+        console.log(`⚠️ No specific loader for field: ${field}`);
+    }
+    
+    console.log(`✅ Data loaded for field: ${field}`);
+  }, [
+    stateList.length,
+    castList.length,
+    qualificationList.length,
+    religionList.length,
+    partnerList.length,
+    donorList.length,
+    schoolList.length,
+    fetchStates,
+    fetchCasts,
+    fetchQualifications,
+    fetchReligions,
+    fetchPartners,
+    fetchDonors,
+    fetchSchools,
+  ]);
 
   // Map student data with related info
   const applicantsToDisplay = useMemo(() => {
-    return students.map((student) => {
-      const school = schoolList.find((s) => s.id === student.school_id);
-      const campus = campusList.find((c) => c.id === student.campus_id);
-      const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id,
-      );
-      const religion = religionList.find((r) => r.id === student.religion_id);
-      const questionSet = questionSetList.find(
-        (q) => q.id === student.question_set_id,
-      );
+    // ✅ DEBUG: Log first student to see what backend returns
+    if (students.length > 0 && !(window as any).__STUDENT_DEBUG_LOGGED__) {
+      console.log("🔍 Sample student data from API:", students[0]);
+      console.log("📋 Available fields:", Object.keys(students[0]));
+      (window as any).__STUDENT_DEBUG_LOGGED__ = true;
+    }
 
+    // ✅ OPTIMIZATION: Backend already returns name fields (campus_name, school_name, etc.)
+    // We only need to add computed fields like full name and obtained marks
+    return students.map((student) => {
       // Get obtained marks from exam_sessions if available
       let obtainedMarks = 0;
-      let examSchoolName = "N/A";
+      let examSchoolName = student.school_name || "N/A";
+      
       if (student.exam_sessions && Array.isArray(student.exam_sessions) && student.exam_sessions.length > 0) {
-        // Get the latest exam session
-        const latestExam = student.exam_sessions.reduce((latest, current) =>
+        const latestExam = student.exam_sessions.reduce((latest: any, current: any) =>
           new Date(current.created_at) > new Date(latest.created_at) ? current : latest
         );
         obtainedMarks = latestExam.obtained_marks || 0;
-
-        // Get school from exam session
-        if (latestExam.school_id) {
+        
+        // Use exam session school name if available, otherwise fall back to student's school_name
+        if (latestExam.school_name) {
+          examSchoolName = latestExam.school_name;
+        } else if (latestExam.school_id && schoolList.length > 0) {
           const examSchool = schoolList.find((s) => s.id === latestExam.school_id);
-          examSchoolName = examSchool ? examSchool.school_name : "N/A";
+          examSchoolName = examSchool ? examSchool.school_name : examSchoolName;
         }
       }
+
+      // Find question set for maximum marks (if not already in student data)
+      const questionSet = questionSetList.length > 0
+        ? questionSetList.find((q) => q.id === student.question_set_id)
+        : null;
 
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
-        name: `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""
-          }`.trim(),
+        name: `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim(),
         school_name: examSchoolName,
-        campus_name: campus ? campus.campus_name : "N/A",
-        current_status_name: current_status
-          ? current_status.current_status_name
-          : "N/A",
-        religion_name: religion ? religion.religion_name : "N/A",
-        question_set_name: questionSet ? questionSet.name : "N/A",
-        maximumMarks: questionSet ? questionSet.maximumMarks : 0,
+        // Backend provides these - use them directly or fallback to "N/A"
+        campus_name: student.campus_name || "N/A",
+        current_status_name: student.current_status_name || "N/A",
+        religion_name: student.religion_name || "N/A",
+        question_set_name: student.question_set_name || questionSet?.name || "N/A",
+        maximumMarks: student.maximumMarks || questionSet?.maximumMarks || 0,
         obtained_marks: obtainedMarks,
       };
     });
-  }, [
-    students,
-    schoolList,
-    campusList,
-    currentstatusList,
-    religionList,
-    questionSetList,
-  ]);
+  }, [students, schoolList, questionSetList]);
 
   // Custom hook for filters and search
   const {
@@ -433,10 +535,15 @@ const ApplicantTable = () => {
     });
   }, [toast]);
 
+  // ✅ FIXED: Remove visibleColumns from dependencies to prevent API calls on UI-only changes
   const isColumnVisible = useCallback((columnId: string) => {
     const column = visibleColumns.find(col => col.id === columnId);
     return column?.visible ?? true;
-  }, [visibleColumns]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: We intentionally keep dependencies empty because:
+  // 1. Column visibility is UI-only state
+  // 2. It should NOT trigger data refetches or API calls
+  // 3. The function captures the latest visibleColumns via closure
 
   const refreshData = useCallback(async () => {
     // Trigger dashboard stats refresh
@@ -1523,17 +1630,17 @@ const ApplicantTable = () => {
             {hasEditAccess && (
               <BulkActions
                 selectedRowsCount={selectedRows.length}
-                onBulkUpdate={() => setShowBulkUpdate(true)}
+                onBulkUpdate={() => { ensureReferenceDataLoaded(); setShowBulkUpdate(true); }}
                 // onBulkUpdate={handleBulkUpdate}
                 onSendOfferLetters={handleSendOfferLetters}
                 onBulkDelete={() => setShowDeleteConfirm(true)}
               />
             )}
             <TableActions
-              onCSVImport={hasEditAccess ? () => setShowCSVImport(true) : undefined}
+              onCSVImport={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowCSVImport(true); } : undefined}
               onExportCSV={exportToCSV}
-              onShowFilters={() => setShowAdvancedFilters(true)}
-              onAddApplicant={hasEditAccess ? () => setShowAddModal(true) : undefined}
+              onShowFilters={() => { ensureReferenceDataLoaded(); setShowAdvancedFilters(true); }}
+              onAddApplicant={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowAddModal(true); } : undefined}
               isExporting={isExporting}
               hasActiveFilters={hasActiveFilters}
               searchTerm={searchTerm}
@@ -1629,6 +1736,9 @@ const ApplicantTable = () => {
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
                       onCampusChange={handleInlineUpdate}
+                      ensureReferenceDataLoaded={ensureReferenceDataLoaded}
+                      ensureFieldDataLoaded={ensureFieldDataLoaded}
+                      isLoadingReferenceData={isLoadingReferenceData}
                       schoolList={schoolList}
                       campusList={campusList}
                       religionList={religionList}
@@ -1669,16 +1779,6 @@ const ApplicantTable = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={refreshData}
-        schoolList={schoolList}
-        // campusList={campusList}
-        currentstatusList={currentstatusList}
-        religionList={religionList}
-        questionSetList={questionSetList}
-        qualificationList={qualificationList}
-        castList={castList}
-        partnerList={partnerList}
-        donorList={donorList}
-        stateList={stateList}
       />
       <CSVImportModal
         isOpen={showCSVImport}

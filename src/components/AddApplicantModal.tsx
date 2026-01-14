@@ -38,72 +38,45 @@ import {
   getStudentDataByEmail,
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
+import { useReferenceData } from "@/hooks/useReferenceData";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
 };
 
-// interface Campus {
-//   id: number;
-//   campus_name: string;
-// }
-
-interface School {
-  id: number;
-  school_name: string;
-}
-
-interface religion {
-  id: number;
-  religion_name: string;
-}
-
-interface CurrentStatus {
-  id: number;
-  current_status_name: string;
-}
-
-interface QuestionSet {
-  id: number;
-  name: string;
-  description: string;
-  status: boolean;
-  maximumMarks: number;
-  created_at: string;
-  updated_at: string;
-}
-
 interface AddApplicantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newApplicant: any) => void;
-  // campusList: Campus[];
-  schoolList: School[];
-  currentstatusList: CurrentStatus[];
-  religionList: religion[];
-  questionSetList: QuestionSet[];
-  qualificationList: any[];
-  castList: any[];
-  partnerList: any[];
-  donorList: any[];
-  stateList: { value: string; label: string }[];
 }
 
 export function AddApplicantModal({
   isOpen,
   onClose,
   onSuccess,
-  // campusList,
-  schoolList,
-  currentstatusList,
-  religionList,
-  questionSetList,
-  qualificationList,
-  castList,
-  partnerList,
-  donorList,
-  stateList,
 }: AddApplicantModalProps) {
+  // ✅ OPTIMIZATION: Load reference data on-demand using the hook
+  const {
+    schoolList,
+    currentstatusList,
+    religionList,
+    questionSetList,
+    qualificationList,
+    castList,
+    partnerList,
+    donorList,
+    stateList,
+    fetchAllReferenceData,
+  } = useReferenceData();
+
+  // Load reference data when modal opens
+  useEffect(() => {
+    if (isOpen && schoolList.length === 0) {
+      console.log("🔄 AddApplicantModal: Loading reference data...");
+      fetchAllReferenceData();
+    }
+  }, [isOpen, schoolList.length, fetchAllReferenceData]);
+
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const { toast } = useToast();

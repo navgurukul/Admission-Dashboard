@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +78,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useReferenceData } from "@/hooks/useReferenceData";
 
 interface ApplicantModalProps {
   applicant: any;
@@ -110,17 +111,23 @@ export function ApplicantModal({
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
-  // State for fetched lists
-  const [castList, setCastList] = useState<any[]>([]);
-  const [qualificationList, setQualificationList] = useState<any[]>([]);
-  const [currentstatusList, setCurrentstatusList] = useState<any[]>([]);
-  const [schoolList, setSchoolList] = useState<any[]>([]);
-  const [campusList, setCampusList] = useState<any[]>([]);
-  const [questionSetList, setQuestionSetList] = useState<any[]>([]);
+  // ✅ OPTIMIZATION: Use useReferenceData hook for cached reference data
+  const {
+    campusList,
+    schoolList,
+    currentstatusList,
+    religionList,
+    questionSetList,
+    qualificationList,
+    castList,
+    partnerList,
+    donorList,
+    stateList: globalStateList,
+    fetchAllReferenceData,
+  } = useReferenceData();
+
+  // Additional lists needed by ApplicantModal
   const [stageList, setStageList] = useState<any[]>([]);
-  const [partnerList, setPartnerList] = useState<any[]>([]);
-  const [donorList, setDonorList] = useState<any[]>([]);
-  const [stateList, setStateList] = useState<{ value: string; label: string }[]>([]);
 
   // State for fetched partner and donor names
   const [partnerName, setPartnerName] = useState<string | null>(null);
@@ -128,14 +135,19 @@ export function ApplicantModal({
 
   // Refs to track previous values and prevent unnecessary API calls
   const prevStateRef = useRef<string | null>(null);
-  const prevDistrictRef = useRef<string | null>(null);
-  const dataFetchedRef = useRef(false); // Track if dropdown data has been fetched
+  const prevDistrictRef = useRef<string | null>(null)
 
   const [openComboboxes, setOpenComboboxes] = useState({
     state: false,
     district: false,
     block: false,
   });
+
+  // ✅ Transform globalStateList to stateList format (MUST be before stateOptions)
+  const stateList = useMemo(() => {
+    if (!Array.isArray(globalStateList)) return [];
+    return globalStateList;
+  }, [globalStateList]);
 
   // Transform props data to the format expected by the component
   const castes = useMemo(() =>
@@ -203,64 +215,27 @@ export function ApplicantModal({
   const [showOfferSentConfirmation, setShowOfferSentConfirmation] = useState(false);
   const [pendingOfferLetterValue, setPendingOfferLetterValue] = useState<string | null>(null);
 
-  // Fetch all required data when modal opens (only once)
-  useEffect(() => {
-    if (!isOpen || dataFetchedRef.current) return;
-
-    const fetchAllData = async () => {
-      try {
-        // Fetch all lists in parallel for optimization
-        const [
-          castsData,
-          qualificationsData,
-          statusData,
-          schoolsData,
-          campusData,
-          questionSetsData,
-          stagesData,
-          partnersData,
-          donorsData,
-          statesData,
-        ] = await Promise.all([
-          getAllCasts().catch((err) => { console.error("Failed to fetch casts:", err); return []; }),
-          getAllQualification().catch((err) => { console.error("Failed to fetch qualifications:", err); return []; }),
-          getAllStatus().catch((err) => { console.error("Failed to fetch status:", err); return []; }),
-          getAllSchools().catch((err) => { console.error("Failed to fetch schools:", err); return []; }),
-          getCampusesApi().catch((err) => { console.error("Failed to fetch campus:", err); return []; }),
-          getAllQuestionSets().catch((err) => { console.error("Failed to fetch question sets:", err); return []; }),
-          getAllStages().catch((err) => { console.error("Failed to fetch stages:", err); return []; }),
-          getAllPartners().catch((err) => { console.error("Failed to fetch partners:", err); return []; }),
-          getAllDonors().catch((err) => { console.error("Failed to fetch donors:", err); return []; }),
-          getAllStates().catch((err) => { console.error("Failed to fetch states:", err); return []; }),
-        ]);
-
-        setCastList(castsData);
-        setQualificationList(qualificationsData);
-        setCurrentstatusList(statusData);
-        setSchoolList(schoolsData);
-        setCampusList(campusData);
-        setQuestionSetList(questionSetsData);
-        setStageList(stagesData);
-        setPartnerList(partnersData);
-        setDonorList(donorsData);
-
-        // Transform states data to {value, label} format
-        // console.log("States API response:", statesData);
-        const transformedStates = (statesData?.data || statesData || []).map((state: any) => ({
-          value: state.state_code || state.value,
-          label: state.state_name || state.label
-        }));
-        // console.log("Transformed states:", transformedStates);
-        setStateList(transformedStates);
-
-        dataFetchedRef.current = true; // Mark as fetched
-      } catch (error) {
-        console.error("Failed to fetch dropdown data:", error);
-      }
-    };
-
-    fetchAllData();
-  }, [isOpen]); // Only fetch when modal opens and data hasn't been fetched yet
+  // ✅ OPTIMIZATION: Load reference data on-demand (only when user clicks edit)
+  const ensureReferenceDataLoaded = useCallback(() => {
+    if (campusList.length === 0) {
+      console.log("🔄 ApplicantModal: Loading reference data on-demand...");
+      fetchAllReferenceData();
+    }
+    
+    // Load stages if not already loaded
+    if (stageList.length === 0) {
+      const fetchStages = async () => {
+        try {
+          const stagesData = await getAllStages();
+          setStageList(stagesData || []);
+        } catch (error) {
+          console.error("Failed to fetch stages:", error);
+          setStageList([]);
+        }
+      };
+      fetchStages();
+    }
+  }, [campusList.length, stageList.length, fetchAllReferenceData]);
 
   const format = (date: Date, formatStr: string) => {
     if (formatStr === "PPP") {
@@ -696,21 +671,21 @@ export function ApplicantModal({
     nameField?: string,
     fetchedName?: string | null
   ) => {
-    // If no id provided, return default
-    if (!id) return defaultLabel;
-
-    // Try to find matching option
-    const matchedOption = options.find((o) => o.value === id?.toString());
-
-    // If found, return the label
-    if (matchedOption?.label) return matchedOption.label;
+    // ✅ OPTIMIZATION: First try to get name from currentApplicant data (backend provides it)
+    if (nameField && currentApplicant[nameField]) {
+      return currentApplicant[nameField];
+    }
 
     // If fetchedName is provided (for partner/donor), use it
     if (fetchedName) return fetchedName;
 
-    // If nameField is provided, try to get the name from currentApplicant
-    if (nameField && currentApplicant[nameField]) {
-      return currentApplicant[nameField];
+    // If no id provided, return default
+    if (!id) return defaultLabel;
+
+    // Try to find matching option (only if options are loaded)
+    if (options && options.length > 0) {
+      const matchedOption = options.find((o) => o.value === id?.toString());
+      if (matchedOption?.label) return matchedOption.label;
     }
 
     // Otherwise return the id itself as fallback
@@ -1143,6 +1118,7 @@ export function ApplicantModal({
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
+                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1157,6 +1133,7 @@ export function ApplicantModal({
                     displayValue={getLabel(castes, currentApplicant.cast_id, "", "cast_name")}
                     onUpdate={handleUpdate}
                     options={castes}
+                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1176,6 +1153,7 @@ export function ApplicantModal({
                     )}
                     onUpdate={handleUpdate}
                     options={qualifications}
+                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1195,6 +1173,7 @@ export function ApplicantModal({
                     }
                     onUpdate={handleUpdate}
                     options={currentWorks}
+                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1209,6 +1188,7 @@ export function ApplicantModal({
                     value={getCode(stateOptions, currentApplicant.state) || ""}
                     onUpdate={handleStateChange}
                     options={stateOptions}
+                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1286,6 +1266,7 @@ export function ApplicantModal({
                     )}
                     onUpdate={handleUpdate}
                     options={partners}
+                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1306,6 +1287,7 @@ export function ApplicantModal({
                     )}
                     onUpdate={handleUpdate}
                     options={donors}
+                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1493,6 +1475,7 @@ export function ApplicantModal({
                               )}
                               onUpdate={handleUpdate}
                               options={campus}
+                              onEditStart={ensureReferenceDataLoaded}
                               disabled={true}
                             />
                           </div>
@@ -1516,6 +1499,7 @@ export function ApplicantModal({
                         )}
                         onUpdate={handleUpdate}
                         options={campus}
+                        onEditStart={ensureReferenceDataLoaded}
                         disabled={!hasEditAccess}
                       />
                     </div>
@@ -1599,6 +1583,7 @@ export function ApplicantModal({
                         },
                       ]}
                       disabled={!hasEditAccess}
+                      onEditStart={ensureReferenceDataLoaded}
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
                       }}
@@ -1658,6 +1643,7 @@ export function ApplicantModal({
                       }
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!hasEditAccess}
+                      onEditStart={ensureReferenceDataLoaded}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",

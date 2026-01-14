@@ -34,6 +34,8 @@ interface EditableCellProps {
   displayValue: any;
   value?: any;
   onUpdate?: (value: any) => void;
+  onEditStart?: () => void; // NEW: Callback when user starts editing
+  isLoadingOptions?: boolean; // NEW: Loading state for options
   showPencil?: boolean;
   options?: Option[];
   fetchOptions?: () => Promise<Option[]>; // NEW: Lazy loading callback
@@ -64,6 +66,8 @@ export function EditableCell({
   displayValue,
   value,
   onUpdate,
+  onEditStart,
+  isLoadingOptions = false,
   showPencil = false,
   options,
   fetchOptions,
@@ -81,6 +85,7 @@ export function EditableCell({
   const [cellValue, setCellValue] = useState<any>(value ?? displayValue ?? "");
   const [isUpdating, setIsUpdating] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false); // Local loading state for this cell
   const { toast } = useToast();
 
   // Memoize normalized options to prevent recalculation on every render
@@ -90,9 +95,23 @@ export function EditableCell({
     setCellValue(value ?? displayValue ?? "");
   }, [value, displayValue]);
 
-  const startCellEdit = (id: number, field: string, currentValue: any) => {
+  const startCellEdit = async (id: number, field: string, currentValue: any) => {
+    // ✅ Set editing mode FIRST so dropdown appears immediately
     setEditingCell({ id, field });
     setCellValue(currentValue ?? value ?? displayValue ?? "");
+    
+    // ✅ Then load data in the background (if not already loaded)
+    // The dropdown will show with loading spinner while data loads
+    if (onEditStart && normalizedOptions.length === 0) {
+      console.log(`🔧 Starting edit for field: ${field}, loading data if needed...`);
+      setIsLoadingData(true);
+      try {
+        await onEditStart();
+        console.log(`✅ Data ready for field: ${field}`);
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
   };
 
   const saveCellEdit = async () => {
@@ -193,6 +212,29 @@ export function EditableCell({
 
     if (!editingCell || isUpdating) return;
 
+    // ✅ Define required fields that cannot be cleared/emptied
+    const requiredFields = [
+      'first_name',
+      'last_name', 
+      'email',
+      'phone_number',
+      'whatsapp_number'
+    ];
+
+    // ✅ Check if user is trying to clear a required field
+    const isRequiredField = requiredFields.includes(field);
+    const isEmptyValue = !cellValue || cellValue.toString().trim() === '';
+    
+    if (isRequiredField && isEmptyValue) {
+      toast({
+        title: "⚠️ Required Field",
+        description: `${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} cannot be empty. Please enter a value.`,
+        variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
     setIsUpdating(true);
     try {
       const isIdField = String(field).endsWith("_id");
@@ -243,6 +285,26 @@ export function EditableCell({
         description: "Cannot update: Student ID is missing",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
+      });
+      return;
+    }
+
+    // ✅ Define required dropdown fields that cannot be cleared
+    const requiredDropdownFields = [
+      'gender',
+      'campus_id'
+    ];
+
+    // ✅ Check if user is trying to clear a required dropdown field
+    const isRequiredDropdown = requiredDropdownFields.includes(field);
+    const isClearingValue = newValue === "none" || newValue === "";
+    
+    if (isRequiredDropdown && isClearingValue) {
+      toast({
+        title: "⚠️ Required Field",
+        description: `${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} is required and cannot be cleared. Please select a value.`,
+        variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -304,7 +366,10 @@ export function EditableCell({
   const isEditing =
     editingCell?.id === applicant.id && editingCell?.field === field;
   // If forceTextDisplay is true, only show dropdown when actively editing
-  const isDropdownField = forceTextDisplay ? (normalizedOptions.length > 0 && isEditing) : (normalizedOptions.length > 0);
+  // Also treat as dropdown if we're loading options (to show loading state instead of text input)
+  const isDropdownField = forceTextDisplay 
+    ? ((normalizedOptions.length > 0 || isLoadingOptions || isLoadingData) && isEditing) 
+    : (normalizedOptions.length > 0 || isLoadingOptions || isLoadingData);
 
   const getCurrentDropdownValue = () => {
     // Priority: 1. value prop, 2. Try to match displayValue with options, 3. "none"
@@ -338,12 +403,29 @@ export function EditableCell({
 
   if (isDropdownField) {
     const currentValue = getCurrentDropdownValue();
-    // Hide "Select" option for offer_letter_status and onboarded_status if value exists
+    
+    // Define required fields that should not show "Select/Clear" option
+    const requiredDropdownFields = ['gender', 'campus_id'];
+    const isRequiredDropdown = requiredDropdownFields.includes(field);
+    
+    // Hide "Select" option for required fields or offer_letter_status if value exists
     const shouldHideSelectOption =
-      field === "offer_letter_status" &&
-      currentValue !== "none" &&
-      currentValue !== null &&
-      currentValue !== undefined;
+      isRequiredDropdown ||
+      (field === "offer_letter_status" &&
+        currentValue !== "none" &&
+        currentValue !== null &&
+        currentValue !== undefined);
+
+    // ✅ Show minimal loading state while options are being fetched
+    // This should rarely be seen since we pre-load on hover
+    if ((isLoadingOptions || isLoadingData) && normalizedOptions.length === 0) {
+      return (
+        <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground">
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+          <span className="text-xs">Loading options...</span>
+        </div>
+      );
+    }
 
     // Use Combobox for fields with many options (searchable)
     // Also always use Combobox for location fields (state, district, block) for consistent UX
@@ -389,7 +471,9 @@ export function EditableCell({
         <SelectContent>
           {!shouldHideSelectOption && (
             <SelectItem value="none">
-              <span className="text-muted-foreground">Select</span>
+              <span className="text-muted-foreground italic">
+                {currentValue && currentValue !== "none" ? "Clear (Remove)" : "Select"}
+              </span>
             </SelectItem>
           )}
           {normalizedOptions.map((opt) => (
@@ -653,6 +737,12 @@ export function EditableCell({
       onClick={() => {
         if (!disabled && !isUpdating) {
           startCellEdit(applicant.id, field, value ?? displayValue);
+        }
+      }}
+      onMouseEnter={() => {
+        // Pre-load data on hover for smooth UX
+        if (!disabled && !isUpdating && onEditStart && normalizedOptions.length === 0) {
+          onEditStart();
         }
       }}
       title={
