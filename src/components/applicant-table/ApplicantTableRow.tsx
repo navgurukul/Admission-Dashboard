@@ -417,7 +417,7 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="gender"
-            displayValue={applicant.gender || "No Set"}
+            displayValue={applicant.gender || "N/A"}
             options={[
               { id: "male", name: "Male" },
               { id: "female", name: "Female" },
@@ -439,11 +439,13 @@ export const ApplicantTableRow = ({
             <EditableCell
               applicant={applicant}
               field="dob"
-              displayValue={applicant.dob ? new Date(applicant.dob).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              }) : "N/A"}
+              displayValue={applicant.dob && applicant.dob !== "N/A" && !isNaN(new Date(applicant.dob).getTime()) 
+                ? new Date(applicant.dob).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                }) 
+                : "N/A"}
               onUpdate={onUpdate}
               showPencil={hasEditAccess}
               showActionButtons={true}

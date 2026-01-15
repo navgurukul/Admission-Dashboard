@@ -25,6 +25,7 @@ import { StatusBadge } from "./StatusBadge";
 // import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { TransitionsModal } from "./TransitionsModal";
+import { InterviewDetailsModal } from "./InterviewDetailsModal";
 // import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 // import { Calendar } from "lucide-react";
 // import {
@@ -68,6 +69,7 @@ import {
   getMyAvailableSlots,
   getInterviewByStudentId,
   getAllSlots,
+  cancelScheduledInterview,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 // import { Input } from "@/components/ui/input";
@@ -172,7 +174,7 @@ export function ApplicantModal({
   onClose,
 }: ApplicantModalProps) {
   const { toast } = useToast();
-  const { hasEditAccess, isAdmin } = usePermissions();
+  const { hasEditAccess, isAdmin, user } = usePermissions();
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTransitionsModal, setShowTransitionsModal] = useState(false);
@@ -197,6 +199,10 @@ export function ApplicantModal({
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [schedulingInProgress, setSchedulingInProgress] = useState(false);
   const [isGoogleSignedIn, setIsGoogleSignedIn] = useState(false);
+
+  // Interview details modal states
+  const [showInterviewDetailsModal, setShowInterviewDetailsModal] = useState(false);
+  const [interviewDetailsRoundType, setInterviewDetailsRoundType] = useState<"LR" | "CFR" | null>(null);
   const [liveScheduleData, setLiveScheduleData] = useState<any[]>([]);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
 
@@ -667,6 +673,55 @@ Interviewer: ${interviewerName}`;
       setSchedulingInProgress(false);
     }
   }, [currentApplicant, scheduleRoundType, isGoogleSignedIn, toast, fetchScheduleData]);
+
+  // Handle cancel schedule
+  const handleCancelSchedule = useCallback(async (scheduleId: number) => {
+    try {
+      await cancelScheduledInterview(scheduleId, "Cancelled by admin");
+      
+      toast({
+        title: "✅ Interview Cancelled",
+        description: "The interview has been successfully cancelled.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+
+      // Refresh data
+      setRefreshKey(prev => prev + 1);
+      await fetchScheduleData();
+    } catch (error) {
+      console.error("Failed to cancel interview:", error);
+      toast({
+        title: "❌ Failed to Cancel",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+      });
+    }
+  }, [toast, fetchScheduleData]);
+
+  // Handle reschedule click - for now just show a message
+  const handleRescheduleClick = useCallback((scheduleId: number) => {
+    toast({
+      title: "Reschedule Feature",
+      description: "Please cancel the current schedule and create a new one.",
+      variant: "default",
+    });
+  }, [toast]);
+
+  // Handle opening interview details modal
+  const handleOpenInterviewDetails = useCallback((roundType: "LR" | "CFR") => {
+    setInterviewDetailsRoundType(roundType);
+    setShowInterviewDetailsModal(true);
+  }, []);
+
+  // Handle schedule new from interview details modal
+  const handleScheduleNewFromDetails = useCallback(() => {
+    setShowInterviewDetailsModal(false);
+    // The roundType is already set from when we opened the details modal
+    if (interviewDetailsRoundType) {
+      handleOpenScheduleModal(interviewDetailsRoundType);
+    }
+  }, [interviewDetailsRoundType, handleOpenScheduleModal]);
 
   const format = (date: Date, formatStr: string) => {
     if (formatStr === "PPP") {
@@ -1603,33 +1658,10 @@ Interviewer: ${interviewerName}`;
     return status.toLowerCase().includes("pass");
   });
 
-  // Check if student has a scheduled interview for LR or CFR
-  const hasScheduledLRInterview = liveScheduleData.some((schedule: any) => 
-    schedule.slot_type === "LR" || 
-    (schedule.slot_details && schedule.slot_details.slot_type === "LR")
-  );
-
-  const hasScheduledCFRInterview = liveScheduleData.some((schedule: any) => 
-    schedule.slot_type === "CFR" || 
-    (schedule.slot_details && schedule.slot_details.slot_type === "CFR")
-  );
-
-  // Check if there are unfilled scheduled interviews (schedule exists but no feedback row)
-  // For LR: check if number of schedules > number of feedback rows
-  const lrSchedules = liveScheduleData.filter((schedule: any) => 
-    schedule.slot_type === "LR" || 
-    (schedule.slot_details && schedule.slot_details.slot_type === "LR")
-  );
-  const lrFeedbacks = currentApplicant?.interview_learner_round || [];
-  const hasUnfilledLRSchedule = lrSchedules.length > lrFeedbacks.length;
-
-  // For CFR: check if number of schedules > number of feedback rows
-  const cfrSchedules = liveScheduleData.filter((schedule: any) => 
-    schedule.slot_type === "CFR" || 
-    (schedule.slot_details && schedule.slot_details.slot_type === "CFR")
-  );
-  const cfrFeedbacks = currentApplicant?.interview_cultural_fit_round || [];
-  const hasUnfilledCFRSchedule = cfrSchedules.length > cfrFeedbacks.length;
+  // Check if student has started next rounds (to disable deletion of previous rounds)
+  const hasLearningRoundData = (currentApplicant?.interview_learner_round || []).length > 0;
+  const hasCulturalRoundData = (currentApplicant?.interview_cultural_fit_round || []).length > 0;
+  const hasOfferData = !!currentApplicant?.campus_id || (currentApplicant?.final_decisions || []).length > 0;
 
   return (
     <>
@@ -1975,6 +2007,7 @@ Interviewer: ${interviewerName}`;
             updateApi={screeningUpdate}
             deleteApi={API_MAP.screening.delete}
             canDelete={isAdmin}
+            disableDelete={hasLearningRoundData}
             onSave={handleUpdate}
             disableAdd={isScreeningPassed}
           // disabled={!hasEditAccess}
@@ -1990,43 +2023,15 @@ Interviewer: ${interviewerName}`;
                 studentId={currentApplicant.id}
                 initialData={initialLearningData}
                 customActions={
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="inline-block">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenScheduleModal("LR")}
-                            disabled={
-                              isStageDisabled(currentApplicant, "LR") || 
-                              isLearningPassed || 
-                              hasScheduledLRInterview
-                            }
-                            className="flex items-center gap-2"
-                          >
-                            <CalendarIcon className="h-4 w-4" />
-                            Schedule Interview
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      {(isStageDisabled(currentApplicant, "LR") || 
-                        isLearningPassed || 
-                        hasScheduledLRInterview) && (
-                        <TooltipContent>
-                          <p>
-                            {isLearningPassed
-                              ? "Cannot schedule - Learning Round already passed"
-                              : hasScheduledLRInterview
-                                ? "Interview already scheduled for this round"
-                                : isStageDisabled(currentApplicant, "LR")
-                                  ? "Student needs to pass Screening Round"
-                                  : "You do not have edit access"}
-                          </p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenInterviewDetails("LR")}
+                    className="flex items-center gap-2"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    View Schedules
+                  </Button>
                 }
                 fields={[
                   {
@@ -2054,12 +2059,6 @@ Interviewer: ${interviewerName}`;
                     disabled: isStageDisabled(currentApplicant, "LR"),
                   },
                   {
-                    name: "schedule_info",
-                    label: "Schedule Info",
-                    type: "component" as const,
-                    component: ScheduleInfoDisplay,
-                  },
-                  {
                     name: "audit_info",
                     label: "Audit Info",
                     type: "readonly" as const,
@@ -2069,14 +2068,13 @@ Interviewer: ${interviewerName}`;
                 updateApi={API_MAP.learning.update}
                 deleteApi={API_MAP.learning.delete}
                 canDelete={isAdmin}
+                disableDelete={hasCulturalRoundData}
                 onSave={handleUpdate}
-                disableAdd={isLearningPassed || hasUnfilledLRSchedule}
+                disableAdd={isLearningPassed}
                 disabled={isStageDisabled(currentApplicant, "LR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "LR")
                     ? "Student need to pass Screening Round"
-                    : hasUnfilledLRSchedule
-                      ? "Please fill feedback for scheduled interview before adding new row"
                     : undefined
                 }
               />
@@ -2088,43 +2086,15 @@ Interviewer: ${interviewerName}`;
                 studentId={currentApplicant.id}
                 initialData={initialCulturalData}
                 customActions={
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="inline-block">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenScheduleModal("CFR")}
-                            disabled={
-                              isStageDisabled(currentApplicant, "CFR") || 
-                              isCulturalPassed || 
-                              hasScheduledCFRInterview
-                            }
-                            className="flex items-center gap-2"
-                          >
-                            <CalendarIcon className="h-4 w-4" />
-                            Schedule Interview
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      {(isStageDisabled(currentApplicant, "CFR") || 
-                        isCulturalPassed || 
-                        hasScheduledCFRInterview) && (
-                        <TooltipContent>
-                          <p>
-                            {isCulturalPassed
-                              ? "Cannot schedule - Cultural Fit Round already passed"
-                              : hasScheduledCFRInterview
-                                ? "Interview already scheduled for this round"
-                                : isStageDisabled(currentApplicant, "CFR")
-                                  ? "Student needs to pass Learning Round"
-                                  : "Action disabled"}
-                          </p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenInterviewDetails("CFR")}
+                    className="flex items-center gap-2"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    View Schedules
+                  </Button>
                 }
                 fields={[
                   {
@@ -2152,12 +2122,6 @@ Interviewer: ${interviewerName}`;
                     disabled: isStageDisabled(currentApplicant, "LR"),
                   },
                   {
-                    name: "schedule_info",
-                    label: "Schedule Info",
-                    type: "component" as const,
-                    component: ScheduleInfoDisplay,
-                  },
-                  {
                     name: "audit_info",
                     label: "Audit Info",
                     type: "readonly" as const,
@@ -2167,14 +2131,13 @@ Interviewer: ${interviewerName}`;
                 updateApi={API_MAP.cultural.update}
                 deleteApi={API_MAP.cultural.delete}
                 canDelete={isAdmin}
+                disableDelete={hasOfferData}
                 onSave={handleUpdate}
-                disableAdd={isCulturalPassed || hasUnfilledCFRSchedule}
+                disableAdd={isCulturalPassed}
                 disabled={isStageDisabled(currentApplicant, "CFR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "CFR")
                     ? "Student need to pass Learning Round"
-                    : hasUnfilledCFRSchedule
-                      ? "Please fill feedback for scheduled interview before adding new row"
                     : undefined
                 }
               />
@@ -2567,6 +2530,26 @@ Interviewer: ${interviewerName}`;
         initialStudentId={currentApplicant?.id?.toString()}
         initialStudentEmail={currentApplicant?.email}
         initialStudentName={currentApplicant?.name}
+      />
+
+      {/* Interview Details Modal - Shows all schedules with cancel/reschedule */}
+      <InterviewDetailsModal
+        isOpen={showInterviewDetailsModal}
+        onClose={() => setShowInterviewDetailsModal(false)}
+        scheduleInfo={
+          interviewDetailsRoundType === "LR" 
+            ? liveScheduleData.filter((s: any) => s.round_type === "LR" || s.title?.includes("Learning"))
+            : liveScheduleData.filter((s: any) => s.round_type === "CFR" || s.title?.includes("Cultural"))
+        }
+        roundType={interviewDetailsRoundType || "LR"}
+        studentName={currentApplicant?.name || ""}
+        onCancel={handleCancelSchedule}
+        onReschedule={handleRescheduleClick}
+        onScheduleNew={handleScheduleNewFromDetails}
+        canManage={isAdmin}
+        currentUserEmail={user?.email || ""}
+        isAdmin={isAdmin}
+        isStageDisabled={isStageDisabled(currentApplicant, interviewDetailsRoundType || "LR")}
       />
 
       {/* {showCommentsModal && (

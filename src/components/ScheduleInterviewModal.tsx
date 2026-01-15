@@ -40,6 +40,8 @@ interface ScheduleInterviewModalProps {
     slot_type?: string;
     interviewer_email?: string;
     interviewer_name?: string;
+    user_email?: string;
+    user_name?: string;
     is_booked: boolean;
     status?: string;
   }>;
@@ -166,11 +168,15 @@ export const ScheduleInterviewModal = ({
     if (isOpen) {
       const user = getCurrentUser();
 
-      // Priority: 1. Slot data interviewer, 2. Current user email
+      // Priority: 1. Slot data user_email/user_name (from slot), 2. interviewer_email/name, 3. Current user
       const defaultInterviewerEmail =
-        slotData?.interviewer_email || user?.email || "";
+        (slotData as any)?.user_email || 
+        slotData?.interviewer_email || 
+        user?.email || "";
       const defaultInterviewerName =
-        slotData?.interviewer_name || user?.name || "";
+        (slotData as any)?.user_name || 
+        slotData?.interviewer_name || 
+        user?.name || "";
 
       // Always update interviewer details when slot changes
       setInterviewerEmail(defaultInterviewerEmail);
@@ -590,6 +596,11 @@ export const ScheduleInterviewModal = ({
                         key={slot.id}
                         onClick={() => {
                           setSelectedSlotId(slot.id);
+                          // Auto-fill interviewer details from slot
+                          const slotInterviewerEmail = slot.user_email || slot.interviewer_email || "";
+                          const slotInterviewerName = slot.user_name || slot.interviewer_name || "";
+                          setInterviewerEmail(slotInterviewerEmail);
+                          setInterviewerName(slotInterviewerName);
                           // Auto-fill topic based on slot type
                           if (slot.slot_type === "LR") {
                             setTopicName("Learning Round");
@@ -611,9 +622,9 @@ export const ScheduleInterviewModal = ({
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          {slot.interviewer_name && (
+                          {(slot.user_name || slot.interviewer_name) && (
                             <p className="text-xs text-muted-foreground ml-6">
-                              {slot.interviewer_name}
+                              {slot.user_name || slot.interviewer_name}
                             </p>
                           )}
                           {slot.slot_type && (

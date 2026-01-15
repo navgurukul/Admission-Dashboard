@@ -170,8 +170,8 @@ export function EditableCell({
 
     // Validate date of birth - cannot be empty and minimum age 16.5 years
     if (field === "dob") {
-      // Check if date is empty
-      if (!cellValue || cellValue === "" || cellValue === null) {
+      // Check if date is empty or invalid (like "N/A")
+      if (!cellValue || cellValue === "" || cellValue === null || cellValue === "N/A" || cellValue === "n/a") {
         toast({
           title: "⚠️ Date of Birth Required",
           description: "Please select a date of birth. This field cannot be empty.",
@@ -184,6 +184,17 @@ export function EditableCell({
       const selectedDate = new Date(cellValue);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+      
+      // Check if the date is valid
+      if (isNaN(selectedDate.getTime())) {
+        toast({
+          title: "⚠️ Invalid Date Format",
+          description: "Please select a valid date of birth",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+        });
+        return;
+      }
       
       if (selectedDate > today) {
         toast({
@@ -489,7 +500,16 @@ export function EditableCell({
   if (isEditing) {
     // Special rendering for DOB field with calendar picker
     if (field === "dob") {
-      const dateValue = cellValue ? new Date(cellValue) : undefined;
+      // Safely parse the date value
+      let dateValue: Date | undefined;
+      if (cellValue && cellValue !== "N/A" && cellValue !== "n/a") {
+        const parsedDate = new Date(cellValue);
+        // Only use the date if it's valid
+        if (!isNaN(parsedDate.getTime())) {
+          dateValue = parsedDate;
+        }
+      }
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -516,8 +536,8 @@ export function EditableCell({
                   disabled={isUpdating || disabled}
                 >
                   <CalendarIcon className="mr-2 h-3 w-3" />
-                  {cellValue ? (
-                    new Date(cellValue).toLocaleDateString('en-US', {
+                  {dateValue && !isNaN(dateValue.getTime()) ? (
+                    dateValue.toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
@@ -542,11 +562,17 @@ export function EditableCell({
                   {/* Year and Month Selectors */}
                   <div className="flex gap-2 pb-2 border-b">
                     <select
-                      value={dateValue?.getMonth() ?? new Date().getMonth()}
+                      value={dateValue?.getMonth() ?? 0}
                       onChange={(e) => {
-                        const currentDate = dateValue || new Date(2000, 0, 1);
-                        const newDate = new Date(currentDate.getFullYear(), parseInt(e.target.value), 1);
-                        setCellValue(newDate.toISOString().split('T')[0]);
+                        const year = dateValue?.getFullYear() ?? 2000;
+                        const month = parseInt(e.target.value);
+                        const day = dateValue?.getDate() ?? 1;
+                        
+                        // Create new date and validate
+                        const newDate = new Date(year, month, day);
+                        if (!isNaN(newDate.getTime())) {
+                          setCellValue(newDate.toISOString().split('T')[0]);
+                        }
                       }}
                       className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-ring"
                     >
@@ -557,9 +583,15 @@ export function EditableCell({
                     <select
                       value={dateValue?.getFullYear() ?? 2000}
                       onChange={(e) => {
-                        const currentDate = dateValue || new Date(2000, 0, 1);
-                        const newDate = new Date(parseInt(e.target.value), currentDate.getMonth(), 1);
-                        setCellValue(newDate.toISOString().split('T')[0]);
+                        const year = parseInt(e.target.value);
+                        const month = dateValue?.getMonth() ?? 0;
+                        const day = dateValue?.getDate() ?? 1;
+                        
+                        // Create new date and validate
+                        const newDate = new Date(year, month, day);
+                        if (!isNaN(newDate.getTime())) {
+                          setCellValue(newDate.toISOString().split('T')[0]);
+                        }
                       }}
                       className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-ring"
                     >
@@ -589,9 +621,11 @@ export function EditableCell({
                       
                       return false;
                     }}
-                    month={dateValue || new Date(2000, 0)}
+                    month={dateValue && !isNaN(dateValue.getTime()) ? dateValue : new Date(2000, 0)}
                     onMonthChange={(month) => {
-                      setCellValue(month.toISOString().split('T')[0]);
+                      if (month && !isNaN(month.getTime())) {
+                        setCellValue(month.toISOString().split('T')[0]);
+                      }
                     }}
                     className="rounded-md"
                     classNames={{

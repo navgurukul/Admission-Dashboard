@@ -50,6 +50,7 @@ interface InlineSubformProps {
   disableAdd?: boolean;
   customActions?: React.ReactNode; // Custom action buttons to display alongside Add Row
   canDelete?: boolean; // Permission to delete entries (admin only)
+  disableDelete?: boolean; // Disable delete when student has moved to next round
 }
 
 // Map payload based on round type
@@ -252,6 +253,7 @@ export function InlineSubform({
   disableAdd,
   customActions,
   canDelete = false, // Default to false (no delete permission)
+  disableDelete = false, // Default to false (deletion not disabled by round progression)
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
   const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
@@ -686,7 +688,7 @@ export function InlineSubform({
         <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
-              {fields.map((f) => (
+              {fields.filter((f) => f.name !== "schedule_info").map((f) => (
                 <th key={f.name} className="px-3 py-2 border-b whitespace-nowrap">
                   {f.label}
                 </th>
@@ -695,9 +697,11 @@ export function InlineSubform({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => (
+            {rows.filter(row => row.id || row.isEditing).map((row) => {
+              const idx = rows.indexOf(row);
+              return (
               <tr key={idx} className="border-b hover:bg-gray-50">
-                {fields.map((f) => {
+                {fields.filter((f) => f.name !== "schedule_info").map((f) => {
                   // Audit fields should always be readonly
                   const isAuditField = ["created_at", "updated_at", "last_updated_by", "audit_info"].includes(f.name);
                   const isStatusField = f.name === "status" || f.name.includes("status");
@@ -761,15 +765,37 @@ export function InlineSubform({
                         </Button>
                         {/* Delete button - only show if row has ID, deleteApi is provided, and user has delete permission (admin) */}
                         {row.id && deleteApi && canDelete && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-600 hover:bg-red-50"
-                            onClick={() => deleteRow(idx)}
-                            disabled={disabled}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          disableDelete ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-red-600 hover:bg-red-50 opacity-50 cursor-not-allowed"
+                                      disabled={true}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Cannot delete - Student has progressed to next round</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:bg-red-50"
+                              onClick={() => deleteRow(idx)}
+                              disabled={disabled}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )
                         )}
                       </>
                     ) : (
@@ -796,7 +822,8 @@ export function InlineSubform({
                   </div>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>
