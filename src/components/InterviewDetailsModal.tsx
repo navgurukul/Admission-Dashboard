@@ -50,6 +50,7 @@ interface InterviewDetailsModalProps {
   currentUserEmail?: string; // Current logged-in user's email
   isAdmin?: boolean; // Is current user an admin
   isStageDisabled?: boolean; // Is this stage disabled (previous round not passed)
+  hasPassedRound?: boolean; // Has student already passed this round
 }
 
 export function InterviewDetailsModal({
@@ -65,6 +66,7 @@ export function InterviewDetailsModal({
   currentUserEmail = "",
   isAdmin = false,
   isStageDisabled = false,
+  hasPassedRound = false,
 }: InterviewDetailsModalProps) {
   const { toast } = useToast();
   const [cancelling, setCancelling] = useState<number | null>(null);
@@ -85,18 +87,20 @@ export function InterviewDetailsModal({
     return false;
   };
 
-  // Check if there are any active (booked/scheduled) interviews
+  // Check if there are any active (booked/scheduled/rescheduled) interviews
   const hasActiveBooking = useMemo(() => {
     return scheduleInfo?.some((schedule) => {
       const status = schedule.status?.toLowerCase() || "";
-      return status === "scheduled" || status === "booked";
+      return status === "scheduled" || status === "booked" || status === "rescheduled";
     }) || false;
   }, [scheduleInfo]);
 
   // Determine if user can schedule new interview
-  // Cannot schedule if stage is disabled (previous round not passed)
-  // Admin can schedule multiple, regular users can only schedule if no active booking
-  const canScheduleNew = !isStageDisabled && (isAdmin || !hasActiveBooking);
+  // Cannot schedule if:
+  // 1. Student has already passed the round
+  // 2. Stage is disabled (previous round not passed)
+  // 3. There's already an active booking (scheduled/rescheduled) - applies to everyone including admin
+  const canScheduleNew = !hasPassedRound && !isStageDisabled && !hasActiveBooking;
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -195,7 +199,11 @@ export function InterviewDetailsModal({
             <div className="py-12 text-center text-muted-foreground">
               <Calendar className="w-16 h-16 mx-auto mb-4 opacity-30" />
               <p className="text-lg font-medium">No interviews scheduled</p>
-              {isStageDisabled ? (
+              {hasPassedRound ? (
+                <p className="text-sm mt-2 text-blue-600">
+                  ✅ Student has already passed {roundType === "LR" ? "Learning Round" : "Cultural Fit Round"}
+                </p>
+              ) : isStageDisabled ? (
                 <p className="text-sm mt-2 text-orange-600">
                   {roundType === "LR" 
                     ? "Student needs to pass Screening Round before scheduling Learning Round interview"
@@ -292,7 +300,7 @@ export function InterviewDetailsModal({
                           )}
                         </td>
                         <td className="p-3">
-                          {canManageThis && isActive && !isCancelled ? (
+                          {!hasPassedRound && canManageThis && isActive && !isCancelled ? (
                             <div className="flex items-center justify-end gap-2">
                               {onReschedule && (
                                 <Button

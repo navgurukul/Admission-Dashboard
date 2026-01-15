@@ -70,6 +70,7 @@ import {
   getInterviewByStudentId,
   getAllSlots,
   cancelScheduledInterview,
+  updateScheduledInterview,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 // import { Input } from "@/components/ui/input";
@@ -89,6 +90,7 @@ import {
   signIn,
   isSignedIn,
   createCalendarEvent,
+  deleteCalendarEvent,
   formatDateTimeForCalendar,
 } from "@/utils/googleCalendar";
 import { useReferenceData } from "@/hooks/useReferenceData";
@@ -199,6 +201,12 @@ export function ApplicantModal({
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [schedulingInProgress, setSchedulingInProgress] = useState(false);
   const [isGoogleSignedIn, setIsGoogleSignedIn] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState<{
+    scheduleId: number;
+    roundType: "LR" | "CFR";
+    googleEventId?: string;
+    oldSlotId?: number;
+  } | null>(null);
 
   // Interview details modal states
   const [showInterviewDetailsModal, setShowInterviewDetailsModal] = useState(false);
@@ -626,6 +634,23 @@ Interviewer: ${interviewerName}`;
       const startDateTime = formatDateTimeForCalendar(date, startTime);
       const endDateTime = formatDateTimeForCalendar(date, endTime);
 
+      // If rescheduling, delete the old calendar event first
+      if (rescheduleData && rescheduleData.googleEventId) {
+        try {
+          console.log("Deleting old calendar event:", rescheduleData.googleEventId);
+          await deleteCalendarEvent(rescheduleData.googleEventId);
+          console.log("Old calendar event deleted successfully");
+        } catch (error) {
+          console.error("Error deleting old calendar event:", error);
+          // Show warning but continue with rescheduling
+          toast({
+            title: "Warning",
+            description: "Could not remove old calendar event. Creating new event...",
+            variant: "default",
+          });
+        }
+      }
+
       const calendarEvent = await createCalendarEvent({
         summary: eventTitle,
         description: eventDescription,
@@ -640,24 +665,52 @@ Interviewer: ${interviewerName}`;
         throw new Error("Failed to create calendar event");
       }
 
-      // Schedule the interview in database
-      await scheduleInterview({
-        slot_id: slotId,
-        student_id: studentId,
-        title: eventTitle,
-        description: eventDescription,
-        meeting_link: calendarEvent.meetLink || "",
-        google_event_id: calendarEvent.eventId,
-        created_by: "Admin" as const,
-      });
+      // Check if this is a reschedule or new schedule
+      if (rescheduleData) {
+        console.log("Rescheduling interview with:", {
+          scheduleId: rescheduleData.scheduleId,
+          payload: {
+            slot_id: slotId,
+            title: eventTitle,
+            meeting_link: calendarEvent.meetLink,
+            google_event_id: calendarEvent.eventId,
+          }
+        });
 
-      toast({
-        title: "Interview Scheduled",
-        description: `${scheduleRoundType} interview scheduled successfully`,
-      });
+        // Reschedule existing interview
+        await updateScheduledInterview(rescheduleData.scheduleId, {
+          slot_id: slotId,
+          title: eventTitle,
+          description: eventDescription,
+          meeting_link: calendarEvent.meetLink || "",
+          google_event_id: calendarEvent.eventId,
+        });
+
+        toast({
+          title: "Interview Rescheduled",
+          description: `${scheduleRoundType} interview rescheduled successfully`,
+        });
+      } else {
+        // Schedule new interview
+        await scheduleInterview({
+          slot_id: slotId,
+          student_id: studentId,
+          title: eventTitle,
+          description: eventDescription,
+          meeting_link: calendarEvent.meetLink || "",
+          google_event_id: calendarEvent.eventId,
+          created_by: "Admin" as const,
+        });
+
+        toast({
+          title: "Interview Scheduled",
+          description: `${scheduleRoundType} interview scheduled successfully`,
+        });
+      }
 
       // Close modal and refresh schedule data
       setIsScheduleModalOpen(false);
+      setRescheduleData(null); // Clear reschedule data
       setRefreshKey(prev => prev + 1);
       
       // Fetch fresh schedule data
@@ -666,13 +719,13 @@ Interviewer: ${interviewerName}`;
       console.error("Failed to schedule interview:", error);
       toast({
         title: "Error",
-        description: "Failed to schedule interview",
+        description: rescheduleData ? "Failed to reschedule interview" : "Failed to schedule interview",
         variant: "destructive",
       });
     } finally {
       setSchedulingInProgress(false);
     }
-  }, [currentApplicant, scheduleRoundType, isGoogleSignedIn, toast, fetchScheduleData]);
+  }, [currentApplicant, scheduleRoundType, isGoogleSignedIn, toast, fetchScheduleData, rescheduleData]);
 
   // Handle cancel schedule
   const handleCancelSchedule = useCallback(async (scheduleId: number) => {
@@ -699,19 +752,75 @@ Interviewer: ${interviewerName}`;
     }
   }, [toast, fetchScheduleData]);
 
-  // Handle reschedule click - for now just show a message
+  // Handle reschedule click - open schedule modal with reschedule data
   const handleRescheduleClick = useCallback((scheduleId: number) => {
-    toast({
-      title: "Reschedule Feature",
-      description: "Please cancel the current schedule and create a new one.",
-      variant: "default",
+    // Find the schedule details from liveScheduleData
+    const scheduleToReschedule = liveScheduleData.find(
+      (s) => s.id === scheduleId || s.schedule_id === scheduleId
+    );
+    
+    if (!scheduleToReschedule) {
+      toast({
+        title: "Error",
+        description: "Schedule not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Determine round type from interviewDetailsRoundType (current round being viewed)
+    const roundType = interviewDetailsRoundType;
+    
+    if (!roundType) {
+      toast({
+        title: "Error",
+        description: "Round type not specified",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Rescheduling interview:", scheduleToReschedule);
+
+    // Set reschedule data with google_event_id for calendar deletion
+    setRescheduleData({
+      scheduleId: scheduleToReschedule.id || scheduleId,
+      roundType,
+      googleEventId: scheduleToReschedule.google_event_id,
+      oldSlotId: scheduleToReschedule.slot_id,
     });
-  }, [toast]);
+    setScheduleRoundType(roundType);
+    setShowInterviewDetailsModal(false);
+    
+    // Fetch available slots and open schedule modal
+    fetchAvailableSlots(roundType).then(() => {
+      setIsScheduleModalOpen(true);
+    });
+  }, [toast, liveScheduleData, interviewDetailsRoundType, fetchAvailableSlots]);
 
   // Handle opening interview details modal
   const handleOpenInterviewDetails = useCallback((roundType: "LR" | "CFR") => {
     setInterviewDetailsRoundType(roundType);
     setShowInterviewDetailsModal(true);
+  }, []);
+
+  // Helper function to check if student has passed a specific round
+  const hasPassedRound = useCallback((applicant: any, roundType: "LR" | "CFR"): boolean => {
+    if (!applicant) return false;
+    
+    if (roundType === "LR") {
+      // Check if any learning round has "pass" status
+      return applicant.interview_learner_round?.some((round: any) => 
+        round.learning_round_status?.toLowerCase().includes("pass")
+      ) || false;
+    } else if (roundType === "CFR") {
+      // Check if any cultural fit round has "pass" status
+      return applicant.interview_cultural_fit_round?.some((round: any) => 
+        round.cultural_fit_round_status?.toLowerCase().includes("pass")
+      ) || false;
+    }
+    
+    return false;
   }, []);
 
   // Handle schedule new from interview details modal
@@ -2521,7 +2630,10 @@ Interviewer: ${interviewerName}`;
       {/* Schedule Interview Modal */}
       <ScheduleInterviewModal
         isOpen={isScheduleModalOpen}
-        onClose={() => setIsScheduleModalOpen(false)}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setRescheduleData(null); // Clear reschedule data when closing
+        }}
         onSchedule={handleScheduleInterview}
         slotData={null}
         allAvailableSlots={availableSlots}
@@ -2530,6 +2642,7 @@ Interviewer: ${interviewerName}`;
         initialStudentId={currentApplicant?.id?.toString()}
         initialStudentEmail={currentApplicant?.email}
         initialStudentName={currentApplicant?.name}
+        isRescheduleMode={!!rescheduleData}
       />
 
       {/* Interview Details Modal - Shows all schedules with cancel/reschedule */}
@@ -2550,6 +2663,7 @@ Interviewer: ${interviewerName}`;
         currentUserEmail={user?.email || ""}
         isAdmin={isAdmin}
         isStageDisabled={isStageDisabled(currentApplicant, interviewDetailsRoundType || "LR")}
+        hasPassedRound={hasPassedRound(currentApplicant, interviewDetailsRoundType || "LR")}
       />
 
       {/* {showCommentsModal && (

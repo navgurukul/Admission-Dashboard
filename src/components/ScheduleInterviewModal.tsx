@@ -62,6 +62,7 @@ interface ScheduleInterviewModalProps {
   initialStudentId?: string;
   initialStudentEmail?: string;
   initialStudentName?: string;
+  isRescheduleMode?: boolean; // Flag to indicate if we're rescheduling
 }
 
 export const ScheduleInterviewModal = ({
@@ -75,6 +76,7 @@ export const ScheduleInterviewModal = ({
   initialStudentId,
   initialStudentEmail,
   initialStudentName,
+  isRescheduleMode = false,
 }: ScheduleInterviewModalProps) => {
   const [studentId, setStudentId] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
@@ -280,12 +282,19 @@ export const ScheduleInterviewModal = ({
     );
 
     console.log(hasPassedScreening);
-    // Filter schedules by status - only consider "scheduled" status
+    // Filter schedules by status - only consider "scheduled" or "booked" status as active
+    // Exclude "rescheduled", "cancelled", "completed", etc.
     const activeLRSchedules = lrSchedules.filter(
-      (schedule: any) => schedule.status?.toLowerCase() === "scheduled"
+      (schedule: any) => {
+        const status = schedule.status?.toLowerCase() || "";
+        return status === "scheduled" || status === "rescheduled";
+      }
     );
     const activeCFRSchedules = cfrSchedules.filter(
-      (schedule: any) => schedule.status?.toLowerCase() === "scheduled"
+      (schedule: any) => {
+        const status = schedule.status?.toLowerCase() || "";
+        return status === "scheduled" || status === "rescheduled";
+      }
     );
 
     // Check if student has passed LR round
@@ -315,18 +324,20 @@ export const ScheduleInterviewModal = ({
           type: "warning",
         };
       }
-      if (activeLRSchedules.length > 0) {
-        return {
-          canBook: false,
-          message: "Student already has LR interview scheduled",
-          type: "warning",
-        };
-      }
+      // Always block if student has already passed LR (even in reschedule mode)
       if (hasPassedLR) {
         return {
           canBook: false,
           message: "Student has already passed LR round",
           type: "info",
+        };
+      }
+      // Skip "already scheduled" check if in reschedule mode
+      if (!isRescheduleMode && activeLRSchedules.length > 0) {
+        return {
+          canBook: false,
+          message: "Student already has LR interview scheduled",
+          type: "warning",
         };
       }
       if (lrRounds.length > 0) {
@@ -365,18 +376,21 @@ export const ScheduleInterviewModal = ({
         };
       }
 
-      if (activeCFRSchedules.length > 0) {
-        return {
-          canBook: false,
-          message: "Student already has CFR interview scheduled",
-          type: "warning",
-        };
-      }
+      // Always block if student has already passed CFR (even in reschedule mode)
       if (hasPassedCFR) {
         return {
           canBook: false,
           message: "Student has already passed CFR round",
           type: "info",
+        };
+      }
+
+      // Skip "already scheduled" check if in reschedule mode
+      if (!isRescheduleMode && activeCFRSchedules.length > 0) {
+        return {
+          canBook: false,
+          message: "Student already has CFR interview scheduled",
+          type: "warning",
         };
       }
 
@@ -545,10 +559,13 @@ export const ScheduleInterviewModal = ({
       <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-large border border-border">
         <DialogHeader className="pb-4 border-b border-border">
           <DialogTitle className="flex items-center justify-between text-lg font-semibold text-foreground">
-            <span>Schedule Interview</span>
+            <span>{isRescheduleMode ? "Reschedule Interview" : "Schedule Interview"}</span>
           </DialogTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Create Google Meet link and schedule the interview
+            {isRescheduleMode 
+              ? "Select a new time slot and update the interview details"
+              : "Create Google Meet link and schedule the interview"
+            }
           </p>
         </DialogHeader>
 
@@ -845,19 +862,23 @@ export const ScheduleInterviewModal = ({
               type="submit"
               className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={
-                isLoading || (interviewStatus && !interviewStatus.canBook)
+                isLoading || (!isRescheduleMode && interviewStatus && !interviewStatus.canBook)
               }
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Meeting...
+                  {isRescheduleMode ? "Rescheduling..." : "Creating Meeting..."}
                 </>
               ) : (
                 <>
                   <Calendar className="w-4 h-4 mr-2" />
-                  {interviewStatus && !interviewStatus.canBook
-                    ? "Cannot Schedule - Already Booked"
+                  {!isRescheduleMode && interviewStatus && !interviewStatus.canBook
+                    ? (interviewStatus.message.includes("already has") 
+                        ? "Cannot Schedule - Interview Already Scheduled"
+                        : "Cannot Schedule - " + interviewStatus.message.split(" before ")[0])
+                    : isRescheduleMode
+                    ? "Reschedule & Update Meet Link"
                     : "Schedule & Create Meet Link"}
                 </>
               )}
