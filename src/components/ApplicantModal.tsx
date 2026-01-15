@@ -213,12 +213,24 @@ export function ApplicantModal({
     donorList,
     stateList: globalStateList,
     fetchAllReferenceData,
+    // Individual fetch functions for on-demand loading
+    fetchCampuses,
+    fetchSchools,
+    fetchCurrentStatuses,
+    fetchStages: fetchStagesFromHook,
+    fetchReligions,
+    fetchQualifications,
+    fetchCasts,
+    fetchPartners,
+    fetchDonors,
+    fetchStates,
+    fetchQuestionSets,
   } = useReferenceData();
 
   // Additional lists needed by ApplicantModal
   const [stageList, setStageList] = useState<any[]>([]);
 
-  // State for fetched partner and donor names
+  // State for fetched partner and donor names (fallback when backend doesn't provide them)
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [donorName, setDonorName] = useState<string | null>(null);
 
@@ -304,27 +316,111 @@ export function ApplicantModal({
   const [showOfferSentConfirmation, setShowOfferSentConfirmation] = useState(false);
   const [pendingOfferLetterValue, setPendingOfferLetterValue] = useState<string | null>(null);
 
-  // ✅ OPTIMIZATION: Load reference data on-demand (only when user clicks edit)
-  const ensureReferenceDataLoaded = useCallback(() => {
-    if (campusList.length === 0) {
-      console.log("🔄 ApplicantModal: Loading reference data on-demand...");
-      fetchAllReferenceData();
+  // ✅ OPTIMIZATION: Load reference data on-demand (only when user clicks edit on specific field)
+  const ensureFieldDataLoaded = useCallback(async (field: string) => {
+    console.log(`🔧 ApplicantModal: Loading data for field: ${field}`);
+    
+    switch (field) {
+      case 'campus_id':
+        if (campusList.length === 0) {
+          console.log('� Fetching campuses...');
+          await fetchCampuses();
+        }
+        break;
+      case 'current_status_id':
+        if (currentstatusList.length === 0) {
+          console.log('📥 Fetching current statuses...');
+          await fetchCurrentStatuses();
+        }
+        break;
+      case 'stage_id':
+        if (stageList.length === 0) {
+          console.log('📥 Fetching stages...');
+          try {
+            const stagesData = await getAllStages();
+            setStageList(stagesData || []);
+          } catch (error) {
+            console.error("Failed to fetch stages:", error);
+            setStageList([]);
+          }
+        }
+        break;
+      case 'cast_id':
+        if (castList.length === 0) {
+          console.log('📥 Fetching casts...');
+          await fetchCasts();
+        }
+        break;
+      case 'qualification_id':
+        if (qualificationList.length === 0) {
+          console.log('📥 Fetching qualifications...');
+          await fetchQualifications();
+        }
+        break;
+      case 'religion_id':
+        if (religionList.length === 0) {
+          console.log('📥 Fetching religions...');
+          await fetchReligions();
+        }
+        break;
+      case 'partner_id':
+        if (partnerList.length === 0) {
+          console.log('📥 Fetching partners...');
+          await fetchPartners();
+        }
+        break;
+      case 'donor_id':
+        if (donorList.length === 0) {
+          console.log('📥 Fetching donors...');
+          await fetchDonors();
+        }
+        break;
+      case 'school_id':
+        if (schoolList.length === 0) {
+          console.log('📥 Fetching schools...');
+          await fetchSchools();
+        }
+        break;
+      case 'state':
+        if (globalStateList.length === 0) {
+          console.log('📥 Fetching states...');
+          await fetchStates();
+        }
+        break;
+      case 'question_set_id':
+        if (questionSetList.length === 0) {
+          console.log('📥 Fetching question sets...');
+          await fetchQuestionSets();
+        }
+        break;
+      default:
+        console.log(`⚠️ No specific loader for field: ${field}`);
     }
     
-    // Load stages if not already loaded
-    if (stageList.length === 0) {
-      const fetchStages = async () => {
-        try {
-          const stagesData = await getAllStages();
-          setStageList(stagesData || []);
-        } catch (error) {
-          console.error("Failed to fetch stages:", error);
-          setStageList([]);
-        }
-      };
-      fetchStages();
-    }
-  }, [campusList.length, stageList.length, fetchAllReferenceData]);
+    console.log(`✅ Data loaded for field: ${field}`);
+  }, [
+    campusList.length,
+    currentstatusList.length,
+    stageList.length,
+    castList.length,
+    qualificationList.length,
+    religionList.length,
+    partnerList.length,
+    donorList.length,
+    schoolList.length,
+    globalStateList.length,
+    questionSetList.length,
+    fetchCampuses,
+    fetchCurrentStatuses,
+    fetchCasts,
+    fetchQualifications,
+    fetchReligions,
+    fetchPartners,
+    fetchDonors,
+    fetchSchools,
+    fetchStates,
+    fetchQuestionSets,
+  ]);
 
   // Check Google sign-in status
   useEffect(() => {
@@ -371,6 +467,40 @@ export function ApplicantModal({
       setLiveScheduleData([]);
     }
   }, [isOpen, currentApplicant?.id, refreshKey, fetchScheduleData]);
+
+  // ✅ Load QuestionSets API when modal opens
+  // Always load if questionSetList is empty, as we may need it for display or editing
+  useEffect(() => {
+    const loadQuestionSets = async () => {
+      if (isOpen && questionSetList.length === 0) {
+        console.log('📥 ApplicantModal: Loading QuestionSets for screening round...');
+        try {
+          await fetchQuestionSets();
+          console.log('✅ QuestionSets loaded:', questionSetList?.length || 0, 'items');
+        } catch (error) {
+          console.error('❌ Failed to load QuestionSets:', error);
+        }
+      }
+    };
+    loadQuestionSets();
+  }, [isOpen, questionSetList.length, fetchQuestionSets]);
+
+  // ✅ Load Schools API when modal opens
+  // Always load if schools list is empty, as we may need it for display or editing
+  useEffect(() => {
+    const loadSchools = async () => {
+      if (isOpen && schools.length === 0) {
+        console.log('📥 ApplicantModal: Loading Schools for screening round...');
+        try {
+          await fetchSchools();
+          console.log('✅ Schools loaded');
+        } catch (error) {
+          console.error('❌ Failed to load Schools:', error);
+        }
+      }
+    };
+    loadSchools();
+  }, [isOpen, schools.length, fetchSchools]);
 
   // Fetch available slots when schedule modal opens
   const fetchAvailableSlots = useCallback(async (roundType: "LR" | "CFR") => {
@@ -644,10 +774,11 @@ Interviewer: ${interviewerName}`;
     }
   }, [isOpen, applicant?.id, refreshKey, stateList.length]);
 
-  // Fetch partner name if not available in partnerList
+  // Fetch partner name by ID if not provided in the applicant data
   useEffect(() => {
     const fetchPartnerName = async () => {
-      if (currentApplicant?.partner_id && partners.length === 0) {
+      // Only fetch if partner_id exists but partner_name is not provided
+      if (currentApplicant?.partner_id && !currentApplicant?.partner_name) {
         try {
           const response = await getPartnerById(currentApplicant.partner_id);
           if (response?.data?.partner_name) {
@@ -661,12 +792,13 @@ Interviewer: ${interviewerName}`;
       }
     };
     fetchPartnerName();
-  }, [currentApplicant?.partner_id, partners.length]);
+  }, [currentApplicant?.partner_id, currentApplicant?.partner_name]);
 
-  // Fetch donor name if not available in donorList
+  // Fetch donor name by ID if not provided in the applicant data
   useEffect(() => {
     const fetchDonorName = async () => {
-      if (currentApplicant?.donor_id && donors.length === 0) {
+      // Only fetch if donor_id exists but donor_name is not provided
+      if (currentApplicant?.donor_id && !currentApplicant?.donor_name) {
         try {
           const response = await getDonorById(currentApplicant.donor_id);
           if (response?.data?.donor_name) {
@@ -680,7 +812,7 @@ Interviewer: ${interviewerName}`;
       }
     };
     fetchDonorName();
-  }, [currentApplicant?.donor_id, donors.length]);
+  }, [currentApplicant?.donor_id, currentApplicant?.donor_name]);
 
   // Set joining date from current applicant
   // useEffect(() => {
@@ -971,16 +1103,12 @@ Interviewer: ${interviewerName}`;
     options: { value: string; label: string }[],
     id: any,
     defaultLabel = "",
-    nameField?: string,
-    fetchedName?: string | null
+    nameField?: string
   ) => {
     // ✅ OPTIMIZATION: First try to get name from currentApplicant data (backend provides it)
     if (nameField && currentApplicant[nameField]) {
       return currentApplicant[nameField];
     }
-
-    // If fetchedName is provided (for partner/donor), use it
-    if (fetchedName) return fetchedName;
 
     // If no id provided, return default
     if (!id) return defaultLabel;
@@ -1100,8 +1228,53 @@ Interviewer: ${interviewerName}`;
     {
       name: "question_set_id",
       label: "Set Name *",
-      type: "select" as const,
-      options: questionSets,
+      type: "component" as const,
+      component: ({ row, updateRow, disabled }: any) => {
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          const rowId = row?.question_set_id?.toString();
+          console.log('🔍 Set lookup - Row ID:', rowId, 'QuestionSets count:', questionSets.length);
+          
+          // Try to find set name from questionSets list by ID
+          const set = questionSets.find(s => s.value === rowId);
+          console.log('🔍 Found set:', set);
+          
+          if (set) {
+            return (
+              <span className="text-gray-900" title={set.label}>
+                {set.label}
+              </span>
+            );
+          }
+          // If set_name field exists in row, use it
+          if (row?.set_name && row.set_name.trim() !== "") {
+            return (
+              <span className="text-gray-900" title={row.set_name}>
+                {row.set_name}
+              </span>
+            );
+          }
+          // Fallback: show ID or dash
+          return <span className="text-gray-500">{rowId || "—"}</span>;
+        }
+        
+        // Edit mode: Show dropdown
+        return (
+          <select
+            value={row?.question_set_id || ""}
+            onChange={(e) => updateRow("question_set_id", e.target.value)}
+            className={`border p-1 rounded w-full ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+            disabled={!!disabled}
+          >
+            <option value="">Select Set</option>
+            {questionSets.map((set) => (
+              <option key={set.value} value={set.value}>
+                {set.label}
+              </option>
+            ))}
+          </select>
+        );
+      },
     },
     {
       name: "obtained_marks",
@@ -1109,6 +1282,19 @@ Interviewer: ${interviewerName}`;
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
         const maxMarks = 36;
+        
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          return (
+            <span className="text-gray-900">
+              {row?.obtained_marks !== null && row?.obtained_marks !== undefined 
+                ? row.obtained_marks 
+                : "—"}
+            </span>
+          );
+        }
+        
+        // Edit mode: Show input
         return (
           <div className="w-full">
             <input
@@ -1120,7 +1306,7 @@ Interviewer: ${interviewerName}`;
 
                 // Only allow if value is empty, or within valid range (0 to maxMarks)
                 if (value === "" || (numValue >= 0 && numValue <= maxMarks)) {
-                  updateRow?.("obtained_marks", value);
+                  updateRow("obtained_marks", value);
                 }
                 // If value exceeds max, don't update (block the input)
               }}
@@ -1137,8 +1323,48 @@ Interviewer: ${interviewerName}`;
     {
       name: "school_id",
       label: "Qualifying School",
-      type: "select" as const,
-      options: schools,
+      type: "component" as const,
+      component: ({ row, updateRow, disabled }: any) => {
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          // Try to find school name from schools list by ID
+          const school = schools.find(s => s.value === row?.school_id?.toString());
+          if (school) {
+            return (
+              <span className="text-gray-900" title={school.label}>
+                {school.label}
+              </span>
+            );
+          }
+          // If school_name field exists in row, use it
+          if (row?.school_name && row.school_name.trim() !== "") {
+            return (
+              <span className="text-gray-900" title={row.school_name}>
+                {row.school_name}
+              </span>
+            );
+          }
+          // Fallback: show ID or dash
+          return <span className="text-gray-500">{row?.school_id || "—"}</span>;
+        }
+        
+        // Edit mode: Show dropdown
+        return (
+          <select
+            value={row?.school_id || ""}
+            onChange={(e) => updateRow("school_id", e.target.value)}
+            className={`border p-1 rounded w-full ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+            disabled={!!disabled}
+          >
+            <option value="">Select School</option>
+            {schools.map((school) => (
+              <option key={school.value} value={school.value}>
+                {school.label}
+              </option>
+            ))}
+          </select>
+        );
+      },
     },
     {
       name: "exam_centre",
@@ -1150,12 +1376,22 @@ Interviewer: ${interviewerName}`;
       label: "Date of Testing *",
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          return (
+            <span className="text-gray-900">
+              {row?.date_of_test || "—"}
+            </span>
+          );
+        }
+        
+        // Edit mode: Show date input
         const today = new Date().toISOString().split('T')[0];
         return (
           <input
             type="date"
             value={row?.date_of_test || ""}
-            onChange={(e) => updateRow?.("date_of_test", e.target.value)}
+            onChange={(e) => updateRow("date_of_test", e.target.value)}
             className="border p-1 rounded w-full"
             disabled={!!disabled}
             max={today}
@@ -1176,6 +1412,7 @@ Interviewer: ${interviewerName}`;
         id: session.id,
         status: session.status ?? currentApplicant.status ?? "",
         question_set_id: session.question_set_id?.toString() || "",
+        set_name: session.set_name || "", // ✅ Include set_name if available
         obtained_marks:
           session.obtained_marks !== null && session.obtained_marks !== undefined
             ? session.obtained_marks.toString()
@@ -1184,6 +1421,7 @@ Interviewer: ${interviewerName}`;
           session.school_id !== null && session.school_id !== undefined
             ? session.school_id.toString()
             : "",
+        school_name: session.school_name || "", // ✅ Include school_name if available
         exam_centre: session.exam_centre || "",
         date_of_test: session.date_of_test?.split("T")[0] || "",
         audit_info: {
@@ -1376,6 +1614,23 @@ Interviewer: ${interviewerName}`;
     (schedule.slot_details && schedule.slot_details.slot_type === "CFR")
   );
 
+  // Check if there are unfilled scheduled interviews (schedule exists but no feedback row)
+  // For LR: check if number of schedules > number of feedback rows
+  const lrSchedules = liveScheduleData.filter((schedule: any) => 
+    schedule.slot_type === "LR" || 
+    (schedule.slot_details && schedule.slot_details.slot_type === "LR")
+  );
+  const lrFeedbacks = currentApplicant?.interview_learner_round || [];
+  const hasUnfilledLRSchedule = lrSchedules.length > lrFeedbacks.length;
+
+  // For CFR: check if number of schedules > number of feedback rows
+  const cfrSchedules = liveScheduleData.filter((schedule: any) => 
+    schedule.slot_type === "CFR" || 
+    (schedule.slot_details && schedule.slot_details.slot_type === "CFR")
+  );
+  const cfrFeedbacks = currentApplicant?.interview_cultural_fit_round || [];
+  const hasUnfilledCFRSchedule = cfrSchedules.length > cfrFeedbacks.length;
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -1510,7 +1765,6 @@ Interviewer: ${interviewerName}`;
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
-                    onEditStart={ensureReferenceDataLoaded}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1525,7 +1779,7 @@ Interviewer: ${interviewerName}`;
                     displayValue={getLabel(castes, currentApplicant.cast_id, "", "cast_name")}
                     onUpdate={handleUpdate}
                     options={castes}
-                    onEditStart={ensureReferenceDataLoaded}
+                    onEditStart={() => ensureFieldDataLoaded('cast_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1545,7 +1799,7 @@ Interviewer: ${interviewerName}`;
                     )}
                     onUpdate={handleUpdate}
                     options={qualifications}
-                    onEditStart={ensureReferenceDataLoaded}
+                    onEditStart={() => ensureFieldDataLoaded('qualification_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1565,7 +1819,7 @@ Interviewer: ${interviewerName}`;
                     }
                     onUpdate={handleUpdate}
                     options={currentWorks}
-                    onEditStart={ensureReferenceDataLoaded}
+                    onEditStart={() => ensureFieldDataLoaded('current_status_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1580,7 +1834,7 @@ Interviewer: ${interviewerName}`;
                     value={getCode(stateOptions, currentApplicant.state) || ""}
                     onUpdate={handleStateChange}
                     options={stateOptions}
-                    onEditStart={ensureReferenceDataLoaded}
+                    onEditStart={() => ensureFieldDataLoaded('state')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1649,16 +1903,10 @@ Interviewer: ${interviewerName}`;
                     applicant={currentApplicant}
                     field="partner_id"
                     value={currentApplicant.partner_id}
-                    displayValue={getLabel(
-                      partners,
-                      currentApplicant.partner_id,
-                      "",
-                      "partner_name",
-                      partnerName
-                    )}
+                    displayValue={currentApplicant.partner_name || partnerName || ""}
                     onUpdate={handleUpdate}
                     options={partners}
-                    onEditStart={ensureReferenceDataLoaded}
+                    onEditStart={() => ensureFieldDataLoaded('partner_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1670,16 +1918,10 @@ Interviewer: ${interviewerName}`;
                     applicant={currentApplicant}
                     field="donor_id"
                     value={currentApplicant.donor_id}
-                    displayValue={getLabel(
-                      donors,
-                      currentApplicant.donor_id,
-                      "",
-                      "donor_name",
-                      donorName
-                    )}
+                    displayValue={currentApplicant.donor_name || donorName || ""}
                     onUpdate={handleUpdate}
                     options={donors}
-                    onEditStart={ensureReferenceDataLoaded}
+                    onEditStart={() => ensureFieldDataLoaded('donor_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1824,13 +2066,13 @@ Interviewer: ${interviewerName}`;
                 submitApi={API_MAP.learning.submit}
                 updateApi={API_MAP.learning.update}
                 onSave={handleUpdate}
-                disableAdd={isLearningPassed}
+                disableAdd={isLearningPassed || hasUnfilledLRSchedule}
                 disabled={isStageDisabled(currentApplicant, "LR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "LR")
                     ? "Student need to pass Screening Round"
-                    // : !hasEditAccess
-                    //   ? "You do not have edit access"
+                    : hasUnfilledLRSchedule
+                      ? "Please fill feedback for scheduled interview before adding new row"
                     : undefined
                 }
               />
@@ -1920,13 +2162,13 @@ Interviewer: ${interviewerName}`;
                 submitApi={API_MAP.cultural.submit}
                 updateApi={API_MAP.cultural.update}
                 onSave={handleUpdate}
-                disableAdd={isCulturalPassed}
+                disableAdd={isCulturalPassed || hasUnfilledCFRSchedule}
                 disabled={isStageDisabled(currentApplicant, "CFR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "CFR")
                     ? "Student need to pass Learning Round"
-                    // : !hasEditAccess
-                    //   ? "You do not have edit access"
+                    : hasUnfilledCFRSchedule
+                      ? "Please fill feedback for scheduled interview before adding new row"
                     : undefined
                 }
               />
@@ -1958,7 +2200,7 @@ Interviewer: ${interviewerName}`;
                               )}
                               onUpdate={handleUpdate}
                               options={campus}
-                              onEditStart={ensureReferenceDataLoaded}
+                              onEditStart={() => ensureFieldDataLoaded('campus_id')}
                               disabled={true}
                             />
                           </div>
@@ -1982,7 +2224,7 @@ Interviewer: ${interviewerName}`;
                         )}
                         onUpdate={handleUpdate}
                         options={campus}
-                        onEditStart={ensureReferenceDataLoaded}
+                        onEditStart={() => ensureFieldDataLoaded('campus_id')}
                         disabled={!hasEditAccess}
                       />
                     </div>
@@ -2066,7 +2308,6 @@ Interviewer: ${interviewerName}`;
                         },
                       ]}
                       disabled={!hasEditAccess}
-                      onEditStart={ensureReferenceDataLoaded}
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
                       }}
@@ -2126,7 +2367,6 @@ Interviewer: ${interviewerName}`;
                       }
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!hasEditAccess}
-                      onEditStart={ensureReferenceDataLoaded}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
