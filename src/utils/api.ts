@@ -614,17 +614,55 @@ export const triggerStudentStatusUpdate = async (
   }
 };
 
+// Delete APIs for feedback rounds
+export const deleteScreeningRoundFeedback = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/students/delete/screeningRoundFeedback/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false), // Don't include Content-Type for DELETE
+  });
+  return response;
+};
+
+export const deleteLearningRoundFeedback = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/students/delete/learningRoundFeedback/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false), // Don't include Content-Type for DELETE
+  });
+  return response;
+};
+
+export const deleteCulturalFitRoundFeedback = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/students/delete/culturalFitRoundFeedback/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false), // Don't include Content-Type for DELETE
+  });
+  return response;
+};
+
 // Map to dynamically select API based on type
 export const API_MAP: Record<
   string,
   {
     submit: (row: any) => Promise<any>;
     update: (id: number, row: any) => Promise<any>;
+    delete?: (id: number) => Promise<any>;
   }
 > = {
-  learning: { submit: submitLearningRound, update: updateLearningRound },
-  cultural: { submit: submitCulturalFit, update: updateCulturalFit },
-  screening: { submit: submitScreeningRound, update: updateScreeningRound },
+  learning: { 
+    submit: submitLearningRound, 
+    update: updateLearningRound,
+    delete: deleteLearningRoundFeedback 
+  },
+  cultural: { 
+    submit: submitCulturalFit, 
+    update: updateCulturalFit,
+    delete: deleteCulturalFitRoundFeedback 
+  },
+  screening: { 
+    submit: submitScreeningRound, 
+    update: updateScreeningRound,
+    delete: deleteScreeningRoundFeedback 
+  },
 };
 
 // update

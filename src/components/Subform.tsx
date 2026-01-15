@@ -9,7 +9,15 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Plus, Pencil, Save } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Pencil, Save, Trash2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -35,11 +43,13 @@ interface InlineSubformProps {
   studentId?: number | string;
   submitApi: (payload: any) => Promise<any>;
   updateApi: (id: number | string, payload: any) => Promise<any>;
+  deleteApi?: (id: number | string) => Promise<any>;
   onSave?: () => void;
   disabled?: boolean;
   disabledReason?: string;
   disableAdd?: boolean;
   customActions?: React.ReactNode; // Custom action buttons to display alongside Add Row
+  canDelete?: boolean; // Permission to delete entries (admin only)
 }
 
 // Map payload based on round type
@@ -235,14 +245,18 @@ export function InlineSubform({
   studentId,
   submitApi,
   updateApi,
+  deleteApi,
   onSave,
   disabled,
   disabledReason,
   disableAdd,
   customActions,
+  canDelete = false, // Default to false (no delete permission)
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
   const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -506,6 +520,59 @@ export function InlineSubform({
     }
   };
 
+  const deleteRow = async (idx: number) => {
+    const row = rows[idx];
+    
+    // Only allow deletion if row has an ID (exists in database) and deleteApi is provided
+    if (!row.id || !deleteApi) return;
+
+    // Open confirmation dialog
+    setRowToDelete(idx);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (rowToDelete === null) return;
+    
+    const row = rows[rowToDelete];
+    if (!row.id || !deleteApi) return;
+
+    try {
+      await deleteApi(row.id);
+      
+      toast({
+        title: "✅ Entry Deleted",
+        description: "The entry has been successfully deleted.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+
+      // Close dialog and reset state
+      setDeleteConfirmOpen(false);
+      setRowToDelete(null);
+
+      // Refresh data by calling onSave callback
+      onSave?.();
+    } catch (err) {
+      console.error("Delete failed", err);
+      toast({
+        title: "❌ Unable to Delete",
+        description: getFriendlyErrorMessage(err),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+      
+      // Close dialog even on error
+      setDeleteConfirmOpen(false);
+      setRowToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setRowToDelete(null);
+  };
+
   const getDisplayValue = (row: any, field: RowField) => {
     // Handle audit_info field specially
     if (field.name === "audit_info") {
@@ -680,43 +747,85 @@ export function InlineSubform({
                   );
                 })}
                 <td className="px-3 py-2 text-right whitespace-nowrap">
-                  {!row.isEditing ? (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className={`text-blue-600 hover:bg-blue-50 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                      onClick={() => toggleEdit(idx, true)}
-                      disabled={disabled}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                  <div className="flex items-center justify-end gap-1">
+                    {!row.isEditing ? (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={`text-blue-600 hover:bg-blue-50 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                          onClick={() => toggleEdit(idx, true)}
+                          disabled={disabled}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {/* Delete button - only show if row has ID, deleteApi is provided, and user has delete permission (admin) */}
+                        {row.id && deleteApi && canDelete && (
                           <Button
                             size="icon"
                             variant="ghost"
-                            className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""}`}
-                            onClick={() => saveRow(idx)}
+                            className="text-red-600 hover:bg-red-50"
+                            onClick={() => deleteRow(idx)}
+                            disabled={disabled}
                           >
-                            <Save className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </TooltipTrigger>
-                        {row.id && !hasChanges(idx) && (
-                          <TooltipContent>
-                            <p>No changes to save</p>
-                          </TooltipContent>
                         )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                      </>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""}`}
+                              onClick={() => saveRow(idx)}
+                            >
+                              <Save className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          {row.id && !hasChanges(idx) && (
+                            <TooltipContent>
+                              <p>No changes to save</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Entry</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this entry? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

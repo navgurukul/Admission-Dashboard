@@ -172,7 +172,7 @@ export function ApplicantModal({
   onClose,
 }: ApplicantModalProps) {
   const { toast } = useToast();
-  const { hasEditAccess } = usePermissions();
+  const { hasEditAccess, isAdmin } = usePermissions();
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTransitionsModal, setShowTransitionsModal] = useState(false);
@@ -1973,6 +1973,8 @@ Interviewer: ${interviewerName}`;
             fields={screeningFields}
             submitApi={screeningSubmit}
             updateApi={screeningUpdate}
+            deleteApi={API_MAP.screening.delete}
+            canDelete={isAdmin}
             onSave={handleUpdate}
             disableAdd={isScreeningPassed}
           // disabled={!hasEditAccess}
@@ -2065,6 +2067,8 @@ Interviewer: ${interviewerName}`;
                 ]}
                 submitApi={API_MAP.learning.submit}
                 updateApi={API_MAP.learning.update}
+                deleteApi={API_MAP.learning.delete}
+                canDelete={isAdmin}
                 onSave={handleUpdate}
                 disableAdd={isLearningPassed || hasUnfilledLRSchedule}
                 disabled={isStageDisabled(currentApplicant, "LR")}
@@ -2161,6 +2165,8 @@ Interviewer: ${interviewerName}`;
                 ]}
                 submitApi={API_MAP.cultural.submit}
                 updateApi={API_MAP.cultural.update}
+                deleteApi={API_MAP.cultural.delete}
+                canDelete={isAdmin}
                 onSave={handleUpdate}
                 disableAdd={isCulturalPassed || hasUnfilledCFRSchedule}
                 disabled={isStageDisabled(currentApplicant, "CFR")}
