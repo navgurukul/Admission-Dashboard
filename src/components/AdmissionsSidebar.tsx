@@ -56,6 +56,10 @@ export function AdmissionsSidebar() {
         location.pathname === "/admin-view" || location.pathname === "/schedule"
       );
     }
+    // Check if current path is campus detail page and menu item is campus
+    if (href === "/campus") {
+      return location.pathname === "/campus" || location.pathname.startsWith("/campus/");
+    }
     return location.pathname === href;
   };
 

@@ -82,7 +82,7 @@ interface FilterState {
 interface AdvancedFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplyFilters: (filters: FilterState) => void;
+  onApplyFilters: (filters: FilterState, stageStatuses?: any[]) => void;
   currentFilters: FilterState;
   students: any[];
   hideCampusFilter?: boolean; // Optional prop to hide campus field
@@ -377,7 +377,7 @@ export function AdvancedFilterModal({
     delete processedFilters.status;
 
     // console.log("Current Filters:", processedFilters);
-    onApplyFilters(processedFilters);
+    onApplyFilters(processedFilters, stageStatuses);
     onClose();
     toast({
       title: "✅ Filters Applied",

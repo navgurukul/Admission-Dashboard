@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AdmissionsSidebar } from "../components/AdmissionsSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +12,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, ArrowLeft } from "lucide-react";
 import { AdvancedFilterModal } from "@/components/AdvancedFilterModal";
-import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats } from "@/utils/api";
+import { ApplicantModal } from "@/components/ApplicantModal";
+import { Pagination } from "@/components/applicant-table/Pagination";
+import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats, getStatusesByStageId } from "@/utils/api";
 import { useApplicantData } from "@/hooks/useApplicantData";
+import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 import { useToast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
@@ -63,6 +66,8 @@ const CampusDetail = () => {
   const navigate = useNavigate();
   const [studentPage, setStudentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
@@ -82,8 +87,12 @@ const CampusDetail = () => {
   });
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
   const [filteredStudentsData, setFilteredStudentsData] = useState<any[]>([]);
+  const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
+  const [showApplicantModal, setShowApplicantModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch data lists for filter tags
+  // ✅ DRY: Use on-demand reference data for filter tags
+  // Data is loaded lazily - only when needed for displaying active filter tags
   const {
     campusList,
     schoolList,
@@ -94,8 +103,92 @@ const CampusDetail = () => {
     qualificationList,
     partnerList,
     donorList,
-    stageStatusList,
-  } = useApplicantData(1, 10);
+    loadFieldData, // For loading individual fields on-demand
+    loadMultipleFields, // For loading multiple fields at once
+  } = useOnDemandReferenceData();
+
+  // Local state to store stage-specific statuses
+  const [stageStatuses, setStageStatuses] = useState<any[]>([]);
+
+  // Transform filters to API params helper function
+  const transformFiltersToAPI = useCallback((f: any) => {
+    const apiParams: any = { campus_id: Number(id) };
+
+    if (f.dateRange?.from && f.dateRange?.to) {
+      const formatDate = (date: Date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      if (f.dateRange.type === "applicant") {
+        apiParams.created_at_from = formatDate(f.dateRange.from);
+        apiParams.created_at_to = formatDate(f.dateRange.to);
+      } else if (f.dateRange.type === "lastUpdate") {
+        apiParams.updated_at_from = formatDate(f.dateRange.from);
+        apiParams.updated_at_to = formatDate(f.dateRange.to);
+      } else if (f.dateRange.type === "interview") {
+        apiParams.interview_date_from = formatDate(f.dateRange.from);
+        apiParams.interview_date_to = formatDate(f.dateRange.to);
+      }
+    }
+
+    if (f.stage_id) apiParams.stage_id = f.stage_id;
+    if (f.stage_status && f.stage_status !== "all") apiParams.stage_status = f.stage_status;
+    if (f.qualification?.length && f.qualification[0] !== "all") apiParams.qualification_id = f.qualification[0];
+    if (f.partnerFilter?.length && f.partnerFilter[0] !== "all") apiParams.partner_id = f.partnerFilter[0];
+    if (f.donor?.length && f.donor[0] !== "all") apiParams.donor_id = f.donor[0];
+    if (f.school?.length && f.school[0] !== "all") apiParams.school_id = f.school[0];
+    if (f.currentStatus?.length && f.currentStatus[0] !== "all") apiParams.current_status_id = f.currentStatus[0];
+    if (f.state && f.state !== "all") apiParams.state = f.state;
+    if (f.district?.length && f.district[0] !== "all") apiParams.district = f.district[0];
+    if (f.gender && f.gender !== "all") apiParams.gender = f.gender;
+
+    return apiParams;
+  }, [id]);
+
+  // ✅ Smart on-demand loading: Load reference data ONLY for active filters
+  // This ensures filter tags can display names without pre-loading everything
+  useEffect(() => {
+    const fieldsToLoad: string[] = [];
+
+    // Check which filters are active and need reference data
+    if ((filters as any).stage_id || (filters as any).stage) {
+      fieldsToLoad.push('stage');
+    }
+    if ((filters as any).stage_status) {
+      fieldsToLoad.push('current_status'); // stageStatusList
+    }
+    if ((filters as any).school?.length) {
+      fieldsToLoad.push('school');
+    }
+    if ((filters as any).currentStatus?.length) {
+      fieldsToLoad.push('current_status');
+    }
+    if ((filters as any).qualification?.length) {
+      fieldsToLoad.push('qualification', 'question_set');
+    }
+    if ((filters as any).religion?.length) {
+      fieldsToLoad.push('religion');
+    }
+    if ((filters as any).partnerFilter?.length) {
+      fieldsToLoad.push('partner');
+    }
+    if ((filters as any).donor?.length) {
+      fieldsToLoad.push('donor');
+    }
+    if ((filters as any).cast?.length) {
+      fieldsToLoad.push('cast');
+    }
+
+    // Remove duplicates and load only if needed
+    const uniqueFields = [...new Set(fieldsToLoad)];
+    if (uniqueFields.length > 0) {
+      loadMultipleFields(uniqueFields);
+    }
+  }, [filters, loadMultipleFields]);
 
   // Fetch campus details
   useEffect(() => {
@@ -113,7 +206,7 @@ const CampusDetail = () => {
     };
 
     fetchCampusDetails();
-  }, [id]);
+  }, [id, refreshKey]);
 
   // Fetch campus stats
   useEffect(() => {
@@ -134,9 +227,9 @@ const CampusDetail = () => {
     };
 
     fetchStats();
-  }, [id]);
+  }, [id, refreshKey]);
 
-  // Fetch students data (used for both overview and student tabs)
+  // Fetch students data with proper server-side pagination
   useEffect(() => {
     if (!id) return;
 
@@ -150,11 +243,14 @@ const CampusDetail = () => {
       try {
         const response = await getFilterStudent({
           campus_id: Number(id),
-          limit: 100 // Get many for client-side pagination in this view
+          page: studentPage,
+          limit: rowsPerPage
         });
         const studentsData = response.data || [];
         setStudents(studentsData);
         setFilteredStudentsData([]);
+        setTotalStudents(response.total || 0);
+        setTotalPages(response.totalPages || 1);
 
         // If on overview tab, calculate school capacities from student data
         if (activeTab === "overview") {
@@ -200,58 +296,59 @@ const CampusDetail = () => {
     };
 
     fetchStudents();
-  }, [id, activeTab, hasActiveFilters]);
+  }, [id, activeTab, hasActiveFilters, studentPage, rowsPerPage, refreshKey]);
+
+  // Refetch filtered data when page or rowsPerPage changes (and filters are active)
+  useEffect(() => {
+    if (!id || !hasActiveFilters) return;
+
+    const fetchFilteredData = async () => {
+      setLoading(true);
+      try {
+        const apiParams = transformFiltersToAPI(filters);
+        const response = await getFilterStudent({
+          ...apiParams,
+          page: studentPage,
+          limit: rowsPerPage
+        });
+        setFilteredStudentsData(response.data || []);
+        setTotalStudents(response.total || 0);
+        setTotalPages(response.totalPages || 1);
+      } catch (error) {
+        console.error("Error fetching filtered students:", error);
+        setError("Failed to fetch filtered students");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFilteredData();
+  }, [studentPage, rowsPerPage, hasActiveFilters, refreshKey]);
 
   // Use filtered data if filters are active, otherwise use all students
   const displayStudents = hasActiveFilters ? filteredStudentsData : students;
-  // Filtered students based on search and filters
+  
+  // Client-side search filter only (pagination is server-side)
   const processedStudents = useMemo(() => {
+    if (!searchTerm) return displayStudents;
+    
+    const search = searchTerm.toLowerCase();
     return displayStudents.filter((student) => {
-      // 1. Search filter
-      const search = searchTerm.toLowerCase();
-      const matchesSearch =
-        !search ||
+      return (
         (student.first_name && student.first_name.toLowerCase().includes(search)) ||
         (student.last_name && student.last_name.toLowerCase().includes(search)) ||
         (student.email && student.email.toLowerCase().includes(search)) ||
-        (student.phone_number && student.phone_number.includes(search));
-
-      if (!matchesSearch) return false;
-
-      // 2. Additional client-side filters (sync with state if needed)
-      // Note: Most filters are handled by API via filteredStudentsData, 
-      // but we keep these for 'students' (unfiltered view) or extra safety.
-
-      if (filters.stage && filters.stage !== "all" && student.stage_name !== filters.stage)
-        return false;
-
-      if (filters.stage_status && filters.stage_status !== "all") {
-        const statusArray = Array.isArray(filters.stage_status)
-          ? filters.stage_status
-          : [filters.stage_status];
-
-        const hasMatch = statusArray.some(s =>
-          String(s) === String(student.stage_status_id) ||
-          String(s) === String(student.current_status_id) ||
-          s === student.current_status_name
-        );
-
-        if (!hasMatch) return false;
-      }
-
-      return true;
+        (student.phone_number && student.phone_number.includes(search))
+      );
     });
-  }, [displayStudents, searchTerm, filters]);
+  }, [displayStudents, searchTerm]);
 
-  const paginatedStudents = processedStudents.slice(
-    (studentPage - 1) * rowsPerPage,
-    studentPage * rowsPerPage,
-  );
+  // Server-side pagination - no need to slice, data is already paginated
+  const paginatedStudents = processedStudents;
 
-  const totalStudentPages = Math.ceil(processedStudents.length / rowsPerPage);
-  const startIdx =
-    processedStudents.length === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
-  const endIdx = Math.min(studentPage * rowsPerPage, processedStudents.length);
+  // Calculate display indices for pagination info
+  const startIdx = totalStudents === 0 ? 0 : (studentPage - 1) * rowsPerPage + 1;
+  const endIdx = Math.min(studentPage * rowsPerPage, totalStudents);
 
   // Helper functions to resolve names from IDs (duplicate from ApplicantTable)
   const resolveCampusName = (value: any) => {
@@ -338,9 +435,9 @@ const CampusDetail = () => {
         : [];
 
     stageStatusArray.forEach((status: string) => {
-      // Try to find the status name from stageStatusList
-      const statusObj = stageStatusList.find((s: any) => String(s.id) === String(status));
-      const statusLabel = statusObj?.status_name || statusObj?.name || status;
+      // Use stageStatuses to resolve status names (stage-specific statuses)
+      const statusObj = stageStatuses.find((s: any) => String(s.id) === String(status));
+      const statusLabel = statusObj?.status_name || statusObj?.current_status_name || statusObj?.name || status;
 
       tags.push({
         key: `stage_status-${status}`,
@@ -466,7 +563,7 @@ const CampusDetail = () => {
     }
 
     return tags;
-  }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, qualificationList, partnerList, donorList, stageStatusList]);
+  }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, qualificationList, partnerList, donorList, stageStatuses]);
 
   // Clear all filters
   const handleClearFilters = () => {
@@ -490,6 +587,7 @@ const CampusDetail = () => {
     });
     setHasActiveFilters(false);
     setFilteredStudentsData([]);
+    setStageStatuses([]);
     setStudentPage(1);
 
     toast({
@@ -584,6 +682,19 @@ const CampusDetail = () => {
   const reapplyFilters = async (newFilters: any) => {
     setFilters(newFilters);
 
+    // Fetch stage statuses if stage is still selected
+    if (newFilters.stage_id) {
+      try {
+        const statusesResponse = await getStatusesByStageId(newFilters.stage_id);
+        setStageStatuses(statusesResponse || []);
+      } catch (error) {
+        console.error("Error fetching stage statuses:", error);
+        setStageStatuses([]);
+      }
+    } else {
+      setStageStatuses([]);
+    }
+
     // Check if any filters are still active
     const hasFilters =
       (newFilters.stage_id && newFilters.stage_id !== undefined) ||
@@ -614,9 +725,12 @@ const CampusDetail = () => {
         const apiParams = transformFiltersToAPI(newFilters);
         const response = await getFilterStudent({
           ...apiParams,
-          limit: 100 // Get many for client-side pagination in this view
+          page: studentPage,
+          limit: rowsPerPage
         });
         setFilteredStudentsData(response.data || []);
+        setTotalStudents(response.total || 0);
+        setTotalPages(response.totalPages || 1);
         setStudentPage(1);
 
         toast({
@@ -640,49 +754,19 @@ const CampusDetail = () => {
     }
   };
 
-  // Transform filters to API params (same as in onApplyFilters)
-  const transformFiltersToAPI = (f: any) => {
-    const apiParams: any = { campus_id: Number(id) };
-
-    if (f.dateRange?.from && f.dateRange?.to) {
-      const formatDate = (date: Date) => {
-        const d = new Date(date);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      };
-
-      if (f.dateRange.type === "applicant") {
-        apiParams.created_at_from = formatDate(f.dateRange.from);
-        apiParams.created_at_to = formatDate(f.dateRange.to);
-      } else if (f.dateRange.type === "lastUpdate") {
-        apiParams.updated_at_from = formatDate(f.dateRange.from);
-        apiParams.updated_at_to = formatDate(f.dateRange.to);
-      } else if (f.dateRange.type === "interview") {
-        apiParams.interview_date_from = formatDate(f.dateRange.from);
-        apiParams.interview_date_to = formatDate(f.dateRange.to);
-      }
-    }
-
-    if (f.stage_id) apiParams.stage_id = f.stage_id;
-    if (f.stage_status && f.stage_status !== "all") apiParams.stage_status = f.stage_status;
-    if (f.qualification?.length && f.qualification[0] !== "all") apiParams.qualification_id = f.qualification[0];
-    if (f.partnerFilter?.length && f.partnerFilter[0] !== "all") apiParams.partner_id = f.partnerFilter[0];
-    if (f.donor?.length && f.donor[0] !== "all") apiParams.donor_id = f.donor[0];
-    if (f.school?.length && f.school[0] !== "all") apiParams.school_id = f.school[0];
-    if (f.currentStatus?.length && f.currentStatus[0] !== "all") apiParams.current_status_id = f.currentStatus[0];
-    if (f.state && f.state !== "all") apiParams.state = f.state;
-    if (f.district?.length && f.district[0] !== "all") apiParams.district = f.district[0];
-    if (f.gender && f.gender !== "all") apiParams.gender = f.gender;
-
-    return apiParams;
-  };
-
   return (
     <div className="flex min-h-screen bg-background">
       <AdmissionsSidebar />
       <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 md:ml-64">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate("/campus")}
+          className="mb-4 hover:bg-primary/10"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Campus List
+        </Button>
         <h2 className="text-3xl font-bold text-center mb-6 text-foreground">
           {campusName} Campus
         </h2>
@@ -847,8 +931,15 @@ const CampusDetail = () => {
                 <AdvancedFilterModal
                   isOpen={showFilterModal}
                   onClose={() => setShowFilterModal(false)}
-                  onApplyFilters={async (f) => {
+                  onApplyFilters={async (f, receivedStageStatuses) => {
                     setFilters(f);
+
+                    // Use stage statuses passed from AdvancedFilterModal (already loaded there)
+                    if (receivedStageStatuses) {
+                      setStageStatuses(receivedStageStatuses);
+                    } else {
+                      setStageStatuses([]);
+                    }
 
                     // Build API params from filters
                     const apiParams: any = { campus_id: Number(id) };
@@ -934,9 +1025,12 @@ const CampusDetail = () => {
                       try {
                         const response = await getFilterStudent({
                           ...apiParams,
-                          limit: 100 // Get many for client-side pagination in this view
+                          page: 1,
+                          limit: rowsPerPage
                         });
                         setFilteredStudentsData(response.data || []);
+                        setTotalStudents(response.total || 0);
+                        setTotalPages(response.totalPages || 1);
                       } catch (error) {
                         console.error(
                           "Error fetching filtered students:",
@@ -971,10 +1065,10 @@ const CampusDetail = () => {
                       {paginatedStudents.map((student, idx) => (
                         <div
                           key={student.id}
-                          className="bg-card rounded-xl p-6 shadow-soft border border-border"
+                          className="bg-card rounded-xl p-6 shadow-soft border border-border hover:shadow-lg transition-all"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <div>
+                            <div className="flex-1">
                               <p className="text-lg font-bold text-foreground mb-1">
                                 {`${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() ||
                                   "No Name"}
@@ -983,19 +1077,30 @@ const CampusDetail = () => {
                                 {student.email || "No email"}
                               </p>
                             </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="ml-2"
+                              onClick={() => {
+                                setSelectedApplicant(student);
+                                setShowApplicantModal(true);
+                              }}
+                            >
+                              View
+                            </Button>
                           </div>
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                             <div>
                               <span className="font-medium text-muted-foreground">
                                 Number:
                               </span>{" "}
-                              {student.phone_number || "N/A"}
+                              {student.phone_number || student.mobile_number || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
                                 WhatsApp:
                               </span>{" "}
-                              {student.whatsapp_number || "N/A"}
+                              {student.whatsapp_number || student.alternate_mobile || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
@@ -1007,13 +1112,13 @@ const CampusDetail = () => {
                               <span className="font-medium text-muted-foreground">
                                 DOB:
                               </span>{" "}
-                              {student.dob || "N/A"}
+                              {student.dob ? new Date(student.dob).toLocaleDateString('en-GB') : "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
                                 State:
                               </span>{" "}
-                              {student.state || "N/A"}
+                              {student.state_name || student.state || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
@@ -1023,27 +1128,27 @@ const CampusDetail = () => {
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
-                                Cast:
+                                Caste:
                               </span>{" "}
-                              {student.cast_name || "N/A"}
+                              {student.cast_name || student.caste_name || student.caste || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
                                 Religion:
                               </span>{" "}
-                              {student.religion_name || "N/A"}
+                              {student.religion_name || student.religion || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
                                 Qualification:
                               </span>{" "}
-                              {student.qualification_name || "N/A"}
+                              {student.qualification_name || student.qualification || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
                                 School:
                               </span>{" "}
-                              {student.school_name || "N/A"}
+                              {student.school_name || student.school || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
@@ -1053,7 +1158,7 @@ const CampusDetail = () => {
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
-                                Current Work:
+                                Status:
                               </span>{" "}
                               {student.current_status_name || "N/A"}
                             </div>
@@ -1061,58 +1166,40 @@ const CampusDetail = () => {
                         </div>
                       ))}
                     </div>
-                    <div className="flex justify-center items-center gap-6 mt-4 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Rows per page:</span>
-                        <select
-                          className="border-2 border-input rounded-lg px-3 py-1.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
-                          value={rowsPerPage}
-                          onChange={(e) => {
-                            setRowsPerPage(Number(e.target.value));
-                            setStudentPage(1);
-                          }}
-                        >
-                          {[10, 20, 50, 100].map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {startIdx}-{endIdx} of {processedStudents.length}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button
-                          className="px-3 py-1.5 rounded-lg border-2 border-border bg-card text-sm disabled:opacity-50 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all"
-                          onClick={() =>
-                            setStudentPage((p) => Math.max(1, p - 1))
-                          }
-                          disabled={studentPage === 1}
-                          aria-label="Previous page"
-                        >
-                          &#60;
-                        </button>
-                        <button
-                          className="px-3 py-1.5 rounded-lg border-2 border-border bg-card text-sm disabled:opacity-50 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all"
-                          onClick={() =>
-                            setStudentPage((p) =>
-                              Math.min(totalStudentPages, p + 1),
-                            )
-                          }
-                          disabled={studentPage === totalStudentPages}
-                          aria-label="Next page"
-                        >
-                          &#62;
-                        </button>
-                      </div>
-                    </div>
+                    
+                    <Pagination
+                      currentPage={studentPage}
+                      setCurrentPage={setStudentPage}
+                      itemsPerPage={rowsPerPage}
+                      setItemsPerPage={setRowsPerPage}
+                      totalPages={totalPages}
+                      showingStart={startIdx}
+                      showingEnd={endIdx}
+                      currentTotalCount={totalStudents}
+                      totalStudents={totalStudents}
+                      searchTerm={searchTerm}
+                      hasActiveFilters={hasActiveFilters}
+                    />
                   </>
                 )}
               </>
             )}
           </CardContent>
         </Card>
+
+        {/* Applicant Detail Modal */}
+        {selectedApplicant && (
+          <ApplicantModal
+            applicant={selectedApplicant}
+            isOpen={showApplicantModal}
+            onClose={() => {
+              setShowApplicantModal(false);
+              setSelectedApplicant(null);
+              // Refresh data after modal closes to get any updates
+              setRefreshKey((prev) => prev + 1);
+            }}
+          />
+        )}
       </main>
     </div>
   );
