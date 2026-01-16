@@ -123,9 +123,12 @@ export const useReferenceData = () => {
     return fetchReferenceData("casts", getAllCasts, setCastList);
   }, [fetchReferenceData]);
 
-  const fetchPartners = useCallback(() => {
+  const fetchPartners = useCallback(async () => {
     console.log('🔵 fetchPartners called - lazy loading on-demand');
-    return fetchReferenceData("partners", getAllPartners, setPartnerList);
+    const data = await fetchReferenceData("partners", getAllPartners, setPartnerList);
+    console.log('🔵 fetchPartners completed - data:', data);
+    console.log('🔵 fetchPartners - sample item:', data && data.length > 0 ? data[0] : 'No data');
+    return data;
   }, [fetchReferenceData]);
 
   const fetchDonors = useCallback(() => {
@@ -150,8 +153,7 @@ export const useReferenceData = () => {
   }, [fetchReferenceData]);
 
   // Fetch all reference data at once (for cases where we need everything)
-  // ✅ FULL ON-DEMAND OPTIMIZATION: ALL dropdown fields load only when user clicks to edit
-  // No API calls on initial page load - everything loads on-demand
+  // Used by ApplicantTable for filter tags display
   const fetchAllReferenceData = useCallback(async () => {
     // Skip if already loaded or currently loading
     if (isLoading) {
@@ -160,17 +162,36 @@ export const useReferenceData = () => {
     
     setIsLoading(true);
     try {
-      // ❌ ALL fields now load on-demand when user clicks to edit:
-      // Campuses, CurrentStatuses, Stages, Schools, Religions, QuestionSets, 
-      // Qualifications, Casts, Partners, Donors, States
+      // Load all reference data needed for filter tags
       await Promise.all([
-        // Empty - all data loads on-demand
+        fetchCampuses(),
+        fetchSchools(),
+        fetchCurrentStatuses(),
+        fetchStages(),
+        fetchReligions(),
+        fetchQuestionSets(),
+        fetchQualifications(),
+        fetchCasts(),
+        fetchPartners(),
+        fetchDonors(),
+        fetchStates(),
       ]);
     } finally {
       setIsLoading(false);
     }
   }, [
     isLoading,
+    fetchCampuses,
+    fetchSchools,
+    fetchCurrentStatuses,
+    fetchStages,
+    fetchReligions,
+    fetchQuestionSets,
+    fetchQualifications,
+    fetchCasts,
+    fetchPartners,
+    fetchDonors,
+    fetchStates,
   ]);
 
   return {

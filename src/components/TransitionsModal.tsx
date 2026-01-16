@@ -24,25 +24,37 @@ import {
     updateFeedback,
     deleteFeedback,
 } from "@/utils/api";
+import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 
 interface TransitionsModalProps {
     isOpen: boolean;
     onClose: () => void;
     studentId: number;
-    stages: any[];
-    statuses: any[];
+    stages?: any[]; // Optional - will load its own if not provided
+    statuses?: any[]; // Optional - will load its own if not provided
 }
 
 export function TransitionsModal({
     isOpen,
     onClose,
     studentId,
-    stages,
-    statuses,
+    stages: propStages,
+    statuses: propStatuses,
 }: TransitionsModalProps) {
     const { toast } = useToast();
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    // ✅ Load reference data on-demand
+    const {
+        stageList,
+        currentstatusList,
+        loadFieldData,
+    } = useOnDemandReferenceData();
+
+    // Use prop data if provided, otherwise use loaded data
+    const stages = propStages && propStages.length > 0 ? propStages : stageList;
+    const statuses = propStatuses && propStatuses.length > 0 ? propStatuses : currentstatusList;
 
     // Form state
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -52,6 +64,21 @@ export function TransitionsModal({
         stage_status_id: "",
         feedback: "",
     });
+
+    // ✅ Load stages and statuses when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            console.log('🔄 TransitionsModal: Loading stages and statuses...');
+            Promise.all([
+                loadFieldData('stage'),
+                loadFieldData('current_status'),
+            ]).then(() => {
+                console.log('✅ TransitionsModal: Data loaded');
+                console.log('📊 Stages:', stageList);
+                console.log('📊 Statuses:', currentstatusList);
+            });
+        }
+    }, [isOpen, loadFieldData]);
 
     // Fetch feedbacks when modal opens
     useEffect(() => {
@@ -149,13 +176,25 @@ export function TransitionsModal({
     };
 
     const getStageName = (id: number) => {
-        const stage = stages.find((s) => s.id === id);
-        return stage ? stage.name : id;
+        if (!id) return "-";
+        const stage = stages.find((s: any) => Number(s.id) === Number(id));
+        if (!stage) {
+            console.warn(`Stage not found for id: ${id}`);
+            return `Stage ${id}`;
+        }
+        // Handle multiple possible property names
+        return stage.stage_name || stage.name || `Stage ${id}`;
     };
 
     const getStatusName = (id: number) => {
-        const status = statuses.find((s) => s.id === id);
-        return status ? status.current_status_name : id;
+        if (!id) return "-";
+        const status = statuses.find((s: any) => Number(s.id) === Number(id));
+        if (!status) {
+            console.warn(`Status not found for id: ${id}`);
+            return `Status ${id}`;
+        }
+        // Handle multiple possible property names
+        return status.current_status_name || status.status_name || status.name || `Status ${id}`;
     };
 
     return (
@@ -191,11 +230,15 @@ export function TransitionsModal({
                                             <SelectValue placeholder="Select Stage" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {stages.map((stage) => (
-                                                <SelectItem key={stage.id} value={stage.id.toString()}>
-                                                    {stage.name}
-                                                </SelectItem>
-                                            ))}
+                                            {stages.length === 0 ? (
+                                                <div className="p-2 text-sm text-muted-foreground">Loading stages...</div>
+                                            ) : (
+                                                stages.map((stage: any) => (
+                                                    <SelectItem key={stage.id} value={stage.id.toString()}>
+                                                        {stage.stage_name || stage.name || `Stage ${stage.id}`}
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -210,11 +253,15 @@ export function TransitionsModal({
                                             <SelectValue placeholder="Select Status" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {statuses.map((status) => (
-                                                <SelectItem key={status.id} value={status.id.toString()}>
-                                                    {status.current_status_name}
-                                                </SelectItem>
-                                            ))}
+                                            {statuses.length === 0 ? (
+                                                <div className="p-2 text-sm text-muted-foreground">Loading statuses...</div>
+                                            ) : (
+                                                statuses.map((status: any) => (
+                                                    <SelectItem key={status.id} value={status.id.toString()}>
+                                                        {status.current_status_name || status.status_name || status.name || `Status ${status.id}`}
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>

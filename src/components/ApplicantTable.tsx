@@ -223,14 +223,25 @@ const ApplicantTable = () => {
     fetchStates,
   } = useReferenceData();
 
-  // Initialize stage status list from current statuses
+  // ✅ Intelligent stage status list: Prioritize stage-specific statuses, fallback to general statuses
+  // This ensures filter tags always display correct names
   const stageStatusList = useMemo(() => {
+    // If we have stage-specific statuses loaded (from getStatusesByStageId), use those first
+    if (stageStatuses.length > 0) {
+      return stageStatuses.map((s: any) => ({
+        id: s.id,
+        status_name: s.status_name || s.current_status_name || s.name,
+        name: s.status_name || s.current_status_name || s.name,
+      }));
+    }
+    
+    // Otherwise, fallback to general current statuses list
     return currentstatusList.map((s: any) => ({
       id: s.id,
       status_name: s.current_status_name || s.status_name || s.name,
-      name: s.current_status_name || s.status_name || s.name, // Add name field for compatibility
+      name: s.current_status_name || s.status_name || s.name,
     }));
-  }, [currentstatusList]);
+  }, [currentstatusList, stageStatuses]);
 
   // ✅ CRITICAL: Load reference data ONLY when user performs an action requiring it
   // This is triggered by: Add button, Edit button, Filter button
@@ -430,27 +441,36 @@ const ApplicantTable = () => {
     setSelectedRows([]);
   }, [searchTerm, hasActiveFilters]);
 
-  // Fetch stage statuses when filters change
+  // ✅ Memoize stage ID to prevent unnecessary re-fetches
+  const currentStageId = useMemo(() => {
+    return (filters as any).stage_id || (filters as any).stage;
+  }, [(filters as any).stage_id, (filters as any).stage]);
+
+  // Fetch stage statuses when stage filter changes (on-demand, stage-specific)
+  // ✅ OPTIMIZED: Only re-runs when stage ID actually changes
   useEffect(() => {
     const fetchStageStatuses = async () => {
-      const stageId = (filters as any).stage_id;
-      if (!stageId || (filters as any).stage === "all") {
+      // Skip if no stage selected or "all" selected
+      if (!currentStageId || currentStageId === "all") {
         setStageStatuses([]);
         return;
       }
 
+      console.log(`🔄 Loading stage-specific statuses for stage ID: ${currentStageId}...`);
+      
       try {
-        const response = await getStatusesByStageId(stageId);
+        const response = await getStatusesByStageId(currentStageId);
         const statusesData = response?.data || response || [];
         setStageStatuses(statusesData);
+        console.log(`✅ Loaded ${statusesData.length} statuses for stage ${currentStageId}:`, statusesData);
       } catch (error) {
-        console.error("Error fetching stage statuses:", error);
+        console.error("❌ Error fetching stage statuses:", error);
         setStageStatuses([]);
       }
     };
 
     fetchStageStatuses();
-  }, [filters]);
+  }, [currentStageId]); // ✅ Single stable dependency
 
   // Track if pagination/itemsPerPage is actively changing (not just data refresh)
   const [isPaginationChanging, setIsPaginationChanging] = useState(false);
@@ -472,7 +492,14 @@ const ApplicantTable = () => {
     }
   }, [isStudentsFetching, isPaginationChanging]);
 
+  // ✅ Create stable filter signature to prevent duplicate API calls
+  // Only changes when actual filter values change, not when object reference changes
+  const filterSignature = useMemo(() => {
+    return JSON.stringify(filters);
+  }, [filters]);
+
   // Refetch filtered data when page or limit changes
+  // ✅ OPTIMIZED: Uses filterSignature instead of filters object
   useEffect(() => {
     if (hasActiveFilters && !isSearching) {
       const fetchFilteredData = async () => {
@@ -484,19 +511,117 @@ const ApplicantTable = () => {
             page: currentPage,
             limit: itemsPerPage,
           };
+          console.log(`🔄 Fetching filtered data: page ${currentPage}, limit ${itemsPerPage}`);
           const response = await getFilterStudent(apiParamsWithPagination);
           setFilteredStudents(response.data || []);
           setFilteredTotalCount(response.total || 0);
           setFilteredTotalPages(response.totalPages || 1);
+          console.log(`✅ Fetched ${response.data?.length || 0} filtered students (total: ${response.total || 0})`);
+          
+          // Show success toast only when filters change (not on pagination)
+          if (currentPage === 1) {
+            toast({
+              title: "✅ Filters Applied",
+              description: `Found ${response.total || 0} applicants matching your criteria`,
+              variant: "default",
+              className: "border-green-500 bg-green-50 text-green-900",
+            });
+          }
         } catch (error) {
           console.error("Error refetching filtered data:", error);
+          toast({
+            title: "❌ Unable to Fetch Filtered Data",
+            description: getFriendlyErrorMessage(error),
+            variant: "destructive",
+            className: "border-red-500 bg-red-50 text-red-900",
+          });
         } finally {
           setIsFiltering(false);
         }
       };
       fetchFilteredData();
     }
-  }, [currentPage, itemsPerPage, hasActiveFilters, filters]);
+  }, [currentPage, itemsPerPage, hasActiveFilters, filterSignature, isSearching]); // ✅ filterSignature prevents duplicate calls
+
+  // ✅ Load reference data ONLY when filters are active (on-demand for tag display)
+  useEffect(() => {
+    const loadRequiredReferenceData = async () => {
+      if (!hasActiveFilters) return;
+      
+      // Check which reference data we actually need based on active filters
+      const needsLoading: Promise<void>[] = [];
+      
+      if ((filters as any).partner?.length && campusList.length === 0) {
+        console.log("🔄 Loading campuses for filter tags...");
+        needsLoading.push(fetchCampuses());
+      }
+      
+      if ((filters as any).school?.length && schoolList.length === 0) {
+        console.log("🔄 Loading schools for filter tags...");
+        needsLoading.push(fetchSchools());
+      }
+      
+      // Load current statuses if stage_status filter is active AND we don't have stage-specific data
+      if ((filters as any).stage_status?.length) {
+        if (stageStatuses.length === 0 && currentstatusList.length === 0) {
+          console.log("🔄 Loading current statuses for filter tags...");
+          needsLoading.push(fetchCurrentStatuses());
+        }
+      }
+      
+      if ((filters as any).stage_id && stageList.length === 0) {
+        console.log("🔄 Loading stages for filter tags...");
+        needsLoading.push(fetchStages());
+      }
+      
+      if ((filters as any).religion?.length && religionList.length === 0) {
+        console.log("🔄 Loading religions for filter tags...");
+        needsLoading.push(fetchReligions());
+      }
+      
+      if ((filters as any).qualification?.length && qualificationList.length === 0) {
+        console.log("🔄 Loading qualifications for filter tags...");
+        needsLoading.push(fetchQualifications());
+      }
+      
+      if ((filters as any).partnerFilter?.length && partnerList.length === 0) {
+        console.log("🔄 Loading partners for filter tags...");
+        needsLoading.push(fetchPartners());
+      }
+      
+      if ((filters as any).donor?.length && donorList.length === 0) {
+        console.log("🔄 Loading donors for filter tags...");
+        needsLoading.push(fetchDonors());
+      }
+      
+      if (needsLoading.length > 0) {
+        await Promise.all(needsLoading);
+        console.log("✅ Required reference data loaded for filter tags");
+      }
+    };
+    
+    loadRequiredReferenceData();
+  }, [
+    hasActiveFilters, 
+    filterSignature, // ✅ Use stable signature instead of filters object
+    campusList.length, 
+    schoolList.length, 
+    currentstatusList.length,
+    stageList.length,
+    religionList.length,
+    qualificationList.length,
+    partnerList.length,
+    donorList.length,
+    stageStatuses.length,
+    fetchCampuses,
+    fetchSchools,
+    fetchCurrentStatuses,
+    fetchStages,
+    fetchReligions,
+    fetchQualifications,
+    fetchPartners,
+    fetchDonors,
+  ]);
 
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
@@ -1009,7 +1134,7 @@ const ApplicantTable = () => {
       });
     }
 
-    // Individual stage status chips
+    // Individual stage status chips with intelligent name resolution
     const stageStatusValue = (filters as any).stage_status;
     const stageStatusArray = Array.isArray(stageStatusValue)
       ? stageStatusValue
@@ -1018,9 +1143,22 @@ const ApplicantTable = () => {
         : [];
 
     stageStatusArray.forEach((statusId: string) => {
-      // Find the status name from stageStatusList (which now includes all stages)
-      const statusObj = stageStatusList.find((s: any) => String(s.id) === String(statusId));
-      const statusLabel = statusObj?.status_name || statusObj?.name || statusId;
+      // Strategy: Try multiple sources to find the status name
+      // 1. Check stage-specific statuses first (most accurate)
+      let statusObj: any = stageStatusList.find((s: any) => String(s.id) === String(statusId));
+      
+      // 2. If not found, check currentstatusList directly
+      if (!statusObj) {
+        statusObj = currentstatusList.find((s: any) => String(s.id) === String(statusId));
+      }
+      
+      // 3. Extract the name with multiple fallbacks
+      const statusLabel = 
+        statusObj?.status_name || 
+        statusObj?.current_status_name || 
+        statusObj?.name || 
+        resolveCurrentStatusName(statusId) || 
+        statusId;
 
       tags.push({
         key: `stage_status-${statusId}`,
@@ -1231,6 +1369,13 @@ const ApplicantTable = () => {
       return;
     }
 
+    // ✅ Load reference data for filter tags display
+    // This ensures filter tags show names instead of IDs
+    if (campusList.length === 0) {
+      console.log("🔄 Loading reference data for filter tags...");
+      await ensureReferenceDataLoaded();
+    }
+
     // Clear search when filters are applied
     setSearchTerm("");
     setSearchResults([]);
@@ -1238,28 +1383,13 @@ const ApplicantTable = () => {
     try {
       setIsFiltering(true);
       setHasActiveFilters(true);
-      const apiParams = transformFiltersToAPI(newFilters);
-
-      // Call the filter API
-      const apiParamsWithPagination = {
-        ...apiParams,
-        page: 1,
-        limit: itemsPerPage,
-      };
-
-      const response = await getFilterStudent(apiParamsWithPagination);
-      setFilteredStudents(response.data || []);
-      setFilteredTotalCount(response.total || 0);
-      setFilteredTotalPages(response.totalPages || 1);
       setCurrentPage(1); // Reset to first page when filters are applied
-
-      toast({
-        title: "✅ Filters Applied",
-        description: `Found ${response.total || 0
-          } applicants matching your criteria`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
+      
+      // ✅ DON'T call API here - let the useEffect handle it to prevent duplicates
+      console.log("✅ Filters updated, useEffect will fetch data automatically");
+      
+      // The useEffect on line ~505 will detect the filterSignature change
+      // and automatically fetch the filtered data
     } catch (error) {
       console.error("Error applying filters:", error);
       toast({
@@ -1359,38 +1489,10 @@ const ApplicantTable = () => {
         className: "border-green-500 bg-green-50 text-green-900",
       });
     } else {
-      try {
-        setIsFiltering(true);
-        const apiParams = transformFiltersToAPI(newFilters);
-        const apiParamsWithPagination = {
-          ...apiParams,
-          page: 1,
-          limit: itemsPerPage,
-        };
-        const response = await getFilterStudent(apiParamsWithPagination);
-        setFilteredStudents(response.data || []);
-        setFilteredTotalCount(response.total || 0);
-        setFilteredTotalPages(response.totalPages || 1);
-        setCurrentPage(1);
-
-        toast({
-          title: "✅ Filter Removed",
-          description: `Found ${response.total || 0} applicants matching your criteria`,
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900",
-        });
-      } catch (error) {
-        console.error("Error re-applying filters:", error);
-        toast({
-          title: "❌ Unable to Update Filters",
-          description: getFriendlyErrorMessage(error),
-          variant: "destructive",
-          className: "border-red-500 bg-red-50 text-red-900",
-        });
-        setFilteredStudents([]);
-      } finally {
-        setIsFiltering(false);
-      }
+      // ✅ OPTIMIZED: Just update state, let useEffect handle the API call
+      setHasActiveFilters(true);
+      setCurrentPage(1);
+      console.log("✅ Filter removed, useEffect will fetch updated data");
     }
   };
 
@@ -1477,39 +1579,10 @@ const ApplicantTable = () => {
         className: "border-green-500 bg-green-50 text-green-900",
       });
     } else {
-      // Re-apply remaining filters
-      try {
-        setIsFiltering(true);
-        const apiParams = transformFiltersToAPI(newFilters);
-        const apiParamsWithPagination = {
-          ...apiParams,
-          page: 1,
-          limit: itemsPerPage,
-        };
-        const response = await getFilterStudent(apiParamsWithPagination);
-        setFilteredStudents(response.data || []);
-        setFilteredTotalCount(response.total || 0);
-        setFilteredTotalPages(response.totalPages || 1);
-        setCurrentPage(1);
-
-        toast({
-          title: "✅ Filter Removed",
-          description: `Found ${response.total || 0} applicants matching your criteria`,
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900",
-        });
-      } catch (error) {
-        console.error("Error re-applying filters:", error);
-        toast({
-          title: "❌ Unable to Update Filters",
-          description: getFriendlyErrorMessage(error),
-          variant: "destructive",
-          className: "border-red-500 bg-red-50 text-red-900",
-        });
-        setFilteredStudents([]);
-      } finally {
-        setIsFiltering(false);
-      }
+      // ✅ OPTIMIZED: Just update state, let useEffect handle the API call
+      setHasActiveFilters(true);
+      setCurrentPage(1);
+      console.log("✅ Filter removed, useEffect will fetch updated data");
     }
   };
 
