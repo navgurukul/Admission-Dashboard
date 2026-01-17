@@ -614,17 +614,55 @@ export const triggerStudentStatusUpdate = async (
   }
 };
 
+// Delete APIs for feedback rounds
+export const deleteScreeningRoundFeedback = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/students/delete/screeningRoundFeedback/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false), // Don't include Content-Type for DELETE
+  });
+  return response;
+};
+
+export const deleteLearningRoundFeedback = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/students/delete/learningRoundFeedback/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false), // Don't include Content-Type for DELETE
+  });
+  return response;
+};
+
+export const deleteCulturalFitRoundFeedback = async (id: number) => {
+  const response = await fetch(`${BASE_URL}/students/delete/culturalFitRoundFeedback/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false), // Don't include Content-Type for DELETE
+  });
+  return response;
+};
+
 // Map to dynamically select API based on type
 export const API_MAP: Record<
   string,
   {
     submit: (row: any) => Promise<any>;
     update: (id: number, row: any) => Promise<any>;
+    delete?: (id: number) => Promise<any>;
   }
 > = {
-  learning: { submit: submitLearningRound, update: updateLearningRound },
-  cultural: { submit: submitCulturalFit, update: updateCulturalFit },
-  screening: { submit: submitScreeningRound, update: updateScreeningRound },
+  learning: { 
+    submit: submitLearningRound, 
+    update: updateLearningRound,
+    delete: deleteLearningRoundFeedback 
+  },
+  cultural: { 
+    submit: submitCulturalFit, 
+    update: updateCulturalFit,
+    delete: deleteCulturalFitRoundFeedback 
+  },
+  screening: { 
+    submit: submitScreeningRound, 
+    update: updateScreeningRound,
+    delete: deleteScreeningRoundFeedback 
+  },
 };
 
 // update
@@ -2313,6 +2351,49 @@ export const scheduleInterview = async (payload: any): Promise<any> => {
   return data;
 };
 
+// Get interview schedule by student ID
+export const getInterviewByStudentId = async (
+  studentId: number,
+): Promise<ScheduledInterview[]> => {
+  const url = `${BASE_URL}/interview-schedules/getByStudentId/${studentId}`;
+
+  const headers = getAuthHeaders();
+  const response = await fetch(url, {
+    method: "GET",
+    headers: headers,
+  });
+
+  const responseText = await response.text();
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    // console.error(' Failed to parse response as JSON');
+    throw new Error("Invalid response format from server");
+  }
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      throw new Error("Session expired. Please login again.");
+    }
+
+    throw new Error(data.message || "Failed to fetch interview schedule");
+  }
+
+  if (data?.data && Array.isArray(data.data)) {
+    return data.data;
+  } else if (Array.isArray(data)) {
+    return data;
+  } else if (data?.interviews && Array.isArray(data.interviews)) {
+    return data.interviews;
+  } else {
+    return [];
+  }
+};
+
 // Get scheduled interviews by date
 export const getScheduledInterviews = async (
   date?: string,
@@ -2696,8 +2777,16 @@ export const createDonor = async (payload: Partial<Donor>) => {
   return data;
 };
 
-export const getDonors = async (page: number = 1, limit: number = 10) => {
-  const response = await fetch(`${BASE_URL}/donors/getDonors?page=${page}&pageSize=${limit}`, {
+export const getDonors = async (page: number = 1, limit: number = 10, donorName?: string) => {
+  // Build query parameters
+  let queryParams = `page=${page}&pageSize=${limit}`;
+
+  // Only add donor_name if it's provided and not empty
+  if (donorName && donorName.trim()) {
+    queryParams += `&donor_name=${encodeURIComponent(donorName.trim())}`;
+  }
+
+  const response = await fetch(`${BASE_URL}/donors/getDonors?${queryParams}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });

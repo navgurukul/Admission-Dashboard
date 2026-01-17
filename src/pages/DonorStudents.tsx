@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,9 @@ import { ArrowLeft, Eye } from "lucide-react";
 import { getStudentsByDonorId, getDonorById } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ApplicantModal } from "@/components/ApplicantModal";
+import { Label } from "@/components/ui/label";
 
 const DonorStudents = () => {
     const { id } = useParams();
@@ -25,8 +26,10 @@ const DonorStudents = () => {
     const [students, setStudents] = useState([]);
     const [donor, setDonor] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [total, setTotal] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [totalStudents, setTotalStudents] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -35,7 +38,7 @@ const DonorStudents = () => {
             loadData();
             loadDonorDetails();
         }
-    }, [id, page]);
+    }, [id, currentPage, itemsPerPage]);
 
     const loadDonorDetails = async () => {
         try {
@@ -51,26 +54,32 @@ const DonorStudents = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const data = await getStudentsByDonorId(id, page, 50);
+            const data = await getStudentsByDonorId(id, currentPage, itemsPerPage);
             let studentList = [];
             let totalCount = 0;
+            let pages = 0;
 
             if (data?.data?.data && Array.isArray(data.data.data)) {
                 studentList = data.data.data;
                 totalCount = data.data.total || data.total || studentList.length;
+                pages = data.data.totalPages || Math.ceil(totalCount / itemsPerPage);
             } else if (data && data.data && Array.isArray(data.data)) {
                 studentList = data.data;
                 totalCount = data.total || studentList.length;
+                pages = Math.ceil(totalCount / itemsPerPage);
             } else if (Array.isArray(data)) {
                 studentList = data;
                 totalCount = data.length;
+                pages = Math.ceil(totalCount / itemsPerPage);
             } else if (data && data.students && Array.isArray(data.students)) {
                 studentList = data.students;
                 totalCount = data.total || data.students.length;
+                pages = Math.ceil(totalCount / itemsPerPage);
             }
 
             setStudents(studentList);
-            setTotal(totalCount);
+            setTotalStudents(totalCount);
+            setTotalPages(pages);
         } catch (error) {
             toast({ title: "❌ Unable to Load Students", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
         } finally {
@@ -82,6 +91,10 @@ const DonorStudents = () => {
         setSelectedStudent(student);
         setIsModalOpen(true);
     };
+
+    // Calculate pagination values
+    const showingStart = students.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const showingEnd = Math.min(currentPage * itemsPerPage, totalStudents);
 
     return (
         <div className="min-h-screen bg-muted/40 flex">
@@ -104,7 +117,10 @@ const DonorStudents = () => {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Student List ({total})</CardTitle>
+                            <CardTitle>Student List</CardTitle>
+                            <CardDescription>
+                                {totalStudents} {totalStudents === 1 ? 'student' : 'students'} associated with this donor
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -157,25 +173,54 @@ const DonorStudents = () => {
                                     )}
                                 </TableBody>
                             </Table>
+
                             {/* Pagination Controls */}
-                            <div className="flex items-center justify-end space-x-2 py-4">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    disabled={page === 1}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage((p) => p + 1)}
-                                    disabled={students.length < 50}
-                                >
-                                    Next
-                                </Button>
-                            </div>
+                            {!loading && students.length > 0 && (
+                                <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20 mt-4">
+                                    <div className="text-sm text-muted-foreground">
+                                        Showing <strong>{showingStart}</strong> - <strong>{showingEnd}</strong> of <strong>{totalStudents}</strong>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex items-center gap-2">
+                                            <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
+                                            <select
+                                                value={itemsPerPage}
+                                                onChange={(e) => {
+                                                    setItemsPerPage(Number(e.target.value));
+                                                    setCurrentPage(1);
+                                                }}
+                                                className="border rounded px-2 py-1 text-sm h-8"
+                                            >
+                                                <option value={10}>10</option>
+                                                <option value={20}>20</option>
+                                                <option value={50}>50</option>
+                                                <option value={100}>100</option>
+                                            </select>
+                                        </div>
+                                        <span className="text-sm text-muted-foreground px-2">
+                                            Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="h-8"
+                                        >
+                                            Previous
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="h-8"
+                                        >
+                                            Next
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

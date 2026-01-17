@@ -36,16 +36,10 @@ import { useToast } from "@/components/ui/use-toast";
 import {
   getFilterStudent,
   getStatusesByStageId,
-  getAllDonors,
-  getAllPartners,
-  getCampusesApi,
-  getAllSchools,
-  getAllReligions,
-  getAllStatus,
-  getAllStages
 } from "@/utils/api";
 import { cn } from "@/lib/utils";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 // import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 import {
   getStatesList,
@@ -88,7 +82,7 @@ interface FilterState {
 interface AdvancedFilterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplyFilters: (filters: FilterState) => void;
+  onApplyFilters: (filters: FilterState, stageStatuses?: any[]) => void;
   currentFilters: FilterState;
   students: any[];
   hideCampusFilter?: boolean; // Optional prop to hide campus field
@@ -103,18 +97,21 @@ export function AdvancedFilterModal({
   hideCampusFilter = false,
 }: AdvancedFilterModalProps) {
   const [filters, setFilters] = useState<FilterState>(currentFilters);
-  const [availableOptions, setAvailableOptions] = useState({
-    partners: [] as string[],
-    districts: [] as string[],
-    schools: [] as any[],
-    religions: [] as any[],
-    qualifications: [] as any[],
-    currentStatuses: [] as any[],
-    campuses: [] as any[],
-    stages: [] as any[],
-    donors: [] as any[],
-    partnersList: [] as any[],
-  });
+  
+  // ✅ DRY: Use on-demand reference data hook
+  const {
+    campusList,
+    schoolList,
+    currentstatusList,
+    stageList,
+    religionList,
+    qualificationList,
+    partnerList,
+    donorList,
+    stateList: apiStateList,
+    loadFieldData,
+    loadMultipleFields,
+  } = useOnDemandReferenceData();
 
   const [availableStates, setAvailableStates] = useState<State[]>([]);
   const [availableDistricts, setAvailableDistricts] = useState<District[]>([]);
@@ -131,6 +128,9 @@ export function AdvancedFilterModal({
   const isInitialLoadDone = useRef(false);
   const prevIsOpen = useRef(isOpen);
   const districtsCache = useRef<Record<string, District[]>>({});
+
+  // ✅ NEW: Track which fields have loaded data (on-demand loading)
+  const loadedFields = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchStageStatuses = async () => {
@@ -197,7 +197,7 @@ export function AdvancedFilterModal({
           districts = await getDistrictsList(stateCode);
         } else {
           // Fallback: filter districts from students data
-          const studentDistricts = availableOptions.districts;
+          const studentDistricts = getDistrictsFromStudents(students);
           districts = studentDistricts.map((district) => ({
             id: district,
             name: district,
@@ -212,12 +212,16 @@ export function AdvancedFilterModal({
         setIsLoading((prev) => ({ ...prev, districts: false }));
       }
     },
-    [availableStates, availableOptions.districts],
+    [availableStates, students],
   );
 
-  // Load all filter data when modal opens - optimized to prevent freezing
+  // ✅ DRY: Load all filter data when modal opens
+  // This ensures all dropdowns have data available
+  // ✅ DRY: Minimal initial load - only load state and stage data
+  // Stage is loaded initially because Select doesn't support onOpen
+  // All other data loads on-demand when user opens specific dropdowns
   useEffect(() => {
-    const loadFilterData = async () => {
+    const loadInitialFilterData = async () => {
       // Only load when modal opens (not on every prop change)
       if (!isOpen) {
         isInitialLoadDone.current = false;
@@ -235,36 +239,21 @@ export function AdvancedFilterModal({
       setFilters(currentFilters);
 
       try {
-        // Fetch all required data in parallel - handle each API independently
-        const [
-          statesData,
-          campusesData,
-          schoolsData,
-          religionsData,
-          qualificationsData,
-          statusesData,
-          donorsData,
-          partnersData,
-          stagesData
-        ] = await Promise.all([
-          getStatesList().catch(err => { console.error("Failed to load states:", err); return []; }),
-          getCampusesApi().catch(err => { console.error("Failed to load campuses:", err); return []; }),
-          getAllSchools().catch(err => { console.error("Failed to load schools:", err); return []; }),
-          getAllReligions().catch(err => { console.error("Failed to load religions:", err); return []; }),
-          getQualificationsList().catch(err => { console.error("Failed to load qualifications:", err); return []; }),
-          getAllStatus().catch(err => { console.error("Failed to load statuses:", err); return []; }),
-          getAllDonors().catch(err => { console.error("Failed to load donors:", err); return []; }),
-          getAllPartners().catch(err => { console.error("Failed to load partners:", err); return []; }),
-          getAllStages().catch(err => { console.error("Failed to load stages:", err); return []; })
-        ]);
-
         // Extract data from students
-        const partnersFromStudents = getPartnersFromStudents(students);
-        const districtsFromStudents = getDistrictsFromStudents(students);
         const statesFromStudents = getStatesFromStudents(students);
 
+        // ✅ Load state and stage data initially (needed for dropdowns that don't support onOpen)
+        console.log('🔄 Loading initial state and stage data...');
+        await loadMultipleFields(['state', 'stage']);
+        console.log('✅ Initial data loaded');
+
         // Combine API states with states from students
-        const allStates = [...(statesData || [])];
+        const allStates = [...apiStateList.map(s => ({
+          id: s.value,
+          name: s.label,
+          state_code: s.value
+        }))];
+        
         statesFromStudents.forEach((stateName) => {
           const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
 
@@ -275,21 +264,8 @@ export function AdvancedFilterModal({
 
           // Only add if it's not a state code and doesn't exist in API states
           if (!isStateCode && !existsInApi) {
-            allStates.push({ id: stateName, name: stateName });
+            allStates.push({ id: stateName, name: stateName, state_code: stateName });
           }
-        });
-
-        setAvailableOptions({
-          partners: partnersFromStudents,
-          districts: districtsFromStudents,
-          schools: schoolsData || [],
-          religions: religionsData || [],
-          qualifications: qualificationsData || [],
-          currentStatuses: statusesData || [],
-          campuses: campusesData || [],
-          stages: stagesData || [],
-          donors: donorsData || [],
-          partnersList: partnersData || [],
         });
 
         setAvailableStates(allStates);
@@ -301,10 +277,10 @@ export function AdvancedFilterModal({
 
         isInitialLoadDone.current = true;
       } catch (error) {
-        console.error("Error loading filter data:", error);
+        console.error("Error loading initial filter data:", error);
         toast({
-          title: "⚠️ Partial Data Load",
-          description: "Some filter options may not be available due to permission or network issues.",
+          title: "⚠️ Unable to Load Filter Data",
+          description: "Failed to load filter options. Please try again.",
           variant: "default",
           className: "border-orange-500 bg-orange-50 text-orange-900",
         });
@@ -313,9 +289,9 @@ export function AdvancedFilterModal({
       }
     };
 
-    loadFilterData();
+    loadInitialFilterData();
 
-  }, [isOpen]); // Only depend on isOpen to prevent infinite loops and freezing
+  }, [isOpen]); // Only depend on isOpen to prevent infinite loops
 
   const resetFilters = () => {
     setFilters({
@@ -401,7 +377,7 @@ export function AdvancedFilterModal({
     delete processedFilters.status;
 
     // console.log("Current Filters:", processedFilters);
-    onApplyFilters(processedFilters);
+    onApplyFilters(processedFilters, stageStatuses);
     onClose();
     toast({
       title: "✅ Filters Applied",
@@ -557,14 +533,14 @@ export function AdvancedFilterModal({
 
   // Campus - find and display actual name
   if (filters.partner?.length) {
-    const campus = availableOptions.campuses.find((c: any) => String(c.id) === String(filters.partner[0]));
+    const campus = campusList.find((c: any) => String(c.id) === String(filters.partner[0]));
     const campusLabel = campus?.campus_name || campus?.name || filters.partner[0];
     activeFilters.push({ key: "partner", label: `Campus: ${campusLabel}` });
   }
 
   // School - find and display actual name
   if (filters.school?.length) {
-    const school = availableOptions.schools.find((s: any) => String(s.id) === String(filters.school[0]));
+    const school = schoolList.find((s: any) => String(s.id) === String(filters.school[0]));
     const schoolLabel = school?.school_name || school?.name || filters.school[0];
     activeFilters.push({
       key: "school",
@@ -574,7 +550,7 @@ export function AdvancedFilterModal({
 
   // Qualification - find and display actual name
   if (filters.qualification?.length) {
-    const qualification = availableOptions.qualifications.find((q: any) => String(q.id) === String(filters.qualification[0]));
+    const qualification = qualificationList.find((q: any) => String(q.id) === String(filters.qualification[0]));
     const qualLabel = qualification?.qualification_name || qualification?.name || filters.qualification[0];
     activeFilters.push({
       key: "qualification",
@@ -585,7 +561,7 @@ export function AdvancedFilterModal({
   // Current Status - find and display actual name
   if (filters.currentStatus?.length) {
     const statusId = filters.currentStatus[0];
-    const status = availableOptions.currentStatuses.find((s: any) => String(s.id) === String(statusId));
+    const status = currentstatusList.find((s: any) => String(s.id) === String(statusId));
     const statusLabel = status?.current_status_name || status?.name || statusId;
     activeFilters.push({
       key: "currentStatus",
@@ -595,7 +571,7 @@ export function AdvancedFilterModal({
 
   // Religion - find and display actual name
   if (filters.religion?.length) {
-    const religion = availableOptions.religions.find((r: any) => String(r.id) === String(filters.religion[0]));
+    const religion = religionList.find((r: any) => String(r.id) === String(filters.religion[0]));
     const religionLabel = religion?.religion_name || religion?.name || filters.religion[0];
     activeFilters.push({
       key: "religion",
@@ -605,7 +581,7 @@ export function AdvancedFilterModal({
 
   // Donor - find and display actual name
   if (filters.donor?.length) {
-    const donor = availableOptions.donors.find((d: any) => String(d.id) === String(filters.donor[0]));
+    const donor = donorList.find((d: any) => String(d.id) === String(filters.donor[0]));
     const donorLabel = donor?.donor_name || donor?.name || filters.donor[0];
     activeFilters.push({
       key: "donor",
@@ -615,7 +591,7 @@ export function AdvancedFilterModal({
 
   // Partner (organization) - find and display actual name
   if (filters.partnerFilter?.length) {
-    const partner = availableOptions.partnersList.find((p: any) => String(p.id) === String(filters.partnerFilter[0]));
+    const partner = partnerList.find((p: any) => String(p.id) === String(filters.partnerFilter[0]));
     const partnerLabel = partner?.partner_name || partner?.name || filters.partnerFilter[0];
     activeFilters.push({
       key: "partnerFilter",
@@ -702,7 +678,7 @@ export function AdvancedFilterModal({
                     return;
                   }
 
-                  const selectedStage = availableOptions.stages.find(
+                  const selectedStage = stageList.find(
                     (s: any) =>
                       String(s.stage_id) === String(value) ||
                       String(s.id) === String(value),
@@ -732,7 +708,7 @@ export function AdvancedFilterModal({
                   {/* <SelectItem value="sourcing">Sourcing</SelectItem>
                   <SelectItem value="screening">Screening</SelectItem> */}
 
-                  {availableOptions.stages.map((stage: any) => {
+                  {stageList.map((stage: any) => {
                     const stageId = stage.stage_id || stage.id;
                     const stageName =
                       stage.stage_name || stage.name || `Stage ${stageId}`;
@@ -1055,7 +1031,7 @@ export function AdvancedFilterModal({
                 <Combobox
                   options={[
                     { value: "all", label: "All Campuses" },
-                    ...availableOptions.campuses.map((campus) => ({
+                    ...campusList.map((campus) => ({
                       value: getValue(campus),
                       label: getDisplayName(campus, "campus_name", "Campus"),
                     })),
@@ -1074,6 +1050,7 @@ export function AdvancedFilterModal({
                       }));
                     }
                   }}
+                  onOpen={() => loadFieldData('campus')}
                   placeholder={
                     isLoading.general ? "Loading..." : "Select campus"
                   }
@@ -1082,7 +1059,7 @@ export function AdvancedFilterModal({
                   disabled={isLoading.general}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {/* {availableOptions.campuses.length} campuses available */}
+                  {/* {campusList.length} campuses available */}
                 </p>
               </div>
             )}
@@ -1096,7 +1073,7 @@ export function AdvancedFilterModal({
               <Combobox
                 options={[
                   { value: "all", label: "All Partners" },
-                  ...availableOptions.partnersList.map((partner) => ({
+                  ...partnerList.map((partner) => ({
                     value: getValue(partner),
                     label: getDisplayName(partner, "partner_name", "Partner"),
                   })),
@@ -1108,6 +1085,7 @@ export function AdvancedFilterModal({
                     partnerFilter: value === "all" ? [] : [value],
                   }))
                 }
+                onOpen={() => loadFieldData('partnerFilter')}
                 placeholder={
                   isLoading.general ? "Loading..." : "Select partner"
                 }
@@ -1116,7 +1094,7 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.partnersList.length} partners available */}
+                {/* {partnerList.length} partners available */}
               </p>
             </div>
 
@@ -1126,7 +1104,7 @@ export function AdvancedFilterModal({
               <Combobox
                 options={[
                   { value: "all", label: "All Donors" },
-                  ...availableOptions.donors.map((donor) => ({
+                  ...donorList.map((donor) => ({
                     value: getValue(donor),
                     label: getDisplayName(donor, "donor_name", "Donor"),
                   })),
@@ -1138,6 +1116,7 @@ export function AdvancedFilterModal({
                     donor: value === "all" ? [] : [value],
                   }))
                 }
+                onOpen={() => loadFieldData('donor')}
                 placeholder={
                   isLoading.general ? "Loading..." : "Select donor"
                 }
@@ -1146,7 +1125,7 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.donors.length} donors available */}
+                {/* {donorList.length} donors available */}
               </p>
             </div>
           </div>
@@ -1158,7 +1137,7 @@ export function AdvancedFilterModal({
               <Combobox
                 options={[
                   { value: "all", label: "All Schools" },
-                  ...availableOptions.schools.map((school) => ({
+                  ...schoolList.map((school) => ({
                     value: getValue(school),
                     label: getDisplayName(school, "school_name", "School"),
                   })),
@@ -1170,6 +1149,7 @@ export function AdvancedFilterModal({
                     school: value === "all" ? [] : [value],
                   }))
                 }
+                onOpen={() => loadFieldData('school')}
                 placeholder={
                   isLoading.general ? "Loading..." : "Select school"
                 }
@@ -1178,7 +1158,7 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.schools.length} schools available */}
+                {/* {schoolList.length} schools available */}
               </p>
             </div>
 
@@ -1188,7 +1168,7 @@ export function AdvancedFilterModal({
               <Combobox
                 options={[
                   { value: "all", label: "All Qualifications" },
-                  ...availableOptions.qualifications.map((qualification) => ({
+                  ...qualificationList.map((qualification) => ({
                     value: getValue(qualification),
                     label: getDisplayName(
                       qualification,
@@ -1204,6 +1184,7 @@ export function AdvancedFilterModal({
                     qualification: value === "all" ? [] : [value],
                   }))
                 }
+                onOpen={() => loadFieldData('qualification')}
                 placeholder={
                   isLoading.general ? "Loading..." : "Select qualification"
                 }
@@ -1220,7 +1201,7 @@ export function AdvancedFilterModal({
               <Combobox
                 options={[
                   { value: "all", label: "All Statuses" },
-                  ...availableOptions.currentStatuses.map((status) => ({
+                  ...currentstatusList.map((status) => ({
                     value: getValue(status),
                     label: getDisplayName(status, "current_status_name", "Status"),
                   })),
@@ -1232,6 +1213,7 @@ export function AdvancedFilterModal({
                     currentStatus: value === "all" ? [] : [value],
                   }))
                 }
+                onOpen={() => loadFieldData('current_status')}
                 placeholder={
                   isLoading.general ? "Loading..." : "Select status"
                 }
@@ -1240,7 +1222,7 @@ export function AdvancedFilterModal({
                 disabled={isLoading.general}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableOptions.currentStatuses.length} statuses available */}
+                {/* {currentstatusList.length} statuses available */}
               </p>
             </div>
           </div>

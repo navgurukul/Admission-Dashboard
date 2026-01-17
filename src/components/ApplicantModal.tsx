@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 // import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import { StatusBadge } from "./StatusBadge";
 // import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { TransitionsModal } from "./TransitionsModal";
+import { InterviewDetailsModal } from "./InterviewDetailsModal";
 // import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 // import { Calendar } from "lucide-react";
 // import {
@@ -64,6 +65,12 @@ import {
   getAllDonors,
   getAllStates,
   getFeedbacks,
+  scheduleInterview,
+  getMyAvailableSlots,
+  getInterviewByStudentId,
+  getAllSlots,
+  cancelScheduledInterview,
+  updateScheduledInterview,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 // import { Input } from "@/components/ui/input";
@@ -78,6 +85,84 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  initClient,
+  signIn,
+  isSignedIn,
+  createCalendarEvent,
+  deleteCalendarEvent,
+  formatDateTimeForCalendar,
+} from "@/utils/googleCalendar";
+import { useReferenceData } from "@/hooks/useReferenceData";
+import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
+
+// Component to display schedule information in compact format (similar to audit info)
+const ScheduleInfoDisplay = ({ row }: any) => {
+  const schedules = row.schedule_info;
+
+  // If no schedule info, display a message
+  if (!schedules || schedules === "—" || schedules === "No schedule available") {
+    return <div className="text-xs text-muted-foreground">—</div>;
+  }
+
+  // If schedules is an empty array
+  if (Array.isArray(schedules) && schedules.length === 0) {
+    return <div className="text-xs text-muted-foreground">—</div>;
+  }
+
+  // Ensure schedules is an array
+  const scheduleArray = Array.isArray(schedules) ? schedules : [schedules];
+
+  return (
+    <div className="text-xs leading-tight space-y-2">
+      {scheduleArray.map((schedule: any, index: number) => {
+        // The API returns fields directly on the schedule object (not nested in slot_details)
+        const date = schedule.date || "—";
+        const startTime = schedule.start_time || "—";
+        const endTime = schedule.end_time || "—";
+        const createdBy = schedule.created_by || "—";
+        const studentName = schedule.student_name || "—";
+        const interviewerName = schedule.interviewer_name || "—";
+        const interviewerEmail = schedule.interviewer_email || "—";
+        const meetingLink = schedule.meeting_link || "";
+        // const status = schedule.status || "—";
+
+        return (
+          <div key={index} className={index > 0 ? "pt-2 border-t border-gray-200" : ""}>
+            <div className="mb-0.5">
+              <span className="font-semibold">Student:</span> {studentName}
+            </div>
+            <div className="mb-0.5">
+              <span className="font-semibold">Date:</span> {date} ({startTime} - {endTime})
+            </div>
+            <div className="mb-0.5">
+              <span className="font-semibold">Scheduled By:</span> {createdBy}
+            </div>
+            <div className="mb-0.5">
+              <span className="font-semibold">Interviewer:</span> {interviewerName} ({interviewerEmail})
+            </div>
+            {/* <div className="mb-0.5">
+              <span className="font-semibold">Status:</span> {status}
+            </div> */}
+            {meetingLink && (
+              <div>
+                <span className="font-semibold">Meet Link:</span>{" "}
+                <a
+                  href={meetingLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Join Meeting
+                </a>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 interface ApplicantModalProps {
   applicant: any;
@@ -91,7 +176,7 @@ export function ApplicantModal({
   onClose,
 }: ApplicantModalProps) {
   const { toast } = useToast();
-  const { hasEditAccess } = usePermissions();
+  const { hasEditAccess, isAdmin, user } = usePermissions();
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTransitionsModal, setShowTransitionsModal] = useState(false);
@@ -110,32 +195,74 @@ export function ApplicantModal({
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
-  // State for fetched lists
-  const [castList, setCastList] = useState<any[]>([]);
-  const [qualificationList, setQualificationList] = useState<any[]>([]);
-  const [currentstatusList, setCurrentstatusList] = useState<any[]>([]);
-  const [schoolList, setSchoolList] = useState<any[]>([]);
-  const [campusList, setCampusList] = useState<any[]>([]);
-  const [questionSetList, setQuestionSetList] = useState<any[]>([]);
-  const [stageList, setStageList] = useState<any[]>([]);
-  const [partnerList, setPartnerList] = useState<any[]>([]);
-  const [donorList, setDonorList] = useState<any[]>([]);
-  const [stateList, setStateList] = useState<{ value: string; label: string }[]>([]);
+  // Schedule interview states
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleRoundType, setScheduleRoundType] = useState<"LR" | "CFR" | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [schedulingInProgress, setSchedulingInProgress] = useState(false);
+  const [isGoogleSignedIn, setIsGoogleSignedIn] = useState(false);
+  const [rescheduleData, setRescheduleData] = useState<{
+    scheduleId: number;
+    roundType: "LR" | "CFR";
+    googleEventId?: string;
+    oldSlotId?: number;
+  } | null>(null);
 
-  // State for fetched partner and donor names
+  // Interview details modal states
+  const [showInterviewDetailsModal, setShowInterviewDetailsModal] = useState(false);
+  const [interviewDetailsRoundType, setInterviewDetailsRoundType] = useState<"LR" | "CFR" | null>(null);
+  const [liveScheduleData, setLiveScheduleData] = useState<any[]>([]);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+
+  // ✅ OPTIMIZATION: Use useReferenceData hook for cached reference data
+  const {
+    campusList,
+    schoolList,
+    currentstatusList,
+    religionList,
+    questionSetList,
+    qualificationList,
+    castList,
+    partnerList,
+    donorList,
+    stateList: globalStateList,
+    fetchAllReferenceData,
+    // Individual fetch functions for on-demand loading
+    fetchCampuses,
+    fetchSchools,
+    fetchCurrentStatuses,
+    fetchStages: fetchStagesFromHook,
+    fetchReligions,
+    fetchQualifications,
+    fetchCasts,
+    fetchPartners,
+    fetchDonors,
+    fetchStates,
+    fetchQuestionSets,
+  } = useReferenceData();
+
+  // Additional lists needed by ApplicantModal
+  const [stageList, setStageList] = useState<any[]>([]);
+
+  // State for fetched partner and donor names (fallback when backend doesn't provide them)
   const [partnerName, setPartnerName] = useState<string | null>(null);
   const [donorName, setDonorName] = useState<string | null>(null);
 
   // Refs to track previous values and prevent unnecessary API calls
   const prevStateRef = useRef<string | null>(null);
-  const prevDistrictRef = useRef<string | null>(null);
-  const dataFetchedRef = useRef(false); // Track if dropdown data has been fetched
+  const prevDistrictRef = useRef<string | null>(null)
 
   const [openComboboxes, setOpenComboboxes] = useState({
     state: false,
     district: false,
     block: false,
   });
+
+  // ✅ Transform globalStateList to stateList format (MUST be before stateOptions)
+  const stateList = useMemo(() => {
+    if (!Array.isArray(globalStateList)) return [];
+    return globalStateList;
+  }, [globalStateList]);
 
   // Transform props data to the format expected by the component
   const castes = useMemo(() =>
@@ -203,64 +330,547 @@ export function ApplicantModal({
   const [showOfferSentConfirmation, setShowOfferSentConfirmation] = useState(false);
   const [pendingOfferLetterValue, setPendingOfferLetterValue] = useState<string | null>(null);
 
-  // Fetch all required data when modal opens (only once)
+  // ✅ OPTIMIZATION: Load reference data on-demand (only when user clicks edit on specific field)
+  const ensureFieldDataLoaded = useCallback(async (field: string) => {
+    console.log(`🔧 ApplicantModal: Loading data for field: ${field}`);
+    
+    switch (field) {
+      case 'campus_id':
+        if (campusList.length === 0) {
+          console.log('� Fetching campuses...');
+          await fetchCampuses();
+        }
+        break;
+      case 'current_status_id':
+        if (currentstatusList.length === 0) {
+          console.log('📥 Fetching current statuses...');
+          await fetchCurrentStatuses();
+        }
+        break;
+      case 'stage_id':
+        if (stageList.length === 0) {
+          console.log('📥 Fetching stages...');
+          try {
+            const stagesData = await getAllStages();
+            setStageList(stagesData || []);
+          } catch (error) {
+            console.error("Failed to fetch stages:", error);
+            setStageList([]);
+          }
+        }
+        break;
+      case 'cast_id':
+        if (castList.length === 0) {
+          console.log('📥 Fetching casts...');
+          await fetchCasts();
+        }
+        break;
+      case 'qualification_id':
+        if (qualificationList.length === 0) {
+          console.log('📥 Fetching qualifications...');
+          await fetchQualifications();
+        }
+        break;
+      case 'religion_id':
+        if (religionList.length === 0) {
+          console.log('📥 Fetching religions...');
+          await fetchReligions();
+        }
+        break;
+      case 'partner_id':
+        if (partnerList.length === 0) {
+          console.log('📥 Fetching partners...');
+          await fetchPartners();
+        }
+        break;
+      case 'donor_id':
+        if (donorList.length === 0) {
+          console.log('📥 Fetching donors...');
+          await fetchDonors();
+        }
+        break;
+      case 'school_id':
+        if (schoolList.length === 0) {
+          console.log('📥 Fetching schools...');
+          await fetchSchools();
+        }
+        break;
+      case 'state':
+        if (globalStateList.length === 0) {
+          console.log('📥 Fetching states...');
+          await fetchStates();
+        }
+        break;
+      case 'question_set_id':
+        if (questionSetList.length === 0) {
+          console.log('📥 Fetching question sets...');
+          await fetchQuestionSets();
+        }
+        break;
+      default:
+        console.log(`⚠️ No specific loader for field: ${field}`);
+    }
+    
+    console.log(`✅ Data loaded for field: ${field}`);
+  }, [
+    campusList.length,
+    currentstatusList.length,
+    stageList.length,
+    castList.length,
+    qualificationList.length,
+    religionList.length,
+    partnerList.length,
+    donorList.length,
+    schoolList.length,
+    globalStateList.length,
+    questionSetList.length,
+    fetchCampuses,
+    fetchCurrentStatuses,
+    fetchCasts,
+    fetchQualifications,
+    fetchReligions,
+    fetchPartners,
+    fetchDonors,
+    fetchSchools,
+    fetchStates,
+    fetchQuestionSets,
+  ]);
+
+  // Check Google sign-in status
   useEffect(() => {
-    if (!isOpen || dataFetchedRef.current) return;
-
-    const fetchAllData = async () => {
+    const checkSignInStatus = async () => {
       try {
-        // Fetch all lists in parallel for optimization
-        const [
-          castsData,
-          qualificationsData,
-          statusData,
-          schoolsData,
-          campusData,
-          questionSetsData,
-          stagesData,
-          partnersData,
-          donorsData,
-          statesData,
-        ] = await Promise.all([
-          getAllCasts().catch((err) => { console.error("Failed to fetch casts:", err); return []; }),
-          getAllQualification().catch((err) => { console.error("Failed to fetch qualifications:", err); return []; }),
-          getAllStatus().catch((err) => { console.error("Failed to fetch status:", err); return []; }),
-          getAllSchools().catch((err) => { console.error("Failed to fetch schools:", err); return []; }),
-          getCampusesApi().catch((err) => { console.error("Failed to fetch campus:", err); return []; }),
-          getAllQuestionSets().catch((err) => { console.error("Failed to fetch question sets:", err); return []; }),
-          getAllStages().catch((err) => { console.error("Failed to fetch stages:", err); return []; }),
-          getAllPartners().catch((err) => { console.error("Failed to fetch partners:", err); return []; }),
-          getAllDonors().catch((err) => { console.error("Failed to fetch donors:", err); return []; }),
-          getAllStates().catch((err) => { console.error("Failed to fetch states:", err); return []; }),
-        ]);
-
-        setCastList(castsData);
-        setQualificationList(qualificationsData);
-        setCurrentstatusList(statusData);
-        setSchoolList(schoolsData);
-        setCampusList(campusData);
-        setQuestionSetList(questionSetsData);
-        setStageList(stagesData);
-        setPartnerList(partnersData);
-        setDonorList(donorsData);
-
-        // Transform states data to {value, label} format
-        // console.log("States API response:", statesData);
-        const transformedStates = (statesData?.data || statesData || []).map((state: any) => ({
-          value: state.state_code || state.value,
-          label: state.state_name || state.label
-        }));
-        // console.log("Transformed states:", transformedStates);
-        setStateList(transformedStates);
-
-        dataFetchedRef.current = true; // Mark as fetched
+        await initClient();
+        const signedIn = await isSignedIn();
+        setIsGoogleSignedIn(signedIn);
       } catch (error) {
-        console.error("Failed to fetch dropdown data:", error);
+        console.error("Failed to check Google sign-in status:", error);
+        setIsGoogleSignedIn(false);
       }
     };
+    checkSignInStatus();
+  }, []);
 
-    fetchAllData();
-  }, [isOpen]); // Only fetch when modal opens and data hasn't been fetched yet
+  // Fetch schedule data from API
+  const fetchScheduleData = useCallback(async () => {
+    if (!currentApplicant?.id) {
+      setLiveScheduleData([]);
+      return;
+    }
+
+    try {
+      // Clear old data first to prevent stale data flash
+      setLiveScheduleData([]);
+      setIsLoadingSchedules(true);
+      const scheduleData = await getInterviewByStudentId(currentApplicant.id);
+      setLiveScheduleData(scheduleData || []);
+    } catch (error) {
+      console.error("Failed to fetch schedule data:", error);
+      setLiveScheduleData([]);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  }, [currentApplicant?.id]);
+
+  // Fetch schedule data when modal opens or after scheduling
+  useEffect(() => {
+    if (isOpen && currentApplicant?.id) {
+      fetchScheduleData();
+    } else if (!isOpen) {
+      // Reset schedule data when modal closes to prevent showing stale data
+      setLiveScheduleData([]);
+    }
+  }, [isOpen, currentApplicant?.id, refreshKey, fetchScheduleData]);
+
+  // ✅ Load QuestionSets API when modal opens
+  // Always load if questionSetList is empty, as we may need it for display or editing
+  useEffect(() => {
+    const loadQuestionSets = async () => {
+      if (isOpen && questionSetList.length === 0) {
+        console.log('📥 ApplicantModal: Loading QuestionSets for screening round...');
+        try {
+          await fetchQuestionSets();
+          console.log('✅ QuestionSets loaded:', questionSetList?.length || 0, 'items');
+        } catch (error) {
+          console.error('❌ Failed to load QuestionSets:', error);
+        }
+      }
+    };
+    loadQuestionSets();
+  }, [isOpen, questionSetList.length, fetchQuestionSets]);
+
+  // ✅ Load Schools API when modal opens
+  // Always load if schools list is empty, as we may need it for display or editing
+  useEffect(() => {
+    const loadSchools = async () => {
+      if (isOpen && schools.length === 0) {
+        console.log('📥 ApplicantModal: Loading Schools for screening round...');
+        try {
+          await fetchSchools();
+          console.log('✅ Schools loaded');
+        } catch (error) {
+          console.error('❌ Failed to load Schools:', error);
+        }
+      }
+    };
+    loadSchools();
+  }, [isOpen, schools.length, fetchSchools]);
+
+  // Fetch available slots when schedule modal opens
+  const fetchAvailableSlots = useCallback(async (roundType: "LR" | "CFR") => {
+    try {
+      setSchedulingInProgress(true);
+      
+      // Check user role to determine which slots to fetch
+      const userStr = localStorage.getItem("user");
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userRole = user?.role_name || null;
+      
+      // Check if user is Admin or Owner (both should have admin privileges)
+      const isAdmin = userRole === "ADMIN" || userRole === "Admin";
+
+      let slots = [];
+      if (isAdmin) {
+        // Admin can see ALL available (unbooked) slots from all users
+        const response = await getAllSlots({ slot_type: roundType, pageSize: 1000 });
+        const allSlots = response.data || [];
+        
+        // Filter to show only available slots with future dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        slots = allSlots.filter((slot: any) => {
+          const slotDate = new Date(slot.date);
+          slotDate.setHours(0, 0, 0, 0);
+          return slot.status === "Available" && slotDate >= today;
+        });
+        
+        console.log(`Admin (${user?.name || user?.email}): Fetched ${slots.length} available slots for ${roundType} (filtered from ${allSlots.length} total)`);
+      } else {
+        // Regular users see only their own available (unbooked) slots
+        const allSlots = await getMyAvailableSlots();
+        
+        // Filter for matching slot type and future dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        slots = allSlots.filter((slot: any) => {
+          const slotDate = new Date(slot.date);
+          slotDate.setHours(0, 0, 0, 0);
+          return slot.slot_type === roundType && 
+                 slot.status === "Available" && 
+                 slotDate >= today;
+        });
+        
+        console.log(`User (${user?.name || user?.email}): Fetched ${slots.length} own available slots for ${roundType}`);
+      }
+      
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error("Failed to fetch available slots:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load available slots",
+        variant: "destructive",
+      });
+      setAvailableSlots([]);
+    } finally {
+      setSchedulingInProgress(false);
+    }
+  }, [toast]);
+
+  // Handle opening schedule modal
+  const handleOpenScheduleModal = useCallback(async (roundType: "LR" | "CFR") => {
+    console.log("Opening schedule modal with applicant:", {
+      id: currentApplicant?.id,
+      email: currentApplicant?.email,
+      name: currentApplicant?.name
+    });
+    setScheduleRoundType(roundType);
+    setIsScheduleModalOpen(true);
+    await fetchAvailableSlots(roundType);
+  }, [fetchAvailableSlots, currentApplicant]);
+
+  // Handle schedule interview with Google Calendar integration
+  const handleScheduleInterview = useCallback(async (
+    slotId: number,
+    studentId: number,
+    studentEmail: string,
+    studentName: string,
+    interviewerEmail: string,
+    interviewerName: string,
+    date: string,
+    startTime: string,
+    endTime: string,
+    topicName: string,
+    adminEmail: string,
+    adminName: string
+  ) => {
+    if (!currentApplicant) return;
+
+    try {
+      setSchedulingInProgress(true);
+
+      // Check Google sign-in status
+      if (!isGoogleSignedIn) {
+        const signInSuccess = await signIn();
+        if (!signInSuccess) {
+          toast({
+            title: "Google Sign-in Required",
+            description: "Please sign in to Google to create calendar events",
+            variant: "destructive",
+          });
+          return;
+        }
+        setIsGoogleSignedIn(true);
+      }
+
+      // Create Google Calendar event
+      const eventTitle = `${topicName || scheduleRoundType} - Interview`;
+      const eventDescription = `Interview for ${studentName}
+Round: ${scheduleRoundType === "LR" ? "Learning Round" : "Cultural Fit Round"}
+Student ID: ${studentId}
+Topic: ${topicName}
+Interviewer: ${interviewerName}`;
+
+      const startDateTime = formatDateTimeForCalendar(date, startTime);
+      const endDateTime = formatDateTimeForCalendar(date, endTime);
+
+      // If rescheduling, delete the old calendar event first
+      if (rescheduleData && rescheduleData.googleEventId) {
+        try {
+          console.log("Deleting old calendar event:", rescheduleData.googleEventId);
+          await deleteCalendarEvent(rescheduleData.googleEventId);
+          console.log("Old calendar event deleted successfully");
+        } catch (error) {
+          console.error("Error deleting old calendar event:", error);
+          // Show warning but continue with rescheduling
+          toast({
+            title: "Warning",
+            description: "Could not remove old calendar event. Creating new event...",
+            variant: "default",
+          });
+        }
+      }
+
+      const calendarEvent = await createCalendarEvent({
+        summary: eventTitle,
+        description: eventDescription,
+        startDateTime,
+        endDateTime,
+        attendeeEmail: studentEmail || currentApplicant.email || "",
+        studentName: studentName || `${currentApplicant.first_name} ${currentApplicant.last_name}`,
+        attendees: [adminEmail, studentEmail, interviewerEmail].filter(Boolean),
+      });
+
+      if (!calendarEvent || !calendarEvent.success) {
+        throw new Error("Failed to create calendar event");
+      }
+
+      // Check if this is a reschedule or new schedule
+      if (rescheduleData) {
+        console.log("Rescheduling interview with:", {
+          scheduleId: rescheduleData.scheduleId,
+          payload: {
+            slot_id: slotId,
+            title: eventTitle,
+            meeting_link: calendarEvent.meetLink,
+            google_event_id: calendarEvent.eventId,
+          }
+        });
+
+        // Reschedule existing interview
+        await updateScheduledInterview(rescheduleData.scheduleId, {
+          slot_id: slotId,
+          title: eventTitle,
+          description: eventDescription,
+          meeting_link: calendarEvent.meetLink || "",
+          google_event_id: calendarEvent.eventId,
+        });
+
+        toast({
+          title: "Interview Rescheduled",
+          description: `${scheduleRoundType} interview rescheduled successfully`,
+        });
+      } else {
+        // Schedule new interview
+        await scheduleInterview({
+          slot_id: slotId,
+          student_id: studentId,
+          title: eventTitle,
+          description: eventDescription,
+          meeting_link: calendarEvent.meetLink || "",
+          google_event_id: calendarEvent.eventId,
+          created_by: "Admin" as const,
+        });
+
+        toast({
+          title: "Interview Scheduled",
+          description: `${scheduleRoundType} interview scheduled successfully`,
+        });
+      }
+
+      // Close modal and refresh schedule data
+      setIsScheduleModalOpen(false);
+      setRescheduleData(null); // Clear reschedule data
+      setRefreshKey(prev => prev + 1);
+      
+      // Fetch fresh schedule data
+      await fetchScheduleData();
+    } catch (error) {
+      console.error("Failed to schedule interview:", error);
+      toast({
+        title: "Error",
+        description: rescheduleData ? "Failed to reschedule interview" : "Failed to schedule interview",
+        variant: "destructive",
+      });
+    } finally {
+      setSchedulingInProgress(false);
+    }
+  }, [currentApplicant, scheduleRoundType, isGoogleSignedIn, toast, fetchScheduleData, rescheduleData]);
+
+  // Handle cancel schedule
+  const handleCancelSchedule = useCallback(async (scheduleId: number) => {
+    try {
+      // Find the schedule to get google_event_id
+      const scheduleToCancel = liveScheduleData.find(
+        (s) => s.id === scheduleId || s.schedule_id === scheduleId
+      );
+
+      // Check Google sign-in status
+      if (!isGoogleSignedIn) {
+        const signInSuccess = await signIn();
+        if (!signInSuccess) {
+          toast({
+            title: "Google Sign-in Required",
+            description: "Please sign in to Google to remove calendar event",
+            variant: "destructive",
+          });
+          return;
+        }
+        setIsGoogleSignedIn(true);
+      }
+
+      // Delete the calendar event first if google_event_id exists
+      if (scheduleToCancel?.google_event_id) {
+        try {
+          console.log("Deleting calendar event:", scheduleToCancel.google_event_id);
+          await deleteCalendarEvent(scheduleToCancel.google_event_id);
+          console.log("Calendar event deleted successfully");
+        } catch (error) {
+          console.error("Error deleting calendar event:", error);
+          // Show warning but continue with cancellation
+          toast({
+            title: "⚠️ Warning",
+            description: "Could not remove calendar event, but will cancel the interview.",
+            variant: "default",
+            className: "border-orange-500 bg-orange-50 text-orange-900",
+          });
+        }
+      }
+
+      // Cancel the interview in the backend
+      await cancelScheduledInterview(scheduleId, "Cancelled by admin");
+      
+      toast({
+        title: "✅ Interview Cancelled",
+        description: "The interview has been successfully cancelled and removed from calendar.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+
+      // Refresh data
+      setRefreshKey(prev => prev + 1);
+      await fetchScheduleData();
+    } catch (error) {
+      console.error("Failed to cancel interview:", error);
+      toast({
+        title: "❌ Failed to Cancel",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+      });
+    }
+  }, [toast, fetchScheduleData, liveScheduleData, isGoogleSignedIn]);
+
+  // Handle reschedule click - open schedule modal with reschedule data
+  const handleRescheduleClick = useCallback((scheduleId: number) => {
+    // Find the schedule details from liveScheduleData
+    const scheduleToReschedule = liveScheduleData.find(
+      (s) => s.id === scheduleId || s.schedule_id === scheduleId
+    );
+    
+    if (!scheduleToReschedule) {
+      toast({
+        title: "Error",
+        description: "Schedule not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Determine round type from interviewDetailsRoundType (current round being viewed)
+    const roundType = interviewDetailsRoundType;
+    
+    if (!roundType) {
+      toast({
+        title: "Error",
+        description: "Round type not specified",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Rescheduling interview:", scheduleToReschedule);
+
+    // Set reschedule data with google_event_id for calendar deletion
+    setRescheduleData({
+      scheduleId: scheduleToReschedule.id || scheduleId,
+      roundType,
+      googleEventId: scheduleToReschedule.google_event_id,
+      oldSlotId: scheduleToReschedule.slot_id,
+    });
+    setScheduleRoundType(roundType);
+    setShowInterviewDetailsModal(false);
+    
+    // Fetch available slots and open schedule modal
+    fetchAvailableSlots(roundType).then(() => {
+      setIsScheduleModalOpen(true);
+    });
+  }, [toast, liveScheduleData, interviewDetailsRoundType, fetchAvailableSlots]);
+
+  // Handle opening interview details modal
+  const handleOpenInterviewDetails = useCallback((roundType: "LR" | "CFR") => {
+    setInterviewDetailsRoundType(roundType);
+    setShowInterviewDetailsModal(true);
+  }, []);
+
+  // Helper function to check if student has passed a specific round
+  const hasPassedRound = useCallback((applicant: any, roundType: "LR" | "CFR"): boolean => {
+    if (!applicant) return false;
+    
+    if (roundType === "LR") {
+      // Check if any learning round has "pass" status
+      return applicant.interview_learner_round?.some((round: any) => 
+        round.learning_round_status?.toLowerCase().includes("pass")
+      ) || false;
+    } else if (roundType === "CFR") {
+      // Check if any cultural fit round has "pass" status
+      return applicant.interview_cultural_fit_round?.some((round: any) => 
+        round.cultural_fit_round_status?.toLowerCase().includes("pass")
+      ) || false;
+    }
+    
+    return false;
+  }, []);
+
+  // Handle schedule new from interview details modal
+  const handleScheduleNewFromDetails = useCallback(() => {
+    setShowInterviewDetailsModal(false);
+    // The roundType is already set from when we opened the details modal
+    if (interviewDetailsRoundType) {
+      handleOpenScheduleModal(interviewDetailsRoundType);
+    }
+  }, [interviewDetailsRoundType, handleOpenScheduleModal]);
 
   const format = (date: Date, formatStr: string) => {
     if (formatStr === "PPP") {
@@ -313,6 +923,8 @@ export function ApplicantModal({
   // Wait for states to be loaded before trying to set selectedState
   useEffect(() => {
     if (applicant?.id && stateList.length > 0) {
+      // Clear schedule data immediately when applicant changes
+      setLiveScheduleData([]);
       setCurrentApplicant(applicant);
       if (applicant.state) {
         const stateCode = getStateCodeFromNameOrCode(applicant.state);
@@ -366,10 +978,11 @@ export function ApplicantModal({
     }
   }, [isOpen, applicant?.id, refreshKey, stateList.length]);
 
-  // Fetch partner name if not available in partnerList
+  // Fetch partner name by ID if not provided in the applicant data
   useEffect(() => {
     const fetchPartnerName = async () => {
-      if (currentApplicant?.partner_id && partners.length === 0) {
+      // Only fetch if partner_id exists but partner_name is not provided
+      if (currentApplicant?.partner_id && !currentApplicant?.partner_name) {
         try {
           const response = await getPartnerById(currentApplicant.partner_id);
           if (response?.data?.partner_name) {
@@ -383,12 +996,13 @@ export function ApplicantModal({
       }
     };
     fetchPartnerName();
-  }, [currentApplicant?.partner_id, partners.length]);
+  }, [currentApplicant?.partner_id, currentApplicant?.partner_name]);
 
-  // Fetch donor name if not available in donorList
+  // Fetch donor name by ID if not provided in the applicant data
   useEffect(() => {
     const fetchDonorName = async () => {
-      if (currentApplicant?.donor_id && donors.length === 0) {
+      // Only fetch if donor_id exists but donor_name is not provided
+      if (currentApplicant?.donor_id && !currentApplicant?.donor_name) {
         try {
           const response = await getDonorById(currentApplicant.donor_id);
           if (response?.data?.donor_name) {
@@ -402,7 +1016,7 @@ export function ApplicantModal({
       }
     };
     fetchDonorName();
-  }, [currentApplicant?.donor_id, donors.length]);
+  }, [currentApplicant?.donor_id, currentApplicant?.donor_name]);
 
   // Set joining date from current applicant
   // useEffect(() => {
@@ -693,24 +1307,20 @@ export function ApplicantModal({
     options: { value: string; label: string }[],
     id: any,
     defaultLabel = "",
-    nameField?: string,
-    fetchedName?: string | null
+    nameField?: string
   ) => {
+    // ✅ OPTIMIZATION: First try to get name from currentApplicant data (backend provides it)
+    if (nameField && currentApplicant[nameField]) {
+      return currentApplicant[nameField];
+    }
+
     // If no id provided, return default
     if (!id) return defaultLabel;
 
-    // Try to find matching option
-    const matchedOption = options.find((o) => o.value === id?.toString());
-
-    // If found, return the label
-    if (matchedOption?.label) return matchedOption.label;
-
-    // If fetchedName is provided (for partner/donor), use it
-    if (fetchedName) return fetchedName;
-
-    // If nameField is provided, try to get the name from currentApplicant
-    if (nameField && currentApplicant[nameField]) {
-      return currentApplicant[nameField];
+    // Try to find matching option (only if options are loaded)
+    if (options && options.length > 0) {
+      const matchedOption = options.find((o) => o.value === id?.toString());
+      if (matchedOption?.label) return matchedOption.label;
     }
 
     // Otherwise return the id itself as fallback
@@ -822,8 +1432,53 @@ export function ApplicantModal({
     {
       name: "question_set_id",
       label: "Set Name *",
-      type: "select" as const,
-      options: questionSets,
+      type: "component" as const,
+      component: ({ row, updateRow, disabled }: any) => {
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          const rowId = row?.question_set_id?.toString();
+          console.log('🔍 Set lookup - Row ID:', rowId, 'QuestionSets count:', questionSets.length);
+          
+          // Try to find set name from questionSets list by ID
+          const set = questionSets.find(s => s.value === rowId);
+          console.log('🔍 Found set:', set);
+          
+          if (set) {
+            return (
+              <span className="text-gray-900" title={set.label}>
+                {set.label}
+              </span>
+            );
+          }
+          // If set_name field exists in row, use it
+          if (row?.set_name && row.set_name.trim() !== "") {
+            return (
+              <span className="text-gray-900" title={row.set_name}>
+                {row.set_name}
+              </span>
+            );
+          }
+          // Fallback: show ID or dash
+          return <span className="text-gray-500">{rowId || "—"}</span>;
+        }
+        
+        // Edit mode: Show dropdown
+        return (
+          <select
+            value={row?.question_set_id || ""}
+            onChange={(e) => updateRow("question_set_id", e.target.value)}
+            className={`border p-1 rounded w-full ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+            disabled={!!disabled}
+          >
+            <option value="">Select Set</option>
+            {questionSets.map((set) => (
+              <option key={set.value} value={set.value}>
+                {set.label}
+              </option>
+            ))}
+          </select>
+        );
+      },
     },
     {
       name: "obtained_marks",
@@ -831,6 +1486,19 @@ export function ApplicantModal({
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
         const maxMarks = 36;
+        
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          return (
+            <span className="text-gray-900">
+              {row?.obtained_marks !== null && row?.obtained_marks !== undefined 
+                ? row.obtained_marks 
+                : "—"}
+            </span>
+          );
+        }
+        
+        // Edit mode: Show input
         return (
           <div className="w-full">
             <input
@@ -842,7 +1510,7 @@ export function ApplicantModal({
 
                 // Only allow if value is empty, or within valid range (0 to maxMarks)
                 if (value === "" || (numValue >= 0 && numValue <= maxMarks)) {
-                  updateRow?.("obtained_marks", value);
+                  updateRow("obtained_marks", value);
                 }
                 // If value exceeds max, don't update (block the input)
               }}
@@ -859,8 +1527,48 @@ export function ApplicantModal({
     {
       name: "school_id",
       label: "Qualifying School",
-      type: "select" as const,
-      options: schools,
+      type: "component" as const,
+      component: ({ row, updateRow, disabled }: any) => {
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          // Try to find school name from schools list by ID
+          const school = schools.find(s => s.value === row?.school_id?.toString());
+          if (school) {
+            return (
+              <span className="text-gray-900" title={school.label}>
+                {school.label}
+              </span>
+            );
+          }
+          // If school_name field exists in row, use it
+          if (row?.school_name && row.school_name.trim() !== "") {
+            return (
+              <span className="text-gray-900" title={row.school_name}>
+                {row.school_name}
+              </span>
+            );
+          }
+          // Fallback: show ID or dash
+          return <span className="text-gray-500">{row?.school_id || "—"}</span>;
+        }
+        
+        // Edit mode: Show dropdown
+        return (
+          <select
+            value={row?.school_id || ""}
+            onChange={(e) => updateRow("school_id", e.target.value)}
+            className={`border p-1 rounded w-full ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+            disabled={!!disabled}
+          >
+            <option value="">Select School</option>
+            {schools.map((school) => (
+              <option key={school.value} value={school.value}>
+                {school.label}
+              </option>
+            ))}
+          </select>
+        );
+      },
     },
     {
       name: "exam_centre",
@@ -872,12 +1580,22 @@ export function ApplicantModal({
       label: "Date of Testing *",
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
+        // Read-only mode (no updateRow passed)
+        if (!updateRow) {
+          return (
+            <span className="text-gray-900">
+              {row?.date_of_test || "—"}
+            </span>
+          );
+        }
+        
+        // Edit mode: Show date input
         const today = new Date().toISOString().split('T')[0];
         return (
           <input
             type="date"
             value={row?.date_of_test || ""}
-            onChange={(e) => updateRow?.("date_of_test", e.target.value)}
+            onChange={(e) => updateRow("date_of_test", e.target.value)}
             className="border p-1 rounded w-full"
             disabled={!!disabled}
             max={today}
@@ -898,6 +1616,7 @@ export function ApplicantModal({
         id: session.id,
         status: session.status ?? currentApplicant.status ?? "",
         question_set_id: session.question_set_id?.toString() || "",
+        set_name: session.set_name || "", // ✅ Include set_name if available
         obtained_marks:
           session.obtained_marks !== null && session.obtained_marks !== undefined
             ? session.obtained_marks.toString()
@@ -906,6 +1625,7 @@ export function ApplicantModal({
           session.school_id !== null && session.school_id !== undefined
             ? session.school_id.toString()
             : "",
+        school_name: session.school_name || "", // ✅ Include school_name if available
         exam_centre: session.exam_centre || "",
         date_of_test: session.date_of_test?.split("T")[0] || "",
         audit_info: {
@@ -917,32 +1637,110 @@ export function ApplicantModal({
     [currentApplicant]
   );
 
-  // Map learning round data with audit info
+  // Map learning round data with audit info and schedule info from API
   const initialLearningData = useMemo(
-    () =>
-      (currentApplicant?.interview_learner_round || []).map((round: any) => ({
-        ...round,
-        audit_info: {
-          created_at: round.created_at || "",
-          updated_at: round.updated_at || "",
-          last_updated_by: round.last_updated_by || "",
-        },
-      })),
-    [currentApplicant]
+    () => {
+      const learningRounds = currentApplicant?.interview_learner_round || [];
+      
+      // Get schedule info for learning round from live API data - ONLY LR schedules
+      const schedules = liveScheduleData
+        .filter((schedule: any) => 
+          schedule.slot_type === "LR" || 
+          (schedule.slot_details && schedule.slot_details.slot_type === "LR")
+        )
+        .sort((a: any, b: any) => {
+          // Sort by date and time (oldest first, most recent last)
+          const dateA = new Date(`${a.date} ${a.start_time}`);
+          const dateB = new Date(`${b.date} ${b.start_time}`);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+      // If no learning rounds exist but schedules do, create placeholder rows (one per schedule)
+      if (learningRounds.length === 0 && schedules.length > 0) {
+        return schedules.map((schedule: any) => ({
+          id: null, // No ID means it's a placeholder
+          learning_round_status: "",
+          comments: "",
+          schedule_info: [schedule], // Pass single schedule as array
+          audit_info: {
+            created_at: "",
+            updated_at: "",
+            last_updated_by: "",
+          },
+        }));
+      }
+
+      // Map existing learning rounds with schedule info - ONE schedule per row
+      // Match schedules to rows chronologically (oldest schedule to oldest feedback)
+      return learningRounds.map((round: any, index: number) => {
+        // Each row gets its corresponding schedule (if available)
+        const scheduleForThisRow = index < schedules.length ? [schedules[index]] : "—";
+        
+        return {
+          ...round,
+          schedule_info: scheduleForThisRow,
+          audit_info: {
+            created_at: round.created_at || "",
+            updated_at: round.updated_at || "",
+            last_updated_by: round.last_updated_by || "",
+          },
+        };
+      });
+    },
+    [currentApplicant, liveScheduleData]
   );
 
-  // Map cultural fit round data with audit info
+  // Map cultural fit round data with audit info and schedule info from API
   const initialCulturalData = useMemo(
-    () =>
-      (currentApplicant?.interview_cultural_fit_round || []).map((round: any) => ({
-        ...round,
-        audit_info: {
-          created_at: round.created_at || "",
-          updated_at: round.updated_at || "",
-          last_updated_by: round.last_updated_by || "",
-        },
-      })),
-    [currentApplicant]
+    () => {
+      const culturalRounds = currentApplicant?.interview_cultural_fit_round || [];
+      
+      // Get schedule info for cultural fit round from live API data - ONLY CFR schedules
+      const schedules = liveScheduleData
+        .filter((schedule: any) => 
+          schedule.slot_type === "CFR" || 
+          (schedule.slot_details && schedule.slot_details.slot_type === "CFR")
+        )
+        .sort((a: any, b: any) => {
+          // Sort by date and time (oldest first, most recent last)
+          const dateA = new Date(`${a.date} ${a.start_time}`);
+          const dateB = new Date(`${b.date} ${b.start_time}`);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+      // If no cultural fit rounds exist but schedules do, create placeholder rows (one per schedule)
+      if (culturalRounds.length === 0 && schedules.length > 0) {
+        return schedules.map((schedule: any) => ({
+          id: null, // No ID means it's a placeholder
+          cultural_fit_status: "",
+          comments: "",
+          schedule_info: [schedule], // Pass single schedule as array
+          audit_info: {
+            created_at: "",
+            updated_at: "",
+            last_updated_by: "",
+          },
+        }));
+      }
+
+      // Map existing cultural fit rounds with schedule info - ONE schedule per row
+      // Match schedules to rows chronologically (oldest schedule to oldest feedback)
+      return culturalRounds.map((round: any, index: number) => {
+        // Each row gets its corresponding schedule (if available)
+        const scheduleForThisRow = index < schedules.length ? [schedules[index]] : "—";
+        
+        return {
+          ...round,
+          schedule_info: scheduleForThisRow,
+          audit_info: {
+            created_at: round.created_at || "",
+            updated_at: round.updated_at || "",
+            last_updated_by: round.last_updated_by || "",
+          },
+        };
+      });
+    },
+    [currentApplicant, liveScheduleData]
   );
 
   // Early return AFTER all hooks
@@ -1008,6 +1806,11 @@ export function ApplicantModal({
     const status = round?.cultural_fit_status || "";
     return status.toLowerCase().includes("pass");
   });
+
+  // Check if student has started next rounds (to disable deletion of previous rounds)
+  const hasLearningRoundData = (currentApplicant?.interview_learner_round || []).length > 0;
+  const hasCulturalRoundData = (currentApplicant?.interview_cultural_fit_round || []).length > 0;
+  const hasOfferData = !!currentApplicant?.campus_id || (currentApplicant?.final_decisions || []).length > 0;
 
   return (
     <>
@@ -1157,6 +1960,7 @@ export function ApplicantModal({
                     displayValue={getLabel(castes, currentApplicant.cast_id, "", "cast_name")}
                     onUpdate={handleUpdate}
                     options={castes}
+                    onEditStart={() => ensureFieldDataLoaded('cast_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1176,6 +1980,7 @@ export function ApplicantModal({
                     )}
                     onUpdate={handleUpdate}
                     options={qualifications}
+                    onEditStart={() => ensureFieldDataLoaded('qualification_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1195,6 +2000,7 @@ export function ApplicantModal({
                     }
                     onUpdate={handleUpdate}
                     options={currentWorks}
+                    onEditStart={() => ensureFieldDataLoaded('current_status_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1209,6 +2015,7 @@ export function ApplicantModal({
                     value={getCode(stateOptions, currentApplicant.state) || ""}
                     onUpdate={handleStateChange}
                     options={stateOptions}
+                    onEditStart={() => ensureFieldDataLoaded('state')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1277,15 +2084,10 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="partner_id"
                     value={currentApplicant.partner_id}
-                    displayValue={getLabel(
-                      partners,
-                      currentApplicant.partner_id,
-                      "",
-                      "partner_name",
-                      partnerName
-                    )}
+                    displayValue={currentApplicant.partner_name || partnerName || ""}
                     onUpdate={handleUpdate}
                     options={partners}
+                    onEditStart={() => ensureFieldDataLoaded('partner_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1297,15 +2099,10 @@ export function ApplicantModal({
                     applicant={currentApplicant}
                     field="donor_id"
                     value={currentApplicant.donor_id}
-                    displayValue={getLabel(
-                      donors,
-                      currentApplicant.donor_id,
-                      "",
-                      "donor_name",
-                      donorName
-                    )}
+                    displayValue={currentApplicant.donor_name || donorName || ""}
                     onUpdate={handleUpdate}
                     options={donors}
+                    onEditStart={() => ensureFieldDataLoaded('donor_id')}
                     disabled={!hasEditAccess}
                   />
                 </div>
@@ -1357,6 +2154,9 @@ export function ApplicantModal({
             fields={screeningFields}
             submitApi={screeningSubmit}
             updateApi={screeningUpdate}
+            deleteApi={API_MAP.screening.delete}
+            canDelete={isAdmin}
+            disableDelete={hasLearningRoundData}
             onSave={handleUpdate}
             disableAdd={isScreeningPassed}
           // disabled={!hasEditAccess}
@@ -1367,9 +2167,21 @@ export function ApplicantModal({
           <div className="grid grid-cols-1 gap-4 sm:gap-6">
             <div className="col-span-full w-full">
               <InlineSubform
+                key={`learning-${currentApplicant.id}-${liveScheduleData.length}`}
                 title="Learning Round"
                 studentId={currentApplicant.id}
                 initialData={initialLearningData}
+                customActions={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenInterviewDetails("LR")}
+                    className="flex items-center gap-2"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    View Schedules
+                  </Button>
+                }
                 fields={[
                   {
                     name: "learning_round_status",
@@ -1403,23 +2215,36 @@ export function ApplicantModal({
                 ]}
                 submitApi={API_MAP.learning.submit}
                 updateApi={API_MAP.learning.update}
+                deleteApi={API_MAP.learning.delete}
+                canDelete={isAdmin}
+                disableDelete={hasCulturalRoundData}
                 onSave={handleUpdate}
                 disableAdd={isLearningPassed}
                 disabled={isStageDisabled(currentApplicant, "LR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "LR")
                     ? "Student need to pass Screening Round"
-                    // : !hasEditAccess
-                    //   ? "You do not have edit access"
                     : undefined
                 }
               />
             </div>
             <div className="col-span-full w-full">
               <InlineSubform
+                key={`cultural-${currentApplicant.id}-${liveScheduleData.length}`}
                 title="Cultural Fit Round"
                 studentId={currentApplicant.id}
                 initialData={initialCulturalData}
+                customActions={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenInterviewDetails("CFR")}
+                    className="flex items-center gap-2"
+                  >
+                    <CalendarIcon className="h-4 w-4" />
+                    View Schedules
+                  </Button>
+                }
                 fields={[
                   {
                     name: "cultural_fit_status",
@@ -1445,7 +2270,6 @@ export function ApplicantModal({
                     type: "text" as const,
                     disabled: isStageDisabled(currentApplicant, "LR"),
                   },
-
                   {
                     name: "audit_info",
                     label: "Audit Info",
@@ -1454,14 +2278,15 @@ export function ApplicantModal({
                 ]}
                 submitApi={API_MAP.cultural.submit}
                 updateApi={API_MAP.cultural.update}
+                deleteApi={API_MAP.cultural.delete}
+                canDelete={isAdmin}
+                disableDelete={hasOfferData}
                 onSave={handleUpdate}
                 disableAdd={isCulturalPassed}
                 disabled={isStageDisabled(currentApplicant, "CFR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "CFR")
                     ? "Student need to pass Learning Round"
-                    // : !hasEditAccess
-                    //   ? "You do not have edit access"
                     : undefined
                 }
               />
@@ -1493,6 +2318,7 @@ export function ApplicantModal({
                               )}
                               onUpdate={handleUpdate}
                               options={campus}
+                              onEditStart={() => ensureFieldDataLoaded('campus_id')}
                               disabled={true}
                             />
                           </div>
@@ -1516,6 +2342,7 @@ export function ApplicantModal({
                         )}
                         onUpdate={handleUpdate}
                         options={campus}
+                        onEditStart={() => ensureFieldDataLoaded('campus_id')}
                         disabled={!hasEditAccess}
                       />
                     </div>
@@ -1839,6 +2666,45 @@ export function ApplicantModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Schedule Interview Modal */}
+      <ScheduleInterviewModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => {
+          setIsScheduleModalOpen(false);
+          setRescheduleData(null); // Clear reschedule data when closing
+        }}
+        onSchedule={handleScheduleInterview}
+        slotData={null}
+        allAvailableSlots={availableSlots}
+        isDirectScheduleMode={true}
+        isLoading={schedulingInProgress}
+        initialStudentId={currentApplicant?.id?.toString()}
+        initialStudentEmail={currentApplicant?.email}
+        initialStudentName={currentApplicant?.name}
+        isRescheduleMode={!!rescheduleData}
+      />
+
+      {/* Interview Details Modal - Shows all schedules with cancel/reschedule */}
+      <InterviewDetailsModal
+        isOpen={showInterviewDetailsModal}
+        onClose={() => setShowInterviewDetailsModal(false)}
+        scheduleInfo={
+          interviewDetailsRoundType === "LR" 
+            ? liveScheduleData.filter((s: any) => s.round_type === "LR" || s.title?.includes("Learning"))
+            : liveScheduleData.filter((s: any) => s.round_type === "CFR" || s.title?.includes("Cultural"))
+        }
+        roundType={interviewDetailsRoundType || "LR"}
+        studentName={currentApplicant?.name || ""}
+        onCancel={handleCancelSchedule}
+        onReschedule={handleRescheduleClick}
+        onScheduleNew={handleScheduleNewFromDetails}
+        canManage={isAdmin}
+        currentUserEmail={user?.email || ""}
+        isAdmin={isAdmin}
+        isStageDisabled={isStageDisabled(currentApplicant, interviewDetailsRoundType || "LR")}
+        hasPassedRound={hasPassedRound(currentApplicant, interviewDetailsRoundType || "LR")}
+      />
 
       {/* {showCommentsModal && (
         <ApplicantCommentsModal

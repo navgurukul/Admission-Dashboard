@@ -34,6 +34,8 @@ interface EditableCellProps {
   displayValue: any;
   value?: any;
   onUpdate?: (value: any) => void;
+  onEditStart?: () => void; // NEW: Callback when user starts editing
+  isLoadingOptions?: boolean; // NEW: Loading state for options
   showPencil?: boolean;
   options?: Option[];
   fetchOptions?: () => Promise<Option[]>; // NEW: Lazy loading callback
@@ -64,6 +66,8 @@ export function EditableCell({
   displayValue,
   value,
   onUpdate,
+  onEditStart,
+  isLoadingOptions = false,
   showPencil = false,
   options,
   fetchOptions,
@@ -81,6 +85,7 @@ export function EditableCell({
   const [cellValue, setCellValue] = useState<any>(value ?? displayValue ?? "");
   const [isUpdating, setIsUpdating] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false); // Local loading state for this cell
   const { toast } = useToast();
 
   // Memoize normalized options to prevent recalculation on every render
@@ -90,9 +95,23 @@ export function EditableCell({
     setCellValue(value ?? displayValue ?? "");
   }, [value, displayValue]);
 
-  const startCellEdit = (id: number, field: string, currentValue: any) => {
+  const startCellEdit = async (id: number, field: string, currentValue: any) => {
+    // ✅ Set editing mode FIRST so dropdown appears immediately
     setEditingCell({ id, field });
     setCellValue(currentValue ?? value ?? displayValue ?? "");
+    
+    // ✅ Then load data in the background (if not already loaded)
+    // The dropdown will show with loading spinner while data loads
+    if (onEditStart && normalizedOptions.length === 0) {
+      console.log(`🔧 Starting edit for field: ${field}, loading data if needed...`);
+      setIsLoadingData(true);
+      try {
+        await onEditStart();
+        console.log(`✅ Data ready for field: ${field}`);
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
   };
 
   const saveCellEdit = async () => {
@@ -151,8 +170,8 @@ export function EditableCell({
 
     // Validate date of birth - cannot be empty and minimum age 16.5 years
     if (field === "dob") {
-      // Check if date is empty
-      if (!cellValue || cellValue === "" || cellValue === null) {
+      // Check if date is empty or invalid (like "N/A")
+      if (!cellValue || cellValue === "" || cellValue === null || cellValue === "N/A" || cellValue === "n/a") {
         toast({
           title: "⚠️ Date of Birth Required",
           description: "Please select a date of birth. This field cannot be empty.",
@@ -165,6 +184,17 @@ export function EditableCell({
       const selectedDate = new Date(cellValue);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+      
+      // Check if the date is valid
+      if (isNaN(selectedDate.getTime())) {
+        toast({
+          title: "⚠️ Invalid Date Format",
+          description: "Please select a valid date of birth",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+        });
+        return;
+      }
       
       if (selectedDate > today) {
         toast({
@@ -192,6 +222,29 @@ export function EditableCell({
     }
 
     if (!editingCell || isUpdating) return;
+
+    // ✅ Define required fields that cannot be cleared/emptied
+    const requiredFields = [
+      'first_name',
+      'last_name', 
+      'email',
+      'phone_number',
+      'whatsapp_number'
+    ];
+
+    // ✅ Check if user is trying to clear a required field
+    const isRequiredField = requiredFields.includes(field);
+    const isEmptyValue = !cellValue || cellValue.toString().trim() === '';
+    
+    if (isRequiredField && isEmptyValue) {
+      toast({
+        title: "⚠️ Required Field",
+        description: `${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} cannot be empty. Please enter a value.`,
+        variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
 
     setIsUpdating(true);
     try {
@@ -243,6 +296,26 @@ export function EditableCell({
         description: "Cannot update: Student ID is missing",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
+      });
+      return;
+    }
+
+    // ✅ Define required dropdown fields that cannot be cleared
+    const requiredDropdownFields = [
+      'gender',
+      'campus_id'
+    ];
+
+    // ✅ Check if user is trying to clear a required dropdown field
+    const isRequiredDropdown = requiredDropdownFields.includes(field);
+    const isClearingValue = newValue === "none" || newValue === "";
+    
+    if (isRequiredDropdown && isClearingValue) {
+      toast({
+        title: "⚠️ Required Field",
+        description: `${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} is required and cannot be cleared. Please select a value.`,
+        variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
@@ -304,7 +377,10 @@ export function EditableCell({
   const isEditing =
     editingCell?.id === applicant.id && editingCell?.field === field;
   // If forceTextDisplay is true, only show dropdown when actively editing
-  const isDropdownField = forceTextDisplay ? (normalizedOptions.length > 0 && isEditing) : (normalizedOptions.length > 0);
+  // Also treat as dropdown if we're loading options (to show loading state instead of text input)
+  const isDropdownField = forceTextDisplay 
+    ? ((normalizedOptions.length > 0 || isLoadingOptions || isLoadingData) && isEditing) 
+    : (normalizedOptions.length > 0 || isLoadingOptions || isLoadingData);
 
   const getCurrentDropdownValue = () => {
     // Priority: 1. value prop, 2. Try to match displayValue with options, 3. "none"
@@ -338,12 +414,29 @@ export function EditableCell({
 
   if (isDropdownField) {
     const currentValue = getCurrentDropdownValue();
-    // Hide "Select" option for offer_letter_status and onboarded_status if value exists
+    
+    // Define required fields that should not show "Select/Clear" option
+    const requiredDropdownFields = ['gender', 'campus_id'];
+    const isRequiredDropdown = requiredDropdownFields.includes(field);
+    
+    // Hide "Select" option for required fields or offer_letter_status if value exists
     const shouldHideSelectOption =
-      field === "offer_letter_status" &&
-      currentValue !== "none" &&
-      currentValue !== null &&
-      currentValue !== undefined;
+      isRequiredDropdown ||
+      (field === "offer_letter_status" &&
+        currentValue !== "none" &&
+        currentValue !== null &&
+        currentValue !== undefined);
+
+    // ✅ Show minimal loading state while options are being fetched
+    // This should rarely be seen since we pre-load on hover
+    if ((isLoadingOptions || isLoadingData) && normalizedOptions.length === 0) {
+      return (
+        <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground">
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+          <span className="text-xs">Loading options...</span>
+        </div>
+      );
+    }
 
     // Use Combobox for fields with many options (searchable)
     // Also always use Combobox for location fields (state, district, block) for consistent UX
@@ -389,7 +482,9 @@ export function EditableCell({
         <SelectContent>
           {!shouldHideSelectOption && (
             <SelectItem value="none">
-              <span className="text-muted-foreground">Select</span>
+              <span className="text-muted-foreground italic">
+                {currentValue && currentValue !== "none" ? "Clear (Remove)" : "Select"}
+              </span>
             </SelectItem>
           )}
           {normalizedOptions.map((opt) => (
@@ -405,7 +500,16 @@ export function EditableCell({
   if (isEditing) {
     // Special rendering for DOB field with calendar picker
     if (field === "dob") {
-      const dateValue = cellValue ? new Date(cellValue) : undefined;
+      // Safely parse the date value
+      let dateValue: Date | undefined;
+      if (cellValue && cellValue !== "N/A" && cellValue !== "n/a") {
+        const parsedDate = new Date(cellValue);
+        // Only use the date if it's valid
+        if (!isNaN(parsedDate.getTime())) {
+          dateValue = parsedDate;
+        }
+      }
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
@@ -432,8 +536,8 @@ export function EditableCell({
                   disabled={isUpdating || disabled}
                 >
                   <CalendarIcon className="mr-2 h-3 w-3" />
-                  {cellValue ? (
-                    new Date(cellValue).toLocaleDateString('en-US', {
+                  {dateValue && !isNaN(dateValue.getTime()) ? (
+                    dateValue.toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
@@ -458,11 +562,17 @@ export function EditableCell({
                   {/* Year and Month Selectors */}
                   <div className="flex gap-2 pb-2 border-b">
                     <select
-                      value={dateValue?.getMonth() ?? new Date().getMonth()}
+                      value={dateValue?.getMonth() ?? 0}
                       onChange={(e) => {
-                        const currentDate = dateValue || new Date(2000, 0, 1);
-                        const newDate = new Date(currentDate.getFullYear(), parseInt(e.target.value), 1);
-                        setCellValue(newDate.toISOString().split('T')[0]);
+                        const year = dateValue?.getFullYear() ?? 2000;
+                        const month = parseInt(e.target.value);
+                        const day = dateValue?.getDate() ?? 1;
+                        
+                        // Create new date and validate
+                        const newDate = new Date(year, month, day);
+                        if (!isNaN(newDate.getTime())) {
+                          setCellValue(newDate.toISOString().split('T')[0]);
+                        }
                       }}
                       className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-ring"
                     >
@@ -473,9 +583,15 @@ export function EditableCell({
                     <select
                       value={dateValue?.getFullYear() ?? 2000}
                       onChange={(e) => {
-                        const currentDate = dateValue || new Date(2000, 0, 1);
-                        const newDate = new Date(parseInt(e.target.value), currentDate.getMonth(), 1);
-                        setCellValue(newDate.toISOString().split('T')[0]);
+                        const year = parseInt(e.target.value);
+                        const month = dateValue?.getMonth() ?? 0;
+                        const day = dateValue?.getDate() ?? 1;
+                        
+                        // Create new date and validate
+                        const newDate = new Date(year, month, day);
+                        if (!isNaN(newDate.getTime())) {
+                          setCellValue(newDate.toISOString().split('T')[0]);
+                        }
                       }}
                       className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-ring"
                     >
@@ -505,9 +621,11 @@ export function EditableCell({
                       
                       return false;
                     }}
-                    month={dateValue || new Date(2000, 0)}
+                    month={dateValue && !isNaN(dateValue.getTime()) ? dateValue : new Date(2000, 0)}
                     onMonthChange={(month) => {
-                      setCellValue(month.toISOString().split('T')[0]);
+                      if (month && !isNaN(month.getTime())) {
+                        setCellValue(month.toISOString().split('T')[0]);
+                      }
                     }}
                     className="rounded-md"
                     classNames={{

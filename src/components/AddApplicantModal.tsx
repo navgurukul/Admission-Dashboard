@@ -38,72 +38,51 @@ import {
   getStudentDataByEmail,
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
+import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
 };
 
-// interface Campus {
-//   id: number;
-//   campus_name: string;
-// }
-
-interface School {
-  id: number;
-  school_name: string;
-}
-
-interface religion {
-  id: number;
-  religion_name: string;
-}
-
-interface CurrentStatus {
-  id: number;
-  current_status_name: string;
-}
-
-interface QuestionSet {
-  id: number;
-  name: string;
-  description: string;
-  status: boolean;
-  maximumMarks: number;
-  created_at: string;
-  updated_at: string;
-}
-
 interface AddApplicantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newApplicant: any) => void;
-  // campusList: Campus[];
-  schoolList: School[];
-  currentstatusList: CurrentStatus[];
-  religionList: religion[];
-  questionSetList: QuestionSet[];
-  qualificationList: any[];
-  castList: any[];
-  partnerList: any[];
-  donorList: any[];
-  stateList: { value: string; label: string }[];
 }
 
 export function AddApplicantModal({
   isOpen,
   onClose,
   onSuccess,
-  // campusList,
-  schoolList,
-  currentstatusList,
-  religionList,
-  questionSetList,
-  qualificationList,
-  castList,
-  partnerList,
-  donorList,
-  stateList,
 }: AddApplicantModalProps) {
+  // ✅ DRY: Use on-demand reference data loading hook
+  const {
+    schoolList,
+    currentstatusList,
+    religionList,
+    questionSetList,
+    qualificationList,
+    castList,
+    partnerList,
+    donorList,
+    stateList,
+    loadFieldData, // ✅ For on-demand loading when dropdowns open
+  } = useOnDemandReferenceData();
+
+  // ✅ Load only state data when modal opens (needed for state dropdown)
+  // All other data loads on-demand when user interacts with specific fields
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (isOpen && stateList.length === 0) {
+        console.log("🔄 AddApplicantModal: Loading state data...");
+        await loadFieldData('state');
+        console.log("✅ AddApplicantModal: State data loaded");
+      }
+    };
+
+    loadInitialData();
+  }, [isOpen, stateList.length, loadFieldData]);
+
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const { toast } = useToast();
@@ -1290,6 +1269,7 @@ export function AddApplicantModal({
                       onValueChange={(value) =>
                         handleInputChange("cast_id", value === "none" ? "" : value)
                       }
+                      onOpen={() => loadFieldData('cast')}
                       placeholder="Select caste"
                       searchPlaceholder="Search caste..."
                       emptyText="No caste found."
@@ -1329,6 +1309,7 @@ export function AddApplicantModal({
                           value === "none" ? "" : value
                         )
                       }
+                      onOpen={() => loadFieldData('qualification')}
                       placeholder="Select qualification"
                       searchPlaceholder="Search qualification..."
                       emptyText="No qualification found."
@@ -1368,6 +1349,7 @@ export function AddApplicantModal({
                           value === "none" ? "" : value
                         )
                       }
+                      onOpen={() => loadFieldData('current_status')}
                       placeholder="Select current work"
                       searchPlaceholder="Search current work..."
                       emptyText="No current work found."
@@ -1439,6 +1421,7 @@ export function AddApplicantModal({
                           value === "none" ? "" : value
                         )
                       }
+                      onOpen={() => loadFieldData('religion')}
                       placeholder="Select religion"
                       searchPlaceholder="Search religion..."
                       emptyText="No religion found."
@@ -1476,6 +1459,7 @@ export function AddApplicantModal({
                           value === "none" ? "" : value
                         )
                       }
+                      onOpen={() => loadFieldData('partner')}
                       placeholder="Select partner"
                       searchPlaceholder="Search partner..."
                       emptyText="No partner found."
@@ -1504,6 +1488,7 @@ export function AddApplicantModal({
                           value === "none" ? "" : value
                         )
                       }
+                      onOpen={() => loadFieldData('donor')}
                       placeholder="Select donor"
                       searchPlaceholder="Search donor..."
                       emptyText="No donor found."
@@ -1613,6 +1598,7 @@ export function AddApplicantModal({
                           value === "none" ? "" : value
                         )
                       }
+                      onOpen={() => loadFieldData('question_set')}
                       placeholder="Select question set"
                       searchPlaceholder="Search question set..."
                       emptyText="No question set found."
@@ -1774,6 +1760,7 @@ export function AddApplicantModal({
                           value === "none" ? "" : value
                         )
                       }
+                      onOpen={() => loadFieldData('school')}
                       placeholder="Select qualifying school"
                       searchPlaceholder="Search school..."
                       emptyText="No school found."
