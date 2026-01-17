@@ -56,7 +56,9 @@ interface ScheduleInterviewModalProps {
     date: string,
     startTime: string,
     endTime: string,
-    topicName: string
+    topicName: string,
+    adminEmail: string,
+    adminName: string
   ) => Promise<void>;
   isLoading: boolean;
   initialStudentId?: string;
@@ -501,6 +503,11 @@ export const ScheduleInterviewModal = ({
     }
 
     try {
+      // Get admin email to include in calendar invites
+      const currentUser = getCurrentUser();
+      const adminEmail = currentUser?.email || "";
+      const adminName = currentUser?.name || "Admin";
+
       await onSchedule(
         slotToUse.id,
         parseInt(studentId),
@@ -511,7 +518,9 @@ export const ScheduleInterviewModal = ({
         slotToUse.date,
         slotToUse.start_time,
         slotToUse.end_time,
-        topicName
+        topicName,
+        adminEmail,
+        adminName
       );
 
       // Reset form
@@ -731,12 +740,12 @@ export const ScheduleInterviewModal = ({
                   className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
                   placeholder="student@example.com"
                   required
-                  disabled={isFetchingStudent || studentDataFetched}
+                  disabled={isFetchingStudent || (studentDataFetched && (!!initialStudentId || !!initialStudentEmail))}
                 />
                 <Button
                   type="button"
                   onClick={handleFetchStudent}
-                  disabled={isFetchingStudent || !studentEmail || studentDataFetched}
+                  disabled={isFetchingStudent || !studentEmail || (studentDataFetched && (!!initialStudentId || !!initialStudentEmail))}
                   className="bg-primary hover:bg-primary/90"
                 >
                   {isFetchingStudent ? (

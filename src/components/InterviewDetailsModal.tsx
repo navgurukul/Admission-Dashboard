@@ -95,12 +95,36 @@ export function InterviewDetailsModal({
     }) || false;
   }, [scheduleInfo]);
 
+  // Check if all scheduled interviews have passed/expired
+  const hasAllInterviewsExpired = useMemo(() => {
+    if (!scheduleInfo || scheduleInfo.length === 0) return false;
+    
+    const now = new Date();
+    
+    return scheduleInfo.every((schedule) => {
+      const status = schedule.status?.toLowerCase() || "";
+      
+      // If cancelled or completed, consider as not active
+      if (status === "cancelled" || status === "completed") {
+        return true;
+      }
+      
+      // Check if the interview time has passed
+      if (schedule.date && schedule.end_time) {
+        const scheduleDateTime = new Date(`${schedule.date}T${schedule.end_time}`);
+        return scheduleDateTime < now;
+      }
+      
+      return false;
+    });
+  }, [scheduleInfo]);
+
   // Determine if user can schedule new interview
-  // Cannot schedule if:
-  // 1. Student has already passed the round
-  // 2. Stage is disabled (previous round not passed)
-  // 3. There's already an active booking (scheduled/rescheduled) - applies to everyone including admin
-  const canScheduleNew = !hasPassedRound && !isStageDisabled && !hasActiveBooking;
+  // Can schedule if:
+  // 1. Student has NOT passed the round yet
+  // 2. Stage is NOT disabled (previous round passed)
+  // 3. Either no active bookings OR all interviews have expired
+  const canScheduleNew = !hasPassedRound && !isStageDisabled && (!hasActiveBooking || hasAllInterviewsExpired);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

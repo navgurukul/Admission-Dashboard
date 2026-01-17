@@ -41,7 +41,7 @@ export function AdmissionsSidebar() {
         googleSignOut();
       }
       logoutUser(); // This clears localStorage
-      window.location.href = "/Admission-Dashboard/students/login";
+      window.location.href = "/students/login";
     } catch (error) {
       console.error("Logout error:", error);
       // Force logout anyway

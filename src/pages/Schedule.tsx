@@ -165,6 +165,8 @@ const Schedule = () => {
     startTime: string,
     endTime: string,
     topicName: string,
+    adminEmail: string,
+    adminName: string
   ) => {
     try {
       setSchedulingInProgress(true);
@@ -190,7 +192,7 @@ const Schedule = () => {
         endDateTime,
         attendeeEmail: studentEmail,
         studentName: studentName,
-        attendees: [studentEmail, interviewerEmail].filter(Boolean),
+        attendees: [adminEmail, studentEmail, interviewerEmail].filter(Boolean),
       };
 
       toast({
@@ -700,6 +702,7 @@ const Schedule = () => {
         isDirectScheduleMode={isDirectScheduleMode}
         onSchedule={handleAdminScheduleMeet}
         isLoading={schedulingInProgress}
+
       />
 
       {/* Delete Confirmation Dialog */}

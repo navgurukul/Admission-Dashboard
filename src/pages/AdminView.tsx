@@ -224,6 +224,8 @@ export default function AdminView() {
     startTime: string,
     endTime: string,
     topicName: string,
+    adminEmail: string,
+    adminName: string
   ) => {
     try {
       setSchedulingInProgress(true);
@@ -248,7 +250,7 @@ export default function AdminView() {
         endDateTime,
         attendeeEmail: studentEmail,
         studentName: studentName,
-        attendees: [studentEmail, interviewerEmail].filter(Boolean),
+        attendees: [adminEmail, studentEmail, interviewerEmail].filter(Boolean),
       };
 
       toast({

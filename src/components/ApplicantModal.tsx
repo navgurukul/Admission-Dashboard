@@ -602,7 +602,9 @@ export function ApplicantModal({
     date: string,
     startTime: string,
     endTime: string,
-    topicName: string
+    topicName: string,
+    adminEmail: string,
+    adminName: string
   ) => {
     if (!currentApplicant) return;
 
@@ -658,7 +660,7 @@ Interviewer: ${interviewerName}`;
         endDateTime,
         attendeeEmail: studentEmail || currentApplicant.email || "",
         studentName: studentName || `${currentApplicant.first_name} ${currentApplicant.last_name}`,
-        attendees: [studentEmail, interviewerEmail].filter(Boolean),
+        attendees: [adminEmail, studentEmail, interviewerEmail].filter(Boolean),
       });
 
       if (!calendarEvent || !calendarEvent.success) {
@@ -730,11 +732,49 @@ Interviewer: ${interviewerName}`;
   // Handle cancel schedule
   const handleCancelSchedule = useCallback(async (scheduleId: number) => {
     try {
+      // Find the schedule to get google_event_id
+      const scheduleToCancel = liveScheduleData.find(
+        (s) => s.id === scheduleId || s.schedule_id === scheduleId
+      );
+
+      // Check Google sign-in status
+      if (!isGoogleSignedIn) {
+        const signInSuccess = await signIn();
+        if (!signInSuccess) {
+          toast({
+            title: "Google Sign-in Required",
+            description: "Please sign in to Google to remove calendar event",
+            variant: "destructive",
+          });
+          return;
+        }
+        setIsGoogleSignedIn(true);
+      }
+
+      // Delete the calendar event first if google_event_id exists
+      if (scheduleToCancel?.google_event_id) {
+        try {
+          console.log("Deleting calendar event:", scheduleToCancel.google_event_id);
+          await deleteCalendarEvent(scheduleToCancel.google_event_id);
+          console.log("Calendar event deleted successfully");
+        } catch (error) {
+          console.error("Error deleting calendar event:", error);
+          // Show warning but continue with cancellation
+          toast({
+            title: "⚠️ Warning",
+            description: "Could not remove calendar event, but will cancel the interview.",
+            variant: "default",
+            className: "border-orange-500 bg-orange-50 text-orange-900",
+          });
+        }
+      }
+
+      // Cancel the interview in the backend
       await cancelScheduledInterview(scheduleId, "Cancelled by admin");
       
       toast({
         title: "✅ Interview Cancelled",
-        description: "The interview has been successfully cancelled.",
+        description: "The interview has been successfully cancelled and removed from calendar.",
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900",
       });
@@ -750,7 +790,7 @@ Interviewer: ${interviewerName}`;
         variant: "destructive",
       });
     }
-  }, [toast, fetchScheduleData]);
+  }, [toast, fetchScheduleData, liveScheduleData, isGoogleSignedIn]);
 
   // Handle reschedule click - open schedule modal with reschedule data
   const handleRescheduleClick = useCallback((scheduleId: number) => {
