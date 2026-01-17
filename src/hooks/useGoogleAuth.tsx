@@ -22,8 +22,7 @@ interface GoogleAuthState {
 }
 
 // Google OAuth Configuration
-const GOOGLE_CLIENT_ID =
-  "654022633429-fv4rgcs654a0f9r0464tl6o8jvjk3dco.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 interface UseGoogleAuthOptions {
   skipAutoNavigation?: boolean;
