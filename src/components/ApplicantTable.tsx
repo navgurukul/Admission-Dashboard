@@ -30,6 +30,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useApplicantFilters } from "@/hooks/useApplicantFilters";
+import { useReferenceData } from "@/hooks/useReferenceData";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { BulkActions } from "./applicant-table/BulkActions";
 import { TableActions } from "./applicant-table/TableActions";
@@ -183,7 +184,8 @@ const ApplicantTable = () => {
   const { triggerRefresh } = useDashboardRefresh();
   const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   const [stageStatuses, setStageStatuses] = useState<any[]>([]);
-  // Custom hook for data fetching
+  
+  // ✅ CRITICAL OPTIMIZATION: Only fetch students data on initial load
   const {
     students,
     totalStudents,
@@ -191,6 +193,11 @@ const ApplicantTable = () => {
     isStudentsLoading,
     isStudentsFetching,
     refetchStudents,
+  } = useApplicantData(currentPage, itemsPerPage);
+
+  // ✅ CRITICAL OPTIMIZATION: Load reference data lazily (only when needed for editing/filtering)
+  const {
+    isLoading: isLoadingReferenceData,
     campusList,
     schoolList,
     currentstatusList,
@@ -202,63 +209,196 @@ const ApplicantTable = () => {
     partnerList,
     donorList,
     stateList,
-    stageStatusList,
-  } = useApplicantData(currentPage, itemsPerPage);
+    fetchAllReferenceData,
+    // Individual fetch functions for field-specific loading (ALL on-demand)
+    fetchCampuses,
+    fetchCurrentStatuses,
+    fetchStages,
+    fetchCasts,
+    fetchQualifications,
+    fetchReligions,
+    fetchPartners,
+    fetchDonors,
+    fetchSchools,
+    fetchStates,
+  } = useReferenceData();
+
+  // ✅ Intelligent stage status list: Prioritize stage-specific statuses, fallback to general statuses
+  // This ensures filter tags always display correct names
+  const stageStatusList = useMemo(() => {
+    // If we have stage-specific statuses loaded (from getStatusesByStageId), use those first
+    if (stageStatuses.length > 0) {
+      return stageStatuses.map((s: any) => ({
+        id: s.id,
+        status_name: s.status_name || s.current_status_name || s.name,
+        name: s.status_name || s.current_status_name || s.name,
+      }));
+    }
+    
+    // Otherwise, fallback to general current statuses list
+    return currentstatusList.map((s: any) => ({
+      id: s.id,
+      status_name: s.current_status_name || s.status_name || s.name,
+      name: s.current_status_name || s.status_name || s.name,
+    }));
+  }, [currentstatusList, stageStatuses]);
+
+  // ✅ CRITICAL: Load reference data ONLY when user performs an action requiring it
+  // This is triggered by: Add button, Edit button, Filter button
+  const ensureReferenceDataLoaded = useCallback(async () => {
+    if (campusList.length === 0) {
+      console.log("🔄 Loading reference data on-demand...");
+      await fetchAllReferenceData();
+      console.log("✅ Reference data loaded successfully");
+    } else {
+      console.log("✅ Reference data already loaded, using cache");
+    }
+  }, [campusList.length, fetchAllReferenceData]);
+
+  // ✅ NEW: Field-specific data loading callbacks - ALL fields load on-demand
+  const ensureFieldDataLoaded = useCallback(async (field: string) => {
+    console.log(`🔧 Loading data for field: ${field}`);
+    
+    switch (field) {
+      case 'campus_id':
+        if (campusList.length === 0) {
+          console.log('📥 Fetching campuses...');
+          await fetchCampuses();
+        }
+        break;
+      case 'current_status_id':
+        if (currentstatusList.length === 0) {
+          console.log('📥 Fetching current statuses...');
+          await fetchCurrentStatuses();
+        }
+        break;
+      case 'stage_id':
+        if (stageList.length === 0) {
+          console.log('📥 Fetching stages...');
+          await fetchStages();
+        }
+        break;
+      case 'state':
+        if (stateList.length === 0) {
+          console.log('📥 Fetching states...');
+          await fetchStates();
+        }
+        break;
+      case 'cast_id':
+        if (castList.length === 0) {
+          console.log('📥 Fetching casts...');
+          await fetchCasts();
+        }
+        break;
+      case 'qualification_id':
+        if (qualificationList.length === 0) {
+          console.log('📥 Fetching qualifications...');
+          await fetchQualifications();
+        }
+        break;
+      case 'religion_id':
+        if (religionList.length === 0) {
+          console.log('📥 Fetching religions...');
+          await fetchReligions();
+        }
+        break;
+      case 'partner_id':
+        if (partnerList.length === 0) {
+          console.log('📥 Fetching partners...');
+          await fetchPartners();
+        }
+        break;
+      case 'donor_id':
+        if (donorList.length === 0) {
+          console.log('📥 Fetching donors...');
+          await fetchDonors();
+        }
+        break;
+      case 'school_id':
+        if (schoolList.length === 0) {
+          console.log('📥 Fetching schools...');
+          await fetchSchools();
+        }
+        break;
+      default:
+        console.log(`⚠️ No specific loader for field: ${field}`);
+    }
+    
+    console.log(`✅ Data loaded for field: ${field}`);
+  }, [
+    campusList.length,
+    currentstatusList.length,
+    stageList.length,
+    stateList.length,
+    castList.length,
+    qualificationList.length,
+    religionList.length,
+    partnerList.length,
+    donorList.length,
+    schoolList.length,
+    fetchCampuses,
+    fetchCurrentStatuses,
+    fetchStages,
+    fetchStates,
+    fetchCasts,
+    fetchQualifications,
+    fetchReligions,
+    fetchPartners,
+    fetchDonors,
+    fetchSchools,
+  ]);
 
   // Map student data with related info
   const applicantsToDisplay = useMemo(() => {
-    return students.map((student) => {
-      const school = schoolList.find((s) => s.id === student.school_id);
-      const campus = campusList.find((c) => c.id === student.campus_id);
-      const current_status = currentstatusList.find(
-        (s) => s.id === student.current_status_id,
-      );
-      const religion = religionList.find((r) => r.id === student.religion_id);
-      const questionSet = questionSetList.find(
-        (q) => q.id === student.question_set_id,
-      );
+    // ✅ DEBUG: Log first student to see what backend returns
+    if (students.length > 0 && !(window as any).__STUDENT_DEBUG_LOGGED__) {
+      console.log("🔍 Sample student data from API:", students[0]);
+      console.log("📋 Available fields:", Object.keys(students[0]));
+      (window as any).__STUDENT_DEBUG_LOGGED__ = true;
+    }
 
+    // ✅ OPTIMIZATION: Backend already returns name fields (campus_name, school_name, etc.)
+    // We only need to add computed fields like full name and obtained marks
+    return students.map((student) => {
       // Get obtained marks from exam_sessions if available
       let obtainedMarks = 0;
-      let examSchoolName = "N/A";
+      let examSchoolName = student.school_name || "N/A";
+      
       if (student.exam_sessions && Array.isArray(student.exam_sessions) && student.exam_sessions.length > 0) {
-        // Get the latest exam session
-        const latestExam = student.exam_sessions.reduce((latest, current) =>
+        const latestExam = student.exam_sessions.reduce((latest: any, current: any) =>
           new Date(current.created_at) > new Date(latest.created_at) ? current : latest
         );
         obtainedMarks = latestExam.obtained_marks || 0;
-
-        // Get school from exam session
-        if (latestExam.school_id) {
+        
+        // Use exam session school name if available, otherwise fall back to student's school_name
+        if (latestExam.school_name) {
+          examSchoolName = latestExam.school_name;
+        } else if (latestExam.school_id && schoolList.length > 0) {
           const examSchool = schoolList.find((s) => s.id === latestExam.school_id);
-          examSchoolName = examSchool ? examSchool.school_name : "N/A";
+          examSchoolName = examSchool ? examSchool.school_name : examSchoolName;
         }
       }
+
+      // Find question set for maximum marks (if not already in student data)
+      const questionSet = questionSetList.length > 0
+        ? questionSetList.find((q) => q.id === student.question_set_id)
+        : null;
 
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
-        name: `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""
-          }`.trim(),
+        name: `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim(),
         school_name: examSchoolName,
-        campus_name: campus ? campus.campus_name : "N/A",
-        current_status_name: current_status
-          ? current_status.current_status_name
-          : "N/A",
-        religion_name: religion ? religion.religion_name : "N/A",
-        question_set_name: questionSet ? questionSet.name : "N/A",
-        maximumMarks: questionSet ? questionSet.maximumMarks : 0,
+        // Backend provides these - use them directly or fallback to "N/A"
+        campus_name: student.campus_name || "N/A",
+        current_status_name: student.current_status_name || "N/A",
+        religion_name: student.religion_name || "N/A",
+        question_set_name: student.question_set_name || questionSet?.name || "N/A",
+        maximumMarks: student.maximumMarks || questionSet?.maximumMarks || 0,
         obtained_marks: obtainedMarks,
       };
     });
-  }, [
-    students,
-    schoolList,
-    campusList,
-    currentstatusList,
-    religionList,
-    questionSetList,
-  ]);
+  }, [students, schoolList, questionSetList]);
 
   // Custom hook for filters and search
   const {
@@ -301,27 +441,36 @@ const ApplicantTable = () => {
     setSelectedRows([]);
   }, [searchTerm, hasActiveFilters]);
 
-  // Fetch stage statuses when filters change
+  // ✅ Memoize stage ID to prevent unnecessary re-fetches
+  const currentStageId = useMemo(() => {
+    return (filters as any).stage_id || (filters as any).stage;
+  }, [(filters as any).stage_id, (filters as any).stage]);
+
+  // Fetch stage statuses when stage filter changes (on-demand, stage-specific)
+  // ✅ OPTIMIZED: Only re-runs when stage ID actually changes
   useEffect(() => {
     const fetchStageStatuses = async () => {
-      const stageId = (filters as any).stage_id;
-      if (!stageId || (filters as any).stage === "all") {
+      // Skip if no stage selected or "all" selected
+      if (!currentStageId || currentStageId === "all") {
         setStageStatuses([]);
         return;
       }
 
+      console.log(`🔄 Loading stage-specific statuses for stage ID: ${currentStageId}...`);
+      
       try {
-        const response = await getStatusesByStageId(stageId);
+        const response = await getStatusesByStageId(currentStageId);
         const statusesData = response?.data || response || [];
         setStageStatuses(statusesData);
+        console.log(`✅ Loaded ${statusesData.length} statuses for stage ${currentStageId}:`, statusesData);
       } catch (error) {
-        console.error("Error fetching stage statuses:", error);
+        console.error("❌ Error fetching stage statuses:", error);
         setStageStatuses([]);
       }
     };
 
     fetchStageStatuses();
-  }, [filters]);
+  }, [currentStageId]); // ✅ Single stable dependency
 
   // Track if pagination/itemsPerPage is actively changing (not just data refresh)
   const [isPaginationChanging, setIsPaginationChanging] = useState(false);
@@ -343,7 +492,14 @@ const ApplicantTable = () => {
     }
   }, [isStudentsFetching, isPaginationChanging]);
 
+  // ✅ Create stable filter signature to prevent duplicate API calls
+  // Only changes when actual filter values change, not when object reference changes
+  const filterSignature = useMemo(() => {
+    return JSON.stringify(filters);
+  }, [filters]);
+
   // Refetch filtered data when page or limit changes
+  // ✅ OPTIMIZED: Uses filterSignature instead of filters object
   useEffect(() => {
     if (hasActiveFilters && !isSearching) {
       const fetchFilteredData = async () => {
@@ -355,19 +511,117 @@ const ApplicantTable = () => {
             page: currentPage,
             limit: itemsPerPage,
           };
+          console.log(`🔄 Fetching filtered data: page ${currentPage}, limit ${itemsPerPage}`);
           const response = await getFilterStudent(apiParamsWithPagination);
           setFilteredStudents(response.data || []);
           setFilteredTotalCount(response.total || 0);
           setFilteredTotalPages(response.totalPages || 1);
+          console.log(`✅ Fetched ${response.data?.length || 0} filtered students (total: ${response.total || 0})`);
+          
+          // Show success toast only when filters change (not on pagination)
+          if (currentPage === 1) {
+            toast({
+              title: "✅ Filters Applied",
+              description: `Found ${response.total || 0} applicants matching your criteria`,
+              variant: "default",
+              className: "border-green-500 bg-green-50 text-green-900",
+            });
+          }
         } catch (error) {
           console.error("Error refetching filtered data:", error);
+          toast({
+            title: "❌ Unable to Fetch Filtered Data",
+            description: getFriendlyErrorMessage(error),
+            variant: "destructive",
+            className: "border-red-500 bg-red-50 text-red-900",
+          });
         } finally {
           setIsFiltering(false);
         }
       };
       fetchFilteredData();
     }
-  }, [currentPage, itemsPerPage, hasActiveFilters, filters]);
+  }, [currentPage, itemsPerPage, hasActiveFilters, filterSignature, isSearching]); // ✅ filterSignature prevents duplicate calls
+
+  // ✅ Load reference data ONLY when filters are active (on-demand for tag display)
+  useEffect(() => {
+    const loadRequiredReferenceData = async () => {
+      if (!hasActiveFilters) return;
+      
+      // Check which reference data we actually need based on active filters
+      const needsLoading: Promise<void>[] = [];
+      
+      if ((filters as any).partner?.length && campusList.length === 0) {
+        console.log("🔄 Loading campuses for filter tags...");
+        needsLoading.push(fetchCampuses());
+      }
+      
+      if ((filters as any).school?.length && schoolList.length === 0) {
+        console.log("🔄 Loading schools for filter tags...");
+        needsLoading.push(fetchSchools());
+      }
+      
+      // Load current statuses if stage_status filter is active AND we don't have stage-specific data
+      if ((filters as any).stage_status?.length) {
+        if (stageStatuses.length === 0 && currentstatusList.length === 0) {
+          console.log("🔄 Loading current statuses for filter tags...");
+          needsLoading.push(fetchCurrentStatuses());
+        }
+      }
+      
+      if ((filters as any).stage_id && stageList.length === 0) {
+        console.log("🔄 Loading stages for filter tags...");
+        needsLoading.push(fetchStages());
+      }
+      
+      if ((filters as any).religion?.length && religionList.length === 0) {
+        console.log("🔄 Loading religions for filter tags...");
+        needsLoading.push(fetchReligions());
+      }
+      
+      if ((filters as any).qualification?.length && qualificationList.length === 0) {
+        console.log("🔄 Loading qualifications for filter tags...");
+        needsLoading.push(fetchQualifications());
+      }
+      
+      if ((filters as any).partnerFilter?.length && partnerList.length === 0) {
+        console.log("🔄 Loading partners for filter tags...");
+        needsLoading.push(fetchPartners());
+      }
+      
+      if ((filters as any).donor?.length && donorList.length === 0) {
+        console.log("🔄 Loading donors for filter tags...");
+        needsLoading.push(fetchDonors());
+      }
+      
+      if (needsLoading.length > 0) {
+        await Promise.all(needsLoading);
+        console.log("✅ Required reference data loaded for filter tags");
+      }
+    };
+    
+    loadRequiredReferenceData();
+  }, [
+    hasActiveFilters, 
+    filterSignature, // ✅ Use stable signature instead of filters object
+    campusList.length, 
+    schoolList.length, 
+    currentstatusList.length,
+    stageList.length,
+    religionList.length,
+    qualificationList.length,
+    partnerList.length,
+    donorList.length,
+    stageStatuses.length,
+    fetchCampuses,
+    fetchSchools,
+    fetchCurrentStatuses,
+    fetchStages,
+    fetchReligions,
+    fetchQualifications,
+    fetchPartners,
+    fetchDonors,
+  ]);
 
   // Checkbox handlers
   const handleCheckboxChange = useCallback((id: string) => {
@@ -433,10 +687,11 @@ const ApplicantTable = () => {
     });
   }, [toast]);
 
+  // ✅ FIXED: Remove visibleColumns from dependencies to prevent API calls on UI-only changes
   const isColumnVisible = useCallback((columnId: string) => {
     const column = visibleColumns.find(col => col.id === columnId);
     return column?.visible ?? true;
-  }, [visibleColumns]);
+  }, [visibleColumns]); // Update when column visibility changes
 
   const refreshData = useCallback(async () => {
     // Trigger dashboard stats refresh
@@ -879,7 +1134,7 @@ const ApplicantTable = () => {
       });
     }
 
-    // Individual stage status chips
+    // Individual stage status chips with intelligent name resolution
     const stageStatusValue = (filters as any).stage_status;
     const stageStatusArray = Array.isArray(stageStatusValue)
       ? stageStatusValue
@@ -888,9 +1143,22 @@ const ApplicantTable = () => {
         : [];
 
     stageStatusArray.forEach((statusId: string) => {
-      // Find the status name from stageStatusList (which now includes all stages)
-      const statusObj = stageStatusList.find((s: any) => String(s.id) === String(statusId));
-      const statusLabel = statusObj?.status_name || statusObj?.name || statusId;
+      // Strategy: Try multiple sources to find the status name
+      // 1. Check stage-specific statuses first (most accurate)
+      let statusObj: any = stageStatusList.find((s: any) => String(s.id) === String(statusId));
+      
+      // 2. If not found, check currentstatusList directly
+      if (!statusObj) {
+        statusObj = currentstatusList.find((s: any) => String(s.id) === String(statusId));
+      }
+      
+      // 3. Extract the name with multiple fallbacks
+      const statusLabel = 
+        statusObj?.status_name || 
+        statusObj?.current_status_name || 
+        statusObj?.name || 
+        resolveCurrentStatusName(statusId) || 
+        statusId;
 
       tags.push({
         key: `stage_status-${statusId}`,
@@ -1101,6 +1369,13 @@ const ApplicantTable = () => {
       return;
     }
 
+    // ✅ Load reference data for filter tags display
+    // This ensures filter tags show names instead of IDs
+    if (campusList.length === 0) {
+      console.log("🔄 Loading reference data for filter tags...");
+      await ensureReferenceDataLoaded();
+    }
+
     // Clear search when filters are applied
     setSearchTerm("");
     setSearchResults([]);
@@ -1108,28 +1383,13 @@ const ApplicantTable = () => {
     try {
       setIsFiltering(true);
       setHasActiveFilters(true);
-      const apiParams = transformFiltersToAPI(newFilters);
-
-      // Call the filter API
-      const apiParamsWithPagination = {
-        ...apiParams,
-        page: 1,
-        limit: itemsPerPage,
-      };
-
-      const response = await getFilterStudent(apiParamsWithPagination);
-      setFilteredStudents(response.data || []);
-      setFilteredTotalCount(response.total || 0);
-      setFilteredTotalPages(response.totalPages || 1);
       setCurrentPage(1); // Reset to first page when filters are applied
-
-      toast({
-        title: "✅ Filters Applied",
-        description: `Found ${response.total || 0
-          } applicants matching your criteria`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
+      
+      // ✅ DON'T call API here - let the useEffect handle it to prevent duplicates
+      console.log("✅ Filters updated, useEffect will fetch data automatically");
+      
+      // The useEffect on line ~505 will detect the filterSignature change
+      // and automatically fetch the filtered data
     } catch (error) {
       console.error("Error applying filters:", error);
       toast({
@@ -1229,38 +1489,10 @@ const ApplicantTable = () => {
         className: "border-green-500 bg-green-50 text-green-900",
       });
     } else {
-      try {
-        setIsFiltering(true);
-        const apiParams = transformFiltersToAPI(newFilters);
-        const apiParamsWithPagination = {
-          ...apiParams,
-          page: 1,
-          limit: itemsPerPage,
-        };
-        const response = await getFilterStudent(apiParamsWithPagination);
-        setFilteredStudents(response.data || []);
-        setFilteredTotalCount(response.total || 0);
-        setFilteredTotalPages(response.totalPages || 1);
-        setCurrentPage(1);
-
-        toast({
-          title: "✅ Filter Removed",
-          description: `Found ${response.total || 0} applicants matching your criteria`,
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900",
-        });
-      } catch (error) {
-        console.error("Error re-applying filters:", error);
-        toast({
-          title: "❌ Unable to Update Filters",
-          description: getFriendlyErrorMessage(error),
-          variant: "destructive",
-          className: "border-red-500 bg-red-50 text-red-900",
-        });
-        setFilteredStudents([]);
-      } finally {
-        setIsFiltering(false);
-      }
+      // ✅ OPTIMIZED: Just update state, let useEffect handle the API call
+      setHasActiveFilters(true);
+      setCurrentPage(1);
+      console.log("✅ Filter removed, useEffect will fetch updated data");
     }
   };
 
@@ -1347,39 +1579,10 @@ const ApplicantTable = () => {
         className: "border-green-500 bg-green-50 text-green-900",
       });
     } else {
-      // Re-apply remaining filters
-      try {
-        setIsFiltering(true);
-        const apiParams = transformFiltersToAPI(newFilters);
-        const apiParamsWithPagination = {
-          ...apiParams,
-          page: 1,
-          limit: itemsPerPage,
-        };
-        const response = await getFilterStudent(apiParamsWithPagination);
-        setFilteredStudents(response.data || []);
-        setFilteredTotalCount(response.total || 0);
-        setFilteredTotalPages(response.totalPages || 1);
-        setCurrentPage(1);
-
-        toast({
-          title: "✅ Filter Removed",
-          description: `Found ${response.total || 0} applicants matching your criteria`,
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900",
-        });
-      } catch (error) {
-        console.error("Error re-applying filters:", error);
-        toast({
-          title: "❌ Unable to Update Filters",
-          description: getFriendlyErrorMessage(error),
-          variant: "destructive",
-          className: "border-red-500 bg-red-50 text-red-900",
-        });
-        setFilteredStudents([]);
-      } finally {
-        setIsFiltering(false);
-      }
+      // ✅ OPTIMIZED: Just update state, let useEffect handle the API call
+      setHasActiveFilters(true);
+      setCurrentPage(1);
+      console.log("✅ Filter removed, useEffect will fetch updated data");
     }
   };
 
@@ -1523,17 +1726,17 @@ const ApplicantTable = () => {
             {hasEditAccess && (
               <BulkActions
                 selectedRowsCount={selectedRows.length}
-                onBulkUpdate={() => setShowBulkUpdate(true)}
+                onBulkUpdate={() => { ensureReferenceDataLoaded(); setShowBulkUpdate(true); }}
                 // onBulkUpdate={handleBulkUpdate}
                 onSendOfferLetters={handleSendOfferLetters}
                 onBulkDelete={() => setShowDeleteConfirm(true)}
               />
             )}
             <TableActions
-              onCSVImport={hasEditAccess ? () => setShowCSVImport(true) : undefined}
+              onCSVImport={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowCSVImport(true); } : undefined}
               onExportCSV={exportToCSV}
-              onShowFilters={() => setShowAdvancedFilters(true)}
-              onAddApplicant={hasEditAccess ? () => setShowAddModal(true) : undefined}
+              onShowFilters={() => { ensureReferenceDataLoaded(); setShowAdvancedFilters(true); }}
+              onAddApplicant={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowAddModal(true); } : undefined}
               isExporting={isExporting}
               hasActiveFilters={hasActiveFilters}
               searchTerm={searchTerm}
@@ -1629,6 +1832,9 @@ const ApplicantTable = () => {
                       onViewDetails={setApplicantToView}
                       onViewComments={setApplicantForComments}
                       onCampusChange={handleInlineUpdate}
+                      ensureReferenceDataLoaded={ensureReferenceDataLoaded}
+                      ensureFieldDataLoaded={ensureFieldDataLoaded}
+                      isLoadingReferenceData={isLoadingReferenceData}
                       schoolList={schoolList}
                       campusList={campusList}
                       religionList={religionList}
@@ -1669,16 +1875,6 @@ const ApplicantTable = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={refreshData}
-        schoolList={schoolList}
-        // campusList={campusList}
-        currentstatusList={currentstatusList}
-        religionList={religionList}
-        questionSetList={questionSetList}
-        qualificationList={qualificationList}
-        castList={castList}
-        partnerList={partnerList}
-        donorList={donorList}
-        stateList={stateList}
       />
       <CSVImportModal
         isOpen={showCSVImport}

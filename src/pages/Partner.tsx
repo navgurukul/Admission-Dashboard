@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   Card,
@@ -103,7 +104,7 @@ const PartnerPage = () => {
     form: defaultPartnerForm,
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const { debouncedValue: debouncedSearchQuery, isPending: isSearching } = useDebounce(searchQuery, 800);
   const [filterDialog, setFilterDialog] = useState(false);
   const [filters, setFilters] = useState({
     district: "",
@@ -147,16 +148,28 @@ const PartnerPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalPartnersCount, setTotalPartnersCount] = useState(0);
   const [allPartnersForStats, setAllPartnersForStats] = useState([]);
+  const [loadingAbortController, setLoadingAbortController] = useState<AbortController | null>(null);
 
   // Cleaned up old picker states
   // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
   // const [pendingAssessment, setPendingAssessment] = useState<any>(null);
 
   const loadPartners = async (p = page, search = searchQuery) => {
+    // Cancel previous request if still pending
+    if (loadingAbortController) {
+      loadingAbortController.abort();
+    }
+
+    const newAbortController = new AbortController();
+    setLoadingAbortController(newAbortController);
+
     setLoading(true);
     try {
-      // Pass search query to API
-      const response = await getPartners(p, rowsPerPage, search || ""); // Use rowsPerPage state and search
+      // Trim the search query and only pass it if it's not empty
+      const trimmedSearch = search?.trim() || "";
+      
+      // Pass search query to API only if it's not empty
+      const response = await getPartners(p, rowsPerPage, trimmedSearch); // Use rowsPerPage state and search
 
       // Extract data based on typical API structure
       let partnersArray = [];
@@ -198,7 +211,12 @@ const PartnerPage = () => {
       setTotalPartnersCount(total);
       setTotalPages(pages);
       setLoading(false);
+      setLoadingAbortController(null);
     } catch (error) {
+      // Don't show error if request was aborted
+      if (error.name === 'AbortError') {
+        return;
+      }
       toast({
         title: "❌ Unable to Load Partners",
         description: getFriendlyErrorMessage(error),
@@ -206,19 +224,20 @@ const PartnerPage = () => {
         className: "border-red-500 bg-red-50 text-red-900"
       });
       setLoading(false);
+      setLoadingAbortController(null);
     }
   };
 
-  // Debounce search query to avoid excessive API calls
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500); // Wait 500ms after user stops typing
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  useEffect(() => {
+    // Trim search queries to compare properly
+    const trimmedDebounced = debouncedSearchQuery?.trim() || "";
+    const trimmedCurrent = searchQuery?.trim() || "";
+    
+    // Reset to page 1 when search changes, but don't trigger extra load
+    if (page !== 1 && trimmedDebounced !== trimmedCurrent) {
+      setPage(1);
+      return; // Skip this load, the page change will trigger it
+    }
     loadPartners(page, debouncedSearchQuery);
   }, [page, rowsPerPage, debouncedSearchQuery]); // Use debouncedSearchQuery
 
@@ -320,10 +339,10 @@ const PartnerPage = () => {
     );
   });
 
-  // Reset page to 1 when search or filters change
+  // Reset page to 1 when filters change (but not on search, handled above)
   React.useEffect(() => {
     setPage(1);
-  }, [debouncedSearchQuery, filters]);
+  }, [filters]);
 
   // We use partners directly since it's now paginated by the server
   const paginatedPartners = filteredPartners;
@@ -853,7 +872,7 @@ const PartnerPage = () => {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search by name, email, or slug..."
+                    placeholder="Search by name"
                     className="pl-9 bg-background"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -890,12 +909,12 @@ const PartnerPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading || isSearching ? (
                     <TableRow>
                       <TableCell colSpan={8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                          Loading data...
+                          {isSearching ? "Searching..." : "Loading data..."}
                         </div>
                       </TableCell>
                     </TableRow>

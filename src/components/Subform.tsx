@@ -9,7 +9,15 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Plus, Pencil, Save } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, Pencil, Save, Trash2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -35,10 +43,14 @@ interface InlineSubformProps {
   studentId?: number | string;
   submitApi: (payload: any) => Promise<any>;
   updateApi: (id: number | string, payload: any) => Promise<any>;
+  deleteApi?: (id: number | string) => Promise<any>;
   onSave?: () => void;
   disabled?: boolean;
   disabledReason?: string;
   disableAdd?: boolean;
+  customActions?: React.ReactNode; // Custom action buttons to display alongside Add Row
+  canDelete?: boolean; // Permission to delete entries (admin only)
+  disableDelete?: boolean; // Disable delete when student has moved to next round
 }
 
 // Map payload based on round type
@@ -234,13 +246,19 @@ export function InlineSubform({
   studentId,
   submitApi,
   updateApi,
+  deleteApi,
   onSave,
   disabled,
   disabledReason,
   disableAdd,
+  customActions,
+  canDelete = false, // Default to false (no delete permission)
+  disableDelete = false, // Default to false (deletion not disabled by round progression)
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
   const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -272,7 +290,25 @@ export function InlineSubform({
       );
     });
 
-    if (idsChanged || rows.length === 0 || auditInfoChanged) {
+    // Check if schedule_info has changed (from "—" to array or vice versa)
+    const scheduleInfoChanged = initialData.some((newRow) => {
+      const existingRow = rows.find((r) => r.id === newRow.id);
+      if (!existingRow) return false;
+      
+      const newSchedule = newRow.schedule_info;
+      const existingSchedule = existingRow.schedule_info;
+      
+      // Check if one is "—" and the other is an array, or array lengths differ
+      const newIsArray = Array.isArray(newSchedule);
+      const existingIsArray = Array.isArray(existingSchedule);
+      
+      if (newIsArray !== existingIsArray) return true;
+      if (newIsArray && existingIsArray && newSchedule.length !== existingSchedule.length) return true;
+      
+      return false;
+    });
+
+    if (idsChanged || rows.length === 0 || auditInfoChanged || scheduleInfoChanged) {
       const mappedData = initialData.map((r) => ({ ...r }));
       setRows(mappedData);
       setOriginalRows(mappedData);
@@ -486,6 +522,59 @@ export function InlineSubform({
     }
   };
 
+  const deleteRow = async (idx: number) => {
+    const row = rows[idx];
+    
+    // Only allow deletion if row has an ID (exists in database) and deleteApi is provided
+    if (!row.id || !deleteApi) return;
+
+    // Open confirmation dialog
+    setRowToDelete(idx);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (rowToDelete === null) return;
+    
+    const row = rows[rowToDelete];
+    if (!row.id || !deleteApi) return;
+
+    try {
+      await deleteApi(row.id);
+      
+      toast({
+        title: "✅ Entry Deleted",
+        description: "The entry has been successfully deleted.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+
+      // Close dialog and reset state
+      setDeleteConfirmOpen(false);
+      setRowToDelete(null);
+
+      // Refresh data by calling onSave callback
+      onSave?.();
+    } catch (err) {
+      console.error("Delete failed", err);
+      toast({
+        title: "❌ Unable to Delete",
+        description: getFriendlyErrorMessage(err),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+      
+      // Close dialog even on error
+      setDeleteConfirmOpen(false);
+      setRowToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setRowToDelete(null);
+  };
+
   const getDisplayValue = (row: any, field: RowField) => {
     // Handle audit_info field specially
     if (field.name === "audit_info") {
@@ -556,36 +645,42 @@ export function InlineSubform({
     <div className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-semibold">{title}</h3>
-        {disabled || disableAdd ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="inline-block">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={addRow}
-                    disabled={true}
-                    className="opacity-50 cursor-not-allowed"
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> Add Row
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {disableAdd 
-                    ? "Cannot add more rows - round already passed" 
-                    : disabledReason || "Action disabled"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          <Button size="sm" variant="outline" onClick={addRow}>
-            <Plus className="h-4 w-4 mr-1" /> Add Row
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Custom action buttons (e.g., Schedule Interview) */}
+          {customActions}
+          
+          {/* Add Row button */}
+          {disabled || disableAdd ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={addRow}
+                      disabled={true}
+                      className="opacity-50 cursor-not-allowed"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add Row
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {disableAdd 
+                      ? "Cannot add more rows - round already passed" 
+                      : disabledReason || "Action disabled"}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button size="sm" variant="outline" onClick={addRow}>
+              <Plus className="h-4 w-4 mr-1" /> Add Row
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Table container: allow vertical and horizontal scrolling if content is large */}
@@ -593,7 +688,7 @@ export function InlineSubform({
         <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
-              {fields.map((f) => (
+              {fields.filter((f) => f.name !== "schedule_info").map((f) => (
                 <th key={f.name} className="px-3 py-2 border-b whitespace-nowrap">
                   {f.label}
                 </th>
@@ -602,9 +697,11 @@ export function InlineSubform({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => (
+            {rows.filter(row => row.id || row.isEditing).map((row) => {
+              const idx = rows.indexOf(row);
+              return (
               <tr key={idx} className="border-b hover:bg-gray-50">
-                {fields.map((f) => {
+                {fields.filter((f) => f.name !== "schedule_info").map((f) => {
                   // Audit fields should always be readonly
                   const isAuditField = ["created_at", "updated_at", "last_updated_by", "audit_info"].includes(f.name);
                   const isStatusField = f.name === "status" || f.name.includes("status");
@@ -625,7 +722,10 @@ export function InlineSubform({
                               : "w-auto"
                         }`}
                     >
-                      {!isEditable && (f.type === "readonly" || isAuditField) ? (
+                      {!isEditable && f.type === "component" && f.component ? (
+                        // Render component field directly (no wrapper)
+                        <f.component row={row} />
+                      ) : !isEditable && (f.type === "readonly" || isAuditField) ? (
                         <div className={`p-2 rounded w-full break-words ${isAuditField ? "bg-gray-50" : "bg-gray-100"}`}>
                           {getDisplayValue(row, f)}
                         </div>
@@ -651,43 +751,108 @@ export function InlineSubform({
                   );
                 })}
                 <td className="px-3 py-2 text-right whitespace-nowrap">
-                  {!row.isEditing ? (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className={`text-blue-600 hover:bg-blue-50 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                      onClick={() => toggleEdit(idx, true)}
-                      disabled={disabled}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""}`}
-                            onClick={() => saveRow(idx)}
-                          >
-                            <Save className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        {row.id && !hasChanges(idx) && (
-                          <TooltipContent>
-                            <p>No changes to save</p>
-                          </TooltipContent>
+                  <div className="flex items-center justify-end gap-1">
+                    {!row.isEditing ? (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={`text-blue-600 hover:bg-blue-50 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                          onClick={() => toggleEdit(idx, true)}
+                          disabled={disabled}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {/* Delete button - only show if row has ID, deleteApi is provided, and user has delete permission (admin) */}
+                        {row.id && deleteApi && canDelete && (
+                          disableDelete ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="text-red-600 hover:bg-red-50 opacity-50 cursor-not-allowed"
+                                      disabled={true}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Cannot delete - Student has progressed to next round</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:bg-red-50"
+                              onClick={() => deleteRow(idx)}
+                              disabled={disabled}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )
                         )}
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                      </>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""}`}
+                              onClick={() => saveRow(idx)}
+                            >
+                              <Save className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          {row.id && !hasChanges(idx) && (
+                            <TooltipContent>
+                              <p>No changes to save</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Entry</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this entry? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

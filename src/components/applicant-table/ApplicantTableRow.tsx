@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,6 +15,35 @@ import StatusDropdown from "./StatusDropdown";
 import StageDropdown from "./StageDropdown";
 import { CampusSelector } from "../CampusSelector";
 import { getDistrictsByState, getBlocksByDistrict } from "@/utils/api";
+
+// ✅ MANDATORY: Cache for getByState API to prevent repeated calls
+const districtCache = new Map<string, { data: any[]; timestamp: number }>();
+const blockCache = new Map<string, { data: any[]; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const getCachedDistricts = async (stateCode: string) => {
+  const cached = districtCache.get(stateCode);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+
+  const response = await getDistrictsByState(stateCode);
+  const districts = response?.data || response || [];
+  districtCache.set(stateCode, { data: districts, timestamp: Date.now() });
+  return districts;
+};
+
+const getCachedBlocks = async (districtCode: string) => {
+  const cached = blockCache.get(districtCode);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+
+  const response = await getBlocksByDistrict(districtCode);
+  const blocks = response?.data || response || [];
+  blockCache.set(districtCode, { data: blocks, timestamp: Date.now() });
+  return blocks;
+};
 import {
   Dialog,
   DialogContent,
@@ -37,6 +66,9 @@ interface ApplicantTableRowProps {
   onViewDetails: (applicant: any) => void;
   onViewComments: (applicant: any) => void;
   onCampusChange: () => void;
+  ensureReferenceDataLoaded?: () => void; // NEW: Callback to load all reference data
+  ensureFieldDataLoaded?: (field: string) => Promise<void>; // NEW: Callback to load specific field data
+  isLoadingReferenceData?: boolean; // NEW: Loading state for reference data
 
   campusList: any[];
   schoolList: any[];
@@ -63,6 +95,9 @@ export const ApplicantTableRow = ({
   onViewDetails,
   onViewComments,
   onCampusChange,
+  ensureReferenceDataLoaded, // Callback to load all reference data
+  ensureFieldDataLoaded, // NEW: Callback to load specific field data
+  isLoadingReferenceData = false, // Loading state
   campusList,
   schoolList,
   religionList,
@@ -88,82 +123,76 @@ export const ApplicantTableRow = ({
   const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
-  // Fetch districts when state is present
-  useEffect(() => {
-    const fetchDistricts = async () => {
-      if (!applicant.state) {
-        setDistrictOptions([]);
-        setBlockOptions([]);
-        return;
-      }
+  // ✅ FIXED: Fetch districts ONLY when user edits state field (on-demand)
+  const fetchDistrictsForState = useCallback(async (stateName: string) => {
+    if (!stateName) {
+      setDistrictOptions([]);
+      setBlockOptions([]);
+      return;
+    }
 
-      setIsLoadingDistricts(true);
-      try {
-        const stateObj = stateList.find(
-          (s: any) => 
-            s.label === applicant.state || 
-            s.state_name === applicant.state ||
-            s.value === applicant.state ||
-            s.state_code === applicant.state
-        );
-        
-        const stateCode = stateObj?.value || stateObj?.state_code || applicant.state;
-        const response = await getDistrictsByState(stateCode);
-        const districts = response?.data || response || [];
-        
-        const mapped = districts.map((d: any) => ({
-          id: d.district_code || d.value || d.id,
-          name: d.district_name || d.label || d.name
-        }));
-        
-        setDistrictOptions(mapped);
-      } catch (error) {
-        console.error("Failed to fetch districts:", error);
-        setDistrictOptions([]);
-      } finally {
-        setIsLoadingDistricts(false);
-      }
-    };
+    setIsLoadingDistricts(true);
+    try {
+      const stateObj = stateList.find(
+        (s: any) => 
+          s.label === stateName || 
+          s.state_name === stateName ||
+          s.value === stateName ||
+          s.state_code === stateName
+      );
+      
+      const stateCode = stateObj?.value || stateObj?.state_code || stateName;
+      
+      // Use cached version to prevent repeated API calls
+      const districts = await getCachedDistricts(stateCode);
+      
+      const mapped = districts.map((d: any) => ({
+        id: d.district_code || d.value || d.id,
+        name: d.district_name || d.label || d.name
+      }));
+      
+      setDistrictOptions(mapped);
+    } catch (error) {
+      console.error("Failed to fetch districts:", error);
+      setDistrictOptions([]);
+    } finally {
+      setIsLoadingDistricts(false);
+    }
+  }, [stateList]);
 
-    fetchDistricts();
-  }, [applicant.state, stateList]);
+  // ✅ FIXED: Fetch blocks ONLY when user edits district field (on-demand)
+  const fetchBlocksForDistrict = useCallback(async (districtName: string) => {
+    if (!districtName || districtOptions.length === 0) {
+      setBlockOptions([]);
+      return;
+    }
 
-  // Fetch blocks when district is present
-  useEffect(() => {
-    const fetchBlocks = async () => {
-      if (!applicant.district || districtOptions.length === 0) {
-        setBlockOptions([]);
-        return;
-      }
-
-      setIsLoadingBlocks(true);
-      try {
-        const districtObj = districtOptions.find(
-          (d: any) => 
-            d.name === applicant.district ||
-            d.district_name === applicant.district
-        );
-        
-        const districtCode = districtObj?.id || applicant.district;
-        const response = await getBlocksByDistrict(districtCode);
-        const blocks = response?.data || response || [];
-        
-        const mapped = blocks.map((b: any) => ({
-          id: b.id || b.block_code || b.value,
-          name: b.block_name || b.label || b.name
-        }));
-        
-        setBlockOptions(mapped);
-      } catch (error) {
-        console.error("Failed to fetch blocks:", error);
-        setBlockOptions([]);
-      } finally {
-        setIsLoadingBlocks(false);
-      }
-    };
-
-    fetchBlocks();
-  }, [applicant.district, districtOptions]);
+    setIsLoadingBlocks(true);
+    try {
+      const districtObj = districtOptions.find(
+        (d: any) => 
+          d.name === districtName ||
+          d.district_name === districtName
+      );
+      
+      const districtCode = String(districtObj?.id || districtName);
+      
+      // Use cached version to prevent repeated API calls
+      const blocks = await getCachedBlocks(districtCode);
+      
+      const mapped = blocks.map((b: any) => ({
+        id: b.id || b.block_code || b.value,
+        name: b.block_name || b.label || b.name
+      }));
+      
+      setBlockOptions(mapped);
+    } catch (error) {
+      console.error("Failed to fetch blocks:", error);
+      setBlockOptions([]);
+    } finally {
+      setIsLoadingBlocks(false);
+    }
+  }, [districtOptions]);
 
   const fullName =
     [applicant.first_name, applicant.middle_name, applicant.last_name]
@@ -232,6 +261,11 @@ export const ApplicantTableRow = ({
     if (examSessions.length > 0) {
       const lastSession = examSessions[examSessions.length - 1];
       if (lastSession?.status) return lastSession.status;
+    }
+
+    // 6. Final Fallback: Show stage name if available (e.g., "Sourcing")
+    if (applicant.stage_name && applicant.stage_name !== "N/A") {
+      return applicant.stage_name;
     }
 
     return "N/A";
@@ -383,7 +417,7 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="gender"
-            displayValue={applicant.gender || "No Set"}
+            displayValue={applicant.gender || "N/A"}
             options={[
               { id: "male", name: "Male" },
               { id: "female", name: "Female" },
@@ -405,11 +439,13 @@ export const ApplicantTableRow = ({
             <EditableCell
               applicant={applicant}
               field="dob"
-              displayValue={applicant.dob ? new Date(applicant.dob).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              }) : "N/A"}
+              displayValue={applicant.dob && applicant.dob !== "N/A" && !isNaN(new Date(applicant.dob).getTime()) 
+                ? new Date(applicant.dob).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                }) 
+                : "N/A"}
               onUpdate={onUpdate}
               showPencil={hasEditAccess}
               showActionButtons={true}
@@ -426,15 +462,24 @@ export const ApplicantTableRow = ({
             applicant={applicant}
             field="state"
             displayValue={applicant.state || "Not specified"}
-            onUpdate={onUpdate}
+            onUpdate={(newState) => {
+              // When state changes, fetch districts for the new state
+              if (newState && newState !== applicant.state) {
+                fetchDistrictsForState(newState);
+              }
+              onUpdate();
+            }}
+            onEditStart={() => ensureFieldDataLoaded?.('state')}
+            isLoadingOptions={isLoadingReferenceData}
             options={stateList.map((s: any) => ({ 
               id: s.state_code || s.value || s.id, 
               name: s.state_name || s.label || s.name 
             }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={false}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={true}
+            tooltipMessage="Update state from Applicant Details view"
           />
         </TableCell>
       )}
@@ -446,12 +491,26 @@ export const ApplicantTableRow = ({
             applicant={applicant}
             field="district"
             displayValue={isLoadingDistricts ? "Loading..." : (applicant.district || "N/A")}
-            onUpdate={onUpdate}
+            onUpdate={(newDistrict) => {
+              // When district changes, fetch blocks for the new district
+              if (newDistrict && newDistrict !== applicant.district) {
+                fetchBlocksForDistrict(newDistrict);
+              }
+              onUpdate();
+            }}
+            onEditStart={() => {
+              // Fetch districts when user starts editing (if not already loaded)
+              if (applicant.state && districtOptions.length === 0) {
+                fetchDistrictsForState(applicant.state);
+              }
+            }}
+            isLoadingOptions={isLoadingDistricts}
             options={districtOptions}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={false}
             showActionButtons={false}
-            disabled={!hasEditAccess || isLoadingDistricts || !applicant.state}
+            disabled={true}
+            tooltipMessage="Update district from Applicant Details view"
             placeholder={!applicant.state ? "Select state first" : "Select district"}
           />
         </TableCell>
@@ -465,11 +524,19 @@ export const ApplicantTableRow = ({
             field="block"
             displayValue={isLoadingBlocks ? "Loading..." : (applicant.block || "N/A")}
             onUpdate={onUpdate}
+            onEditStart={() => {
+              // Fetch blocks when user starts editing (if not already loaded)
+              if (applicant.district && blockOptions.length === 0) {
+                fetchBlocksForDistrict(applicant.district);
+              }
+            }}
+            isLoadingOptions={isLoadingBlocks}
             options={blockOptions}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={false}
             showActionButtons={false}
-            disabled={!hasEditAccess || isLoadingBlocks || !applicant.district}
+            disabled={true}
+            tooltipMessage="Update block from Applicant Details view"
             placeholder={!applicant.district ? "Select district first" : "Select block"}
           />
         </TableCell>
@@ -498,9 +565,11 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="cast_id"
-            displayValue={applicant.cast || castList.find((c) => c.id === applicant.cast_id)?.cast_name || "N/A"}
+            displayValue={applicant.cast_name || castList.find((c) => c.id === applicant.cast_id)?.cast_name || "N/A"}
             value={applicant.cast_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('cast_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={castList.map((c) => ({ id: c.id, name: c.cast_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}
@@ -519,6 +588,8 @@ export const ApplicantTableRow = ({
             displayValue={applicant.religion_name || "N/A"}
             value={applicant.religion_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('religion_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={religionList.map((r) => ({ id: r.id, name: r.religion_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}
@@ -534,9 +605,11 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="qualification_id"
-            displayValue={applicant.qualification || qualificationList.find((q) => q.id === applicant.qualification_id)?.qualification_name || "N/A"}
+            displayValue={applicant.qualification_name || qualificationList.find((q) => q.id === applicant.qualification_id)?.qualification_name || "N/A"}
             value={applicant.qualification_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('qualification_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={qualificationList.map((q) => ({ id: q.id, name: q.qualification_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}
@@ -549,26 +622,42 @@ export const ApplicantTableRow = ({
       {/* Current Status */}
       {isColumnVisible('current_status') && (
         <TableCell className="min-w-[120px] max-w-[150px] px-2">
-          <EditableCell
-            applicant={applicant}
-            field="current_status_id"
-            displayValue={applicant.current_status_name || "N/A"}
-            value={applicant.current_status_id}
-            onUpdate={onUpdate}
-            options={currentstatusList.map((s) => ({ id: s.id, name: s.current_status_name }))}
-            forceTextDisplay={true}
-            showPencil={hasEditAccess}
-            showActionButtons={false}
-            disabled={!hasEditAccess}
-          />
+          {applicant.current_status_name ? (
+            <EditableCell
+              applicant={applicant}
+              field="current_status_id"
+              displayValue={applicant.current_status_name}
+              value={applicant.current_status_id}
+              onUpdate={onUpdate}
+              onEditStart={() => ensureFieldDataLoaded?.('current_status_id')}
+              isLoadingOptions={isLoadingReferenceData}
+              options={currentstatusList.map((s) => ({ id: s.id, name: s.current_status_name }))}
+              forceTextDisplay={true}
+              showPencil={hasEditAccess}
+              showActionButtons={false}
+              disabled={!hasEditAccess}
+            />
+          ) : (
+            <div className="text-muted-foreground text-sm">-</div>
+          )}
         </TableCell>
       )}
-       {/* Status */}
+       {/* Status - Display stage_name directly */}
       {isColumnVisible('status') && (
         <TableCell className="min-w-[120px] max-w-[150px] px-2">
-          <div className="truncate text-sm">
-            {getLatestStatus(applicant)}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="truncate text-sm cursor-help opacity-70">
+                  {applicant.stage_name || "N/A"}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Stage: {applicant.stage_name || "Not Set"}</p>
+                <p className="text-xs text-muted-foreground mt-1">Update stage from Applicant Details view</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </TableCell>
       )}
 
@@ -581,6 +670,8 @@ export const ApplicantTableRow = ({
             displayValue={applicant.campus_name || "N/A"}
             value={applicant.campus_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('campus_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}
@@ -605,6 +696,8 @@ export const ApplicantTableRow = ({
             }
             value={applicant.partner_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('partner_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={partnerList.map((p) => ({ id: p.id, name: p.partner_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}
@@ -628,6 +721,8 @@ export const ApplicantTableRow = ({
             }
             value={applicant.donor_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('donor_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={donorList.map((d) => ({ id: d.id, name: d.donor_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}
@@ -646,6 +741,8 @@ export const ApplicantTableRow = ({
             displayValue={applicant.school_name || "N/A"}
             value={applicant.school_id}
             onUpdate={onUpdate}
+            onEditStart={() => ensureFieldDataLoaded?.('school_id')}
+            isLoadingOptions={isLoadingReferenceData}
             options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
             forceTextDisplay={true}
             showPencil={hasEditAccess}

@@ -40,7 +40,10 @@ interface ScheduleInterviewModalProps {
     slot_type?: string;
     interviewer_email?: string;
     interviewer_name?: string;
+    user_email?: string;
+    user_name?: string;
     is_booked: boolean;
+    status?: string;
   }>;
   isDirectScheduleMode?: boolean;
   onSchedule: (
@@ -53,9 +56,15 @@ interface ScheduleInterviewModalProps {
     date: string,
     startTime: string,
     endTime: string,
-    topicName: string
+    topicName: string,
+    adminEmail: string,
+    adminName: string
   ) => Promise<void>;
   isLoading: boolean;
+  initialStudentId?: string;
+  initialStudentEmail?: string;
+  initialStudentName?: string;
+  isRescheduleMode?: boolean; // Flag to indicate if we're rescheduling
 }
 
 export const ScheduleInterviewModal = ({
@@ -66,6 +75,10 @@ export const ScheduleInterviewModal = ({
   isDirectScheduleMode = false,
   onSchedule,
   isLoading,
+  initialStudentId,
+  initialStudentEmail,
+  initialStudentName,
+  isRescheduleMode = false,
 }: ScheduleInterviewModalProps) => {
   const [studentId, setStudentId] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
@@ -82,16 +95,92 @@ export const ScheduleInterviewModal = ({
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
 
+  // Auto-fetch student data when modal opens with initial data
+  useEffect(() => {
+    const autoFetchStudentData = async () => {
+      // Only run when modal opens AND we have initial student data
+      if (!isOpen) {
+        // Reset all fields when modal closes
+        setStudentId("");
+        setStudentEmail("");
+        setStudentName("");
+        setStudentDataFetched(false);
+        setCompleteStudentData(null);
+        setSelectedDate("");
+        setSelectedSlotId(null);
+        setTopicName("");
+        setIsFetchingStudent(false);
+        return;
+      }
+
+      // Modal is open - check if we have at least student ID and email to auto-fetch
+      if (initialStudentId && initialStudentEmail) {
+        console.log("Auto-fetching student data for:", initialStudentEmail);
+        
+        // Set initial values immediately
+        setStudentId(initialStudentId);
+        setStudentEmail(initialStudentEmail);
+        if (initialStudentName) {
+          setStudentName(initialStudentName);
+        }
+        
+        // Automatically fetch complete student data
+        setIsFetchingStudent(true);
+        try {
+          const response = await getStudentDataByEmail(initialStudentEmail);
+          console.log("Student data fetched:", response);
+          
+          // Normalize the response - handle both axios.data and nested data.data structures
+          const payload = (response as any)?.data ?? response;
+          const studentData = payload?.student ?? payload;
+          
+          // Update with fetched data
+          const studentId = studentData.student_id || studentData.id;
+          const fullName =
+            studentData.full_name ||
+            studentData.name ||
+            `${studentData.first_name || ""} ${studentData.last_name || ""}`.trim();
+          
+          if (studentId) {
+            setStudentId(String(studentId));
+            setStudentName(fullName);
+            setCompleteStudentData(payload);
+            setStudentDataFetched(true);
+            console.log("Student data set successfully:", fullName);
+          } else {
+            console.warn("No student ID found in response");
+            // Still mark as fetched to keep fields disabled with initial data
+            setStudentDataFetched(true);
+          }
+        } catch (error) {
+          console.error("Failed to fetch student data:", error);
+          // Still mark as fetched to keep fields disabled with initial data
+          setStudentDataFetched(true);
+        } finally {
+          setIsFetchingStudent(false);
+        }
+      } else {
+        console.log("Auto-fetch conditions not met - missing student ID or email:", { isOpen, initialStudentId, initialStudentEmail, initialStudentName });
+      }
+    };
+
+    autoFetchStudentData();
+  }, [isOpen, initialStudentId, initialStudentEmail, initialStudentName]);
+
   // Default interviewer email and topic name based on slot data
   useEffect(() => {
     if (isOpen) {
       const user = getCurrentUser();
 
-      // Priority: 1. Slot data interviewer, 2. Current user email
+      // Priority: 1. Slot data user_email/user_name (from slot), 2. interviewer_email/name, 3. Current user
       const defaultInterviewerEmail =
-        slotData?.interviewer_email || user?.email || "";
+        (slotData as any)?.user_email || 
+        slotData?.interviewer_email || 
+        user?.email || "";
       const defaultInterviewerName =
-        slotData?.interviewer_name || user?.name || "";
+        (slotData as any)?.user_name || 
+        slotData?.interviewer_name || 
+        user?.name || "";
 
       // Always update interviewer details when slot changes
       setInterviewerEmail(defaultInterviewerEmail);
@@ -195,12 +284,19 @@ export const ScheduleInterviewModal = ({
     );
 
     console.log(hasPassedScreening);
-    // Filter schedules by status - only consider "scheduled" status
+    // Filter schedules by status - only consider "scheduled" or "booked" status as active
+    // Exclude "rescheduled", "cancelled", "completed", etc.
     const activeLRSchedules = lrSchedules.filter(
-      (schedule: any) => schedule.status?.toLowerCase() === "scheduled"
+      (schedule: any) => {
+        const status = schedule.status?.toLowerCase() || "";
+        return status === "scheduled" || status === "rescheduled";
+      }
     );
     const activeCFRSchedules = cfrSchedules.filter(
-      (schedule: any) => schedule.status?.toLowerCase() === "scheduled"
+      (schedule: any) => {
+        const status = schedule.status?.toLowerCase() || "";
+        return status === "scheduled" || status === "rescheduled";
+      }
     );
 
     // Check if student has passed LR round
@@ -230,18 +326,20 @@ export const ScheduleInterviewModal = ({
           type: "warning",
         };
       }
-      if (activeLRSchedules.length > 0) {
-        return {
-          canBook: false,
-          message: "Student already has LR interview scheduled",
-          type: "warning",
-        };
-      }
+      // Always block if student has already passed LR (even in reschedule mode)
       if (hasPassedLR) {
         return {
           canBook: false,
           message: "Student has already passed LR round",
           type: "info",
+        };
+      }
+      // Skip "already scheduled" check if in reschedule mode
+      if (!isRescheduleMode && activeLRSchedules.length > 0) {
+        return {
+          canBook: false,
+          message: "Student already has LR interview scheduled",
+          type: "warning",
         };
       }
       if (lrRounds.length > 0) {
@@ -280,18 +378,21 @@ export const ScheduleInterviewModal = ({
         };
       }
 
-      if (activeCFRSchedules.length > 0) {
-        return {
-          canBook: false,
-          message: "Student already has CFR interview scheduled",
-          type: "warning",
-        };
-      }
+      // Always block if student has already passed CFR (even in reschedule mode)
       if (hasPassedCFR) {
         return {
           canBook: false,
           message: "Student has already passed CFR round",
           type: "info",
+        };
+      }
+
+      // Skip "already scheduled" check if in reschedule mode
+      if (!isRescheduleMode && activeCFRSchedules.length > 0) {
+        return {
+          canBook: false,
+          message: "Student already has CFR interview scheduled",
+          type: "warning",
         };
       }
 
@@ -315,17 +416,40 @@ export const ScheduleInterviewModal = ({
 
   const interviewStatus = getInterviewRoundStatus();
 
+  // Get unique dates from available slots (only Available status and future dates)
+  // IMPORTANT: Must be before early return to follow Rules of Hooks
+  const availableDates = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset to start of day
+
+    return Array.from(
+      new Set(
+        allAvailableSlots
+          .filter((s) => {
+            const slotDate = new Date(s.date);
+            slotDate.setHours(0, 0, 0, 0);
+            // Filter: not booked, has "Available" status, and is today or future date
+            return !s.is_booked && 
+                   s.status === "Available"
+          })
+          .map((s) => s.date)
+      )
+    ).sort();
+  }, [allAvailableSlots]);
+
+  // Get slots for selected date (only Available status)
+  // IMPORTANT: Must be before early return to follow Rules of Hooks
+  const slotsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return [];
+    
+    return allAvailableSlots.filter(
+      (s) => s.date === selectedDate && 
+             !s.is_booked && 
+             s.status === "Available"
+    );
+  }, [selectedDate, allAvailableSlots]);
+
   if (!isOpen) return null;
-
-  // Get unique dates from available slots
-  const availableDates = Array.from(
-    new Set(allAvailableSlots.filter((s) => !s.is_booked).map((s) => s.date))
-  ).sort();
-
-  // Get slots for selected date
-  const slotsForSelectedDate = selectedDate
-    ? allAvailableSlots.filter((s) => s.date === selectedDate && !s.is_booked)
-    : [];
 
   // Get selected slot details
   const currentSlot = isDirectScheduleMode
@@ -379,6 +503,11 @@ export const ScheduleInterviewModal = ({
     }
 
     try {
+      // Get admin email to include in calendar invites
+      const currentUser = getCurrentUser();
+      const adminEmail = currentUser?.email || "";
+      const adminName = currentUser?.name || "Admin";
+
       await onSchedule(
         slotToUse.id,
         parseInt(studentId),
@@ -389,7 +518,9 @@ export const ScheduleInterviewModal = ({
         slotToUse.date,
         slotToUse.start_time,
         slotToUse.end_time,
-        topicName
+        topicName,
+        adminEmail,
+        adminName
       );
 
       // Reset form
@@ -437,10 +568,13 @@ export const ScheduleInterviewModal = ({
       <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-large border border-border">
         <DialogHeader className="pb-4 border-b border-border">
           <DialogTitle className="flex items-center justify-between text-lg font-semibold text-foreground">
-            <span>Schedule Interview</span>
+            <span>{isRescheduleMode ? "Reschedule Interview" : "Schedule Interview"}</span>
           </DialogTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Create Google Meet link and schedule the interview
+            {isRescheduleMode 
+              ? "Select a new time slot and update the interview details"
+              : "Create Google Meet link and schedule the interview"
+            }
           </p>
         </DialogHeader>
 
@@ -488,6 +622,11 @@ export const ScheduleInterviewModal = ({
                         key={slot.id}
                         onClick={() => {
                           setSelectedSlotId(slot.id);
+                          // Auto-fill interviewer details from slot
+                          const slotInterviewerEmail = slot.user_email || slot.interviewer_email || "";
+                          const slotInterviewerName = slot.user_name || slot.interviewer_name || "";
+                          setInterviewerEmail(slotInterviewerEmail);
+                          setInterviewerName(slotInterviewerName);
                           // Auto-fill topic based on slot type
                           if (slot.slot_type === "LR") {
                             setTopicName("Learning Round");
@@ -509,9 +648,9 @@ export const ScheduleInterviewModal = ({
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          {slot.interviewer_name && (
+                          {(slot.user_name || slot.interviewer_name) && (
                             <p className="text-xs text-muted-foreground ml-6">
-                              {slot.interviewer_name}
+                              {slot.user_name || slot.interviewer_name}
                             </p>
                           )}
                           {slot.slot_type && (
@@ -598,15 +737,15 @@ export const ScheduleInterviewModal = ({
                   type="email"
                   value={studentEmail}
                   onChange={(e) => handleEmailChange(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card"
+                  className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
                   placeholder="student@example.com"
                   required
-                  disabled={isFetchingStudent}
+                  disabled={isFetchingStudent || (studentDataFetched && (!!initialStudentId || !!initialStudentEmail))}
                 />
                 <Button
                   type="button"
                   onClick={handleFetchStudent}
-                  disabled={isFetchingStudent || !studentEmail}
+                  disabled={isFetchingStudent || !studentEmail || (studentDataFetched && (!!initialStudentId || !!initialStudentEmail))}
                   className="bg-primary hover:bg-primary/90"
                 >
                   {isFetchingStudent ? (
@@ -617,7 +756,7 @@ export const ScheduleInterviewModal = ({
                 </Button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Enter email and click search to student details
+                {studentDataFetched ? "Student details loaded" : "Enter email and click search to student details"}
               </p>
             </div>
 
@@ -732,19 +871,23 @@ export const ScheduleInterviewModal = ({
               type="submit"
               className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={
-                isLoading || (interviewStatus && !interviewStatus.canBook)
+                isLoading || (!isRescheduleMode && interviewStatus && !interviewStatus.canBook)
               }
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Meeting...
+                  {isRescheduleMode ? "Rescheduling..." : "Creating Meeting..."}
                 </>
               ) : (
                 <>
                   <Calendar className="w-4 h-4 mr-2" />
-                  {interviewStatus && !interviewStatus.canBook
-                    ? "Cannot Schedule - Already Booked"
+                  {!isRescheduleMode && interviewStatus && !interviewStatus.canBook
+                    ? (interviewStatus.message.includes("already has") 
+                        ? "Cannot Schedule - Interview Already Scheduled"
+                        : "Cannot Schedule - " + interviewStatus.message.split(" before ")[0])
+                    : isRescheduleMode
+                    ? "Reschedule & Update Meet Link"
                     : "Schedule & Create Meet Link"}
                 </>
               )}

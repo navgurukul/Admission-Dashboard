@@ -21,7 +21,6 @@ import {
   Users,
   Handshake,
   Search,
-  Filter,
   Plus,
   MoreVertical,
   Pencil,
@@ -40,7 +39,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { createDonor, getDonors, updateDonor, deleteDonor, Donor } from "@/utils/api";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
@@ -49,6 +50,7 @@ const DonorPage = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { debouncedValue: debouncedSearchQuery, isPending: isSearching } = useDebounce(searchQuery, 800);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalDonors, setTotalDonors] = useState(0);
@@ -72,14 +74,16 @@ const DonorPage = () => {
 
   useEffect(() => {
     loadDonors();
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, debouncedSearchQuery]);
 
   const loadDonors = async () => {
     setLoading(true);
     try {
-      const response = await getDonors(page, rowsPerPage);
-    
+      // Trim the search query and only pass it if it's not empty
+      const trimmedSearch = debouncedSearchQuery?.trim() || "";
       
+      const response = await getDonors(page, rowsPerPage, trimmedSearch);
+    
       // Extract data from nested structure
       // API returns: { success, data: { data: [...], total, page, pageSize, totalPages } }
       const donorList = response?.data?.data || [];
@@ -209,17 +213,20 @@ const DonorPage = () => {
     }
   }
 
-  // Client-side search filter (optional - you can also implement server-side search later)
-  const filteredDonors = donors.filter(d =>
-    searchQuery === "" || (d.donor_name || "").toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // NOTE: Search is handled server-side via `getDonors(..., donor_name)` so we keep
+  // the list as-is to avoid showing misleading counts/pagination.
 
   useEffect(() => {
-    // Reset to page 1 when search query or rows per page changes
-    if (page !== 1) {
+    // Reset to page 1 when search query changes (so results start from first page)
+    if (page !== 1 && debouncedSearchQuery?.trim() !== searchQuery?.trim()) {
       setPage(1);
     }
-  }, [searchQuery, rowsPerPage]);
+  }, [debouncedSearchQuery]);
+
+  useEffect(() => {
+    // Reset to page 1 when rows per page changes
+    if (page !== 1) setPage(1);
+  }, [rowsPerPage]);
 
   return (
     <div className="min-h-screen bg-muted/40 flex">
@@ -274,7 +281,8 @@ const DonorPage = () => {
                 <div className="flex flex-col mr-10">
                   <CardTitle>All Donors</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {filteredDonors.length} {filteredDonors.length === 1 ? 'donor' : 'donors'} {searchQuery ? '(filtered)' : 'total'}
+                    {donors.length} {donors.length === 1 ? 'donor' : 'donors'} 
+                    {debouncedSearchQuery ? ' (Search)' : ' total'}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
@@ -296,13 +304,13 @@ const DonorPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {/* Search Bar */}
-              <div className="mb-4">
+              {/* Search Bar & Active Filters */}
+              <div className="mb-4 space-y-3">
                 <div className="relative w-full">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search donors..."
+                    placeholder="Search donors by name..."
                     className="pl-9"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -323,16 +331,25 @@ const DonorPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading || isSearching ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">Loading...</TableCell>
+                      <TableCell colSpan={8} className="h-24 text-center">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                          {isSearching ? "Searching..." : "Loading..."}
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ) : filteredDonors.length === 0 ? (
+                  ) : donors.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">No donors found.</TableCell>
+                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                        {debouncedSearchQuery 
+                          ? "No donors match your search." 
+                          : "No donors found."}
+                      </TableCell>
                     </TableRow>
                   ) : (
-                    filteredDonors.map((donor) => (
+                    donors.map((donor) => (
                       <TableRow key={donor.id}>
                         <TableCell>
                           <span
@@ -378,7 +395,7 @@ const DonorPage = () => {
 
 
               {/* Pagination Controls */}
-                   {!loading && totalDonors > 0 && (
+                   {!loading && donors.length > 0 && (
                 <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
                   <div className="text-sm text-muted-foreground">
                     Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalDonors)}</strong> of <strong>{totalDonors}</strong>

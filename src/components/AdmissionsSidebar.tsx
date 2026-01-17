@@ -41,7 +41,7 @@ export function AdmissionsSidebar() {
         googleSignOut();
       }
       logoutUser(); // This clears localStorage
-      window.location.href = "/Admission-Dashboard/students/login";
+      window.location.href = "/students/login";
     } catch (error) {
       console.error("Logout error:", error);
       // Force logout anyway
@@ -55,6 +55,10 @@ export function AdmissionsSidebar() {
       return (
         location.pathname === "/admin-view" || location.pathname === "/schedule"
       );
+    }
+    // Check if current path is campus detail page and menu item is campus
+    if (href === "/campus") {
+      return location.pathname === "/campus" || location.pathname.startsWith("/campus/");
     }
     return location.pathname === href;
   };

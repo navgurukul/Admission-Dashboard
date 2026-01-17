@@ -47,8 +47,14 @@ export function usePermissions() {
 
   const canEdit = () => hasEditAccess;
 
+  // isAdmin is the same as hasEditAccess (user_role_id === 1)
+  const isAdmin = useMemo(() => {
+    return user?.user_role_id === 1;
+  }, [user?.user_role_id]);
+
   return {
     hasEditAccess,
+    isAdmin,
     user,
     isLoading,
     canEdit,

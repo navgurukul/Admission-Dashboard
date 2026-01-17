@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { searchStudentsApi } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface FilterState {
@@ -32,6 +33,7 @@ export const useApplicantFilters = (
   questionSetList: any[]
 ) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { debouncedValue: debouncedSearchTerm, isPending: isSearchPending } = useDebounce(searchTerm, 800);
   const [filters, setFilters] = useState<FilterState>({
     stage: "all",
     stage_id: undefined,
@@ -62,9 +64,10 @@ export const useApplicantFilters = (
 
   // Handle search with debounce
   useEffect(() => {
-    const delayDebounce = setTimeout(async () => {
-      if (!searchTerm.trim()) {
+    const performSearch = async () => {
+      if (!debouncedSearchTerm.trim()) {
         setSearchResults([]);
+        setIsSearching(false);
         return;
       }
 
@@ -74,7 +77,7 @@ export const useApplicantFilters = (
 
       try {
         setIsSearching(true);
-        const results = await searchStudentsApi(searchTerm.trim());
+        const results = await searchStudentsApi(debouncedSearchTerm.trim());
         setSearchResults(results || []);
       } catch (error: any) {
         console.error("Search error:", error);
@@ -87,10 +90,10 @@ export const useApplicantFilters = (
       } finally {
         setIsSearching(false);
       }
-    }, 500);
+    };
 
-    return () => clearTimeout(delayDebounce);
-  }, [searchTerm, toast]);
+    performSearch();
+  }, [debouncedSearchTerm, toast]);
 
   // Compute filtered applicants with mapped data
   const filteredApplicants = useMemo(() => {
@@ -162,7 +165,7 @@ export const useApplicantFilters = (
     setFilters,
     searchResults,
     setSearchResults,
-    isSearching,
+    isSearching: isSearching || isSearchPending, // Combine both searching states
     filteredStudents,
     setFilteredStudents,
     filteredTotalCount,
