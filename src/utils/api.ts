@@ -589,7 +589,7 @@ export const triggerStudentStatusUpdate = async (
       else if (normalizedStatus === "selected but not joined") stageStatusId = 11;
       else if (normalizedStatus === "offer letter sent") stageStatusId = 13;
       else if (normalizedStatus === "offer accepted") stageStatusId = 16;
-      else if (normalizedStatus === "offer sent") stageStatusId = 19;
+      else if (normalizedStatus === "offer sent") stageStatusId = 13;
       else if (normalizedStatus === "decision pending based on diversity") stageStatusId = 20;
       else if (normalizedStatus === "diversity failed") stageStatusId = 21;
       break;

@@ -255,10 +255,20 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     // let limit = 0; // Default limit since we removed the field
     let finalName = formData.name;
 
-    if (formData.nameType === "custom" && !formData.name.trim()) {
+    if (!formData.name.trim()) {
       toast({
         title: "⚠️ Required Field Missing",
         description: "Please enter a set name",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      toast({
+        title: "⚠️ Required Field Missing",
+        description: "Please enter a description",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
@@ -604,7 +614,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </div>
 
             <div>
-              <Label htmlFor="name">Set Name</Label>
+              <Label htmlFor="name">Set Name <span className="text-red-500">*</span></Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -616,7 +626,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
               <Textarea
                 id="description"
                 value={formData.description}
