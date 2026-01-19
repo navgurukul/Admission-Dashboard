@@ -468,6 +468,11 @@ export function InlineSubform({
             ? await response.json()
             : response;
 
+        // Check if the response indicates an error
+        if (res.success === false) {
+          throw new Error(res.message || "Failed to update entry");
+        }
+
         toast({
           title: "✅ Updated Successfully",
           description: "Row updated successfully.",
@@ -480,6 +485,12 @@ export function InlineSubform({
           typeof response.json === "function"
             ? await response.json()
             : response;
+        
+        // Check if the response indicates an error
+        if (res.success === false) {
+          throw new Error(res.message || "Failed to create entry");
+        }
+        
         toast({
           title: "✅ Created Successfully",
           description: "Row created successfully.",
@@ -513,9 +524,16 @@ export function InlineSubform({
       }
     } catch (err) {
       console.error("Save failed", err);
+      
+      // Custom error message for question set issues
+      let errorMessage = getFriendlyErrorMessage(err);
+      if (err instanceof Error && err.message.includes("Question set") && err.message.includes("does not exist")) {
+        errorMessage = "The selected question set is not available or has been deleted. Please select another question set.";
+      }
+      
       toast({
         title: "❌ Unable to Save",
-        description: getFriendlyErrorMessage(err),
+        description: errorMessage,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
       });
