@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useTests } from "@/utils/TestContext";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createStudentExamSubmission } from "@/utils/api";
+import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "student_test_progress";
 
@@ -33,6 +34,7 @@ const TestPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { tests, setTests } = useTests();
+  const { toast } = useToast();
   const { questions: stateQuestions, duration: stateDuration } =
     location.state || {};
 
@@ -44,36 +46,110 @@ const TestPage: React.FC = () => {
   );
   const [showConfirm, setShowConfirm] = useState(false);
   const isSubmitting = useRef(false); // Track submission to prevent duplicates
+  const hasShownToast = useRef(false); // Track if we've shown the toast
+
+  // Show toast notification for refresh
+  useEffect(() => {
+    // Check if page was refreshed (no location state means refresh)
+    if (!stateQuestions || !stateDuration) {
+      if (!hasShownToast.current) {
+        hasShownToast.current = true;
+        
+        // Show toast notification
+        toast({
+          title: "Test Session Interrupted",
+          description: "Your test session was interrupted due to page refresh. All progress has been reset.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      }
+    }
+  }, [stateQuestions, stateDuration, toast]);
+
+  // If no state, redirect immediately
+  if (!stateQuestions || !stateDuration) {
+    
+    return <Navigate to="/students/test/start" replace />;
+  }
+
+  // console.log("✅ Normal test page load - state exists");
+  // console.log("📊 Received duration:", stateDuration, "seconds =", stateDuration / 60, "minutes");
 
   // Restore progress from localStorage
   useEffect(() => {
     if (!stateQuestions || !stateDuration) return;
 
     const stored = localStorage.getItem(STORAGE_KEY);
+    // console.log("📦 Checking stored test progress:", stored);
+    
     if (stored) {
-      const { answers, currentIndex, examStartTime, duration } =
-        JSON.parse(stored);
-      const elapsed = Math.floor((Date.now() - examStartTime) / 1000);
-      const remaining = duration - elapsed;
+      try {
+        const { answers, currentIndex, examStartTime, duration } = JSON.parse(stored);
+        const elapsed = Math.floor((Date.now() - examStartTime) / 1000);
+        const remaining = duration - elapsed;
+        
+        // console.log("⏱️ Time calculation:", {
+        //   examStartTime: new Date(examStartTime).toLocaleString(),
+        //   duration,
+        //   elapsed,
+        //   remaining
+        // });
 
-      if (remaining > 0) {
-        setAnswers(answers || {});
-        setCurrentIndex(currentIndex || 0);
-        setTimeLeft(remaining);
-      } else {
+        // Check if this is old data (more than 5 seconds old means it's from a previous session)
+        if (elapsed > 5) {
+          // console.log("🚫 Detected OLD test data (elapsed > 5s), clearing and starting fresh");
+          localStorage.removeItem(STORAGE_KEY);
+          
+          // Create fresh session
+          const freshTestData = {
+            answers: {},
+            currentIndex: 0,
+            examStartTime: Date.now(),
+            duration: stateDuration,
+          };
+          
+          console.log("🆕 Creating NEW test session (after clearing old):", {
+            startTime: new Date(freshTestData.examStartTime).toLocaleString(),
+            duration: freshTestData.duration,
+            durationInMinutes: freshTestData.duration / 60
+          });
+          
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(freshTestData));
+          setTimeLeft(stateDuration); // Set full duration
+          return;
+        }
+
+        if (remaining > 0) {
+          // console.log("♻️ Restoring previous progress (recent session)");
+          setAnswers(answers || {});
+          setCurrentIndex(currentIndex || 0);
+          setTimeLeft(remaining);
+        } else {
+          // console.log("⏰ Time expired, clearing storage");
+          localStorage.removeItem(STORAGE_KEY);
+          setTimeLeft(stateDuration); // Reset to full duration
+        }
+      } catch (error) {
+        // console.error("❌ Error parsing stored data:", error);
         localStorage.removeItem(STORAGE_KEY);
+        setTimeLeft(stateDuration); // Reset to full duration
       }
     } else {
-      // Save initial exam info
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          answers: {},
-          currentIndex: 0,
-          examStartTime: Date.now(),
-          duration: stateDuration,
-        }),
-      );
+      // Save initial exam info with FRESH start time
+      const freshTestData = {
+        answers: {},
+        currentIndex: 0,
+        examStartTime: Date.now(),
+        duration: stateDuration,
+      };
+      // console.log("🆕 Creating NEW test session:", {
+      //   startTime: new Date(freshTestData.examStartTime).toLocaleString(),
+      //   duration: freshTestData.duration,
+      //   durationInMinutes: freshTestData.duration / 60
+      // });
+      
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(freshTestData));
+      setTimeLeft(stateDuration); // Set full duration
     }
   }, [stateQuestions, stateDuration]);
 
