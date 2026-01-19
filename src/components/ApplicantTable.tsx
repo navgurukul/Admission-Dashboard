@@ -45,6 +45,7 @@ import {
   getFilterStudent,
   sendBulkOfferLetters,
   getStatusesByStageId,
+  getInterviewByStudentId,
 } from "@/utils/api";
 import { exportApplicantsToCSV } from "@/utils/exportApplicants";
 import {
@@ -348,7 +349,44 @@ const ApplicantTable = () => {
     fetchSchools,
   ]);
 
-  // Map student data with related info
+  // State to store interview schedules for all students
+  const [studentSchedules, setStudentSchedules] = useState<Record<number, any[]>>({});
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+
+  // Fetch interview schedules for all visible students
+  useEffect(() => {
+    const fetchSchedulesForStudents = async () => {
+      if (students.length === 0) return;
+
+      setIsLoadingSchedules(true);
+      const schedulesMap: Record<number, any[]> = {};
+
+      try {
+        // Fetch schedules for all students in parallel
+        const schedulePromises = students.map(async (student) => {
+          try {
+            const response = await getInterviewByStudentId(student.id);
+            const schedules = response.data || response || [];
+            schedulesMap[student.id] = Array.isArray(schedules) ? schedules : [];
+          } catch (error) {
+            // If API fails for a student, store empty array
+            schedulesMap[student.id] = [];
+          }
+        });
+
+        await Promise.all(schedulePromises);
+        setStudentSchedules(schedulesMap);
+      } catch (error) {
+        console.error("Error fetching schedules:", error);
+      } finally {
+        setIsLoadingSchedules(false);
+      }
+    };
+
+    fetchSchedulesForStudents();
+  }, [students]);
+
+  // Map student data with related info and interview schedules
   const applicantsToDisplay = useMemo(() => {
     // ✅ DEBUG: Log first student to see what backend returns
     if (students.length > 0 && !(window as any).__STUDENT_DEBUG_LOGGED__) {
@@ -384,6 +422,11 @@ const ApplicantTable = () => {
         ? questionSetList.find((q) => q.id === student.question_set_id)
         : null;
 
+      // Get interview schedules for this student
+      const allSchedules = studentSchedules[student.id] || [];
+      const interview_schedules_lr = allSchedules.filter((s: any) => s.slot_type === "LR");
+      const interview_schedules_cfr = allSchedules.filter((s: any) => s.slot_type === "CFR");
+
       return {
         ...student,
         mobile_no: student.mobile_no || student.phone_number || "",
@@ -396,9 +439,12 @@ const ApplicantTable = () => {
         question_set_name: student.question_set_name || questionSet?.name || "N/A",
         maximumMarks: student.maximumMarks || questionSet?.maximumMarks || 0,
         obtained_marks: obtainedMarks,
+        // Add interview schedules
+        interview_schedules_lr,
+        interview_schedules_cfr,
       };
     });
-  }, [students, schoolList, questionSetList]);
+  }, [students, schoolList, questionSetList, studentSchedules]);
 
   // Custom hook for filters and search
   const {

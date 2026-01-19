@@ -828,7 +828,22 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.interview_learner_round?.[0]?.learning_round_status || "N/A"}
+                  {(() => {
+                    // Check if there's an interview result
+                    const result = applicant.interview_learner_round?.[0]?.learning_round_status;
+                    if (result) return result;
+                    
+                    // Check if there are scheduled interviews
+                    const schedules = applicant.interview_schedules_lr || [];
+                    const activeSchedule = schedules.find((s: any) => 
+                      s.status?.toLowerCase() === 'scheduled' || s.status?.toLowerCase() === 'rescheduled'
+                    );
+                    if (activeSchedule) {
+                      return activeSchedule.status?.toLowerCase() === 'rescheduled' ? 'Rescheduled' : 'Scheduled';
+                    }
+                    
+                    return "Not Scheduled";
+                  })()}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -880,7 +895,22 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status || "N/A"}
+                  {(() => {
+                    // Check if there's an interview result
+                    const result = applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status;
+                    if (result) return result;
+                    
+                    // Check if there are scheduled interviews
+                    const schedules = applicant.interview_schedules_cfr || [];
+                    const activeSchedule = schedules.find((s: any) => 
+                      s.status?.toLowerCase() === 'scheduled' || s.status?.toLowerCase() === 'rescheduled'
+                    );
+                    if (activeSchedule) {
+                      return activeSchedule.status?.toLowerCase() === 'rescheduled' ? 'Rescheduled' : 'Scheduled';
+                    }
+                    
+                    return "Not Scheduled";
+                  })()}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
