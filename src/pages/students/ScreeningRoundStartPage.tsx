@@ -29,6 +29,9 @@ const ScreeningRoundStartPage: React.FC = () => {
       }
     };
     fetchData();
+    
+    // Clear any previous test progress when landing on start page
+    localStorage.removeItem("student_test_progress");
   }, [selectedLanguage]);
 
   const formatDuration = (seconds: number) => {
@@ -78,6 +81,10 @@ const ScreeningRoundStartPage: React.FC = () => {
     if (!questions.length || !duration) return;
     console.log("questions", questions);
 
+    // IMPORTANT: Clear any previous test data before starting
+    localStorage.removeItem("student_test_progress");
+    console.log("🧹 Cleared old test progress before starting new test");
+    
     // Navigate to TestPage with state
     localStorage.setItem("testStarted", "true");
     localStorage.setItem("testCompleted", "false");
