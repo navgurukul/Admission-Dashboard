@@ -548,6 +548,36 @@ export function AddApplicantModal({
   const handleSubmit = async () => {
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) {
+      //  field names mapping
+      const fieldNameMap: Record<string, string> = {
+        image_url: "Profile Image",
+        first_name: "First Name",
+        last_name: "Last Name",
+        phone_number: "Phone Number",
+        whatsapp_number: "WhatsApp Number",
+        email: "Email",
+        gender: "Gender",
+        dob: "Date of Birth",
+        state: "State",
+        district: "District",
+        block: "Block",
+        pin_code: "PIN Code",
+        cast_id: "Caste",
+        qualification_id: "Qualification",
+        current_status_id: "Current Work",
+        religion_id: "Religion",
+        communication_notes: "Communication Notes",
+        question_set_id: "Question Set",
+        exam_centre: "Exam Centre",
+        date_of_test: "Date of Test",
+        obtained_marks: "Obtained Marks",
+      };
+
+      // Get missing field names
+      const missingFields = Object.keys(formErrors)
+        .map((key) => fieldNameMap[key] || key)
+        .join(", ");
+
       // Check if screening validation failed
       const hasScreeningErrors = Object.keys(formErrors).some((key) =>
         [
@@ -560,17 +590,44 @@ export function AddApplicantModal({
 
       toast({
         title: "⚠️ Required Fields Missing",
-        description: hasScreeningErrors
-          ? "Please complete all required screening fields"
-          : "Please fill all required fields",
+        description: `Please fill the ${missingFields} fields`,
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
+        duration: 6000, 
       });
       return;
     }
 
     setLoading(true);
     try {
+      // Check if user selected "Pass" status with failing marks
+      const PASSING_MARKS = 13;
+      const obtainedMarks = Number(formData.obtained_marks);
+      
+      // Only block if marks are failing AND status is "Pass"
+      if (obtainedMarks < PASSING_MARKS && formData.status === "Screening Test Pass") {
+        toast({
+          title: "❌ Invalid Status Selection",
+          description: `Student has failed (marks < ${PASSING_MARKS}). Cannot select 'Screening Test Pass' with failing marks. Please select 'Screening Test Fail'.`,
+          variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
+        });
+        setLoading(false);
+        return; // Stop - No API calls
+      }
+
+      //  Validation: school assignment for failed students (marks < 13)
+      if (obtainedMarks < PASSING_MARKS && formData.qualifying_school_id) {
+        toast({
+          title: "❌ Cannot Assign School",
+          description: `Student has failed (marks < ${PASSING_MARKS}). School cannot be assigned to students with failing marks. Please remove the school selection.`,
+          variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900",
+        });
+        setLoading(false);
+        return; 
+      }
+
       // console.log("Submitting form data:", formData);
       // Step 1: Create student with basic details only
       const studentData = {
