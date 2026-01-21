@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import LogoutButton from "@/components/ui/LogoutButton";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 
 export default function OfferLetterPage() {
   const [documents, setDocuments] = useState([]);
@@ -31,6 +32,7 @@ export default function OfferLetterPage() {
 
   return (
     <div className="min-h-screen student-bg-gradient flex">
+      <LanguageSelector />
       <LogoutButton />
       <div className="p-6 min-w-full overflow-y-auto">
         <Card className="h-[90vh] rounded-2xl">
