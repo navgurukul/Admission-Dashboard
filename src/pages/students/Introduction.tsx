@@ -1,4 +1,5 @@
 import LogoutButton from "@/components/ui/LogoutButton";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -76,6 +77,7 @@ const Instructions: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
+      <LanguageSelector className="from-primary to-primary/90" />
       <LogoutButton className="from-primary to-primary/90" />
       <div className="bg-card  card-shadow rounded-2xl shadow-large p-8 max-w-2xl w-full">
         <h1 className="text-3xl font-bold text-foreground text-center mb-4">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getRandomQuestions as getQuestions } from "@/utils/api";
 import { useLanguage } from "@/routes/LaunguageContext";
 import LogoutButton from "@/components/ui/LogoutButton";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 
 const ScreeningRoundStartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,14 +35,22 @@ const ScreeningRoundStartPage: React.FC = () => {
     localStorage.removeItem("student_test_progress");
   }, [selectedLanguage]);
 
-  const formatDuration = (seconds: number) => {
+  const formatDuration = (seconds: number, language: string) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
-    return `${hrs > 0 ? `${hrs} Hour${hrs > 1 ? "s" : ""}` : ""} ${mins > 0 ? `${mins} Minute${mins > 1 ? "s" : ""}` : ""}`.trim();
+    
+    switch (language) {
+      case "hindi":
+        return `${hrs > 0 ? `${hrs} घंटा${hrs > 1 ? "" : ""}` : ""} ${mins > 0 ? `${mins} मिनट${mins > 1 ? "" : ""}` : ""}`.trim();
+      case "marathi":
+        return `${hrs > 0 ? `${hrs} तास${hrs > 1 ? "" : ""}` : ""} ${mins > 0 ? `${mins} मिनिट${mins > 1 ? "" : ""}` : ""}`.trim();
+      default: // English
+        return `${hrs > 0 ? `${hrs} Hour${hrs > 1 ? "s" : ""}` : ""} ${mins > 0 ? `${mins} Minute${mins > 1 ? "s" : ""}` : ""}`.trim();
+    }
   };
 
   const getContent = () => {
-    const timeText = duration ? formatDuration(duration) : "...";
+    const timeText = duration ? formatDuration(duration, selectedLanguage) : "...";
     const qCount = questionCount ?? "...";
 
     switch (selectedLanguage) {
@@ -104,6 +113,7 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex items-center justify-center">
+      <LanguageSelector />
       <LogoutButton />
       <div className="bg-card rounded-2xl shadow-large p-8 max-w-lg w-full flex flex-col items-center justify-center">
         <h1 className="text-2xl font-semibold mb-4">{content.heading}</h1>

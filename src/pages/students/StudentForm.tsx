@@ -20,6 +20,7 @@ import {
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 interface State {
   id: string;
@@ -857,6 +858,7 @@ const StudentForm: React.FC = () => {
       <div className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
+          <LanguageSelector />
           <LogoutButton />
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
             {content.signUp}

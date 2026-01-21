@@ -11,6 +11,7 @@ import {
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useTests } from "../../utils/TestContext";
 import { useStudent } from "../../utils/StudentContext";
+import { useLanguage } from "@/routes/LaunguageContext";
 import {
   initClient,
   signIn,
@@ -57,14 +58,181 @@ interface SlotData {
   slot_type?: "LR" | "CFR"; // Learning Round or Culture Fit Round
 }
 
+// ================== Language Content ==================
+const languageContent = {
+  english: {
+    bookingTitle: "Book Interview Slot",
+    rescheduleTitle: "Reschedule Interview Slot",
+    learningRound: "Learning Round",
+    cultureFitRound: "Culture Fit Round",
+    currentSlot: "Current Slot:",
+    selectNewSlot: "Select a new time slot below to reschedule",
+    selectDate: "Select Date",
+    selectedDate: "Selected Date:",
+    availableTimeSlots: "Available Time Slots",
+    noSlotsAvailable: "No slots available for this date.",
+    selectAnotherDate: "Please select another date.",
+    newSlotSelected: "New Slot Selected:",
+    selectedSlot: "Selected Slot:",
+    date: "Date:",
+    time: "Time:",
+    googleMeetRequired: "Google Meet Setup Required",
+    signInDescription: "You'll need to sign in with Google to automatically create a Meet link for your interview.",
+    popupInfo: "A popup will open for sign-in when you click \"Book Slot\"",
+    accountConnected: "Google account connected. Meet link will be created automatically.",
+    cancel: "Cancel",
+    confirmReschedule: "Confirm Reschedule",
+    rescheduling: "Rescheduling...",
+    selectNewTimeSlot: "Select New Time Slot",
+    booking: "Booking...",
+    bookSelectedSlot: "Book Selected Slot & Schedule Meet",
+    selectTimeSlot: "Select a Time Slot",
+    interviewSlotBooked: "Interview Slot Booked",
+    slotDetails: "Slot Details",
+    studentName: "Student Name",
+    topic: "Topic",
+    interviewer: "Interviewer",
+    googleMeetLink: "Google Meet Link",
+    joinGoogleMeet: "Join Google Meet",
+    meetLinkSent: "Meeting link has been sent to your email and the interviewer's email.",
+    rescheduleSlot: "Reschedule Slot",
+    processing: "Processing...",
+    cancelSlot: "Cancel Slot",
+    viewResults: "View Results",
+    cancelInterviewSlot: "Cancel Interview Slot",
+    cancelConfirmation: "Are you sure you want to cancel your scheduled interview? This action cannot be undone.",
+    reasonForCancellation: "Reason for Cancellation",
+    reasonPlaceholder: "Please provide a reason for cancelling your interview...",
+    goBack: "Go Back",
+    confirmCancel: "Confirm Cancel",
+    cancelling: "Cancelling...",
+    loadingStudentData: "Loading student data...",
+    signInWithGoogle: "Sign in with Google",
+    popupOpening: "A popup window should have opened for Google sign-in.",
+    popupBlocked: "Popup blocked?",
+    allowPopups: "Please allow popups for this site and try again.",
+    grantPermissions: "Grant calendar permissions to schedule your interview.",
+  },
+  hindi: {
+    bookingTitle: "इंटरव्यू स्लॉट बुक करें",
+    rescheduleTitle: "इंटरव्यू स्लॉट पुनर्निर्धारित करें",
+    learningRound: "लर्निंग राउंड",
+    cultureFitRound: "कल्चर फिट राउंड",
+    currentSlot: "वर्तमान स्लॉट:",
+    selectNewSlot: "पुनर्निर्धारित करने के लिए नीचे एक नया समय स्लॉट चुनें",
+    selectDate: "तारीख चुनें",
+    selectedDate: "चयनित तारीख:",
+    availableTimeSlots: "उपलब्ध समय स्लॉट",
+    noSlotsAvailable: "इस तारीख के लिए कोई स्लॉट उपलब्ध नहीं है।",
+    selectAnotherDate: "कृपया दूसरी तारीख चुनें।",
+    newSlotSelected: "नया स्लॉट चयनित:",
+    selectedSlot: "चयनित स्लॉट:",
+    date: "तारीख:",
+    time: "समय:",
+    googleMeetRequired: "Google Meet सेटअप आवश्यक",
+    signInDescription: "आपके इंटरव्यू के लिए स्वचालित रूप से Meet लिंक बनाने के लिए आपको Google से साइन इन करना होगा।",
+    popupInfo: "जब आप \"Book Slot\" पर क्लिक करेंगे तो साइन-इन के लिए एक पॉपअप खुलेगा",
+    accountConnected: "Google खाता कनेक्ट हो गया है। Meet लिंक स्वचालित रूप से बनाया जाएगा।",
+    cancel: "रद्द करें",
+    confirmReschedule: "पुनर्निर्धारण की पुष्टि करें",
+    rescheduling: "पुनर्निर्धारण हो रहा है...",
+    selectNewTimeSlot: "नया समय स्लॉट चुनें",
+    booking: "बुकिंग हो रही है...",
+    bookSelectedSlot: "चयनित स्लॉट बुक करें और Meet शेड्यूल करें",
+    selectTimeSlot: "समय स्लॉट चुनें",
+    interviewSlotBooked: "इंटरव्यू स्लॉट बुक हो गया",
+    slotDetails: "स्लॉट विवरण",
+    studentName: "छात्र का नाम",
+    topic: "विषय",
+    interviewer: "साक्षात्कारकर्ता",
+    googleMeetLink: "Google Meet लिंक",
+    joinGoogleMeet: "Google Meet में शामिल हों",
+    meetLinkSent: "मीटिंग लिंक आपके ईमेल और साक्षात्कारकर्ता के ईमेल पर भेज दिया गया है।",
+    rescheduleSlot: "स्लॉट पुनर्निर्धारित करें",
+    processing: "प्रोसेसिंग...",
+    cancelSlot: "स्लॉट रद्द करें",
+    viewResults: "परिणाम देखें",
+    cancelInterviewSlot: "इंटरव्यू स्लॉट रद्द करें",
+    cancelConfirmation: "क्या आप वाकई अपना निर्धारित इंटरव्यू रद्द करना चाहते हैं? इस कार्यवाही को पूर्ववत नहीं किया जा सकता।",
+    reasonForCancellation: "रद्द करने का कारण",
+    reasonPlaceholder: "कृपया अपना इंटरव्यू रद्द करने का कारण बताएं...",
+    goBack: "वापस जाएं",
+    confirmCancel: "रद्द करने की पुष्टि करें",
+    cancelling: "रद्द हो रहा है...",
+    loadingStudentData: "छात्र डेटा लोड हो रहा है...",
+    signInWithGoogle: "Google से साइन इन करें",
+    popupOpening: "Google साइन-इन के लिए एक पॉपअप विंडो खुलनी चाहिए थी।",
+    popupBlocked: "पॉपअप ब्लॉक हो गया?",
+    allowPopups: "कृपया इस साइट के लिए पॉपअप की अनुमति दें और पुनः प्रयास करें।",
+    grantPermissions: "अपना इंटरव्यू शेड्यूल करने के लिए कैलेंडर अनुमतियाँ प्रदान करें।",
+  },
+  marathi: {
+    bookingTitle: "मुलाखत स्लॉट बुक करा",
+    rescheduleTitle: "मुलाखत स्लॉट पुनर्निर्धारित करा",
+    learningRound: "लर्निंग राउंड",
+    cultureFitRound: "कल्चर फिट राउंड",
+    currentSlot: "सध्याचा स्लॉट:",
+    selectNewSlot: "पुनर्निर्धारित करण्यासाठी खाली नवीन वेळ स्लॉट निवडा",
+    selectDate: "तारीख निवडा",
+    selectedDate: "निवडलेली तारीख:",
+    availableTimeSlots: "उपलब्ध वेळ स्लॉट",
+    noSlotsAvailable: "या तारखेसाठी कोणतेही स्लॉट उपलब्ध नाहीत.",
+    selectAnotherDate: "कृपया दुसरी तारीख निवडा.",
+    newSlotSelected: "नवीन स्लॉट निवडला:",
+    selectedSlot: "निवडलेला स्लॉट:",
+    date: "तारीख:",
+    time: "वेळ:",
+    googleMeetRequired: "Google Meet सेटअप आवश्यक",
+    signInDescription: "तुमच्या मुलाखतीसाठी स्वयंचलितपणे Meet लिंक तयार करण्यासाठी तुम्हाला Google सह साइन इन करणे आवश्यक आहे.",
+    popupInfo: "जेव्हा तुम्ही \"Book Slot\" वर क्लिक कराल तेव्हा साइन-इनसाठी पॉपअप उघडेल",
+    accountConnected: "Google खाते कनेक्ट झाले आहे. Meet लिंक स्वयंचलितपणे तयार केली जाईल.",
+    cancel: "रद्द करा",
+    confirmReschedule: "पुनर्निर्धारणाची पुष्टी करा",
+    rescheduling: "पुनर्निर्धारण होत आहे...",
+    selectNewTimeSlot: "नवीन वेळ स्लॉट निवडा",
+    booking: "बुकिंग होत आहे...",
+    bookSelectedSlot: "निवडलेला स्लॉट बुक करा आणि Meet शेड्यूल करा",
+    selectTimeSlot: "वेळ स्लॉट निवडा",
+    interviewSlotBooked: "मुलाखत स्लॉट बुक झाला",
+    slotDetails: "स्लॉट तपशील",
+    studentName: "विद्यार्थ्याचे नाव",
+    topic: "विषय",
+    interviewer: "मुलाखतकार",
+    googleMeetLink: "Google Meet लिंक",
+    joinGoogleMeet: "Google Meet मध्ये सामील व्हा",
+    meetLinkSent: "मीटिंग लिंक तुमच्या ईमेल आणि मुलाखतकाराच्या ईमेलवर पाठवली गेली आहे.",
+    rescheduleSlot: "स्लॉट पुनर्निर्धारित करा",
+    processing: "प्रक्रिया होत आहे...",
+    cancelSlot: "स्लॉट रद्द करा",
+    viewResults: "परिणाम पहा",
+    cancelInterviewSlot: "मुलाखत स्लॉट रद्द करा",
+    cancelConfirmation: "तुम्हाला खात्री आहे की तुम्ही तुमची निर्धारित मुलाखत रद्द करू इच्छिता? ही क्रिया पूर्ववत केली जाऊ शकत नाही.",
+    reasonForCancellation: "रद्द करण्याचे कारण",
+    reasonPlaceholder: "कृपया तुमची मुलाखत रद्द करण्याचे कारण द्या...",
+    goBack: "परत जा",
+    confirmCancel: "रद्द करण्याची पुष्टी करा",
+    cancelling: "रद्द होत आहे...",
+    loadingStudentData: "विद्यार्थी डेटा लोड होत आहे...",
+    signInWithGoogle: "Google सह साइन इन करा",
+    popupOpening: "Google साइन-इनसाठी पॉपअप विंडो उघडली गेली असावी.",
+    popupBlocked: "पॉपअप ब्लॉक झाला?",
+    allowPopups: "कृपया या साइटसाठी पॉपअप्सना परवानगी द्या आणि पुन्हा प्रयत्न करा.",
+    grantPermissions: "तुमची मुलाखत शेड्यूल करण्यासाठी कॅलेंडर परवानग्या द्या.",
+  },
+};
+
 // ================== Component ==================
 const SlotBooking: React.FC = () => {
   // ---------- Context ----------
   const { student } = useStudent();
   const { tests, updateSlot } = useTests();
+  const { selectedLanguage } = useLanguage();
   const { id: testIdParam } = useParams<{ id: string }>();
   const testId = Number(testIdParam);
   const location = useLocation();
+
+  // Get language content
+  const content = languageContent[selectedLanguage] || languageContent.english;
 
   // Get slot_type from navigation state
   const slotType = location.state?.slot_type as "LR" | "CFR" | undefined;
@@ -849,7 +1017,7 @@ const SlotBooking: React.FC = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading student data...</p>
+          <p className="text-muted-foreground">{content.loadingStudentData}</p>
         </div>
       </div>
     );
@@ -889,20 +1057,20 @@ const SlotBooking: React.FC = () => {
                 <Loader2 className="w-16 h-16 text-primary animate-spin" />
               </div>
               <h3 className="text-2xl font-bold text-foreground mb-3">
-                Sign in with Google
+                {content.signInWithGoogle}
               </h3>
               <p className="text-muted-foreground mb-4">
-                A popup window should have opened for Google sign-in.
+                {content.popupOpening}
               </p>
               <div className="bg-accent border-2 border-primary/30 rounded-lg p-4 mb-4">
                 <p className="text-sm text-accent-foreground">
-                  <strong>Popup blocked?</strong>
+                  <strong>{content.popupBlocked}</strong>
                   <br />
-                  Please allow popups for this site and try again.
+                  {content.allowPopups}
                 </p>
               </div>
               <p className="text-xs text-muted-foreground">
-                Grant calendar permissions to schedule your interview.
+                {content.grantPermissions}
               </p>
             </div>
           </div>
@@ -917,12 +1085,12 @@ const SlotBooking: React.FC = () => {
             <div className="bg-primary px-8 py-6 text-primary-foreground shadow-md">
               <h1 className="text-3xl font-bold mb-2">
                 {isRescheduling
-                  ? "Reschedule Interview Slot"
-                  : "Book Interview Slot"}
+                  ? content.rescheduleTitle
+                  : content.bookingTitle}
                 {slotType && (
                   <span className="ml-3 text-2xl">
                     (
-                    {slotType === "LR" ? "Learning Round" : "Culture Fit Round"}
+                    {slotType === "LR" ? content.learningRound : content.cultureFitRound}
                     )
                   </span>
                 )}
@@ -940,12 +1108,12 @@ const SlotBooking: React.FC = () => {
               {isRescheduling && (
                 <div className="mt-3 bg-primary-foreground/10 rounded-lg p-3 border border-primary-foreground/20">
                   <p className="text-sm font-semibold">
-                    📅 Current Slot:{" "}
+                    📅 {content.currentSlot}{" "}
                     {slot.on_date && formatDisplayDate(new Date(slot.on_date))}{" "}
                     at {slot.start_time && formatTime(slot.start_time)}
                   </p>
                   <p className="text-xs mt-1">
-                    Select a new time slot below to reschedule
+                    {content.selectNewSlot}
                   </p>
                 </div>
               )}
@@ -956,7 +1124,7 @@ const SlotBooking: React.FC = () => {
               <div className="mb-8">
                 <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
                   <Calendar className="w-6 h-6 mr-2 text-primary" />
-                  Select Date
+                  {content.selectDate}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
@@ -970,7 +1138,7 @@ const SlotBooking: React.FC = () => {
                     className="w-full p-3 border-2 border-input rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground transition-all"
                   />
                   <div className="bg-accent p-3 rounded-lg border-2 border-primary/20">
-                    <p className="text-sm text-muted-foreground">Selected Date:</p>
+                    <p className="text-sm text-muted-foreground">{content.selectedDate}</p>
                     <p className="text-lg font-semibold text-primary">
                       {formatDisplayDate(selectedDate)}
                     </p>
@@ -982,7 +1150,7 @@ const SlotBooking: React.FC = () => {
               <div className="mb-8">
                 <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
                   <Clock className="w-6 h-6 mr-2 text-primary" />
-                  Available Time Slots
+                  {content.availableTimeSlots}
                 </h3>
                 {timings.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1032,10 +1200,10 @@ const SlotBooking: React.FC = () => {
                   <div className="bg-muted border border-border rounded-lg p-8 text-center">
                     <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                     <p className="text-foreground text-base">
-                      No slots available for this date.
+                      {content.noSlotsAvailable}
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
-                      Please select another date.
+                      {content.selectAnotherDate}
                     </p>
                   </div>
                 )}
@@ -1045,12 +1213,12 @@ const SlotBooking: React.FC = () => {
               {((isRescheduling && newSlot.id) || (!isRescheduling && slot.id && slot.is_cancelled)) && (
                 <div className="mb-6 bg-accent border-2 border-primary rounded-lg p-4 shadow-sm">
                   <h4 className="font-semibold text-accent-foreground mb-2">
-                    {isRescheduling ? "New Slot Selected:" : "Selected Slot:"}
+                    {isRescheduling ? content.newSlotSelected : content.selectedSlot}
                   </h4>
                   <div className="text-sm text-accent-foreground space-y-1">
-                    <p>📅 Date: {formatDisplayDate(selectedDate)}</p>
+                    <p>📅 {content.date} {formatDisplayDate(selectedDate)}</p>
                     <p>
-                      🕐 Time:{" "}
+                      🕐 {content.time}{" "}
                       {formatTime(isRescheduling ? newSlot.from : slot.from)} -{" "}
                       {formatTime(isRescheduling ? newSlot.to : slot.to)}
                     </p>
@@ -1065,32 +1233,29 @@ const SlotBooking: React.FC = () => {
                     <Video className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
                       <h4 className="font-semibold text-accent-foreground mb-1">
-                        Google Meet Setup Required
+                        {content.googleMeetRequired}
                       </h4>
                       <p className="text-sm text-muted-foreground mb-2">
-                        You'll need to sign in with Google to automatically
-                        create a Meet link for your interview.
+                        {content.signInDescription}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        ℹ️ A popup will open for sign-in when you click "Book
-                        Slot"
+                        ℹ️ {content.popupInfo}
                       </p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {isGoogleSignedIn && (slot.id || newSlot.id) && (
+              {/* {isGoogleSignedIn && (slot.id || newSlot.id) && (
                 <div className="mb-6 bg-accent border-2 border-[hsl(var(--primary))] rounded-lg p-4 shadow-sm">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="w-5 h-5 text-[hsl(var(--primary))]" />
                     <p className="text-sm text-accent-foreground">
-                      Google account connected. Meet link will be created
-                      automatically.
+                      {content.accountConnected}
                     </p>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Booking/Rescheduling Buttons */}
               {isRescheduling ? (
@@ -1100,7 +1265,7 @@ const SlotBooking: React.FC = () => {
                     disabled={isBookingInProgress}
                     className="flex-1 py-4 px-6 rounded-lg font-semibold text-lg transition-all bg-secondary-purple-light hover:bg-secondary-purple/20 text-secondary-purple disabled:opacity-50 border-2 border-secondary-purple shadow-sm hover:shadow-md"
                   >
-                    Cancel
+                    {content.cancel}
                   </button>
                   <button
                     onClick={handleRescheduleConfirm}
@@ -1114,12 +1279,12 @@ const SlotBooking: React.FC = () => {
                     {isBookingInProgress ? (
                       <span className="flex items-center justify-center">
                         <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        Rescheduling...
+                        {content.rescheduling}
                       </span>
                     ) : newSlot.id ? (
-                      "Confirm Reschedule"
+                      content.confirmReschedule
                     ) : (
-                      "Select New Time Slot"
+                      content.selectNewTimeSlot
                     )}
                   </button>
                 </div>
@@ -1136,12 +1301,12 @@ const SlotBooking: React.FC = () => {
                   {isBookingInProgress ? (
                     <span className="flex items-center justify-center">
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Booking...
+                      {content.booking}
                     </span>
                   ) : slot.id ? (
-                    "Book Selected Slot & Schedule Meet"
+                    content.bookSelectedSlot
                   ) : (
-                    "Select a Time Slot"
+                    content.selectTimeSlot
                   )}
                 </button>
               )}
@@ -1153,30 +1318,30 @@ const SlotBooking: React.FC = () => {
             <div className="bg-primary px-8 py-6 text-primary-foreground shadow-md">
               <div className="flex items-center justify-center space-x-3 mb-2">
                 <CheckCircle className="w-8 h-8" />
-                <h1 className="text-3xl font-bold">Interview Slot Booked</h1>
+                <h1 className="text-3xl font-bold">{content.interviewSlotBooked}</h1>
               </div>
             </div>
 
             <div className="p-8">
               <h2 className="text-2xl font-semibold text-foreground mb-6">
-                Slot Details
+                {content.slotDetails}
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Student Name</p>
+                    <p className="text-sm text-muted-foreground">{content.studentName}</p>
                     <p className="text-lg font-semibold text-foreground">{slot.student_name}</p>
                   </div>
 
                   <div>
-                    <p className="text-sm text-muted-foreground">Topic</p>
+                    <p className="text-sm text-muted-foreground">{content.topic}</p>
                     <p className="text-lg font-semibold text-foreground">{slot.topic_name}</p>
                   </div>
 
                   {slot.interviewer_name && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Interviewer</p>
+                      <p className="text-sm text-muted-foreground">{content.interviewer}</p>
                       <p className="text-lg font-semibold text-foreground">
                         {slot.interviewer_name}
                       </p>
@@ -1189,7 +1354,7 @@ const SlotBooking: React.FC = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Date</p>
+                    <p className="text-sm text-muted-foreground">{content.date.replace(':', '')}</p>
                     <p className="text-lg font-semibold text-foreground">
                       {slot.on_date &&
                         formatDisplayDate(new Date(slot.on_date))}
@@ -1197,7 +1362,7 @@ const SlotBooking: React.FC = () => {
                   </div>
 
                   <div>
-                    <p className="text-sm text-muted-foreground">Time</p>
+                    <p className="text-sm text-muted-foreground">{content.time.replace(':', '')}</p>
                     <p className="text-lg font-semibold text-foreground">
                       {slot.start_time &&
                         slot.end_time_expected &&
@@ -1215,7 +1380,7 @@ const SlotBooking: React.FC = () => {
                   <div className="flex items-center mb-3">
                     <Video className="w-6 h-6 text-primary mr-2" />
                     <h3 className="text-xl font-semibold text-foreground">
-                      Google Meet Link
+                      {content.googleMeetLink}
                     </h3>
                   </div>
                   <a
@@ -1225,11 +1390,10 @@ const SlotBooking: React.FC = () => {
                     className="inline-flex items-center px-6 py-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl border-2 border-primary hover:scale-105"
                   >
                     <Video className="w-5 h-5 mr-2" />
-                    Join Google Meet
+                    {content.joinGoogleMeet}
                   </a>
                   <p className="text-sm text-muted-foreground mt-3">
-                    Meeting link has been sent to your email and the
-                    interviewer's email.
+                    {content.meetLinkSent}
                   </p>
                 </div>
               )}
@@ -1243,10 +1407,10 @@ const SlotBooking: React.FC = () => {
                   {isBookingInProgress ? (
                     <span className="flex items-center justify-center">
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
+                      {content.processing}
                     </span>
                   ) : (
-                    "Reschedule Slot"
+                    content.rescheduleSlot
                   )}
                 </button>
 
@@ -1257,7 +1421,7 @@ const SlotBooking: React.FC = () => {
                 >
                   <span className="flex items-center justify-center">
                     <XCircle className="w-4 h-4 mr-2" />
-                    Cancel Slot
+                    {content.cancelSlot}
                   </span>
                 </button>
 
@@ -1265,7 +1429,7 @@ const SlotBooking: React.FC = () => {
                   onClick={handleNavigationOnStudentPage}
                   className="flex-1 py-3 px-6 bg-secondary-purple-light hover:bg-secondary-purple/20 text-secondary-purple font-semibold rounded-lg transition-all shadow-sm hover:shadow-md border-2 border-secondary-purple hover:scale-105"
                 >
-                  View Results
+                  {content.viewResults}
                 </button>
               </div>
             </div>
@@ -1280,21 +1444,21 @@ const SlotBooking: React.FC = () => {
                 <div className="bg-destructive/10 rounded-full p-2 mr-3">
                   <XCircle className="w-8 h-8 text-destructive" />
                 </div>
-                <h2 className="text-xl font-bold text-foreground">Cancel Interview Slot</h2>
+                <h2 className="text-xl font-bold text-foreground">{content.cancelInterviewSlot}</h2>
               </div>
 
               <p className="text-muted-foreground mb-4">
-                Are you sure you want to cancel your scheduled interview? This action cannot be undone.
+                {content.cancelConfirmation}
               </p>
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Reason for Cancellation <span className="text-destructive">*</span>
+                  {content.reasonForCancellation} <span className="text-destructive">*</span>
                 </label>
                 <textarea
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Please provide a reason for cancelling your interview..."
+                  placeholder={content.reasonPlaceholder}
                   className="w-full p-3 border-2 border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-destructive focus:border-destructive resize-none transition-all"
                   rows={4}
                 />
@@ -1309,7 +1473,7 @@ const SlotBooking: React.FC = () => {
                   disabled={isCancelling}
                   className="flex-1 py-3 px-4 bg-secondary-purple-light hover:bg-secondary-purple/20 text-secondary-purple font-semibold rounded-lg transition-all disabled:opacity-50 border-2 border-secondary-purple hover:scale-105 disabled:hover:scale-100"
                 >
-                  Go Back
+                  {content.goBack}
                 </button>
                 <button
                   onClick={handleCancelSlot}
@@ -1323,10 +1487,10 @@ const SlotBooking: React.FC = () => {
                   {isCancelling ? (
                     <span className="flex items-center justify-center">
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Cancelling...
+                      {content.cancelling}
                     </span>
                   ) : (
-                    "Confirm Cancel"
+                    content.confirmCancel
                   )}
                 </button>
               </div>

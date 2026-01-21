@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
+import LanguageSelector from "@/components/ui/LanguageSelector";
 import {
   getCompleteStudentData,
   CompleteStudentData,
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { OfferLetterCard } from "./OfferLetterCard";
 import Footer from "@/components/Footer";
+import { useLanguage } from "@/routes/LaunguageContext";
 
 interface Student {
   firstName: string;
@@ -46,6 +48,95 @@ export default function StudentResult() {
   const { tests, setTests } = useTests();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage } = useLanguage();
+
+  const getContent = () => {
+    switch (selectedLanguage) {
+      case "hindi":
+        return {
+          title: "छात्र परिणाम",
+          subtitle: "अपने परीक्षा परिणाम और साक्षात्कार स्लॉट बुकिंग स्थिति को ट्रैक करें।",
+          studentDetails: "छात्र विवरण",
+          name: "नाम:",
+          email: "ईमेल:",
+          phoneNumber: "फोन नंबर:",
+          state: "राज्य:",
+          testResults: "परीक्षा परिणाम और स्लॉट बुकिंग",
+          stage: "चरण",
+          status: "स्थिति",
+          scheduledTime: "निर्धारित समय",
+          actions: "कार्य",
+          marks: "अंक",
+          retest: "पुनः परीक्षा",
+          bookSlot: "स्लॉट बुक करें",
+          reschedule: "शेड्यूल देखें",
+          viewDetails: "विवरण देखें",
+          email2: "ईमेल:",
+          helpline: "हेल्पलाइन:",
+          issuesText: "परिणाम या स्लॉट बुकिंग से संबंधित किसी भी समस्या के लिए, प्रवेश सहायता से संपर्क करें।",
+          scheduled: "शेड्यूल",
+          pass: "उत्तीर्ण",
+          fail: "अनुत्तीर्ण",
+          pending: "लंबित",
+        };
+      case "marathi":
+        return {
+          title: "विद्यार्थी निकाल",
+          subtitle: "तुमचे परीक्षेचे निकाल आणि मुलाखत स्लॉट बुकिंग स्थिती ट्रॅक करा.",
+          studentDetails: "विद्यार्थी तपशील",
+          name: "नाव:",
+          email: "ईमेल:",
+          phoneNumber: "फोन नंबर:",
+          state: "राज्य:",
+          testResults: "परीक्षा निकाल आणि स्लॉट बुकिंग",
+          stage: "टप्पा",
+          status: "स्थिती",
+          scheduledTime: "नियोजित वेळ",
+          actions: "क्रिया",
+          marks: "गुण",
+          retest: "पुन्हा परीक्षा",
+          bookSlot: "स्लॉट बुक करा",
+          reschedule: "शेड्यूल पहा",
+          viewDetails: "तपशील पहा",
+          email2: "ईमेल:",
+          helpline: "हेल्पलाइन:",
+          issuesText: "निकाल किंवा स्लॉट बुकिंगशी संबंधित कोणत्याही समस्यांसाठी, प्रवेश सहाय्यकडे संपर्क साधा.",
+          scheduled: "शेड्यूल",
+          pass: "उत्तीर्ण",
+          fail: "अनुत्तीर्ण",
+          pending: "प्रलंबित",
+        };
+      default: // English
+        return {
+          title: "Student Results",
+          subtitle: "Track your test results and interview slot booking status.",
+          studentDetails: "Student Details",
+          name: "Name:",
+          email: "Email:",
+          phoneNumber: "Phone Number:",
+          state: "State:",
+          testResults: "Test Results & Slot Booking",
+          stage: "Stage",
+          status: "Status",
+          scheduledTime: "Scheduled Time",
+          actions: "Actions",
+          marks: "Marks",
+          retest: "Retest",
+          bookSlot: "Book Slot",
+          reschedule: "View Schchedule",
+          viewDetails: "View Details",
+          email2: "Email:",
+          helpline: "Helpline:",
+          issuesText: "For any issues related to results or slot booking, contact admissions support.",
+          scheduled: "Scheduled",
+          pass: "Pass",
+          fail: "Fail",
+          pending: "Pending",
+        };
+    }
+  };
+
+  const content = getContent();
 
   // Helper: normalize booking status
   const normalizeBooking = (val: any): BookingStatus => {
@@ -564,34 +655,35 @@ export default function StudentResult() {
       <div className="flex-1 flex">
         <div className="bg-card rounded-t-md shadow-2xl p-6 w-full overflow-y-auto">
           <header className="mb-6">
+            <LanguageSelector />
             <LogoutButton />
-            <h1 className="text-2xl font-bold text-foreground">Student Results</h1>
+            <h1 className="text-2xl font-bold text-foreground">{content.title}</h1>
             <p className="text-muted-foreground">
-              Track your test results and interview slot booking status.
+              {content.subtitle}
             </p>
           </header>
 
           {/* Student Details */}
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Student Details</CardTitle>
+              <CardTitle>{content.studentDetails}</CardTitle>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
               <p>
-                <span className="font-semibold">Name:</span>{" "}
+                <span className="font-semibold">{content.name}</span>{" "}
                 {student?.firstName || "-"} {student?.middleName || ""}{" "}
                 {student?.lastName || ""}
               </p>
               <p>
-                <span className="font-semibold">Email:</span>{" "}
+                <span className="font-semibold">{content.email}</span>{" "}
                 {student?.email || "-"}
               </p>
               <p>
-                <span className="font-semibold">Phone Number:</span>{" "}
+                <span className="font-semibold">{content.phoneNumber}</span>{" "}
                 {student?.whatsappNumber || "-"}
               </p>
               <p>
-                <span className="font-semibold">State:</span>{" "}
+                <span className="font-semibold">{content.state}</span>{" "}
                 {student?.state ? student.state : "-"}
           
               </p>
@@ -613,18 +705,18 @@ export default function StudentResult() {
           {/* Test Results & Slot Booking */}
           <Card>
             <CardHeader>
-              <CardTitle>Test Results & Slot Booking</CardTitle>
+              <CardTitle>{content.testResults}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="min-w-full border border-border text-left rounded-lg">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="px-4 py-2 border">Stage</th>
-                      <th className="px-4 py-2 border">Status</th>
-                      <th className="px-4 py-2 border">Scheduled Time</th>
-                      <th className="px-4 py-2 border">Actions</th>
-                      <th className="px-4 py-2 border">Marks</th>
+                      <th className="px-4 py-2 border">{content.stage}</th>
+                      <th className="px-4 py-2 border">{content.status}</th>
+                      <th className="px-4 py-2 border">{content.scheduledTime}</th>
+                      <th className="px-4 py-2 border">{content.actions}</th>
+                      <th className="px-4 py-2 border">{content.marks}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -678,11 +770,19 @@ export default function StudentResult() {
                                   test.status === "Pass"
                                     ? "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]"
                                     : test.status === "Pending"
-                                      ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                                      ? isSlotBooked && test.slotBooking?.scheduledTime
+                                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                        : "bg-yellow-50 text-yellow-700 border border-yellow-200"
                                       : "bg-destructive/10 text-destructive"
                                 }`}
                               >
-                                {test.status}
+                                {test.status === "Pending" && isSlotBooked && test.slotBooking?.scheduledTime
+                                  ? content.scheduled
+                                  : test.status === "Pass"
+                                    ? content.pass
+                                    : test.status === "Fail"
+                                      ? content.fail
+                                      : content.pending}
                               </span>
                             </td>
                             <td className="px-4 py-2 border">
@@ -709,14 +809,14 @@ export default function StudentResult() {
                                     disabled
                                     className="bg-secondary text-muted-foreground cursor-not-allowed"
                                   >
-                                    Retest
+                                    {content.retest}
                                   </Button>
                                 ) : test.status === "Fail" ? (
                                   <Button
                                     onClick={handleRetestNavigation}
                                     className="bg-primary hover:bg-primary/90"
                                   >
-                                    Retest
+                                    {content.retest}
                                   </Button>
                                 ) : (
                                   <p className="text-muted-foreground">-</p>
@@ -734,7 +834,7 @@ export default function StudentResult() {
                                       className="bg-secondary text-muted-foreground cursor-not-allowed"
                                       variant="outline"
                                     >
-                                      {isSlotBooked ? "Reschedule" : "Book Slot"}
+                                      {isSlotBooked ? content.reschedule : content.bookSlot}
                                     </Button>
                                   ) : hasTimePassed && !isSlotCompleted ? (
                                     /* If time passed but not completed, disable (awaiting result) */
@@ -753,7 +853,7 @@ export default function StudentResult() {
                                       }
                                       variant="outline"
                                     >
-                                      Reschedule
+                                      {content.reschedule}
                                     </Button>
                                   ) : (
                                     /* Default: Show Book Slot */
@@ -763,7 +863,7 @@ export default function StudentResult() {
                                       }
                                       className="bg-[hsl(var(--status-active))] hover:bg-[hsl(var(--status-active))]/90"
                                     >
-                                      Book Slot
+                                      {content.bookSlot}
                                     </Button>
                                   )}
                                 </>
