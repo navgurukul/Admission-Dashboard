@@ -272,7 +272,8 @@ export function TransitionsModal({
                                         placeholder="Enter feedback comments..."
                                         value={formData.feedback}
                                         onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-                                        className="min-h-[100px]"
+                                        className="min-h-[150px] resize-y"
+                                        rows={6}
                                     />
                                 </div>
                             </div>
@@ -283,7 +284,7 @@ export function TransitionsModal({
                             </div>
                         </div>
                     ) : (
-                        <ScrollArea className="h-full">
+                        <ScrollArea className="h-[500px]">
                             {isLoading ? (
                                 <div className="text-center p-4">Loading...</div>
                             ) : feedbacks.length === 0 ? (
@@ -291,50 +292,69 @@ export function TransitionsModal({
                                     No feedbacks found.
                                 </div>
                             ) : (
-                                <div className="border rounded-md">
+                                <div className="border rounded-md overflow-auto">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-muted">
+                                        <thead className="bg-muted sticky top-0 z-10">
                                             <tr>
-                                                <th className="p-3 text-left font-medium">Stage</th>
-                                                <th className="p-3 text-left font-medium">Status</th>
-                                                <th className="p-3 text-left font-medium w-1/3">Feedback</th>
-                                                <th className="p-3 text-left font-medium">Created At</th>
-                                                <th className="p-3 text-right font-medium">Actions</th>
+                                                <th className="p-3 text-left font-medium w-[120px]">Stage</th>
+                                                <th className="p-3 text-left font-medium w-[120px]">Status</th>
+                                                <th className="p-3 text-left font-medium">Feedback</th>
+                                                <th className="p-3 text-left font-medium w-[120px]">Created At</th>
+                                                <th className="p-3 text-right font-medium w-[100px]">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {feedbacks.map((item) => (
-                                                <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50">
-                                                    <td className="p-3">{getStageName(item.stage_id)}</td>
-                                                    <td className="p-3">{getStatusName(item.stage_status_id)}</td>
-                                                    <td className="p-3 max-w-xs truncate" title={item.feedback}>
-                                                        {item.feedback || "-"}
-                                                    </td>
-                                                    <td className="p-3">
-                                                        {item.created_at ? new Date(item.created_at).toLocaleDateString() : "-"}
-                                                    </td>
-                                                    <td className="p-3 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8"
-                                                                onClick={() => handleEdit(item)}
-                                                            >
-                                                                <Pencil className="w-4 h-4" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                                onClick={() => handleDelete(item.id)}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {feedbacks.map((item) => {
+                                                // Hide edit/delete if created_at is before 2026-01-01
+                                                let hideActions = false;
+                                                let createdDate = null;
+                                                if (item.created_at) {
+                                                    createdDate = new Date(item.created_at);
+                                                    hideActions = createdDate < new Date('2026-01-01');
+                                                }
+                                                return (
+                                                    <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50">
+                                                        <td className="p-3 align-top">{getStageName(item.stage_id)}</td>
+                                                        <td className="p-3 align-top">{getStatusName(item.stage_status_id)}</td>
+                                                        <td className="p-3 align-top">
+                                                            <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                                                                {item.feedback || "-"}
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 whitespace-nowrap align-top">
+                                                            {item.created_at ? new Date(item.created_at).toLocaleDateString() : "-"}
+                                                        </td>
+                                                        <td className="p-3 align-top">
+                                                            <div className={hideActions ? "flex justify-middle gap-2" : "flex justify-end gap-2"}>
+                                                                {hideActions ? (
+                                                                    <span className="text-xs text-muted-foreground italic" title="Editing/deleting disabled for feedbacks before 2026-01-01">
+                                                                        -
+                                                                    </span>
+                                                                ) : (
+                                                                    <>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleEdit(item)}
+                                                                        >
+                                                                            <Pencil className="w-4 h-4" />
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                                            onClick={() => handleDelete(item.id)}
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
