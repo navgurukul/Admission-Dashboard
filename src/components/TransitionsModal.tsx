@@ -304,40 +304,57 @@ export function TransitionsModal({
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {feedbacks.map((item) => (
-                                                <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50">
-                                                    <td className="p-3 align-top">{getStageName(item.stage_id)}</td>
-                                                    <td className="p-3 align-top">{getStatusName(item.stage_status_id)}</td>
-                                                    <td className="p-3 align-top">
-                                                        <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                                                            {item.feedback || "-"}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-3 whitespace-nowrap align-top">
-                                                        {item.created_at ? new Date(item.created_at).toLocaleDateString() : "-"}
-                                                    </td>
-                                                    <td className="p-3 text-right align-top">
-                                                        <div className="flex justify-end gap-2">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8"
-                                                                onClick={() => handleEdit(item)}
-                                                            >
-                                                                <Pencil className="w-4 h-4" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                                onClick={() => handleDelete(item.id)}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {feedbacks.map((item) => {
+                                                // Hide edit/delete if created_at is before 2026-01-01
+                                                let hideActions = false;
+                                                let createdDate = null;
+                                                if (item.created_at) {
+                                                    createdDate = new Date(item.created_at);
+                                                    hideActions = createdDate < new Date('2026-01-01');
+                                                }
+                                                return (
+                                                    <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50">
+                                                        <td className="p-3 align-top">{getStageName(item.stage_id)}</td>
+                                                        <td className="p-3 align-top">{getStatusName(item.stage_status_id)}</td>
+                                                        <td className="p-3 align-top">
+                                                            <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                                                                {item.feedback || "-"}
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 whitespace-nowrap align-top">
+                                                            {item.created_at ? new Date(item.created_at).toLocaleDateString() : "-"}
+                                                        </td>
+                                                        <td className="p-3 align-top">
+                                                            <div className={hideActions ? "flex justify-middle gap-2" : "flex justify-end gap-2"}>
+                                                                {hideActions ? (
+                                                                    <span className="text-xs text-muted-foreground italic" title="Editing/deleting disabled for feedbacks before 2026-01-01">
+                                                                        -
+                                                                    </span>
+                                                                ) : (
+                                                                    <>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => handleEdit(item)}
+                                                                        >
+                                                                            <Pencil className="w-4 h-4" />
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                                            onClick={() => handleDelete(item.id)}
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
