@@ -395,45 +395,53 @@ const DonorPage = () => {
 
 
               {/* Pagination Controls */}
-                   {!loading && donors.length > 0 && (
-                <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
-                  <div className="text-sm text-muted-foreground">
+              {!loading && donors.length > 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 px-4 py-4 border-t bg-muted/20">
+                  {/* Showing count - Hidden on mobile, visible on sm and up */}
+                  <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left order-2 sm:order-1">
                     Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalDonors)}</strong> of <strong>{totalDonors}</strong>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  
+                  {/* Pagination controls */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-2 order-1 sm:order-2">
+                    {/* Rows per page selector */}
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
+                      <Label className="text-xs m:text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
                       <select
                         value={rowsPerPage}
                         onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                        className="border rounded px-2 py-1 text-sm h-8"
+                        className="border rounded px-2 py-1.5 text-xs sm:text-sm h-8 sm:h-9 min-w-[70px] focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value={10}>10</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                       </select>
                     </div>
-                    <span className="text-sm text-muted-foreground px-2">
-                      Page <strong>{page}</strong> of <strong>{totalPages}</strong>
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="h-8"
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                      className="h-8"
-                    >
-                      Next
-                    </Button>
+                    
+                    {/* Navigation buttons */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs sm:text-sm text-muted-foreground px-2 whitespace-nowrap">
+                        Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3"
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}

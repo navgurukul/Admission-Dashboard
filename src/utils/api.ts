@@ -2730,8 +2730,17 @@ export const deletePartner = async (id: number | string) => {
   }
 };
 
-export const getStudentsByPartnerId = async (id: number | string, page: number = 1, pageSize: number = 10) => {
-  const response = await fetch(`${BASE_URL}/partners/getStudentsByPartnerId/${id}?page=${page}&pageSize=${pageSize}`, {
+export const getStudentsByPartnerId = async (id: number | string, page: number = 1, pageSize: number = 10, search: string = "") => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  
+  if (search.trim()) {
+    params.append("search", search.trim());
+  }
+  
+  const response = await fetch(`${BASE_URL}/partners/getStudentsByPartnerId/${id}?${params.toString()}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -2850,8 +2859,17 @@ export const deleteDonor = async (id: number | string) => {
   }
 }
 
-export const getStudentsByDonorId = async (id: number | string, page: number = 1, pageSize: number = 10) => {
-  const response = await fetch(`${BASE_URL}/donors/getStudentsByDonorId/${id}?page=${page}&pageSize=${pageSize}`, {
+export const getStudentsByDonorId = async (id: number | string, page: number = 1, pageSize: number = 10, search: string = "") => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  
+  if (search.trim()) {
+    params.append("search", search.trim());
+  }
+  
+  const response = await fetch(`${BASE_URL}/donors/getStudentsByDonorId/${id}?${params.toString()}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
