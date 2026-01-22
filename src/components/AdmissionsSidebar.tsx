@@ -60,6 +60,14 @@ export function AdmissionsSidebar() {
     if (href === "/campus") {
       return location.pathname === "/campus" || location.pathname.startsWith("/campus/");
     }
+    // Check if current path is donor students page and menu item is donor
+    if (href === "/donor") {
+      return location.pathname === "/donor" || location.pathname.startsWith("/donors/");
+    }
+    // Check if current path is partner students page and menu item is partners
+    if (href === "/partners") {
+      return location.pathname === "/partners" || location.pathname.startsWith("/partners/");
+    }
     return location.pathname === href;
   };
 
