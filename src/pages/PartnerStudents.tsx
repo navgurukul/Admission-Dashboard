@@ -237,6 +237,87 @@ const PartnerStudents = () => {
         setIsModalOpen(true);
     };
 
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedStudent(null);
+        // Reload data to reflect any changes made in the modal
+        loadData();
+    };
+
+    // Helper function to get student status
+    const getStudentStatus = (student) => {
+        // Check current_status_name first (if directly available)
+        // if (student.current_status_name) return student.current_status_name;
+        
+        // Determine status based on stage
+        const stage = (student.stage_name || student.stage || "").toLowerCase();
+        
+        // Special case: If stage is Onboarded, status should also be Onboarded
+        if (stage.includes("onboarded")) {
+            return "Onboarded";
+        }
+        
+        // 1. Screening Round - get status from exam_sessions
+        if (stage.includes("screening") || stage.includes("exam")) {
+            if (student.exam_sessions && student.exam_sessions.length > 0) {
+                const latestExam = student.exam_sessions[0];
+                if (latestExam.status) return latestExam.status;
+            }
+        }
+        
+        // 2. Interview Round - check learning round and cultural fit round
+        if (stage.includes("interview")) {
+
+                // Check cultural fit round status
+            if (student.interview_cultural_fit_round && student.interview_cultural_fit_round.length > 0) {
+                const culturalRound = student.interview_cultural_fit_round[0];
+                if (culturalRound.cultural_fit_status) return culturalRound.cultural_fit_status;
+            }
+            // Check learning round status
+            if (student.interview_learner_round && student.interview_learner_round.length > 0) {
+                const learningRound = student.interview_learner_round[0];
+                if (learningRound.learning_round_status) return learningRound.learning_round_status;
+            }
+            
+               }
+        
+        // 3. Final Decision - check offer letter and onboarding status
+        if (stage.includes("final") || stage.includes("decision") || stage.includes("offer")) {
+            if (student.final_decisions && student.final_decisions.length > 0) {
+                const finalDecision = student.final_decisions[0];
+                
+                // Onboarding status has higher priority
+                if (finalDecision.onboarded_status) return finalDecision.onboarded_status;
+                
+                // Offer letter status
+                if (finalDecision.offer_letter_status) return finalDecision.offer_letter_status;
+            }
+        }
+        
+        // Fallback to current_status if nothing else found
+        if (student.current_status) return student.current_status;
+        
+        return "N/A";
+    };
+
+    // Helper function to get student score from last screening round
+    const getStudentScore = (student) => {
+        // Check if total_score exists
+        if (student.total_score !== null && student.total_score !== undefined) {
+            return student.total_score;
+        }
+        
+        // Check exam sessions for obtained marks
+        if (student.exam_sessions && student.exam_sessions.length > 0) {
+            const latestExam = student.exam_sessions[0];
+            if (latestExam.obtained_marks !== null && latestExam.obtained_marks !== undefined) {
+                return latestExam.obtained_marks;
+            }
+        }
+        
+        return "-";
+    };
+
     // Helper to process data for charts
     // Unified lifecycle status helper
     const getLifecycleStatus = (student: any) => {
@@ -507,7 +588,7 @@ const PartnerStudents = () => {
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         type="text"
-                                        placeholder="Search by name, email, or phone..."
+                                        placeholder="Search by name"
                                         value={searchQuery}
                                         onChange={(e) => {
                                             setSearchQuery(e.target.value);
@@ -547,9 +628,9 @@ const PartnerStudents = () => {
                                             <TableHead>Name</TableHead>
                                             <TableHead>Email</TableHead>
                                             <TableHead>Phone</TableHead>
-                                            <TableHead>Status</TableHead>
                                             <TableHead>Stage</TableHead>
-                                            <TableHead>Score</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Screening Round Score</TableHead>
                                             <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -571,14 +652,14 @@ const PartnerStudents = () => {
                                                             "N/A"}
                                                     </TableCell>
                                                     <TableCell>{student.email || "-"}</TableCell>
-                                                    <TableCell>{student.mobile || student.phone_number || student.whatsapp_number || "-"}</TableCell>
+                                                    <TableCell>{student.phone_number || student.whatsapp_number || "-"}</TableCell>
+                                                    <TableCell>{student.stage_name || student.stage || "-"}</TableCell>
                                                     <TableCell>
                                                         <Badge variant="secondary" className="font-normal">
-                                                            {student.current_status || "N/A"}
+                                                            {getStudentStatus(student)}
                                                         </Badge>
                                                     </TableCell>
-                                                    <TableCell>{student.stage || "-"}</TableCell>
-                                                    <TableCell>{student.total_score || "-"}</TableCell>
+                                                    <TableCell>{getStudentScore(student)}</TableCell>
                                                     <TableCell>
                                                         <Button variant="ghost" size="icon" onClick={() => handleViewStudent(student)}>
                                                             <Eye className="h-4 w-4" />
@@ -617,21 +698,21 @@ const PartnerStudents = () => {
                                                 <div className="grid grid-cols-2 gap-2 text-sm">
                                                     <div>
                                                         <span className="text-muted-foreground">Phone:</span>
-                                                        <p className="font-medium">{student.mobile || student.phone_number || student.whatsapp_number || "-"}</p>
+                                                        <p className="font-medium">{student.phone_number || student.whatsapp_number || "-"}</p>
                                                     </div>
                                                     <div>
                                                         <span className="text-muted-foreground">Stage:</span>
-                                                        <p className="font-medium">{student.stage || "-"}</p>
+                                                        <p className="font-medium">{student.stage_name || student.stage || "-"}</p>
                                                     </div>
                                                     <div>
-                                                        <span className="text-muted-foreground">Score:</span>
-                                                        <p className="font-medium">{student.total_score || "-"}</p>
+                                                        <span className="text-muted-foreground">Screening Round Score:</span>
+                                                        <p className="font-medium">{getStudentScore(student)}</p>
                                                     </div>
                                                     <div>
                                                         <span className="text-muted-foreground">Status:</span>
                                                         <div className="mt-1">
                                                             <Badge variant="secondary" className="font-normal text-xs">
-                                                                {student.current_status || "N/A"}
+                                                                {getStudentStatus(student)}
                                                             </Badge>
                                                         </div>
                                                     </div>
@@ -698,7 +779,7 @@ const PartnerStudents = () => {
 
             <ApplicantModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleCloseModal}
                 applicant={selectedStudent}
             />
         </div>
