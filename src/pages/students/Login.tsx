@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { User, CheckCircle2, XCircle } from "lucide-react";
+import { User, CheckCircle2, XCircle, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { getStudentDataByEmail } from "@/utils/api";
@@ -20,6 +20,8 @@ import {
   ADMISSIONS_PHONE_TEL,
 } from "@/lib/const";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { useLanguage } from "@/routes/LaunguageContext";
+import { Language } from "@/utils/student.types";
 
 type Student = {
   id: number;
@@ -37,6 +39,8 @@ type LoginResponse = {
 export default function StudentLogin() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { selectedLanguage, setSelectedLanguage } = useLanguage();
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   // All users (Admin, User, Student) login from this page
   const {
     user: googleUser,
@@ -53,6 +57,37 @@ export default function StudentLogin() {
   });
   const [loading, setLoading] = useState(false);
   const [hasProcessedAuth, setHasProcessedAuth] = useState(false);
+
+  const languages: { value: Language; label: string }[] = [
+    { value: "english", label: "English" },
+    { value: "hindi", label: "हिंदी" },
+    { value: "marathi", label: "मराठी" },
+  ];
+
+  const handleLanguageChange = (lang: Language) => {
+    setSelectedLanguage(lang);
+    localStorage.setItem("selectedLanguage", lang);
+    setShowLanguageDropdown(false);
+  };
+
+  const currentLanguage = languages.find(
+    (lang) => lang.value === selectedLanguage
+  );
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".language-selector-login")) {
+        setShowLanguageDropdown(false);
+      }
+    };
+
+    if (showLanguageDropdown) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [showLanguageDropdown]);
 
   // Render Google button when component mounts and Google auth is ready
   useEffect(() => {
@@ -324,24 +359,50 @@ export default function StudentLogin() {
       description: "Sign in with your Google account to continue.",
       successMessage: "Login Successful!",
       failureMessage: "Login Failed. Please try again.",
+      welcomeTitle: "Welcome to NavGurukul",
+      welcomeSubtitle: "Empowering students through technology education",
+      welcomeDescription: "Join thousands of students on their learning journey",
+      secureLogin: "Secure Login",
+      signInWith: "Sign in with Google",
+      loading: "Loading...",
+      troubleSigning: "Having trouble signing in?",
+      contactUs: "Contact us at",
+      callUs: "Call us at",
     },
     hindi: {
       title: "लॉगिन",
       description: "जारी रखने के लिए अपने Google खाते से साइन इन करें।",
       successMessage: "लॉगिन सफल!",
       failureMessage: "लॉगिन विफल। कृपया पुनः प्रयास करें।",
+      welcomeTitle: "NavGurukul में आपका स्वागत है",
+      welcomeSubtitle: "प्रौद्योगिकी शिक्षा के माध्यम से छात्रों को सशक्त बनाना",
+      welcomeDescription: "हजारों छात्रों के साथ उनकी सीखने की यात्रा में शामिल हों",
+      secureLogin: "सुरक्षित लॉगिन",
+      signInWith: "Google से साइन इन करें",
+      loading: "लोड हो रहा है...",
+      troubleSigning: "साइन इन करने में परेशानी हो रही है?",
+      contactUs: "हमसे संपर्क करें",
+      callUs: "हमें कॉल करें",
     },
     marathi: {
       title: "लॉगिन",
       description: "सुरू ठेवण्यासाठी आपल्या Google खात्याने साइन इन करा.",
       successMessage: "लॉगिन यशस्वी!",
       failureMessage: "लॉगिन अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+      welcomeTitle: "NavGurukul मध्ये आपले स्वागत आहे",
+      welcomeSubtitle: "तंत्रज्ञान शिक्षणाद्वारे विद्यार्थ्यांना सशक्त करणे",
+      welcomeDescription: "हजारो विद्यार्थ्यांसोबत त्यांच्या शिकण्याच्या प्रवासात सामील व्हा",
+      secureLogin: "सुरक्षित लॉगिन",
+      signInWith: "Google सह साइन इन करा",
+      loading: "लोड होत आहे...",
+      troubleSigning: "साइन इन करण्यात समस्या येत आहे?",
+      contactUs: "आमच्याशी संपर्क साधा",
+      callUs: "आम्हाला कॉल करा",
     },
   };
 
   const getContent = () => {
-    const lang = localStorage.getItem("selectedLanguage") || "english";
-    switch (lang) {
+    switch (selectedLanguage) {
       case "hindi":
         return content.hindi;
       case "marathi":
@@ -405,7 +466,38 @@ export default function StudentLogin() {
     }
   };
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row relative">
+      {/* Language Selector - Positioned in top right */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 language-selector-login">
+        <button
+          onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+          className="flex items-center gap-2 bg-white hover:bg-gray-50 px-4 py-2 rounded-full shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-200 hover:scale-105"
+        >
+          <Languages className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+          <span className="font-medium text-sm md:text-base text-foreground">
+            {currentLanguage?.label}
+          </span>
+        </button>
+
+        {showLanguageDropdown && (
+          <div className="absolute right-0 mt-2 bg-white shadow-2xl rounded-xl border border-gray-200 min-w-[140px] overflow-hidden animate-fade-in">
+            {languages.map((lang) => (
+              <button
+                key={lang.value}
+                onClick={() => handleLanguageChange(lang.value)}
+                className={`w-full text-left px-4 py-3 text-sm font-medium transition-all hover:bg-gray-50 ${
+                  selectedLanguage === lang.value
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground"
+                }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      
       {/* Left Side - Image with Improved Contrast */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {/* Darker gradient overlay for better text contrast */}
@@ -416,9 +508,9 @@ export default function StudentLogin() {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="relative z-10 flex flex-col justify-center items-center text-white p-12 text-center">
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6 drop-shadow-lg">Welcome to NavGurukul</h1>
-          <p className="text-xl lg:text-2xl mb-4 drop-shadow-md">Empowering students through technology education</p>
-          <p className="text-lg lg:text-xl drop-shadow-md">Join thousands of students on their learning journey</p>
+          <h1 className="text-4xl lg:text-5xl font-bold mb-6 drop-shadow-lg">{getContent().welcomeTitle}</h1>
+          <p className="text-xl lg:text-2xl mb-4 drop-shadow-md">{getContent().welcomeSubtitle}</p>
+          <p className="text-lg lg:text-xl drop-shadow-md">{getContent().welcomeDescription}</p>
         </div>
       </div>
 
@@ -448,7 +540,7 @@ export default function StudentLogin() {
                 <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <span>Secure Login</span>
+                <span>{getContent().secureLogin}</span>
               </div>
 
               {/* Divider */}
@@ -457,7 +549,7 @@ export default function StudentLogin() {
                   <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground">Sign in with Google</span>
+                  <span className="px-4 bg-card text-muted-foreground">{getContent().signInWith}</span>
                 </div>
               </div>
 
@@ -476,23 +568,23 @@ export default function StudentLogin() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Loading...
+                    {getContent().loading}
                   </div>
                 )}
               </div>
 
               {/* Help Text - Friendlier and Better Spaced */}
               <div className="text-center space-y-3 text-sm pt-6 border-t border-border/50">
-                <p className="text-muted-foreground font-medium">Having trouble signing in?</p>
+                <p className="text-muted-foreground font-medium">{getContent().troubleSigning}</p>
                 <div className="space-y-2">
                   <p className="text-foreground">
-                    <span className="text-muted-foreground">Contact us at </span>
+                    <span className="text-muted-foreground">{getContent().contactUs} </span>
                     <a href={`mailto:${ADMISSIONS_EMAIL}`} className="font-semibold hover:text-primary transition-colors">
                       {ADMISSIONS_EMAIL}
                     </a>
                   </p>
                   <p className="text-foreground">
-                    <span className="text-muted-foreground">Call us at </span>
+                    <span className="text-muted-foreground">{getContent().callUs} </span>
                     <a href={`tel:${ADMISSIONS_PHONE_TEL}`} className="font-semibold hover:text-primary transition-colors">
                       {ADMISSIONS_PHONE_DISPLAY}
                     </a>

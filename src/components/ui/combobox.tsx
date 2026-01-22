@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -89,6 +89,12 @@ export const Combobox = React.memo(function Combobox({
     }
   }, [onOpen])
 
+  const handleClear = React.useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onValueChange("")
+  }, [onValueChange])
+
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
@@ -107,7 +113,21 @@ export const Combobox = React.memo(function Combobox({
           <span className="truncate">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <div className="flex items-center gap-1 ml-2 shrink-0">
+            {value && !disabled && (
+              <div
+                className="h-4 w-4 shrink-0 opacity-50 hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center"
+                onClick={handleClear}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </div>
+            )}
+            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+          </div>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0" align="start">
