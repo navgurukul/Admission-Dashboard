@@ -601,32 +601,32 @@ export function AddApplicantModal({
     setLoading(true);
     try {
       // Check if user selected "Pass" status with failing marks
-      const PASSING_MARKS = 13;
-      const obtainedMarks = Number(formData.obtained_marks);
+      // const PASSING_MARKS = 13;
+      // const obtainedMarks = Number(formData.obtained_marks);
       
-      // Only block if marks are failing AND status is "Pass"
-      if (obtainedMarks < PASSING_MARKS && formData.status === "Screening Test Pass") {
-        toast({
-          title: "❌ Invalid Status Selection",
-          description: `Student has failed (marks < ${PASSING_MARKS}). Cannot select 'Screening Test Pass' with failing marks. Please select 'Screening Test Fail'.`,
-          variant: "destructive",
-          className: "border-red-500 bg-red-50 text-red-900",
-        });
-        setLoading(false);
-        return; // Stop - No API calls
-      }
+      // // Only block if marks are failing AND status is "Pass"
+      // if (obtainedMarks < PASSING_MARKS && formData.status === "Screening Test Pass") {
+      //   toast({
+      //     title: "❌ Invalid Status Selection",
+      //     description: `Student has failed (marks < ${PASSING_MARKS}). Cannot select 'Screening Test Pass' with failing marks. Please select 'Screening Test Fail'.`,
+      //     variant: "destructive",
+      //     className: "border-red-500 bg-red-50 text-red-900",
+      //   });
+      //   setLoading(false);
+      //   return; // Stop - No API calls
+      // }
 
-      //  Validation: school assignment for failed students (marks < 13)
-      if (obtainedMarks < PASSING_MARKS && formData.qualifying_school_id) {
-        toast({
-          title: "❌ Cannot Assign School",
-          description: `Student has failed (marks < ${PASSING_MARKS}). School cannot be assigned to students with failing marks. Please remove the school selection.`,
-          variant: "destructive",
-          className: "border-red-500 bg-red-50 text-red-900",
-        });
-        setLoading(false);
-        return; 
-      }
+      // //  Validation: school assignment for failed students (marks < 13)
+      // if (obtainedMarks < PASSING_MARKS && formData.qualifying_school_id) {
+      //   toast({
+      //     title: "❌ Cannot Assign School",
+      //     description: `Student has failed (marks < ${PASSING_MARKS}). School cannot be assigned to students with failing marks. Please remove the school selection.`,
+      //     variant: "destructive",
+      //     className: "border-red-500 bg-red-50 text-red-900",
+      //   });
+      //   setLoading(false);
+      //   return; 
+      // }
 
       // console.log("Submitting form data:", formData);
       // Step 1: Create student with basic details only
@@ -1596,7 +1596,7 @@ export function AddApplicantModal({
                   <strong>Note:</strong> For screening students, if you enter marks, the screening status and school will be automatically updated based on the obtained marks.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
+                {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div className="space-y-2">
                     <Label
                       htmlFor="screening_status"
@@ -1629,7 +1629,7 @@ export function AddApplicantModal({
                       <p className="text-xs text-red-500">{errors.status}</p>
                     )}
                   </div>
-                </div>
+                </div> */}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
@@ -1794,7 +1794,7 @@ export function AddApplicantModal({
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor="qualifying_school_id"
                       className="text-sm font-medium"
@@ -1831,7 +1831,7 @@ export function AddApplicantModal({
                         {errors.qualifying_school_id}
                       </p>
                     )}
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </TabsContent>
