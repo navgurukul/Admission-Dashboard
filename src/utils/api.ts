@@ -2973,6 +2973,7 @@ export const deleteFeedback = async (id: number): Promise<any> => {
   const response = await fetch(`${BASE_URL}/feedback/deleteFeedback/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
+    body:JSON.stringify(id)
   });
 
   const data = await response.json();

@@ -203,7 +203,7 @@ export function TransitionsModal({
                 <DialogHeader className="flex flex-row items-center justify-between">
                     <DialogTitle>Transitions Feedback</DialogTitle>
                     {!isFormOpen && (
-                        <Button onClick={handleAddNew} size="sm" className="ml-4">
+                        <Button onClick={handleAddNew} size="sm" className="ml-4 mr-8">
                             <Plus className="w-4 h-4 mr-2" /> Add Feedback
                         </Button>
                     )}
@@ -212,7 +212,7 @@ export function TransitionsModal({
                 <div className="flex-1 overflow-hidden mt-4">
                     {isFormOpen ? (
                         <div className="p-4 border rounded-md bg-muted/20 space-y-4">
-                            <div className="flex justify-between items-center mb-4">
+                            <div className="flex justify-between items-center mb-4 mr-8">
                                 <h3 className="font-semibold">{editingId ? "Edit Feedback" : "New Feedback"}</h3>
                                 <Button variant="ghost" size="sm" onClick={() => setIsFormOpen(false)}>
                                     <X className="w-4 h-4" />
