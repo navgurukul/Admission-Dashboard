@@ -639,15 +639,17 @@ const AdminPage: React.FC = () => {
                               >
                                 <Pencil size={16} />
                               </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteUser(user.id, user.name)
-                                }
-                                className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
-                                title="Delete User"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {user.user_role_id !== 1 && (
+                                <button
+                                  onClick={() =>
+                                    handleDeleteUser(user.id, user.name)
+                                  }
+                                  className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
+                                  title="Delete User"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -707,12 +709,14 @@ const AdminPage: React.FC = () => {
                           >
                             <Pencil size={16} />
                           </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.name)}
-                            className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {user.user_role_id !== 1 && (
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.name)}
+                              className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

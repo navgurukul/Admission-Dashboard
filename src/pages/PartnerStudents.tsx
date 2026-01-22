@@ -11,11 +11,14 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Download, Eye } from "lucide-react";
+import { ArrowLeft, Download, Eye, Search, X } from "lucide-react";
 import { getStudentsByPartnerId, getPartnerById, getCampusesApi } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/useDebounce";
 import { ApplicantModal } from "@/components/ApplicantModal";
 import {
     PieChart,
@@ -125,10 +128,16 @@ const PartnerStudents = () => {
     const [campuses, setCampuses] = useState<{ id: number; campus_name: string }[]>([]);
     const [loading, setLoading] = useState(true);
     const [chartLoading, setChartLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [total, setTotal] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(50);
+    const [totalStudents, setTotalStudents] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    
+    // Use debounce hook for search
+    const { debouncedValue: debouncedSearch, isPending: isSearchPending } = useDebounce(searchQuery, 500);
 
     useEffect(() => {
         if (id) {
@@ -137,7 +146,7 @@ const PartnerStudents = () => {
             loadChartData();
             loadCampuses();
         }
-    }, [id, page]);
+    }, [id, currentPage, itemsPerPage, debouncedSearch]);
 
     const loadCampuses = async () => {
         try {
@@ -185,24 +194,32 @@ const PartnerStudents = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const data = await getStudentsByPartnerId(id, page, 50);
+            const data = await getStudentsByPartnerId(id, currentPage, itemsPerPage, debouncedSearch);
             let studentList = [];
             let totalCount = 0;
+            let pages = 0;
+
             if (data?.data?.data && Array.isArray(data.data.data)) {
                 studentList = data.data.data;
                 totalCount = data.data.total || data.total || studentList.length;
+                pages = data.data.totalPages || Math.ceil(totalCount / itemsPerPage);
             } else if (data && data.data && Array.isArray(data.data)) {
                 studentList = data.data;
                 totalCount = data.total || studentList.length;
+                pages = Math.ceil(totalCount / itemsPerPage);
             } else if (Array.isArray(data)) {
                 studentList = data;
                 totalCount = data.length;
+                pages = Math.ceil(totalCount / itemsPerPage);
             } else if (data && data.students && Array.isArray(data.students)) {
                 studentList = data.students;
                 totalCount = data.total || data.students.length;
+                pages = Math.ceil(totalCount / itemsPerPage);
             }
+
             setStudents(studentList);
-            setTotal(totalCount);
+            setTotalStudents(totalCount);
+            setTotalPages(pages);
         } catch (error) {
             toast({
                 title: "❌ Unable to Load Students",
@@ -218,6 +235,87 @@ const PartnerStudents = () => {
     const handleViewStudent = (student) => {
         setSelectedStudent(student);
         setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedStudent(null);
+        // Reload data to reflect any changes made in the modal
+        loadData();
+    };
+
+    // Helper function to get student status
+    const getStudentStatus = (student) => {
+        // Check current_status_name first (if directly available)
+        // if (student.current_status_name) return student.current_status_name;
+        
+        // Determine status based on stage
+        const stage = (student.stage_name || student.stage || "").toLowerCase();
+        
+        // Special case: If stage is Onboarded, status should also be Onboarded
+        if (stage.includes("onboarded")) {
+            return "Onboarded";
+        }
+        
+        // 1. Screening Round - get status from exam_sessions
+        if (stage.includes("screening") || stage.includes("exam")) {
+            if (student.exam_sessions && student.exam_sessions.length > 0) {
+                const latestExam = student.exam_sessions[0];
+                if (latestExam.status) return latestExam.status;
+            }
+        }
+        
+        // 2. Interview Round - check learning round and cultural fit round
+        if (stage.includes("interview")) {
+
+                // Check cultural fit round status
+            if (student.interview_cultural_fit_round && student.interview_cultural_fit_round.length > 0) {
+                const culturalRound = student.interview_cultural_fit_round[0];
+                if (culturalRound.cultural_fit_status) return culturalRound.cultural_fit_status;
+            }
+            // Check learning round status
+            if (student.interview_learner_round && student.interview_learner_round.length > 0) {
+                const learningRound = student.interview_learner_round[0];
+                if (learningRound.learning_round_status) return learningRound.learning_round_status;
+            }
+            
+               }
+        
+        // 3. Final Decision - check offer letter and onboarding status
+        if (stage.includes("final") || stage.includes("decision") || stage.includes("offer")) {
+            if (student.final_decisions && student.final_decisions.length > 0) {
+                const finalDecision = student.final_decisions[0];
+                
+                // Onboarding status has higher priority
+                if (finalDecision.onboarded_status) return finalDecision.onboarded_status;
+                
+                // Offer letter status
+                if (finalDecision.offer_letter_status) return finalDecision.offer_letter_status;
+            }
+        }
+        
+        // Fallback to current_status if nothing else found
+        if (student.current_status) return student.current_status;
+        
+        return "N/A";
+    };
+
+    // Helper function to get student score from last screening round
+    const getStudentScore = (student) => {
+        // Check if total_score exists
+        if (student.total_score !== null && student.total_score !== undefined) {
+            return student.total_score;
+        }
+        
+        // Check exam sessions for obtained marks
+        if (student.exam_sessions && student.exam_sessions.length > 0) {
+            const latestExam = student.exam_sessions[0];
+            if (latestExam.obtained_marks !== null && latestExam.obtained_marks !== undefined) {
+                return latestExam.obtained_marks;
+            }
+        }
+        
+        return "-";
     };
 
     // Helper to process data for charts
@@ -306,13 +404,13 @@ const PartnerStudents = () => {
 
     const renderCampusChart = () => (
         <div className="flex flex-col items-center w-full">
-            <div className="flex flex-col items-center mb-6">
-                <h2 className="text-2xl font-semibold">Campus-wise Students Distribution</h2>
-                <span className="text-sm text-muted-foreground mt-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold">
+            <div className="flex flex-col items-center mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-2xl font-semibold text-center">Campus-wise Students Distribution</h2>
+                <span className="text-xs sm:text-sm text-muted-foreground mt-1 bg-orange-100 text-orange-700 px-2 sm:px-3 py-1 rounded-full font-bold">
                     Total Campuses: {campusData.length}
                 </span>
             </div>
-            <div className="h-[500px] w-full">
+            <div className="h-[400px] sm:h-[500px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
@@ -321,8 +419,8 @@ const PartnerStudents = () => {
                             cy="50%"
                             labelLine={false}
                             label={renderCustomizedLabel}
-                            innerRadius={80}
-                            outerRadius={140}
+                            innerRadius={60}
+                            outerRadius={100}
                             fill="#8884d8"
                             dataKey="value"
                             paddingAngle={2}
@@ -340,7 +438,7 @@ const PartnerStudents = () => {
             </div>
 
             {/* Campus Legend */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 mt-8 max-w-5xl mx-auto text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-2 mt-4 sm:mt-8 max-w-5xl mx-auto text-xs px-2">
                 {campusData.map((data, index) => (
                     <div key={data.name} className="flex items-center gap-2">
                         <div
@@ -348,7 +446,7 @@ const PartnerStudents = () => {
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         />
                         <span className="text-muted-foreground font-medium">({data.value})</span>
-                        <span className="text-muted-foreground">{data.name}</span>
+                        <span className="text-muted-foreground truncate">{data.name}</span>
                     </div>
                 ))}
             </div>
@@ -357,13 +455,13 @@ const PartnerStudents = () => {
 
     const renderUnifiedChart = () => (
         <div className="flex flex-col items-center">
-            <div className="flex flex-col items-center mb-6">
-                <h2 className="text-2xl font-semibold">Progress Made Graph</h2>
-                <span className="text-sm text-muted-foreground mt-1 bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold">
+            <div className="flex flex-col items-center mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-2xl font-semibold text-center">Progress Made Graph</h2>
+                <span className="text-xs sm:text-sm text-muted-foreground mt-1 bg-orange-100 text-orange-700 px-2 sm:px-3 py-1 rounded-full font-bold">
                     Total Students: {chartStudents.length}
                 </span>
             </div>
-            <div className="h-[600px] w-full">
+            <div className="h-[500px] sm:h-[600px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
@@ -372,8 +470,8 @@ const PartnerStudents = () => {
                             cy="45%"
                             labelLine={false}
                             label={renderCustomizedLabel}
-                            innerRadius={80}
-                            outerRadius={160}
+                            innerRadius={60}
+                            outerRadius={120}
                             fill="#8884d8"
                             dataKey="value"
                             paddingAngle={1}
@@ -391,7 +489,7 @@ const PartnerStudents = () => {
             </div>
 
             {/* Custom Premium Legend */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-2 mt-8 max-w-5xl mx-auto text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-2 mt-4 sm:mt-8 max-w-5xl mx-auto text-xs px-2">
                 {lifecycleData.map((data, index) => (
                     <div key={data.name} className="flex items-center gap-2">
                         <div
@@ -399,7 +497,7 @@ const PartnerStudents = () => {
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         />
                         <span className="text-muted-foreground font-medium">({data.value})</span>
-                        <span className="text-muted-foreground">{data.name}</span>
+                        <span className="text-muted-foreground truncate">{data.name}</span>
                     </div>
                 ))}
             </div>
@@ -411,26 +509,35 @@ const PartnerStudents = () => {
     return (
         <div className="min-h-screen bg-muted/40 flex">
             <AdmissionsSidebar />
-            <main className="md:ml-64 flex-1 p-6 overflow-y-auto h-screen">
-                <div className="max-w-7xl mx-auto space-y-6">
-                    <div className="flex items-center gap-4">
-                        <Button variant="outline" size="icon" onClick={() => navigate("/partners")}>
+            <main className="md:ml-64 flex-1 p-3 sm:p-6 overflow-y-auto h-screen">
+                <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+                    {/* Back Button - Centered at Top */}
+                    <div className="flex justify-center">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => navigate("/partners")}
+                            className="gap-2"
+                        >
                             <ArrowLeft className="h-4 w-4" />
+                            <span>Back to Partners</span>
                         </Button>
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">
-                                {partner ? `${partner.partner_name || partner.name} Students` : "Partner Students"}
-                            </h1>
-                            <p className="text-muted-foreground text-sm">
-                                View and manage students associated with this partner
-                            </p>
-                        </div>
+                    </div>
+
+                    {/* Page Header */}
+                    <div className="text-center">
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                            {partner ? `${partner.partner_name || partner.name} Students` : "Partner Students"}
+                        </h1>
+                        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+                            View and manage students associated with this partner
+                        </p>
                     </div>
 
                     {/* Charts Section with Tabs */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Comprehensive Progress Reports (Total: {chartStudents.length})</CardTitle>
+                            <CardTitle className="text-lg sm:text-xl">Comprehensive Progress Reports (Total: {chartStudents.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {chartLoading ? (
@@ -439,16 +546,16 @@ const PartnerStudents = () => {
                                 </div>
                             ) : chartStudents.length > 0 ? (
                                 <Tabs defaultValue="graph" className="w-full">
-                                    <TabsList className="grid w-fit grid-cols-2 mb-8 mx-auto border border-orange-200">
+                                    <TabsList className="grid w-full sm:w-fit grid-cols-2 mb-4 sm:mb-8 mx-auto border border-orange-200">
                                         <TabsTrigger
                                             value="graph"
-                                            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white rounded-none px-12"
+                                            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white rounded-none px-6 sm:px-12 text-xs sm:text-sm"
                                         >
                                             GRAPH DATA
                                         </TabsTrigger>
                                         <TabsTrigger
                                             value="campus"
-                                            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white rounded-none px-12"
+                                            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white rounded-none px-6 sm:px-12 text-xs sm:text-sm"
                                         >
                                             CAMPUS DATA
                                         </TabsTrigger>
@@ -472,77 +579,199 @@ const PartnerStudents = () => {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Student List ({total})</CardTitle>
+                            <CardTitle className="text-lg sm:text-xl">Student List ({totalStudents})</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Phone</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Stage</TableHead>
-                                        <TableHead>Score</TableHead>
-                                        <TableHead>Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
+                            {/* Search Bar */}
+                            <div className="mb-4">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Search by name"
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setCurrentPage(1); // Reset to first page on search
+                                        }}
+                                        className="pl-10 pr-10"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => {
+                                                setSearchQuery("");
+                                                setCurrentPage(1);
+                                            }}
+                                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                    {isSearchPending && (
+                                        <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                                            <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                                        </div>
+                                    )}
+                                </div>
+                                {searchQuery && (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        {isSearchPending ? "Searching..." : `Found ${totalStudents} result${totalStudents !== 1 ? 's' : ''}`}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Phone</TableHead>
+                                            <TableHead>Stage</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Screening Round Score</TableHead>
+                                            <TableHead>Actions</TableHead>
                                         </TableRow>
-                                    ) : students.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        students.map((student, idx) => (
-                                            <TableRow key={student.id || idx}>
-                                                <TableCell className="font-medium">
-                                                    {student.name ||
-                                                        `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() ||
-                                                        "N/A"}
-                                                </TableCell>
-                                                <TableCell>{student.email || "-"}</TableCell>
-                                                <TableCell>{student.mobile || student.phone_number || student.whatsapp_number || "-"}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary" className="font-normal">
-                                                        {student.current_status || "N/A"}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{student.stage || "-"}</TableCell>
-                                                <TableCell>{student.total_score || "-"}</TableCell>
-                                                <TableCell>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="h-24 text-center">Loading...</TableCell>
+                                            </TableRow>
+                                        ) : students.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">No students found.</TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            students.map((student, idx) => (
+                                                <TableRow key={student.id || idx}>
+                                                    <TableCell className="font-medium">
+                                                        {student.name ||
+                                                            `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() ||
+                                                            "N/A"}
+                                                    </TableCell>
+                                                    <TableCell>{student.email || "-"}</TableCell>
+                                                    <TableCell>{student.phone_number || student.whatsapp_number || "-"}</TableCell>
+                                                    <TableCell>{student.stage_name || student.stage || "-"}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant="secondary" className="font-normal">
+                                                            {getStudentStatus(student)}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>{getStudentScore(student)}</TableCell>
+                                                    <TableCell>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleViewStudent(student)}>
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-4">
+                                {loading ? (
+                                    <div className="h-24 flex items-center justify-center text-muted-foreground">Loading...</div>
+                                ) : students.length === 0 ? (
+                                    <div className="h-24 flex items-center justify-center text-muted-foreground">No students found.</div>
+                                ) : (
+                                    students.map((student, idx) => (
+                                        <Card key={student.id || idx} className="p-4">
+                                            <div className="space-y-3">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-base">
+                                                            {student.name ||
+                                                                `${student.first_name || ""} ${student.middle_name || ""} ${student.last_name || ""}`.trim() ||
+                                                                "N/A"}
+                                                        </h3>
+                                                        <p className="text-sm text-muted-foreground mt-1">{student.email || "-"}</p>
+                                                    </div>
                                                     <Button variant="ghost" size="icon" onClick={() => handleViewStudent(student)}>
                                                         <Eye className="h-4 w-4" />
                                                     </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                            {/* Pagination Controls */}
-                            <div className="flex items-center justify-end space-x-2 py-4">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    disabled={page === 1}
-                                >
-                                    Previous
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setPage((p) => p + 1)}
-                                    // Disable next if we fetched fewer than requested, implying end of list (or use total if reliable)
-                                    disabled={students.length < 50}
-                                >
-                                    Next
-                                </Button>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                                    <div>
+                                                        <span className="text-muted-foreground">Phone:</span>
+                                                        <p className="font-medium">{student.phone_number || student.whatsapp_number || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground">Stage:</span>
+                                                        <p className="font-medium">{student.stage_name || student.stage || "-"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground">Screening Round Score:</span>
+                                                        <p className="font-medium">{getStudentScore(student)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-muted-foreground">Status:</span>
+                                                        <div className="mt-1">
+                                                            <Badge variant="secondary" className="font-normal text-xs">
+                                                                {getStudentStatus(student)}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))
+                                )}
                             </div>
+
+                            {/* Pagination Controls */}
+                            {!loading && students.length > 0 && (
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 sm:px-4 py-4 border-t bg-muted/20 mt-4">
+                                    <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+                                        Showing <strong>{Math.min((currentPage - 1) * itemsPerPage + 1, totalStudents)}</strong> - <strong>{Math.min(currentPage * itemsPerPage, totalStudents)}</strong> of <strong>{totalStudents}</strong>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-center gap-2 sm:space-x-2">
+                                        <div className="flex items-center gap-2">
+                                            <Label className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Rows:</Label>
+                                            <select
+                                                value={itemsPerPage}
+                                                onChange={(e) => {
+                                                    setItemsPerPage(Number(e.target.value));
+                                                    setCurrentPage(1);
+                                                }}
+                                                className="border rounded px-2 py-1 text-xs sm:text-sm h-8"
+                                            >
+                                                <option value={10}>10</option>
+                                                <option value={20}>20</option>
+                                                <option value={50}>50</option>
+                                                <option value={100}>100</option>
+                                            </select>
+                                        </div>
+                                        <span className="text-xs sm:text-sm text-muted-foreground px-2">
+                                            Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                                        </span>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                                className="h-8 text-xs sm:text-sm"
+                                            >
+                                                Previous
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage === totalPages || totalPages === 0}
+                                                className="h-8 text-xs sm:text-sm"
+                                            >
+                                                Next
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -550,7 +779,7 @@ const PartnerStudents = () => {
 
             <ApplicantModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleCloseModal}
                 applicant={selectedStudent}
             />
         </div>
