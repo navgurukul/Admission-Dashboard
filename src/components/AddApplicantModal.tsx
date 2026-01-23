@@ -1591,10 +1591,10 @@ export function AddApplicantModal({
                   <FileText className="w-5 h-5 mr-2 text-orange-600" />
                   Screening Details
                 </h3>
-                <p className="text-sm text-gray-600 mb-4 bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
+                {/* <p className="text-sm text-gray-600 mb-4 bg-blue-50 border-l-4 border-blue-400 p-3 rounded">
                   <AlertCircle className="w-4 h-4 inline mr-1 text-blue-600" />
                   <strong>Note:</strong> For screening students, if you enter marks, the screening status and school will be automatically updated based on the obtained marks.
-                </p>
+                </p> */}
 
                 {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div className="space-y-2">
