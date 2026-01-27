@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import {
     getFeedbacksByStudentId,
     createFeedback,
@@ -44,6 +45,8 @@ export function TransitionsModal({
     const { toast } = useToast();
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [feedbackToDelete, setFeedbackToDelete] = useState<number | null>(null);
 
     // ✅ Load reference data on-demand
     const {
@@ -120,11 +123,16 @@ export function TransitionsModal({
         setIsFormOpen(true);
     };
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this feedback?")) return;
+    const handleDelete = (id: number) => {
+        setFeedbackToDelete(id);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!feedbackToDelete) return;
 
         try {
-            await deleteFeedback(id);
+            await deleteFeedback(feedbackToDelete);
             toast({ title: "Success", description: "Feedback deleted successfully" });
             fetchFeedbacks();
         } catch (error) {
@@ -134,6 +142,9 @@ export function TransitionsModal({
                 description: "Failed to delete feedback",
                 variant: "destructive",
             });
+        } finally {
+            setDeleteDialogOpen(false);
+            setFeedbackToDelete(null);
         }
     };
 
@@ -332,14 +343,14 @@ export function TransitionsModal({
                                                                     </span>
                                                                 ) : (
                                                                     <>
-                                                                        <Button
+                                                                        {/* <Button
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             className="h-8 w-8"
                                                                             onClick={() => handleEdit(item)}
                                                                         >
                                                                             <Pencil className="w-4 h-4" />
-                                                                        </Button>
+                                                                        </Button> */}
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="icon"
@@ -363,6 +374,19 @@ export function TransitionsModal({
                     )}
                 </div>
             </DialogContent>
+            
+            <DeleteConfirmDialog
+                isOpen={deleteDialogOpen}
+                onClose={() => {
+                    setDeleteDialogOpen(false);
+                    setFeedbackToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Delete Feedback"
+                description="Are you sure you want to delete this feedback? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </Dialog>
     );
 }
