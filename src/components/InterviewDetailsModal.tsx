@@ -192,8 +192,8 @@ export function InterviewDetailsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="border-b pb-4">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-4 pr-8">
+            <div className="flex-1">
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <Calendar className="w-6 h-6 text-primary" />
                 {roundName} - Interview Schedules
@@ -208,7 +208,7 @@ export function InterviewDetailsModal({
                   onClose();
                   onScheduleNew();
                 }}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-shrink-0"
                 size="sm"
               >
                 <Plus className="w-4 h-4" />
