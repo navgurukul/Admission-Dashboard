@@ -61,7 +61,9 @@ const DonorPage = () => {
   // Dialog States
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentDonor, setCurrentDonor] = useState<Donor | null>(null);
+  const [donorToDelete, setDonorToDelete] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     donor_name: "",
     donor_email: "",
@@ -202,16 +204,23 @@ const DonorPage = () => {
     }
   };
 
-  const handleDeleteClick = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this donor?")) return;
+  const handleDeleteClick = (id: number) => {
+    setDonorToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!donorToDelete) return;
     try {
-      await deleteDonor(id);
+      await deleteDonor(donorToDelete);
       toast({ title: "✅ Donor Deleted", description: "Donor deleted successfully", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
+      setDeleteDialogOpen(false);
+      setDonorToDelete(null);
       loadDonors();
     } catch (error) {
       toast({ title: "❌ Unable to Delete Donor", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
     }
-  }
+  };
 
   // NOTE: Search is handled server-side via `getDonors(..., donor_name)` so we keep
   // the list as-is to avoid showing misleading counts/pagination.
@@ -634,6 +643,25 @@ const DonorPage = () => {
           </form>
         </DialogContent>
       </Dialog >
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this donor? This action cannot be undo.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => {
+              setDeleteDialogOpen(false);
+              setDonorToDelete(null);
+            }}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div >
   );
