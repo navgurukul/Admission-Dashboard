@@ -343,14 +343,14 @@ export function TransitionsModal({
                                                                     </span>
                                                                 ) : (
                                                                     <>
-                                                                        <Button
+                                                                        {/* <Button
                                                                             variant="ghost"
                                                                             size="icon"
                                                                             className="h-8 w-8"
                                                                             onClick={() => handleEdit(item)}
                                                                         >
                                                                             <Pencil className="w-4 h-4" />
-                                                                        </Button>
+                                                                        </Button> */}
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="icon"
