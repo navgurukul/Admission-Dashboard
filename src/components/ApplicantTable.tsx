@@ -247,84 +247,83 @@ const ApplicantTable = () => {
   // This is triggered by: Add button, Edit button, Filter button
   const ensureReferenceDataLoaded = useCallback(async () => {
     if (campusList.length === 0) {
-      console.log("🔄 Loading reference data on-demand...");
+      // console.log("🔄 Loading reference data on-demand...");
       await fetchAllReferenceData();
-      console.log("✅ Reference data loaded successfully");
+      // console.log("✅ Reference data loaded successfully");
     } else {
-      console.log("✅ Reference data already loaded, using cache");
+      // console.log("✅ Reference data already loaded, using cache");
     }
   }, [campusList.length, fetchAllReferenceData]);
 
   // ✅ NEW: Field-specific data loading callbacks - ALL fields load on-demand
   const ensureFieldDataLoaded = useCallback(async (field: string) => {
-    console.log(`🔧 Loading data for field: ${field}`);
+    // console.log(`🔧 Loading data for field: ${field}`);
     
     switch (field) {
       case 'campus_id':
         if (campusList.length === 0) {
-          console.log('📥 Fetching campuses...');
+          // console.log('📥 Fetching campuses...');
           await fetchCampuses();
         }
         break;
       case 'current_status_id':
         if (currentstatusList.length === 0) {
-          console.log('📥 Fetching current statuses...');
+          // console.log('📥 Fetching current statuses...');
           await fetchCurrentStatuses();
         }
         break;
       case 'stage_id':
         if (stageList.length === 0) {
-          console.log('📥 Fetching stages...');
+          // console.log('📥 Fetching stages...');
           await fetchStages();
         }
         break;
       case 'state':
         if (stateList.length === 0) {
-          console.log('📥 Fetching states...');
+          // console.log('📥 Fetching states...');
           await fetchStates();
         }
         break;
       case 'cast_id':
         if (castList.length === 0) {
-          console.log('📥 Fetching casts...');
+          // console.log('📥 Fetching casts...');
           await fetchCasts();
         }
         break;
       case 'qualification_id':
         if (qualificationList.length === 0) {
-          console.log('📥 Fetching qualifications...');
+          // console.log('📥 Fetching qualifications...');
           await fetchQualifications();
         }
         break;
       case 'religion_id':
         if (religionList.length === 0) {
-          console.log('📥 Fetching religions...');
           await fetchReligions();
         }
         break;
       case 'partner_id':
         if (partnerList.length === 0) {
-          console.log('📥 Fetching partners...');
+          // console.log('📥 Fetching partners...');
           await fetchPartners();
         }
         break;
       case 'donor_id':
         if (donorList.length === 0) {
-          console.log('📥 Fetching donors...');
+          // console.log('📥 Fetching donors...');
           await fetchDonors();
         }
         break;
       case 'school_id':
         if (schoolList.length === 0) {
-          console.log('📥 Fetching schools...');
+          // console.log('📥 Fetching schools...');
           await fetchSchools();
         }
         break;
       default:
-        console.log(`⚠️ No specific loader for field: ${field}`);
+        // console.log(`⚠️ No specific loader for field: ${field}`);
     }
     
-    console.log(`✅ Data loaded for field: ${field}`);
+    // console.log(`✅ Data loaded for field: ${field}`);
   }, [
     campusList.length,
     currentstatusList.length,
@@ -352,8 +351,8 @@ const ApplicantTable = () => {
   const applicantsToDisplay = useMemo(() => {
     // ✅ DEBUG: Log first student to see what backend returns
     if (students.length > 0 && !(window as any).__STUDENT_DEBUG_LOGGED__) {
-      console.log("🔍 Sample student data from API:", students[0]);
-      console.log("📋 Available fields:", Object.keys(students[0]));
+      // console.log("🔍 Sample student data from API:", students[0]);
+      // console.log("📋 Available fields:", Object.keys(students[0]));
       (window as any).__STUDENT_DEBUG_LOGGED__ = true;
     }
 
@@ -455,14 +454,11 @@ const ApplicantTable = () => {
         setStageStatuses([]);
         return;
       }
-
-      console.log(`🔄 Loading stage-specific statuses for stage ID: ${currentStageId}...`);
       
       try {
         const response = await getStatusesByStageId(currentStageId);
         const statusesData = response?.data || response || [];
         setStageStatuses(statusesData);
-        console.log(`✅ Loaded ${statusesData.length} statuses for stage ${currentStageId}:`, statusesData);
       } catch (error) {
         console.error("❌ Error fetching stage statuses:", error);
         setStageStatuses([]);
@@ -511,12 +507,12 @@ const ApplicantTable = () => {
             page: currentPage,
             limit: itemsPerPage,
           };
-          console.log(`🔄 Fetching filtered data: page ${currentPage}, limit ${itemsPerPage}`);
+          // console.log(`🔄 Fetching filtered data: page ${currentPage}, limit ${itemsPerPage}`);
           const response = await getFilterStudent(apiParamsWithPagination);
           setFilteredStudents(response.data || []);
           setFilteredTotalCount(response.total || 0);
           setFilteredTotalPages(response.totalPages || 1);
-          console.log(`✅ Fetched ${response.data?.length || 0} filtered students (total: ${response.total || 0})`);
+          // console.log(`✅ Fetched ${response.data?.length || 0} filtered students (total: ${response.total || 0})`);
           
           // Show success toast only when filters change (not on pagination)
           if (currentPage === 1) {
@@ -552,19 +548,19 @@ const ApplicantTable = () => {
       const needsLoading: Promise<void>[] = [];
       
       if ((filters as any).partner?.length && campusList.length === 0) {
-        console.log("🔄 Loading campuses for filter tags...");
+        // console.log("🔄 Loading campuses for filter tags...");
         needsLoading.push(fetchCampuses());
       }
       
       if ((filters as any).school?.length && schoolList.length === 0) {
-        console.log("🔄 Loading schools for filter tags...");
+        // console.log("🔄 Loading schools for filter tags...");
         needsLoading.push(fetchSchools());
       }
       
       // Load current statuses if stage_status filter is active AND we don't have stage-specific data
       if ((filters as any).stage_status?.length) {
         if (stageStatuses.length === 0 && currentstatusList.length === 0) {
-          console.log("🔄 Loading current statuses for filter tags...");
+          // console.log("🔄 Loading current statuses for filter tags...");
           needsLoading.push(fetchCurrentStatuses());
         }
       }
@@ -575,28 +571,23 @@ const ApplicantTable = () => {
       }
       
       if ((filters as any).religion?.length && religionList.length === 0) {
-        console.log("🔄 Loading religions for filter tags...");
         needsLoading.push(fetchReligions());
       }
       
       if ((filters as any).qualification?.length && qualificationList.length === 0) {
-        console.log("🔄 Loading qualifications for filter tags...");
         needsLoading.push(fetchQualifications());
       }
       
       if ((filters as any).partnerFilter?.length && partnerList.length === 0) {
-        console.log("🔄 Loading partners for filter tags...");
         needsLoading.push(fetchPartners());
       }
       
       if ((filters as any).donor?.length && donorList.length === 0) {
-        console.log("🔄 Loading donors for filter tags...");
         needsLoading.push(fetchDonors());
       }
       
       if (needsLoading.length > 0) {
         await Promise.all(needsLoading);
-        console.log("✅ Required reference data loaded for filter tags");
       }
     };
     
@@ -1372,7 +1363,6 @@ const ApplicantTable = () => {
     // ✅ Load reference data for filter tags display
     // This ensures filter tags show names instead of IDs
     if (campusList.length === 0) {
-      console.log("🔄 Loading reference data for filter tags...");
       await ensureReferenceDataLoaded();
     }
 
@@ -1386,7 +1376,6 @@ const ApplicantTable = () => {
       setCurrentPage(1); // Reset to first page when filters are applied
       
       // ✅ DON'T call API here - let the useEffect handle it to prevent duplicates
-      console.log("✅ Filters updated, useEffect will fetch data automatically");
       
       // The useEffect on line ~505 will detect the filterSignature change
       // and automatically fetch the filtered data

@@ -71,15 +71,10 @@ export function TransitionsModal({
     // ✅ Load stages and statuses when modal opens
     useEffect(() => {
         if (isOpen) {
-            console.log('🔄 TransitionsModal: Loading stages and statuses...');
             Promise.all([
                 loadFieldData('stage'),
                 loadFieldData('current_status'),
-            ]).then(() => {
-                console.log('✅ TransitionsModal: Data loaded');
-                console.log('📊 Stages:', stageList);
-                console.log('📊 Statuses:', currentstatusList);
-            });
+            ]);
         }
     }, [isOpen, loadFieldData]);
 

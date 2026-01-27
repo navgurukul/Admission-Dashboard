@@ -43,7 +43,7 @@ export default function UserRole() {
           permissions: r.permissions ?? [],
         }));
         setRoles(mapped);
-        console.log("Fetched roles:", mapped);
+        // console.log("Fetched roles:", mapped);
       } catch (err) {
         console.error("Failed to fetch roles:", err);
         toast({
