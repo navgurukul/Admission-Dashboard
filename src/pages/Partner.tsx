@@ -718,7 +718,7 @@ const PartnerPage = () => {
 
     try {
       const allSets = await getAllQuestionSets();
-      console.log("All Sets:", allSets); // Debug
+      // console.log("All Sets:", allSets); // Debug
 
       const filtered = allSets.filter((s: any) => {
         // Check partnerId if it exists (loose equality for string/number safety)
@@ -731,7 +731,7 @@ const PartnerPage = () => {
         return idMatch || descMatch;
       });
 
-      console.log("Filtered Sets:", filtered); // Debug
+      // console.log("Filtered Sets:", filtered); // Debug
       setPartnerSets(filtered);
     } catch (e: any) {
       console.error("Failed to load assessments:", e);
@@ -1518,7 +1518,7 @@ const PartnerPage = () => {
                     isRandom: true, // Force Random
                   };
 
-                  console.log("Creating Random Assessment Payload:", payload);
+                  // console.log("Creating Random Assessment Payload:", payload);
 
                   // Create new question set linked to partner
                   await createQuestionSet(payload as any);

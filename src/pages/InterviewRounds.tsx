@@ -118,14 +118,14 @@ const InterviewRounds = () => {
           table: "admission_dashboard",
         },
         (payload) => {
-          console.log("Real-time update received:", payload);
+          // console.log("Real-time update received:", payload);
           fetchApplicants();
         },
       )
       .subscribe();
 
     return () => {
-      console.log("Cleaning up interview rounds page subscription");
+      // console.log("Cleaning up interview rounds page subscription");
       supabase.removeChannel(channel);
     };
   }, []);

@@ -623,7 +623,7 @@ const StudentForm: React.FC = () => {
       const apiPayload = mapFormDataToApi(formData);
       const studentFormResponseData = await createStudent(apiPayload);
 
-      console.log("Student API Response:", studentFormResponseData);
+      // console.log("Student API Response:", studentFormResponseData);
 
       // Store registration status
       localStorage.setItem("registrationDone", "true");
@@ -650,7 +650,7 @@ const StudentForm: React.FC = () => {
 
       if (studentId) {
         localStorage.setItem("studentId", studentId.toString());
-        console.log("Student ID stored:", studentId);
+        // console.log("Student ID stored:", studentId);
       } else {
         console.warn("Student ID not found in response");
       }

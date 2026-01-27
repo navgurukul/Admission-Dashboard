@@ -121,11 +121,11 @@ export default function StudentLogin() {
     }
 
     if (!isAuthenticated) {
-      console.log("❌ Not authenticated yet, waiting...");
+      // console.log("❌ Not authenticated yet, waiting...");
       return;
     }
     if (!googleUser) {
-      console.log("❌ googleUser is undefined, waiting...");
+      // console.log("❌ googleUser is undefined, waiting...");
       return;
     }
 
@@ -153,9 +153,9 @@ export default function StudentLogin() {
 
       // If not a fresh login and no existing session, something is wrong
       if (!isFreshLogin && !authToken) {
-        console.log(
-          "⚠️ No fresh login and no existing session - this shouldn't happen",
-        );
+        // console.log(
+        //   "⚠️ No fresh login and no existing session - this shouldn't happen",
+        // );
         setHasProcessedAuth(true);
         return;
       }
@@ -174,7 +174,7 @@ export default function StudentLogin() {
           console.error("❌ Error parsing Google token:", e);
         }
       } else if (authToken && authToken !== "undefined") {
-        console.log("✅ Using backend token (Admin/User)");
+        // console.log("✅ Using backend token (Admin/User)");
       } else {
         console.error(
           "❌ No valid token available - neither backend nor Google credential",
@@ -192,7 +192,7 @@ export default function StudentLogin() {
           role_name: "STUDENT",
         };
         localStorage.setItem("user", JSON.stringify(studentUserData));
-        console.log("✅ Stored student user data");
+        // console.log("✅ Stored student user data");
       }
 
       // Determine user role and navigate accordingly
@@ -206,7 +206,7 @@ export default function StudentLogin() {
         roleName === "USER"
       ) {
         // Admin/User - Navigate to dashboard
-        console.log("✅ Admin/User detected - navigating to dashboard");
+        // console.log("✅ Admin/User detected - navigating to dashboard");
         localStorage.setItem("role", roleName || "user");
         localStorage.setItem("userRole", JSON.stringify(roleName));
 
@@ -264,11 +264,11 @@ export default function StudentLogin() {
             (s: any) => testStarted || Boolean(s.is_passed),
           );
 
-          console.log("Derived Flags:", {
-            registrationDone,
-            testStarted,
-            // testCompleted
-          });
+          // console.log("Derived Flags:", {
+          //   registrationDone,
+          //   testStarted,
+          //   // testCompleted
+          // });
 
           // allowRetest: default false; could be derived from payload.final_decisions or business rules
           const allowRetest = Boolean(payload?.allow_retest ?? false);
@@ -306,7 +306,7 @@ export default function StudentLogin() {
           //   return;
           // }
 
-          console.log(registrationDone);
+          // console.log(registrationDone);
 
           if (!registrationDone) {
             navigate("/students/details/instructions", {

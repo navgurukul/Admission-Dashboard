@@ -42,30 +42,30 @@ export const useReferenceData = () => {
     setState: (data: any) => void,
     transform?: (data: any) => any
   ) => {
-    console.log(`🔍 fetchReferenceData called for: ${key}`);
+    // console.log(`🔍 fetchReferenceData called for: ${key}`);
     
     // Return cached data if available
     if (referenceDataCache[key]) {
-      console.log(`✅ Using cached data for: ${key}`, referenceDataCache[key].length, 'items');
+      // console.log(`✅ Using cached data for: ${key}`, referenceDataCache[key].length, 'items');
       setState(referenceDataCache[key]);
       return referenceDataCache[key];
     }
 
     // Wait for existing fetch if in progress
     if (fetchPromises[key]) {
-      console.log(`⏳ Waiting for existing fetch: ${key}`);
+      // console.log(`⏳ Waiting for existing fetch: ${key}`);
       const data = await fetchPromises[key];
       setState(data);
       return data;
     }
 
     // Start new fetch
-    console.log(`📡 Starting new fetch for: ${key}`);
+    // console.log(`📡 Starting new fetch for: ${key}`);
     fetchPromises[key] = (async () => {
       try {
         const rawData = await fetchFn();
         const transformedData = transform ? transform(rawData) : rawData;
-        console.log(`✅ Fetched ${key}:`, transformedData.length, 'items');
+        // console.log(`✅ Fetched ${key}:`, transformedData.length, 'items');
         referenceDataCache[key] = transformedData;
         delete fetchPromises[key];
         return transformedData;
@@ -77,7 +77,7 @@ export const useReferenceData = () => {
     })();
 
     const data = await fetchPromises[key];
-    console.log(`🎯 Setting state for ${key}:`, data.length, 'items');
+    // console.log(`🎯 Setting state for ${key}:`, data.length, 'items');
     setState(data);
     return data;
   }, []);
@@ -89,7 +89,7 @@ export const useReferenceData = () => {
   );
 
   const fetchSchools = useCallback(() => {
-    console.log('🔵 fetchSchools called');
+    // console.log('🔵 fetchSchools called');
     return fetchReferenceData("schools", getAllSchools, setSchoolsList);
   }, [fetchReferenceData]);
 
@@ -104,7 +104,7 @@ export const useReferenceData = () => {
   );
 
   const fetchReligions = useCallback(() => {
-    console.log('🔵 fetchReligions called');
+    // console.log('🔵 fetchReligions called');
     return fetchReferenceData("religions", getAllReligions, setReligionList);
   }, [fetchReferenceData]);
 
@@ -114,30 +114,30 @@ export const useReferenceData = () => {
   );
 
   const fetchQualifications = useCallback(() => {
-    console.log('🔵 fetchQualifications called');
+    // console.log('🔵 fetchQualifications called');
     return fetchReferenceData("qualifications", getAllQualification, setQualificationList);
   }, [fetchReferenceData]);
 
   const fetchCasts = useCallback(() => {
-    console.log('🔵 fetchCasts called');
+    // console.log('🔵 fetchCasts called');
     return fetchReferenceData("casts", getAllCasts, setCastList);
   }, [fetchReferenceData]);
 
   const fetchPartners = useCallback(async () => {
-    console.log('🔵 fetchPartners called - lazy loading on-demand');
+    // console.log('🔵 fetchPartners called - lazy loading on-demand');
     const data = await fetchReferenceData("partners", getAllPartners, setPartnerList);
-    console.log('🔵 fetchPartners completed - data:', data);
-    console.log('🔵 fetchPartners - sample item:', data && data.length > 0 ? data[0] : 'No data');
+    // console.log('🔵 fetchPartners completed - data:', data);
+    // console.log('🔵 fetchPartners - sample item:', data && data.length > 0 ? data[0] : 'No data');
     return data;
   }, [fetchReferenceData]);
 
   const fetchDonors = useCallback(() => {
-    console.log('🔵 fetchDonors called - lazy loading on-demand');
+    // console.log('🔵 fetchDonors called - lazy loading on-demand');
     return fetchReferenceData("donors", getAllDonors, setDonorList);
   }, [fetchReferenceData]);
 
   const fetchStates = useCallback(() => {
-    console.log('🔵 fetchStates called');
+    // console.log('🔵 fetchStates called');
     return fetchReferenceData(
       "states",
       getAllStates,

@@ -60,7 +60,7 @@ const CampusPage: React.FC = () => {
     if (showLoader) setLoading(true);
     try {
       const response = await getCampuses(page, itemsPerPage);
-      console.log("campus Data", response);
+      // console.log("campus Data", response);
 
       let campusArray = [];
       let total = 0;

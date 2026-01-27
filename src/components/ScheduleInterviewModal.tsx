@@ -115,7 +115,7 @@ export const ScheduleInterviewModal = ({
 
       // Modal is open - check if we have at least student ID and email to auto-fetch
       if (initialStudentId && initialStudentEmail) {
-        console.log("Auto-fetching student data for:", initialStudentEmail);
+        // console.log("Auto-fetching student data for:", initialStudentEmail);
         
         // Set initial values immediately
         setStudentId(initialStudentId);
@@ -128,7 +128,7 @@ export const ScheduleInterviewModal = ({
         setIsFetchingStudent(true);
         try {
           const response = await getStudentDataByEmail(initialStudentEmail);
-          console.log("Student data fetched:", response);
+          // console.log("Student data fetched:", response);
           
           // Normalize the response - handle both axios.data and nested data.data structures
           const payload = (response as any)?.data ?? response;
@@ -146,7 +146,7 @@ export const ScheduleInterviewModal = ({
             setStudentName(fullName);
             setCompleteStudentData(payload);
             setStudentDataFetched(true);
-            console.log("Student data set successfully:", fullName);
+            // console.log("Student data set successfully:", fullName);
           } else {
             console.warn("No student ID found in response");
             // Still mark as fetched to keep fields disabled with initial data
@@ -160,7 +160,7 @@ export const ScheduleInterviewModal = ({
           setIsFetchingStudent(false);
         }
       } else {
-        console.log("Auto-fetch conditions not met - missing student ID or email:", { isOpen, initialStudentId, initialStudentEmail, initialStudentName });
+        // console.log("Auto-fetch conditions not met - missing student ID or email:", { isOpen, initialStudentId, initialStudentEmail, initialStudentName });
       }
     };
 
@@ -283,7 +283,7 @@ export const ScheduleInterviewModal = ({
         exam.status?.toLowerCase().includes("pass")
     );
 
-    console.log(hasPassedScreening);
+    // console.log(hasPassedScreening);
     // Filter schedules by status - only consider "scheduled" or "booked" status as active
     // Exclude "rescheduled", "cancelled", "completed", etc.
     const activeLRSchedules = lrSchedules.filter(

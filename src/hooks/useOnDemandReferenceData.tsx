@@ -45,11 +45,11 @@ export const useOnDemandReferenceData = () => {
   const loadFieldData = useCallback(async (fieldName: string): Promise<void> => {
     // Skip if already loaded or currently loading
     if (loadedFields.current.has(fieldName) || loadingFields.current.has(fieldName)) {
-      console.log(`✅ Field "${fieldName}" already loaded or loading, skipping...`);
+      // console.log(`✅ Field "${fieldName}" already loaded or loading, skipping...`);
       return;
     }
-
-    console.log(`🔄 Loading data on-demand for field: "${fieldName}"`);
+// 
+    // console.log(`🔄 Loading data on-demand for field: "${fieldName}"`);
     loadingFields.current.add(fieldName);
 
     try {
@@ -140,7 +140,7 @@ export const useOnDemandReferenceData = () => {
       }
 
       loadedFields.current.add(fieldName);
-      console.log(`✅ Successfully loaded data for field: "${fieldName}"`);
+      // console.log(`✅ Successfully loaded data for field: "${fieldName}"`);
     } catch (error) {
       console.error(`❌ Failed to load data for field: "${fieldName}"`, error);
     } finally {
@@ -176,7 +176,7 @@ export const useOnDemandReferenceData = () => {
    * @param fieldNames - Array of field names to load
    */
   const loadMultipleFields = useCallback(async (fieldNames: string[]): Promise<void> => {
-    console.log(`🔄 Loading multiple fields: ${fieldNames.join(', ')}`);
+    // console.log(`🔄 Loading multiple fields: ${fieldNames.join(', ')}`);
     await Promise.all(fieldNames.map(field => loadFieldData(field)));
   }, [loadFieldData]);
 
@@ -193,7 +193,7 @@ export const useOnDemandReferenceData = () => {
    * Reset loaded fields tracking (useful when modal closes)
    */
   const resetLoadedFields = useCallback(() => {
-    console.log('🔄 Resetting loaded fields tracking');
+    // console.log('🔄 Resetting loaded fields tracking');
     loadedFields.current.clear();
     loadingFields.current.clear();
   }, []);

@@ -93,7 +93,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     img.style.boxShadow = "0 0 10px rgba(59, 130, 246, 0.4)";
     img.style.transform = "scale(1.05)";
 
-    console.log("Image selected:", img.src);
+    // console.log("Image selected:", img.src);
 
     toast({
       title: "Image Selected",
@@ -111,7 +111,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       return;
     }
 
-    console.log("Aligning image to:", alignment);
+    // console.log("Aligning image to:", alignment);
 
     // Create a wrapper div for better control
     const wrapper = document.createElement("div");
@@ -170,7 +170,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       return;
     }
 
-    console.log("Resizing image to:", size);
+    // console.log("Resizing image to:", size);
 
     let width = "";
     let maxWidth = "";
@@ -233,7 +233,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          console.log("Pasting image from clipboard");
+          // console.log("Pasting image from clipboard");
           await handleImageUpload(file);
           return;
         }
@@ -248,7 +248,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
   const handleImageUpload = async (file: File) => {
     try {
-      console.log("Starting image upload:", file.name || "clipboard-image");
+      // console.log("Starting image upload:", file.name || "clipboard-image");
 
       // Validate file type
       if (!file.type.startsWith("image/")) {
@@ -271,7 +271,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = `template-images/${fileName}`;
 
-      console.log("Uploading to path:", filePath);
+      // console.log("Uploading to path:", filePath);
 
       const { error: uploadError } = await supabase.storage
         .from("offer-pdfs")
@@ -287,7 +287,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         .getPublicUrl(filePath);
 
       if (data?.publicUrl) {
-        console.log("Image uploaded successfully:", data.publicUrl);
+        // console.log("Image uploaded successfully:", data.publicUrl);
 
         // Focus the editor first
         if (editorRef.current) {
@@ -349,7 +349,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      console.log("File selected via input:", file.name);
+      // console.log("File selected via input:", file.name);
       handleImageUpload(file);
     }
     // Reset the input
