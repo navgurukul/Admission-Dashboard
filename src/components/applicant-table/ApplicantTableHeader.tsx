@@ -108,7 +108,7 @@ export const ApplicantTableHeader = ({
         )}
         {isColumnVisible('status') && (
           <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-            Status
+            Stage
           </TableHead>
         )}
         {isColumnVisible('campus') && (
