@@ -2194,8 +2194,8 @@ Interviewer: ${interviewerName}`;
                         label: "Learning Round Pass"
                       },
                       {
-                        value: "Learning Round Failed",
-                        label: "Learning Round Failed",
+                        value: "Learning Round Fail",
+                        label: "Learning Round Fail",
                       },
                       { value: "Reschedule", label: "Reschedule" },
                       { value: "No Show", label: "No Show" },

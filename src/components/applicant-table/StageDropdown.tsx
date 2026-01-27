@@ -14,7 +14,7 @@ export const STAGE_STATUS_MAP: Record<string, string[]> = {
   ],
   interview: [
     "Learning Round Pass",
-    "Learning Round Failed",
+    "Learning Round Fail",
     "Culture Fit Round Pass",
     "Culture Fit Round Fail",
   ],
