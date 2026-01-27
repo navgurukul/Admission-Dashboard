@@ -2253,12 +2253,12 @@ Interviewer: ${interviewerName}`;
                     disabled: isStageDisabled(currentApplicant, "CFR") || isCulturalPassed,
                     options: [
                       {
-                        value: "Culture Fit Round Pass",
-                        label: "Culture Fit Round Pass",
+                        value: " Cultural Fit Interview Pass",
+                        label: " Cultural Fit Interview Pass",
                       },
                       {
-                        value: "Culture Fit Round Fail",
-                        label: "Culture Fit Round Fail",
+                        value: " Cultural Fit Interview Fail",
+                        label: " Cultural Fit Interview Fail",
                       },
                       { value: "Reschedule", label: "Reschedule" },
                       { value: "No Show", label: "No Show" },
