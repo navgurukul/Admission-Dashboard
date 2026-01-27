@@ -772,7 +772,7 @@ const PartnerPage = () => {
     } catch (error) {
       toast({
         title: "❌ Unable to Delete Partner",
-        description: getFriendlyErrorMessage(error),
+        description: "This Partner cannot be deleted because it is linked to other records.",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });

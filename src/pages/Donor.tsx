@@ -218,7 +218,7 @@ const DonorPage = () => {
       setDonorToDelete(null);
       loadDonors();
     } catch (error) {
-      toast({ title: "❌ Unable to Delete Donor", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
+      toast({ title: "❌ Unable to Delete Donor", description:"This donor cannot be deleted because it is linked to other records.", variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
     }
   };
 
