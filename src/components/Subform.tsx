@@ -59,8 +59,8 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
     [
       "question_set_id",
       "obtained_marks",
-      "is_passed",
-      "school_id",
+      // "is_passed",
+      // "school_id",
       "exam_centre",
       "date_of_test",
     ].includes(f.name),
@@ -84,11 +84,13 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
     return row.id
       ? {
         learning_round_status: row.learning_round_status,
+        school_id: row.school_id || null,
         comments: row.comments,
       }
       : {
         student_id: studentId,
         learning_round_status: row.learning_round_status,
+        school_id: row.school_id || null,
         comments: row.comments,
       };
   } else if ("cultural_fit_status" in row) {
@@ -111,33 +113,43 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
 const getEditableFields = (row: any, allFields: RowField[]) => {
   if (!row.id) return allFields; // new row: all editable
 
-  // Check if this is a screening round
+  // Check if this is a screening round - use unique screening fields only
   const isScreeningRound = allFields.some((f) =>
-    ["question_set_id", "obtained_marks", "exam_centre", "date_of_test", "school_id"].includes(f.name)
+    ["question_set_id", "obtained_marks", "exam_centre", "date_of_test"].includes(f.name)
   );
+
+  // Check if this is a learning round
+  const isLearningRound = allFields.some((f) => f.name === "learning_round_status");
 
   // For existing rows, check if status field is disabled (round is passed)
   const statusField = allFields.find((f) =>
     ["status", "learning_round_status", "cultural_fit_status"].includes(f.name)
   );
   
-  // If status field is disabled (round passed), only allow comments to be edited
+  // If status field is disabled (round passed), only allow specific fields
   if (statusField?.disabled) {
     if (isScreeningRound) {
       return allFields.filter((f) => f.name === "school_id");
     }
+    if (isLearningRound) {
+      return allFields.filter((f) => f.name === "comments" || f.name === "school_id");
+    }
     return allFields.filter((f) => f.name === "comments");
   }
 
-  // For screening round, allow ALL fields except audit info to be edited
+  // For screening round in edit mode (not passed), allow all screening fields
   if (isScreeningRound) {
-    return allFields.filter((f) => f.name === "school_id");
+    return allFields.filter((f) => 
+      ["status", "question_set_id", "obtained_marks", "school_id", "exam_centre", "date_of_test"].includes(f.name) ||
+      f.type === "readonly"
+    );
   }
 
-  // For learning/cultural rounds, allow editing of status and comments
+  // For learning/cultural rounds in edit mode (not passed), allow status, school_id, and comments
   return allFields.filter((f) => {
-    if (["learning_round_status", "comments"].includes(f.name)) return true;
+    if (["learning_round_status", "school_id", "comments"].includes(f.name)) return true;
     if (["cultural_fit_status", "comments"].includes(f.name)) return true;
+    if (f.type === "readonly") return true;
     return false;
   });
 };
@@ -259,6 +271,7 @@ export function InlineSubform({
   const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [rowToDelete, setRowToDelete] = useState<number | null>(null);
+  const [savingRows, setSavingRows] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -371,6 +384,11 @@ export function InlineSubform({
   };
 
   const saveRow = async (index: number) => {
+    // Prevent double-clicking
+    if (savingRows.has(index)) {
+      return;
+    }
+
     const row = rows[index];
     const editableFields = getEditableFields(row, fields);
 
@@ -379,6 +397,9 @@ export function InlineSubform({
       toggleEdit(index, false);
       return;
     }
+
+    // Mark row as saving
+    setSavingRows(prev => new Set(prev).add(index));
 
     if (!row.id) {
       // Conditional validation based on status
@@ -536,6 +557,13 @@ export function InlineSubform({
         description: errorMessage,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
+      });
+    } finally {
+      // Remove row from saving state
+      setSavingRows(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
       });
     }
   };
@@ -823,15 +851,25 @@ export function InlineSubform({
                             <Button
                               size="icon"
                               variant="ghost"
-                              className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""}`}
+                              className={`text-green-600 hover:bg-green-50 ${row.id && !hasChanges(idx) ? "opacity-50" : ""} ${savingRows.has(idx) ? "opacity-50" : ""}`}
                               onClick={() => saveRow(idx)}
+                              disabled={savingRows.has(idx)}
                             >
-                              <Save className="h-4 w-4" />
+                              {savingRows.has(idx) ? (
+                                <div className="h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Save className="h-4 w-4" />
+                              )}
                             </Button>
                           </TooltipTrigger>
                           {row.id && !hasChanges(idx) && (
                             <TooltipContent>
                               <p>No changes to save</p>
+                            </TooltipContent>
+                          )}
+                          {savingRows.has(idx) && (
+                            <TooltipContent>
+                              <p>Saving...</p>
                             </TooltipContent>
                           )}
                         </Tooltip>
