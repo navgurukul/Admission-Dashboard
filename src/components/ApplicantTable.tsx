@@ -154,8 +154,8 @@ const ApplicantTable = () => {
       { id: 'offer_sent_by', label: 'Offer Sent By', visible: false },
       { id: 'offer_audit', label: 'Offer Audit', visible: false },
       
-      // Status & School
-      { id: 'status', label: 'Status', visible: true },
+      // Stage & School
+      { id: 'stage', label: 'Stage', visible: true },
       { id: 'campus', label: 'Campus', visible: false },
       { id: 'school', label: 'School', visible: true },
       
