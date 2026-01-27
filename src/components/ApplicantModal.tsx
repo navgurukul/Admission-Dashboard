@@ -2190,12 +2190,12 @@ Interviewer: ${interviewerName}`;
                     disabled: isStageDisabled(currentApplicant, "LR") || isLearningPassed,
                     options: [
                       {
-                        value: "Learner Round Pass",
-                        label: "Learner Round Pass",
+                        value:"Learning Round Pass",
+                        label: "Learning Round Pass"
                       },
                       {
-                        value: "Learner Round Fail",
-                        label: "Learner Round Fail",
+                        value: "Learning Round Failed",
+                        label: "Learning Round Failed",
                       },
                       { value: "Reschedule", label: "Reschedule" },
                       { value: "No Show", label: "No Show" },
@@ -2253,12 +2253,12 @@ Interviewer: ${interviewerName}`;
                     disabled: isStageDisabled(currentApplicant, "CFR") || isCulturalPassed,
                     options: [
                       {
-                        value: "Cultural Fit Interview Pass",
-                        label: "Cultural Fit Interview Pass",
+                        value: "Culture Fit Round Pass",
+                        label: "Culture Fit Round Pass",
                       },
                       {
-                        value: "Cultural Fit Interview Fail",
-                        label: "Cultural Fit Interview Fail",
+                        value: "Culture Fit Round Fail",
+                        label: "Culture Fit Round Fail",
                       },
                       { value: "Reschedule", label: "Reschedule" },
                       { value: "No Show", label: "No Show" },

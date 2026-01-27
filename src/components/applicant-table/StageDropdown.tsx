@@ -13,10 +13,10 @@ export const STAGE_STATUS_MAP: Record<string, string[]> = {
     "Created Student Without Exam",
   ],
   interview: [
-    "Learner Round Pass",
-    "Learner Round Fail",
-    "Cultural Fit Interview Pass",
-    "Cultural Fit Interview Fail",
+    "Learning Round Pass",
+    "Learning Round Failed",
+    "Culture Fit Round Pass",
+    "Culture Fit Round Fail",
   ],
   "final decision": [
     "Offer Pending",
@@ -34,7 +34,7 @@ export const STAGE_DEFAULT_STATUS: Record<string, string> = {
   "sourcing": "Enrollment Key Generated",
   "screening": "Screening Test Pass",
   "final decision": "Final Decision",
-  "interview": "Learner Round Pass",
+  "interview": "Learning Round Pass",
   "onboarded": "Onboarded",
 };
 
