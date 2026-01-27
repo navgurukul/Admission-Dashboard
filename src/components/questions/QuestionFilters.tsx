@@ -66,7 +66,7 @@ export function QuestionFilters({
           </Select>
         </div>
 
-        <div>
+        {/* <div>
           <Label>Question Type</Label>
           <Select
             value={filters.question_type || "All"}
@@ -80,7 +80,7 @@ export function QuestionFilters({
               <SelectItem value="MCQ">Multiple Choice</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </div> */}
       </div>
     </div>
   );
