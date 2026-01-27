@@ -22,7 +22,7 @@ export const setupDefaultAdmin = async (adminEmail: string) => {
     );
 
     if (!createRoleResponse.ok) {
-      console.log("ADMIN role might already exist or failed to create");
+      // console.log("ADMIN role might already exist or failed to create");
     }
 
     // Register the admin user
@@ -44,7 +44,7 @@ export const setupDefaultAdmin = async (adminEmail: string) => {
     }
 
     const result = await registerUserResponse.json();
-    console.log("Admin user created successfully:", result);
+    // console.log("Admin user created successfully:", result);
     return result;
   } catch (error) {
     console.error("Error setting up default admin:", error);
@@ -74,9 +74,9 @@ export const createDefaultRoles = async () => {
       });
 
       if (response.ok) {
-        console.log(`Role ${role.name} created successfully`);
+        // console.log(`Role ${role.name} created successfully`);
       } else {
-        console.log(`Role ${role.name} might already exist`);
+        // console.log(`Role ${role.name} might already exist`);
       }
     } catch (error) {
       console.error(`Error creating role ${role.name}:`, error);
@@ -89,7 +89,7 @@ export const initializeAdminSystem = async (
   adminEmail: string = "admin@example.com",
 ) => {
   try {
-    console.log("Initializing admin system...");
+    // console.log("Initializing admin system...");
 
     // Create default roles
     await createDefaultRoles();
@@ -97,7 +97,7 @@ export const initializeAdminSystem = async (
     // Create admin user
     await setupDefaultAdmin(adminEmail);
 
-    console.log("Admin system initialized successfully!");
+    // console.log("Admin system initialized successfully!");
   } catch (error) {
     console.error("Failed to initialize admin system:", error);
   }

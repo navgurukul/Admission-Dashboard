@@ -108,11 +108,11 @@ const TestPage: React.FC = () => {
             duration: stateDuration,
           };
           
-          console.log("🆕 Creating NEW test session (after clearing old):", {
-            startTime: new Date(freshTestData.examStartTime).toLocaleString(),
-            duration: freshTestData.duration,
-            durationInMinutes: freshTestData.duration / 60
-          });
+          // console.log("🆕 Creating NEW test session (after clearing old):", {
+          //   startTime: new Date(freshTestData.examStartTime).toLocaleString(),
+          //   duration: freshTestData.duration,
+          //   durationInMinutes: freshTestData.duration / 60
+          // });
           
           localStorage.setItem(STORAGE_KEY, JSON.stringify(freshTestData));
           setTimeLeft(stateDuration); // Set full duration
@@ -227,7 +227,7 @@ const TestPage: React.FC = () => {
       // Submit exam to API
       const response = await createStudentExamSubmission(submissionData);
 
-      console.log("Exam submission response:", response);
+      // console.log("Exam submission response:", response);
 
       // Extract data from API response
       const { exam_session, summary } = response.data;
@@ -235,16 +235,16 @@ const TestPage: React.FC = () => {
       const totalPossibleScore = exam_session.total_marks;
       const passed = exam_session.is_passed;
 
-      console.log(
-        "totalPossibleScore",
-        totalPossibleScore,
-        "Score:",
-        score,
-        "Passed:",
-        passed,
-        "Summary:",
-        summary,
-      );
+      // console.log(
+      //   "totalPossibleScore",
+      //   totalPossibleScore,
+      //   "Score:",
+      //   score,
+      //   "Passed:",
+      //   passed,
+      //   "Summary:",
+      //   summary,
+      // );
       localStorage.removeItem(STORAGE_KEY);
 
       // Update tests context

@@ -119,14 +119,14 @@ const Sourcing = () => {
           table: "admission_dashboard",
         },
         (payload) => {
-          console.log("Real-time update received:", payload);
+          // console.log("Real-time update received:", payload);
           fetchApplicants();
         },
       )
       .subscribe();
 
     return () => {
-      console.log("Cleaning up sourcing page subscription");
+      // console.log("Cleaning up sourcing page subscription");
       supabase.removeChannel(channel);
     };
   }, []);
