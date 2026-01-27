@@ -332,24 +332,19 @@ export function ApplicantModal({
 
   // ✅ OPTIMIZATION: Load reference data on-demand (only when user clicks edit on specific field)
   const ensureFieldDataLoaded = useCallback(async (field: string) => {
-    console.log(`🔧 ApplicantModal: Loading data for field: ${field}`);
-    
     switch (field) {
       case 'campus_id':
         if (campusList.length === 0) {
-          console.log('� Fetching campuses...');
           await fetchCampuses();
         }
         break;
       case 'current_status_id':
         if (currentstatusList.length === 0) {
-          console.log('📥 Fetching current statuses...');
           await fetchCurrentStatuses();
         }
         break;
       case 'stage_id':
         if (stageList.length === 0) {
-          console.log('📥 Fetching stages...');
           try {
             const stagesData = await getAllStages();
             setStageList(stagesData || []);
@@ -361,57 +356,47 @@ export function ApplicantModal({
         break;
       case 'cast_id':
         if (castList.length === 0) {
-          console.log('📥 Fetching casts...');
           await fetchCasts();
         }
         break;
       case 'qualification_id':
         if (qualificationList.length === 0) {
-          console.log('📥 Fetching qualifications...');
           await fetchQualifications();
         }
         break;
       case 'religion_id':
         if (religionList.length === 0) {
-          console.log('📥 Fetching religions...');
           await fetchReligions();
         }
         break;
       case 'partner_id':
         if (partnerList.length === 0) {
-          console.log('📥 Fetching partners...');
           await fetchPartners();
         }
         break;
       case 'donor_id':
         if (donorList.length === 0) {
-          console.log('📥 Fetching donors...');
           await fetchDonors();
         }
         break;
       case 'school_id':
         if (schoolList.length === 0) {
-          console.log('📥 Fetching schools...');
           await fetchSchools();
         }
         break;
       case 'state':
         if (globalStateList.length === 0) {
-          console.log('📥 Fetching states...');
           await fetchStates();
         }
         break;
       case 'question_set_id':
         if (questionSetList.length === 0) {
-          console.log('📥 Fetching question sets...');
           await fetchQuestionSets();
         }
         break;
       default:
-        console.log(`⚠️ No specific loader for field: ${field}`);
+        break;
     }
-    
-    console.log(`✅ Data loaded for field: ${field}`);
   }, [
     campusList.length,
     currentstatusList.length,
@@ -487,10 +472,8 @@ export function ApplicantModal({
   useEffect(() => {
     const loadQuestionSets = async () => {
       if (isOpen && questionSetList.length === 0) {
-        console.log('📥 ApplicantModal: Loading QuestionSets for screening round...');
         try {
           await fetchQuestionSets();
-          console.log('✅ QuestionSets loaded:', questionSetList?.length || 0, 'items');
         } catch (error) {
           console.error('❌ Failed to load QuestionSets:', error);
         }
@@ -504,10 +487,8 @@ export function ApplicantModal({
   useEffect(() => {
     const loadSchools = async () => {
       if (isOpen && schools.length === 0) {
-        console.log('📥 ApplicantModal: Loading Schools for screening round...');
         try {
           await fetchSchools();
-          console.log('✅ Schools loaded');
         } catch (error) {
           console.error('❌ Failed to load Schools:', error);
         }
@@ -544,8 +525,6 @@ export function ApplicantModal({
           slotDate.setHours(0, 0, 0, 0);
           return slot.status === "Available" && slotDate >= today;
         });
-        
-        console.log(`Admin (${user?.name || user?.email}): Fetched ${slots.length} available slots for ${roundType} (filtered from ${allSlots.length} total)`);
       } else {
         // Regular users see only their own available (unbooked) slots
         const allSlots = await getMyAvailableSlots();
@@ -561,8 +540,6 @@ export function ApplicantModal({
                  slot.status === "Available" && 
                  slotDate >= today;
         });
-        
-        console.log(`User (${user?.name || user?.email}): Fetched ${slots.length} own available slots for ${roundType}`);
       }
       
       setAvailableSlots(slots);
@@ -581,11 +558,6 @@ export function ApplicantModal({
 
   // Handle opening schedule modal
   const handleOpenScheduleModal = useCallback(async (roundType: "LR" | "CFR") => {
-    console.log("Opening schedule modal with applicant:", {
-      id: currentApplicant?.id,
-      email: currentApplicant?.email,
-      name: currentApplicant?.name
-    });
     setScheduleRoundType(roundType);
     setIsScheduleModalOpen(true);
     await fetchAvailableSlots(roundType);
@@ -639,9 +611,7 @@ Interviewer: ${interviewerName}`;
       // If rescheduling, delete the old calendar event first
       if (rescheduleData && rescheduleData.googleEventId) {
         try {
-          console.log("Deleting old calendar event:", rescheduleData.googleEventId);
           await deleteCalendarEvent(rescheduleData.googleEventId);
-          console.log("Old calendar event deleted successfully");
         } catch (error) {
           console.error("Error deleting old calendar event:", error);
           // Show warning but continue with rescheduling
@@ -669,16 +639,6 @@ Interviewer: ${interviewerName}`;
 
       // Check if this is a reschedule or new schedule
       if (rescheduleData) {
-        console.log("Rescheduling interview with:", {
-          scheduleId: rescheduleData.scheduleId,
-          payload: {
-            slot_id: slotId,
-            title: eventTitle,
-            meeting_link: calendarEvent.meetLink,
-            google_event_id: calendarEvent.eventId,
-          }
-        });
-
         // Reschedule existing interview
         await updateScheduledInterview(rescheduleData.scheduleId, {
           slot_id: slotId,
@@ -754,9 +714,7 @@ Interviewer: ${interviewerName}`;
       // Delete the calendar event first if google_event_id exists
       if (scheduleToCancel?.google_event_id) {
         try {
-          console.log("Deleting calendar event:", scheduleToCancel.google_event_id);
           await deleteCalendarEvent(scheduleToCancel.google_event_id);
-          console.log("Calendar event deleted successfully");
         } catch (error) {
           console.error("Error deleting calendar event:", error);
           // Show warning but continue with cancellation
@@ -819,8 +777,6 @@ Interviewer: ${interviewerName}`;
       });
       return;
     }
-
-    console.log("Rescheduling interview:", scheduleToReschedule);
 
     // Set reschedule data with google_event_id for calendar deletion
     setRescheduleData({
@@ -1437,11 +1393,9 @@ Interviewer: ${interviewerName}`;
         // Read-only mode (no updateRow passed)
         if (!updateRow) {
           const rowId = row?.question_set_id?.toString();
-          console.log('🔍 Set lookup - Row ID:', rowId, 'QuestionSets count:', questionSets.length);
           
           // Try to find set name from questionSets list by ID
           const set = questionSets.find(s => s.value === rowId);
-          console.log('🔍 Found set:', set);
           
           if (set) {
             return (
@@ -2202,6 +2156,52 @@ Interviewer: ${interviewerName}`;
                     ],
                   },
                   {
+                    name: "school_id",
+                    label: "Qualifying School",
+                    type: "component" as const,
+                    component: ({ row, updateRow, disabled }: any) => {
+                      // Read-only mode (no updateRow passed)
+                      if (!updateRow) {
+                        // Try to find school name from schools list by ID
+                        const school = schools.find(s => s.value === row?.school_id?.toString());
+                        if (school) {
+                          return (
+                            <span className="text-gray-900" title={school.label}>
+                              {school.label}
+                            </span>
+                          );
+                        }
+                        // If school_name field exists in row, use it
+                        if (row?.school_name && row.school_name.trim() !== "") {
+                          return (
+                            <span className="text-gray-900" title={row.school_name}>
+                              {row.school_name}
+                            </span>
+                          );
+                        }
+                        // Fallback: show ID or dash
+                        return <span className="text-gray-500">{row?.school_id || "—"}</span>;
+                      }
+                      
+                      // Edit mode: Show dropdown with better styling
+                      return (
+                        <select
+                          value={row?.school_id || ""}
+                          onChange={(e) => updateRow("school_id", e.target.value)}
+                          className={`border rounded px-3 py-2 min-w-[200px] bg-white hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+                          disabled={!!disabled}
+                        >
+                          <option value="">Select School</option>
+                          {schools.map((school) => (
+                            <option key={school.value} value={school.value}>
+                              {school.label}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    },
+                  },
+                  {
                     name: "comments",
                     label: "Comments *",
                     type: "text" as const,
@@ -2253,12 +2253,12 @@ Interviewer: ${interviewerName}`;
                     disabled: isStageDisabled(currentApplicant, "CFR") || isCulturalPassed,
                     options: [
                       {
-                        value: "Culture Fit Round Pass",
-                        label: "Culture Fit Round Pass",
+                        value: " Cultural Fit Interview Pass",
+                        label: " Cultural Fit Interview Pass",
                       },
                       {
-                        value: "Culture Fit Round Fail",
-                        label: "Culture Fit Round Fail",
+                        value: " Cultural Fit Interview Fail",
+                        label: " Cultural Fit Interview Fail",
                       },
                       { value: "Reschedule", label: "Reschedule" },
                       { value: "No Show", label: "No Show" },
