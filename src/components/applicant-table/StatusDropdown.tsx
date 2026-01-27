@@ -31,7 +31,7 @@ export const STAGE_STATUS_MAP = {
 };
 
 export const STAGE_DEFAULT_STATUS = {
-  "Cultural Fit Interview Pass": "Enrollment Key Generated",
+  "Culture Fit Round Pass": "Enrollment Key Generated",
   screening: "Screening Test Pass",
 };
 
