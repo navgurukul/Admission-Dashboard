@@ -103,6 +103,8 @@ const PartnerPage = () => {
     idx: null,
     form: defaultPartnerForm,
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [partnerToDelete, setPartnerToDelete] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { debouncedValue: debouncedSearchQuery, isPending: isSearching } = useDebounce(searchQuery, 800);
   const [filterDialog, setFilterDialog] = useState(false);
@@ -749,21 +751,28 @@ const PartnerPage = () => {
     setNewAssessmentName("");
   };
 
-  const handleDeletePartner = async (id) => {
-    if (!confirm("Are you sure you want to delete this partner?")) return;
+  const handleDeletePartner = (id) => {
+    setPartnerToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeletePartner = async () => {
+    if (!partnerToDelete) return;
     try {
-      await deletePartner(id);
+      await deletePartner(partnerToDelete);
       toast({
         title: "✅ Partner Deleted",
         description: "Partner deleted successfully.",
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900"
       });
+      setDeleteDialogOpen(false);
+      setPartnerToDelete(null);
       loadPartners();
     } catch (error) {
       toast({
         title: "❌ Unable to Delete Partner",
-        description: getFriendlyErrorMessage(error),
+        description: "This Partner cannot be deleted because it is linked to other records.",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -1542,6 +1551,25 @@ const PartnerPage = () => {
               }}>
                 Create
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Delete</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this partner? This action cannot be undo.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => {
+                setDeleteDialogOpen(false);
+                setPartnerToDelete(null);
+              }}>Cancel</Button>
+              <Button type="button" variant="destructive" onClick={confirmDeletePartner}>Delete</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
