@@ -205,7 +205,7 @@ export const ScheduleInterviewModal = ({
         title: "⚠️ Invalid Email",
         description: "Please enter a valid email address",
         variant: "default",
-        className: "border-primary/50 bg-primary/5 text-primary-dark",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
