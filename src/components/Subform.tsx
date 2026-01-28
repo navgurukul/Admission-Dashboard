@@ -398,9 +398,6 @@ export function InlineSubform({
       return;
     }
 
-    // Mark row as saving
-    setSavingRows(prev => new Set(prev).add(index));
-
     if (!row.id) {
       // Conditional validation based on status
       const status = row.status;
@@ -472,6 +469,9 @@ export function InlineSubform({
         }
       }
     }
+
+    // Mark row as saving ONLY after validation passes
+    setSavingRows(prev => new Set(prev).add(index));
 
     const currentUser = getCurrentUser();
     const payload = {
