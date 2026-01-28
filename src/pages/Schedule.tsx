@@ -8,6 +8,7 @@ import {
   Video,
   Trash2,
   Edit,
+  ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -354,6 +355,17 @@ const Schedule = () => {
       <main className="md:ml-64 overflow-auto h-screen">
         <div className="p-4 md:p-8 pt-16 md:pt-8">
           <div className="mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/admin-view?tab=my-interviews")}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to My Scheduled Interviews
+              </Button>
+            </div>
             <h1 className="text-3xl font-bold text-foreground">
               {isAdmin ? "Admin View" : "My Dashboard"}
             </h1>

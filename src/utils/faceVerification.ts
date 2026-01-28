@@ -26,7 +26,7 @@ export const loadFaceDetectionModels = async (): Promise<void> => {
     ]);
 
     modelsLoaded = true;
-    console.log("Face detection models loaded successfully");
+    // console.log("Face detection models loaded successfully");
   } catch (error) {
     console.error("Error loading face detection models:", error);
     throw new Error("Failed to load face detection models");

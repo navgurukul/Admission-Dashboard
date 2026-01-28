@@ -103,11 +103,11 @@ export function EditableCell({
     // ✅ Then load data in the background (if not already loaded)
     // The dropdown will show with loading spinner while data loads
     if (onEditStart && normalizedOptions.length === 0) {
-      console.log(`🔧 Starting edit for field: ${field}, loading data if needed...`);
+      // console.log(`🔧 Starting edit for field: ${field}, loading data if needed...`);
       setIsLoadingData(true);
       try {
         await onEditStart();
-        console.log(`✅ Data ready for field: ${field}`);
+        // console.log(`✅ Data ready for field: ${field}`);
       } finally {
         setIsLoadingData(false);
       }

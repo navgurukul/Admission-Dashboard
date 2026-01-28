@@ -111,14 +111,14 @@ const Screening = () => {
           table: "admission_dashboard",
         },
         (payload) => {
-          console.log("Real-time update received:", payload);
+          // console.log("Real-time update received:", payload);
           fetchApplicants();
         },
       )
       .subscribe();
 
     return () => {
-      console.log("Cleaning up screening page subscription");
+      // console.log("Cleaning up screening page subscription");
       supabase.removeChannel(channel);
     };
   }, []);

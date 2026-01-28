@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { Calendar, Clock, AlertCircle, Video, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,11 +39,17 @@ import {
 
 export default function AdminView() {
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUser = getCurrentUser();
   const roleId = currentUser?.user_role_id || 2; // 1: Admin, 2: Interviewer
   const isAdmin = roleId === 1;
 
-  const [activeTab, setActiveTab] = useState(isAdmin ? "interviews" : "my-interviews");
+  // Check URL parameter for active tab
+  const searchParams = new URLSearchParams(location.search);
+  const tabFromUrl = searchParams.get('tab');
+  const initialTab = tabFromUrl || (isAdmin ? "interviews" : "my-interviews");
+
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [interviews, setInterviews] = useState<any[]>([]);
   const [slots, setSlots] = useState<any[]>([]);
   const [interviewsLoading, setInterviewsLoading] = useState(false);
@@ -348,7 +354,12 @@ export default function AdminView() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
   };
 
   const formatTime = (timeString: string) => {

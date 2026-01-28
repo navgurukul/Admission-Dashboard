@@ -57,7 +57,7 @@ export const DocumentUploadModal = ({
       const options = {
         convertImage: async (image: any) => {
           try {
-            console.log("Processing embedded image...");
+            // console.log("Processing embedded image...");
             const imageBuffer = await image.read();
             const blob = new Blob([imageBuffer], {
               type: image.contentType || "image/png",
@@ -82,7 +82,7 @@ export const DocumentUploadModal = ({
               .from("offer-pdfs")
               .getPublicUrl(filePath);
 
-            console.log("Image uploaded successfully:", data.publicUrl);
+            // console.log("Image uploaded successfully:", data.publicUrl);
             return { src: data.publicUrl };
           } catch (error) {
             console.error("Error processing embedded image:", error);
@@ -102,11 +102,11 @@ export const DocumentUploadModal = ({
         includeDefaultStyleMap: true,
       };
 
-      console.log("Starting document conversion...");
+      // console.log("Starting document conversion...");
       const result = await mammoth.convertToHtml({ arrayBuffer }, options);
 
       if (result.messages && result.messages.length > 0) {
-        console.log("Conversion messages:", result.messages);
+        // console.log("Conversion messages:", result.messages);
         // Filter out only errors, not warnings
         const errors = result.messages.filter(
           (msg: any) => msg.type === "error",
@@ -122,13 +122,13 @@ export const DocumentUploadModal = ({
         </div>
       `;
 
-      console.log("Document converted successfully");
+      // console.log("Document converted successfully");
       return styledHtml;
     } catch (error) {
       console.error("Document conversion error:", error);
       // Try a simpler conversion approach
       try {
-        console.log("Attempting simplified conversion...");
+        // console.log("Attempting simplified conversion...");
         const mammoth = await loadMammoth();
         const arrayBuffer = await file.arrayBuffer();
 
@@ -174,7 +174,7 @@ export const DocumentUploadModal = ({
 
     setIsUploading(true);
     try {
-      console.log("Starting file upload for:", file.name);
+      // console.log("Starting file upload for:", file.name);
 
       // Upload original file to Supabase storage for backup
       const fileExt = file.name.split(".").pop();
@@ -189,10 +189,10 @@ export const DocumentUploadModal = ({
         console.error("File backup upload error:", uploadError);
       }
 
-      console.log("Converting document to HTML...");
+      // console.log("Converting document to HTML...");
       const htmlContent = await convertDocxToHtml(file);
 
-      console.log("Document converted successfully");
+      // console.log("Document converted successfully");
       onDocumentUploaded(htmlContent);
 
       toast({

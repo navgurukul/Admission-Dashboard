@@ -88,11 +88,9 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   const handleStartTest = () => {
     if (!questions.length || !duration) return;
-    console.log("questions", questions);
 
     // IMPORTANT: Clear any previous test data before starting
     localStorage.removeItem("student_test_progress");
-    console.log("🧹 Cleared old test progress before starting new test");
     
     // Navigate to TestPage with state
     localStorage.setItem("testStarted", "true");

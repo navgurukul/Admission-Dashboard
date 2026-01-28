@@ -35,8 +35,8 @@ export default function Religion() {
 
   // Debug: Log religions state changes
   useEffect(() => {
-    console.log("Religions state updated:", religions);
-    console.log("Religions length:", religions.length);
+    // console.log("Religions state updated:", religions);
+    // console.log("Religions length:", religions.length);
   }, [religions]);
 
   const fetchReligions = async () => {
@@ -44,30 +44,30 @@ export default function Religion() {
       setLoading(true);
       const fetchedReligions = await getAllReligions();
 
-      console.log("Fetched religions in component:", fetchedReligions);
-      console.log("Fetched religions type:", typeof fetchedReligions);
-      console.log("Is array?", Array.isArray(fetchedReligions));
+      // console.log("Fetched religions in component:", fetchedReligions);
+      // console.log("Fetched religions type:", typeof fetchedReligions);
+      // console.log("Is array?", Array.isArray(fetchedReligions));
 
       // Ensure fetchedReligions is an array
       if (Array.isArray(fetchedReligions)) {
-        console.log("Setting religions to array:", fetchedReligions);
+        // console.log("Setting religions to array:", fetchedReligions);
         setReligions(fetchedReligions);
       } else if (fetchedReligions && Array.isArray(fetchedReligions.data)) {
         // If API returns { data: [...] }
-        console.log(
-          "Setting religions to fetchedReligions.data:",
-          fetchedReligions.data,
-        );
+        // console.log(
+        //   "Setting religions to fetchedReligions.data:",
+        //   fetchedReligions.data,
+        // );
         setReligions(fetchedReligions.data);
       } else if (
         fetchedReligions &&
         Array.isArray(fetchedReligions.religions)
       ) {
         // If API returns { religions: [...] }
-        console.log(
-          "Setting religions to fetchedReligions.religions:",
-          fetchedReligions.religions,
-        );
+        // console.log(
+        //   "Setting religions to fetchedReligions.religions:",
+        //   fetchedReligions.religions,
+        // );
         setReligions(fetchedReligions.religions);
       } else {
         console.error("Unexpected API response format:", fetchedReligions);

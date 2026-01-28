@@ -318,7 +318,7 @@ const SlotBooking: React.FC = () => {
       const dateStr = formatDate(dateObj);
 
       const response: any = await getSlotByDate(dateStr, slotType || "LR");
-      console.log("Fetched timings response:", response);
+      // console.log("Fetched timings response:", response);
 
       // Handle different response formats
       const items = Array.isArray(response)
@@ -342,7 +342,7 @@ const SlotBooking: React.FC = () => {
         }));
 
       setTimings(availableSlots);
-      console.log("Available slots for", dateStr, ":", availableSlots);
+      // console.log("Available slots for", dateStr, ":", availableSlots);
     } catch (err: any) {
       console.error("Failed to load timings:", err);
       showNotificationMessage(
@@ -435,7 +435,7 @@ const SlotBooking: React.FC = () => {
       };
 
       const result = await createCalendarEvent(eventDetails);
-      console.log("Calendar event created:", result);
+      // console.log("Calendar event created:", result);
       return result;
     } catch (error) {
       console.error("Error creating calendar event:", error);
@@ -445,16 +445,16 @@ const SlotBooking: React.FC = () => {
 
   //  Slot Actions - Complete API Integration
   const handleSlotBooking = async () => {
-    console.log(
-      "Booking attempt - slot:",
-      slot,
-      "currentStudent:",
-      currentStudent,
-      "test:",
-      test,
-    );
-    console.log("Available timings:", timings);
-    console.log("studentId:", studentId);
+    // console.log(
+    //   "Booking attempt - slot:",
+    //   slot,
+    //   "currentStudent:",
+    //   currentStudent,
+    //   "test:",
+    //   test,
+    // );
+    // console.log("Available timings:", timings);
+    // console.log("studentId:", studentId);
 
     if (!slot.id) {
       showNotificationMessage("Please select a slot to book", "error");
@@ -491,7 +491,7 @@ const SlotBooking: React.FC = () => {
       // Check Google sign-in
       if (!isSignedIn()) {
         const signInSuccess = await handleGoogleSignIn();
-        console.log("Google sign-in success:", signInSuccess);
+        // console.log("Google sign-in success:", signInSuccess);
         if (!signInSuccess) {
           return;
         }
@@ -501,7 +501,7 @@ const SlotBooking: React.FC = () => {
 
       // Find selected slot details
       const selectedSlotDetails = timings.find((t) => t.id === slot.id);
-      console.log("Selected slot details:", selectedSlotDetails);
+      // console.log("Selected slot details:", selectedSlotDetails);
 
       if (!selectedSlotDetails) {
         showNotificationMessage("Selected slot not found", "error");
@@ -542,7 +542,7 @@ const SlotBooking: React.FC = () => {
       // Create Google Calendar event
       showNotificationMessage("Creating Google Meet...", "info");
       const calendarResult = await scheduleGoogleMeet(bookedSlot);
-      console.log("Google Calendar result:", calendarResult);
+      // console.log("Google Calendar result:", calendarResult);
 
       if (!calendarResult.meetLink) {
         showNotificationMessage("Failed to create Google Meet link", "error");
@@ -565,12 +565,12 @@ const SlotBooking: React.FC = () => {
         slot_type: slotType || "LR", // Add slot_type to backend payload
       };
 
-      console.log("Backend payload for scheduling interview:", backendPayload);
+      // console.log("Backend payload for scheduling interview:", backendPayload);
 
       //  Save to backend
       showNotificationMessage("Saving slot to server...", "info");
       const scheduleResponse = await scheduleInterview(backendPayload);
-      console.log("Slot booked successfully:", scheduleResponse);
+      // console.log("Slot booked successfully:", scheduleResponse);
 
       // Store the scheduled interview ID from response
       if (scheduleResponse?.data?.id) {
@@ -662,10 +662,10 @@ const SlotBooking: React.FC = () => {
           }
           
           if (isSignedIn()) {
-            console.log("Deleting calendar event ID:", slot.calendar_event_id);
+            // console.log("Deleting calendar event ID:", slot.calendar_event_id);
             showNotificationMessage("Removing event from Google Calendar...", "info");
             await deleteCalendarEvent(slot.calendar_event_id);
-            console.log("Google Calendar event deleted successfully");
+            // console.log("Google Calendar event deleted successfully");
           }
         } catch (error) {
           console.error("Error deleting calendar event:", error);
@@ -730,7 +730,7 @@ const SlotBooking: React.FC = () => {
       // Check Google sign-in - only sign in if not already signed in
       if (!isSignedIn()) {
         const signInSuccess = await handleGoogleSignIn();
-        console.log("Google sign-in success:", signInSuccess);
+        // console.log("Google sign-in success:", signInSuccess);
         if (!signInSuccess) {
           return;
         }
@@ -785,7 +785,7 @@ const SlotBooking: React.FC = () => {
       };
 
       const calendarResult = await scheduleGoogleMeet(newBookedSlot);
-      console.log("New Google Calendar result:", calendarResult);
+      // console.log("New Google Calendar result:", calendarResult);
 
       if (!calendarResult.meetLink) {
         throw new Error("Failed to create Google Meet link");
@@ -803,17 +803,17 @@ const SlotBooking: React.FC = () => {
         google_event_id: newBookedSlot.calendar_event_id,
       };
 
-      console.log("Rescheduling with:", {
-        scheduledInterviewId: slot.scheduled_interview_id,
-        payload: reschedulePayload,
-      });
+      // console.log("Rescheduling with:", {
+      //   scheduledInterviewId: slot.scheduled_interview_id,
+      //   payload: reschedulePayload,
+      // });
 
       const rescheduleResponse = await updateScheduledInterview(
         slot.scheduled_interview_id, // Old scheduled interview ID
         reschedulePayload,
       );
 
-      console.log("Reschedule response:", rescheduleResponse);
+      // console.log("Reschedule response:", rescheduleResponse);
 
       // Store new scheduled interview ID if returned
       if (rescheduleResponse?.data?.id) {
@@ -875,12 +875,12 @@ const SlotBooking: React.FC = () => {
           const email = user.email;
 
           if (email) {
-            console.log("Fetching student data for email:", email);
+            // console.log("Fetching student data for email:", email);
             const response = await getCompleteStudentData(email);
 
             if (response.success && response.data.student) {
               const studentData = response.data.student;
-              console.log("Student data fetched from API:", studentData);
+              // console.log("Student data fetched from API:", studentData);
 
               setCurrentStudent({
                 firstName:
@@ -907,7 +907,7 @@ const SlotBooking: React.FC = () => {
                 attemptNumber = testId === 3 ? 1 : testId - 300 + 1;
               }
 
-              console.log("Looking for schedule matching attempt:", attemptNumber, "testId:", testId);
+              // console.log("Looking for schedule matching attempt:", attemptNumber, "testId:", testId);
 
               // Find schedule matching this specific attempt number by title
               const roundName = slotType === "CFR" ? "Cultural Fit Round" : "Learning Round";
@@ -935,7 +935,7 @@ const SlotBooking: React.FC = () => {
                 // Take the last (most recent) matching schedule
                 .slice(-1)[0];
 
-              console.log("Matching schedule found:", matchingSchedule);
+              // console.log("Matching schedule found:", matchingSchedule);
 
               if (matchingSchedule) {
                 const scheduleStatus = String(matchingSchedule.status || "").toLowerCase();
@@ -959,16 +959,16 @@ const SlotBooking: React.FC = () => {
                     scheduled_interview_id: matchingSchedule.schedule_id,
                     slot_type: slotType,
                   });
-                  console.log("Slot set from API - showing booked view for attempt:", attemptNumber);
+                  // console.log("Slot set from API - showing booked view for attempt:", attemptNumber);
                 } else {
                   // Cancelled or expired - show booking view
                   setSlot({ from: "", to: "", id: null, is_cancelled: true });
-                  console.log("Slot is cancelled/expired - showing booking view");
+                  // console.log("Slot is cancelled/expired - showing booking view");
                 }
               } else {
                 // No existing schedules - show booking view
                 setSlot({ from: "", to: "", id: null, is_cancelled: true });
-                console.log("No existing schedules - showing booking view");
+                // console.log("No existing schedules - showing booking view");
               }
             }
           } else {

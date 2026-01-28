@@ -56,7 +56,7 @@ export default function StageDropdown({
   const [status, setStatus] = useState(row?.status || "");
 
   useEffect(() => {
-    console.log("row", row);
+    // console.log("row", row);
     setStage(row?.stage_name || "");
     setStatus(row?.status || "");
   }, [row?.stage_name, row?.status]);

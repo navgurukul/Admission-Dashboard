@@ -48,11 +48,11 @@ export const getApplicants = (): ApplicantData[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     const data = stored ? JSON.parse(stored) : [];
-    console.log(
-      "getApplicants called, found",
-      data.length,
-      "applicants in localStorage",
-    );
+    // console.log(
+    //   "getApplicants called, found",
+    //   data.length,
+    //   "applicants in localStorage",
+    // );
     return data;
   } catch (error) {
     console.error("Error reading from localStorage:", error);
@@ -64,11 +64,11 @@ export const getApplicants = (): ApplicantData[] => {
 export const saveApplicants = (applicants: ApplicantData[]): void => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(applicants));
-    console.log(
-      "saveApplicants: saved",
-      applicants.length,
-      "applicants to localStorage",
-    );
+    // console.log(
+    //   "saveApplicants: saved",
+    //   applicants.length,
+    //   "applicants to localStorage",
+    // );
   } catch (error) {
     console.error("Error saving to localStorage:", error);
   }
@@ -89,15 +89,15 @@ export const addApplicants = (
   }));
 
   const updatedApplicants = [...existingApplicants, ...applicantsToAdd];
-  console.log(
-    "addApplicants: adding",
-    newApplicants.length,
-    "applicants to",
-    existingApplicants.length,
-    "existing =",
-    updatedApplicants.length,
-    "total",
-  );
+  // console.log(
+  //   "addApplicants: adding",
+  //   newApplicants.length,
+  //   "applicants to",
+  //   existingApplicants.length,
+  //   "existing =",
+  //   updatedApplicants.length,
+  //   "total",
+  // );
   saveApplicants(updatedApplicants);
   return updatedApplicants;
 };

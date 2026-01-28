@@ -494,7 +494,7 @@ const AdminPage: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
                 <div className="flex items-center">
                   <div className="p-2 bg-primary/10 rounded-lg">
@@ -527,7 +527,7 @@ const AdminPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
+              {/* <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
                 <div className="flex items-center">
                   <div className="p-2 bg-primary/10 rounded-lg">
                     <Search className="h-5 w-5 text-primary" />
@@ -541,7 +541,7 @@ const AdminPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Table */}
