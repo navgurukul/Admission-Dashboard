@@ -738,7 +738,26 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="school_id"
-            displayValue={applicant.school_name || "N/A"}
+            displayValue={
+              // Check screening status first
+              (() => {
+                const screeningStatus = applicant.exam_sessions?.[0]?.status || "";
+                const screeningStatusLower = screeningStatus.toLowerCase();
+                
+                // If screening test failed, show "Not Clear"
+                if (screeningStatusLower.includes("fail") || screeningStatusLower === "screening test fail") {
+                  return "Not Clear";
+                }
+                
+                // If no screening status, show "N/A"
+                if (!screeningStatus || screeningStatus === "") {
+                  return "N/A";
+                }
+                
+                // Otherwise, show school name or "N/A" if no school assigned
+                return applicant.school_name || "N/A";
+              })()
+            }
             value={applicant.school_id}
             onUpdate={onUpdate}
             onEditStart={() => ensureFieldDataLoaded?.('school_id')}
