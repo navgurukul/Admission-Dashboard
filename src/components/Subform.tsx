@@ -468,6 +468,25 @@ export function InlineSubform({
           return;
         }
       }
+
+      // Validate screening round: marks must be at least 13 for pass status
+      if (isScreeningRound) {
+        const obtainedMarks = Number(row.obtained_marks);
+        const status = row.status;
+
+        const isPassStatus = status && 
+          status !== "Screening Test Fail"
+        
+        if (isPassStatus && obtainedMarks < 13) {
+          toast({
+            title: "⚠️ Invalid Status Selection",
+            description: `The obtained marks (${obtainedMarks}) are below the passing criteria. Please select the status as "Screening Test Fail`,
+            variant: "destructive",
+            className: "border-orange-500 bg-orange-50 text-orange-900",
+          });
+          return;
+        }
+      }
     }
 
     // Mark row as saving ONLY after validation passes
