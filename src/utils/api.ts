@@ -2601,6 +2601,7 @@ export const getAllSlots = async (params: {
   pageSize?: number;
   slot_type?: 'LR' | 'CFR' | string;
   date?: string;
+  status?: string;
   search?: string;
 }): Promise<SlotsResponse> => {
   const queryParams = new URLSearchParams();
@@ -2609,6 +2610,7 @@ export const getAllSlots = async (params: {
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
   if (params.date) queryParams.append('date', params.date);
+  if (params.status) queryParams.append('status', params.status);
   if (params.search) queryParams.append('search', params.search);
 
   const response = await fetch(
