@@ -64,7 +64,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { getPartners, getAllPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName } from "@/utils/api";
+import { getPartners, getAllPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName, getAuthHeaders } from "@/utils/api";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -137,6 +137,7 @@ const PartnerPage = () => {
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [selectedSetQuestions, setSelectedSetQuestions] = useState<any[]>([]);
   const [selectedSetName, setSelectedSetName] = useState<string>("");
+  const [selectedSetId, setSelectedSetId] = useState<string | number>("");
   const [questionLanguage, setQuestionLanguage] = useState<"english" | "hindi" | "marathi">("english");
 
   // State for Create Assessment Form
@@ -779,6 +780,51 @@ const PartnerPage = () => {
     }
   };
 
+  const handleDownloadPdf = async (language = "english") => {
+    if (!selectedSetId) return;
+
+    try {
+      toast({
+        title: "Exporting assessment…",
+        description: "The assessment PDF is being generated.",
+      });
+
+      const query = language !== "english" ? `?language=${language}` : "";
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/questions/download-pdf/${selectedSetId}${query}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) throw new Error("Failed to download PDF");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedSetName.replace(/\s+/g, '_')}-${language}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export complete",
+        description: "Assessment PDF downloaded successfully.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
+
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: "Export Failed",
+        description: "Failed to download the assessment PDF.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-muted/40 flex">
       <AdmissionsSidebar />
@@ -1016,7 +1062,7 @@ const PartnerPage = () => {
                 </TableBody>
               </Table>
             </div>
-                {/* Pagination */}
+            {/* Pagination */}
             <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
               <div className="text-sm text-muted-foreground">
                 Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalPartnersCount)}</strong> of <strong>{totalPartnersCount}</strong>
@@ -1182,13 +1228,29 @@ const PartnerPage = () => {
               <DialogDescription>Select language to view questions</DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center gap-2 mt-2">
-              <Label>Language:</Label>
+            <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2">
-                <Button variant={questionLanguage === "english" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("english")}>English</Button>
-                <Button variant={questionLanguage === "hindi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("hindi")}>Hindi</Button>
-                <Button variant={questionLanguage === "marathi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("marathi")}>Marathi</Button>
+                <Label>Language:</Label>
+                <div className="flex items-center gap-2">
+                  <Button variant={questionLanguage === "english" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("english")}>English</Button>
+                  <Button variant={questionLanguage === "hindi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("hindi")}>Hindi</Button>
+                  <Button variant={questionLanguage === "marathi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("marathi")}>Marathi</Button>
+                </div>
               </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Assessment
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleDownloadPdf("english")}> 📄 English  (PDF)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadPdf("hindi")}> 📄 Hindi  (PDF)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadPdf("marathi")}> 📄 Marathi  (PDF)</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className="flex-1 overflow-auto mt-4">
@@ -1406,6 +1468,7 @@ const PartnerPage = () => {
                                 onClick={async () => {
                                   const name = set.name || "";
                                   setSelectedSetName(name);
+                                  setSelectedSetId(set.id);
                                   setShowQuestionsModal(true);
                                   setQuestionsLoading(true);
                                   try {
