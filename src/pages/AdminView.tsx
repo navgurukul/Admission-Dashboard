@@ -735,7 +735,7 @@ export default function AdminView() {
                                   {getStatusBadge(slot.status || 'Available')}
                                 </TableCell>
                                 <TableCell className="min-w-[100px]">
-                                  {slot.status?.toLowerCase() === "available" && (
+                                  {slot.status?.toLowerCase() === "available" ? (
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -749,6 +749,8 @@ export default function AdminView() {
                                       <Video className="w-4 h-4" />
                                       <span>Schedule</span>
                                     </Button>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
                                   )}
                                 </TableCell>
                               </TableRow>

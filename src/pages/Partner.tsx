@@ -113,6 +113,14 @@ const PartnerPage = () => {
     slug: "",
     emailDomain: "",
   });
+  const [tempFilters, setTempFilters] = useState(filters);
+
+  // Sync tempFilters with active filters when dialog opens
+  useEffect(() => {
+    if (filterDialog) {
+      setTempFilters(filters);
+    }
+  }, [filterDialog]);
   const [addDialog, setAddDialog] = useState({
     open: false,
     form: defaultPartnerForm,
@@ -1349,20 +1357,23 @@ const PartnerPage = () => {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>District</Label>
-                <Input value={filters.district} onChange={(e) => setFilters(f => ({ ...f, district: e.target.value }))} placeholder="Filter by district" />
+                <Input value={tempFilters.district} onChange={(e) => setTempFilters(f => ({ ...f, district: e.target.value }))} placeholder="Filter by district" />
               </div>
               <div className="grid gap-2">
                 <Label>Slug</Label>
-                <Input value={filters.slug} onChange={(e) => setFilters(f => ({ ...f, slug: e.target.value }))} placeholder="Filter by slug" />
+                <Input value={tempFilters.slug} onChange={(e) => setTempFilters(f => ({ ...f, slug: e.target.value }))} placeholder="Filter by slug" />
               </div>
               <div className="grid gap-2">
                 <Label>Email Domain</Label>
-                <Input value={filters.emailDomain} onChange={(e) => setFilters(f => ({ ...f, emailDomain: e.target.value }))} placeholder="e.g. gmail.com" />
+                <Input value={tempFilters.emailDomain} onChange={(e) => setTempFilters(f => ({ ...f, emailDomain: e.target.value }))} placeholder="e.g. gmail.com" />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setFilterDialog(false)}>Cancel</Button>
-              <Button onClick={() => setFilterDialog(false)}>Apply Filters</Button>
+              <Button onClick={() => {
+                setFilters(tempFilters);
+                setFilterDialog(false);
+              }}>Apply Filters</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
