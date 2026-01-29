@@ -368,7 +368,7 @@ const PartnerPage = () => {
       // "Notes",
       "Meraki Link"
     ];
-    const rows = allPartnersForStats.map((partner) => [
+    const rows = paginatedPartners.map((partner) => [
       partner.partner_name,
       partner.email,
       partner.slug,
