@@ -501,47 +501,21 @@ export function ApplicantModal({
   const fetchAvailableSlots = useCallback(async (roundType: "LR" | "CFR") => {
     try {
       setSchedulingInProgress(true);
-      
-      // Check user role to determine which slots to fetch
-      const userStr = localStorage.getItem("user");
-      const user = userStr ? JSON.parse(userStr) : null;
-      const userRole = user?.role_name || null;
-      
-      // Check if user is Admin or Owner (both should have admin privileges)
-      const isAdmin = userRole === "ADMIN" || userRole === "Admin";
 
-      let slots = [];
-      if (isAdmin) {
-        // Admin can see ALL available (unbooked) slots from all users
-        const response = await getAllSlots({ slot_type: roundType, pageSize: 1000 });
-        const allSlots = response.data || [];
-        
-        // Filter to show only available slots with future dates
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        slots = allSlots.filter((slot: any) => {
-          const slotDate = new Date(slot.date);
-          slotDate.setHours(0, 0, 0, 0);
-          return slot.status === "Available" && slotDate >= today;
-        });
-      } else {
-        // Regular users see only their own available (unbooked) slots
-        const allSlots = await getMyAvailableSlots();
-        
-        // Filter for matching slot type and future dates
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        slots = allSlots.filter((slot: any) => {
-          const slotDate = new Date(slot.date);
-          slotDate.setHours(0, 0, 0, 0);
-          return slot.slot_type === roundType && 
-                 slot.status === "Available" && 
-                 slotDate >= today;
-        });
-      }
-      
+      // Allow all users to see all available slots
+      const response = await getAllSlots({ slot_type: roundType, pageSize: 1000 });
+      const allSlots = response.data || [];
+
+      // Filter to show only available slots with future dates
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let slots = allSlots.filter((slot: any) => {
+        const slotDate = new Date(slot.date);
+        slotDate.setHours(0, 0, 0, 0);
+        return slot.status === "Available" && slotDate >= today;
+      });
+
       setAvailableSlots(slots);
     } catch (error) {
       console.error("Failed to fetch available slots:", error);
