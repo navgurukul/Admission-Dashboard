@@ -64,7 +64,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { getPartners, getAllPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName } from "@/utils/api";
+import { getPartners, getAllPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName, getAuthHeaders } from "@/utils/api";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -98,10 +98,16 @@ const PartnerPage = () => {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10); // Add this state
-  const [editDialog, setEditDialog] = useState({
+  const [editDialog, setEditDialog] = useState<{
+    open: boolean;
+    partnerId: number | null; // Changed to support ID lookup
+    form: typeof defaultPartnerForm;
+    idx: number | null; // Kept for legacy compatibility if needed
+  }>({
     open: false,
-    idx: null,
+    partnerId: null,
     form: defaultPartnerForm,
+    idx: null
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [partnerToDelete, setPartnerToDelete] = useState<number | null>(null);
@@ -113,6 +119,16 @@ const PartnerPage = () => {
     slug: "",
     emailDomain: "",
   });
+  const [tempFilters, setTempFilters] = useState(filters);
+  // Check if any client-side filters are active
+  const isClientFiltered = Boolean(filters.district || filters.slug || filters.emailDomain);
+
+  // Sync tempFilters with active filters when dialog opens
+  useEffect(() => {
+    if (filterDialog) {
+      setTempFilters(filters);
+    }
+  }, [filterDialog]);
   const [addDialog, setAddDialog] = useState({
     open: false,
     form: defaultPartnerForm,
@@ -137,6 +153,7 @@ const PartnerPage = () => {
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [selectedSetQuestions, setSelectedSetQuestions] = useState<any[]>([]);
   const [selectedSetName, setSelectedSetName] = useState<string>("");
+  const [selectedSetId, setSelectedSetId] = useState<string | number>("");
   const [questionLanguage, setQuestionLanguage] = useState<"english" | "hindi" | "marathi">("english");
 
   // State for Create Assessment Form
@@ -169,7 +186,7 @@ const PartnerPage = () => {
     try {
       // Trim the search query and only pass it if it's not empty
       const trimmedSearch = search?.trim() || "";
-      
+
       // Pass search query to API only if it's not empty
       const response = await getPartners(p, rowsPerPage, trimmedSearch); // Use rowsPerPage state and search
 
@@ -243,34 +260,36 @@ const PartnerPage = () => {
     loadPartners(page, debouncedSearchQuery);
   }, [page, rowsPerPage, debouncedSearchQuery]); // Use debouncedSearchQuery
 
-  useEffect(() => {
-    loadStates();
-    // Load all partners once for global stats and districts filter
-    const fetchGlobalStats = async () => {
-      try {
-        const all = await getAllPartners();
-        // Normalize districts for global stats as well
-        const normalizedAll = (all || []).map(p => {
-          const districtIds = Array.isArray(p.districts)
-            ? p.districts.map(String)
-            : (p.districts ? (typeof p.districts === 'string' ? p.districts.split(',').map(d => d.trim()).filter(Boolean) : [String(p.districts)]) : []);
+  // Fetch global stats (all partners)
+  const fetchAllPartners = async () => {
+    try {
+      const all = await getAllPartners();
+      // Normalize districts for global stats as well
+      const normalizedAll = (all || []).map(p => {
+        const districtIds = Array.isArray(p.districts)
+          ? p.districts.map(String)
+          : (p.districts ? (typeof p.districts === 'string' ? p.districts.split(',').map(d => d.trim()).filter(Boolean) : [String(p.districts)]) : []);
 
           const displayDistricts = p.district_name
             ? (typeof p.district_name === 'string' ? p.district_name.split(',').map(d => d.trim()).filter(Boolean) : [p.district_name])
             : districtIds;
 
-          return {
-            ...p,
-            districts: districtIds,
-            displayDistricts: displayDistricts
-          };
-        });
-        setAllPartnersForStats(normalizedAll);
-      } catch (e) {
-        console.error("Failed to load global stats", e);
-      }
-    };
-    fetchGlobalStats();
+        return {
+          ...p,
+          districts: districtIds,
+          displayDistricts: displayDistricts
+        };
+      });
+      setAllPartnersForStats(normalizedAll);
+    } catch (e) {
+      console.error("Failed to load global stats", e);
+    }
+  };
+
+  useEffect(() => {
+    loadStates();
+    // Load all partners once for global stats and districts filter
+    fetchAllPartners();
   }, []);
 
   const loadStates = async () => {
@@ -346,9 +365,46 @@ const PartnerPage = () => {
     setPage(1);
   }, [filters]);
 
-  // We use partners directly since it's now paginated by the server
-  const paginatedPartners = filteredPartners;
-  // totalPages is now handled by state
+  let currentTableData = [];
+  let displayTotalCount = 0;
+  let displayTotalPages = 1;
+
+  if (isClientFiltered) {
+    // 1. Filter the Full List locally
+    const matches = allPartnersForStats.filter((partner) => {
+      
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = q ? partner.partner_name?.toLowerCase().includes(q) : true;
+
+      const matchesDistrict = filters.district
+        ? (partner.displayDistricts || []).some((d) => d.toLowerCase().includes(filters.district.toLowerCase()))
+        : true;
+      const matchesSlug = filters.slug
+        ? partner.slug?.toLowerCase().includes(filters.slug.toLowerCase())
+        : true;
+      const matchesEmailDomain = filters.emailDomain
+        ? partner.email?.toLowerCase().endsWith(filters.emailDomain.toLowerCase())
+        : true;
+
+      return matchesSearch && matchesDistrict && matchesSlug && matchesEmailDomain;
+    });
+
+    displayTotalCount = matches.length;
+    displayTotalPages = Math.ceil(displayTotalCount / rowsPerPage) || 1;
+
+    // 2. Slice for current page
+    const start = (page - 1) * rowsPerPage;
+    currentTableData = matches.slice(start, start + rowsPerPage);
+
+  } else {
+    // Server Side Mode
+    currentTableData = filteredPartners; 
+   
+    displayTotalCount = totalPartnersCount;
+    displayTotalPages = totalPages;
+  }
+
+  const paginatedPartners = currentTableData;
 
   // Stats
   const totalPartners = totalPartnersCount;
@@ -368,7 +424,7 @@ const PartnerPage = () => {
       // "Notes",
       "Meraki Link"
     ];
-    const rows = allPartnersForStats.map((partner) => [
+    const rows = paginatedPartners.map((partner) => [
       partner.partner_name,
       partner.email,
       partner.slug,
@@ -398,21 +454,32 @@ const PartnerPage = () => {
   };
 
   // Logic handlers
-  const handleCreateMerakiLink = (idx) => {
+  const handleCreateMerakiLink = (idOrIdx) => {
+    // If passed ID, find by ID. If passed index, fallback (though logic updated to pass ID now)
+    const pId = typeof idOrIdx === 'object' ? idOrIdx.id : idOrIdx;
+
     setPartners((prev) => {
-      const updated = [...prev];
-      updated[idx] = {
-        ...updated[idx],
-        meraki_link: `${window.location.origin}${import.meta.env.BASE_URL}partnerLanding/${updated[idx].slug}`,
-      };
-      return updated;
+      return prev.map(p => {
+        // Check if passed arg is ID
+        if (p.id === idOrIdx) {
+          return {
+            ...p,
+            meraki_link: `${window.location.origin}${import.meta.env.BASE_URL}partnerLanding/${p.slug}`,
+          };
+        }
+        return p;
+      })
     });
+
+    // Also update global cache
+    setAllPartnersForStats(prev => prev.map(p => p.id === idOrIdx ? { ...p, meraki_link: `${window.location.origin}${import.meta.env.BASE_URL}partnerLanding/${p.slug}` } : p));
   };
 
   // Edit Dialog
   const openEditDialog = (idx) => {
     const realIdx = (page - 1) * ROWS_PER_PAGE + idx;
-    const partner = paginatedPartners[idx]; // Use paginated index for display, but need real index for update if modifying 'partners' array directly.
+    const partner = paginatedPartners[idx];
+     // Use paginated index for display, but need real index for update if modifying 'partners' array directly.
     // Actually, simpler to find by ID if possible, but assuming index based on paginated view needs mapping.
     // Let's find the original index in `partners` array.
     const originalIndex = partners.findIndex(p => p.id === partner.id);
@@ -423,7 +490,8 @@ const PartnerPage = () => {
 
     setEditDialog({
       open: true,
-      idx: originalIndex,
+      partnerId: partner.id,
+      idx: idx, // Pass raw view index if needed (though risky if data source changes)
       form: {
         name: partner.partner_name || "",
         emails: partner.email ? [partner.email] : [""],
@@ -445,7 +513,7 @@ const PartnerPage = () => {
   };
 
   const closeEditDialog = () => {
-    setEditDialog({ open: false, idx: null, form: defaultPartnerForm });
+    setEditDialog({ open: false, idx: null, partnerId: null, form: defaultPartnerForm });
   };
 
   const handleEditFormChange = (field, value) => {
@@ -529,12 +597,18 @@ const PartnerPage = () => {
       return;
     }
 
-    // Find partner by index in the main array
-    const partnerToUpdate = partners[idx];
-    if (!partnerToUpdate || !partnerToUpdate.id) return;
+    // Check partnerId first (new valid way), then fallback to index (old way)
+    // We prefer ID because index might be from filtered view, not server array.
+    let idToUpdate = editDialog.partnerId;
+
+    if (!idToUpdate && editDialog.idx !== null && editDialog.idx >= 0 && partners[editDialog.idx]) {
+      idToUpdate = partners[editDialog.idx].id;
+    }
+
+    if (!idToUpdate) return;
 
     try {
-      await updatePartner(partnerToUpdate.id, {
+      await updatePartner(idToUpdate, {
         partner_name: editDialog.form.name,
         slug: editDialog.form.slug,
         email: editDialog.form.emails[0], // API expects single email string? Adjust if array.
@@ -550,6 +624,7 @@ const PartnerPage = () => {
       });
       closeEditDialog();
       loadPartners();
+      fetchAllPartners(); // Refresh cache
     } catch (error) {
       toast({
         title: "❌ Unable to Update Partner",
@@ -666,6 +741,7 @@ const PartnerPage = () => {
       });
       closeAddDialog();
       loadPartners();
+      fetchAllPartners(); // Refresh cache
     } catch (error) {
       toast({
         title: "❌ Unable to Create Partner",
@@ -769,10 +845,56 @@ const PartnerPage = () => {
       setDeleteDialogOpen(false);
       setPartnerToDelete(null);
       loadPartners();
+      fetchAllPartners(); // Refresh cache
     } catch (error) {
       toast({
         title: "❌ Unable to Delete Partner",
         description: "This Partner cannot be deleted because it is linked to other records.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+    }
+  };
+
+  const handleDownloadPdf = async (language = "english") => {
+    if (!selectedSetId) return;
+
+    try {
+      toast({
+        title: "Exporting assessment…",
+        description: "The assessment PDF is being generated.",
+      });
+
+      const query = language !== "english" ? `?language=${language}` : "";
+
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/questions/download-pdf/${selectedSetId}${query}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) throw new Error("Failed to download PDF");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedSetName.replace(/\s+/g, '_')}-${language}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export complete",
+        description: "Assessment PDF downloaded successfully.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
+
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: "Export Failed",
+        description: "Failed to download the assessment PDF.",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
@@ -816,7 +938,7 @@ const PartnerPage = () => {
                   <p className="text-xs text-muted-foreground">+2 from last month</p>
                 </CardContent>
               </Card>
-              <Card className="shadow-sm">
+              {/* <Card className="shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Districts</CardTitle>
                   <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -825,8 +947,8 @@ const PartnerPage = () => {
                   <div className="text-2xl font-bold">{activeDistricts}</div>
                   <p className="text-xs text-muted-foreground">Across the country</p>
                 </CardContent>
-              </Card>
-              <Card className="shadow-sm">
+              </Card> */}
+              {/* <Card className="shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Students</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
@@ -845,7 +967,7 @@ const PartnerPage = () => {
                   <div className="text-2xl font-bold">128</div>
                   <p className="text-xs text-muted-foreground">Completed this week</p>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
           </div>
 
@@ -1003,7 +1125,7 @@ const PartnerPage = () => {
                                   <ExternalLink className="mr-2 h-4 w-4" /> Copy Test Link
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem onClick={() => handleCreateMerakiLink((page - 1) * ROWS_PER_PAGE + idx)}>
+                                <DropdownMenuItem onClick={() => handleCreateMerakiLink(partner.id)}>
                                   <ExternalLink className="mr-2 h-4 w-4" /> Generate Link
                                 </DropdownMenuItem>
                               )}
@@ -1016,10 +1138,10 @@ const PartnerPage = () => {
                 </TableBody>
               </Table>
             </div>
-                {/* Pagination */}
+            {/* Pagination */}
             <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
               <div className="text-sm text-muted-foreground">
-                Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, totalPartnersCount)}</strong> of <strong>{totalPartnersCount}</strong>
+                Showing <strong>{(page - 1) * rowsPerPage + 1}</strong> - <strong>{Math.min(page * rowsPerPage, displayTotalCount)}</strong> of <strong>{displayTotalCount}</strong>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="flex items-center gap-2">
@@ -1038,7 +1160,7 @@ const PartnerPage = () => {
                   </select>
                 </div>
                 <span className="text-sm text-muted-foreground px-2">
-                  Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+                  Page <strong>{page}</strong> of <strong>{displayTotalPages}</strong>
                 </span>
                 <Button
                   variant="outline"
@@ -1052,8 +1174,8 @@ const PartnerPage = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => Math.min(displayTotalPages, p + 1))}
+                  disabled={page === displayTotalPages}
                   className="h-8"
                 >
                   Next
@@ -1182,13 +1304,29 @@ const PartnerPage = () => {
               <DialogDescription>Select language to view questions</DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center gap-2 mt-2">
-              <Label>Language:</Label>
+            <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-2">
-                <Button variant={questionLanguage === "english" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("english")}>English</Button>
-                <Button variant={questionLanguage === "hindi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("hindi")}>Hindi</Button>
-                <Button variant={questionLanguage === "marathi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("marathi")}>Marathi</Button>
+                <Label>Language:</Label>
+                <div className="flex items-center gap-2">
+                  <Button variant={questionLanguage === "english" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("english")}>English</Button>
+                  <Button variant={questionLanguage === "hindi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("hindi")}>Hindi</Button>
+                  <Button variant={questionLanguage === "marathi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("marathi")}>Marathi</Button>
+                </div>
               </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Assessment
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleDownloadPdf("english")}> 📄 English  (PDF)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadPdf("hindi")}> 📄 Hindi  (PDF)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDownloadPdf("marathi")}> 📄 Marathi  (PDF)</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className="flex-1 overflow-auto mt-4">
@@ -1349,20 +1487,23 @@ const PartnerPage = () => {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>District</Label>
-                <Input value={filters.district} onChange={(e) => setFilters(f => ({ ...f, district: e.target.value }))} placeholder="Filter by district" />
+                <Input value={tempFilters.district} onChange={(e) => setTempFilters(f => ({ ...f, district: e.target.value }))} placeholder="Filter by district" />
               </div>
               <div className="grid gap-2">
                 <Label>Slug</Label>
-                <Input value={filters.slug} onChange={(e) => setFilters(f => ({ ...f, slug: e.target.value }))} placeholder="Filter by slug" />
+                <Input value={tempFilters.slug} onChange={(e) => setTempFilters(f => ({ ...f, slug: e.target.value }))} placeholder="Filter by slug" />
               </div>
               <div className="grid gap-2">
                 <Label>Email Domain</Label>
-                <Input value={filters.emailDomain} onChange={(e) => setFilters(f => ({ ...f, emailDomain: e.target.value }))} placeholder="e.g. gmail.com" />
+                <Input value={tempFilters.emailDomain} onChange={(e) => setTempFilters(f => ({ ...f, emailDomain: e.target.value }))} placeholder="e.g. gmail.com" />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setFilterDialog(false)}>Cancel</Button>
-              <Button onClick={() => setFilterDialog(false)}>Apply Filters</Button>
+              <Button onClick={() => {
+                setFilters(tempFilters);
+                setFilterDialog(false);
+              }}>Apply Filters</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1406,6 +1547,7 @@ const PartnerPage = () => {
                                 onClick={async () => {
                                   const name = set.name || "";
                                   setSelectedSetName(name);
+                                  setSelectedSetId(set.id);
                                   setShowQuestionsModal(true);
                                   setQuestionsLoading(true);
                                   try {
@@ -1574,8 +1716,8 @@ const PartnerPage = () => {
           </DialogContent>
         </Dialog>
 
-      </main>
-    </div>
+      </main >
+    </div >
   );
 };
 
