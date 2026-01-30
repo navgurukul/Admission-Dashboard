@@ -15,6 +15,7 @@ import {
   FileText,
   Users,
   Pencil,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -415,7 +416,42 @@ const PartnerPage = () => {
 
 
   // CSV Download
-  const handleDownloadCSV = () => {
+  const handleDownloadCSV = (mode: 'all' | 'filtered' = 'all') => {
+    let dataToExport = [];
+    let filename = "partners.csv";
+
+    if (mode === 'all') {
+      dataToExport = allPartnersForStats;
+      filename = "all_partners.csv";
+    } else {
+      // Get all matching partners from the full list
+      const q = searchQuery.toLowerCase();
+      dataToExport = allPartnersForStats.filter((partner) => {
+        const matchesSearch = q ? (partner.partner_name || "").toLowerCase().includes(q) : true;
+        const matchesDistrict = filters.district
+          ? (partner.displayDistricts || []).some((d: string) => d.toLowerCase().includes(filters.district.toLowerCase()))
+          : true;
+        const matchesSlug = filters.slug
+          ? (partner.slug || "").toLowerCase().includes(filters.slug.toLowerCase())
+          : true;
+        const matchesEmailDomain = filters.emailDomain
+          ? (partner.email || "").toLowerCase().endsWith(filters.emailDomain.toLowerCase())
+          : true;
+
+        return matchesSearch && matchesDistrict && matchesSlug && matchesEmailDomain;
+      });
+      filename = "filtered_partners.csv";
+    }
+
+    if (dataToExport.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no partners matching the selection.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const headers = [
       "Name",
       "Email",
@@ -424,7 +460,7 @@ const PartnerPage = () => {
       // "Notes",
       "Meraki Link"
     ];
-    const rows = paginatedPartners.map((partner) => [
+    const rows = dataToExport.map((partner) => [
       partner.partner_name,
       partner.email,
       partner.slug,
@@ -439,7 +475,7 @@ const PartnerPage = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "partners.csv");
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -447,7 +483,7 @@ const PartnerPage = () => {
 
     toast({
       title: "✅ CSV Downloaded",
-      description: "CSV file downloaded successfully",
+      description: `${dataToExport.length} partners exported successfully to ${filename}`,
       variant: "default",
       className: "border-green-500 bg-green-50 text-green-900"
     });
@@ -977,10 +1013,42 @@ const PartnerPage = () => {
               <div className="flex flex-row justify-between items-center">
                 <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={handleDownloadCSV} size="sm">
-                    <Download className="w-4 h-4 mr-2" />
-                    Export
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export CSV
+                        <ChevronDown className="w-4 h-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleDownloadCSV('all')}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export All Data
+                      </DropdownMenuItem>
+                      {(searchQuery.trim() !== "" || Object.values(filters).some(Boolean)) && (
+                        <DropdownMenuItem onClick={() => handleDownloadCSV('filtered')}>
+                          <Download className="w-4 h-4 mr-2" />
+                          Export Filtered Results ({(() => {
+                            const q = searchQuery.toLowerCase();
+                            return allPartnersForStats.filter((partner) => {
+                              const matchesSearch = q ? (partner.partner_name || "").toLowerCase().includes(q) : true;
+                              const matchesDistrict = filters.district
+                                ? (partner.displayDistricts || []).some((d: string) => d.toLowerCase().includes(filters.district.toLowerCase()))
+                                : true;
+                              const matchesSlug = filters.slug
+                                ? (partner.slug || "").toLowerCase().includes(filters.slug.toLowerCase())
+                                : true;
+                              const matchesEmailDomain = filters.emailDomain
+                                ? (partner.email || "").toLowerCase().endsWith(filters.emailDomain.toLowerCase())
+                                : true;
+                              return matchesSearch && matchesDistrict && matchesSlug && matchesEmailDomain;
+                            }).length;
+                          })()})
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button variant="outline" onClick={() => setFilterDialog(true)} size="sm">
                     <Filter className="w-4 h-4 mr-2" />
                     Advanced Filters
