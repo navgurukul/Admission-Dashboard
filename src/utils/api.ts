@@ -648,20 +648,20 @@ export const API_MAP: Record<
     delete?: (id: number) => Promise<any>;
   }
 > = {
-  learning: { 
-    submit: submitLearningRound, 
+  learning: {
+    submit: submitLearningRound,
     update: updateLearningRound,
-    delete: deleteLearningRoundFeedback 
+    delete: deleteLearningRoundFeedback
   },
-  cultural: { 
-    submit: submitCulturalFit, 
+  cultural: {
+    submit: submitCulturalFit,
     update: updateCulturalFit,
-    delete: deleteCulturalFitRoundFeedback 
+    delete: deleteCulturalFitRoundFeedback
   },
-  screening: { 
-    submit: submitScreeningRound, 
+  screening: {
+    submit: submitScreeningRound,
     update: updateScreeningRound,
-    delete: deleteScreeningRoundFeedback 
+    delete: deleteScreeningRoundFeedback
   },
 };
 
@@ -1290,7 +1290,23 @@ export const createStudent = async (studentData: any): Promise<any> => {
 };
 
 export const getFilterStudent = async (filters: any): Promise<{ data: any[], total: number, totalPages: number }> => {
-  const query = new URLSearchParams(filters).toString();
+  const params = new URLSearchParams();
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "" && value !== "all") {
+      if (Array.isArray(value)) {
+        // Filter out "all" and empty strings, then join with comma
+        const filteredValues = value.filter(v => v !== "all" && v !== "");
+        if (filteredValues.length > 0) {
+          params.append(key, filteredValues.join(','));
+        }
+      } else {
+        params.append(key, String(value));
+      }
+    }
+  });
+
+  const query = params.toString();
   const response = await fetch(`${BASE_URL}/students/filter?${query}`, {
     method: "GET",
     headers: getAuthHeaders(),
@@ -1865,6 +1881,24 @@ export const getAllStatuses = async (): Promise<CurrentStatus[]> => {
   } else {
     return [];
   }
+};
+// Get Statuses by Stage ID
+export const getStageStatuses = async (stage_id: number): Promise<any> => {
+  const response = await fetch(
+    `${BASE_URL}/stages/statuses/${stage_id}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch stage statuses");
+  }
+
+  return data;
 };
 
 // Get campuses with pagination
@@ -2606,6 +2640,7 @@ export const getAllSlots = async (params: {
   pageSize?: number;
   slot_type?: 'LR' | 'CFR' | string;
   date?: string;
+  status?: string;
   search?: string;
 }): Promise<SlotsResponse> => {
   const queryParams = new URLSearchParams();
@@ -2614,6 +2649,7 @@ export const getAllSlots = async (params: {
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
   if (params.date) queryParams.append('date', params.date);
+  if (params.status) queryParams.append('status', params.status);
   if (params.search) queryParams.append('search', params.search);
 
   const response = await fetch(
@@ -2667,7 +2703,7 @@ export const createPartner = async (payload: Partial<Partner>) => {
 export const getPartners = async (page: number = 1, limit: number = 10, partnerName?: string) => {
   // Build query parameters
   let queryParams = `page=${page}&pageSize=${limit}`;
-  
+
   // Only add partner_name if it's provided and not empty
   if (partnerName && partnerName.trim()) {
     queryParams += `&partner_name=${encodeURIComponent(partnerName.trim())}`;
@@ -2740,11 +2776,11 @@ export const getStudentsByPartnerId = async (id: number | string, page: number =
     page: page.toString(),
     pageSize: pageSize.toString(),
   });
-  
+
   if (search.trim()) {
     params.append("search", search.trim());
   }
-  
+
   const response = await fetch(`${BASE_URL}/partners/getStudentsByPartnerId/${id}?${params.toString()}`, {
     method: "GET",
     headers: getAuthHeaders(),
@@ -2978,7 +3014,7 @@ export const deleteFeedback = async (id: number): Promise<any> => {
   const response = await fetch(`${BASE_URL}/feedback/deleteFeedback/${id}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
-    body:JSON.stringify(id)
+    body: JSON.stringify(id)
   });
 
   const data = await response.json();
