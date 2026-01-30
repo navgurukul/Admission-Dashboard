@@ -6,15 +6,16 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
+import { Option } from "@/utils/api";
 
 interface QuestionOptionsEditorProps {
   questionType: string;
-  options: { english: string[]; hindi: string[]; marathi: string[] };
+  options: { english: Option[]; hindi: Option[]; marathi: Option[] };
   correctAnswer: number | null;
   onOptionsChange: (options: {
-    english: string[];
-    hindi: string[];
-    marathi: string[];
+    english: Option[];
+    hindi: Option[];
+    marathi: Option[];
   }) => void;
   onCorrectAnswerChange: (answer: number) => void;
 }
@@ -26,21 +27,33 @@ export function QuestionOptionsEditor({
   onOptionsChange,
   onCorrectAnswerChange,
 }: QuestionOptionsEditorProps) {
-  const [multipleChoiceOptions, setMultipleChoiceOptions] = useState(
-    options || {
-      english: ["", "", "", ""],
-      hindi: ["", "", "", ""],
-      marathi: ["", "", "", ""],
-    },
-  );
-  const [selectedCorrectOption, setSelectedCorrectOption] = useState(
-    correctAnswer || 0,
+  // Initialize with at least 4 empty options if none provided
+  const initializeOptions = () => {
+    if (options && options.english.length > 0) return options;
+
+    // Create 4 initial options with unique IDs
+    const initialIds = [1, 2, 3, 4];
+    return {
+      english: initialIds.map(id => ({ id, text: "" })),
+      hindi: initialIds.map(id => ({ id, text: "" })),
+      marathi: initialIds.map(id => ({ id, text: "" })),
+    };
+  };
+
+  const [multipleChoiceOptions, setMultipleChoiceOptions] = useState(initializeOptions());
+
+  // Use local state for selected correct option ID
+  const [selectedCorrectOptionId, setSelectedCorrectOptionId] = useState<number>(
+    correctAnswer || (multipleChoiceOptions.english[0]?.id ?? 0)
   );
 
   useEffect(() => {
-    if (options) setMultipleChoiceOptions(options);
-    if (typeof correctAnswer === "number")
-      setSelectedCorrectOption(correctAnswer);
+    if (options) {
+      setMultipleChoiceOptions(options);
+    }
+    if (typeof correctAnswer === "number") {
+      setSelectedCorrectOptionId(correctAnswer);
+    }
   }, [options, correctAnswer]);
 
   const handleOptionChange = (
@@ -52,16 +65,25 @@ export function QuestionOptionsEditor({
       ...multipleChoiceOptions,
       [lang]: [...multipleChoiceOptions[lang]],
     };
-    updated[lang][index] = value;
+    // Ensure ID is preserved. If option didn't exist (e.g. empty array), use corresponding English ID
+    const existingOption = updated[lang][index];
+    const id = existingOption?.id || multipleChoiceOptions.english[index]?.id || (index + 1);
+
+    updated[lang][index] = { id, text: value };
+
     setMultipleChoiceOptions(updated);
     onOptionsChange(updated);
   };
 
   const addOption = () => {
+    // Generate new ID (max existing ID + 1)
+    const allIds = multipleChoiceOptions.english.map(o => o.id);
+    const newId = (allIds.length > 0 ? Math.max(...allIds) : 0) + 1;
+
     const updated = {
-      english: [...multipleChoiceOptions.english, ""],
-      hindi: [...multipleChoiceOptions.hindi, ""],
-      marathi: [...multipleChoiceOptions.marathi, ""],
+      english: [...multipleChoiceOptions.english, { id: newId, text: "" }],
+      hindi: [...multipleChoiceOptions.hindi, { id: newId, text: "" }],
+      marathi: [...multipleChoiceOptions.marathi, { id: newId, text: "" }],
     };
     setMultipleChoiceOptions(updated);
     onOptionsChange(updated);
@@ -69,23 +91,29 @@ export function QuestionOptionsEditor({
 
   const removeOption = (index: number) => {
     if (multipleChoiceOptions.english.length <= 2) return;
+
+    const optionToRemoveId = multipleChoiceOptions.english[index].id;
+
     const updated = {
       english: multipleChoiceOptions.english.filter((_, i) => i !== index),
       hindi: multipleChoiceOptions.hindi.filter((_, i) => i !== index),
       marathi: multipleChoiceOptions.marathi.filter((_, i) => i !== index),
     };
+
     setMultipleChoiceOptions(updated);
     onOptionsChange(updated);
 
-    if (selectedCorrectOption >= updated.english.length) {
-      setSelectedCorrectOption(0);
-      onCorrectAnswerChange(0);
+    // If we removed the correct answer, reset to the first option
+    if (selectedCorrectOptionId === optionToRemoveId) {
+      const newCorrectId = updated.english[0]?.id ?? 0;
+      setSelectedCorrectOptionId(newCorrectId);
+      onCorrectAnswerChange(newCorrectId);
     }
   };
 
-  const handleCorrectAnswerChange = (index: number) => {
-    setSelectedCorrectOption(index);
-    onCorrectAnswerChange(index);
+  const handleCorrectAnswerChange = (id: number) => {
+    setSelectedCorrectOptionId(id);
+    onCorrectAnswerChange(id);
   };
 
   const handleTrueFalseChange = (value: string) => {
@@ -107,29 +135,30 @@ export function QuestionOptionsEditor({
         </CardHeader>
         <CardContent className="space-y-4">
           <RadioGroup
-            value={selectedCorrectOption.toString()}
+            value={selectedCorrectOptionId.toString()}
             onValueChange={(val) => handleCorrectAnswerChange(parseInt(val))}
           >
-            {multipleChoiceOptions.english.map((_, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <RadioGroupItem value={index.toString()} />
+            {multipleChoiceOptions.english.map((opt, index) => (
+              <div key={opt.id} className="flex gap-2 items-center">
+                {/* Value matches the Option ID */}
+                <RadioGroupItem value={opt.id.toString()} />
                 <div className="grid grid-cols-3 gap-2 flex-1">
                   <Input
-                    value={multipleChoiceOptions.english[index]}
+                    value={opt.text}
                     onChange={(e) =>
                       handleOptionChange("english", index, e.target.value)
                     }
                     placeholder={`EN Option ${index + 1}`}
                   />
                   <Input
-                    value={multipleChoiceOptions.hindi[index]}
+                    value={multipleChoiceOptions.hindi[index]?.text || ""}
                     onChange={(e) =>
                       handleOptionChange("hindi", index, e.target.value)
                     }
                     placeholder={`HI Option ${index + 1}`}
                   />
                   <Input
-                    value={multipleChoiceOptions.marathi[index]}
+                    value={multipleChoiceOptions.marathi[index]?.text || ""}
                     onChange={(e) =>
                       handleOptionChange("marathi", index, e.target.value)
                     }

@@ -1349,6 +1349,11 @@ export const createStudentExamSubmission = async (
 };
 
 // Questions (getQuestions, CreateQuestion)
+export interface Option {
+  id: number;
+  text: string;
+}
+
 export interface Question {
   id: number;
   difficulty_level: number;
@@ -1359,9 +1364,9 @@ export interface Question {
   hindi_text: string;
   marathi_text: string;
 
-  english_options: string[];
-  hindi_options: string[];
-  marathi_options: string[];
+  english_options: Option[];
+  hindi_options: Option[];
+  marathi_options: Option[];
 
   answer_key: number[]; // indexes of correct answers
 
