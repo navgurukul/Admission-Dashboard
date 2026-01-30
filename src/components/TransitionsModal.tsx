@@ -24,6 +24,7 @@ import {
     createFeedback,
     updateFeedback,
     deleteFeedback,
+    getStageStatuses,
 } from "@/utils/api";
 import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 
@@ -47,6 +48,7 @@ export function TransitionsModal({
     const [isLoading, setIsLoading] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [feedbackToDelete, setFeedbackToDelete] = useState<number | null>(null);
+    const [stageStatusesMap, setStageStatusesMap] = useState<Record<number, any[]>>({});
 
     // ✅ Load reference data on-demand
     const {
@@ -89,7 +91,36 @@ export function TransitionsModal({
         setIsLoading(true);
         try {
             const response = await getFeedbacksByStudentId(studentId);
-            setFeedbacks(Array.isArray(response?.data) ? response.data : []);
+            const feedbackData = Array.isArray(response?.data) ? response.data : [];
+            setFeedbacks(feedbackData);
+
+            // Extract unique stage_ids from feedbacks
+            const stageIds = Array.from(new Set(feedbackData.map((f: any) => f.stage_id).filter((id: any) => id)));
+
+            // Convert existing map keys to numbers for comparison
+            const loadedStageIds = Object.keys(stageStatusesMap).map(Number);
+
+            // Filter stages that haven't been loaded yet
+            const stagesToLoad = stageIds.filter((id) => !loadedStageIds.includes(Number(id)));
+
+            if (stagesToLoad.length > 0) {
+                const newStatusesMap = { ...stageStatusesMap };
+
+                await Promise.all(stagesToLoad.map(async (stageId) => {
+                    try {
+                        const statusData = await getStageStatuses(Number(stageId));
+                        // Handle different API response structures
+                        const statuses = Array.isArray(statusData.data) ? statusData.data :
+                            Array.isArray(statusData) ? statusData : [];
+                        newStatusesMap[Number(stageId)] = statuses;
+                    } catch (err) {
+                        console.error(`Failed to load statuses for stage ${stageId}:`, err);
+                    }
+                }));
+
+                setStageStatusesMap(newStatusesMap);
+            }
+
         } catch (error) {
             console.error("Failed to fetch feedbacks:", error);
             toast({
@@ -192,15 +223,25 @@ export function TransitionsModal({
         return stage.stage_name || stage.name || `Stage ${id}`;
     };
 
-    const getStatusName = (id: number) => {
+    const getStatusName = (id: number, stageId?: number) => {
         if (!id) return "-";
+
+        // 1. Try to find in the main statuses list (global or prop-passed)
         const status = statuses.find((s: any) => Number(s.id) === Number(id));
-        if (!status) {
-            console.warn(`Status not found for id: ${id}`);
-            return `Status ${id}`;
+        if (status) {
+            return status.current_status_name || status.status_name || status.name || `Status ${id}`;
         }
-        // Handle multiple possible property names
-        return status.current_status_name || status.status_name || status.name || `Status ${id}`;
+
+        // 2. If stageId is provided, try to find in the stage-specific statuses map
+        if (stageId && stageStatusesMap[Number(stageId)]) {
+            const stageStatus = stageStatusesMap[Number(stageId)].find((s: any) => Number(s.id) === Number(id));
+            if (stageStatus) {
+                return stageStatus.status_name || stageStatus.current_status_name || stageStatus.name || `Status ${id}`;
+            }
+        }
+
+        // console.warn(`Status not found for id: ${id}`);
+        return `Status ${id}`;
     };
 
     return (
@@ -321,7 +362,7 @@ export function TransitionsModal({
                                                 return (
                                                     <tr key={item.id} className="border-b last:border-0 hover:bg-muted/50">
                                                         <td className="p-3 align-top">{getStageName(item.stage_id)}</td>
-                                                        <td className="p-3 align-top">{getStatusName(item.stage_status_id)}</td>
+                                                        <td className="p-3 align-top">{getStatusName(item.stage_status_id, item.stage_id)}</td>
                                                         <td className="p-3 align-top">
                                                             <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
                                                                 {item.feedback || "-"}
