@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
+import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import {
   Select,
   SelectContent,
@@ -242,9 +243,18 @@ export function AdvancedFilterModal({
         // Extract data from students
         const statesFromStudents = getStatesFromStudents(students);
 
-        // ✅ Load state and stage data initially (needed for dropdowns that don't support onOpen)
-        console.log('🔄 Loading initial state and stage data...');
-        await loadMultipleFields(['state', 'stage']);
+        // ✅ Load data for active filters initially so labels show correctly
+        const fieldsToLoad = ['state', 'stage'];
+        if (currentFilters.partner?.length) fieldsToLoad.push('campus');
+        if (currentFilters.school?.length) fieldsToLoad.push('school');
+        if (currentFilters.qualification?.length) fieldsToLoad.push('qualification');
+        if (currentFilters.currentStatus?.length) fieldsToLoad.push('current_status');
+        if (currentFilters.religion?.length) fieldsToLoad.push('religion');
+        if (currentFilters.donor?.length) fieldsToLoad.push('donor');
+        if (currentFilters.partnerFilter?.length) fieldsToLoad.push('partnerFilter');
+
+        console.log(`🔄 Loading initial data for fields: ${fieldsToLoad.join(', ')}...`);
+        await loadMultipleFields(fieldsToLoad);
         console.log('✅ Initial data loaded');
 
         // Combine API states with states from students
@@ -463,36 +473,43 @@ export function AdvancedFilterModal({
     });
   };
 
-  const clearSingleFilter = (key: string) => {
+  const clearSingleFilter = (key: string, valueToRemove?: any) => {
     setFilters((prev) => {
+      const newFilters = { ...prev } as any;
+
+      if (valueToRemove !== undefined && Array.isArray(newFilters[key])) {
+        newFilters[key] = newFilters[key].filter((v: any) => String(v) !== String(valueToRemove));
+        return newFilters;
+      }
+
       switch (key) {
         case "stage":
-          return { ...prev, stage: "all", stage_id: undefined, stage_status: "all" };
+          return { ...newFilters, stage: "all", stage_id: undefined, stage_status: "all" };
         case "stage_status":
-          return { ...prev, stage_status: "all" };
+          return { ...newFilters, stage_status: "all" };
         case "state":
           setAvailableDistricts([]);
-          return { ...prev, state: undefined, district: [] };
+          return { ...newFilters, state: undefined, district: [] };
         case "district":
-          return { ...prev, district: [] };
+          return { ...newFilters, district: [] };
         case "partner":
         case "campus":
-          return { ...prev, partner: [] };
+          return { ...newFilters, partner: [] };
         case "school":
-          return { ...prev, school: [] };
+          return { ...newFilters, school: [] };
         case "religion":
-          return { ...prev, religion: [] };
+          return { ...newFilters, religion: [] };
         case "qualification":
-          return { ...prev, qualification: [] };
+          return { ...newFilters, qualification: [] };
         case "currentStatus":
-          return { ...prev, currentStatus: [] };
+          return { ...newFilters, currentStatus: [] };
         case "donor":
-          return { ...prev, donor: [] };
+          return { ...newFilters, donor: [] };
         case "partnerFilter":
-          return { ...prev, partnerFilter: [] };
+          return { ...newFilters, partnerFilter: [] };
         case "dateRange":
         case "daterange":
-          return { ...prev, dateRange: { type: prev.dateRange.type } };
+          return { ...newFilters, dateRange: { type: prev.dateRange.type } };
         default:
           return prev;
       }
@@ -528,74 +545,106 @@ export function AdvancedFilterModal({
     });
   });
 
-  if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}` });
-  if (filters.district?.length) activeFilters.push({ key: "district", label: `District: ${filters.district[0]}` });
+  if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}`, onRemove: () => clearSingleFilter("state") });
+
+  if (filters.district?.length) {
+    filters.district.forEach(d => {
+      activeFilters.push({
+        key: `district-${d}`,
+        label: `District: ${d}`,
+        onRemove: () => clearSingleFilter("district", d)
+      });
+    });
+  }
 
   // Campus - find and display actual name
   if (filters.partner?.length) {
-    const campus = campusList.find((c: any) => String(c.id) === String(filters.partner[0]));
-    const campusLabel = campus?.campus_name || campus?.name || filters.partner[0];
-    activeFilters.push({ key: "partner", label: `Campus: ${campusLabel}` });
+    filters.partner.forEach(p => {
+      const campus = campusList.find((c: any) => String(c.id) === String(p));
+      const campusLabel = campus?.campus_name || campus?.name || p;
+      activeFilters.push({
+        key: `partner-${p}`,
+        label: `Campus: ${campusLabel}`,
+        onRemove: () => clearSingleFilter("partner", p)
+      });
+    });
   }
 
   // School - find and display actual name
   if (filters.school?.length) {
-    const school = schoolList.find((s: any) => String(s.id) === String(filters.school[0]));
-    const schoolLabel = school?.school_name || school?.name || filters.school[0];
-    activeFilters.push({
-      key: "school",
-      label: `School: ${schoolLabel}`,
+    filters.school.forEach(s => {
+      const school = schoolList.find((sc: any) => String(sc.id) === String(s));
+      const schoolLabel = school?.school_name || school?.name || s;
+      activeFilters.push({
+        key: `school-${s}`,
+        label: `School: ${schoolLabel}`,
+        onRemove: () => clearSingleFilter("school", s)
+      });
     });
   }
 
   // Qualification - find and display actual name
   if (filters.qualification?.length) {
-    const qualification = qualificationList.find((q: any) => String(q.id) === String(filters.qualification[0]));
-    const qualLabel = qualification?.qualification_name || qualification?.name || filters.qualification[0];
-    activeFilters.push({
-      key: "qualification",
-      label: `Qualification: ${qualLabel}`,
+    filters.qualification.forEach(q => {
+      const qualification = qualificationList.find((ql: any) => String(ql.id) === String(q));
+      const qualLabel = qualification?.qualification_name || qualification?.name || q;
+      activeFilters.push({
+        key: `qualification-${q}`,
+        label: `Qualification: ${qualLabel}`,
+        onRemove: () => clearSingleFilter("qualification", q)
+      });
     });
   }
 
   // Current Status - find and display actual name
   if (filters.currentStatus?.length) {
-    const statusId = filters.currentStatus[0];
-    const status = currentstatusList.find((s: any) => String(s.id) === String(statusId));
-    const statusLabel = status?.current_status_name || status?.name || statusId;
-    activeFilters.push({
-      key: "currentStatus",
-      label: `Current Status: ${statusLabel}`,
+    filters.currentStatus.forEach(csId => {
+      const status = currentstatusList.find((s: any) => String(s.id) === String(csId));
+      const statusLabel = status?.current_status_name || status?.name || csId;
+      activeFilters.push({
+        key: `currentStatus-${csId}`,
+        label: `Status: ${statusLabel}`,
+        onRemove: () => clearSingleFilter("currentStatus", csId)
+      });
     });
   }
 
   // Religion - find and display actual name
   if (filters.religion?.length) {
-    const religion = religionList.find((r: any) => String(r.id) === String(filters.religion[0]));
-    const religionLabel = religion?.religion_name || religion?.name || filters.religion[0];
-    activeFilters.push({
-      key: "religion",
-      label: `Religion: ${religionLabel}`,
+    filters.religion.forEach(r => {
+      const religion = religionList.find((re: any) => String(re.id) === String(r));
+      const religionLabel = religion?.religion_name || religion?.name || r;
+      activeFilters.push({
+        key: `religion-${r}`,
+        label: `Religion: ${religionLabel}`,
+        onRemove: () => clearSingleFilter("religion", r)
+      });
     });
   }
 
   // Donor - find and display actual name
   if (filters.donor?.length) {
-    const donor = donorList.find((d: any) => String(d.id) === String(filters.donor[0]));
-    const donorLabel = donor?.donor_name || donor?.name || filters.donor[0];
-    activeFilters.push({
-      key: "donor",
-      label: `Donor: ${donorLabel}`,
+    filters.donor.forEach(d => {
+      const donor = donorList.find((dn: any) => String(dn.id) === String(d));
+      const donorLabel = donor?.donor_name || donor?.name || d;
+      activeFilters.push({
+        key: `donor-${d}`,
+        label: `Donor: ${donorLabel}`,
+        onRemove: () => clearSingleFilter("donor", d)
+      });
     });
   }
 
   // Partner (organization) - find and display actual name
   if (filters.partnerFilter?.length) {
-    const partner = partnerList.find((p: any) => String(p.id) === String(filters.partnerFilter[0]));
-    const partnerLabel = partner?.partner_name || partner?.name || filters.partnerFilter[0];
-    activeFilters.push({
-      key: "partnerFilter",
-      label: `Partner: ${partnerLabel}`,
+    filters.partnerFilter.forEach(pf => {
+      const partner = partnerList.find((p: any) => String(p.id) === String(pf));
+      const partnerLabel = partner?.partner_name || partner?.name || pf;
+      activeFilters.push({
+        key: `partnerFilter-${pf}`,
+        label: `Partner: ${partnerLabel}`,
+        onRemove: () => clearSingleFilter("partnerFilter", pf)
+      });
     });
   }
 
@@ -646,8 +695,10 @@ export function AdvancedFilterModal({
                     if (f.onRemove) {
                       f.onRemove();
                     } else {
-                      const filterType = f.key.split('-')[0];
-                      clearSingleFilter(filterType);
+                      const parts = f.key.split('-');
+                      const filterType = parts[0];
+                      const valueToRemove = parts.length > 1 ? parts[1] : undefined;
+                      clearSingleFilter(filterType, valueToRemove);
                     }
                   }}
                 >
@@ -1070,24 +1121,23 @@ export function AdvancedFilterModal({
             {/* Partner */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Partner</h3>
-              <Combobox
+              <MultiSelectCombobox
                 options={[
-                  { value: "all", label: "All Partners" },
                   ...partnerList.map((partner) => ({
-                    value: getValue(partner),
+                    value: String(getValue(partner)),
                     label: getDisplayName(partner, "partner_name", "Partner"),
                   })),
                 ]}
-                value={filters.partnerFilter?.[0] || "all"}
+                value={filters.partnerFilter || []}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    partnerFilter: value === "all" ? [] : [value],
+                    partnerFilter: value,
                   }))
                 }
                 onOpen={() => loadFieldData('partnerFilter')}
                 placeholder={
-                  isLoading.general ? "Loading..." : "Select partner"
+                  isLoading.general ? "Loading..." : "Select partners"
                 }
                 searchPlaceholder="Search partner..."
                 emptyText="No partner found."
@@ -1101,24 +1151,23 @@ export function AdvancedFilterModal({
             {/* Donor */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Donor</h3>
-              <Combobox
+              <MultiSelectCombobox
                 options={[
-                  { value: "all", label: "All Donors" },
                   ...donorList.map((donor) => ({
-                    value: getValue(donor),
+                    value: String(getValue(donor)),
                     label: getDisplayName(donor, "donor_name", "Donor"),
                   })),
                 ]}
-                value={filters.donor?.[0] || "all"}
+                value={filters.donor || []}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    donor: value === "all" ? [] : [value],
+                    donor: value,
                   }))
                 }
                 onOpen={() => loadFieldData('donor')}
                 placeholder={
-                  isLoading.general ? "Loading..." : "Select donor"
+                  isLoading.general ? "Loading..." : "Select donors"
                 }
                 searchPlaceholder="Search donor..."
                 emptyText="No donor found."
@@ -1134,24 +1183,23 @@ export function AdvancedFilterModal({
             {/* School */}
             <div>
               <h3 className="font-semibold text-sm mb-2">Qualifying School</h3>
-              <Combobox
+              <MultiSelectCombobox
                 options={[
-                  { value: "all", label: "All Schools" },
                   ...schoolList.map((school) => ({
-                    value: getValue(school),
+                    value: String(getValue(school)),
                     label: getDisplayName(school, "school_name", "School"),
                   })),
                 ]}
-                value={filters.school?.[0] || "all"}
+                value={filters.school || []}
                 onValueChange={(value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    school: value === "all" ? [] : [value],
+                    school: value,
                   }))
                 }
                 onOpen={() => loadFieldData('school')}
                 placeholder={
-                  isLoading.general ? "Loading..." : "Select school"
+                  isLoading.general ? "Loading..." : "Select schools"
                 }
                 searchPlaceholder="Search school..."
                 emptyText="No school found."

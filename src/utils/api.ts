@@ -1290,7 +1290,23 @@ export const createStudent = async (studentData: any): Promise<any> => {
 };
 
 export const getFilterStudent = async (filters: any): Promise<{ data: any[], total: number, totalPages: number }> => {
-  const query = new URLSearchParams(filters).toString();
+  const params = new URLSearchParams();
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "" && value !== "all") {
+      if (Array.isArray(value)) {
+        // Filter out "all" and empty strings, then join with comma
+        const filteredValues = value.filter(v => v !== "all" && v !== "");
+        if (filteredValues.length > 0) {
+          params.append(key, filteredValues.join(','));
+        }
+      } else {
+        params.append(key, String(value));
+      }
+    }
+  });
+
+  const query = params.toString();
   const response = await fetch(`${BASE_URL}/students/filter?${query}`, {
     method: "GET",
     headers: getAuthHeaders(),
