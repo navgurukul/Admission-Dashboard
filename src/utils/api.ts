@@ -1290,7 +1290,23 @@ export const createStudent = async (studentData: any): Promise<any> => {
 };
 
 export const getFilterStudent = async (filters: any): Promise<{ data: any[], total: number, totalPages: number }> => {
-  const query = new URLSearchParams(filters).toString();
+  const params = new URLSearchParams();
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "" && value !== "all") {
+      if (Array.isArray(value)) {
+        // Filter out "all" and empty strings, then join with comma
+        const filteredValues = value.filter(v => v !== "all" && v !== "");
+        if (filteredValues.length > 0) {
+          params.append(key, filteredValues.join(','));
+        }
+      } else {
+        params.append(key, String(value));
+      }
+    }
+  });
+
+  const query = params.toString();
   const response = await fetch(`${BASE_URL}/students/filter?${query}`, {
     method: "GET",
     headers: getAuthHeaders(),
@@ -1333,6 +1349,11 @@ export const createStudentExamSubmission = async (
 };
 
 // Questions (getQuestions, CreateQuestion)
+export interface Option {
+  id: number;
+  text: string;
+}
+
 export interface Question {
   id: number;
   difficulty_level: number;
@@ -1343,9 +1364,9 @@ export interface Question {
   hindi_text: string;
   marathi_text: string;
 
-  english_options: string[];
-  hindi_options: string[];
-  marathi_options: string[];
+  english_options: Option[];
+  hindi_options: Option[];
+  marathi_options: Option[];
 
   answer_key: number[]; // indexes of correct answers
 
@@ -2619,6 +2640,7 @@ export const getAllSlots = async (params: {
   pageSize?: number;
   slot_type?: 'LR' | 'CFR' | string;
   date?: string;
+  status?: string;
   search?: string;
 }): Promise<SlotsResponse> => {
   const queryParams = new URLSearchParams();
@@ -2627,6 +2649,7 @@ export const getAllSlots = async (params: {
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
   if (params.date) queryParams.append('date', params.date);
+  if (params.status) queryParams.append('status', params.status);
   if (params.search) queryParams.append('search', params.search);
 
   const response = await fetch(

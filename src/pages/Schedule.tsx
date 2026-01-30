@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
   getMyAvailableSlots,
+  getAllSlots,
   scheduleInterview,
   deleteInterviewSlot,
   getCurrentUser,
@@ -75,6 +76,9 @@ const Schedule = () => {
   const [allSlots, setAllSlots] = useState<SlotData[]>([]); // Store all slots
   const [selectedDate, setSelectedDate] = useState<string>(""); // Empty means show all
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -97,27 +101,38 @@ const Schedule = () => {
   }, []);
 
   useEffect(() => {
-    fetchAllAvailableSlots();
-  }, []);
+    fetchAllAvailableSlots(currentPage);
+  }, [currentPage, selectedDate, pageSize]);
 
-  // Fetch all available slots (no date filter)
-  const fetchAllAvailableSlots = async () => {
+  // Reset to page 1 when pageSize changes
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [pageSize]);
+
+  // Fetch slots for the current page
+  const fetchAllAvailableSlots = async (page: number = 1) => {
     try {
       setLoadingSlots(true);
-      const response = await getMyAvailableSlots(); //
 
-      // Handle different response formats
-      const slots = Array.isArray(response)
-        ? response
-        : response?.data?.data || response?.data || [];
+      // 1. Fetch paginated slots for the table
+      const response = await getAllSlots({
+        page,
+        pageSize,
+        date: selectedDate || undefined
+      });
 
-      setAllSlots(slots);
-      setAvailableSlots(slots); // Show all by default
+      // Handle different response formats (some APIs wrap data twice)
+      const fetchedSlots = Array.isArray(response?.data)
+        ? response.data
+        : (response as any)?.data?.data || (response as any)?.data || [];
 
-      // toast({
-      //   title: "Success",
-      //   description: `Loaded ${slots.length} available slots`,
-      // });
+      // Show all slots without filtering
+      setAvailableSlots(fetchedSlots);
+      setAllSlots(fetchedSlots);
+      setTotalPages(response?.totalPages || 1);
+
     } catch (error) {
       console.error("Error fetching slots:", error);
       toast({
@@ -126,8 +141,8 @@ const Schedule = () => {
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
-      setAllSlots([]);
       setAvailableSlots([]);
+      setAllSlots([]);
     } finally {
       setLoadingSlots(false);
     }
@@ -137,21 +152,13 @@ const Schedule = () => {
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = e.target.value;
     setSelectedDate(newDate);
-
-    if (newDate === "") {
-      // Show all slots if date is cleared
-      setAvailableSlots(allSlots);
-    } else {
-      // Filter slots by selected date
-      const filtered = allSlots.filter((slot) => slot.date === newDate);
-      setAvailableSlots(filtered);
-    }
+    setCurrentPage(1); // Important: Reset page when date changes
   };
 
   // Clear filter and show all slots
   const handleClearFilter = () => {
     setSelectedDate("");
-    setAvailableSlots(allSlots);
+    setCurrentPage(1);
   };
 
   //  Admin scheduling function
@@ -608,70 +615,111 @@ const Schedule = () => {
                           {/* Status */}
                           <td className="p-4">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${slot.is_booked
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-primary/10 text-primary"
-                                }`}
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                slot.status?.toLowerCase() === "booked"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                  : slot.status?.toLowerCase() === "expired"
+                                  ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                  : slot.status?.toLowerCase() === "cancelled"
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                  : "bg-primary/10 text-primary"
+                              }`}
                             >
-                              {slot.is_booked ? "Booked" : "Available"}
+                              {slot.status || "Available"}
                             </span>
                           </td>
 
                           {/* Actions */}
                           <td className="p-4">
                             <div className="flex items-center gap-2">
-                              {/* {!slot.is_booked && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedSlotForScheduling(slot);
-                                    setIsScheduleModalOpen(true);
-                                  }}
-                                  className="bg-primary hover:bg-primary/90 text-white shadow-soft hover:shadow-medium transition-all"
-                                  title="Schedule interview"
-                                >
-                                  <Video className="w-3 h-3 mr-1" />
-                                  Schedule
-                                </Button>
-                              )} */}
+                              {/* Only show edit/delete if user is owner or admin */}
+                              {(isAdmin || slot.interviewer_id === currentUser?.id) ? (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={slot.is_booked}
+                                    onClick={() => {
+                                      setSelectedSlotForEdit(slot);
+                                      setIsEditSlotModalOpen(true);
+                                    }}
+                                    title={
+                                      slot.is_booked
+                                        ? "Cannot edit booked slot"
+                                        : "Edit slot"
+                                    }
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                  </Button>
 
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={slot.is_booked}
-                                onClick={() => {
-                                  setSelectedSlotForEdit(slot);
-                                  setIsEditSlotModalOpen(true);
-                                }}
-                                title={
-                                  slot.is_booked
-                                    ? "Cannot edit booked slot"
-                                    : "Edit slot"
-                                }
-                              >
-                                <Edit className="w-3 h-3 mr-1" />
-                              </Button>
-
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                disabled={!canDeleteSlot(slot)}
-                                onClick={() => openDeleteDialog(slot)}
-                                title={
-                                  !canDeleteSlot(slot)
-                                    ? "Cannot delete booked or past slots"
-                                    : "Delete slot"
-                                }
-                              >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                              </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    disabled={!canDeleteSlot(slot)}
+                                    onClick={() => openDeleteDialog(slot)}
+                                    title={
+                                      !canDeleteSlot(slot)
+                                        ? "Cannot delete booked or past slots"
+                                        : "Delete slot"
+                                    }
+                                  >
+                                    <Trash2 className="w-3 h-3 mr-1" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">-</span>
+                              )}
                             </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {availableSlots.length > 0 && (
+                <div className="flex items-center justify-between mt-6 px-6 pb-6">
+                  <p className="text-sm text-muted-foreground">
+                    Page <span className="font-medium text-foreground">{currentPage}</span> of{" "}
+                    <span className="font-medium text-foreground">{totalPages}</span>
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-muted-foreground">Rows:</label>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        className="border rounded px-2 py-1 bg-white text-sm h-8"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="h-8 px-3"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="h-8 px-3"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

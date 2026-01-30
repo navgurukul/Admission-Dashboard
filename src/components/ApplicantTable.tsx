@@ -974,18 +974,27 @@ const ApplicantTable = () => {
     }
 
     // Partner ID
-    if (filterState.partnerFilter?.length && filterState.partnerFilter[0] !== "all") {
-      apiParams.partner_id = filterState.partnerFilter[0];
+    if (filterState.partnerFilter?.length) {
+      const partners = filterState.partnerFilter.filter((p: any) => p !== "all");
+      if (partners.length > 0) {
+        apiParams.partner_id = partners;
+      }
     }
 
     // Donor ID
-    if (filterState.donor?.length && filterState.donor[0] !== "all") {
-      apiParams.donor_id = filterState.donor[0];
+    if (filterState.donor?.length) {
+      const donors = filterState.donor.filter((d: any) => d !== "all");
+      if (donors.length > 0) {
+        apiParams.donor_id = donors;
+      }
     }
 
     // School ID
-    if (filterState.school?.length && filterState.school[0] !== "all") {
-      apiParams.school_id = filterState.school[0];
+    if (filterState.school?.length) {
+      const schools = filterState.school.filter((s: any) => s !== "all");
+      if (schools.length > 0) {
+        apiParams.school_id = schools;
+      }
     }
 
     // Current Status ID
@@ -1171,18 +1180,6 @@ const ApplicantTable = () => {
       });
     }
 
-    // School
-    if ((filters as any).school?.length) {
-      const schools = (filters as any).school.filter((s: any) => s !== "all");
-      schools.forEach((s: any) => {
-        const sch = schoolList.find((sc) => Number(sc.id) === Number(s));
-        const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
-        tags.push({
-          key: `school-${s}`,
-          label: `School: ${schoolLabel}`,
-        });
-      });
-    }
 
     // Current Status
     if ((filters as any).currentStatus?.length) {
@@ -1259,7 +1256,7 @@ const ApplicantTable = () => {
         tags.push({
           key: `partnerFilter-${p}`,
           label: `Partner: ${partnerLabel}`,
-          onRemove: () => handleClearSingleFilter("partnerFilter"),
+          onRemove: () => handleClearSingleFilter("partnerFilter", p),
         });
       });
     }
@@ -1274,7 +1271,21 @@ const ApplicantTable = () => {
         tags.push({
           key: `donor-${d}`,
           label: `Donor: ${donorLabel}`,
-          onRemove: () => handleClearSingleFilter("donor"),
+          onRemove: () => handleClearSingleFilter("donor", d),
+        });
+      });
+    }
+
+    // School
+    if ((filters as any).school?.length) {
+      const schools = (filters as any).school.filter((s: any) => s !== "all");
+      schools.forEach((s: any) => {
+        const sch = schoolList.find((sc) => Number(sc.id) === Number(s));
+        const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
+        tags.push({
+          key: `school-${s}`,
+          label: `School: ${schoolLabel}`,
+          onRemove: () => handleClearSingleFilter("school", s),
         });
       });
     }
@@ -1343,11 +1354,11 @@ const ApplicantTable = () => {
       (newFilters.stage_id && newFilters.stage_id !== undefined) ||
       (newFilters.stage_status && newFilters.stage_status !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
-      (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
-      (newFilters.partnerFilter?.length && newFilters.partnerFilter[0] !== "all") ||
-      (newFilters.donor?.length && newFilters.donor[0] !== "all") ||
+      (newFilters.partnerFilter?.length > 0) ||
+      (newFilters.donor?.length > 0) ||
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
@@ -1486,56 +1497,71 @@ const ApplicantTable = () => {
   };
 
   // Clear individual filter and re-apply
-  const handleClearSingleFilter = async (filterKey: string) => {
+  const handleClearSingleFilter = async (filterKey: string, valueToRemove?: any) => {
     let newFilters = { ...filters } as any;
 
-    switch (filterKey) {
-      case "stage":
-        newFilters.stage = "all";
-        newFilters.stage_id = undefined;
-        newFilters.stage_status = "all";
-        break;
-      case "stage_status":
-        newFilters.stage_status = "all";
-        break;
-      case "state":
-        newFilters.state = undefined;
-        newFilters.district = [];
-        break;
-      case "district":
-        newFilters.district = [];
-        break;
-      case "partner":
-      case "campus":
-        newFilters.partner = [];
-        break;
-      case "school":
-        newFilters.school = [];
-        break;
-      case "religion":
-        newFilters.religion = [];
-        break;
-      case "qualification":
-        newFilters.qualification = [];
-        break;
-      case "currentStatus":
-        newFilters.currentStatus = [];
-        break;
-      case "donor":
-        newFilters.donor = [];
-        break;
-      case "partnerFilter":
-        newFilters.partnerFilter = [];
-        break;
-      case "gender":
-        newFilters.gender = undefined;
-        break;
-      case "dateRange":
-      case "daterange":
-        newFilters.dateRange = { type: newFilters.dateRange.type, from: undefined, to: undefined };
-        break;
-      default:
-        return;
+    if (valueToRemove !== undefined) {
+      const currentVal = newFilters[filterKey];
+      if (Array.isArray(currentVal)) {
+        newFilters[filterKey] = currentVal.filter((v: any) => String(v) !== String(valueToRemove));
+        if (newFilters[filterKey].length === 0) {
+          if (['partnerFilter', 'donor', 'school', 'partner', 'currentStatus', 'qualification', 'district', 'religion'].includes(filterKey)) {
+            newFilters[filterKey] = [];
+          } else {
+            newFilters[filterKey] = "all";
+          }
+        }
+      }
+    } else {
+      // Original logic for clearing the whole filter
+      switch (filterKey) {
+        case "stage":
+          newFilters.stage = "all";
+          newFilters.stage_id = undefined;
+          newFilters.stage_status = "all";
+          break;
+        case "stage_status":
+          newFilters.stage_status = "all";
+          break;
+        case "state":
+          newFilters.state = undefined;
+          newFilters.district = [];
+          break;
+        case "district":
+          newFilters.district = [];
+          break;
+        case "partner":
+        case "campus":
+          newFilters.partner = [];
+          break;
+        case "school":
+          newFilters.school = [];
+          break;
+        case "religion":
+          newFilters.religion = [];
+          break;
+        case "qualification":
+          newFilters.qualification = [];
+          break;
+        case "currentStatus":
+          newFilters.currentStatus = [];
+          break;
+        case "donor":
+          newFilters.donor = [];
+          break;
+        case "partnerFilter":
+          newFilters.partnerFilter = [];
+          break;
+        case "gender":
+          newFilters.gender = undefined;
+          break;
+        case "dateRange":
+        case "daterange":
+          newFilters.dateRange = { type: newFilters.dateRange.type, from: undefined, to: undefined };
+          break;
+        default:
+          return;
+      }
     }
 
     setFilters(newFilters);
@@ -1545,11 +1571,12 @@ const ApplicantTable = () => {
       (newFilters.stage_id && newFilters.stage_id !== undefined) ||
       (newFilters.stage_status && newFilters.stage_status !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
-      (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
+      (newFilters.school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
-      (newFilters.partnerFilter?.length && newFilters.partnerFilter[0] !== "all") ||
-      (newFilters.donor?.length && newFilters.donor[0] !== "all") ||
+      (newFilters.partnerFilter?.length > 0) ||
+      (newFilters.donor?.length > 0) ||
       (newFilters.religion?.length && newFilters.religion[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
@@ -1737,15 +1764,6 @@ const ApplicantTable = () => {
               onColumnToggle={handleColumnToggle}
               onResetToDefault={handleResetToDefault}
             />
-            {hasActiveFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="flex items-center text-destructive hover:text-destructive/80 text-sm"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Clear Filters
-              </button>
-            )}
           </div>
         </div>
       </CardHeader>
@@ -1774,6 +1792,17 @@ const ApplicantTable = () => {
                   <X className="w-3 h-3 flex-shrink-0" />
                 </Button>
               ))}
+              {hasActiveFilters && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={handleClearFilters}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
           )}
           <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />

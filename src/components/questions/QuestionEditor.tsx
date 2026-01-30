@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Save, X } from "lucide-react";
 import { QuestionOptionsEditor } from "./QuestionOptionsEditor";
 import { useToast } from "@/hooks/use-toast";
+import { Option } from "@/utils/api";
 
 interface DifficultyLevel {
   id: number;
@@ -38,15 +39,27 @@ export function QuestionEditor({
 }: QuestionEditorProps) {
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    question_type: string;
+    difficulty_level: string;
+    points: number;
+    question_text: { english: string; hindi: string; marathi: string };
+    options: {
+      english: Option[];
+      hindi: Option[];
+      marathi: Option[];
+    };
+    correct_answer: number;
+    explanation: string;
+  }>({
     question_type: "MCQ",
     difficulty_level: "",
     points: 0,
     question_text: { english: "", hindi: "", marathi: "" },
     options: {
-      english: ["", "", "", ""],
-      hindi: ["", "", "", ""],
-      marathi: ["", "", "", ""],
+      english: [],
+      hindi: [],
+      marathi: [],
     },
     correct_answer: 0,
     explanation: "",
@@ -54,13 +67,79 @@ export function QuestionEditor({
 
   useEffect(() => {
     if (!question) {
-      setSelectedQuestion(null);
+      setSelectedQuestion?.(null);
+      // Initialize with default empty options
+      setFormData(prev => ({
+        ...prev,
+        options: {
+          english: [1, 2, 3, 4].map(id => ({ id, text: "" })),
+          hindi: [1, 2, 3, 4].map(id => ({ id, text: "" })),
+          marathi: [1, 2, 3, 4].map(id => ({ id, text: "" })),
+        },
+        correct_answer: 1 // Default to first option ID
+      }));
       return;
     }
 
     const level = difficultyLevels.find(
       (lvl) => lvl.id === question.difficulty_level,
     );
+
+    // Normalize options and answer key
+    let normalizedOptions = {
+      english: [] as Option[],
+      hindi: [] as Option[],
+      marathi: [] as Option[]
+    };
+    let normalizedAnswerKey = 0;
+
+    // Check if options are strings (Legacy) or objects
+    const isLegacy = Array.isArray(question.english_options) &&
+      question.english_options.length > 0 &&
+      typeof question.english_options[0] === 'string';
+
+    if (isLegacy) {
+      // Convert strings to objects with IDs
+      const toOptions = (opts: string[]) => opts.map((text, idx) => ({ id: idx + 1, text }));
+
+      normalizedOptions = {
+        english: toOptions(question.english_options || []),
+        hindi: toOptions(question.hindi_options || []),
+        marathi: toOptions(question.marathi_options || [])
+      };
+
+      // Convert index-based answer key to ID-based
+      const correctIndex = question.answer_key?.[0] ?? 0;
+      // Legacy answer key was likely an index (0-3). If valid, map to ID (index + 1).
+      // If it was already an ID stored in answer_key, we might need heuristics, 
+      // but typically index 0 -> ID 1.
+      normalizedAnswerKey = correctIndex + 1;
+
+    } else {
+      // Assume already Option objects
+      // Ensure they have valid structure, otherwise default
+      const ensureOptions = (opts: any[]) => {
+        if (!Array.isArray(opts)) return [];
+        return opts.map((o, idx) => {
+          if (typeof o === 'string') {
+            return { id: idx + 1, text: o };
+          }
+          return {
+            id: o.id || idx + 1,
+            text: o.text || o.value || ""
+          };
+        });
+      };
+
+      normalizedOptions = {
+        english: ensureOptions(question.english_options),
+        hindi: ensureOptions(question.hindi_options),
+        marathi: ensureOptions(question.marathi_options)
+      };
+
+      // Answer key should be the ID
+      normalizedAnswerKey = question.answer_key?.[0] ?? 0;
+    }
 
     setFormData({
       question_type: question.question_type ?? "MCQ",
@@ -71,12 +150,8 @@ export function QuestionEditor({
         hindi: question.hindi_text ?? "",
         marathi: question.marathi_text ?? "",
       },
-      options: {
-        english: question.english_options ?? ["", "", "", ""],
-        hindi: question.hindi_options ?? ["", "", "", ""],
-        marathi: question.marathi_options ?? ["", "", "", ""],
-      },
-      correct_answer: question.answer_key?.[0] ?? 0,
+      options: normalizedOptions,
+      correct_answer: normalizedAnswerKey,
       explanation: question.explanation ?? "",
     });
   }, [question, difficultyLevels]);
@@ -152,9 +227,9 @@ export function QuestionEditor({
     if (formData.question_type === "MCQ") {
       const { english, hindi, marathi } = formData.options;
       const hasEmptyOption =
-        english.some((o) => !o.trim()) ||
-        hindi.some((o) => !o.trim()) ||
-        marathi.some((o) => !o.trim());
+        english.some((o) => !o.text.trim()) ||
+        hindi.some((o) => !o.text.trim()) ||
+        marathi.some((o) => !o.text.trim());
 
       if (hasEmptyOption) {
         toast({
@@ -169,7 +244,8 @@ export function QuestionEditor({
       // Validate correct answer
       if (
         formData.correct_answer === null ||
-        formData.correct_answer === undefined
+        formData.correct_answer === undefined ||
+        formData.correct_answer === 0
       ) {
         toast({
           title: "⚠️ Required field",
@@ -190,7 +266,7 @@ export function QuestionEditor({
       english_options: formData.options.english,
       hindi_options: formData.options.hindi,
       marathi_options: formData.options.marathi,
-      answer_key: [formData.correct_answer],
+      answer_key: [formData.correct_answer], // Array of integers (IDs)
       explanation: formData.explanation,
     };
 
@@ -305,9 +381,9 @@ export function QuestionEditor({
       {/* Save / Cancel Buttons */}
       <div className="flex items-center justify-end gap-4">
         {question && (
-           <Button type="button" variant="outline" onClick={onCancel}>
-          <X className="w-4 h-4 mr-2" /> Cancel
-        </Button>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            <X className="w-4 h-4 mr-2" /> Cancel
+          </Button>
         )}
 
         <Button type="submit">
