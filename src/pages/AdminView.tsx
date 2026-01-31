@@ -403,12 +403,12 @@ export default function AdminView() {
       <AdmissionsSidebar />
 
       <div className="flex-1 md:ml-64 min-w-0">
-        <div className="p-6 md:p-8">
+        <div className="p-6 md:p-8 pt-20 md:pt-8">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               {isAdmin ? "Admin View" : "Interviews"}
             </h1>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-sm md:text-base text-muted-foreground mt-2">
               {isAdmin
                 ? "Overview of all scheduled interviews and created slots"
                 : "Manage your scheduled interviews and availability"}

@@ -940,7 +940,7 @@ const PartnerPage = () => {
   return (
     <div className="min-h-screen bg-muted/40 flex">
       <AdmissionsSidebar />
-      <main className="md:ml-64 flex-1 p-6 overflow-y-auto h-screen">
+      <main className="md:ml-64 flex-1 p-6 overflow-y-auto h-screen pt-20 md:pt-6">
         <div className="max-w-7xl mx-auto space-y-8">
 
           {/* Header & Stats */}
