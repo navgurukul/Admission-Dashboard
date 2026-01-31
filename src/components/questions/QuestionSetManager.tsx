@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ListChecks, Trash2, Plus, Edit, Download } from "lucide-react";
+import { ListChecks, Trash2, Plus, Edit, Download, Eye } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { QuestionPicker } from "./QuestionPicker";
 import { useToast } from "@/components/ui/use-toast";
@@ -58,6 +58,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [setToDelete, setSetToDelete] = useState<any>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingSet, setViewingSet] = useState<any>(null);
 
 
   const fetchSets = async (loadQuestions = true) => {
@@ -116,16 +118,21 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const loadSetQuestions = async (setId: number) => {
     try {
       const set = sets.find((s) => s.id === setId);
-      if (!set) return;
+      if (!set) return null;
 
       const mapped = await getQuestionsBySetType(set.name);
+      const updatedSet = { ...set, questions: mapped?.data || [] };
+      
       setSets((prev) =>
         prev.map((s) =>
-          s.id === setId ? { ...s, questions: mapped?.data || [] } : s,
+          s.id === setId ? updatedSet : s,
         ),
       );
+      
+      return updatedSet;
     } catch (error) {
       console.warn(`Error loading questions for set ${setId}:`, error);
+      return null;
     }
   };
 
@@ -235,7 +242,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const openAddModal = () => {
     setEditingSet(null);
-    setFormData({ name: "", description: "", nameType: "random", isRandom: true });
+    const randomName = `Set ${sets.length + 1}`;
+    setFormData({ name: randomName, description: "", nameType: "random", isRandom: true });
     setIsModalOpen(true);
   };
 
@@ -459,7 +467,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         )} */}
       </div>
 
-      <div className="flex-1 overflow-auto space-y-4 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {sets.length === 0 && (
           <p className="text-gray-500 text-sm">No question sets found. Click "Add Set" to create one.</p>
         )}
@@ -472,6 +480,20 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 </CardTitle>
 
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                      const updatedSet = await loadSetQuestions(set.id);
+                      console.log('Viewing set:', updatedSet);
+                      console.log('Selected questions:', updatedSet?.questions);
+                      setViewingSet(updatedSet || set);
+                      setIsViewModalOpen(true);
+                    }}
+                    title="View questions"
+                  >
+                    <Eye className="h-4 w-4 text-blue-500" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -728,6 +750,116 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         confirmText="Delete"
         cancelText="Cancel"
       />
+
+      {/* View Questions Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
+          </DialogHeader>
+          
+          {viewingSet && (
+            <div className="flex-1 overflow-y-auto pr-2">
+              <div className="space-y-4">
+                {viewingSet.description && (
+                  <p className="text-sm text-gray-600 italic">
+                    {viewingSet.description}
+                  </p>
+                )}
+                {viewingSet.questions && viewingSet.questions.length > 0 ? (
+                  <div className="space-y-3">
+                    {viewingSet.questions.map((question: any, index: number) => (
+                      <div key={question.id} className="p-4 border rounded-lg bg-white">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 mb-2">
+                              {index + 1}. <span className="font-semibold">English:</span> {question.english_text || question.question_text || question.question || 'N/A'}
+                            </div>
+                            {question.hindi_text && (
+                              <div className="text-sm text-gray-700 mb-1">
+                                <span className="font-semibold">Hindi:</span> {question.hindi_text}
+                              </div>
+                            )}
+                            {question.marathi_text && (
+                              <div className="text-sm text-gray-700">
+                                <span className="font-semibold">Marathi:</span> {question.marathi_text}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <Badge variant="outline" className="text-xs">
+                            {difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {question.question_type || 'N/A'}
+                          </Badge>
+                          {question.time_limit && (
+                            <Badge variant="outline" className="text-xs">
+                              {question.time_limit}s
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {question.question_type === 'MCQ' && question.english_options && question.english_options.length > 0 && (
+                          <div className="mt-4">
+                            <div className="space-y-2">
+                              {question.english_options.map((option: any, optIndex: number) => {
+                                const optionText = typeof option === 'string' ? option : option.text || option.value;
+                                const optionId = typeof option === 'string' ? optIndex + 1 : option.id;
+                                const isCorrect = question.answer_key && question.answer_key.includes(optionId);
+                                
+                                return (
+                                  <div key={optIndex} className="p-2 bg-gray-50 rounded">
+                                    <div className="flex items-start gap-2">
+                                      <span className="font-medium text-gray-700 min-w-[24px]">
+                                        {String.fromCharCode(65 + optIndex)}.
+                                      </span>
+                                      <div className="flex-1">
+                                        <div className="text-sm text-gray-900">
+                                          <span className="font-semibold">English:</span> {optionText}
+                                          {isCorrect && (
+                                            <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
+                                          )}
+                                        </div>
+                                        {question.hindi_options && question.hindi_options[optIndex] && (
+                                          <div className="text-xs text-gray-600 mt-1">
+                                            <span className="font-semibold">Hindi:</span> {typeof question.hindi_options[optIndex] === 'string' ? question.hindi_options[optIndex] : question.hindi_options[optIndex]?.text || question.hindi_options[optIndex]?.value}
+                                          </div>
+                                        )}
+                                        {question.marathi_options && question.marathi_options[optIndex] && (
+                                          <div className="text-xs text-gray-600 mt-1">
+                                            <span className="font-semibold">Marathi:</span> {typeof question.marathi_options[optIndex] === 'string' ? question.marathi_options[optIndex] : question.marathi_options[optIndex]?.text || question.marathi_options[optIndex]?.value}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No questions in this set
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
