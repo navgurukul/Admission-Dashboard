@@ -289,14 +289,14 @@ export default function QuestionRepository() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="editor">
-            <Card>
-              <CardHeader>
+          <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle>
                   {selectedQuestion ? "Edit Question" : "Create New Question"}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-y-auto">
                 <QuestionEditor
                   difficultyLevels={difficultyLevels}
                   question={selectedQuestion}
@@ -310,12 +310,12 @@ export default function QuestionRepository() {
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="sets">
-            <Card>
-              <CardHeader>
+          <TabsContent value="sets" className="flex-1 overflow-hidden m-0">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle>Question Sets</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-y-auto">
                 <QuestionSetManager
                   allQuestions={questions}
                   difficultyLevels={difficultyLevels}
@@ -354,12 +354,12 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent> */}
 
-          <TabsContent value="import">
-            <Card>
-              <CardHeader>
+          <TabsContent value="import" className="flex-1 overflow-hidden m-0">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle>Bulk Import Questions</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-y-auto">
                 <QuestionBulkImport onImportComplete={handleImportComplete} />
               </CardContent>
             </Card>
