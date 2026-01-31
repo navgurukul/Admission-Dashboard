@@ -393,30 +393,41 @@ const DonorStudents = () => {
             <AdmissionsSidebar />
             <main className="md:ml-64 flex-1 p-3 sm:p-6 overflow-y-auto h-screen">
                 <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-                    {/* Back Button - Centered at Top */}
-                    <div className="flex justify-center">
+                    {/* Back button - mobile: aligned with hamburger (top-4 right-4) */}
+                    <div className="md:hidden fixed top-4 right-4 z-40">
                         <Button 
                             variant="outline" 
                             size="sm" 
                             onClick={() => navigate("/donor")}
-                            className="gap-2"
+                            className="flex items-center gap-2 bg-white shadow-lg"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                            <span>Back to Donors</span>
+                            <span className="hidden sm:inline">Back to Donors</span>
+                            <span className="sm:hidden">Back</span>
                         </Button>
                     </div>
 
                     {/* Page Header */}
-                    <div className="text-center">
-                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                            {donor ? `${donor.donor_name || donor.name} Students` : "Donor Students"}
-                        </h1>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="text-center md:text-left">
+                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                                {donor ? `${donor.donor_name || donor.name} Students` : "Donor Students"}
+                            </h1>
                         <p className="text-muted-foreground text-xs sm:text-sm mt-1">
                             View and manage students associated with this donor
-                        </p>
-                    </div>
-
-                    <Card>
+                            </p>
+                        </div>
+                        {/* Back button - shown on desktop */}
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => navigate("/donor")}
+                            className="hidden md:flex items-center gap-2 shrink-0"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Back to Donors
+                        </Button>
+                    </div>                    <Card>
                         <CardHeader>
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
                                 <div className="flex flex-col">

@@ -945,10 +945,10 @@ const PartnerPage = () => {
 
           {/* Header & Stats */}
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col gap-3">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">Partners</h1>
-                <p className="text-muted-foreground mt-1">Manage network partners, track performance, and create assessments.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Partners</h1>
+                <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage network partners, track performance, and create assessments.</p>
               </div>
               {/* <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={handleDownloadCSV} size="sm">
@@ -1010,15 +1010,16 @@ const PartnerPage = () => {
           {/* Filters and Search */}
           <Card className="shadow-sm border-border/60">
             <CardHeader className="pb-3">
-              <div className="flex flex-row justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <CardTitle className="text-base font-medium">Filters & Search</CardTitle>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export CSV
-                        <ChevronDown className="w-4 h-4 ml-2" />
+                      <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                        <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        <span className="hidden xs:inline">Export CSV</span>
+                        <span className="xs:hidden">Export</span>
+                        <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -1049,18 +1050,20 @@ const PartnerPage = () => {
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button variant="outline" onClick={() => setFilterDialog(true)} size="sm">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Advanced Filters
+                  <Button variant="outline" onClick={() => setFilterDialog(true)} size="sm" className="text-xs sm:text-sm">
+                    <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden xs:inline">Advanced Filters</span>
+                    <span className="xs:hidden">Filters</span>
                   </Button>
                   {Object.values(filters).some(Boolean) && (
-                    <Button variant="ghost" size="sm" onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })}>
+                    <Button variant="ghost" size="sm" onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })} className="text-xs sm:text-sm">
                       Clear
                     </Button>
                   )}
-                  <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Partner
+                  <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground text-xs sm:text-sm">
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden xs:inline">Add Partner</span>
+                    <span className="xs:hidden">Add</span>
                   </Button>
                 </div>
               </div>
