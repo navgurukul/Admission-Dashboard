@@ -459,7 +459,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         )} */}
       </div>
 
-      <div className="flex-1 overflow-auto space-y-4 scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {sets.length === 0 && (
           <p className="text-gray-500 text-sm">No question sets found. Click "Add Set" to create one.</p>
         )}
