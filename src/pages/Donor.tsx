@@ -240,15 +240,15 @@ const DonorPage = () => {
   return (
     <div className="min-h-screen bg-muted/40 flex">
       <AdmissionsSidebar />
-      <main className="md:ml-64 flex-1 p-6 overflow-y-auto h-screen">
+      <main className="md:ml-64 flex-1 p-6 overflow-y-auto h-screen pt-20 md:pt-6">
         <div className="max-w-7xl mx-auto space-y-8">
 
           {/* Header & Stats */}
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">Donors</h1>
-                <p className="text-muted-foreground">Manage donor partnerships and related students.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Donors</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">Manage donor partnerships and related students.</p>
               </div>
               {/* <div className="flex items-center gap-2">
                 <Button onClick={() => {

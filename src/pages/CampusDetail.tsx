@@ -758,18 +758,35 @@ const CampusDetail = () => {
     <div className="flex min-h-screen bg-background">
       <AdmissionsSidebar />
       <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 md:ml-64">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/campus")}
-          className="mb-4 hover:bg-primary/10"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Campus List
-        </Button>
-        <h2 className="text-3xl font-bold text-center mb-6 text-foreground">
-          {campusName} Campus
-        </h2>
+        {/* Back button - mobile: aligned with hamburger (top-4 right-4) */}
+        <div className="md:hidden fixed top-4 right-4 z-40">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/campus")}
+            className="flex items-center gap-2 bg-white shadow-lg"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back to Campus List</span>
+            <span className="sm:hidden">Back</span>
+          </Button>
+        </div>
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-center md:text-left text-foreground">
+            {campusName} Campus
+          </h2>
+          {/* Back button - shown on desktop */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/campus")}
+            className="hidden md:flex items-center gap-2 shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Campus List
+          </Button>
+        </div>
         <div className="flex justify-center mb-6 gap-2">
           {TABS.map((tab) => (
             <Button
