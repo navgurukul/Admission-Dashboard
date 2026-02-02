@@ -246,8 +246,8 @@ export function TransitionsModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
-                <DialogHeader className="flex flex-row items-center justify-between">
+            <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0 flex flex-row items-center justify-between pb-4">
                     <DialogTitle>Transitions Feedback</DialogTitle>
                     {!isFormOpen && (
                         <Button onClick={handleAddNew} size="sm" className="ml-4 mr-8">
@@ -256,82 +256,84 @@ export function TransitionsModal({
                     )}
                 </DialogHeader>
 
-                <div className="flex-1 overflow-hidden mt-4">
+                <div className="flex-1 overflow-hidden">
                     {isFormOpen ? (
-                        <div className="p-4 border rounded-md bg-muted/20 space-y-4">
-                            <div className="flex justify-between items-center mb-4 mr-8">
-                                <h3 className="font-semibold">{editingId ? "Edit Feedback" : "New Feedback"}</h3>
-                                <Button variant="ghost" size="sm" onClick={() => setIsFormOpen(false)}>
-                                    <X className="w-4 h-4" />
-                                </Button>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Stage</label>
-                                    <Select
-                                        value={formData.stage_id}
-                                        onValueChange={(val) => setFormData({ ...formData, stage_id: val })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Stage" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {stages.length === 0 ? (
-                                                <div className="p-2 text-sm text-muted-foreground">Loading stages...</div>
-                                            ) : (
-                                                stages.map((stage: any) => (
-                                                    <SelectItem key={stage.id} value={stage.id.toString()}>
-                                                        {stage.stage_name || stage.name || `Stage ${stage.id}`}
-                                                    </SelectItem>
-                                                ))
-                                            )}
-                                        </SelectContent>
-                                    </Select>
+                        <div className="h-full overflow-y-auto pr-2">
+                            <div className="p-4 border rounded-md bg-muted/20 space-y-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-semibold">{editingId ? "Edit Feedback" : "New Feedback"}</h3>
+                                    <Button variant="ghost" size="sm" onClick={() => setIsFormOpen(false)}>
+                                        <X className="w-4 h-4" />
+                                    </Button>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Status</label>
-                                    <Select
-                                        value={formData.stage_status_id}
-                                        onValueChange={(val) => setFormData({ ...formData, stage_status_id: val })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {statuses.length === 0 ? (
-                                                <div className="p-2 text-sm text-muted-foreground">Loading statuses...</div>
-                                            ) : (
-                                                statuses.map((status: any) => (
-                                                    <SelectItem key={status.id} value={status.id.toString()}>
-                                                        {status.current_status_name || status.status_name || status.name || `Status ${status.id}`}
-                                                    </SelectItem>
-                                                ))
-                                            )}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Stage</label>
+                                        <Select
+                                            value={formData.stage_id}
+                                            onValueChange={(val) => setFormData({ ...formData, stage_id: val })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Stage" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {stages.length === 0 ? (
+                                                    <div className="p-2 text-sm text-muted-foreground">Loading stages...</div>
+                                                ) : (
+                                                    stages.map((stage: any) => (
+                                                        <SelectItem key={stage.id} value={stage.id.toString()}>
+                                                            {stage.stage_name || stage.name || `Stage ${stage.id}`}
+                                                        </SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Status</label>
+                                        <Select
+                                            value={formData.stage_status_id}
+                                            onValueChange={(val) => setFormData({ ...formData, stage_status_id: val })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {statuses.length === 0 ? (
+                                                    <div className="p-2 text-sm text-muted-foreground">Loading statuses...</div>
+                                                ) : (
+                                                    statuses.map((status: any) => (
+                                                        <SelectItem key={status.id} value={status.id.toString()}>
+                                                            {status.current_status_name || status.status_name || status.name || `Status ${status.id}`}
+                                                        </SelectItem>
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="col-span-2 space-y-2">
+                                        <label className="text-sm font-medium">Feedback</label>
+                                        <Textarea
+                                            placeholder="Enter feedback comments..."
+                                            value={formData.feedback}
+                                            onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
+                                            className="min-h-[150px] resize-y"
+                                            rows={6}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="col-span-2 space-y-2">
-                                    <label className="text-sm font-medium">Feedback</label>
-                                    <Textarea
-                                        placeholder="Enter feedback comments..."
-                                        value={formData.feedback}
-                                        onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-                                        className="min-h-[150px] resize-y"
-                                        rows={6}
-                                    />
+                                <div className="flex justify-end gap-2 mt-4">
+                                    <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleSubmit}>Save</Button>
                                 </div>
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-4">
-                                <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-                                <Button onClick={handleSubmit}>Save</Button>
                             </div>
                         </div>
                     ) : (
-                        <ScrollArea className="h-[500px]">
+                        <>
                             {isLoading ? (
                                 <div className="text-center p-4">Loading...</div>
                             ) : feedbacks.length === 0 ? (
@@ -339,20 +341,19 @@ export function TransitionsModal({
                                     No feedbacks found.
                                 </div>
                             ) : (
-                                <div className="border rounded-md overflow-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-muted sticky top-0 z-10">
+                                <div className="h-full overflow-y-auto pr-2 relative">
+                                    <table className="w-full text-sm border rounded-md">
+                                        <thead className="bg-muted sticky top-0 z-10 shadow-sm">
                                             <tr>
-                                                <th className="p-3 text-left font-medium w-[120px]">Stage</th>
-                                                <th className="p-3 text-left font-medium w-[120px]">Status</th>
-                                                <th className="p-3 text-left font-medium">Feedback</th>
-                                                <th className="p-3 text-left font-medium w-[120px]">Created At</th>
-                                                <th className="p-3 text-right font-medium w-[100px]">Actions</th>
+                                                <th className="p-3 text-left font-medium w-[120px] bg-muted">Stage</th>
+                                                <th className="p-3 text-left font-medium w-[120px] bg-muted">Status</th>
+                                                <th className="p-3 text-left font-medium bg-muted">Feedback</th>
+                                                <th className="p-3 text-left font-medium w-[120px] bg-muted">Created At</th>
+                                                <th className="p-3 text-right font-medium w-[100px] bg-muted">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {feedbacks.map((item) => {
-                                                // Hide edit/delete if created_at is before 2026-01-01
                                                 let hideActions = false;
                                                 let createdDate = null;
                                                 if (item.created_at) {
@@ -378,24 +379,14 @@ export function TransitionsModal({
                                                                         -
                                                                     </span>
                                                                 ) : (
-                                                                    <>
-                                                                        {/* <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8"
-                                                                            onClick={() => handleEdit(item)}
-                                                                        >
-                                                                            <Pencil className="w-4 h-4" />
-                                                                        </Button> */}
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                                            onClick={() => handleDelete(item.id)}
-                                                                        >
-                                                                            <Trash2 className="w-4 h-4" />
-                                                                        </Button>
-                                                                    </>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                                        onClick={() => handleDelete(item.id)}
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </Button>
                                                                 )}
                                                             </div>
                                                         </td>
@@ -406,7 +397,7 @@ export function TransitionsModal({
                                     </table>
                                 </div>
                             )}
-                        </ScrollArea>
+                        </>
                     )}
                 </div>
             </DialogContent>
