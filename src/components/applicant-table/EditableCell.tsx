@@ -48,6 +48,8 @@ interface EditableCellProps {
   }) => JSX.Element;
   tooltipMessage?: string;
   placeholder?: string;
+  onBeforeUpdate?: (value: any) => Promise<boolean>; //  Callback before update API call
+  error?: string | null; //  External error from parent
 }
 
 function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
@@ -58,6 +60,14 @@ function normalizeOptions(options?: Option[]): { id: string; name: string }[] {
       name: opt.name ?? opt.label ?? String(opt.value ?? ""),
     }))
     .filter((opt) => opt.id !== "");
+}
+
+// Helper function to convert field names to user-friendly labels
+function getFieldLabel(field: string): string {
+  return field
+    .replace(/_id$/, '') // Remove _id suffix
+    .replace(/_/g, ' ') // Replace underscores with spaces
+    .replace(/\b\w/g, l => l.toUpperCase()); // Capitalize first letter of each word
 }
 
 export function EditableCell({
@@ -77,6 +87,8 @@ export function EditableCell({
   renderInput,
   tooltipMessage,
   placeholder = "Select option",
+  onBeforeUpdate,
+  error,
 }: EditableCellProps) {
   const [editingCell, setEditingCell] = useState<{
     id: number;
@@ -86,6 +98,7 @@ export function EditableCell({
   const [isUpdating, setIsUpdating] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false); // Local loading state for this cell
+  const [localError, setLocalError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Memoize normalized options to prevent recalculation on every render
@@ -99,7 +112,8 @@ export function EditableCell({
     // ✅ Set editing mode FIRST so dropdown appears immediately
     setEditingCell({ id, field });
     setCellValue(currentValue ?? value ?? displayValue ?? "");
-    
+    setLocalError(null);
+
     // ✅ Then load data in the background (if not already loaded)
     // The dropdown will show with loading spinner while data loads
     if (onEditStart && normalizedOptions.length === 0) {
@@ -115,6 +129,7 @@ export function EditableCell({
   };
 
   const saveCellEdit = async () => {
+    setLocalError(null);
     if (!applicant?.id) {
       console.error("Applicant ID is missing in EditableCell:", applicant);
       toast({
@@ -223,6 +238,19 @@ export function EditableCell({
 
     if (!editingCell || isUpdating) return;
 
+    // ✅ Skip if value hasn't changed from original
+    const originalValue = value ?? displayValue ?? "";
+    if (cellValue === originalValue) {
+      setEditingCell(null);
+      return;
+    }
+
+    // ✅ Custom validation/pre-update hook
+    if (onBeforeUpdate) {
+      const isValid = await onBeforeUpdate(cellValue);
+      if (!isValid) return;
+    }
+
     // ✅ Define required fields that cannot be cleared/emptied
     const requiredFields = [
       'first_name',
@@ -259,9 +287,9 @@ export function EditableCell({
       }
 
       await updateStudent(applicant.id, payload);
-      toast({ 
-        title: "✅ Field Updated", 
-        description: "Field updated successfully",
+      toast({
+        title: "✅ Updated Successfully",
+        description: `${getFieldLabel(field)} has been updated`,
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900",
       });
@@ -285,6 +313,7 @@ export function EditableCell({
   const cancelCellEdit = () => {
     setEditingCell(null);
     setCellValue("");
+    setLocalError(null);
   };
 
   // Memoize dropdown change handler to prevent recreation on each render
@@ -321,6 +350,17 @@ export function EditableCell({
     }
 
     if (isUpdating) return;
+
+    // ✅ Skip if value hasn't changed
+    const currentValue = getCurrentDropdownValue();
+    if (newValue === currentValue) return;
+
+    // ✅ Custom validation/pre-update hook
+    if (onBeforeUpdate) {
+      const isValid = await onBeforeUpdate(newValue);
+      if (!isValid) return;
+    }
+
     setIsUpdating(true);
 
     try {
@@ -345,9 +385,9 @@ export function EditableCell({
       }
 
       await updateStudent(applicant.id, payload);
-      toast({ 
-        title: "✅ Field Updated", 
-        description: "Field updated successfully",
+      toast({
+        title: "✅ Updated Successfully",
+        description: `${getFieldLabel(field)} has been updated`,
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900",
       });
@@ -652,6 +692,11 @@ export function EditableCell({
             </Popover>
             {/* Note: Clear button (X) removed since DOB is required field */}
           </div>
+          {(error || localError) && (
+            <p className="text-[10px] text-red-500 mt-1 animate-in fade-in slide-in-from-top-1">
+              {error || localError}
+            </p>
+          )}
           {showActionButtons && (
             <div className="flex gap-2 mt-1">
               <Button
@@ -736,6 +781,11 @@ export function EditableCell({
                 : "text"
             }
           />
+        )}
+        {(error || localError) && (
+          <p className="text-[10px] text-red-500 mt-1 animate-in fade-in slide-in-from-top-1">
+            {error || localError}
+          </p>
         )}
         {showActionButtons && (
           <div className="flex gap-2 mt-1">

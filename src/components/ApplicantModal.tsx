@@ -71,6 +71,7 @@ import {
   getAllSlots,
   cancelScheduledInterview,
   updateScheduledInterview,
+  getStudentDataByEmail,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 // import { Input } from "@/components/ui/input";
@@ -257,6 +258,11 @@ export function ApplicantModal({
     district: false,
     block: false,
   });
+
+  // Email validation states
+  const [emailExists, setEmailExists] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string>("");
 
   // ✅ Transform globalStateList to stateList format (MUST be before stateOptions)
   const stateList = useMemo(() => {
@@ -1209,6 +1215,53 @@ Interviewer: ${interviewerName}`;
     setRefreshKey((prev) => prev + 1);
   };
 
+  // Email validation handler
+  const handleEmailValidation = async (newEmail: string): Promise<boolean> => {
+    // Reset email error
+    setEmailError("");
+    setEmailExists(false);
+
+    // If email hasn't changed, allow update
+    if (newEmail === currentApplicant?.email) {
+      return true;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      setEmailError("Please enter a valid email address");
+      toast({
+        title: "❌ Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+      return false;
+    }
+
+    // Check if email already exists
+    setIsCheckingEmail(true);
+    try {
+      const existingStudent = await getStudentDataByEmail(newEmail);
+
+      if (existingStudent && existingStudent.id !== currentApplicant?.id) {
+        setEmailError("This email already exists, please use another email");
+        setEmailExists(true);
+        return false;
+      }
+
+      // Email is valid and available
+      return true;
+    } catch (err) {
+      // Error means email NOT found - which is valid for new email
+      setEmailExists(false);
+      setEmailError("");
+      return true;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   const handleUpdate = async () => {
     if (!currentApplicant?.id) return;
     try {
@@ -1829,8 +1882,11 @@ Interviewer: ${interviewerName}`;
                     applicant={currentApplicant}
                     field="email"
                     displayValue={currentApplicant.email || ""}
+                    onBeforeUpdate={handleEmailValidation}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    onEditStart={() => setEmailError("")}
+                    error={emailError}
+                    disabled={!hasEditAccess || isCheckingEmail}
                   />
                 </div>
                 <div>
