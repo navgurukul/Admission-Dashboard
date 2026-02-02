@@ -65,17 +65,17 @@ export function QuestionPicker({
 
       // If selecting, check constraints
       // 1. Check total questions limit (18)
-      if (prev.length >= 18) {
-        toast({
-          title: "⚠️ Maximum Questions Reached",
-          description: "You cannot select more than 18 questions.",
-          variant: "destructive",
-          className: "border-orange-500 bg-orange-50 text-orange-900",
-        });
-        return prev;
-      }
+      // if (prev.length >= 18) {
+      //   toast({
+      //     title: "⚠️ Maximum Questions Reached",
+      //     description: "You cannot select more than 18 questions.",
+      //     variant: "destructive",
+      //     className: "border-orange-500 bg-orange-50 text-orange-900",
+      //   });
+      //   return prev;
+      // }
 
-      // 2. Check total marks limit (36)
+      // 2. Check total marks limit (40)
       const currentMarks = prev.reduce((sum, question) => {
         const diffName = difficultyMap[question.difficulty_level]?.name.toLowerCase();
         const marks = diffName === "easy" ? 1 : diffName === "medium" ? 2 : diffName === "hard" ? 3 : 0;
@@ -85,15 +85,15 @@ export function QuestionPicker({
       const newQuestionDiffName = difficultyMap[q.difficulty_level]?.name.toLowerCase();
       const newQuestionMarks = newQuestionDiffName === "easy" ? 1 : newQuestionDiffName === "medium" ? 2 : newQuestionDiffName === "hard" ? 3 : 0;
 
-      if (currentMarks + newQuestionMarks > 36) {
-        toast({
-          title: "⚠️ Maximum Marks Exceeded",
-          description: `Adding this question would exceed 36 marks. Current: ${currentMarks} marks.`,
-          variant: "destructive",
-          className: "border-orange-500 bg-orange-50 text-orange-900",
-        });
-        return prev;
-      }
+      // if (currentMarks + newQuestionMarks > 40) {
+      //   toast({
+      //     title: "⚠️ Maximum Marks Exceeded",
+      //     description: `Adding this question would exceed 40 marks. Current: ${currentMarks} marks.`,
+      //     variant: "destructive",
+      //     className: "border-orange-500 bg-orange-50 text-orange-900",
+      //   });
+      //   return prev;
+      // }
 
       return [...prev, q];
     });
@@ -151,57 +151,70 @@ export function QuestionPicker({
     ).length;
 
     // Validation: Check difficulty-specific counts FIRST (more specific feedback)
-    if (easyCount !== 5) {
-      const diff = 5 - easyCount;
-      toast({
-        title: "⚠️ Easy Questions Required",
-        description: easyCount < 5
-          ? `You have ${easyCount} Easy question${easyCount !== 1 ? 's' : ''}. Please select ${diff} more Easy question${diff > 1 ? 's' : ''}.`
-          : `You have ${easyCount} Easy questions. Please remove ${Math.abs(diff)} Easy question${Math.abs(diff) > 1 ? 's' : ''}.`,
-        variant: "destructive",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
+    // if (easyCount < 5) {
+    //   const diff = 5 - easyCount;
+    //   toast({
+    //     title: "⚠️ Easy Questions Required",
+    //     description: easyCount < 5
+    //       ? `You have ${easyCount} Easy question${easyCount !== 1 ? 's' : ''}. Please select ${diff} more Easy question${diff > 1 ? 's' : ''}.`
+    //       : `You have ${easyCount} Easy questions. Please remove ${Math.abs(diff)} Easy question${Math.abs(diff) > 1 ? 's' : ''}.`,
+    //     variant: "destructive",
+    //     className: "border-orange-500 bg-orange-50 text-orange-900",
+    //   });
+    //   return;
+    // }
 
-    if (mediumCount !== 8) {
-      const diff = 8 - mediumCount;
-      toast({
-        title: "⚠️ Medium Questions Required",
-        description: mediumCount < 8
-          ? `You have ${mediumCount} Medium question${mediumCount !== 1 ? 's' : ''}. Please select ${diff} more Medium question${diff > 1 ? 's' : ''}.`
-          : `You have ${mediumCount} Medium questions. Please remove ${Math.abs(diff)} Medium question${Math.abs(diff) > 1 ? 's' : ''}.`,
-        variant: "destructive",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
+    // if (mediumCount < 8) {
+    //   const diff = 8 - mediumCount;
+    //   toast({
+    //     title: "⚠️ Medium Questions Required",
+    //     description: mediumCount < 8
+    //       ? `You have ${mediumCount} Medium question${mediumCount !== 1 ? 's' : ''}. Please select ${diff} more Medium question${diff > 1 ? 's' : ''}.`
+    //       : `You have ${mediumCount} Medium questions. Please remove ${Math.abs(diff)} Medium question${Math.abs(diff) > 1 ? 's' : ''}.`,
+    //     variant: "destructive",
+    //     className: "border-orange-500 bg-orange-50 text-orange-900",
+    //   });
+    //   return;
+    // }
 
-    if (hardCount !== 5) {
-      const diff = 5 - hardCount;
-      toast({
-        title: "⚠️ Hard Questions Required",
-        description: hardCount < 5
-          ? `You have ${hardCount} Hard question${hardCount !== 1 ? 's' : ''}. Please select ${diff} more Hard question${diff > 1 ? 's' : ''}.`
-          : `You have ${hardCount} Hard questions. Please remove ${Math.abs(diff)} Hard question${Math.abs(diff) > 1 ? 's' : ''}.`,
-        variant: "destructive",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
+    // if (hardCount < 5) {
+    //   const diff = 5 - hardCount;
+    //   toast({
+    //     title: "⚠️ Hard Questions Required",
+    //     description: hardCount < 5
+    //       ? `You have ${hardCount} Hard question${hardCount !== 1 ? 's' : ''}. Please select ${diff} more Hard question${diff > 1 ? 's' : ''}.`
+    //       : `You have ${hardCount} Hard questions. Please remove ${Math.abs(diff)} Hard question${Math.abs(diff) > 1 ? 's' : ''}.`,
+    //     variant: "destructive",
+    //     className: "border-orange-500 bg-orange-50 text-orange-900",
+    //   });
+    //   return;
+    // }
 
     // Check total count last (minimum 18 required, can be more)
-    const totalCount = selected.length;
-    if (totalCount < 18) {
-      const diff = 18 - totalCount;
-      toast({
-        title: "⚠️ Minimum Questions Required",
-        description: `You have selected ${totalCount} question${totalCount !== 1 ? 's' : ''}. Please select ${diff} more question${diff > 1 ? 's' : ''} to reach minimum of 18.`,
-        variant: "destructive",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
+     // Check total count (minimum 18, maximum 21)
+  const totalCount = selected.length;
+  
+  // if (totalCount < 18) {
+  //   const diff = 18 - totalCount;
+  //   toast({
+  //     title: "⚠️ Minimum Questions Required",
+  //     description: `You have selected ${totalCount} question${totalCount !== 1 ? 's' : ''}. Please select ${diff} more question${diff > 1 ? 's' : ''} to reach the minimum of 18.`,
+  //     variant: "destructive",
+  //     className: "border-orange-500 bg-orange-50 text-orange-900",
+  //   });
+  //   return;
+  // }
+
+  // if (totalCount > 21) {
+  //   const diff = totalCount - 21;
+  //   toast({
+  //     title: "⚠️ Maximum Questions Exceeded",
+  //     description: `You have selected ${totalCount} questions. Please remove ${diff} question${diff > 1 ? 's' : ''} to stay within the maximum of 21.`,
+  //     variant: "destructive",
+  //     className: "border-red-500 bg-red-50 text-red-900",
+  //   });
+  //   return;
+  // }
 
     onSave(selected);
     onClose();
@@ -378,7 +391,7 @@ export function QuestionPicker({
               </span>
             </div> */}
             <div className="text-xs text-orange-600 font-medium">
-              ⚠️ Required: 18 questions (5 Easy + 8 Medium + 5 Hard)
+              ⚠️ Required: 18-21 questions 
             </div>
           </div>
           <Button onClick={handleSave}>Save</Button>
