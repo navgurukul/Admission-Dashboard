@@ -772,16 +772,16 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                       <div key={question.id} className="p-4 border rounded-lg bg-white">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <div className="font-medium text-gray-900 mb-2">
+                            <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
                               {index + 1}. <span className="font-semibold">English:</span> {question.english_text || question.question_text || question.question || 'N/A'}
                             </div>
                             {question.hindi_text && (
-                              <div className="text-sm text-gray-700 mb-1">
+                              <div className="text-sm text-gray-700 mb-1 whitespace-pre-line">
                                 <span className="font-semibold">Hindi:</span> {question.hindi_text}
                               </div>
                             )}
                             {question.marathi_text && (
-                              <div className="text-sm text-gray-700">
+                              <div className="text-sm text-gray-700 whitespace-pre-line">
                                 <span className="font-semibold">Marathi:</span> {question.marathi_text}
                               </div>
                             )}
@@ -801,7 +801,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                             </Badge>
                           )}
                         </div>
-                        
+
                         {question.question_type === 'MCQ' && question.english_options && question.english_options.length > 0 && (
                           <div className="mt-4">
                             <div className="space-y-2">
@@ -809,7 +809,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                                 const optionText = typeof option === 'string' ? option : option.text || option.value;
                                 const optionId = typeof option === 'string' ? optIndex + 1 : option.id;
                                 const isCorrect = question.answer_key && question.answer_key.includes(optionId);
-                                
+
                                 return (
                                   <div key={optIndex} className="p-2 bg-gray-50 rounded">
                                     <div className="flex items-start gap-2">
@@ -817,19 +817,19 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                                         {String.fromCharCode(65 + optIndex)}.
                                       </span>
                                       <div className="flex-1">
-                                        <div className="text-sm text-gray-900">
+                                        <div className="text-sm text-gray-900 whitespace-pre-line">
                                           <span className="font-semibold">English:</span> {optionText}
                                           {isCorrect && (
                                             <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
                                           )}
                                         </div>
                                         {question.hindi_options && question.hindi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1">
+                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
                                             <span className="font-semibold">Hindi:</span> {typeof question.hindi_options[optIndex] === 'string' ? question.hindi_options[optIndex] : question.hindi_options[optIndex]?.text || question.hindi_options[optIndex]?.value}
                                           </div>
                                         )}
                                         {question.marathi_options && question.marathi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1">
+                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
                                             <span className="font-semibold">Marathi:</span> {typeof question.marathi_options[optIndex] === 'string' ? question.marathi_options[optIndex] : question.marathi_options[optIndex]?.text || question.marathi_options[optIndex]?.value}
                                           </div>
                                         )}
@@ -852,7 +852,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               </div>
             </div>
           )}
-          
+
           <DialogFooter className="flex-shrink-0 mt-4">
             <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
               Close
