@@ -399,10 +399,10 @@ export default function AdminView() {
 
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <AdmissionsSidebar />
 
-      <div className="flex-1 md:ml-64 min-w-0">
+      <div className="flex-1 md:ml-64 min-w-0 overflow-hidden flex flex-col">
         <div className="p-6 md:p-8 pt-20 md:pt-8">
           <div className="mb-6">
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -414,8 +414,10 @@ export default function AdminView() {
                 : "Manage your scheduled interviews and availability"}
             </p>
           </div>
+        </div>
 
-          <Tabs value={activeTab} className="w-full" onValueChange={setActiveTab}>
+        <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6 md:pb-8">
+          <Tabs value={activeTab} className="h-full flex flex-col" onValueChange={setActiveTab}>
             {isAdmin && (
               <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-lg" : "grid-cols-1 max-w-xs")}>
                 <TabsTrigger
@@ -441,9 +443,9 @@ export default function AdminView() {
 
             {/* Interviews Tab */}
             {isAdmin && (
-              <TabsContent value="interviews" className="mt-6">
-                <Card>
-                  <CardHeader>
+              <TabsContent value="interviews" className="mt-6 flex-1 overflow-hidden">
+                <Card className="h-full flex flex-col">
+                  <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2 mb-4">
                       <Calendar className="w-5 h-5" />
                       All Scheduled Interviews
@@ -482,7 +484,7 @@ export default function AdminView() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-1 flex flex-col overflow-hidden">
                     {interviewsLoading || isInterviewSearching ? (
                       <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-2">
@@ -500,8 +502,9 @@ export default function AdminView() {
                         </p>
                       </div>
                     ) : (
-                      <div className="border rounded-lg overflow-auto max-h-[600px] w-full">
-                        <Table>
+                      <>
+                        <div className="border rounded-lg overflow-auto flex-1 w-full mb-4">
+                          <Table>
                           <TableHeader className="sticky top-0 bg-muted/30 z-10">
                             <TableRow className="bg-muted/30">
                               <TableHead className="font-semibold min-w-[200px]">Applicant</TableHead>
@@ -588,12 +591,11 @@ export default function AdminView() {
                           </TableBody>
                         </Table>
                       </div>
-                    )}
-                    {interviewTotalCount > 0 && (
-                      <div className="flex justify-between items-center mt-4">
-                        <p className="text-sm text-muted-foreground">
-                          Showing {((interviewCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(interviewCurrentPage * itemsPerPage, interviewTotalCount)} of {interviewTotalCount}
-                        </p>
+                      {interviewTotalCount > 0 && (
+                        <div className="flex justify-between items-center mt-4">
+                          <p className="text-sm text-muted-foreground">
+                            Showing {((interviewCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(interviewCurrentPage * itemsPerPage, interviewTotalCount)} of {interviewTotalCount}
+                          </p>
                         <div className="flex gap-2">
                           <div className="flex items-center gap-2">
                             <label className="text-sm text-muted-foreground">Rows:</label>
@@ -631,6 +633,8 @@ export default function AdminView() {
                           </button>
                         </div>
                       </div>
+                      )}
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -639,9 +643,9 @@ export default function AdminView() {
 
             {/* Slots Tab */}
             {isAdmin && (
-              <TabsContent value="slots" className="mt-6">
-                <Card>
-                  <CardHeader>
+              <TabsContent value="slots" className="mt-6 flex-1 overflow-hidden">
+                <Card className="h-full flex flex-col">
+                  <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2 mb-4">
                       <Clock className="w-5 h-5" />
                       All Created Slots
@@ -680,7 +684,7 @@ export default function AdminView() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-1 flex flex-col overflow-hidden">
                     {slotsLoading || isSlotSearching ? (
                       <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-2">
@@ -698,8 +702,9 @@ export default function AdminView() {
                         </p>
                       </div>
                     ) : (
-                      <div className="border rounded-lg overflow-auto max-h-[600px]">
-                        <Table>
+                      <>
+                        <div className="border rounded-lg overflow-auto flex-1 mb-4">
+                          <Table>
                           <TableHeader className="sticky top-0 bg-muted/30 z-10">
                             <TableRow className="bg-muted/30">
                               <TableHead className="font-semibold min-w-[200px]">Created By</TableHead>
@@ -758,9 +763,8 @@ export default function AdminView() {
                           </TableBody>
                         </Table>
                       </div>
-                    )}
-                    {slotTotalCount > 0 && (
-                      <div className="flex justify-between items-center mt-4">
+                      {slotTotalCount > 0 && (
+                        <div className="flex justify-between items-center mt-4">
                         <p className="text-sm text-muted-foreground">
                           Showing {((slotCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(slotCurrentPage * itemsPerPage, slotTotalCount)} of {slotTotalCount}
                         </p>
@@ -800,6 +804,8 @@ export default function AdminView() {
                           </button>
                         </div>
                       </div>
+                      )}
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -807,9 +813,9 @@ export default function AdminView() {
             )}
 
             {/* My Interviews Tab */}
-            <TabsContent value="my-interviews" className="mt-6">
-              <Card>
-                <CardHeader>
+            <TabsContent value="my-interviews" className="mt-6 flex-1 overflow-hidden">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
                   <CardTitle className="flex items-center gap-2 mb-4">
                     <MessageSquare className="w-5 h-5" />
                     My Scheduled Interviews
@@ -842,7 +848,7 @@ export default function AdminView() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col overflow-hidden">
                   {myInterviewsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -855,7 +861,7 @@ export default function AdminView() {
                       </p>
                     </div>
                   ) : (
-                    <div className="border rounded-lg overflow-auto max-h-[600px] w-full">
+                    <div className="border rounded-lg overflow-auto flex-1 w-full">
                       <Table>
                         <TableHeader className="sticky top-0 bg-muted/30 z-10">
                           <TableRow className="bg-muted/30">
@@ -937,6 +943,7 @@ export default function AdminView() {
           </Tabs>
         </div>
       </div>
+      
       <ApplicantModal
         applicant={selectedApplicant}
         isOpen={isApplicantModalOpen}

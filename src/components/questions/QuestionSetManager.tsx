@@ -447,8 +447,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   };
 
   return (
-    <div className="flex flex-col h-[600px]">
-      <div className="flex justify-end items-center gap-3 mb-4">
+    <div className="space-y-4">
+      <div className="flex justify-end items-center gap-3">
         <Button onClick={openAddModal} variant="outline">
           <Plus className="h-4 w-4 mr-2" />
           Add Set
@@ -467,7 +467,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         )} */}
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+      <div className="space-y-4">
         {sets.length === 0 && (
           <p className="text-gray-500 text-sm">No question sets found. Click "Add Set" to create one.</p>
         )}
@@ -753,8 +753,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
       {/* View Questions Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
           </DialogHeader>
           
@@ -853,7 +853,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </div>
           )}
           
-          <DialogFooter className="mt-4">
+          <DialogFooter className="flex-shrink-0 mt-4">
             <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
               Close
             </Button>
