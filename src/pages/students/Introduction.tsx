@@ -2,14 +2,12 @@ import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useLanguage } from "@/routes/LaunguageContext";
 
 const Instructions: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Get selected language from localStorage
-  const selectedLanguage =
-    localStorage.getItem("selectedLanguage") || "english";
+  const { selectedLanguage } = useLanguage();
 
   // Language-specific content
   const getLanguageContent = () => {
