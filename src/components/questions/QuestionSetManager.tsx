@@ -613,8 +613,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
-              <Label className="mb-2 block">Set Generation Method</Label>
+            <div className="space-y-2">
+              <Label className="block">Set Generation Method</Label>
               <RadioGroup
                 value={formData.nameType}
                 onValueChange={(val) => {
@@ -622,7 +622,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                   const newName = isRandom ? `Set ${sets.length + 1}` : "";
                   setFormData({ ...formData, nameType: val, name: newName, isRandom });
                 }}
-                className="flex items-center gap-4 mb-4"
+                className="flex items-center gap-4"
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="random" id="r-random" />
@@ -635,7 +635,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               </RadioGroup>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="name">Set Name <span className="text-red-500">*</span></Label>
               <Input
                 id="name"
@@ -647,7 +647,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
               <Textarea
                 id="description"
@@ -684,7 +684,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="set-select">Select Question Set</Label>
               <Select
                 value={downloadFormData.selectedSet}
@@ -705,7 +705,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               </Select>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="language-select">Language</Label>
               <Select
                 value={downloadFormData.language}

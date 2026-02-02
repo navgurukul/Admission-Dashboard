@@ -277,7 +277,7 @@ export function QuestionEditor({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Question Type & Difficulty */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
+        <div className="space-y-2">
           <Label>Question Type</Label>
           <Select
             value={formData.question_type}
@@ -292,7 +292,7 @@ export function QuestionEditor({
           </Select>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label>Difficulty</Label>
           <Select
             value={formData.difficulty_level}
@@ -320,7 +320,7 @@ export function QuestionEditor({
 
       {/* Points */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
+        <div className="space-y-2">
           <Label>Points</Label>
           <Input type="number" min={1} value={formData.points} disabled />
         </div>
@@ -330,7 +330,7 @@ export function QuestionEditor({
 
       {/* Question Texts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div>
+        <div className="space-y-2">
           <Label>Question Text (English)</Label>
           <Textarea
             value={formData.question_text.english}
@@ -338,7 +338,7 @@ export function QuestionEditor({
             placeholder="Enter question text in English"
           />
         </div>
-        <div>
+        <div className="space-y-2">
           <Label>Question Text (Hindi)</Label>
           <Textarea
             value={formData.question_text.hindi}
@@ -346,7 +346,7 @@ export function QuestionEditor({
             placeholder="Enter question text in Hindi"
           />
         </div>
-        <div>
+        <div className="space-y-2">
           <Label>Question Text (Marathi)</Label>
           <Textarea
             value={formData.question_text.marathi}
@@ -368,7 +368,7 @@ export function QuestionEditor({
       )}
 
       {/* Explanation */}
-      <div>
+      <div className="space-y-2">
         <Label>Explanation (Optional)</Label>
         <Textarea
           value={formData.explanation}
