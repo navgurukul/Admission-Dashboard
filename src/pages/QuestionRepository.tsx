@@ -180,16 +180,17 @@ export default function QuestionRepository() {
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
-      <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 ">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Question Repository
-            </h1>
-            <p className="text-muted-foreground">
-              Manage and organize assessment questions for admissions screening
-            </p>
-          </div>
+      <main className="md:ml-64 p-4 md:p-8 pt-16 md:pt-8 h-screen overflow-hidden">
+        <div className="flex flex-col h-full">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Question Repository
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Manage and organize assessment questions for admissions screening
+              </p>
+            </div>
           
           <div className="flex items-center gap-2">
             <Button
@@ -222,9 +223,9 @@ export default function QuestionRepository() {
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
-          className="space-y-6"
+          className="flex-1 flex flex-col overflow-hidden"
         >
-          <TabsList className="grid w-full grid-cols-4 my-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="list">Questions</TabsTrigger>
             <TabsTrigger value="editor">Editor</TabsTrigger>
             <TabsTrigger value="sets">Sets</TabsTrigger>
@@ -234,8 +235,8 @@ export default function QuestionRepository() {
             {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
           </TabsList>
 
-          <TabsContent value="list" className="space-y-4">
-            <Card>
+          <TabsContent value="list" className="flex-1 overflow-hidden m-0">
+            <Card className="h-full flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   Question Library
@@ -261,9 +262,9 @@ export default function QuestionRepository() {
                   </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col h-[620px]">
+              <CardContent className="flex-1 flex flex-col overflow-hidden">
                 {showFilters && (
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <QuestionFilters
                       difficultyLevels={difficultyLevels}
                       filters={filters}
@@ -272,7 +273,7 @@ export default function QuestionRepository() {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-auto">
+                <div className="flex-1 overflow-y-auto pr-2">
                   <QuestionList
                     questions={questions}
                     loading={loading || isSearching}
@@ -288,14 +289,14 @@ export default function QuestionRepository() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="editor">
-            <Card>
-              <CardHeader>
+          <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle>
                   {selectedQuestion ? "Edit Question" : "Create New Question"}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-y-auto">
                 <QuestionEditor
                   difficultyLevels={difficultyLevels}
                   question={selectedQuestion}
@@ -309,12 +310,12 @@ export default function QuestionRepository() {
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="sets">
-            <Card>
-              <CardHeader>
+          <TabsContent value="sets" className="flex-1 overflow-hidden m-0">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle>Question Sets</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-y-auto">
                 <QuestionSetManager
                   allQuestions={questions}
                   difficultyLevels={difficultyLevels}
@@ -353,12 +354,12 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent> */}
 
-          <TabsContent value="import">
-            <Card>
-              <CardHeader>
+          <TabsContent value="import" className="flex-1 overflow-hidden m-0">
+            <Card className="h-full flex flex-col">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle>Bulk Import Questions</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 overflow-y-auto">
                 <QuestionBulkImport onImportComplete={handleImportComplete} />
               </CardContent>
             </Card>
@@ -375,8 +376,7 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent> */}
         </Tabs>
-        {/* </div>
-         */}
+        </div>
       </main>
 
       {/* Help Dialog */}
