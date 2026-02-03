@@ -10,7 +10,7 @@ const ScreeningRoundStartPage: React.FC = () => {
   const { selectedLanguage } = useLanguage();
 
   const [questionCount, setQuestionCount] = useState<number | null>(null);
-  const [duration, setDuration] = useState<number>(3600);
+  const [duration, setDuration] = useState<number>(5400); // 90 minutes = 5400 seconds
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
