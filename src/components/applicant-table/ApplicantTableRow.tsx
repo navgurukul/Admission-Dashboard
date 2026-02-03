@@ -14,7 +14,8 @@ import { EditableCell } from "./EditableCell";
 import StatusDropdown from "./StatusDropdown";
 import StageDropdown from "./StageDropdown";
 import { CampusSelector } from "../CampusSelector";
-import { getDistrictsByState, getBlocksByDistrict } from "@/utils/api";
+import { getDistrictsByState, getBlocksByDistrict, getStudentDataByEmail } from "@/utils/api";
+import { useToast } from "@/hooks/use-toast";
 
 // ✅ MANDATORY: Cache for getByState API to prevent repeated calls
 const districtCache = new Map<string, { data: any[]; timestamp: number }>();
@@ -115,8 +116,11 @@ export const ApplicantTableRow = ({
   isColumnVisible,
 }: ApplicantTableRowProps) => {
   const [showImageModal, setShowImageModal] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const { hasEditAccess } = usePermissions();
-  
+  const { toast } = useToast();
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
   // State for dynamic district and block options
   const [districtOptions, setDistrictOptions] = useState<{ id: string | number; name: string }[]>([]);
   const [blockOptions, setBlockOptions] = useState<{ id: string | number; name: string }[]>([]);
@@ -193,6 +197,38 @@ export const ApplicantTableRow = ({
       setIsLoadingBlocks(false);
     }
   }, [districtOptions]);
+
+  // Handle email validation
+  const handleEmailValidation = useCallback(async (newEmail: string): Promise<boolean> => {
+    setEmailError(null);
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      const errorMsg = "Please enter a valid email address";
+      setEmailError(errorMsg);
+      return false;
+    }
+
+    // Check if email already exists
+    setIsCheckingEmail(true);
+    try {
+      const existingStudent = await getStudentDataByEmail(newEmail);
+
+      if (existingStudent && existingStudent.id !== applicant?.id) {
+        const errorMsg = "This email already exists, please use another email";
+        setEmailError(errorMsg);
+        return false;
+      }
+
+      // Email is valid and available
+      return true;
+    } catch (err) {
+      // email NOT found or API error - which is valid for new email
+      return true;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  }, [applicant?.id, toast]);
 
   const fullName =
     [applicant.first_name, applicant.middle_name, applicant.last_name]
@@ -366,10 +402,13 @@ export const ApplicantTableRow = ({
               applicant={applicant}
               field="email"
               displayValue={applicant.email || "No Email"}
+              onBeforeUpdate={handleEmailValidation}
               onUpdate={onUpdate}
+              onEditStart={() => setEmailError(null)}
+              error={emailError}
               showPencil={hasEditAccess}
               showActionButtons={false}
-              disabled={!hasEditAccess}
+              disabled={!hasEditAccess || isCheckingEmail}
             />
           </div>
         </TableCell>
@@ -417,7 +456,7 @@ export const ApplicantTableRow = ({
           <EditableCell
             applicant={applicant}
             field="gender"
-            displayValue={applicant.gender || "N/A"}
+            displayValue={applicant.gender ? applicant.gender.charAt(0).toUpperCase() + applicant.gender.slice(1) : "N/A"}
             options={[
               { id: "male", name: "Male" },
               { id: "female", name: "Female" },
