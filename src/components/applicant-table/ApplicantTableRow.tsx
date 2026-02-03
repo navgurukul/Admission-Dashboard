@@ -803,9 +803,9 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingReferenceData}
             options={schoolList.map((s) => ({ id: s.id, name: s.school_name }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={false}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={true}
           />
         </TableCell>
       )}
