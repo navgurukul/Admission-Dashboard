@@ -25,9 +25,14 @@ interface Question {
 }
 
 const formatTime = (seconds: number) => {
-  const m = Math.floor(seconds / 60);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  
+  if (h > 0) {
+    return `${h}h ${m}m ${s}s`;
+  }
+  return `${m}m ${s}s`;
 };
 
 const TestPage: React.FC = () => {
@@ -319,7 +324,7 @@ const TestPage: React.FC = () => {
 
         {/* Question */}
         <div className="border border-border rounded-xl p-6 mb-6 bg-muted shadow-inner">
-          <p className="text-lg font-medium text-foreground leading-relaxed">
+          <p className="text-lg font-medium text-foreground leading-relaxed whitespace-pre-line">
             {questions[currentIndex].question}
           </p>
         </div>
@@ -349,7 +354,7 @@ const TestPage: React.FC = () => {
                   onChange={() => handleAnswer(idx)}
                   className="hidden"
                 />
-                {display}
+                <span className="whitespace-pre-line">{display}</span>
               </label>
             );
           })}
