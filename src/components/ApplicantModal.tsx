@@ -1230,12 +1230,12 @@ Interviewer: ${interviewerName}`;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newEmail)) {
       setEmailError("Please enter a valid email address");
-      toast({
-        title: "❌ Invalid Email",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
-      });
+      // toast({
+      //   title: "❌ Invalid Email",
+      //   description: "Please enter a valid email address",
+      //   variant: "destructive",
+      //   className: "border-red-500 bg-red-50 text-red-900",
+      // });
       return false;
     }
 

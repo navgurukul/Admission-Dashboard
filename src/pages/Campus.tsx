@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { useDebounce } from "@/hooks/useDebounce";
 
 import {
   getCampuses,
@@ -42,6 +43,7 @@ const CampusPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false); // for add/update/delete
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const { debouncedValue: debouncedSearch } = useDebounce(search, 300);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalCampusesCount, setTotalCampusesCount] = useState(0);
@@ -98,17 +100,29 @@ const CampusPage: React.FC = () => {
     fetchCampuses(true);
   }, [currentPage, itemsPerPage]);
 
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
   // Filter and Slice (Slice added to ensure only itemsPerPage are shown)
   const filteredCampuses = campuses
     .filter((c) =>
-      c.campus_name.toLowerCase().includes(search.toLowerCase()),
-    )
-    .slice(0, itemsPerPage);
+      debouncedSearch.trim()
+        ? c.campus_name.toLowerCase().includes(debouncedSearch.toLowerCase())
+        : true
+    );
+
+  const displayCampuses = filteredCampuses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const totalFilteredPages = Math.ceil(filteredCampuses.length / itemsPerPage);
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+    if (currentPage < totalFilteredPages) setCurrentPage((prev) => prev + 1);
   };
 
   const handlePrevPage = () => {
@@ -252,7 +266,6 @@ const CampusPage: React.FC = () => {
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
-                      setCurrentPage(1);
                     }}
                   />
                 </div>
@@ -279,14 +292,14 @@ const CampusPage: React.FC = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCampuses.length === 0 ? (
+                      {displayCampuses.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={3} className="text-center">
                             No campuses found.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredCampuses.map((campus, index) => (
+                        displayCampuses.map((campus, index) => (
                           <TableRow key={campus.id}>
                             <TableCell>
                               {indexOfFirstItem + index + 1}
@@ -334,7 +347,7 @@ const CampusPage: React.FC = () => {
                 {/* Pagination Footer */}
                 <div className="flex items-center justify-between px-4 py-4 border-t bg-muted/20">
                   <div className="text-sm text-muted-foreground">
-                    Showing <strong>{totalCampusesCount === 0 ? 0 : indexOfFirstItem + 1}</strong> - <strong>{Math.min(currentPage * itemsPerPage, totalCampusesCount)}</strong> of <strong>{totalCampusesCount}</strong>
+                    Showing <strong>{displayCampuses.length === 0 ? 0 : indexOfFirstItem + 1}</strong> - <strong>{Math.min(indexOfFirstItem + displayCampuses.length, filteredCampuses.length)}</strong> of <strong>{filteredCampuses.length}</strong>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex items-center gap-2">
@@ -353,7 +366,7 @@ const CampusPage: React.FC = () => {
                       </select>
                     </div>
                     <span className="text-sm text-muted-foreground px-2">
-                      Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
+                      Page <strong>{currentPage}</strong> of <strong>{totalFilteredPages}</strong>
                     </span>
                     <Button
                       variant="outline"
@@ -368,7 +381,7 @@ const CampusPage: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={handleNextPage}
-                      disabled={currentPage === totalPages || totalPages === 0}
+                      disabled={currentPage === totalFilteredPages || totalFilteredPages === 0}
                       className="h-8"
                     >
                       Next

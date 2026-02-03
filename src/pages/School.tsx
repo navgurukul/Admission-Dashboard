@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // 🔹 API methods from api.ts
 import {
@@ -39,6 +40,7 @@ const SchoolPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const { debouncedValue: debouncedSearch } = useDebounce(search, 300);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -94,9 +96,16 @@ const SchoolPage = () => {
     fetchSchools();
   }, []);
 
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
   //  Filter & pagination
   const filteredSchools = schools.filter((school) =>
-    (school.school_name || "").toLowerCase().includes(search.toLowerCase()),
+    debouncedSearch.trim() 
+      ? (school.school_name || "").toLowerCase().includes(debouncedSearch.toLowerCase())
+      : true
   );
 
   const totalPages = Math.ceil(filteredSchools.length / itemsPerPage);
@@ -248,7 +257,6 @@ const SchoolPage = () => {
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
-                      setCurrentPage(1);
                     }}
                   />
                 </div>

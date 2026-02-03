@@ -693,7 +693,7 @@ export function EditableCell({
             {/* Note: Clear button (X) removed since DOB is required field */}
           </div>
           {(error || localError) && (
-            <p className="text-[10px] text-red-500 mt-1 animate-in fade-in slide-in-from-top-1">
+            <p className="text-[10px] text-red-500 mt-1 animate-in fade-in slide-in-from-top-1 break-words leading-tight">
               {error || localError}
             </p>
           )}
@@ -783,7 +783,7 @@ export function EditableCell({
           />
         )}
         {(error || localError) && (
-          <p className="text-[10px] text-red-500 mt-1 animate-in fade-in slide-in-from-top-1">
+          <p className="text-[10px] text-red-500 mt-1 animate-in fade-in slide-in-from-top-1 break-words leading-tight">
             {error || localError}
           </p>
         )}
@@ -811,6 +811,25 @@ export function EditableCell({
       </div>
     );
   }
+
+  const getFormattedDisplayValue = () => {
+    if (!displayValue || displayValue === "N/A") return displayValue;
+
+    // If options are provided, try to find the label for current displayValue or value
+    if (normalizedOptions.length > 0) {
+      const matchValue = value !== undefined && value !== null ? String(value) : String(displayValue);
+
+      // Try to find matching ID or Name
+      const match = normalizedOptions.find(opt =>
+        opt.id === matchValue ||
+        opt.name.toLowerCase() === matchValue.toLowerCase()
+      );
+
+      if (match) return match.name;
+    }
+
+    return displayValue;
+  };
 
   return (
     <div
