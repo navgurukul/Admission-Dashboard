@@ -62,8 +62,8 @@ const TestPage: React.FC = () => {
         
         // Show toast notification
         toast({
-          title: "Test Session Interrupted",
-          description: "Your test session was interrupted due to page refresh. All progress has been reset.",
+          title: "Test Restarted",
+          description: "The page was refreshed. You'll need to start the test again from the beginning.",
           variant: "destructive",
           duration: 3000,
         });
@@ -192,7 +192,14 @@ const TestPage: React.FC = () => {
 
   const handleAnswer = (optionIndex: number) => {
     const qid = questions[currentIndex].id;
-    setAnswers({ ...answers, [qid]: optionIndex });
+    const option = questions[currentIndex].options[optionIndex];
+    
+    // Get the option ID if it exists, otherwise use 1-based index as fallback
+    const optionId = typeof option === 'object' && option?.id 
+      ? option.id 
+      : optionIndex + 1;
+    
+    setAnswers({ ...answers, [qid]: optionId });
   };
 
   const handleConfirmSubmit = () => {
@@ -212,7 +219,11 @@ const TestPage: React.FC = () => {
     const studentId = localStorage.getItem("studentId");
     if (!studentId) {
       console.error("Student ID not found");
-      alert("Error: Student ID not found. Please log in again.");
+      toast({
+        title: "Oops! Session Expired",
+        description: "Your session has expired. Please log in again to continue.",
+        variant: "destructive",
+      });
       isSubmitting.current = false;
       return;
     }
@@ -295,7 +306,11 @@ const TestPage: React.FC = () => {
       });
     } catch (error) {
       console.error("Error submitting exam:", error);
-      alert("Failed to submit exam. Please try again.");
+      toast({
+        title: "Submission Issue",
+        description: "We couldn't submit your test right now. Don't worry, your answers are safe. Please try submitting again.",
+        variant: "destructive",
+      });
       setShowConfirm(false);
       isSubmitting.current = false; // Reset on error to allow retry
     }
@@ -337,12 +352,17 @@ const TestPage: React.FC = () => {
               typeof opt === "string"
                 ? opt
                 : opt?.text ?? opt?.label ?? JSON.stringify(opt);
+            
+            // Get the option ID for comparison
+            const optionId = typeof opt === 'object' && opt?.id 
+              ? opt.id 
+              : idx + 1;
 
             return (
               <label
                 key={idx}
                 className={`block border rounded-lg px-4 py-3 cursor-pointer transition ${
-                  answers[qid] === idx
+                  answers[qid] === optionId
                     ? "bg-secondary-purple-light border-secondary-purple text-secondary-purple font-medium shadow-md"
                     : "hover:bg-muted border-border"
                 }`}
@@ -350,7 +370,7 @@ const TestPage: React.FC = () => {
                 <input
                   type="radio"
                   name={`q-${qid}`}
-                  checked={answers[qid] === idx}
+                  checked={answers[qid] === optionId}
                   onChange={() => handleAnswer(idx)}
                   className="hidden"
                 />
