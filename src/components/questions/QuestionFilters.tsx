@@ -46,7 +46,7 @@ export function QuestionFilters({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
+        <div className="space-y-2">
           <Label>Difficulty</Label>
           <Select
             value={filters.difficulty_level || "All"}
