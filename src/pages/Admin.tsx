@@ -479,7 +479,15 @@ const AdminPage: React.FC = () => {
                   type="text"
                   placeholder="Search users by name, email, or username..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // If the value is only whitespace, clear the search
+                    if (value.trim() === '') {
+                      setSearchQuery('');
+                    } else {
+                      setSearchQuery(value);
+                    }
+                  }}
                   className="block w-full pl-10 pr-3 py-2.5 border border-border rounded-lg leading-5 bg-background placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                 />
                 {searchQuery && (
@@ -567,9 +575,9 @@ const AdminPage: React.FC = () => {
                         <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Contact
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {/* <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Username
-                        </th>
+                        </th> */}
                         <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Role
                         </th>
@@ -608,11 +616,11 @@ const AdminPage: React.FC = () => {
                               {user.mobile || "-"}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          {/* <td className="px-6 py-4">
                             <div className="text-sm text-foreground">
                               {user.user_name || "-"}
                             </div>
-                          </td>
+                          </td> */}
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                               <Shield className="h-3 w-3 mr-1" />
@@ -627,7 +635,7 @@ const AdminPage: React.FC = () => {
                                     open: true,
                                     name: user.name,
                                     email: user.email,
-                                    username: user.user_name || "",
+                                    username: "", // user.user_name || "",
                                     phone: user.mobile || "",
                                     selectedRoleId:
                                       user.user_role_id?.toString() || "",
@@ -698,7 +706,7 @@ const AdminPage: React.FC = () => {
                                 open: true,
                                 name: user.name,
                                 email: user.email,
-                                username: user.user_name || "",
+                                username: "", // user.user_name || "",
                                 phone: user.mobile || "",
                                 selectedRoleId:
                                   user.user_role_id?.toString() || "",
@@ -813,7 +821,6 @@ const AdminPage: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        required
                         value={addUserDialog.name}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -840,7 +847,6 @@ const AdminPage: React.FC = () => {
                       </label>
                       <input
                         type="email"
-                        required
                         value={addUserDialog.email}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -876,8 +882,7 @@ const AdminPage: React.FC = () => {
                         Phone *
                       </label>
                       <input
-                        type="tel"
-                        required
+                         type="tel"
                         value={addUserDialog.phone}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -909,7 +914,7 @@ const AdminPage: React.FC = () => {
                       )}
                     </div>
 
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Username
                       </label>
@@ -950,14 +955,13 @@ const AdminPage: React.FC = () => {
                           {usernameError}
                         </p>
                       )}
-                    </div>
+                    </div> */}
 
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Role *
                       </label>
                       <select
-                        required
                         value={addUserDialog.selectedRoleId}
                         onChange={(e) =>
                           setAddUserDialog((d) => ({
