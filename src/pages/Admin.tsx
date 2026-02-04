@@ -9,8 +9,17 @@ import {
   Mail,
   Phone,
   Shield,
+  MoreVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   getAllUsers,
@@ -361,7 +370,7 @@ const AdminPage: React.FC = () => {
     } catch (err: any) {
       console.error("Error deleting user:", err);
       toast({
-        title: "❌ Unable to Delete User",
+        title: "⚠️ Cannot Delete User",
         description: getFriendlyErrorMessage(err),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
@@ -477,7 +486,7 @@ const AdminPage: React.FC = () => {
                 </div>
                 <input
                   type="text"
-                  placeholder="Search users by name, email, or username..."
+                  placeholder="Search users by name, email"
                   value={searchQuery}
                   onChange={(e) => {
                     const value = e.target.value;
@@ -623,42 +632,56 @@ const AdminPage: React.FC = () => {
                           </td> */}
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                              <Shield className="h-3 w-3 mr-1" />
+                              {user.user_role_id === 1 ? (
+                                <Shield className="h-3 w-3 mr-1" />
+                              ) : (
+                                <UserIcon className="h-3 w-3 mr-1" />
+                              )}
                               {getRoleName(user.user_role_id)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <div className="flex justify-center gap-2">
-                              <button
-                                onClick={() =>
-                                  setAddUserDialog({
-                                    open: true,
-                                    name: user.name,
-                                    email: user.email,
-                                    username: "", // user.user_name || "",
-                                    phone: user.mobile || "",
-                                    selectedRoleId:
-                                      user.user_role_id?.toString() || "",
-                                    editId: user.id,
-                                  })
-                                }
-                                className="p-2 text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors duration-200"
-                                title="Edit User"
-                              >
-                                <Pencil size={16} />
-                              </button>
-                              {user.user_role_id !== 1 && (
-                                <button
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="focus:outline-none">
+                                <div className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
                                   onClick={() =>
-                                    handleDeleteUser(user.id, user.name)
+                                    setAddUserDialog({
+                                      open: true,
+                                      name: user.name,
+                                      email: user.email,
+                                      username: "",
+                                      phone: user.mobile || "",
+                                      selectedRoleId:
+                                        user.user_role_id?.toString() || "",
+                                      editId: user.id,
+                                    })
                                   }
-                                  className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
-                                  title="Delete User"
                                 >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
-                            </div>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                {user.user_role_id !== 1 && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() =>
+                                        handleDeleteUser(user.id, user.name)
+                                      }
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </td>
                         </tr>
                       ))}
@@ -693,39 +716,57 @@ const AdminPage: React.FC = () => {
                                 </span>
                               )}
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                <Shield className="h-3 w-3 mr-1" />
+                                {user.user_role_id === 1 ? (
+                                  <Shield className="h-3 w-3 mr-1" />
+                                ) : (
+                                  <UserIcon className="h-3 w-3 mr-1" />
+                                )}
                                 {getRoleName(user.user_role_id)}
                               </span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-2 ml-2">
-                          <button
-                            onClick={() =>
-                              setAddUserDialog({
-                                open: true,
-                                name: user.name,
-                                email: user.email,
-                                username: "", // user.user_name || "",
-                                phone: user.mobile || "",
-                                selectedRoleId:
-                                  user.user_role_id?.toString() || "",
-                                editId: user.id,
-                              })
-                            }
-                            className="p-2 text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-colors duration-200"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          {user.user_role_id !== 1 && (
-                            <button
-                              onClick={() => handleDeleteUser(user.id, user.name)}
-                              className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors duration-200"
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="focus:outline-none">
+                            <div className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                              <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setAddUserDialog({
+                                  open: true,
+                                  name: user.name,
+                                  email: user.email,
+                                  username: "",
+                                  phone: user.mobile || "",
+                                  selectedRoleId:
+                                    user.user_role_id?.toString() || "",
+                                  editId: user.id,
+                                })
+                              }
                             >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            {user.user_role_id !== 1 && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() =>
+                                    handleDeleteUser(user.id, user.name)
+                                  }
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
