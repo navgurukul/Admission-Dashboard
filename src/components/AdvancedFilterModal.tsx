@@ -378,6 +378,31 @@ export function AdvancedFilterModal({
       }
     }
 
+    // Check if at least one filter is selected (not default values)
+    const hasValidFilters = 
+      (filters.stage && filters.stage !== "all") ||
+      filters.partner?.length > 0 ||
+      filters.district?.length > 0 ||
+      filters.school?.length > 0 ||
+      filters.religion?.length > 0 ||
+      filters.qualification?.length > 0 ||
+      filters.currentStatus?.length > 0 ||
+      filters.donor?.length > 0 ||
+      filters.partnerFilter?.length > 0 ||
+      filters.state ||
+      filters.dateRange.from ||
+      filters.dateRange.to;
+
+    if (!hasValidFilters) {
+      toast({
+        title: "⚠️ No Filters Selected",
+        description: "Please select at least one filter before applying.",
+        variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
     // Create processed filters object without the old 'status' field
     const processedFilters: any = {
       ...filters,
@@ -755,7 +780,7 @@ export function AdvancedFilterModal({
                   <SelectValue placeholder="Select stage" className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="z-50">
-                  <SelectItem value="all">All Stages</SelectItem>
+                  <SelectItem value="all">Select Stage</SelectItem>
                   {/* <SelectItem value="sourcing">Sourcing</SelectItem>
                   <SelectItem value="screening">Screening</SelectItem> */}
 

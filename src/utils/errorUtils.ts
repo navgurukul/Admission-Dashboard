@@ -51,6 +51,13 @@ export const getFriendlyErrorMessage = (error: any): string => {
         return "Network Error. Please check your internet connection and try again.";
     }
 
+    // 4.5 Handle User Deletion Restrictions
+    if (message.toLowerCase().includes("user deletion restricted") ||
+        message.toLowerCase().includes("cannot be deleted") ||
+        message.toLowerCase().includes("interview slots")) {
+        return "This user cannot be deleted as they have created interview slots. Please reassign or remove the slots before deleting this user.";
+    }
+
     // 5. User-Friendly Translations for Specific Technical Messages
     const technicalToFriendlyMap: Record<string, string> = {
         "operation completed": "The operation finished, but check for any warnings.",
