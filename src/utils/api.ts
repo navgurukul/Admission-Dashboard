@@ -1491,9 +1491,11 @@ export const getAllQuestionSets = async (): Promise<QuestionSet[]> => {
   });
   const json = await response.json();
 
-  const dataArray = Array.isArray(json.data) ? json.data : [];
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json.data)) return json.data;
+  if (json.data && Array.isArray(json.data.data)) return json.data.data;
 
-  return dataArray;
+  return [];
 };
 
 // Fetch questions for a given set name from external questions service

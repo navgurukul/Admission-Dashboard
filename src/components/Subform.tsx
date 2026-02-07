@@ -731,7 +731,7 @@ export function InlineSubform({
                     </Button>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent side="left" className="max-w-none">
                   <p>
                     {disableAdd 
                       ? "Cannot add more rows - round already passed" 
@@ -845,7 +845,7 @@ export function InlineSubform({
                                     </Button>
                                   </div>
                                 </TooltipTrigger>
-                                <TooltipContent>
+                                <TooltipContent side="left" className="max-w-none">
                                   <p>Cannot delete - Student has progressed to next round</p>
                                 </TooltipContent>
                               </Tooltip>

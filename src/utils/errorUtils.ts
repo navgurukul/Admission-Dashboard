@@ -55,7 +55,7 @@ export const getFriendlyErrorMessage = (error: any): string => {
     if (message.toLowerCase().includes("user deletion restricted") ||
         message.toLowerCase().includes("cannot be deleted") ||
         message.toLowerCase().includes("interview slots")) {
-        return "This user cannot be deleted as they have created interview slots. Please reassign or remove the slots before deleting this user.";
+        return "This user cannot be deleted as they have created interview slots.";
     }
 
     // 5. User-Friendly Translations for Specific Technical Messages
