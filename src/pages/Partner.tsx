@@ -172,7 +172,7 @@ const PartnerPage = () => {
 
   // Cleaned up old picker states
   // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
-  // const [pendingAssessment, setPendingAssessment] = useState<any>(null);
+  const [pendingAssessment, setPendingAssessment] = useState<any>(null);
 
   const loadPartners = async (p = page, search = searchQuery) => {
     // Cancel previous request if still pending
@@ -509,6 +509,14 @@ const PartnerPage = () => {
 
     // Also update global cache
     setAllPartnersForStats(prev => prev.map(p => p.id === idOrIdx ? { ...p, meraki_link: `${window.location.origin}${import.meta.env.BASE_URL}partnerLanding/${p.slug}` } : p));
+    
+    // Show success toast
+    toast({
+      title: "✅ Link Generated",
+      description: "Test link has been generated successfully. You can now copy it from the actions menu.",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900"
+    });
   };
 
   // Edit Dialog
@@ -859,8 +867,96 @@ const PartnerPage = () => {
   };
   const handleCreateAssessment = async (partner) => {
     setSelectedPartner(partner);
-    setShowCreateModal(true);
-    setNewAssessmentName("");
+    //  setShowCreateModal(true);
+    // setNewAssessmentName("");
+
+    // 1. Open Modal immediately with loading state
+    setSelectedSetName("Finding suitable assessment...");
+    setShowQuestionsModal(true);
+    setQuestionsLoading(true);
+    setPendingAssessment(null);
+
+    try {
+      // 2. Fetch all sets
+      const allSets = await getAllQuestionSets();
+
+      // 2. Filter for "Sample-1" and "Sample-2" (flexible matching)
+      console.log("Fetched Question Sets:", allSets);
+
+      const candidates = allSets.filter((s: any) => {
+        const name = s.name?.toLowerCase() || "";
+        // Flexible match: "Sample-1", "Sample Set 1", "sample 1", etc.
+        return /sample.*[12]/i.test(name);
+      });
+
+      if (candidates.length === 0) {
+        console.warn("No sample sets found. Available sets:", allSets.map(s => s.name));
+        toast({
+          title: "⚠️ No Sample Sets Found",
+          description: `Found ${allSets.length} sets, but none matched 'Sample-1' or 'Sample-2'. Check console for names.`,
+          variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+        setShowQuestionsModal(false);
+        return;
+      }
+
+      // 3. Randomly select one valid set
+      // We shuffle candidates and try until we find one with questions
+      const shuffled = [...candidates].sort(() => 0.5 - Math.random());
+
+      let selectedSet = null;
+      let questions = [];
+
+      for (const candidate of shuffled) {
+        try {
+          const res = await getQuestionsBySetName(candidate.name);
+          const qarr = res?.data || res?.questions || res?.data?.data || [];
+
+          if (qarr && qarr.length > 0) {
+            selectedSet = candidate;
+            questions = qarr;
+            break;
+          }
+        } catch (e) {
+          console.warn(`Failed to check questions for ${candidate.name}`, e);
+        }
+      }
+
+      if (!selectedSet) {
+        toast({
+          title: "⚠️ Invalid Sample Sets",
+          description: "Found sample sets but they contain no questions.",
+          variant: "destructive",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+        setShowQuestionsModal(false);
+        return;
+      }
+
+      // 5. Update Modal with Result
+      setSelectedSetQuestions(questions);
+      setSelectedSetName(`New Assessment from ${selectedSet.name}`);
+      setPendingAssessment({
+        sourceId: selectedSet.id,
+        sourceName: selectedSet.name,
+        questions: questions
+      });
+
+      // Modal is already open, just updated state
+
+    } catch (error) {
+      console.error("Create Assessment Flow Error:", error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to initialize assessment creation flow.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+      setShowQuestionsModal(false);
+    } finally {
+      setQuestionsLoading(false);
+    }
   };
 
   const handleDeletePartner = (id) => {
@@ -1371,8 +1467,17 @@ const PartnerPage = () => {
         <Dialog open={showQuestionsModal} onOpenChange={setShowQuestionsModal}>
           <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Questions for: {selectedSetName}</DialogTitle>
-              <DialogDescription>Select language to view questions</DialogDescription>
+              {/* <DialogTitle>Questions for: {selectedSetName}</DialogTitle>
+              <DialogDescription>Select language to view questions</DialogDescription> */}
+              <DialogTitle>
+                {pendingAssessment ? "Preview Question" : `Questions for: ${selectedSetName}`}
+              </DialogTitle>
+              <DialogDescription>
+                {pendingAssessment
+                  ? `Reviewing the selected set from ${pendingAssessment.sourceName}. Click Create to assign it to Partner ${selectedPartner?.partner_name}.`
+                  : "Select language to view questions"
+                }
+              </DialogDescription>
             </DialogHeader>
 
             <div className="flex items-center justify-between mt-2">
@@ -1438,8 +1543,70 @@ const PartnerPage = () => {
               )}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button>
+            <DialogFooter className="gap-2 sm:gap-0">
+              {/* <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button> */}
+              <Button variant="outline" onClick={() => {
+                setShowQuestionsModal(false);
+                setPendingAssessment(null);
+              }}>Close</Button>
+
+              {pendingAssessment && (
+                <Button
+                  onClick={async () => {
+                    try {
+                      setQuestionsLoading(true);
+
+                      // Format questions for API
+                      const formattedQuestions = pendingAssessment.questions.map((q: any) => ({
+                        question_id: q.id,
+                        difficulty_level: q.difficulty_level
+                      }));
+
+                      const payload = {
+                        name: `${selectedPartner?.partner_name} Assessment - ${new Date().toLocaleDateString()}`,
+                        description: `Generated from "${pendingAssessment.sourceName}" for "${selectedPartner?.partner_name}"`,
+                        partnerId: selectedPartner?.id, // Ensure partner link
+                        partner_name: selectedPartner?.partner_name,
+                        isRandom: false, // We are providing specific questions
+                        questions: formattedQuestions
+                      };
+
+                      await createQuestionSet(payload);
+
+                      toast({
+                        title: "✅ Assessment Created",
+                        description: "Assessment has been successfully created and linked to the partner.",
+                        variant: "default",
+                        className: "border-green-500 bg-green-50 text-green-900"
+                      });
+
+                      setShowQuestionsModal(false);
+                      setPendingAssessment(null);
+
+                      // Refresh partner data/stats if needed
+                      if (selectedPartner) {
+                        handleViewAssessments(selectedPartner); // This will refresh the list in the other modal if open, but here we are in the Preview modal.
+                        // Actually we might want to just close this and maybe show the assessment list?
+                        // For now, just closing is fine.
+                      }
+
+                    } catch (error) {
+                      console.error("Failed to create assessment:", error);
+                      toast({
+                        title: "❌ Creation Failed",
+                        description: getFriendlyErrorMessage(error),
+                        variant: "destructive",
+                        className: "border-red-500 bg-red-50 text-red-900"
+                      });
+                    } finally {
+                      setQuestionsLoading(false);
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Create Assessment
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
