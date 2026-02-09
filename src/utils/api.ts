@@ -570,32 +570,32 @@ export const triggerStudentStatusUpdate = async (
   switch (roundType) {
     case "screening":
       stageId = 3;
-      if (normalizedStatus.includes("pass")) stageStatusId = 5;
-      else if (normalizedStatus.includes("fail")) stageStatusId = 4;
+      if (normalizedStatus.includes("pass")) stageStatusId = 6;
+      else if (normalizedStatus.includes("fail")) stageStatusId = 3;
       break;
     case "learning":
       stageId = 4;
-      if (normalizedStatus.includes("pass")) stageStatusId = 9;
-      else if (normalizedStatus.includes("fail")) stageStatusId = 14;
+      if (normalizedStatus.includes("pass")) stageStatusId = 10;
+      else if (normalizedStatus.includes("fail")) stageStatusId = 9;
       break;
     case "cultural":
       stageId = 4;
-      if (normalizedStatus.includes("pass")) stageStatusId = 26;
-      else if (normalizedStatus.includes("fail")) stageStatusId = 18;
+      if (normalizedStatus.includes("pass")) stageStatusId = 23;
+      else if (normalizedStatus.includes("fail")) stageStatusId = 15;
       break;
     case "final":
       stageId = 5;
-      if (normalizedStatus === "offer declined") stageStatusId = 10;
+      if (normalizedStatus === "offer declined") stageStatusId = 12;
       else if (normalizedStatus === "selected but not joined") stageStatusId = 11;
-      else if (normalizedStatus === "offer letter sent") stageStatusId = 13;
-      else if (normalizedStatus === "offer accepted") stageStatusId = 16;
-      else if (normalizedStatus === "offer sent") stageStatusId = 13;
-      else if (normalizedStatus === "decision pending based on diversity") stageStatusId = 20;
-      else if (normalizedStatus === "diversity failed") stageStatusId = 21;
+      else if (normalizedStatus === "offer letter sent") stageStatusId = 11;
+      else if (normalizedStatus === "offer accepted") stageStatusId = 13;
+      else if (normalizedStatus === "offer sent") stageStatusId = 11;
+      else if (normalizedStatus === "decision pending based on diversity") stageStatusId = 17;
+      else if (normalizedStatus === "diversity failed") stageStatusId = 19;
       break;
     case "onboarded":
       stageId = 6;
-      if (normalizedStatus === "onboarded") stageStatusId = 17;
+      if (normalizedStatus === "onboarded") stageStatusId = 14;
       break;
     default:
       return;
@@ -2907,11 +2907,11 @@ export const getStudentsByDonorId = async (id: number | string, page: number = 1
     page: page.toString(),
     pageSize: pageSize.toString(),
   });
-  
+
   if (search.trim()) {
     params.append("search", search.trim());
   }
-  
+
   const response = await fetch(`${BASE_URL}/donors/getStudentsByDonorId/${id}?${params.toString()}`, {
     method: "GET",
     headers: getAuthHeaders(),
