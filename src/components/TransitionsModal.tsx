@@ -27,6 +27,7 @@ import {
     getStageStatuses,
 } from "@/utils/api";
 import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface TransitionsModalProps {
     isOpen: boolean;
@@ -124,9 +125,10 @@ export function TransitionsModal({
         } catch (error) {
             console.error("Failed to fetch feedbacks:", error);
             toast({
-                title: "Error",
-                description: "Failed to fetch feedbacks",
+                title: "❌ Unable to Load Feedbacks",
+                description: getFriendlyErrorMessage(error),
                 variant: "destructive",
+                className: "border-red-500 bg-red-50 text-red-900",
             });
         } finally {
             setIsLoading(false);
@@ -159,14 +161,20 @@ export function TransitionsModal({
 
         try {
             await deleteFeedback(feedbackToDelete);
-            toast({ title: "Success", description: "Feedback deleted successfully" });
+            toast({ 
+                title: "✅ Feedback Deleted", 
+                description: "Feedback deleted successfully",
+                variant: "default",
+                className: "border-green-500 bg-green-50 text-green-900",
+            });
             fetchFeedbacks();
         } catch (error) {
             console.error("Failed to delete:", error);
             toast({
-                title: "Error",
-                description: "Failed to delete feedback",
+                title: "❌ Unable to Delete Feedback",
+                description: getFriendlyErrorMessage(error),
                 variant: "destructive",
+                className: "border-red-500 bg-red-50 text-red-900",
             });
         } finally {
             setDeleteDialogOpen(false);
@@ -177,9 +185,10 @@ export function TransitionsModal({
     const handleSubmit = async () => {
         if (!formData.stage_id || !formData.stage_status_id) {
             toast({
-                title: "Validation Error",
+                title: "⚠️ Missing Information",
                 description: "Please select both Stage and Status",
-                variant: "destructive",
+                variant: "default",
+                className: "border-orange-500 bg-orange-50 text-orange-900",
             });
             return;
         }
@@ -194,10 +203,20 @@ export function TransitionsModal({
 
             if (editingId) {
                 await updateFeedback(editingId, payload);
-                toast({ title: "Success", description: "Feedback updated successfully" });
+                toast({ 
+                    title: "✅ Feedback Updated", 
+                    description: "Feedback updated successfully",
+                    variant: "default",
+                    className: "border-green-500 bg-green-50 text-green-900",
+                });
             } else {
                 await createFeedback(payload);
-                toast({ title: "Success", description: "Feedback created successfully" });
+                toast({ 
+                    title: "✅ Feedback Created", 
+                    description: "Feedback created successfully",
+                    variant: "default",
+                    className: "border-green-500 bg-green-50 text-green-900",
+                });
             }
 
             setIsFormOpen(false);
@@ -205,9 +224,10 @@ export function TransitionsModal({
         } catch (error) {
             console.error("Failed to save:", error);
             toast({
-                title: "Error",
-                description: "Failed to save feedback",
+                title: "❌ Unable to Save Feedback",
+                description: getFriendlyErrorMessage(error),
                 variant: "destructive",
+                className: "border-red-500 bg-red-50 text-red-900",
             });
         }
     };
