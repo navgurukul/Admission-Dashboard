@@ -37,6 +37,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const LIFECYCLE_STATUSES = [
     "Culture fit round Pass",
@@ -136,6 +137,8 @@ const PartnerStudents = () => {
     const [partner, setPartner] = useState(null); // To show partner name header
     const [campuses, setCampuses] = useState<{ id: number; campus_name: string }[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isRefetching, setIsRefetching] = useState(false);
     const [chartLoading, setChartLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -144,7 +147,7 @@ const PartnerStudents = () => {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    
+
     // Use debounce hook for search
     const { debouncedValue: debouncedSearch, isPending: isSearchPending } = useDebounce(searchQuery, 500);
 
@@ -159,7 +162,7 @@ const PartnerStudents = () => {
                 console.error('Failed to parse saved columns:', e);
             }
         }
-        
+
         // Default columns configuration
         return [
             { id: 'name', label: 'Name', visible: true },
@@ -269,14 +272,21 @@ const PartnerStudents = () => {
         return column ? column.visible : false;
     }, [visibleColumns]);
 
+    // Load table data when pagination or search changes
     useEffect(() => {
         if (id) {
             loadData();
+        }
+    }, [id, currentPage, itemsPerPage, debouncedSearch]);
+
+    // Load global data only when ID changes
+    useEffect(() => {
+        if (id) {
             loadPartnerDetails();
             loadChartData();
             loadCampuses();
         }
-    }, [id, currentPage, itemsPerPage, debouncedSearch]);
+    }, [id]);
 
     const loadCampuses = async () => {
         try {
@@ -322,7 +332,13 @@ const PartnerStudents = () => {
     };
 
     const loadData = async () => {
-        setLoading(true);
+        // Only show global loading spinner if we don't have any students yet
+        if (students.length === 0) {
+            setLoading(true);
+        } else {
+            setIsRefetching(true);
+        }
+
         try {
             const data = await getStudentsByPartnerId(id, currentPage, itemsPerPage, debouncedSearch);
             let studentList = [];
@@ -355,10 +371,12 @@ const PartnerStudents = () => {
                 title: "❌ Unable to Load Students",
                 description: getFriendlyErrorMessage(error),
                 variant: "destructive",
-                className: "border-red-500 bg-red-50 text-red-900"
+                className: "border-red-500 bg-red-50 text-red-900",
             });
         } finally {
             setLoading(false);
+            setIsInitialLoading(false);
+            setIsRefetching(false);
         }
     };
 
@@ -432,7 +450,7 @@ const PartnerStudents = () => {
             case 'final_notes':
                 return student.final_decisions?.[0]?.final_notes || "-";
             case 'joining_date':
-                return student.final_decisions?.[0]?.joining_date 
+                return student.final_decisions?.[0]?.joining_date
                     ? new Date(student.final_decisions[0].joining_date).toLocaleDateString("en-GB")
                     : "-";
             case 'campus':
@@ -454,15 +472,15 @@ const PartnerStudents = () => {
     const getStudentStatus = (student) => {
         // Check current_status_name first (if directly available)
         // if (student.current_status_name) return student.current_status_name;
-        
+
         // Determine status based on stage
         const stage = (student.stage_name || student.stage || "").toLowerCase();
-        
+
         // Special case: If stage is Onboarded, status should also be Onboarded
         if (stage.includes("onboarded")) {
             return "Onboarded";
         }
-        
+
         // 1. Screening Round - get status from exam_sessions
         if (stage.includes("screening") || stage.includes("exam")) {
             if (student.exam_sessions && student.exam_sessions.length > 0) {
@@ -470,11 +488,11 @@ const PartnerStudents = () => {
                 if (latestExam.status) return latestExam.status;
             }
         }
-        
+
         // 2. Interview Round - check learning round and cultural fit round
         if (stage.includes("interview")) {
 
-                // Check cultural fit round status
+            // Check cultural fit round status
             if (student.interview_cultural_fit_round && student.interview_cultural_fit_round.length > 0) {
                 const culturalRound = student.interview_cultural_fit_round[0];
                 if (culturalRound.cultural_fit_status) return culturalRound.cultural_fit_status;
@@ -484,25 +502,25 @@ const PartnerStudents = () => {
                 const learningRound = student.interview_learner_round[0];
                 if (learningRound.learning_round_status) return learningRound.learning_round_status;
             }
-            
-               }
-        
+
+        }
+
         // 3. Final Decision - check offer letter and onboarding status
         if (stage.includes("final") || stage.includes("decision") || stage.includes("offer")) {
             if (student.final_decisions && student.final_decisions.length > 0) {
                 const finalDecision = student.final_decisions[0];
-                
+
                 // Onboarding status has higher priority
                 if (finalDecision.onboarded_status) return finalDecision.onboarded_status;
-                
+
                 // Offer letter status
                 if (finalDecision.offer_letter_status) return finalDecision.offer_letter_status;
             }
         }
-        
+
         // Fallback to current_status if nothing else found
         if (student.current_status) return student.current_status;
-        
+
         return "N/A";
     };
 
@@ -512,7 +530,7 @@ const PartnerStudents = () => {
         if (student.total_score !== null && student.total_score !== undefined) {
             return student.total_score;
         }
-        
+
         // Check exam sessions for obtained marks
         if (student.exam_sessions && student.exam_sessions.length > 0) {
             const latestExam = student.exam_sessions[0];
@@ -520,7 +538,7 @@ const PartnerStudents = () => {
                 return latestExam.obtained_marks;
             }
         }
-        
+
         return "-";
     };
 
@@ -719,10 +737,10 @@ const PartnerStudents = () => {
                 <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 mt-12 md:mt-0">
                     {/* Page Header */}
                     <div className="flex flex-col gap-3">
-                         {/* Back button */}
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                        {/* Back button */}
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => navigate("/partners")}
                             className="flex items-center gap-2 w-fit"
                         >
@@ -733,8 +751,8 @@ const PartnerStudents = () => {
                             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
                                 {partner ? `${partner.partner_name || partner.name} Students` : "Partner Students"}
                             </h1>
-                        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-                            View and manage students associated with this partner
+                            <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+                                View and manage students associated with this partner
                             </p>
                         </div>
                         {/* Back button - shown on desktop */}
@@ -834,7 +852,7 @@ const PartnerStudents = () => {
                                             <X className="h-4 w-4" />
                                         </button>
                                     )}
-                                    {isSearchPending && (
+                                    {(isSearchPending || isRefetching) && (
                                         <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
                                             <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
                                         </div>
@@ -847,8 +865,12 @@ const PartnerStudents = () => {
                                 )}
                             </div>
 
-                            {/* Desktop Table View */}
-                            <div className="hidden md:block overflow-x-auto">
+                            <div className="hidden md:block overflow-x-auto relative">
+                                {isRefetching && (
+                                    <div className="absolute top-0 left-0 right-0 z-20">
+                                        <Progress value={undefined} className="h-1 rounded-none bg-primary/20" />
+                                    </div>
+                                )}
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -1007,8 +1029,12 @@ const PartnerStudents = () => {
                                 </Table>
                             </div>
 
-                            {/* Mobile Card View */}
-                            <div className="md:hidden space-y-4">
+                            <div className="md:hidden space-y-4 relative">
+                                {isRefetching && (
+                                    <div className="sticky top-0 z-20 -mx-4 px-4 bg-background/80 backdrop-blur-sm pb-2">
+                                        <Progress value={undefined} className="h-1 rounded-none bg-primary/20" />
+                                    </div>
+                                )}
                                 {loading ? (
                                     <div className="h-24 flex items-center justify-center text-muted-foreground">Loading...</div>
                                 ) : students.length === 0 ? (
