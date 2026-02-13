@@ -55,12 +55,12 @@ export const getFriendlyErrorMessage = (error: any): string => {
     if (message.toLowerCase().includes("user deletion restricted") ||
         message.toLowerCase().includes("cannot be deleted") ||
         message.toLowerCase().includes("interview slots")) {
-        return "This user cannot be deleted as they have created interview slots.";
+        return "This user cannot be deleted as they have created interview slots. Please reassign or remove the slots before deleting this user.";
     }
 
     // 5. User-Friendly Translations for Specific Technical Messages
     const technicalToFriendlyMap: Record<string, string> = {
-        "operation completed": "The operation finished, but check for any warnings.",
+        "operation completed": "This action has already been completed by you or another user. Please refresh the page to view the latest data.",
         "constraint check failed": "This action cannot be completed because it conflicts with other data (e.g., duplicates).",
         "foreign key constraint": "This item is currently formatted or being used elsewhere and cannot be modified/deleted.",
         "unique constraint": "This item already exists. Please try a different name or value.",

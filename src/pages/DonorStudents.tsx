@@ -392,24 +392,20 @@ const DonorStudents = () => {
         <div className="min-h-screen bg-muted/40 flex">
             <AdmissionsSidebar />
             <main className="md:ml-64 flex-1 p-3 sm:p-6 overflow-y-auto h-screen">
-                <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-                    {/* Back button - mobile: aligned with hamburger (top-4 right-4) */}
-                    <div className="md:hidden fixed top-4 right-4 z-40">
+                <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 mt-12 md:mt-0">
+                    {/* Page Header */}
+                    <div className="flex flex-col gap-3">
+                        {/* Back button */}
                         <Button 
                             variant="outline" 
                             size="sm" 
                             onClick={() => navigate("/donor")}
-                            className="flex items-center gap-2 bg-white shadow-lg"
+                            className="flex items-center gap-2 w-fit"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                            <span className="hidden sm:inline">Back to Donors</span>
-                            <span className="sm:hidden">Back</span>
+                            Back 
                         </Button>
-                    </div>
-
-                    {/* Page Header */}
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="text-center md:text-left">
+                        <div>
                             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
                                 {donor ? `${donor.donor_name || donor.name} Students` : "Donor Students"}
                             </h1>
@@ -418,7 +414,7 @@ const DonorStudents = () => {
                             </p>
                         </div>
                         {/* Back button - shown on desktop */}
-                        <Button 
+                        {/* <Button 
                             variant="outline" 
                             size="sm" 
                             onClick={() => navigate("/donor")}
@@ -426,7 +422,7 @@ const DonorStudents = () => {
                         >
                             <ArrowLeft className="h-4 w-4" />
                             Back to Donors
-                        </Button>
+                        </Button> */}
                     </div>                    <Card>
                         <CardHeader>
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">

@@ -2034,12 +2034,14 @@ export const deleteCampusApi = async (id: number) => {
 };
 
 //  Create School
-export const createSchool = async (schoolName: string) => {
+export const createSchool = async (schoolName: string, cutOffMarks?: number) => {
   const response = await fetch(`${BASE_URL}/schools/createSchool`, {
     method: "POST",
     headers: getAuthHeaders(),
-
-    body: JSON.stringify({ school_name: schoolName }),
+    body: JSON.stringify({
+      school_name: schoolName,
+      cut_off_marks: cutOffMarks
+    }),
   });
   if (!response.ok) {
     const errorText = await response.text();
@@ -2053,6 +2055,7 @@ export const createSchool = async (schoolName: string) => {
 interface School {
   id: number;
   school_name: string;
+  cut_off_marks: number;
 }
 
 export const getAllSchools = async (): Promise<School[]> => {
@@ -2096,15 +2099,19 @@ export const getAllSchools = async (): Promise<School[]> => {
   return schoolsData.map((school: any) => ({
     id: school.id || school.school_id,
     school_name: school.school_name || school.name || school.schoolName || "",
+    cut_off_marks: school.cut_off_marks || 0,
   }));
 };
 
 //  Update School
-export const updateSchool = async (id: number, updatedName: string) => {
+export const updateSchool = async (id: number, updatedName: string, cutOffMarks?: number) => {
   const response = await fetch(`${BASE_URL}/schools/updateSchool/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ school_name: updatedName }),
+    body: JSON.stringify({
+      school_name: updatedName,
+      cut_off_marks: cutOffMarks
+    }),
   });
   if (!response.ok) {
     const errorText = await response.text();

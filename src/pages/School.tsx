@@ -33,6 +33,7 @@ import {
 interface School {
   id: number;
   school_name: string;
+  cut_off_marks: number;
 }
 
 const SchoolPage = () => {
@@ -49,7 +50,9 @@ const SchoolPage = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
 
   const [newSchool, setNewSchool] = useState("");
+  const [newCutOffMarks, setNewCutOffMarks] = useState<number>(0);
   const [updatedSchoolName, setUpdatedSchoolName] = useState("");
+  const [updatedCutOffMarks, setUpdatedCutOffMarks] = useState<number>(0);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
 
   const formatErrorMessage = (error: any): string => {
@@ -140,16 +143,18 @@ const SchoolPage = () => {
       return;
     }
     try {
-      const result = await createSchool(newSchool);
+      const result = await createSchool(newSchool, newCutOffMarks);
       const newSchoolData: School = {
         id: result.id || result.data?.id || Date.now(),
         school_name: newSchool,
+        cut_off_marks: newCutOffMarks,
         // status: true,
         // created_at: new Date().toISOString(),
       };
 
       setSchools((prev) => [...prev, newSchoolData]);
       setNewSchool("");
+      setNewCutOffMarks(0);
       setAddDialog(false);
 
       toast({
@@ -170,16 +175,16 @@ const SchoolPage = () => {
   };
 
   //  Update School
-  const handleUpdateSchool = async (id: number, updatedName: string) => {
-  // Get the old school name before updating
-  const oldSchool = schools.find(s => s.id === id);
-  const oldName = oldSchool?.school_name || "";
-  
-  try {
-    await updateSchool(id, updatedName);
-    setSchools((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, school_name: updatedName } : s)),
-    );
+  const handleUpdateSchool = async (id: number, updatedName: string, updatedCutOffMarks: number) => {
+    // Get the old school name before updating
+    const oldSchool = schools.find(s => s.id === id);
+    const oldName = oldSchool?.school_name || "";
+
+    try {
+      await updateSchool(id, updatedName, updatedCutOffMarks);
+      setSchools((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, school_name: updatedName, cut_off_marks: updatedCutOffMarks } : s)),
+      );
 
     toast({
       title: "✅ School Updated",
@@ -279,7 +284,7 @@ const SchoolPage = () => {
                       <TableRow>
                         <TableHead>S.No</TableHead>
                         <TableHead>School Name</TableHead>
-                        {/* <TableHead>Status</TableHead> */}
+                        <TableHead>Cut-off Marks</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -299,6 +304,9 @@ const SchoolPage = () => {
                             <TableCell className="font-medium text-primary">
                               {school.school_name || "N/A"}
                             </TableCell>
+                            <TableCell>
+                              {school.cut_off_marks ?? 0}
+                            </TableCell>
                             <TableCell className="text-right space-x-2">
                               <Button
                                 variant="ghost"
@@ -307,6 +315,7 @@ const SchoolPage = () => {
                                 onClick={() => {
                                   setSelectedSchool(school);
                                   setUpdatedSchoolName(school.school_name);
+                                  setUpdatedCutOffMarks(school.cut_off_marks);
                                   setEditDialog(true);
                                 }}
                               >
@@ -376,14 +385,32 @@ const SchoolPage = () => {
             <h2 className="text-lg font-semibold mb-4 text-foreground">
               Add School
             </h2>
-            <input
-              type="text"
-              placeholder="Enter school name"
-              className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-              value={newSchool}
-              onChange={(e) => setNewSchool(e.target.value)}
-              required
-            />
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                School Name
+              </label>
+              <input
+                type="text"
+                placeholder="Enter school name"
+                className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                value={newSchool}
+                onChange={(e) => setNewSchool(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Cut-off Marks
+              </label>
+              <input
+                type="number"
+                placeholder="Enter cut-off marks"
+                className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                value={newCutOffMarks}
+                onChange={(e) => setNewCutOffMarks(Number(e.target.value))}
+                required
+              />
+            </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
                 type="button"
@@ -410,14 +437,32 @@ const SchoolPage = () => {
             <h2 className="text-lg font-semibold mb-4 text-foreground">
               Update School
             </h2>
-            <input
-              type="text"
-              placeholder="Enter school name"
-              className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-              value={updatedSchoolName}
-              onChange={(e) => setUpdatedSchoolName(e.target.value)}
-              required
-            />
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                School Name
+              </label>
+              <input
+                type="text"
+                placeholder="Enter school name"
+                className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                value={updatedSchoolName}
+                onChange={(e) => setUpdatedSchoolName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Cut-off Marks
+              </label>
+              <input
+                type="number"
+                placeholder="Enter cut-off marks"
+                className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                value={updatedCutOffMarks}
+                onChange={(e) => setUpdatedCutOffMarks(Number(e.target.value))}
+                required
+              />
+            </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
                 className="px-4 py-2 bg-muted text-foreground rounded hover:bg-muted/80 transition-colors"
@@ -432,7 +477,7 @@ const SchoolPage = () => {
                 className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
                 onClick={() => {
                   if (selectedSchool) {
-                    handleUpdateSchool(selectedSchool.id, updatedSchoolName);
+                    handleUpdateSchool(selectedSchool.id, updatedSchoolName, updatedCutOffMarks);
                     setEditDialog(false);
                     setSelectedSchool(null);
                   }
