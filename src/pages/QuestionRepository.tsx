@@ -16,6 +16,7 @@ import {
   History,
   HelpCircle,
 } from "lucide-react";
+import { getAllSchools } from "@/utils/api";
 import { QuestionEditor } from "@/components/questions/QuestionEditor";
 import { QuestionList } from "@/components/questions/QuestionList";
 import { QuestionBulkImport } from "@/components/questions/QuestionBulkImport";
@@ -54,6 +55,7 @@ export default function QuestionRepository() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<any>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [schools, setSchools] = useState<any[]>([]);
 
   const { toast } = useToast();
   const {
@@ -69,6 +71,18 @@ export default function QuestionRepository() {
   } = useQuestions(filters, debouncedSearchTerm);
 
   useEffect(() => { }, [questions]);
+
+  useEffect(() => {
+    const fetchSchoolsData = async () => {
+      try {
+        const data = await getAllSchools();
+        setSchools(data || []);
+      } catch (error) {
+        console.error("Error fetching schools:", error);
+      }
+    };
+    fetchSchoolsData();
+  }, []);
 
   const handleImportComplete = () => {
     refetch();
@@ -191,140 +205,142 @@ export default function QuestionRepository() {
                 Manage and organize assessment questions for admissions screening
               </p>
             </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setActiveTab("import")}
-              className="flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Bulk Import
-            </Button>
-            <Button
-              onClick={handleCreateQuestion}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              New Question
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowHelpModal(true)}
-              className="text-primary hover:text-primary/80"
-              title="How to use Question Repository"
-            >
-              <HelpCircle className="h-6 w-6" />
-            </Button>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab("import")}
+                className="flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Bulk Import
+              </Button>
+              <Button
+                onClick={handleCreateQuestion}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                New Question
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowHelpModal(true)}
+                className="text-primary hover:text-primary/80"
+                title="How to use Question Repository"
+              >
+                <HelpCircle className="h-6 w-6" />
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="flex-1 flex flex-col overflow-hidden"
-        >
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="list">Questions</TabsTrigger>
-            <TabsTrigger value="editor">Editor</TabsTrigger>
-            <TabsTrigger value="sets">Sets</TabsTrigger>
-            <TabsTrigger value="import">Import</TabsTrigger>
-            {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
-            {/* <TabsTrigger value="history">History</TabsTrigger> */}
-            {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
-          </TabsList>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex-1 flex flex-col overflow-hidden"
+          >
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="list">Questions</TabsTrigger>
+              <TabsTrigger value="editor">Editor</TabsTrigger>
+              <TabsTrigger value="sets">Sets</TabsTrigger>
+              <TabsTrigger value="import">Import</TabsTrigger>
+              {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
+              {/* <TabsTrigger value="history">History</TabsTrigger> */}
+              {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
+            </TabsList>
 
-          <TabsContent value="list" className="flex-1 overflow-hidden m-0">
-            <Card className="h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Question Library
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                      <Input
-                        placeholder="Search questions..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-64"
+            <TabsContent value="list" className="flex-1 overflow-hidden m-0">
+              <Card className="h-full flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    Question Library
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          placeholder="Search questions..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-64"
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center gap-2"
+                      >
+                        <Filter className="w-4 h-4" />
+                        Filters
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col overflow-hidden">
+                  {showFilters && (
+                    <div className="mb-4">
+                      <QuestionFilters
+                        difficultyLevels={difficultyLevels}
+                        filters={filters}
+                        onFiltersChange={setFilters}
                       />
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowFilters(!showFilters)}
-                      className="flex items-center gap-2"
-                    >
-                      <Filter className="w-4 h-4" />
-                      Filters
-                    </Button>
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col overflow-hidden">
-                {showFilters && (
-                  <div className="mb-4">
-                    <QuestionFilters
-                      difficultyLevels={difficultyLevels}
-                      filters={filters}
-                      onFiltersChange={setFilters}
+                  )}
+
+                  <div className="flex-1 overflow-y-auto pr-2">
+                    <QuestionList
+                      questions={questions}
+                      loading={loading || isSearching}
+                      onEdit={(q) => {
+                        handleEditQuestion(q);
+                        setActiveTab("editor");
+                      }}
+                      onArchive={handleArchiveQuestion}
+                      onDelete={openDeleteConfirm}
+                      schools={schools}
                     />
                   </div>
-                )}
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="flex-1 overflow-y-auto pr-2">
-                  <QuestionList
-                    questions={questions}
-                    loading={loading || isSearching}
-                    onEdit={(q) => {
-                      handleEditQuestion(q);
-                      setActiveTab("editor");
+            <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle>
+                    {selectedQuestion ? "Edit Question" : "Create New Question"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto">
+                  <QuestionEditor
+                    difficultyLevels={difficultyLevels}
+                    question={selectedQuestion}
+                    onSave={handleSaveQuestion}
+                    setSelectedQuestion={setSelectedQuestion}
+                    onCancel={() => {
+                      setActiveTab("list");
+                      setSelectedQuestion(null);
                     }}
-                    onArchive={handleArchiveQuestion}
-                    onDelete={openDeleteConfirm}
+                    schools={schools}
                   />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="sets" className="flex-1 overflow-hidden m-0">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle>Question Sets</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto">
+                  <QuestionSetManager
+                    allQuestions={questions}
+                    difficultyLevels={difficultyLevels}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle>
-                  {selectedQuestion ? "Edit Question" : "Create New Question"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto">
-                <QuestionEditor
-                  difficultyLevels={difficultyLevels}
-                  question={selectedQuestion}
-                  onSave={handleSaveQuestion}
-                  setSelectedQuestion={setSelectedQuestion}
-                  onCancel={() => {
-                    setActiveTab("list");
-                    setSelectedQuestion(null);
-                  }}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="sets" className="flex-1 overflow-hidden m-0">
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle>Question Sets</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto">
-                <QuestionSetManager
-                  allQuestions={questions}
-                  difficultyLevels={difficultyLevels}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* <TabsContent value="preview">
+            {/* <TabsContent value="preview">
               <Card>
                 <CardHeader>
                   <CardTitle>Question Preview</CardTitle>
@@ -339,7 +355,7 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent> */}
 
-          {/* <TabsContent value="history">
+            {/* <TabsContent value="history">
               <Card>
                 <CardHeader>
                   <CardTitle>Version History</CardTitle>
@@ -354,18 +370,18 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent> */}
 
-          <TabsContent value="import" className="flex-1 overflow-hidden m-0">
-            <Card className="h-full flex flex-col">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle>Bulk Import Questions</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto">
-                <QuestionBulkImport onImportComplete={handleImportComplete} />
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <TabsContent value="import" className="flex-1 overflow-hidden m-0">
+              <Card className="h-full flex flex-col">
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle>Bulk Import Questions</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto">
+                  <QuestionBulkImport onImportComplete={handleImportComplete} />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* <TabsContent value="tags">
+            {/* <TabsContent value="tags">
               <Card>
                 <CardHeader>
                   <CardTitle>Tag Management</CardTitle>
@@ -375,7 +391,7 @@ export default function QuestionRepository() {
                 </CardContent>
               </Card>
             </TabsContent> */}
-        </Tabs>
+          </Tabs>
         </div>
       </main>
 

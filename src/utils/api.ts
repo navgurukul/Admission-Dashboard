@@ -1372,7 +1372,7 @@ export interface Question {
 
   status: string;
   added_by: number;
-
+  school_ids?: number[];
   created_at: string; // ISO date
   updated_at: string; // ISO date
 }
@@ -1481,6 +1481,7 @@ interface QuestionSet {
   updated_at: string;
   partnerId?: number;
   partner_name?: string;
+  school_ids?: number[];
 }
 
 // Get all question sets ...
@@ -1608,6 +1609,8 @@ export const createQuestionSet = async (data: {
   questions?: { question_id: number; difficulty_level: number }[];
   partnerId?: number;
   partner_name?: string;
+  school_ids?: number[];
+  success?: boolean;
 }): Promise<QuestionSet> => {
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "POST",
@@ -1632,6 +1635,8 @@ export const updateQuestionSet = async (
     description: string;
     maximumMarks?: number;
     isRandom?: boolean;
+    school_ids?: number[];
+    success?: boolean;
   }
 ): Promise<QuestionSet> => {
   const response = await fetch(
