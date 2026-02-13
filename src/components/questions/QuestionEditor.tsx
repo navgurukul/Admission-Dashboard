@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,7 @@ interface QuestionEditorProps {
   onCancel: () => void;
   difficultyLevels: DifficultyLevel[];
   setSelectedQuestion?: (question: any) => void;
+  schools: any[];
 }
 
 export function QuestionEditor({
@@ -36,6 +38,7 @@ export function QuestionEditor({
   onCancel,
   setSelectedQuestion,
   difficultyLevels,
+  schools,
 }: QuestionEditorProps) {
   const { toast } = useToast();
 
@@ -51,6 +54,7 @@ export function QuestionEditor({
     };
     correct_answer: number;
     explanation: string;
+    school_ids: string[];
   }>({
     question_type: "MCQ",
     difficulty_level: "",
@@ -63,6 +67,7 @@ export function QuestionEditor({
     },
     correct_answer: 0,
     explanation: "",
+    school_ids: [],
   });
 
   useEffect(() => {
@@ -76,7 +81,8 @@ export function QuestionEditor({
           hindi: [1, 2, 3, 4].map(id => ({ id, text: "" })),
           marathi: [1, 2, 3, 4].map(id => ({ id, text: "" })),
         },
-        correct_answer: 1 // Default to first option ID
+        correct_answer: 1, // Default to first option ID
+        school_ids: []
       }));
       return;
     }
@@ -153,6 +159,7 @@ export function QuestionEditor({
       options: normalizedOptions,
       correct_answer: normalizedAnswerKey,
       explanation: question.explanation ?? "",
+      school_ids: question.school_ids ? question.school_ids.map(String) : [],
     });
   }, [question, difficultyLevels]);
 
@@ -268,6 +275,7 @@ export function QuestionEditor({
       marathi_options: formData.options.marathi,
       answer_key: [formData.correct_answer], // Array of integers (IDs)
       explanation: formData.explanation,
+      school_ids: formData.school_ids.map(Number),
     };
 
     onSave(payload);
@@ -323,6 +331,19 @@ export function QuestionEditor({
         <div className="space-y-2">
           <Label>Points</Label>
           <Input type="number" min={1} value={formData.points} disabled />
+        </div>
+        <div className="space-y-2">
+          <Label>Schools</Label>
+          <MultiSelectCombobox
+            options={schools.map((school) => ({
+              value: String(school.id),
+              label: school.school_name,
+            }))}
+            value={formData.school_ids}
+            onValueChange={(value) => updateField("school_ids", value)}
+            placeholder="Select schools (Optional)"
+            searchPlaceholder="Search schools..."
+          />
         </div>
       </div>
 

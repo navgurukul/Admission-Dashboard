@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListChecks, Trash2, Plus, Edit, Download, Eye } from "lucide-react";
@@ -35,6 +36,7 @@ import {
   updateQuestionSet,
   setDefaultOnlineQuestionSet,
   downloadQuestionSetPDF,
+  getAllSchools,
 } from "@/utils/api";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels }) {
@@ -49,7 +51,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     description: "",
     nameType: "random", // "random" | "custom"
     isRandom: true,
+    school_ids: [] as string[],
   });
+  const [schools, setSchools] = useState<any[]>([]);
   const [pendingSetData, setPendingSetData] = useState<any>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [downloadFormData, setDownloadFormData] = useState({
@@ -79,6 +83,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               questions: mapped.data || [], // actual selected questions
               active: s.status,
               is_default_online_set: s.is_default_online_set,
+              school_ids: s.school_ids,
               created_at: s.created_at,
               updated_at: s.updated_at,
             };
@@ -91,6 +96,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               questions: [],
               active: s.status,
               is_default_online_set: s.is_default_online_set,
+              school_ids: s.school_ids,
               created_at: s.created_at,
               updated_at: s.updated_at,
             };
@@ -105,14 +111,25 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         questions: [],
         active: s.status,
         is_default_online_set: s.is_default_online_set,
+        school_ids: s.school_ids,
         created_at: s.created_at,
         updated_at: s.updated_at,
       }));
 
     setSets(setsWithQuestions);
   };
+  const fetchSchools = async () => {
+    try {
+      const schoolsData = await getAllSchools();
+      setSchools(schoolsData);
+    } catch (error) {
+      console.error("Error fetching schools:", error);
+    }
+  };
+
   useEffect(() => {
     fetchSets(false); // prevent unnecessary api call for sets.
+    fetchSchools();
   }, []);
 
   const loadSetQuestions = async (setId: number) => {
@@ -122,13 +139,13 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
       const mapped = await getQuestionsBySetType(set.name);
       const updatedSet = { ...set, questions: mapped?.data || [] };
-      
+
       setSets((prev) =>
         prev.map((s) =>
           s.id === setId ? updatedSet : s,
         ),
       );
-      
+
       return updatedSet;
     } catch (error) {
       console.warn(`Error loading questions for set ${setId}:`, error);
@@ -148,7 +165,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           questions: selected.map((q) => ({
             question_id: q.id,
             difficulty_level: q.difficulty_level
-          }))
+          })),
+          school_ids: pendingSetData.school_ids.map(Number),
+          success: true
         };
 
         await createQuestionSet(payload);
@@ -243,7 +262,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const openAddModal = () => {
     setEditingSet(null);
     const randomName = `Set ${sets.length + 1}`;
-    setFormData({ name: randomName, description: "", nameType: "random", isRandom: true });
+    setFormData({ name: randomName, description: "", nameType: "random", isRandom: true, school_ids: [] });
     setIsModalOpen(true);
   };
 
@@ -254,6 +273,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       description: set.description || "",
       nameType: "custom", // Always custom when editing
       isRandom: false,
+      school_ids: set.school_ids ? set.school_ids.map(String) : [],
     });
     setIsModalOpen(true);
   };
@@ -290,6 +310,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         name: finalName,
         description: formData.description,
         isRandom: formData.isRandom,
+        school_ids: formData.school_ids.map(Number),
+        success: true,
       };
 
       if (editingSet) {
@@ -311,7 +333,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           setIsModalOpen(false);
           setPendingSetData({
             name: finalName,
-            description: formData.description
+            description: formData.description,
+            school_ids: formData.school_ids
           });
 
           // Create a temporary "fake" set to trigger the picker
@@ -340,11 +363,11 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       }
     } catch (err: any) {
       toast({
-  title: "Oops!",
-  description: "There was a small issue while processing your request. Please try again.",
-  variant: "destructive",
-  className: "border-red-500 bg-red-50 text-red-900",
-});
+        title: "Oops!",
+        description: "There was a small issue while processing your request. Please try again.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
     }
   };
 
@@ -475,9 +498,25 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           <Card key={set.id} className="relative">
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <CardTitle className="text-base font-semibold">
-                  {set.name}
-                </CardTitle>
+                <div className="flex flex-col gap-1">
+                  <CardTitle className="text-base font-semibold">
+                    {set.name}
+                  </CardTitle>
+                  <div className="flex flex-wrap gap-1">
+                    {set.school_ids && set.school_ids.length > 0 ? (
+                      set.school_ids.map((id: number) => {
+                        const school = schools.find((s) => s.id === id);
+                        return school ? (
+                          <Badge key={id} variant="secondary" className="text-[10px] px-1.5 h-5 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                            {school.school_name}
+                          </Badge>
+                        ) : null;
+                      })
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic">No school assigned</span>
+                    )}
+                  </div>
+                </div>
 
                 <div className="flex items-center gap-2">
                   <Button
@@ -658,11 +697,20 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 placeholder="Brief description of this question set"
                 rows={3}
               />
+              <Label htmlFor="school">Schools</Label>
+              <MultiSelectCombobox
+                options={schools.map((school) => ({
+                  value: String(school.id),
+                  label: school.school_name,
+                }))}
+                value={formData.school_ids}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, school_ids: value })
+                }
+                placeholder="Select schools (Optional)"
+                searchPlaceholder="Search schools..."
+              />
             </div>
-
-
-
-
           </div>
 
           <DialogFooter>
@@ -757,7 +805,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
           </DialogHeader>
-          
+
           {viewingSet && (
             <div className="flex-1 overflow-y-auto pr-2">
               <div className="space-y-4">
@@ -787,7 +835,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-wrap gap-2 mt-3">
                           <Badge variant="outline" className="text-xs">
                             {difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}

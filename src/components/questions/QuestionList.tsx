@@ -17,6 +17,7 @@ interface Question {
   tags?: string[];
   points?: number;
   version_number?: number;
+  school_ids?: number[];
 }
 
 interface QuestionListProps {
@@ -25,6 +26,7 @@ interface QuestionListProps {
   onEdit: (question: Question) => void;
   onArchive: (questionId: number) => void;
   onDelete: (questionId: number) => void;
+  schools: any[];
 }
 
 export function QuestionList({
@@ -35,6 +37,7 @@ export function QuestionList({
   // onHistory,
   onArchive,
   onDelete,
+  schools,
 }: QuestionListProps) {
   const getDifficultyLabel = (level: number) => {
     if (level <= 1)
@@ -114,6 +117,18 @@ export function QuestionList({
                     </Badge>
                     {question.points && (
                       <Badge variant="outline">{question.points} pts</Badge>
+                    )}
+                    {question.school_ids && question.school_ids.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {question.school_ids.map((id: number) => {
+                          const school = schools.find((s) => s.id === id);
+                          return school ? (
+                            <Badge key={id} variant="secondary" className="text-[10px] px-1.5 h-5 bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                              {school.school_name}
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
                     )}
                   </div>
 
