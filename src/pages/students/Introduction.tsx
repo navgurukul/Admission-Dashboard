@@ -64,7 +64,7 @@ const Instructions: React.FC = () => {
 
   const handleNext = () => {
     localStorage.setItem("instructionsAccepted", "true");
-    navigate("/students/details/registration", {
+    navigate("/students/details/school-selection", {
       state: { googleEmail: location.state?.googleEmail },
     });
   };

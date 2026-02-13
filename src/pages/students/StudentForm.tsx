@@ -94,6 +94,8 @@ const StudentForm: React.FC = () => {
   // Convert camelCase → snake_case before API call
   const mapFormDataToApi = (data: typeof formData) => {
     const partnerId = localStorage.getItem("partner_id");
+    // Get school_id from navigation state first, fallback to localStorage
+    const schoolId = location.state?.school_id || localStorage.getItem("school_id");
 
     return {
       image_url: data.imageUrl || null,
@@ -116,6 +118,7 @@ const StudentForm: React.FC = () => {
       cast_id: Number(data.casteTribe) || null,
       religion_id: Number(data.religion) || null,
       partner_id: partnerId ? Number(partnerId) : null,
+      school_id: Number(schoolId) || null,
     };
   };
 
@@ -679,7 +682,7 @@ const StudentForm: React.FC = () => {
   };
 
   const handlePrevious = () => {
-    navigate("/students/details/instructions");
+    navigate("/students/details/school-selection");
   };
   // Calculate the maximum date allowed
   const getMaxDOB = () => {

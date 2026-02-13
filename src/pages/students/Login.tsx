@@ -326,10 +326,15 @@ export default function StudentLogin() {
             return;
           }
 
-          // Default fallback: instructions
-          navigate("/students/details/instructions", {
-            state: { googleEmail: googleUser.email },
-          });
+          //    navigate("/students/details/instructions", {
+          //   state: { googleEmail: googleUser.email },
+          // });
+
+          // Default fallback if registered but test not started
+          navigate("/students/details/school-selection");
+          // navigate("/students/details/instructions", {
+          //   state: { googleEmail: googleUser.email },
+          // });
         } catch (err) {
           console.error("Error fetching student data:", err);
           // If API fails, still set minimal student info and send to instructions

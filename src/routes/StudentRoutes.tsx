@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import LanguageSelection from "@/pages/students/LanguageSelection";
+import SchoolSelection from "@/pages/students/SchoolSelection";
 import TestInstructionsPage from "@/pages/students/Introduction";
 import StudentRegistrationForm from "@/pages/students/StudentForm";
 import SlotBooking from "@/pages/students/SlotBooking";
@@ -42,6 +43,7 @@ const StudentRoutes: React.FC = () => {
       >
         <Route index element={<Navigate to="instructions" replace />} />
         <Route path="instructions" element={<TestInstructionsPage />} />
+        <Route path="school-selection" element={<SchoolSelection />} />
         <Route path="registration" element={<StudentRegistrationForm />} />
       </Route>
 

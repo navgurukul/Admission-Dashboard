@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getRandomQuestions as getQuestions } from "@/utils/api";
+import { getRandomQuestions as getQuestions, getAllQuestionSets, getQuestionsBySetName } from "@/utils/api";
 import { useLanguage } from "@/routes/LaunguageContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
@@ -20,7 +20,53 @@ const ScreeningRoundStartPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const qs = await getQuestions(selectedLanguage, studentId); // pass language here
+        // const qs = await getQuestions(selectedLanguage, studentId); // pass language here
+        const school = localStorage.getItem("selectedSchool") || "";
+        let qs: any[] = [];
+
+        // Try to fetch specific set for the school first
+        if (school) {
+          try {
+            const sets = await getAllQuestionSets();
+            // Look for a set that matches the school name/code
+            const targetSet = sets.find(s =>
+              s.name?.toUpperCase().includes(school.toUpperCase()) ||
+              s.description?.toUpperCase().includes(school.toUpperCase())
+            );
+
+            if (targetSet) {
+              const setData = await getQuestionsBySetName(targetSet.name);
+              // Access the questions array from the response
+
+              const rawQuestions = setData?.data?.questions || setData?.questions || (Array.isArray(setData) ? setData : []);
+
+              if (Array.isArray(rawQuestions) && rawQuestions.length > 0) {
+                qs = rawQuestions.map((q: any) => ({
+                  id: q.id,
+                  question: q[`${selectedLanguage}_text`] || q.english_text || q.question,
+                  options: q[`${selectedLanguage}_options`] || q.english_options || q.options,
+                  difficulty_level: q.difficulty_level,
+                  answer: q.answer_key ? q.answer_key[0] : 0,
+                  // ensure options are parsed if they are strings
+                  parsedOptions: typeof q[`${selectedLanguage}_options`] === 'string'
+                    ? JSON.parse(q[`${selectedLanguage}_options`])
+                    : (q[`${selectedLanguage}_options`] || [])
+                })).map(q => ({
+                  ...q,
+                  options: q.parsedOptions.length > 0 ? q.parsedOptions : q.options
+                }));
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch specific set for school:", school, e);
+          }
+        }
+
+        // Fallback to random questions if no specific set found or empty
+        if (qs.length === 0) {
+          qs = await getQuestions(selectedLanguage, studentId);
+        }
+
         setQuestions(qs || []);
         setQuestionCount(qs?.length || 0);
       } catch (err) {
