@@ -107,7 +107,10 @@ export const MultiSelectCombobox = React.memo(function MultiSelectCombobox({
             const opt = options.find(o => o.value === safeValue[0])
             return opt ? opt.label : placeholder
         }
-        return `${safeValue.length} items selected`
+        return safeValue
+            .map(val => options.find(o => o.value === val)?.label)
+            .filter(Boolean)
+            .join(", ")
     }, [safeValue, options, placeholder])
 
     const isAllSelected = React.useMemo(() => {
