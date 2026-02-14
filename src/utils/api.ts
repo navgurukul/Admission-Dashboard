@@ -2057,7 +2057,7 @@ export const createSchool = async (schoolName: string, cutOffMarks?: number) => 
   return await response.json();
 };
 
-interface School {
+export interface School {
   id: number;
   school_name: string;
   cut_off_marks: number;

@@ -17,11 +17,14 @@ import {
   getDistrictsByState,
   getBlocksByDistrict,
   uploadProfileImage,
+  getAllSchools,
+  type School,
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { ExternalLink } from "lucide-react";
 interface State {
   id: string;
   state_name: string;
@@ -54,9 +57,11 @@ const StudentForm: React.FC = () => {
   const [states, setStates] = useState<State[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [emailError, setEmailError] = useState("");
   const [alternateError, setAlternateError] = useState("");
   const [whatsappError, setWhatsappError] = useState("");
+  const [schoolError, setSchoolError] = useState("");
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
@@ -87,6 +92,7 @@ const StudentForm: React.FC = () => {
     schoolMedium: "",
     casteTribe: "",
     religion: "",
+    initial_school_id: "",
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -113,9 +119,9 @@ const StudentForm: React.FC = () => {
       school_medium: data.schoolMedium,
       current_status_id: Number(data.currentStatus) || null,
       qualification_id: Number(data.maximumQualification) || null,
-      cast_id: Number(data.casteTribe) || null,
       religion_id: Number(data.religion) || null,
       partner_id: partnerId ? Number(partnerId) : null,
+      initial_school_id: Number(data.initial_school_id) || null,
     };
   };
 
@@ -304,6 +310,17 @@ const StudentForm: React.FC = () => {
     };
     fetchReligions();
 
+    // fetch schools
+    const fetchSchools = async () => {
+      try {
+        const response = await getAllSchools();
+        setSchools(response);
+      } catch (error) {
+        // console.error("Error fetching schools:", error);
+      }
+    };
+    fetchSchools();
+
   }, [location.state?.googleEmail]);
 
   const handleInputChange = (
@@ -392,6 +409,14 @@ const StudentForm: React.FC = () => {
         setWhatsappError("Enter a valid 10-digit WhatsApp number");
       } else {
         setWhatsappError("");
+      }
+    }
+
+    if (name === "initial_school_id") {
+      if (!processedValue) {
+        setSchoolError("Please select a school");
+      } else {
+        setSchoolError("");
       }
     }
 
@@ -514,6 +539,7 @@ const StudentForm: React.FC = () => {
       formData.schoolMedium &&
       formData.casteTribe &&
       formData.religion &&
+      formData.initial_school_id &&
       age >= 16.5
     );
   };
@@ -619,6 +645,16 @@ const StudentForm: React.FC = () => {
       });
     }
 
+    if (!formData.initial_school_id) {
+      setSchoolError("Please select a school.");
+      return toast({
+        title: "⚠️ School Selection Required",
+        description: "Please select your preferred school.",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
+    }
+
     try {
       const apiPayload = mapFormDataToApi(formData);
       const studentFormResponseData = await createStudent(apiPayload);
@@ -720,6 +756,7 @@ const StudentForm: React.FC = () => {
           religion: "धर्म *",
           back: "वापस",
           saveContinue: "सहेजें और जारी रखें",
+          other: "अन्य",
           selectState: "राज्य चुनें",
           selectDistrict: "जिला चुनें",
           selectBlock: "ब्लॉक चुनें",
@@ -773,6 +810,7 @@ const StudentForm: React.FC = () => {
           religion: "धर्म *",
           back: "मागे",
           saveContinue: "जतन करा आणि सुरू ठेवा",
+          other: "इतर",
           selectState: "राज्य निवडा",
           selectDistrict: "जिल्हा निवडा",
           selectBlock: "ब्लॉक निवडा",
@@ -814,9 +852,9 @@ const StudentForm: React.FC = () => {
           whatsappNumber: "WhatsApp Number *",
           alternateNumber: "Alternate Number",
           email: "Email Address",
-          state: "Select State *",
-          district: "Select District",
-          block: "Select Block",
+          state: "State *",
+          district: "District",
+          block: "Block",
           pinCode: "Pin Code *",
           currentStatus: "Current Status *",
           maximumQualification: "Maximum Qualification *",
@@ -825,6 +863,7 @@ const StudentForm: React.FC = () => {
           religion: "Religion *",
           back: "Back",
           saveContinue: "Save & Continue",
+          other: "Other",
           selectState: "Select State",
           selectDistrict: "Select District",
           selectBlock: "Select Block",
@@ -832,12 +871,12 @@ const StudentForm: React.FC = () => {
           selectQualification: "Select Qualification",
           selectMedium: "Select Medium",
           selectReligion: "Select Religion",
-          enterFirstName: "Enter first name",
-          enterMiddleName: "Enter middle name",
-          enterLastName: "Enter last name",
-          enterWhatsapp: "Enter WhatsApp number",
-          enterAlternate: "Enter alternate number",
-          enterEmail: "Enter email address",
+          enterFirstName: "Enter First Name",
+          enterMiddleName: "Enter Middle Name",
+          enterLastName: "Enter Last Name",
+          enterWhatsapp: "Enter WhatsApp Number",
+          enterAlternate: "Enter Alternate Number",
+          enterEmail: "Enter Email Address",
           cityExample: "Ex. Bangalore",
           pinCodeExample: "Ex. 4402xx",
           verifying: "Verifying...",
@@ -958,32 +997,49 @@ const StudentForm: React.FC = () => {
               />
             </div>
           </div>
-          <div>
+          <div className="flex flex-col">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {content.gender}
             </label>
-            <div className="flex space-x-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
+            <div className="flex items-center h-12 space-x-6">
+              <label className="flex items-center space-x-2.5 cursor-pointer group">
                 <input
                   type="radio"
                   name="gender"
                   value="male"
                   checked={formData.gender === "male"}
                   onChange={handleInputChange}
-                  className="text-primary focus:ring-ring"
+                  className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
                 />
-                <span className="text-sm">{content.male}</span>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                  {content.male}
+                </span>
               </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
+              <label className="flex items-center space-x-2.5 cursor-pointer group">
                 <input
                   type="radio"
                   name="gender"
                   value="female"
                   checked={formData.gender === "female"}
                   onChange={handleInputChange}
-                  className="text-primary focus:ring-ring"
+                  className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
                 />
-                <span className="text-sm">{content.female}</span>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                  {content.female}
+                </span>
+              </label>
+              <label className="flex items-center space-x-2.5 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="other"
+                  checked={formData.gender === "other"}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
+                />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                  {content.other}
+                </span>
               </label>
             </div>
           </div>
@@ -1042,8 +1098,8 @@ const StudentForm: React.FC = () => {
                 onChange={handleInputChange}
                 disabled={!!location.state?.googleEmail}
                 className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${location.state?.googleEmail
-                    ? "bg-gray-100 cursor-not-allowed"
-                    : ""
+                  ? "bg-gray-100 cursor-not-allowed"
+                  : ""
                   }`}
                 placeholder={content.enterEmail}
               />
@@ -1100,7 +1156,7 @@ const StudentForm: React.FC = () => {
                   loadingStates.districts
                     ? content.loading
                     : !formData.stateCode
-                      ? "Select state first"
+                      ? "Please select a state first"
                       : content.selectDistrict
                 }
                 searchPlaceholder="Search district..."
@@ -1127,7 +1183,7 @@ const StudentForm: React.FC = () => {
                   loadingStates.blocks
                     ? content.loading
                     : !formData.districtCode
-                      ? "Select district first"
+                      ? "Please select a district first"
                       : blocks.length === 0
                         ? "No blocks available"
                         : content.selectBlock
@@ -1150,7 +1206,7 @@ const StudentForm: React.FC = () => {
                 value={formData.pinCode}
                 onChange={handleInputChange}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Enter pin code"
+                placeholder="Enter PIN code"
               />
               <p className="text-xs text-gray-500 mt-1">
                 {content.pinCodeExample}
@@ -1261,6 +1317,46 @@ const StudentForm: React.FC = () => {
                 className="h-12"
               />
             </div>
+          </div>
+
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Your Preferred School <span className="text-destructive">*</span>
+            </label>
+            <Combobox
+              options={schools?.map((school) => ({
+                value: String(school.id),
+                label: school.school_name,
+              })) || []}
+              value={formData.initial_school_id}
+              onValueChange={(value) => {
+                handleInputChange({ target: { name: 'initial_school_id', value } } as any);
+              }}
+              placeholder="Applying For"
+              searchPlaceholder="Search school..."
+              emptyText="No school found."
+              className={`h-12 ${schoolError ? 'border-red-500' : ''}`}
+            />
+
+            {schoolError && (
+              <p className="text-red-500 text-xs mt-1 font-medium">
+                {schoolError}
+              </p>
+            )}
+
+            <div className="mt-3 pt-2 border-t border-gray-100 flex items-center">
+              <a
+                href="https://www.navgurukul.org/residentialprograms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors gap-1.5 group"
+              >
+                <span>Explore our Schools</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <span className="text-[10px] text-gray-400 ml-2">(Opens in a new tab)</span>
+            </div>
+
           </div>
         </div>
 
