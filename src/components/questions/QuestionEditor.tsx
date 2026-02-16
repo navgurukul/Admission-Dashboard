@@ -275,7 +275,6 @@ export function QuestionEditor({
       marathi_options: formData.options.marathi,
       answer_key: [formData.correct_answer], // Array of integers (IDs)
       explanation: formData.explanation,
-      school_ids: formData.school_ids.map(Number),
     };
 
     onSave(payload);
@@ -332,7 +331,7 @@ export function QuestionEditor({
           <Label>Points</Label>
           <Input type="number" min={1} value={formData.points} disabled />
         </div>
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label>Schools</Label>
           <MultiSelectCombobox
             options={schools.map((school) => ({
@@ -344,7 +343,7 @@ export function QuestionEditor({
             placeholder="Select schools (Optional)"
             searchPlaceholder="Search schools..."
           />
-        </div>
+        </div> */}
       </div>
 
       <Separator />
