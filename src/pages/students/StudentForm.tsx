@@ -58,10 +58,12 @@ const StudentForm: React.FC = () => {
   const [districts, setDistricts] = useState<District[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchoolInfo, setSelectedSchoolInfo] = useState<any>(null);
   const [emailError, setEmailError] = useState("");
   const [alternateError, setAlternateError] = useState("");
   const [whatsappError, setWhatsappError] = useState("");
   const [schoolError, setSchoolError] = useState("");
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
@@ -96,6 +98,271 @@ const StudentForm: React.FC = () => {
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const schoolDetails = [
+    {
+      id: "SOP",
+      name: "School of Programming (SOP)",
+      tag: "Software Development",
+      color: "blue",
+      description: "A flagship residency program focused on software development. Learn HTML, CSS, React, Node.js, and build a tech career.",
+      duration: "12-18 months",
+      location: "Various Campuses (Dantewada, Raipur, Bengaluru, etc.)",
+      eligibility: [
+        "Typically 18-28 years old",
+        "Youth from underserved backgrounds",
+        "High logical potential (no degree required)",
+        "Willingness to commit to a long-term residential program"
+      ],
+      curriculum: [
+        "Foundational Programming & Logic",
+        "Frontend: HTML/CSS, Javascript, React.js",
+        "Backend: Node.js, Databases, Express",
+        "Version Control: Git/GitHub",
+        "Professional Skills: English, Workplace Ethics"
+      ],
+      outcomes: [
+        "Software Engineering roles",
+        "Full Stack Development",
+        "Entry-level Tech positions",
+        "Career mobility in the technology sector"
+      ]
+    },
+    {
+      id: "SOB",
+      name: "School of Business (SOB)",
+      tag: "Operations & Marketing",
+      color: "emerald",
+      description: "Prepare for entry-level and growth-oriented roles in business operations, digital marketing, and organizational support.",
+      duration: "6-12 months",
+      location: "Pune, Bengaluru, Jashpur, Dantewada",
+      eligibility: [
+        "Minimum 16 years old",
+        "First-generation learners preferred",
+        "No formal qualification required",
+        "Strong reliability and communication potential"
+      ],
+      curriculum: [
+        "Business Operations: SOP execution & Reporting",
+        "Digital Marketing: SEO, Social Media, Copywriting",
+        "Customer Operations: Stakeholder coordination",
+        "Professional Skills: Email etiquette, Time management",
+        "Direct interaction with startups & NGOs"
+      ],
+      outcomes: [
+        "Marketing Associate",
+        "Operations Executive",
+        "Customer Support Specialist",
+        "Business Development roles"
+      ]
+    },
+    {
+      id: "SOF",
+      name: "School of Finance (SOF)",
+      tag: "Accounting & Taxation",
+      color: "amber",
+      description: "Job-oriented alternative to commerce degrees focusing on practical accounting, finance operations, and taxation.",
+      duration: "6-12 months",
+      location: "Pune, Maharashtra",
+      eligibility: [
+        "Minimum 16 years old",
+        "Youth from disadvantaged backgrounds",
+        "Interest in finance/accounting",
+        "Basic numeracy and reliability"
+      ],
+      curriculum: [
+        "Practical Accounting Principles",
+        "Statutory Compliance: GST, Income Tax basics",
+        "Payroll Management",
+        "Tools: Tally, Microsoft Excel (Advanced)",
+        "Financial Reporting & Workflow"
+      ],
+      outcomes: [
+        "Accounts Executive",
+        "Tax Associate",
+        "Finance Operations Specialist",
+        "Compliance Assistant"
+      ]
+    },
+    // {
+    //   id: "SODA",
+    //   name: "School of Digital Analytics (SODA)",
+    //   tag: "Data Analysis",
+    //   color: "purple",
+    //   description: "Equipping learners with data literacy and analytical thinking skills to translate data into usable business insights.",
+    //   duration: "6-12 months",
+    //   location: "Selected Pilot Campuses",
+    //   eligibility: [
+    //     "Minimum 16 years old",
+    //     "Analytical mindset",
+    //     "Problem-solving aptitude",
+    //     "No prior tech degree needed"
+    //   ],
+    //   curriculum: [
+    //     "Data Literacy & Analytical Thinking",
+    //     "Data Cleaning & Preparation",
+    //     "Descriptive Statistics",
+    //     "Spreadsheet Analysis: Excel & Google Sheets",
+    //     "Foundational SQL for data extraction"
+    //   ],
+    //   outcomes: [
+    //     "Data Analyst Associate",
+    //     "Reporting Specialist",
+    //     "Business Intelligence Assistant",
+    //     "Data Support Coordinator"
+    //   ]
+    // },
+    // {
+    //   id: "SOE",
+    //   name: "School of Educators (SOE)",
+    //   tag: "Educator Development",
+    //   color: "rose",
+    //   description: "For graduates interested in educator-adjacent roles such as facilitation, mentoring, and learning support.",
+    //   duration: "6-12 months",
+    //   location: "Residential (Various)",
+    //   eligibility: [
+    //     "College graduates preferred",
+    //     "Interested in education/social sector",
+    //     "Underserved background profile",
+    //     "Passion for mentoring and peer-learning"
+    //   ],
+    //   curriculum: [
+    //     "Educator Mindset & Pedagogy",
+    //     "Facilitation-led Learning Models",
+    //     "Peer-learning Management",
+    //     "Professional Discipline & Communication",
+    //     "Mentoring & Student Support"
+    //   ],
+    //   outcomes: [
+    //     "Learning Facilitator",
+    //     "Educational Mentor",
+    //     "Bootcamp Support Provider",
+    //     "Development Sector Professional"
+    //   ]
+    // },
+    {
+      id: "BCA",
+      name: "Bachelor of Computer Applications (BCA)",
+      tag: "Degree + Tech",
+      color: "indigo",
+      description: "Formal Degree-linked residential program in partnership with Eternal University for job-readiness.",
+      duration: "3 years",
+      location: "Residential (Partner Campus)",
+      eligibility: [
+        "12th Pass (eligible for University admission)",
+        "Economically disadvantaged backgrounds",
+        "First-generation college students",
+        "Strong intent for technical higher education"
+      ],
+      curriculum: [
+        "Formal BCA Program (Eternal University)",
+        "NavGurukul Soft-skills Training",
+        "Applied Programming & Development",
+        "Project-based Learning Curriculum",
+        "Internship & Placement Readiness"
+      ],
+      outcomes: [
+        "Recognized BCA Degree",
+        "Enterprise Software Roles",
+        "Job readiness in IT industry",
+        "Higher education pathways"
+      ]
+    }
+  ];
+
+  // Helper component for details
+  const SchoolDetailCard = ({ school }: { school: any }) => (
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200`}>
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+        <div className={`p-6 text-white flex justify-between items-start bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-600 to-indigo-700' :
+          school.color === 'emerald' ? 'from-emerald-600 to-teal-700' :
+            school.color === 'amber' ? 'from-amber-500 to-orange-600' :
+              school.color === 'purple' ? 'from-purple-600 to-fuchsia-700' :
+                school.color === 'rose' ? 'from-rose-600 to-pink-700' :
+                  'from-indigo-600 to-violet-700'
+          }`}>
+          <div>
+            <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full uppercase tracking-widest mb-2 inline-block">
+              {school.tag}
+            </span>
+            <h2 className="text-3xl font-bold">{school.name}</h2>
+          </div>
+          <button
+            onClick={() => setSelectedSchoolInfo(null)}
+            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div className="p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8 custom-scrollbar">
+          <section>
+            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🎯</span>
+              Eligibility
+            </h3>
+            <ul className="space-y-2">
+              {school.eligibility.map((item: string, i: number) => (
+                <li key={i} className="flex gap-2 text-sm text-gray-600">
+                  <span className="text-primary">•</span> {item}
+                </li>
+              ))}
+            </ul>
+
+            <h3 className="text-lg font-bold text-gray-800 mt-8 mb-3 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">📚</span>
+              Curriculum focus
+            </h3>
+            <ul className="space-y-2">
+              {school.curriculum.map((item: string, i: number) => (
+                <li key={i} className="flex gap-2 text-sm text-gray-600">
+                  <span className="text-primary">•</span> {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🏆</span>
+              Outcomes
+            </h3>
+            <ul className="space-y-2">
+              {school.outcomes.map((item: string, i: number) => (
+                <li key={i} className="flex gap-2 text-sm text-gray-600">
+                  <span className="text-primary">•</span> {item}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-8 p-4 bg-gray-50 rounded-xl space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Duration</span>
+                <span className="font-bold text-gray-800">{school.duration}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Location</span>
+                <span className="font-bold text-gray-800">{school.location}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                const matchedSchool = schools.find(s => s.school_name.includes(school.id));
+                if (matchedSchool) {
+                  handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
+                  setSelectedSchoolInfo(null);
+                }
+              }}
+              className="w-full mt-8 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg active:scale-95"
+            >
+              Apply to this School
+            </button>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
 
   // Convert camelCase → snake_case before API call
   const mapFormDataToApi = (data: typeof formData) => {
@@ -539,7 +806,7 @@ const StudentForm: React.FC = () => {
       formData.schoolMedium &&
       formData.casteTribe &&
       formData.religion &&
-      formData.initial_school_id &&
+      (currentStep === 2 ? formData.initial_school_id : true) &&
       age >= 16.5
     );
   };
@@ -645,6 +912,12 @@ const StudentForm: React.FC = () => {
       });
     }
 
+    if (currentStep === 1) {
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (!formData.initial_school_id) {
       setSchoolError("Please select a school.");
       return toast({
@@ -715,7 +988,12 @@ const StudentForm: React.FC = () => {
   };
 
   const handlePrevious = () => {
-    navigate("/students/details/instructions");
+    if (currentStep === 2) {
+      setCurrentStep(1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      navigate("/students/details/instructions");
+    }
   };
   // Calculate the maximum date allowed
   const getMaxDOB = () => {
@@ -900,488 +1178,563 @@ const StudentForm: React.FC = () => {
           <LanguageSelector />
           <LogoutButton />
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
-            {content.signUp}
+            {currentStep === 1 ? content.signUp : "Select Your School"}
           </h1>
         </div>
 
-        {/* Profile Image Upload */}
-        <div className="text-center">
-          <div className="w-24 h-24 mx-auto border-2 border-dashed border-input rounded-xl flex flex-col items-center justify-center bg-muted relative cursor-pointer hover:border-primary transition-colors">
-            {!imagePreview ? (
-              <>
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mb-1">
-                  <span className="text-primary-foreground text-sm">📷</span>
+        {currentStep === 1 ? (
+          <>
+            {/* Profile Image Upload */}
+            <div className="text-center">
+              <div className="w-24 h-24 mx-auto border-2 border-dashed border-input rounded-xl flex flex-col items-center justify-center bg-muted relative cursor-pointer hover:border-primary transition-colors">
+                {!imagePreview ? (
+                  <>
+                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mb-1">
+                      <span className="text-primary-foreground text-sm">📷</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {content.addPhoto}
+                    </span>
+                  </>
+                ) : (
+                  <img
+                    src={imagePreview}
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Section Title */}
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              {content.basicDetails}
+            </h2>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              {/* Name Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {content.firstName}
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:prime"
+                  placeholder={content.enterFirstName}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {content.middleName}
+                </label>
+                <input
+                  type="text"
+                  name="middleName"
+                  value={formData.middleName}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={content.enterMiddleName}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {content.lastName}
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder={content.enterLastName}
+                />
+              </div>
+            </div>
+
+            {/* Date of Birth and Gender */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {content.dateOfBirth}
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="dateOfBirth"
+                    value={formData.dateOfBirth}
+                    onChange={handleInputChange}
+                    max={getMaxDOB()}
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {content.addPhoto}
-                </span>
-              </>
-            ) : (
-              <img
-                src={imagePreview}
-                alt="Profile"
-                className="w-full h-full object-cover rounded-xl"
-              />
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-          </div>
-        </div>
-
-        {/* Section Title */}
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          {content.basicDetails}
-        </h2>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Name Fields */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {content.firstName}
-            </label>
-            <input
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:prime"
-              placeholder={content.enterFirstName}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {content.middleName}
-            </label>
-            <input
-              type="text"
-              name="middleName"
-              value={formData.middleName}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder={content.enterMiddleName}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {content.lastName}
-            </label>
-            <input
-              type="text"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleInputChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder={content.enterLastName}
-            />
-          </div>
-        </div>
-
-        {/* Date of Birth and Gender */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {content.dateOfBirth}
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                max={getMaxDOB()}
-                className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              </div>
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {content.gender}
+                </label>
+                <div className="flex items-center h-12 space-x-6">
+                  <label className="flex items-center space-x-2.5 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="male"
+                      checked={formData.gender === "male"}
+                      onChange={handleInputChange}
+                      className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                      {content.male}
+                    </span>
+                  </label>
+                  <label className="flex items-center space-x-2.5 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="female"
+                      checked={formData.gender === "female"}
+                      onChange={handleInputChange}
+                      className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                      {content.female}
+                    </span>
+                  </label>
+                  <label className="flex items-center space-x-2.5 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="other"
+                      checked={formData.gender === "other"}
+                      onChange={handleInputChange}
+                      className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
+                    />
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
+                      {content.other}
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {content.gender}
-            </label>
-            <div className="flex items-center h-12 space-x-6">
-              <label className="flex items-center space-x-2.5 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={formData.gender === "male"}
-                  onChange={handleInputChange}
-                  className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
+
+            {/* Contact Information */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                {content.contactInfo}
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.whatsappNumber}
+                  </label>
+                  <input
+                    type="tel"
+                    name="whatsappNumber"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    value={formData.whatsappNumber}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder={content.enterWhatsapp}
+                  />
+                  {whatsappError && (
+                    <p className="text-destructive text-sm mt-1">{whatsappError}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.alternateNumber}
+                  </label>
+                  <input
+                    type="tel"
+                    name="alternateNumber"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    value={formData.alternateNumber}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder={content.enterAlternate}
+                  />
+                  {alternateError && (
+                    <p className="text-destructive text-sm mt-1">{alternateError}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.email} *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    disabled={!!location.state?.googleEmail}
+                    className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${location.state?.googleEmail
+                      ? "bg-gray-100 cursor-not-allowed"
+                      : ""
+                      }`}
+                    placeholder={content.enterEmail}
+                  />
+                  {emailError && (
+                    <p className="text-destructive text-sm mt-1">{emailError}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Fields */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Additional Information
+              </h3>
+
+              {/* State, District and Block */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.state}
+                  </label>
+                  <Combobox
+                    options={states?.map((state) => ({
+                      value: state.state_code,
+                      label: state.state_name,
+                    })) || []}
+                    value={formData.stateCode}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'stateCode', value } } as any);
+                    }}
+                    placeholder={loadingStates.states ? content.loading : content.selectState}
+                    searchPlaceholder="Search state..."
+                    emptyText="No state found."
+                    disabled={loadingStates.states}
+                    className="h-12"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.district}
+                    {districts.length > 0 && <span className="text-destructive"> *</span>}
+                  </label>
+                  <Combobox
+                    options={districts?.map((district) => ({
+                      value: district.district_code,
+                      label: district.district_name,
+                    })) || []}
+                    value={formData.districtCode}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'districtCode', value } } as any);
+                    }}
+                    placeholder={
+                      loadingStates.districts
+                        ? content.loading
+                        : !formData.stateCode
+                          ? "Please select a state first"
+                          : content.selectDistrict
+                    }
+                    searchPlaceholder="Search district..."
+                    emptyText="No district found."
+                    disabled={loadingStates.districts || !formData.stateCode}
+                    className="h-12"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.block}
+                    {blocks.length > 0 && <span className="text-destructive"> *</span>}
+                  </label>
+                  <Combobox
+                    options={blocks?.map((block) => ({
+                      value: String(block.id), // Use id as value, like ApplicantModal
+                      label: block.block_name,
+                    })) || []}
+                    value={formData.blockCode}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'blockCode', value } } as any);
+                    }}
+                    placeholder={
+                      loadingStates.blocks
+                        ? content.loading
+                        : !formData.districtCode
+                          ? "Please select a district first"
+                          : blocks.length === 0
+                            ? "No blocks available"
+                            : content.selectBlock
+                    }
+                    searchPlaceholder="Search block..."
+                    emptyText="No block found."
+                    disabled={loadingStates.blocks || !formData.districtCode}
+                    className="h-12"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.pinCode}
+                  </label>
+                  <input
+                    type="text"
+                    name="pinCode"
+                    value={formData.pinCode}
+                    onChange={handleInputChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Enter PIN code"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {content.pinCodeExample}
+                  </p>
+                </div>
+              </div>
+
+              {/* Current Status and Maximum Qualification */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.currentStatus}
+                  </label>
+                  <Combobox
+                    options={statuses?.map((item) => ({
+                      value: String(item.id),
+                      label: item.current_status_name,
+                    })) || []}
+                    value={formData.currentStatus}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'currentStatus', value } } as any);
+                    }}
+                    placeholder={content.selectOption}
+                    searchPlaceholder="Search..."
+                    emptyText="No option found."
+                    className="h-12"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.maximumQualification}
+                  </label>
+                  <Combobox
+                    options={qualifications?.map((item) => ({
+                      value: String(item.id),
+                      label: item.qualification_name,
+                    })) || []}
+                    value={formData.maximumQualification}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'maximumQualification', value } } as any);
+                    }}
+                    placeholder={content.selectQualification}
+                    searchPlaceholder="Search..."
+                    emptyText="No qualification found."
+                    className="h-12"
+                  />
+                </div>
+              </div>
+
+              {/* School Medium, Caste/Tribe, Religion */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.schoolMedium}
+                  </label>
+                  <Combobox
+                    options={[
+                      { value: "English", label: "English" },
+                      { value: "Hindi", label: "Hindi" },
+                      { value: "Marathi", label: "Marathi" },
+                      { value: "Other", label: "Other" },
+                    ]}
+                    value={formData.schoolMedium}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'schoolMedium', value } } as any);
+                    }}
+                    placeholder={content.selectMedium}
+                    searchPlaceholder="Search..."
+                    emptyText="No medium found."
+                    className="h-12"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.casteTribe}
+                  </label>
+                  <Combobox
+                    options={casts?.map((item) => ({
+                      value: String(item.id),
+                      label: item.cast_name,
+                    })) || []}
+                    value={formData.casteTribe}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'casteTribe', value } } as any);
+                    }}
+                    placeholder={content.selectOption}
+                    searchPlaceholder="Search caste..."
+                    emptyText="No caste found."
+                    className="h-12"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.religion}
+                  </label>
+                  <Combobox
+                    options={religions?.map((religion) => ({
+                      value: String(religion.id),
+                      label: religion.religion_name,
+                    })) || []}
+                    value={formData.religion}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'religion', value } } as any);
+                    }}
+                    placeholder={content.selectReligion}
+                    searchPlaceholder="Search religion..."
+                    emptyText="No religion found."
+                    className="h-12"
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-6">
+            <p className="text-center text-gray-600 mb-6">
+              Please read the information about our schools and select the one you'd like to apply for.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {schoolDetails.map((school) => {
+                const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
+                return (
+                  <div
+                    key={school.id}
+                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white hover:border-primary/50 hover:shadow-xl ${isSelected ? "border-primary shadow-lg ring-1 ring-primary/20" : "border-gray-100"
+                      }`}
+                  >
+                    {/* Interactive Overlay for Selection */}
+                    <div
+                      className="absolute inset-0 z-0 cursor-pointer"
+                      onClick={() => {
+                        const matchedSchool = schools.find(s => s.school_name.includes(school.id));
+                        if (matchedSchool) {
+                          handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
+                        }
+                      }}
+                    />
+
+                    {/* Top Decoration */}
+                    <div className={`h-2 w-full bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-400 to-blue-600' :
+                      school.color === 'emerald' ? 'from-emerald-400 to-emerald-600' :
+                        school.color === 'amber' ? 'from-amber-400 to-amber-600' :
+                          school.color === 'purple' ? 'from-purple-400 to-purple-600' :
+                            school.color === 'rose' ? 'from-rose-400 to-rose-600' :
+                              'from-indigo-400 to-indigo-600'
+                      }`} />
+
+                    <div className="p-6 flex flex-col h-full relative z-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${school.color === 'blue' ? 'bg-blue-100 text-blue-700' :
+                          school.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
+                            school.color === 'amber' ? 'bg-amber-100 text-amber-700' :
+                              school.color === 'purple' ? 'bg-purple-100 text-purple-700' :
+                                school.color === 'rose' ? 'bg-rose-100 text-rose-700' :
+                                  'bg-indigo-100 text-indigo-700'
+                          }`}>
+                          {school.tag}
+                        </span>
+                        {isSelected && (
+                          <div className="bg-primary text-white rounded-full p-1 shadow-sm">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          </div>
+                        )}
+                      </div>
+
+                      <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors">{school.name}</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed mb-6 line-clamp-3">{school.description}</p>
+
+                      <div className="mt-auto space-y-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSchoolInfo(school);
+                          }}
+                          className="text-primary text-sm font-bold flex items-center gap-1.5 hover:underline decoration-2 underline-offset-4"
+                        >
+                          Read more
+                          <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                        </button>
+
+                        <div className="flex items-center justify-between text-[11px] text-gray-400 font-medium">
+                          <span className="flex items-center gap-1">📍 {school.location.split(',')[0]}</span>
+                          <span className="flex items-center gap-1">⏳ {school.duration}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {selectedSchoolInfo && <SchoolDetailCard school={selectedSchoolInfo} />}
+
+            <div className="mt-12 p-8 bg-gray-50 border border-gray-100 rounded-3xl">
+              <div className="max-w-md mx-auto">
+                <label className="block text-sm font-bold text-gray-700 mb-3 text-center">
+                  Final Selection <span className="text-destructive">*</span>
+                </label>
+                <Combobox
+                  options={schools?.map((school) => ({
+                    value: String(school.id),
+                    label: school.school_name,
+                  })) || []}
+                  value={formData.initial_school_id}
+                  onValueChange={(value) => {
+                    handleInputChange({ target: { name: 'initial_school_id', value } } as any);
+                  }}
+                  placeholder="Choose Your School"
+                  searchPlaceholder="Search available schools..."
+                  emptyText="No school found."
+                  className={`h-14 rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 focus:ring-primary ${schoolError ? 'border-red-500' : 'border-transparent'}`}
                 />
-                <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                  {content.male}
-                </span>
-              </label>
-              <label className="flex items-center space-x-2.5 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={formData.gender === "female"}
-                  onChange={handleInputChange}
-                  className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
-                />
-                <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                  {content.female}
-                </span>
-              </label>
-              <label className="flex items-center space-x-2.5 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="other"
-                  checked={formData.gender === "other"}
-                  onChange={handleInputChange}
-                  className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
-                />
-                <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                  {content.other}
-                </span>
-              </label>
+                {schoolError && (
+                  <p className="text-red-500 text-xs mt-2 font-bold text-center italic">
+                    {schoolError}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Contact Information */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            {content.contactInfo}
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.whatsappNumber}
-              </label>
-              <input
-                type="tel"
-                name="whatsappNumber"
-                maxLength={10}
-                pattern="[0-9]{10}"
-                value={formData.whatsappNumber}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder={content.enterWhatsapp}
-              />
-              {whatsappError && (
-                <p className="text-destructive text-sm mt-1">{whatsappError}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.alternateNumber}
-              </label>
-              <input
-                type="tel"
-                name="alternateNumber"
-                maxLength={10}
-                pattern="[0-9]{10}"
-                value={formData.alternateNumber}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder={content.enterAlternate}
-              />
-              {alternateError && (
-                <p className="text-destructive text-sm mt-1">{alternateError}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.email} *
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                disabled={!!location.state?.googleEmail}
-                className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${location.state?.googleEmail
-                  ? "bg-gray-100 cursor-not-allowed"
-                  : ""
-                  }`}
-                placeholder={content.enterEmail}
-              />
-              {emailError && (
-                <p className="text-destructive text-sm mt-1">{emailError}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Additional Fields */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Additional Information
-          </h3>
-
-          {/* State, District and Block */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.state}
-              </label>
-              <Combobox
-                options={states?.map((state) => ({
-                  value: state.state_code,
-                  label: state.state_name,
-                })) || []}
-                value={formData.stateCode}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'stateCode', value } } as any);
-                }}
-                placeholder={loadingStates.states ? content.loading : content.selectState}
-                searchPlaceholder="Search state..."
-                emptyText="No state found."
-                disabled={loadingStates.states}
-                className="h-12"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.district}
-                {districts.length > 0 && <span className="text-destructive"> *</span>}
-              </label>
-              <Combobox
-                options={districts?.map((district) => ({
-                  value: district.district_code,
-                  label: district.district_name,
-                })) || []}
-                value={formData.districtCode}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'districtCode', value } } as any);
-                }}
-                placeholder={
-                  loadingStates.districts
-                    ? content.loading
-                    : !formData.stateCode
-                      ? "Please select a state first"
-                      : content.selectDistrict
-                }
-                searchPlaceholder="Search district..."
-                emptyText="No district found."
-                disabled={loadingStates.districts || !formData.stateCode}
-                className="h-12"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.block}
-                {blocks.length > 0 && <span className="text-destructive"> *</span>}
-              </label>
-              <Combobox
-                options={blocks?.map((block) => ({
-                  value: String(block.id), // Use id as value, like ApplicantModal
-                  label: block.block_name,
-                })) || []}
-                value={formData.blockCode}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'blockCode', value } } as any);
-                }}
-                placeholder={
-                  loadingStates.blocks
-                    ? content.loading
-                    : !formData.districtCode
-                      ? "Please select a district first"
-                      : blocks.length === 0
-                        ? "No blocks available"
-                        : content.selectBlock
-                }
-                searchPlaceholder="Search block..."
-                emptyText="No block found."
-                disabled={loadingStates.blocks || !formData.districtCode}
-                className="h-12"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.pinCode}
-              </label>
-              <input
-                type="text"
-                name="pinCode"
-                value={formData.pinCode}
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Enter PIN code"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                {content.pinCodeExample}
-              </p>
-            </div>
-          </div>
-
-          {/* Current Status and Maximum Qualification */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.currentStatus}
-              </label>
-              <Combobox
-                options={statuses?.map((item) => ({
-                  value: String(item.id),
-                  label: item.current_status_name,
-                })) || []}
-                value={formData.currentStatus}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'currentStatus', value } } as any);
-                }}
-                placeholder={content.selectOption}
-                searchPlaceholder="Search..."
-                emptyText="No option found."
-                className="h-12"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.maximumQualification}
-              </label>
-              <Combobox
-                options={qualifications?.map((item) => ({
-                  value: String(item.id),
-                  label: item.qualification_name,
-                })) || []}
-                value={formData.maximumQualification}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'maximumQualification', value } } as any);
-                }}
-                placeholder={content.selectQualification}
-                searchPlaceholder="Search..."
-                emptyText="No qualification found."
-                className="h-12"
-              />
-            </div>
-          </div>
-
-          {/* School Medium, Caste/Tribe, Religion */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.schoolMedium}
-              </label>
-              <Combobox
-                options={[
-                  { value: "English", label: "English" },
-                  { value: "Hindi", label: "Hindi" },
-                  { value: "Marathi", label: "Marathi" },
-                  { value: "Other", label: "Other" },
-                ]}
-                value={formData.schoolMedium}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'schoolMedium', value } } as any);
-                }}
-                placeholder={content.selectMedium}
-                searchPlaceholder="Search..."
-                emptyText="No medium found."
-                className="h-12"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.casteTribe}
-              </label>
-              <Combobox
-                options={casts?.map((item) => ({
-                  value: String(item.id),
-                  label: item.cast_name,
-                })) || []}
-                value={formData.casteTribe}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'casteTribe', value } } as any);
-                }}
-                placeholder={content.selectOption}
-                searchPlaceholder="Search caste..."
-                emptyText="No caste found."
-                className="h-12"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {content.religion}
-              </label>
-              <Combobox
-                options={religions?.map((religion) => ({
-                  value: String(religion.id),
-                  label: religion.religion_name,
-                })) || []}
-                value={formData.religion}
-                onValueChange={(value) => {
-                  handleInputChange({ target: { name: 'religion', value } } as any);
-                }}
-                placeholder={content.selectReligion}
-                searchPlaceholder="Search religion..."
-                emptyText="No religion found."
-                className="h-12"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Your Preferred School <span className="text-destructive">*</span>
-            </label>
-            <Combobox
-              options={schools?.map((school) => ({
-                value: String(school.id),
-                label: school.school_name,
-              })) || []}
-              value={formData.initial_school_id}
-              onValueChange={(value) => {
-                handleInputChange({ target: { name: 'initial_school_id', value } } as any);
-              }}
-              placeholder="Applying For"
-              searchPlaceholder="Search school..."
-              emptyText="No school found."
-              className={`h-12 ${schoolError ? 'border-red-500' : ''}`}
-            />
-
-            {schoolError && (
-              <p className="text-red-500 text-xs mt-1 font-medium">
-                {schoolError}
-              </p>
-            )}
-
-            <div className="mt-3 pt-2 border-t border-gray-100 flex items-center">
-              <a
-                href="https://www.navgurukul.org/residentialprograms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors gap-1.5 group"
-              >
-                <span>Explore our Schools</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-              <span className="text-[10px] text-gray-400 ml-2">(Opens in a new tab)</span>
-            </div>
-
-          </div>
-        </div>
+        )}
 
         {/* Action Buttons */}
-        <div className="flex justify-center space-x-4">
+        <div className="flex justify-center space-x-4 mt-12">
           <button
             onClick={handlePrevious}
-            className="px-6 py-2 bg-gray-300 text-gray-500 rounded-lg hover:bg-gray-600 transition duration-200"
+            className="px-8 py-3 bg-gray-100 text-gray-600 rounded-2xl hover:bg-gray-200 transition-all font-bold min-w-[140px]"
           >
             {content.back}
           </button>
           <button
             onClick={handleSubmit}
-            // disabled={!isFormValid()}
-            className={`px-6 py-2 rounded-lg transition duration-200 student-btn text-white`}
+            className={`px-10 py-3 rounded-2xl transition-all student-btn text-white font-bold min-w-[180px] shadow-lg hover:shadow-primary/20 active:scale-95`}
           >
-            {content.saveContinue}
+            {currentStep === 1 ? "Next Step" : content.saveContinue}
           </button>
         </div>
 
-        {/* Progress Dots */}
-        <div className="flex justify-center space-x-2 mt-6">
-          <div className="w-3 h-3 bg-muted rounded-full"></div>
-          <div className="w-3 h-3 bg-muted rounded-full"></div>
-          <div className="w-3 h-3 bg-primary rounded-full"></div>
+        {/* Progress Display */}
+        <div className="flex flex-col items-center mt-12">
+          <div className="flex space-x-3 mb-3">
+            <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 1 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-primary/20'}`}></div>
+            <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 2 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-gray-100'}`}></div>
+          </div>
+          <span className="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">
+            Phase {currentStep} of 2
+          </span>
         </div>
       </div>
     </div>
