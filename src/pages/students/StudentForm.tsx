@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/routes/LaunguageContext.tsx";
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +59,7 @@ const StudentForm: React.FC = () => {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [selectedSchoolInfo, setSelectedSchoolInfo] = useState<any>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [emailError, setEmailError] = useState("");
   const [alternateError, setAlternateError] = useState("");
   const [whatsappError, setWhatsappError] = useState("");
@@ -299,7 +300,7 @@ const StudentForm: React.FC = () => {
           <section>
             <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🎯</span>
-              Eligibility
+              {content.eligibility}
             </h3>
             <ul className="space-y-2">
               {school.eligibility.map((item: string, i: number) => (
@@ -311,7 +312,7 @@ const StudentForm: React.FC = () => {
 
             <h3 className="text-lg font-bold text-gray-800 mt-8 mb-3 flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">📚</span>
-              Curriculum focus
+              {content.curriculumFocus}
             </h3>
             <ul className="space-y-2">
               {school.curriculum.map((item: string, i: number) => (
@@ -325,7 +326,7 @@ const StudentForm: React.FC = () => {
           <section>
             <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🏆</span>
-              Outcomes
+              {content.outcomes}
             </h3>
             <ul className="space-y-2">
               {school.outcomes.map((item: string, i: number) => (
@@ -337,11 +338,11 @@ const StudentForm: React.FC = () => {
 
             <div className="mt-8 p-4 bg-gray-50 rounded-xl space-y-3">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Duration</span>
+                <span className="text-gray-500">{content.duration}</span>
                 <span className="font-bold text-gray-800">{school.duration}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Location</span>
+                <span className="text-gray-500">{content.location}</span>
                 <span className="font-bold text-gray-800">{school.location}</span>
               </div>
             </div>
@@ -356,7 +357,7 @@ const StudentForm: React.FC = () => {
               }}
               className="w-full mt-8 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg active:scale-95"
             >
-              Apply to this School
+              {content.applyToSchool}
             </button>
           </section>
         </div>
@@ -914,7 +915,10 @@ const StudentForm: React.FC = () => {
 
     if (currentStep === 1) {
       setCurrentStep(2);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Scroll the container to top
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      }
       return;
     }
 
@@ -1058,6 +1062,17 @@ const StudentForm: React.FC = () => {
           faceVerified: "चेहरा सत्यापित",
           faceVerifiedMessage: "छवि सफलतापूर्वक अपलोड की गई!",
           loading: "लोड हो रहा है...",
+          selectSchoolHeading: "अपना स्कूल चुनें",
+          selectSchoolDescription: "कृपया हमारे स्कूलों के बारे में जानकारी पढ़ें और वह चुनें जिसके लिए आप आवेदन करना चाहते हैं।",
+          checkDetails: "विवरण देखें",
+          eligibility: "पात्रता",
+          curriculumFocus: "पाठ्यक्रम फोकस",
+          outcomes: "परिणाम",
+          duration: "अवधि",
+          location: "स्थान",
+          applyToSchool: "इस स्कूल के लिए आवेदन करें",
+          nextStep: "अगला कदम",
+          phase: "चरण",
         };
 
       case "marathi":
@@ -1110,8 +1125,19 @@ const StudentForm: React.FC = () => {
           noFaceDetected: "चेहरा सापडला नाही",
           noFaceMessage: "कृपया स्पष्ट मानवी चेहऱ्याची प्रतिमा अपलोड करा.",
           faceVerified: "चेहरा सत्यापित",
-          faceVerifiedMessage: "प्रतिमा यशस्वीरित्या अपलोड केली!",
+          faceVerifiedMessage: "प्रतिमा यशस्वीरित्या अपलोड झाली!",
           loading: "लोड करत आहे...",
+          selectSchoolHeading: "तुमची शाळा निवडा",
+          selectSchoolDescription: "कृपया आमच्या शाळांबद्दल माहिती वाचा आणि तुम्हाला ज्यासाठी अर्ज करायचा आहे ती निवडा.",
+          checkDetails: "तपशील पहा",
+          eligibility: "पात्रता",
+          curriculumFocus: "अभ्यासक्रम फोकस",
+          outcomes: "परिणाम",
+          duration: "कालावधी",
+          location: "स्थान",
+          applyToSchool: "या शाळेसाठी अर्ज करा",
+          nextStep: "पुढील पायरी",
+          phase: "टप्पा",
         };
 
       default: // English
@@ -1161,9 +1187,20 @@ const StudentForm: React.FC = () => {
           verifyingMessage: "Please wait while we verify the image...",
           noFaceDetected: "No Face Detected",
           noFaceMessage: "Please upload an image with a clear human face.",
-          faceVerified: "Face Verified",
+          faceVerified: "✅ Face Verified",
           faceVerifiedMessage: "Image uploaded successfully!",
           loading: "Loading...",
+          selectSchoolHeading: "Select Your School",
+          selectSchoolDescription: "Please read the information about our schools and select the one you'd like to apply for.",
+          checkDetails: "Check Details",
+          eligibility: "Eligibility",
+          curriculumFocus: "Curriculum focus",
+          outcomes: "Outcomes",
+          duration: "Duration",
+          location: "Location",
+          applyToSchool: "Apply to this School",
+          nextStep: "Next Step",
+          phase: "Phase",
         };
     }
   };
@@ -1172,13 +1209,13 @@ const StudentForm: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
-      <div className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div ref={scrollContainerRef} className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-6">
           <LanguageSelector />
           <LogoutButton />
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
-            {currentStep === 1 ? content.signUp : "Select Your School"}
+            {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
           </h1>
         </div>
 
@@ -1603,10 +1640,10 @@ const StudentForm: React.FC = () => {
         ) : (
           <div className="space-y-6">
             <p className="text-center text-gray-600 mb-6">
-              Please read the information about our schools and select the one you'd like to apply for.
+              {content.selectSchoolDescription}
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {schoolDetails.map((school) => {
                 const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
                 return (
@@ -1664,7 +1701,7 @@ const StudentForm: React.FC = () => {
                           }}
                           className="text-primary text-sm font-bold flex items-center gap-1.5 hover:underline decoration-2 underline-offset-4"
                         >
-                          Read more
+                          {content.checkDetails}
                           <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                         </button>
 
@@ -1680,33 +1717,6 @@ const StudentForm: React.FC = () => {
             </div>
 
             {selectedSchoolInfo && <SchoolDetailCard school={selectedSchoolInfo} />}
-
-            <div className="mt-12 p-8 bg-gray-50 border border-gray-100 rounded-3xl">
-              <div className="max-w-md mx-auto">
-                <label className="block text-sm font-bold text-gray-700 mb-3 text-center">
-                  Final Selection <span className="text-destructive">*</span>
-                </label>
-                <Combobox
-                  options={schools?.map((school) => ({
-                    value: String(school.id),
-                    label: school.school_name,
-                  })) || []}
-                  value={formData.initial_school_id}
-                  onValueChange={(value) => {
-                    handleInputChange({ target: { name: 'initial_school_id', value } } as any);
-                  }}
-                  placeholder="Choose Your School"
-                  searchPlaceholder="Search available schools..."
-                  emptyText="No school found."
-                  className={`h-14 rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 focus:ring-primary ${schoolError ? 'border-red-500' : 'border-transparent'}`}
-                />
-                {schoolError && (
-                  <p className="text-red-500 text-xs mt-2 font-bold text-center italic">
-                    {schoolError}
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
         )}
 
@@ -1722,7 +1732,7 @@ const StudentForm: React.FC = () => {
             onClick={handleSubmit}
             className={`px-10 py-3 rounded-2xl transition-all student-btn text-white font-bold min-w-[180px] shadow-lg hover:shadow-primary/20 active:scale-95`}
           >
-            {currentStep === 1 ? "Next Step" : content.saveContinue}
+            {currentStep === 1 ? content.nextStep : content.saveContinue}
           </button>
         </div>
 
@@ -1733,11 +1743,11 @@ const StudentForm: React.FC = () => {
             <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 2 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-gray-100'}`}></div>
           </div>
           <span className="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">
-            Phase {currentStep} of 2
+            {content.phase} {currentStep} of 2
           </span>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
