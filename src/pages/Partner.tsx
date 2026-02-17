@@ -257,7 +257,7 @@ const PartnerPage = () => {
     // Trim search queries to compare properly
     const trimmedDebounced = debouncedSearchQuery?.trim() || "";
     const trimmedCurrent = searchQuery?.trim() || "";
-    
+
     // Reset to page 1 when search changes, but don't trigger extra load
     if (page !== 1 && trimmedDebounced !== trimmedCurrent) {
       setPage(1);
@@ -276,9 +276,9 @@ const PartnerPage = () => {
           ? p.districts.map(String)
           : (p.districts ? (typeof p.districts === 'string' ? p.districts.split(',').map(d => d.trim()).filter(Boolean) : [String(p.districts)]) : []);
 
-          const displayDistricts = p.district_name
-            ? (typeof p.district_name === 'string' ? p.district_name.split(',').map(d => d.trim()).filter(Boolean) : [p.district_name])
-            : districtIds;
+        const displayDistricts = p.district_name
+          ? (typeof p.district_name === 'string' ? p.district_name.split(',').map(d => d.trim()).filter(Boolean) : [p.district_name])
+          : districtIds;
 
         return {
           ...p,
@@ -397,7 +397,7 @@ const PartnerPage = () => {
   if (isClientFiltered) {
     // 1. Filter the Full List locally
     const matches = allPartnersForStats.filter((partner) => {
-      
+
       const q = searchQuery.toLowerCase();
       const matchesSearch = q ? partner.partner_name?.toLowerCase().includes(q) : true;
 
@@ -547,7 +547,7 @@ const PartnerPage = () => {
   const openEditDialog = (idx) => {
     const realIdx = (page - 1) * ROWS_PER_PAGE + idx;
     const partner = paginatedPartners[idx];
-     // Use paginated index for display, but need real index for update if modifying 'partners' array directly.
+    // Use paginated index for display, but need real index for update if modifying 'partners' array directly.
     // Actually, simpler to find by ID if possible, but assuming index based on paginated view needs mapping.
     // Let's find the original index in `partners` array.
     const originalIndex = partners.findIndex(p => p.id === partner.id);
@@ -1714,7 +1714,7 @@ const PartnerPage = () => {
                     return (
                       <Card key={q.id || q.question_id || idx} className="shadow-sm border">
                         <CardHeader className="flex items-start justify-between py-2">
-                          <CardTitle className="text-sm font-medium">{idx + 1}. {questionText}</CardTitle>
+                          <CardTitle className="text-sm font-medium whitespace-pre-line">{idx + 1}. {questionText}</CardTitle>
                           <Badge className="text-xs" variant={q.difficulty_level === 1 ? "easy" : q.difficulty_level === 2 ? "medium" : "hard"}>{diffLabel}</Badge>
                         </CardHeader>
                         <CardContent className="pt-0 pb-3">
@@ -1722,7 +1722,7 @@ const PartnerPage = () => {
                             {options.map((opt: any, i: number) => (
                               <div key={i} className="p-2 border rounded-md bg-background hover:bg-primary/5 text-sm">
                                 <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
-                                <span className="text-sm">{typeof opt === "object" && opt !== null ? (opt.text || opt.content || String(opt)) : opt}</span>
+                                <span className="text-sm whitespace-pre-line">{typeof opt === "object" && opt !== null ? (opt.text || opt.content || String(opt)) : opt}</span>
                               </div>
                             ))}
                           </div>
