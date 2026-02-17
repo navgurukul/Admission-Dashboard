@@ -302,8 +302,15 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       });
       return;
     }
-
-
+    if (!formData.school_ids || formData.school_ids.length === 0) {
+      toast({
+        title: "⚠️ Required Field Missing",
+        description: "Please select school",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
 
     try {
       const payload = {
@@ -697,7 +704,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 placeholder="Brief description of this question set"
                 rows={3}
               />
-              <Label htmlFor="school">Schools</Label>
+              <Label htmlFor="school">Schools <span className="text-red-500">*</span></Label>
               <MultiSelectCombobox
                 options={schools.map((school) => ({
                   value: String(school.id),
@@ -707,7 +714,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 onValueChange={(value) =>
                   setFormData({ ...formData, school_ids: value })
                 }
-                placeholder="Select schools (Optional)"
+                placeholder="Select schools"
                 searchPlaceholder="Search schools..."
               />
             </div>

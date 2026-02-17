@@ -156,6 +156,11 @@ const PartnerPage = () => {
   const [selectedSetName, setSelectedSetName] = useState<string>("");
   const [selectedSetId, setSelectedSetId] = useState<string | number>("");
   const [questionLanguage, setQuestionLanguage] = useState<"english" | "hindi" | "marathi">("english");
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [previewSets, setPreviewSets] = useState<Record<string, any>>({});
+  const [activePreviewType, setActivePreviewType] = useState<string>("SOP");
+  const [currentPartnerForCreation, setCurrentPartnerForCreation] = useState<any>(null);
+  const [pendingAssessment, setPendingAssessment] = useState<{ sourceName: string } | null>(null);
 
   // State for Create Assessment Form
   const [assessmentFormData, setAssessmentFormData] = useState({
@@ -170,9 +175,9 @@ const PartnerPage = () => {
   const [allPartnersForStats, setAllPartnersForStats] = useState([]);
   const [loadingAbortController, setLoadingAbortController] = useState<AbortController | null>(null);
 
-  // Cleaned up old picker states
-  // const [showQuestionPicker, setShowQuestionPicker] = useState(false);
-  const [pendingAssessment, setPendingAssessment] = useState<any>(null);
+  // Track partners with existing assessments
+  const [partnersWithAssessments, setPartnersWithAssessments] = useState<Set<number>>(new Set());
+  const [partnerCreatingAssessment, setPartnerCreatingAssessment] = useState<number | null>(null);
 
   const loadPartners = async (p = page, search = searchQuery) => {
     // Cancel previous request if still pending
@@ -287,10 +292,29 @@ const PartnerPage = () => {
     }
   };
 
+  const loadExistingAssessmentStatus = async () => {
+    try {
+      const allSets = await getAllQuestionSets();
+      setQuestionSets(allSets);
+
+      const pWithSets = new Set<number>();
+      allSets.forEach((s: any) => {
+        const pId = s.partnerId || s.partner_id;
+        if (pId) {
+          pWithSets.add(Number(pId));
+        }
+      });
+      setPartnersWithAssessments(pWithSets);
+    } catch (e) {
+      console.error("Failed to load existing assessment status:", e);
+    }
+  };
+
   useEffect(() => {
     loadStates();
     // Load all partners once for global stats and districts filter
     fetchAllPartners();
+    loadExistingAssessmentStatus();
   }, []);
 
   const loadStates = async () => {
@@ -399,8 +423,8 @@ const PartnerPage = () => {
 
   } else {
     // Server Side Mode
-    currentTableData = filteredPartners; 
-   
+    currentTableData = filteredPartners;
+
     displayTotalCount = totalPartnersCount;
     displayTotalPages = totalPages;
   }
@@ -840,20 +864,19 @@ const PartnerPage = () => {
 
     try {
       const allSets = await getAllQuestionSets();
-      // console.log("All Sets:", allSets); // Debug
+
+      const allowedTypes = ["SOP", "SOB", "SOF", "BCA"];
 
       const filtered = allSets.filter((s: any) => {
         // Check partnerId if it exists (loose equality for string/number safety)
         // Checking both camelCase and snake_case to be safe with API response
         const idMatch = (s.partnerId && s.partnerId == partner.id) || (s.partner_id && s.partner_id == partner.id);
 
-        // Check description for partner name (case insensitive)
-        const descMatch = s.description && s.description.toLowerCase().includes(partner.partner_name.toLowerCase());
-
-        return idMatch || descMatch;
+        // ensure only 4 sets
+        const name = (s.name || "").toUpperCase();
+        return idMatch && allowedTypes.some(type => name.endsWith(`-${type}`));
       });
 
-      // console.log("Filtered Sets:", filtered); // Debug
       setPartnerSets(filtered);
     } catch (e: any) {
       console.error("Failed to load assessments:", e);
@@ -866,94 +889,186 @@ const PartnerPage = () => {
     }
   };
   const handleCreateAssessment = async (partner) => {
-    setSelectedPartner(partner);
-    //  setShowCreateModal(true);
-    // setNewAssessmentName("");
+    if (partnersWithAssessments.has(partner.id)) {
+      toast({
+        title: "Assessment Already Created",
+        description: "An assessment for this partner already exists.",
+      });
+      return;
+    }
 
-    // 1. Open Modal immediately with loading state
-    setSelectedSetName("Finding suitable assessment...");
-    setShowQuestionsModal(true);
+    setPartnerCreatingAssessment(partner.id);
     setQuestionsLoading(true);
-    setPendingAssessment(null);
+    setCurrentPartnerForCreation(partner);
 
     try {
       // 2. Fetch all sets
       const allSets = await getAllQuestionSets();
 
-      // 2. Filter for "Sample-1" and "Sample-2" (flexible matching)
-      console.log("Fetched Question Sets:", allSets);
+      // 2. Filter for sets that have school assignments (template sets)
+      // STICKY RULE: Only use sets that HAVE school_ids (plural) or school_id (singular) and are NOT linked to a partner
+      const schoolTemplateSets = allSets.filter((s: any) =>
+        ((s.school_ids && Array.isArray(s.school_ids) && s.school_ids.length > 0) || s.school_id) && !s.partnerId
+      );
 
-      const candidates = allSets.filter((s: any) => {
-        const name = s.name?.toLowerCase() || "";
-        // Flexible match: "Sample-1", "Sample Set 1", "sample 1", etc.
-        return /sample.*[12]/i.test(name);
-      });
-
-      if (candidates.length === 0) {
-        console.warn("No sample sets found. Available sets:", allSets.map(s => s.name));
+      if (schoolTemplateSets.length === 0) {
         toast({
-          title: "⚠️ No Sample Sets Found",
-          description: `Found ${allSets.length} sets, but none matched 'Sample-1' or 'Sample-2'. Check console for names.`,
+          title: "⚠️ No School Template Sets Found",
+          description: "Assessment mapping requires template sets that have assigned schools.",
           variant: "destructive",
           className: "border-orange-500 bg-orange-50 text-orange-900"
         });
-        setShowQuestionsModal(false);
         return;
       }
 
-      // 3. Randomly select one valid set
-      // We shuffle candidates and try until we find one with questions
-      const shuffled = [...candidates].sort(() => 0.5 - Math.random());
+      const setTypes = ["SOP", "SOF", "BCA", "SOB"];
+      const categoryKeywords: Record<string, string[]> = {
+        SOP: ["SOP", "Programming"],
+        SOB: ["SOB", "Business"],
+        SOF: ["SOF", "Finance"],
+        BCA: ["BCA", "Computer"]
+      };
 
-      let selectedSet = null;
-      let questions = [];
+      const previewData: Record<string, any> = {};
 
-      for (const candidate of shuffled) {
+      for (const setType of setTypes) {
+        const keywords = categoryKeywords[setType] || [setType];
+
+        // Match specifically by category keywords WITHIN schoolTemplateSets
+        let sourceTemplate = schoolTemplateSets.find(s => {
+          const name = s.name?.toUpperCase() || "";
+          const desc = s.description?.toUpperCase() || "";
+          const combinedText = `${name} ${desc}`;
+          return keywords.some(k => combinedText.includes(k.toUpperCase()));
+        });
+
+        // Use global schoolTemplate fallback if no specific category match
+        if (!sourceTemplate && schoolTemplateSets.length > 0) {
+          sourceTemplate = schoolTemplateSets[Math.floor(Math.random() * schoolTemplateSets.length)];
+        }
+
+        if (!sourceTemplate) continue;
+
+        // Robust school ID extraction (handling both singular and plural API formats)
+        let finalSchoolIds: number[] = [];
+        if (sourceTemplate.school_ids && Array.isArray(sourceTemplate.school_ids)) {
+          finalSchoolIds = sourceTemplate.school_ids.map(id => Number(id)).filter(id => !isNaN(id));
+        }
+
         try {
-          const res = await getQuestionsBySetName(candidate.name);
-          const qarr = res?.data || res?.questions || res?.data?.data || [];
-
-          if (qarr && qarr.length > 0) {
-            selectedSet = candidate;
-            questions = qarr;
-            break;
+          const res = await getQuestionsBySetName(sourceTemplate.name);
+          let questions = [];
+          if (Array.isArray(res)) {
+            questions = res;
+          } else {
+            questions = res?.data || res?.questions || res?.result || res?.data?.data || [];
           }
-        } catch (e) {
-          console.warn(`Failed to check questions for ${candidate.name}`, e);
+
+          if (!Array.isArray(questions) || questions.length === 0) continue;
+
+          previewData[setType] = {
+            questions: questions,
+            sourceTemplateName: sourceTemplate.name,
+            schoolIds: finalSchoolIds
+          };
+        } catch (error) {
+          console.error(`Failed to fetch ${setType} template data:`, error);
         }
       }
 
-      if (!selectedSet) {
+      if (Object.keys(previewData).length > 0) {
+        setPreviewSets(previewData);
+        setActivePreviewType(Object.keys(previewData)[0]);
+        setSelectedSetQuestions(previewData[Object.keys(previewData)[0]].questions);
+        setSelectedSetName(partner.partner_name);
+        setIsPreviewMode(true);
+        setShowQuestionsModal(true);
+      } else {
         toast({
-          title: "⚠️ Invalid Sample Sets",
-          description: "Found sample sets but they contain no questions.",
+          title: "⚠️ No Templates Found",
+          description: "Could not find matching templates for assessment creation.",
           variant: "destructive",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
         });
-        setShowQuestionsModal(false);
-        return;
       }
 
-      // 5. Update Modal with Result
-      setSelectedSetQuestions(questions);
-      setSelectedSetName(`New Assessment from ${selectedSet.name}`);
-      setPendingAssessment({
-        sourceId: selectedSet.id,
-        sourceName: selectedSet.name,
-        questions: questions
+    } catch (error) {
+      console.error("Prepare Assessment Preview Error:", error);
+      toast({
+        title: "❌ Error",
+        description: "An unexpected error occurred while preparing preview.",
+        variant: "destructive",
       });
+    } finally {
+      setPartnerCreatingAssessment(null);
+      setQuestionsLoading(false);
+    }
+  };
 
-      // Modal is already open, just updated state
+  const handleFinalizeCreate = async () => {
+    if (!currentPartnerForCreation || Object.keys(previewSets).length === 0) return;
 
+    setQuestionsLoading(true);
+    const createdSets: string[] = [];
+    const failedSets: string[] = [];
+
+    try {
+      for (const setType in previewSets) {
+        const data = previewSets[setType];
+        const formattedQuestions = data.questions.map((q: any) => ({
+          question_id: q.id || q.question_id,
+          difficulty_level: q.difficulty_level
+        }));
+
+        const setName = `${currentPartnerForCreation.slug}-${setType}`;
+        const payload = {
+          name: setName,
+          description: `${setType} assessment for ${currentPartnerForCreation.partner_name} from ${data.sourceTemplateName}`,
+          partnerId: currentPartnerForCreation.id,
+          partner_name: currentPartnerForCreation.partner_name,
+          isRandom: false,
+          questions: formattedQuestions,
+          school_ids: data.schoolIds
+        };
+
+        try {
+          await createQuestionSet(payload);
+          createdSets.push(setName);
+        } catch (err) {
+          console.error(`Failed to create ${setType}:`, err);
+          failedSets.push(setType);
+        }
+      }
+
+      // Show results
+      if (createdSets.length > 0) {
+        toast({
+          title: "✅ Assessments Created",
+          description: `Successfully created ${createdSets.length} sets.`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900"
+        });
+        setPartnersWithAssessments(prev => new Set(prev).add(currentPartnerForCreation.id));
+        setShowQuestionsModal(false);
+        setIsPreviewMode(false);
+        setPreviewSets({});
+      }
+
+      if (failedSets.length > 0) {
+        toast({
+          title: "⚠️ Some Sets Failed",
+          description: `Failed to map categories: ${failedSets.join(", ")}`,
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+      }
     } catch (error) {
       console.error("Create Assessment Flow Error:", error);
       toast({
         title: "❌ Error",
-        description: "Failed to initialize assessment creation flow.",
+        description: "An unexpected error occurred while mapping assessments.",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900"
       });
-      setShowQuestionsModal(false);
     } finally {
       setQuestionsLoading(false);
     }
@@ -1258,8 +1373,26 @@ const PartnerPage = () => {
                           </Button>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" onClick={() => handleCreateAssessment(partner)} className="h-8 px-2 text-primary hover:text-primary/80">
-                            <FileText className="mr-2 h-4 w-4" /> Create
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCreateAssessment(partner)}
+                            className={`h-8 px-2 ${partnersWithAssessments.has(partner.id) ? 'text-green-600 hover:bg-green-50' : 'text-primary hover:text-primary/80'}`}
+                            disabled={questionsLoading || partnersWithAssessments.has(partner.id)}
+                          >
+                            {partnerCreatingAssessment === partner.id ? (
+                              <>
+                                <FileText className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                              </>
+                            ) : partnersWithAssessments.has(partner.id) ? (
+                              <>
+                                <FileText className="mr-2 h-4 w-4" /> Created
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="mr-2 h-4 w-4" /> Create
+                              </>
+                            )}
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
@@ -1464,29 +1597,80 @@ const PartnerPage = () => {
         </Dialog>
 
         {/* QUESTIONS VIEW MODAL */}
-        <Dialog open={showQuestionsModal} onOpenChange={setShowQuestionsModal}>
-          <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <Dialog open={showQuestionsModal} onOpenChange={(open) => {
+          setShowQuestionsModal(open);
+          if (!open) {
+            setIsPreviewMode(false);
+            setPreviewSets({});
+          }
+        }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
             <DialogHeader>
               {/* <DialogTitle>Questions for: {selectedSetName}</DialogTitle>
               <DialogDescription>Select language to view questions</DialogDescription> */}
               <DialogTitle>
-                {pendingAssessment ? "Preview Question" : `Questions for: ${selectedSetName}`}
+                {pendingAssessment ? "Preview Question" : "Preview Questions"}
               </DialogTitle>
               <DialogDescription>
                 {pendingAssessment
                   ? `Reviewing the selected set from ${pendingAssessment.sourceName}. Click Create to assign it to Partner ${selectedPartner?.partner_name}.`
-                  : "Select language to view questions"
+                  : `Select language to view questions for ${selectedSetName}`
                 }
               </DialogDescription>
             </DialogHeader>
 
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-2">
-                <Label>Language:</Label>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex flex-wrap items-center gap-4">
+                {isPreviewMode && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Select Set:</Label>
+                    <Select
+                      value={activePreviewType}
+                      onValueChange={(val) => {
+                        setActivePreviewType(val);
+                        setSelectedSetQuestions(previewSets[val].questions);
+                      }}
+                    >
+                      <SelectTrigger className="w-[120px] h-9">
+                        <SelectValue placeholder="Select Set" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(previewSets).map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
-                  <Button variant={questionLanguage === "english" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("english")}>English</Button>
-                  <Button variant={questionLanguage === "hindi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("hindi")}>Hindi</Button>
-                  <Button variant={questionLanguage === "marathi" ? "default" : "ghost"} size="sm" onClick={() => setQuestionLanguage("marathi")}>Marathi</Button>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Language:</Label>
+                  <div className="flex items-center bg-background border rounded-md p-0.5">
+                    <Button
+                      variant={questionLanguage === "english" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-7 text-xs px-3"
+                      onClick={() => setQuestionLanguage("english")}
+                    >
+                      English
+                    </Button>
+                    <Button
+                      variant={questionLanguage === "hindi" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-7 text-xs px-3"
+                      onClick={() => setQuestionLanguage("hindi")}
+                    >
+                      Hindi
+                    </Button>
+                    <Button
+                      variant={questionLanguage === "marathi" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-7 text-xs px-3"
+                      onClick={() => setQuestionLanguage("marathi")}
+                    >
+                      Marathi
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -1513,12 +1697,22 @@ const PartnerPage = () => {
               ) : (
                 <div className="space-y-4">
                   {selectedSetQuestions.map((q: any, idx: number) => {
-                    const questionText = questionLanguage === "english" ? q.english_text : questionLanguage === "hindi" ? q.hindi_text : q.marathi_text;
-                    const options = (questionLanguage === "english" ? q.english_options : questionLanguage === "hindi" ? q.hindi_options : q.marathi_options) || [];
+                    // Support different possible property names for question text
+                    const questionText =
+                      (questionLanguage === "english" ? (q.english_text || q.text || q.question || q.content) :
+                        questionLanguage === "hindi" ? (q.hindi_text || q.text || q.question || q.content) :
+                          (q.marathi_text || q.text || q.question || q.content)) || "No question text available";
+
+                    // Support different possible property names for options
+                    const optionsRaw = (questionLanguage === "english" ? q.english_options :
+                      questionLanguage === "hindi" ? q.hindi_options :
+                        q.marathi_options) || q.options || [];
+
+                    const options = Array.isArray(optionsRaw) ? optionsRaw : [];
                     const diffLabel = q.difficulty_level === 1 ? "Easy" : q.difficulty_level === 2 ? "Medium" : q.difficulty_level === 3 ? "Hard" : "";
 
                     return (
-                      <Card key={q.id || idx} className="shadow-sm border">
+                      <Card key={q.id || q.question_id || idx} className="shadow-sm border">
                         <CardHeader className="flex items-start justify-between py-2">
                           <CardTitle className="text-sm font-medium">{idx + 1}. {questionText}</CardTitle>
                           <Badge className="text-xs" variant={q.difficulty_level === 1 ? "easy" : q.difficulty_level === 2 ? "medium" : "hard"}>{diffLabel}</Badge>
@@ -1528,7 +1722,7 @@ const PartnerPage = () => {
                             {options.map((opt: any, i: number) => (
                               <div key={i} className="p-2 border rounded-md bg-background hover:bg-primary/5 text-sm">
                                 <span className="font-medium mr-2">{String.fromCharCode(65 + i)}.</span>
-                                <span className="text-sm">{typeof opt === "object" && opt !== null ? opt.text : opt}</span>
+                                <span className="text-sm">{typeof opt === "object" && opt !== null ? (opt.text || opt.content || String(opt)) : opt}</span>
                               </div>
                             ))}
                           </div>
@@ -1543,69 +1737,32 @@ const PartnerPage = () => {
               )}
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              {/* <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button> */}
-              <Button variant="outline" onClick={() => {
+            <DialogFooter className="gap-2 sm:gap-0 mt-4 border-t pt-4">
+              <Button variant="ghost" onClick={() => {
                 setShowQuestionsModal(false);
-                setPendingAssessment(null);
-              }}>Close</Button>
-
-              {pendingAssessment && (
+                setIsPreviewMode(false);
+                setPreviewSets({});
+              }}>
+                Cancel
+              </Button>
+              {isPreviewMode ? (
                 <Button
-                  onClick={async () => {
-                    try {
-                      setQuestionsLoading(true);
-
-                      // Format questions for API
-                      const formattedQuestions = pendingAssessment.questions.map((q: any) => ({
-                        question_id: q.id,
-                        difficulty_level: q.difficulty_level
-                      }));
-
-                      const payload = {
-                        name: `${selectedPartner?.partner_name} Assessment - ${new Date().toLocaleDateString()}`,
-                        description: `Generated from "${pendingAssessment.sourceName}" for "${selectedPartner?.partner_name}"`,
-                        partnerId: selectedPartner?.id, // Ensure partner link
-                        partner_name: selectedPartner?.partner_name,
-                        isRandom: false, // We are providing specific questions
-                        questions: formattedQuestions
-                      };
-
-                      await createQuestionSet(payload);
-
-                      toast({
-                        title: "✅ Assessment Created",
-                        description: "Assessment has been successfully created and linked to the partner.",
-                        variant: "default",
-                        className: "border-green-500 bg-green-50 text-green-900"
-                      });
-
-                      setShowQuestionsModal(false);
-                      setPendingAssessment(null);
-
-                      // Refresh partner data/stats if needed
-                      if (selectedPartner) {
-                        handleViewAssessments(selectedPartner); // This will refresh the list in the other modal if open, but here we are in the Preview modal.
-                        // Actually we might want to just close this and maybe show the assessment list?
-                        // For now, just closing is fine.
-                      }
-
-                    } catch (error) {
-                      console.error("Failed to create assessment:", error);
-                      toast({
-                        title: "❌ Creation Failed",
-                        description: getFriendlyErrorMessage(error),
-                        variant: "destructive",
-                        className: "border-red-500 bg-red-50 text-red-900"
-                      });
-                    } finally {
-                      setQuestionsLoading(false);
-                    }
-                  }}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-primary hover:bg-primary/90 text-white min-w-[150px]"
+                  onClick={handleFinalizeCreate}
+                  disabled={questionsLoading}
                 >
-                  Create Assessment
+                  {questionsLoading ? (
+                    <>
+                      <FileText className="mr-2 h-4 w-4 animate-spin" /> Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" /> Create Assessments
+                    </>
+                  )}
                 </Button>
+              ) : (
+                <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button>
               )}
             </DialogFooter>
           </DialogContent>
@@ -1790,8 +1947,13 @@ const PartnerPage = () => {
                                   setQuestionsLoading(true);
                                   try {
                                     const res = await getQuestionsBySetName(name);
-                                    // API returns object with data array
-                                    const qarr = res?.data || res?.questions || res?.data?.data || [];
+                                    // Robust array extraction
+                                    let qarr = [];
+                                    if (Array.isArray(res)) {
+                                      qarr = res;
+                                    } else {
+                                      qarr = res?.data || res?.questions || res?.result || res?.data?.data || [];
+                                    }
                                     setSelectedSetQuestions(Array.isArray(qarr) ? qarr : []);
                                   } catch (err) {
                                     console.error("Failed to load questions for set:", err);
@@ -1936,7 +2098,7 @@ const PartnerPage = () => {
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        {/* <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirm Delete</DialogTitle>
@@ -1952,7 +2114,7 @@ const PartnerPage = () => {
               <Button type="button" variant="destructive" onClick={confirmDeletePartner}>Delete</Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog> */}
 
       </main >
     </div >
