@@ -134,13 +134,13 @@ export function QuestionList({
 
                   <h3 className="font-medium text-sm mb-2">
                     <div className="space-y-1">
-                      <div>
+                      <div className="whitespace-pre-line">
                         <strong>EN:</strong> {question.english_text}
                       </div>
-                      <div>
+                      <div className="whitespace-pre-line">
                         <strong>HI:</strong> {question.hindi_text}
                       </div>
-                      <div>
+                      <div className="whitespace-pre-line">
                         <strong>MR:</strong> {question.marathi_text}
                       </div>
                     </div>

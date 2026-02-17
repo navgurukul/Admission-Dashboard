@@ -388,7 +388,7 @@ export function QuestionEditor({
       )}
 
       {/* Explanation */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label>Explanation (Optional)</Label>
         <Textarea
           value={formData.explanation}
@@ -396,7 +396,7 @@ export function QuestionEditor({
           placeholder="Provide an explanation for the correct answer..."
           rows={3}
         />
-      </div>
+      </div> */}
 
       {/* Save / Cancel Buttons */}
       <div className="flex items-center justify-end gap-4">

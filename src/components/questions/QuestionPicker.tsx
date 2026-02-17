@@ -295,7 +295,7 @@ export function QuestionPicker({
                   : "text-red-600"
                 }`}
             >
-              Easy: {selectedStats.easy} / 5
+              Easy: {selectedStats.easy} / 4
             </span>
             <span
               className={`${selectedStats.medium === 8
@@ -311,7 +311,7 @@ export function QuestionPicker({
                   : "text-red-600"
                 }`}
             >
-              Hard: {selectedStats.hard} / 5
+              Hard: {selectedStats.hard} / 4
             </span>
           </div>
           <div className="flex items-center bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 w-auto">
@@ -391,7 +391,7 @@ export function QuestionPicker({
               </span>
             </div> */}
             <div className="text-xs text-orange-600 font-medium">
-              ⚠️ Required: 18-21 questions 
+              ⚠️ Minimum 16 questions required 
             </div>
           </div>
           <Button onClick={handleSave}>Save</Button>
