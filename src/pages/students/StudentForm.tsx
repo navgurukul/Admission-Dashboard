@@ -24,7 +24,8 @@ import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
-import { PlayCircle } from "lucide-react";
+import { ExternalLink, PlayCircle } from "lucide-react";
+import { LearningRoundModal } from "@/components/LearningRoundModal";
 interface State {
   id: string;
   state_name: string;
@@ -65,6 +66,7 @@ const StudentForm: React.FC = () => {
   const [whatsappError, setWhatsappError] = useState("");
   const [schoolError, setSchoolError] = useState("");
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isLearningModalOpen, setIsLearningModalOpen] = useState(false);
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
@@ -1209,15 +1211,11 @@ const StudentForm: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
-      <div ref={scrollContainerRef} className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto relative">
-        {/* Language & Logout Buttons - Positioned at top right */}
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+      <div ref={scrollContainerRef} className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="text-center mb-6">
           <LanguageSelector />
           <LogoutButton />
-        </div>
-        
-        {/* Header */}
-        <div className="text-center mb-6 mt-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
             {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
           </h1>
@@ -1643,22 +1641,17 @@ const StudentForm: React.FC = () => {
           </>
         ) : (
           <div className="space-y-6">
-            <p className="text-center text-gray-600 mb-6">
-              {content.selectSchoolDescription}
-            </p>
-
-            {/* Learning Round Overview Button */}
-            <div className="flex justify-center mb-6">
-              <a
-                href="https://www.youtube.com/watch?v=8IbSWrh8DsY"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-all shadow-md hover:shadow-lg"
+            <div className="text-center mb-6">
+              <p className="text-gray-600 mb-3">
+                {content.selectSchoolDescription}
+              </p>
+              <button
+                onClick={() => setIsLearningModalOpen(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white student-btn rounded-xl shadow-lg hover:shadow-primary/20 active:scale-95 transition-all"
               >
-                <PlayCircle className="w-5 h-5" />
+                <PlayCircle className="w-4 h-4" />
                 <span>Watch Learning Round Overview</span>
-                {/* <ExternalLink className="w-4 h-4" /> */}
-              </a>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1765,6 +1758,15 @@ const StudentForm: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Learning Round Modal */}
+      <LearningRoundModal
+        isOpen={isLearningModalOpen}
+        onClose={() => setIsLearningModalOpen(false)}
+        videoUrl="https://www.youtube.com/watch?v=8IbSWrh8DsY"
+        title="Learning Round Overview"
+        description="Watch this video to understand how the learning round works and what to expect."
+      />
     </div >
   );
 };
