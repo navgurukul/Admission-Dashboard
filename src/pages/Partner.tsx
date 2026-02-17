@@ -1762,7 +1762,8 @@ const PartnerPage = () => {
                   )}
                 </Button>
               ) : (
-                <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button>
+                null
+                // <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button>
               )}
             </DialogFooter>
           </DialogContent>
@@ -2098,7 +2099,7 @@ const PartnerPage = () => {
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
-        {/* <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirm Delete</DialogTitle>
@@ -2114,7 +2115,7 @@ const PartnerPage = () => {
               <Button type="button" variant="destructive" onClick={confirmDeletePartner}>Delete</Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog> */}
+        </Dialog>
 
       </main >
     </div >
