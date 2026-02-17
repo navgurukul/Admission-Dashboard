@@ -24,7 +24,7 @@ import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
-import { ExternalLink } from "lucide-react";
+import { PlayCircle } from "lucide-react";
 interface State {
   id: string;
   state_name: string;
@@ -1191,7 +1191,7 @@ const StudentForm: React.FC = () => {
           faceVerifiedMessage: "Image uploaded successfully!",
           loading: "Loading...",
           selectSchoolHeading: "Select Your School",
-          selectSchoolDescription: "Please read the information about our schools and select the one you'd like to apply for.",
+          selectSchoolDescription: "Please go through the information about our schools and select the one you'd like to apply for.",
           checkDetails: "Check Details",
           eligibility: "Eligibility",
           curriculumFocus: "Curriculum focus",
@@ -1209,11 +1209,15 @@ const StudentForm: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
-      <div ref={scrollContainerRef} className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="text-center mb-6">
+      <div ref={scrollContainerRef} className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto relative">
+        {/* Language & Logout Buttons - Positioned at top right */}
+        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
           <LanguageSelector />
           <LogoutButton />
+        </div>
+        
+        {/* Header */}
+        <div className="text-center mb-6 mt-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
             {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
           </h1>
@@ -1642,6 +1646,20 @@ const StudentForm: React.FC = () => {
             <p className="text-center text-gray-600 mb-6">
               {content.selectSchoolDescription}
             </p>
+
+            {/* Learning Round Overview Button */}
+            <div className="flex justify-center mb-6">
+              <a
+                href="https://www.youtube.com/watch?v=8IbSWrh8DsY"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-all shadow-md hover:shadow-lg"
+              >
+                <PlayCircle className="w-5 h-5" />
+                <span>Watch Learning Round Overview</span>
+                {/* <ExternalLink className="w-4 h-4" /> */}
+              </a>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {schoolDetails.map((school) => {
