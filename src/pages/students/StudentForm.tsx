@@ -1650,7 +1650,7 @@ const StudentForm: React.FC = () => {
                 className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white student-btn rounded-xl shadow-lg hover:shadow-primary/20 active:scale-95 transition-all"
               >
                 <PlayCircle className="w-4 h-4" />
-                <span>Watch Learning Round Overview</span>
+                <span>Watch this video and Prepare for the test from here</span>
               </button>
             </div>
 
