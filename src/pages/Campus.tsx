@@ -97,8 +97,8 @@ const CampusPage: React.FC = () => {
 
   // Fetch on mount and when page changes
   useEffect(() => {
-    fetchCampuses(true);
-  }, [currentPage, itemsPerPage]);
+    fetchCampuses(true, 1);
+  }, []);
 
   // Reset to page 1 when search changes
   useEffect(() => {

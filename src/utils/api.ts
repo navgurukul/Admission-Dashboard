@@ -1576,7 +1576,7 @@ export const getRandomQuestions = async (
 
 export const getQuestionsBySetType = async (setType: string) => {
   try {
-    const url = `${BASE_URL}/questions/set/${setType}`;
+    const url = `${BASE_URL}/questions/set/${encodeURIComponent(setType)}`;
     const response = await axios.get(url);
     return response.data; // Adjust based on API response structure
   } catch (error: any) {

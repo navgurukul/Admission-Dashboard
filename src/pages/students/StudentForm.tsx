@@ -24,7 +24,8 @@ import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, PlayCircle } from "lucide-react";
+import { LearningRoundModal } from "@/components/LearningRoundModal";
 interface State {
   id: string;
   state_name: string;
@@ -65,6 +66,7 @@ const StudentForm: React.FC = () => {
   const [whatsappError, setWhatsappError] = useState("");
   const [schoolError, setSchoolError] = useState("");
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isLearningModalOpen, setIsLearningModalOpen] = useState(false);
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
@@ -1191,7 +1193,7 @@ const StudentForm: React.FC = () => {
           faceVerifiedMessage: "Image uploaded successfully!",
           loading: "Loading...",
           selectSchoolHeading: "Select Your School",
-          selectSchoolDescription: "Please read the information about our schools and select the one you'd like to apply for.",
+          selectSchoolDescription: "Please go through the information about our schools and select the one you'd like to apply for.",
           checkDetails: "Check Details",
           eligibility: "Eligibility",
           curriculumFocus: "Curriculum focus",
@@ -1639,9 +1641,18 @@ const StudentForm: React.FC = () => {
           </>
         ) : (
           <div className="space-y-6">
-            <p className="text-center text-gray-600 mb-6">
-              {content.selectSchoolDescription}
-            </p>
+            <div className="text-center mb-6">
+              <p className="text-gray-600 mb-3">
+                {content.selectSchoolDescription}
+              </p>
+              <button
+                onClick={() => setIsLearningModalOpen(true)}
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white student-btn rounded-xl shadow-lg hover:shadow-primary/20 active:scale-95 transition-all"
+              >
+                <PlayCircle className="w-4 h-4" />
+                <span>Watch this video and Prepare for the test from here</span>
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {schoolDetails.map((school) => {
@@ -1747,6 +1758,15 @@ const StudentForm: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Learning Round Modal */}
+      <LearningRoundModal
+        isOpen={isLearningModalOpen}
+        onClose={() => setIsLearningModalOpen(false)}
+        videoUrl="https://www.youtube.com/watch?v=8IbSWrh8DsY"
+        title="Learning Round Overview"
+        description="Watch this video to understand how the learning round works and what to expect."
+      />
     </div >
   );
 };
