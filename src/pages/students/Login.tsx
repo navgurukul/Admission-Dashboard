@@ -351,7 +351,23 @@ export default function StudentLogin() {
   }, [googleUser, isAuthenticated, navigate, hasProcessedAuth]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "phone") {
+      // Allow only digits
+      const digitsOnly = value.replace(/\D/g, "");
+      setFormData({ ...formData, [name]: digitsOnly });
+      return;
+    }
+
+    if (name === "name" || name === "lastname" || name === "middleName") {
+      // Allow only letters and spaces
+      const lettersOnly = value.replace(/[^a-zA-Z\s]/g, "");
+      setFormData({ ...formData, [name]: lettersOnly });
+      return;
+    }
+
+    setFormData({ ...formData, [name]: value });
   };
 
   const content = {
