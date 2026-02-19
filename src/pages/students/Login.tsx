@@ -494,7 +494,7 @@ export default function StudentLogin() {
       localStorage.setItem("studentFormData", JSON.stringify({
         firstName: formData.name,
         lastName: formData.lastname,
-        whatsappNumber: formData.phone,
+        alternateNumber: formData.phone,
         middleName: formData.middleName
       }));
 

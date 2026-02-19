@@ -1399,7 +1399,8 @@ const StudentForm: React.FC = () => {
                     pattern="[0-9]{10}"
                     value={formData.alternateNumber}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-gray-100 cursor-not-allowed"
                     placeholder={content.enterAlternate}
                   />
                   {alternateError && (
