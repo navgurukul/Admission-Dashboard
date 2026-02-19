@@ -2090,6 +2090,14 @@ Interviewer: ${interviewerName}`;
                     disabled={!hasEditAccess}
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Prefered school
+                  </label>
+                  <div className="text-sm">
+                    {getLabel(schools, currentApplicant.initial_school_id, "—", "school_name")}
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -1210,12 +1210,12 @@ const StudentForm: React.FC = () => {
   const content = getContent();
 
   return (
-    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
-      <div ref={scrollContainerRef} className="bg-card rounded-2xl shadow-large p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="min-h-screen student-bg-gradient flex justify-center p-4 pt-20 md:pt-24 relative">
+      <LanguageSelector  />
+      <LogoutButton className="shadow-lg" />
+      <div ref={scrollContainerRef} className={`bg-card rounded-2xl shadow-large p-6 w-full overflow-y-auto relative ${currentStep === 1 ? 'max-w-6xl' : 'max-w-7xl'} max-h-[85vh]`}>
         {/* Header */}
         <div className="text-center mb-6">
-          <LanguageSelector />
-          <LogoutButton />
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
             {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
           </h1>
@@ -1300,7 +1300,7 @@ const StudentForm: React.FC = () => {
             </div>
 
             {/* Date of Birth and Gender */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {content.dateOfBirth}
@@ -1365,7 +1365,7 @@ const StudentForm: React.FC = () => {
             </div>
 
             {/* Contact Information */}
-            <div className="mb-6">
+            <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 {content.contactInfo}
               </h3>
@@ -1430,13 +1430,13 @@ const StudentForm: React.FC = () => {
             </div>
 
             {/* Additional Fields */}
-            <div className="mb-6">
+            <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Additional Information
               </h3>
 
               {/* State, District and Block */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {content.state}
@@ -1683,8 +1683,8 @@ const StudentForm: React.FC = () => {
                               'from-indigo-400 to-indigo-600'
                       }`} />
 
-                    <div className="p-6 flex flex-col h-full relative z-10">
-                      <div className="flex justify-between items-start mb-4">
+                    <div className="p-7 flex flex-col h-full relative z-10">
+                      <div className="flex justify-between items-start mb-5">
                         <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${school.color === 'blue' ? 'bg-blue-100 text-blue-700' :
                           school.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
                             school.color === 'amber' ? 'bg-amber-100 text-amber-700' :
@@ -1702,9 +1702,9 @@ const StudentForm: React.FC = () => {
                       </div>
 
                       <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors">{school.name}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed mb-6 line-clamp-3">{school.description}</p>
+                      <p className="text-sm text-gray-600 leading-relaxed mb-6 line-clamp-5">{school.description}</p>
 
-                      <div className="mt-auto space-y-4">
+                      <div className="mt-auto space-y-3">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1735,20 +1735,20 @@ const StudentForm: React.FC = () => {
         <div className="flex justify-center space-x-4 mt-12">
           <button
             onClick={handlePrevious}
-            className="px-8 py-3 bg-gray-100 text-gray-600 rounded-2xl hover:bg-gray-200 transition-all font-bold min-w-[140px]"
+            className="px-8 py-3 bg-white border-2 border-purple-400 text-purple-600 rounded-2xl hover:bg-purple-50 transition-all font-bold min-w-[140px]"
           >
             {content.back}
           </button>
           <button
             onClick={handleSubmit}
-            className={`px-10 py-3 rounded-2xl transition-all student-btn text-white font-bold min-w-[180px] shadow-lg hover:shadow-primary/20 active:scale-95`}
+            className={`px-6 py-3 rounded-2xl transition-all student-btn text-white font-bold min-w-[140px] shadow-lg hover:shadow-primary/20 active:scale-95`}
           >
             {currentStep === 1 ? content.nextStep : content.saveContinue}
           </button>
         </div>
 
         {/* Progress Display */}
-        <div className="flex flex-col items-center mt-12">
+        <div className="flex flex-col items-center mt-8">
           <div className="flex space-x-3 mb-3">
             <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 1 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-primary/20'}`}></div>
             <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 2 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-gray-100'}`}></div>
