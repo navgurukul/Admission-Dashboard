@@ -1118,6 +1118,23 @@ export const getStudentDataByEmail = async (
   }
 };
 
+// Get Student By Phone
+export const getStudentDataByPhone = async (
+  phone: string,
+): Promise<Student> => {
+  try {
+    const response = await axios.get<Student>(
+      `${BASE_URL}/students/getByPhone/${phone}`,
+    );
+
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error?.response?.data?.message || "Failed to fetch student by phone",
+    );
+  }
+};
+
 // Get Complete Student Data (student, exam_sessions, interview rounds, final decisions)
 export interface CompleteStudentData {
   success: boolean;

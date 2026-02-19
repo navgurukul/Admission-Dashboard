@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTests } from "../../utils/TestContext";
@@ -47,6 +47,7 @@ export default function StudentResult() {
   const [loading, setLoading] = useState(true);
   const { tests, setTests } = useTests();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
 
@@ -156,30 +157,48 @@ export default function StudentResult() {
       try {
         setLoading(true);
 
-        // Get email from  or googleUser
-        const googleUser = localStorage.getItem("user");
-        let email = "";
+        // 1. Check if data was passed via navigation state
+        let data: any = location.state?.studentData;
 
-        if (googleUser) {
-          const parsedUser = JSON.parse(googleUser);
-          email = parsedUser.email;
-        }
+        // 2. If not in state, try to find email and fetch fresh data
+        if (!data) {
+          const googleUser = localStorage.getItem("user");
+          let email = "";
 
-        if (!email) {
-          const savedApiPayload = localStorage.getItem("studentData");
-          if (savedApiPayload) {
-            const payload = JSON.parse(savedApiPayload);
-            email = payload?.student?.email || payload?.email || "";
+          if (googleUser) {
+            try {
+              const parsedUser = JSON.parse(googleUser);
+              email = parsedUser.email;
+            } catch (e) { }
+          }
+
+          if (!email) {
+            const savedApiPayload = localStorage.getItem("studentData");
+            if (savedApiPayload) {
+              try {
+                const payload = JSON.parse(savedApiPayload);
+                // Look for email in various nested structures
+                email = payload?.data?.student?.email || payload?.student?.email || payload?.email || "";
+
+                // If we found NO email but HAVE cached data, use the cached data as fallback
+                if (!email) {
+                  data = payload;
+                }
+              } catch (e) { }
+            }
+          }
+
+          if (email && !data) {
+            data = await getCompleteStudentData(email);
           }
         }
 
-        if (email) {
-          const data = await getCompleteStudentData(email);
+        // 3. Process the data (either fetched or cached)
+        if (data) {
           setCompleteData(data);
 
-          const profile = data?.data?.student;
+          const profile = data?.data?.student || data?.student;
           if (profile) {
-            // console.log("Mapped state name:", stateName);
             setStudent({
               firstName: profile.first_name || "",
               middleName: profile.middle_name || "",
@@ -195,7 +214,7 @@ export default function StudentResult() {
             const updatedTests: TestRow[] = [];
 
             // 1) Screening Test - show ALL attempts, not just latest
-            const examSessions = data?.data?.exam_sessions || [];
+            const examSessions = data?.data?.exam_sessions || data?.exam_sessions || [];
 
             if (examSessions.length > 0) {
               // Sort by date oldest to newest
@@ -242,15 +261,15 @@ export default function StudentResult() {
               attemptNumber: number
             ): any | null => {
               const roundName = roundType === "LR" ? "Learning Round" : "Cultural Fit Round";
-              
+
               // Filter schedules that match this attempt number and are not cancelled
               const matchingSchedules = schedules.filter((s: any) => {
                 const title = s.title || "";
                 const status = s.status?.toLowerCase();
-                
+
                 // Skip cancelled schedules
                 if (status === "cancelled") return false;
-                
+
                 if (attemptNumber === 1) {
                   // For attempt 1, match titles without "(Attempt X)" or with "(Attempt 1)"
                   const hasAttemptNumber = /\(Attempt \d+\)/i.test(title);
@@ -263,12 +282,12 @@ export default function StudentResult() {
                   return attemptPattern.test(title);
                 }
               });
-              
+
               // Return the last matching schedule (most recent)
               if (matchingSchedules.length > 0) {
                 return matchingSchedules[matchingSchedules.length - 1];
               }
-              
+
               return null;
             };
 
@@ -301,13 +320,13 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = "Completed";
 
               if (matchingSchedule) {
-                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
+                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time} `;
                 slotStatus =
                   lrAttemptStatus === "Pending"
                     ? normalizeBooking(
-                        matchingSchedule.slot_details?.status ||
-                          matchingSchedule.status,
-                      )
+                      matchingSchedule.slot_details?.status ||
+                      matchingSchedule.status,
+                    )
                     : "Completed";
               } else {
                 scheduledTime = lr.scheduled_time || lr.scheduled_at || "";
@@ -365,15 +384,15 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
                   ? "Completed"
                   : normalizeBooking(
-                      bookedSlotInfo.slot_details?.status ||
-                        bookedSlotInfo.status,
-                    );
+                    bookedSlotInfo.slot_details?.status ||
+                    bookedSlotInfo.status,
+                  );
               }
 
               const hasTimePassed = scheduledTime
@@ -422,13 +441,13 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = "Completed";
 
               if (matchingSchedule) {
-                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
+                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time} `;
                 slotStatus =
                   cfrAttemptStatus === "Pending"
                     ? normalizeBooking(
-                        matchingSchedule.slot_details?.status ||
-                          matchingSchedule.status,
-                      )
+                      matchingSchedule.slot_details?.status ||
+                      matchingSchedule.status,
+                    )
                     : "Completed";
               } else {
                 scheduledTime = cfr.scheduled_time || cfr.scheduled_at || "";
@@ -487,15 +506,15 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
                   ? "Completed"
                   : normalizeBooking(
-                      bookedSlotInfo.slot_details?.status ||
-                        bookedSlotInfo.status,
-                    );
+                    bookedSlotInfo.slot_details?.status ||
+                    bookedSlotInfo.status,
+                  );
               }
 
               const hasTimePassed = scheduledTime
@@ -525,15 +544,15 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
                   ? "Completed"
                   : normalizeBooking(
-                      bookedSlotInfo.slot_details?.status ||
-                        bookedSlotInfo.status,
-                    );
+                    bookedSlotInfo.slot_details?.status ||
+                    bookedSlotInfo.status,
+                  );
               }
 
               const hasTimePassed = scheduledTime
@@ -563,15 +582,15 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
                   ? "Completed"
                   : normalizeBooking(
-                      bookedSlotInfo.slot_details?.status ||
-                        bookedSlotInfo.status,
-                    );
+                    bookedSlotInfo.slot_details?.status ||
+                    bookedSlotInfo.status,
+                  );
               }
 
               const hasTimePassed = scheduledTime
@@ -580,7 +599,7 @@ export default function StudentResult() {
 
               updatedTests.push({
                 id: 300 + cfrRounds.length,
-                name: `Cultural Fit Round (Attempt ${nextAttemptNumber})`,
+                name: `Cultural Fit Round(Attempt ${nextAttemptNumber})`,
                 status: "Pending",
                 score: null,
                 action: hasTimePassed ? "Completed" : "slot-book",
@@ -635,6 +654,7 @@ export default function StudentResult() {
     localStorage.setItem("testStarted", "false");
     localStorage.setItem("testCompleted", "false");
     localStorage.setItem("allowRetest", "true");
+    localStorage.setItem("registrationDone", "true");
 
     navigate("/students/test/start", { replace: true });
   };
@@ -685,7 +705,7 @@ export default function StudentResult() {
               <p>
                 <span className="font-semibold">{content.state}</span>{" "}
                 {student?.state ? student.state : "-"}
-          
+
               </p>
             </CardContent>
           </Card>
@@ -766,15 +786,14 @@ export default function StudentResult() {
                             <td className="px-4 py-2 border">{test.name}</td>
                             <td className="px-4 py-2 border">
                               <span
-                                className={`px-2 py-1 rounded text-sm font-medium ${
-                                  test.status === "Pass"
-                                    ? "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]"
-                                    : test.status === "Pending"
-                                      ? isSlotBooked && test.slotBooking?.scheduledTime
-                                        ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                        : "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                                      : "bg-destructive/10 text-destructive"
-                                }`}
+                                className={`px-2 py-1 rounded text-sm font-medium ${test.status === "Pass"
+                                  ? "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]"
+                                  : test.status === "Pending"
+                                    ? isSlotBooked && test.slotBooking?.scheduledTime
+                                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                      : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                                    : "bg-destructive/10 text-destructive"
+                                  }`}
                               >
                                 {test.status === "Pending" && isSlotBooked && test.slotBooking?.scheduledTime
                                   ? content.scheduled
@@ -788,15 +807,15 @@ export default function StudentResult() {
                             <td className="px-4 py-2 border">
                               {test.slotBooking?.scheduledTime
                                 ? new Date(
-                                    test.slotBooking.scheduledTime,
-                                  ).toLocaleString("en-US", {
-                                    year: "numeric",
-                                    month: "2-digit",
-                                    day: "2-digit",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  })
+                                  test.slotBooking.scheduledTime,
+                                ).toLocaleString("en-US", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
                                 : "-"}
                             </td>
                             <td className="px-4 py-2 border">

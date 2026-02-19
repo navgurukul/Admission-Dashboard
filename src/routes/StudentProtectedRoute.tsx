@@ -16,8 +16,12 @@ const StudentProtectedRoute: React.FC<Props> = ({ children }) => {
   const allowRetest = localStorage.getItem("allowRetest") === "true";
   const registrationDone = localStorage.getItem("registrationDone") === "true";
 
-  // 1️⃣ Not logged in → login
-  if (!studentId) {
+  // 1️⃣ Not logged in and not on registration flow → login
+  const isRegistrationFlow =
+    path.startsWith("/students/details/") ||
+    path.startsWith("/students/language-selection");
+
+  if (!studentId && !isRegistrationFlow) {
     return <Navigate to="/students" replace />;
   }
 

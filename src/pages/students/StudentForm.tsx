@@ -692,7 +692,7 @@ const StudentForm: React.FC = () => {
 
     // Live email validation
     if (name === "email") {
-      if (!validateEmail(processedValue)) {
+      if (processedValue && !validateEmail(processedValue)) {
         setEmailError("Please enter a valid email address");
       } else {
         setEmailError("");
@@ -1211,7 +1211,7 @@ const StudentForm: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex justify-center p-4 pt-20 md:pt-24 relative">
-      <LanguageSelector  />
+      <LanguageSelector />
       <LogoutButton className="shadow-lg" />
       <div ref={scrollContainerRef} className={`bg-card rounded-2xl shadow-large p-6 w-full overflow-y-auto relative ${currentStep === 1 ? 'max-w-6xl' : 'max-w-7xl'} max-h-[85vh]`}>
         {/* Header */}
@@ -1408,7 +1408,7 @@ const StudentForm: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.email} *
+                    {content.email}
                   </label>
                   <input
                     type="email"
