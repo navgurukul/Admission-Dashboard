@@ -675,7 +675,7 @@ const StudentForm: React.FC = () => {
     }
 
     if (name === "whatsappNumber") {
-      if (processedValue && processedValue.length !== 10) {
+      if (processedValue && processedValue.length > 0 && processedValue.length !== 10) {
         setWhatsappError("Enter a valid 10-digit WhatsApp number");
       } else {
         setWhatsappError("");
@@ -844,10 +844,10 @@ const StudentForm: React.FC = () => {
       });
     }
 
-    if (!formData.whatsappNumber || !/^\d{10}$/.test(formData.whatsappNumber)) {
+    if (formData.whatsappNumber && !/^\d{10}$/.test(formData.whatsappNumber)) {
       return toast({
         title: "⚠️ Invalid WhatsApp Number",
-        description: "Enter a valid 10-digit WhatsApp number.",
+        description: "Enter a valid 10-digit WhatsApp number or leave it empty.",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900"
       });
@@ -1025,7 +1025,7 @@ const StudentForm: React.FC = () => {
           gender: "लिंग *",
           male: "पुरुष",
           female: "महिला",
-          whatsappNumber: "व्हाट्सऐप नंबर *",
+          whatsappNumber: "व्हाट्सऐप नंबर",
           alternateNumber: "वैकल्पिक नंबर",
           email: "ईमेल पता ",
           state: "राज्य चुनें *",
@@ -1090,7 +1090,7 @@ const StudentForm: React.FC = () => {
           gender: "लिंग *",
           male: "पुरुष",
           female: "स्त्री",
-          whatsappNumber: "व्हाट्सअॅप नंबर *",
+          whatsappNumber: "व्हाट्सअॅप नंबर",
           alternateNumber: "पर्यायी नंबर",
           email: "ईमेल पत्ता ",
           state: "राज्य निवडा *",
@@ -1155,7 +1155,7 @@ const StudentForm: React.FC = () => {
           gender: "Gender *",
           male: "Male",
           female: "Female",
-          whatsappNumber: "WhatsApp Number *",
+          whatsappNumber: "WhatsApp Number",
           alternateNumber: "Alternate Number",
           email: "Email Address",
           state: "State *",
