@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
-import { getCurrentUser, getStudentDataByEmail } from "@/utils/api";
+import { getStudentDataByPhone } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { ADMISSIONS_EMAIL } from "@/lib/const";
@@ -106,22 +106,53 @@ const ScreeningResultPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Get current logged-in user
-      const currentUser = getCurrentUser();
+      // Get student's phone number from localStorage
+      const savedFormData = localStorage.getItem("studentFormData");
+      let phoneNumber = "";
 
-      if (!currentUser || !currentUser.email) {
+      if (savedFormData) {
+        try {
+          const parsed = JSON.parse(savedFormData);
+          phoneNumber = parsed.whatsappNumber || parsed.phone_number || "";
+        } catch (e) {
+          console.error("Error parsing studentFormData:", e);
+        }
+      }
+
+      if (!phoneNumber) {
+        // 2. Try getting from existing student session data
+        const studentDataStr = localStorage.getItem("studentData");
+        if (studentDataStr) {
+          try {
+            const data = JSON.parse(studentDataStr);
+            const profile = data?.data?.student || data?.student || data;
+            phoneNumber = profile.whatsapp_number || profile.phone_number || "";
+          } catch (e) { }
+        }
+      }
+
+      if (!phoneNumber) {
+        // 3. Try getting from Google user if available
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            phoneNumber = user.mobile || user.phone || "";
+          } catch (e) { }
+        }
+      }
+
+      if (!phoneNumber) {
         toast({
-          title: "⚠️ Login Required",
-          description: "Please login to view your results",
-          variant: "default",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
+          title: "⚠️ Phone Number Missing",
+          description: "Could not find your phone number. Please login again.",
+          variant: "destructive",
         });
-        navigate("/student-login");
         return;
       }
 
-      // Fetch fresh student data from API
-      const response = await getStudentDataByEmail(currentUser.email);
+      // Call Get api :- students/getByPhone/[dynamic_phone]
+      const response = await getStudentDataByPhone(phoneNumber);
 
       if (!response) {
         toast({
@@ -142,7 +173,14 @@ const ScreeningResultPage: React.FC = () => {
         ),
       );
 
-      // Navigate to final result page with API data
+      // Check if user does not have an email address
+      // The response from getByPhone can be the student object or { data: { student: ... } }
+      const studentData = (response as any).data?.student || (response as any).student || response;
+
+      // Update localStorage with fresh data for Final Result page
+      localStorage.setItem("studentData", JSON.stringify(response));
+
+      // Navigate to final-result route and pass the data there
       navigate("/students/final-result", {
         state: {
           studentData: response, // Pass the API data

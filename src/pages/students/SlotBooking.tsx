@@ -463,7 +463,7 @@ const SlotBooking: React.FC = () => {
 
     if (!currentStudent || !currentStudent.email) {
       showNotificationMessage(
-        "Student information not found. Please login again.",
+        "Contect Admin to book your slot.",
         "error",
       );
       return;

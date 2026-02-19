@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { User, CheckCircle2, XCircle, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { getStudentDataByEmail } from "@/utils/api";
+import { getStudentDataByEmail, getStudentDataByPhone } from "@/utils/api";
 import studentImage from '@/assets/student-login-image.png';
 import {
   ADMISSIONS_EMAIL,
@@ -52,6 +52,7 @@ export default function StudentLogin() {
 
   const [formData, setFormData] = useState({
     name: "",
+    middleName: "",
     lastname: "",
     phone: "",
   });
@@ -364,6 +365,16 @@ export default function StudentLogin() {
       welcomeDescription: "Join thousands of students on their learning journey",
       secureLogin: "Secure Login",
       signInWith: "Sign in with Google",
+      orEnterManually: "Or enter manually",
+      firstName: "First Name",
+      middleName: "Middle Name (Optional)",
+      lastName: "Last Name",
+      phone: "Phone Number",
+      firstNamePlaceholder: "Enter first name",
+      lastNamePlaceholder: "Enter last name",
+      middleNamePlaceholder: "Enter middle name",
+      phonePlaceholder: "Enter 10-digit phone number",
+      continueRegistration: "Register / Check result",
       loading: "Loading...",
       troubleSigning: "Having trouble signing in?",
       contactUs: "Contact us at",
@@ -379,6 +390,16 @@ export default function StudentLogin() {
       welcomeDescription: "हजारों छात्रों के साथ उनकी सीखने की यात्रा में शामिल हों",
       secureLogin: "सुरक्षित लॉगिन",
       signInWith: "Google से साइन इन करें",
+      orEnterManually: "या मैन्युअल रूप से विवरण भरें",
+      firstName: "पहला नाम",
+      middleName: "मध्य नाम (वैकल्पिक)",
+      lastName: "अंतिम नाम",
+      phone: "फ़ोन नंबर",
+      firstNamePlaceholder: "पहला नाम दर्ज करें",
+      lastNamePlaceholder: "अंतिम नाम दर्ज करें",
+      middleNamePlaceholder: "मध्य नाम दर्ज करें",
+      phonePlaceholder: "10-अंकीय फ़ोन नंबर दर्ज करें",
+      continueRegistration: "पंजीकरण जारी रखें",
       loading: "लोड हो रहा है...",
       troubleSigning: "साइन इन करने में परेशानी हो रही है?",
       contactUs: "हमसे संपर्क करें",
@@ -394,6 +415,16 @@ export default function StudentLogin() {
       welcomeDescription: "हजारो विद्यार्थ्यांसोबत त्यांच्या शिकण्याच्या प्रवासात सामील व्हा",
       secureLogin: "सुरक्षित लॉगिन",
       signInWith: "Google सह साइन इन करा",
+      orEnterManually: "किंवा माहिती स्वतः भरा",
+      firstName: "पहिले नाव",
+      middleName: "मधले नाव (पर्यायी)",
+      lastName: "आडनाव",
+      phone: "फोन नंबर",
+      firstNamePlaceholder: "पहिले नाव प्रविष्ट करा",
+      lastNamePlaceholder: "आडनाव प्रविष्ट करा",
+      middleNamePlaceholder: "मधले नाव प्रविष्ट करा",
+      phonePlaceholder: "10nd-अंकी फोन नंबर प्रविष्ट करा",
+      continueRegistration: "नोंदणी सुरू ठेवा",
       loading: "लोड होत आहे...",
       troubleSigning: "साइन इन करण्यात समस्या येत आहे?",
       contactUs: "आमच्याशी संपर्क साधा",
@@ -418,34 +449,60 @@ export default function StudentLogin() {
     setLoading(true);
 
     try {
-      const data: LoginResponse = {
-        success: true,
-        student: {
-          id: 105,
-          name: formData.name,
-          lastname: formData.lastname,
-          phone: formData.phone,
-        },
-      };
-
-      if (!data.success || !data.student) {
-        throw new Error(data.message || "Login failed");
+      // First, check if the student already exists by phone
+      let existingStudentData = null;
+      try {
+        existingStudentData = await getStudentDataByPhone(formData.phone);
+      } catch (error) {
+        // If 404 or other error, we treat it as a new student
+        console.log("Student not found by phone, proceeding with registration");
       }
 
-      // Save student identifier
+      if (existingStudentData) {
+        // Normalize student data
+        const profile = (existingStudentData as any).student || (existingStudentData as any).data?.student || existingStudentData;
+        const studentId = profile?.student_id || profile?.id;
+
+        if (studentId) {
+          localStorage.setItem("role", "student");
+          localStorage.setItem("userRole", JSON.stringify("student"));
+          localStorage.setItem("studentId", studentId.toString());
+          localStorage.setItem("studentData", JSON.stringify(existingStudentData));
+          localStorage.setItem("registrationDone", "true");
+          localStorage.setItem("testCompleted", "true");
+
+          toast({
+            title: getContent().successMessage,
+            description: (
+              <div className="flex items-center space-x-2">
+                <CheckCircle2 className="w-5 h-5 text-[hsl(var(--status-active))]" />
+                <span>Welcome back, {profile.first_name || formData.name}! 🎉</span>
+              </div>
+            ),
+            variant: "default",
+            className: "border-green-500 bg-green-50 text-green-900"
+          });
+
+          navigate("/students/final-result");
+          return;
+        }
+      }
+
+      // If no existing student, proceed to instructions (normal flow)
+      // Save minimal data to localStorage for the next steps
       localStorage.setItem("role", "student");
-      localStorage.setItem("studentId", data.student.id.toString());
+      localStorage.setItem("studentFormData", JSON.stringify({
+        firstName: formData.name,
+        lastName: formData.lastname,
+        whatsappNumber: formData.phone,
+        middleName: formData.middleName
+      }));
 
       toast({
-        title: getContent().successMessage,
-        description: (
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 text-[hsl(var(--status-active))]" />
-            <span>Welcome back, {data.student.name}! 🎉</span>
-          </div>
-        ),
+        title: "Registration Started",
+        description: "Please follow the instructions to complete your test.",
         variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900"
+        className: "border-blue-500 bg-blue-50 text-blue-900"
       });
 
       navigate("/students/details/instructions");
@@ -485,11 +542,10 @@ export default function StudentLogin() {
               <button
                 key={lang.value}
                 onClick={() => handleLanguageChange(lang.value)}
-                className={`w-full text-left px-4 py-3 text-sm font-medium transition-all hover:bg-gray-50 ${
-                  selectedLanguage === lang.value
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground"
-                }`}
+                className={`w-full text-left px-4 py-3 text-sm font-medium transition-all hover:bg-gray-50 ${selectedLanguage === lang.value
+                  ? "bg-primary/10 text-primary"
+                  : "text-foreground"
+                  }`}
               >
                 {lang.label}
               </button>
@@ -497,7 +553,7 @@ export default function StudentLogin() {
           </div>
         )}
       </div>
-      
+
       {/* Left Side - Image with Improved Contrast */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         {/* Darker gradient overlay for better text contrast */}
@@ -514,7 +570,6 @@ export default function StudentLogin() {
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 lg:p-12 student-bg-light min-h-screen lg:min-h-0">
         <div className="w-full max-w-lg">
           {/* Branding Section */}
@@ -533,28 +588,21 @@ export default function StudentLogin() {
           </div>
 
           {/* Login Card */}
-          <Card className="shadow-2xl border-2 border-border/50 backdrop-blur-sm">
-            <CardContent className="pt-10 pb-10 px-8 sm:px-10">
+          <Card className="shadow-2xl border-2 border-border/50 backdrop-blur-sm overflow-hidden">
+            <CardContent className="pt-10 pb-10 px-8 sm:px-10 space-y-8">
               {/* Security Badge */}
-              <div className="flex items-center justify-center gap-2 mb-8 text-sm text-muted-foreground" role="status" aria-label="Secure login badge">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground" role="status" aria-label="Secure login badge">
                 <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 <span>{getContent().secureLogin}</span>
               </div>
 
-              {/* Divider */}
-              <div className="relative mb-10">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
+              {/* Google Sign In Button */}
+              <div className="space-y-4">
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">{getContent().signInWith}</span>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground">{getContent().signInWith}</span>
-                </div>
-              </div>
-
-              {/* Google Sign In Button Wrapper with Enhanced Styling */}
-              <div className="mb-10">
                 <div
                   id="google-signin-button-student"
                   ref={googleButtonRef}
@@ -563,7 +611,7 @@ export default function StudentLogin() {
                   aria-label="Sign in with Google"
                 ></div>
                 {googleLoading && (
-                  <div className="flex items-center justify-center mt-4 text-sm text-muted-foreground" role="status" aria-live="polite">
+                  <div className="flex items-center justify-center text-sm text-muted-foreground" role="status" aria-live="polite">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -573,7 +621,101 @@ export default function StudentLogin() {
                 )}
               </div>
 
-              {/* Help Text - Friendlier and Better Spaced */}
+              {/* OR Divider */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-4 text-muted-foreground font-semibold">{getContent().orEnterManually}</span>
+                </div>
+              </div>
+
+              {/* Manual Entry Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      {getContent().firstName}
+                    </label>
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder={getContent().firstNamePlaceholder}
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="h-11 border-border/50 focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="lastname" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      {getContent().lastName}
+                    </label>
+                    <Input
+                      id="lastname"
+                      name="lastname"
+                      placeholder={getContent().lastNamePlaceholder}
+                      value={formData.lastname}
+                      onChange={handleChange}
+                      required
+                      className="h-11 border-border/50 focus:border-primary/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Middle Name */}
+                <div className="space-y-2">
+                  <label htmlFor="middleName" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {getContent().middleName}
+                  </label>
+                  <Input
+                    id="middleName"
+                    name="middleName"
+                    placeholder={getContent().middleNamePlaceholder}
+                    value={formData.middleName}
+                    onChange={handleChange}
+                    className="h-11 border-border/50 focus:border-primary/50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="phone" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {getContent().phone}
+                  </label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder={getContent().phonePlaceholder}
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                    maxLength={10}
+                    className="h-11 border-border/50 focus:border-primary/50"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {getContent().loading}
+                    </span>
+                  ) : (
+                    getContent().continueRegistration
+                  )}
+                </Button>
+              </form>
+
+              {/* Help Text */}
               <div className="text-center space-y-3 text-sm pt-6 border-t border-border/50">
                 <p className="text-muted-foreground font-medium">{getContent().troubleSigning}</p>
                 <div className="space-y-2">
@@ -593,9 +735,11 @@ export default function StudentLogin() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      </div>
 
-          {/* Footer - Powered by NavGurukul */}
-          {/* <div className="text-center mt-8 px-4">
+      {/* Footer - Powered by NavGurukul */}
+      {/* <div className="text-center mt-8 px-4">
             <p className="text-xs text-muted-foreground">
               By signing in, you agree to our Terms of Service and Privacy Policy
             </p>
@@ -604,8 +748,6 @@ export default function StudentLogin() {
               <span className="font-semibold text-primary">NavGurukul</span>
             </p>
           </div> */}
-        </div>
-      </div>
     </div>
   );
 }
