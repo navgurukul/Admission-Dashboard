@@ -67,6 +67,7 @@ const StudentForm: React.FC = () => {
   const [schoolError, setSchoolError] = useState("");
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLearningModalOpen, setIsLearningModalOpen] = useState(false);
+  const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set());
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
@@ -114,7 +115,7 @@ const StudentForm: React.FC = () => {
             color: "blue",
             description: "एक आवासीय कार्यक्रम जहां आप कोडिंग की शुरुआत बिल्कुल शुरू से करते हैं और तकनीकी क्षेत्र में अपना करियर बनाते हैं। आप वेबसाइट और सॉफ्टवेयर एप्लिकेशन बनाना सीखेंगे।",
             duration: "20–24 महीने (स्व-गति से, अवधि भिन्न हो सकती है)",
-            location: "विभिन्न परिसर (दंतेवाड़ा, रायपुर, बेंगलुरु, आदि)",
+            location: "विभिन्न परिसर (दंतेवाड़ा,बेंगलुरु,पुणे आदि)",
             eligibility: [
               "न्यूनतम आयु: 16.5 वर्ष",
               "स्नातक होना आवश्यक",
@@ -143,7 +144,7 @@ const StudentForm: React.FC = () => {
             color: "emerald",
             description: "एक व्यावहारिक कार्यक्रम जो आपको व्यावसायिक संचालन, डिजिटल मार्केटिंग और कार्यालय प्रबंधन में नौकरियों के लिए तैयार करता है।",
             duration: "12–18 महीने (स्व-गति से, अवधि भिन्न हो सकती है)",
-            location: "पुणे, बेंगलुरु, जशपुर, दंतेवाड़ा",
+            location: "बेंगलुरु, जशपुर, दंतेवाड़ा,पुणे",
             eligibility: [
               "न्यूनतम आयु: 16.5 वर्ष",
               "12वीं पास होना आवश्यक",
@@ -231,7 +232,7 @@ const StudentForm: React.FC = () => {
             color: "blue",
             description: "एक निवासी कार्यक्रम जिथे तुम्ही मूलभूत गोष्टींपासून कोडिंग शिकता आणि तंत्रज्ञान उद्योगात करिअर तयार करता। तुम्ही वेबसाइट आणि सॉफ्टवेअर अॅप्लिकेशन कसे तयार करायचे ते शिकाल.",
             duration: "20–24 महिने (स्वयं-गती, कालावधी बदलू शकतो)",
-            location: "विविध कॅम्पस (दंतेवाडा, रायपूर, बेंगलुरु, इ.)",
+            location: "विविध कॅम्पस (दंतेवाडा, बेंगलुरु,पुणे इ.)",
             eligibility: [
               "किमान वय: 16.5 वर्षे",
               "पदवीधर असणे आवश्यक",
@@ -348,7 +349,7 @@ const StudentForm: React.FC = () => {
             color: "blue",
             description: "A residential program where you learn coding from basics and build a career in the tech industry. You will learn how to build websites and software applications.",
             duration: "20–24 months (Self-paced, duration may vary)",
-            location: "Various Campuses (Dantewada, Raipur, Bengaluru, etc.)",
+            location: "Various Campuses (Dantewada, Bengaluru, Pune etc.)",
             eligibility: [
               "Minimum age: 16.5 years",
               "Must be a Graduate",
@@ -377,7 +378,7 @@ const StudentForm: React.FC = () => {
             color: "emerald",
             description: "A practical program that prepares you for jobs in business operations, digital marketing, and office management.",
             duration: "12–18 months (Self-paced, duration may vary)",
-            location: "Pune, Bengaluru, Jashpur, Dantewada",
+            location: "Bengaluru, Jashpur, Dantewada,Pune",
             eligibility: [
               "Minimum age: 16.5 years",
               "Must be 12th pass",
@@ -528,16 +529,8 @@ const StudentForm: React.FC = () => {
 
     // Check eligibility rules
     if (schoolId === 'SOP') {
-      // SOP requires Graduate or higher
-      return qualName.includes('graduate') || qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || qualName.includes('diploma');
-    }
-    if (schoolId === 'SOB' || schoolId === 'SOF') {
-      // SOB/SOF requires 12th pass or higher
-      return qualName.includes('12') || qualName.includes('intermediate') || qualName.includes('graduate') || qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || qualName.includes('diploma');
-    }
-    if (schoolId === 'BCA') {
-      // BCA requires 12th pass
-      return qualName.includes('12') || qualName.includes('intermediate');
+      // SOP requires Graduate or higher (completed degree only)
+      return qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || (qualName.includes('graduate') && !qualName.includes('under') && !qualName.includes('pursuing'));
     }
     return true;
   };
@@ -615,14 +608,21 @@ const StudentForm: React.FC = () => {
               ))}
             </ul>
 
-            <div className="mt-8 p-4 bg-gray-50 rounded-xl space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">{content.duration}</span>
-                <span className="font-bold text-gray-800">{school.duration}</span>
+            <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
+                  <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">⏳</span>
+                  <span>{content.duration}</span>
+                </div>
+                <p className="font-semibold text-gray-800 text-sm pl-7">{school.duration}</p>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">{content.location}</span>
-                <span className="font-bold text-gray-800">{school.location}</span>
+              <div className="h-px bg-gray-200"></div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
+                  <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">📍</span>
+                  <span>{content.location}</span>
+                </div>
+                <p className="font-semibold text-gray-800 text-sm pl-7 leading-relaxed">{school.location}</p>
               </div>
             </div>
 
@@ -1356,6 +1356,7 @@ const StudentForm: React.FC = () => {
           outcomes: "परिणाम",
           duration: "अवधि",
           location: "स्थान",
+          variousCampuses: "विभिन्न परिसर",
           applyToSchool: "इस स्कूल के लिए आवेदन करें",
           nextStep: "अगला कदम",
           phase: "चरण",
@@ -1426,6 +1427,7 @@ const StudentForm: React.FC = () => {
           outcomes: "परिणाम",
           duration: "कालावधी",
           location: "स्थान",
+          variousCampuses: "विविध कॅम्पस",
           applyToSchool: "या शाळेसाठी अर्ज करा",
           nextStep: "पुढील पायरी",
           phase: "टप्पा",
@@ -1494,6 +1496,7 @@ const StudentForm: React.FC = () => {
           outcomes: "Outcomes",
           duration: "Duration",
           location: "Location",
+          variousCampuses: "Various Campuses",
           applyToSchool: "Apply to this School",
           nextStep: "Next Step",
           phase: "Phase",
@@ -2024,9 +2027,35 @@ const StudentForm: React.FC = () => {
                           <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                         </button>
 
-                        <div className="flex items-center justify-between text-[11px] text-gray-400 font-medium">
-                          <span className="flex items-center gap-1">📍 {school.location.split(',')[0]}</span>
-                          <span className="flex items-center gap-1">⏳ {school.duration}</span>
+                        <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-100">
+                          <div 
+                            className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newExpanded = new Set(expandedLocations);
+                              if (newExpanded.has(school.id)) {
+                                newExpanded.delete(school.id);
+                              } else {
+                                newExpanded.add(school.id);
+                              }
+                              setExpandedLocations(newExpanded);
+                            }}
+                          >
+                            <span className="text-base">📍</span>
+                            <span className="text-xs text-gray-600 font-medium">
+                              {expandedLocations.has(school.id) 
+                                ? school.location 
+                                : (school.id !== 'BCA'
+                                    ? content.variousCampuses 
+                                    : school.location
+                                  )
+                              }
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">⏳</span>
+                            <span className="text-xs text-gray-600 font-medium">{school.duration.split('(')[0].trim()}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
