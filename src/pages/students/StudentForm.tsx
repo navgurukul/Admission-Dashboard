@@ -102,179 +102,456 @@ const StudentForm: React.FC = () => {
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const schoolDetails = [
-    {
-      id: "SOP",
-      name: "School of Programming (SOP)",
-      tag: "Software Development",
-      color: "blue",
-      description: "A flagship residency program focused on software development. Learn HTML, CSS, React, Node.js, and build a tech career.",
-      duration: "12-18 months",
-      location: "Various Campuses (Dantewada, Raipur, Bengaluru, etc.)",
-      eligibility: [
-        "Typically 18-28 years old",
-        "Youth from underserved backgrounds",
-        "High logical potential (no degree required)",
-        "Willingness to commit to a long-term residential program"
-      ],
-      curriculum: [
-        "Foundational Programming & Logic",
-        "Frontend: HTML/CSS, Javascript, React.js",
-        "Backend: Node.js, Databases, Express",
-        "Version Control: Git/GitHub",
-        "Professional Skills: English, Workplace Ethics"
-      ],
-      outcomes: [
-        "Software Engineering roles",
-        "Full Stack Development",
-        "Entry-level Tech positions",
-        "Career mobility in the technology sector"
-      ]
-    },
-    {
-      id: "SOB",
-      name: "School of Business (SOB)",
-      tag: "Operations & Marketing",
-      color: "emerald",
-      description: "Prepare for entry-level and growth-oriented roles in business operations, digital marketing, and organizational support.",
-      duration: "6-12 months",
-      location: "Pune, Bengaluru, Jashpur, Dantewada",
-      eligibility: [
-        "Minimum 16 years old",
-        "First-generation learners preferred",
-        "No formal qualification required",
-        "Strong reliability and communication potential"
-      ],
-      curriculum: [
-        "Business Operations: SOP execution & Reporting",
-        "Digital Marketing: SEO, Social Media, Copywriting",
-        "Customer Operations: Stakeholder coordination",
-        "Professional Skills: Email etiquette, Time management",
-        "Direct interaction with startups & NGOs"
-      ],
-      outcomes: [
-        "Marketing Associate",
-        "Operations Executive",
-        "Customer Support Specialist",
-        "Business Development roles"
-      ]
-    },
-    {
-      id: "SOF",
-      name: "School of Finance (SOF)",
-      tag: "Accounting & Taxation",
-      color: "amber",
-      description: "Job-oriented alternative to commerce degrees focusing on practical accounting, finance operations, and taxation.",
-      duration: "6-12 months",
-      location: "Pune, Maharashtra",
-      eligibility: [
-        "Minimum 16 years old",
-        "Youth from disadvantaged backgrounds",
-        "Interest in finance/accounting",
-        "Basic numeracy and reliability"
-      ],
-      curriculum: [
-        "Practical Accounting Principles",
-        "Statutory Compliance: GST, Income Tax basics",
-        "Payroll Management",
-        "Tools: Tally, Microsoft Excel (Advanced)",
-        "Financial Reporting & Workflow"
-      ],
-      outcomes: [
-        "Accounts Executive",
-        "Tax Associate",
-        "Finance Operations Specialist",
-        "Compliance Assistant"
-      ]
-    },
-    // {
-    //   id: "SODA",
-    //   name: "School of Digital Analytics (SODA)",
-    //   tag: "Data Analysis",
-    //   color: "purple",
-    //   description: "Equipping learners with data literacy and analytical thinking skills to translate data into usable business insights.",
-    //   duration: "6-12 months",
-    //   location: "Selected Pilot Campuses",
-    //   eligibility: [
-    //     "Minimum 16 years old",
-    //     "Analytical mindset",
-    //     "Problem-solving aptitude",
-    //     "No prior tech degree needed"
-    //   ],
-    //   curriculum: [
-    //     "Data Literacy & Analytical Thinking",
-    //     "Data Cleaning & Preparation",
-    //     "Descriptive Statistics",
-    //     "Spreadsheet Analysis: Excel & Google Sheets",
-    //     "Foundational SQL for data extraction"
-    //   ],
-    //   outcomes: [
-    //     "Data Analyst Associate",
-    //     "Reporting Specialist",
-    //     "Business Intelligence Assistant",
-    //     "Data Support Coordinator"
-    //   ]
-    // },
-    // {
-    //   id: "SOE",
-    //   name: "School of Educators (SOE)",
-    //   tag: "Educator Development",
-    //   color: "rose",
-    //   description: "For graduates interested in educator-adjacent roles such as facilitation, mentoring, and learning support.",
-    //   duration: "6-12 months",
-    //   location: "Residential (Various)",
-    //   eligibility: [
-    //     "College graduates preferred",
-    //     "Interested in education/social sector",
-    //     "Underserved background profile",
-    //     "Passion for mentoring and peer-learning"
-    //   ],
-    //   curriculum: [
-    //     "Educator Mindset & Pedagogy",
-    //     "Facilitation-led Learning Models",
-    //     "Peer-learning Management",
-    //     "Professional Discipline & Communication",
-    //     "Mentoring & Student Support"
-    //   ],
-    //   outcomes: [
-    //     "Learning Facilitator",
-    //     "Educational Mentor",
-    //     "Bootcamp Support Provider",
-    //     "Development Sector Professional"
-    //   ]
-    // },
-    {
-      id: "BCA",
-      name: "Bachelor of Computer Applications (BCA)",
-      tag: "Degree + Tech",
-      color: "indigo",
-      description: "Formal Degree-linked residential program in partnership with Eternal University for job-readiness.",
-      duration: "3 years",
-      location: "Residential (Partner Campus)",
-      eligibility: [
-        "12th Pass (eligible for University admission)",
-        "Economically disadvantaged backgrounds",
-        "First-generation college students",
-        "Strong intent for technical higher education"
-      ],
-      curriculum: [
-        "Formal BCA Program (Eternal University)",
-        "NavGurukul Soft-skills Training",
-        "Applied Programming & Development",
-        "Project-based Learning Curriculum",
-        "Internship & Placement Readiness"
-      ],
-      outcomes: [
-        "Recognized BCA Degree",
-        "Enterprise Software Roles",
-        "Job readiness in IT industry",
-        "Higher education pathways"
-      ]
+  // Get school details based on selected language
+  const getSchoolDetails = () => {
+    switch (selectedLanguage) {
+      case "hindi":
+        return [
+          {
+            id: "SOP",
+            name: "स्कूल ऑफ प्रोग्रामिंग (SOP)",
+            tag: "सॉफ्टवेयर डेवलपमेंट",
+            color: "blue",
+            description: "एक आवासीय कार्यक्रम जहां आप कोडिंग की शुरुआत बिल्कुल शुरू से करते हैं और तकनीकी क्षेत्र में अपना करियर बनाते हैं। आप वेबसाइट और सॉफ्टवेयर एप्लिकेशन बनाना सीखेंगे।",
+            duration: "20–24 महीने (स्व-गति से, अवधि भिन्न हो सकती है)",
+            location: "विभिन्न परिसर (दंतेवाड़ा, रायपुर, बेंगलुरु, आदि)",
+            eligibility: [
+              "न्यूनतम आयु: 16.5 वर्ष",
+              "स्नातक होना आवश्यक",
+              "पारिवारिक आय 5 लाख से कम",
+              "कोडिंग और समस्या समाधान में गहरी रुचि",
+              "आवासीय कार्यक्रम में रहने के लिए तैयार"
+            ],
+            curriculum: [
+              "प्रोग्रामिंग मूल बातें और तार्किक सोच",
+              "फ्रंटएंड: HTML, CSS, JavaScript, React",
+              "बैकएंड: Node.js, Express, डेटाबेस",
+              "Git और GitHub",
+              "अंग्रेजी संचार और कार्यस्थल कौशल"
+            ],
+            outcomes: [
+              "सॉफ्टवेयर इंजीनियर",
+              "फुल स्टैक डेवलपर",
+              "प्रवेश स्तर IT नौकरियां",
+              "तकनीकी उद्योग में करियर विकास"
+            ]
+          },
+          {
+            id: "SOB",
+            name: "स्कूल ऑफ बिजनेस (SOB)",
+            tag: "संचालन और विपणन",
+            color: "emerald",
+            description: "एक व्यावहारिक कार्यक्रम जो आपको व्यावसायिक संचालन, डिजिटल मार्केटिंग और कार्यालय प्रबंधन में नौकरियों के लिए तैयार करता है।",
+            duration: "12–18 महीने (स्व-गति से, अवधि भिन्न हो सकती है)",
+            location: "पुणे, बेंगलुरु, जशपुर, दंतेवाड़ा",
+            eligibility: [
+              "न्यूनतम आयु: 16.5 वर्ष",
+              "12वीं पास होना आवश्यक",
+              "पारिवारिक आय 5 लाख से कम",
+              "अच्छे संचार कौशल और सीखने की इच्छा"
+            ],
+            curriculum: [
+              "व्यावसायिक संचालन और रिपोर्टिंग",
+              "डिजिटल मार्केटिंग (SEO, सोशल मीडिया, कंटेंट राइटिंग)",
+              "ग्राहक और क्लाइंट समन्वय",
+              "ईमेल लेखन और समय प्रबंधन",
+              "स्टार्टअप और NGO के साथ वास्तविक परियोजनाएं"
+            ],
+            outcomes: [
+              "मार्केटिंग एसोसिएट",
+              "संचालन कार्यकारी",
+              "ग्राहक सहायता कार्यकारी",
+              "व्यवसाय विकास भूमिकाएं"
+            ]
+          },
+          {
+            id: "SOF",
+            name: "स्कूल ऑफ फाइनेंस (SOF)",
+            tag: "लेखा और कराधान",
+            color: "amber",
+            description: "एक नौकरी-उन्मुख कार्यक्रम जहां आप कंपनियों में उपयोग किए जाने वाले व्यावहारिक लेखा, कराधान और वित्त उपकरण सीखते हैं।",
+            duration: "8–12 महीने (स्व-गति से, अवधि भिन्न हो सकती है)",
+            location: "पुणे, महाराष्ट्र",
+            eligibility: [
+              "न्यूनतम आयु: 16.5 वर्ष",
+              "12वीं पास होना आवश्यक",
+              "पारिवारिक आय 5 लाख से कम",
+              "वित्त और संख्याओं में रुचि"
+            ],
+            curriculum: [
+              "व्यावहारिक लेखा",
+              "GST और आयकर मूल बातें",
+              "पेरोल प्रबंधन",
+              "Tally और Advanced Excel",
+              "वित्तीय रिपोर्टिंग"
+            ],
+            outcomes: [
+              "खाता कार्यकारी",
+              "कर सहयोगी",
+              "वित्त संचालन कार्यकारी",
+              "अनुपालन सहायक"
+            ]
+          },
+          {
+            id: "BCA",
+            name: "बैचलर ऑफ कंप्यूटर एप्लीकेशन (BCA)",
+            tag: "डिग्री + तकनीक",
+            color: "indigo",
+            description: "एटरनल यूनिवर्सिटी के साथ साझेदारी में एक आवासीय डिग्री कार्यक्रम, बारूसाहिब में स्थित। आप नौकरी-तैयार तकनीकी कौशल के साथ UGC-मान्यता प्राप्त BCA डिग्री प्राप्त करेंगे।",
+            duration: "3 वर्ष (संरचित डिग्री कार्यक्रम)",
+            location: "हिमाचल प्रदेश (बारूसाहिब – आवासीय परिसर)",
+            eligibility: [
+              "न्यूनतम आयु: 16.5 वर्ष",
+              "12वीं पास (विश्वविद्यालय प्रवेश के लिए पात्र)",
+              "पारिवारिक आय 5 लाख से कम",
+              "उच्च शिक्षा और तकनीक में गहरी रुचि"
+            ],
+            curriculum: [
+              "औपचारिक BCA डिग्री कार्यक्रम (UGC-मान्यता प्राप्त)",
+              "प्रोग्रामिंग और सॉफ्टवेयर डेवलपमेंट",
+              "सॉफ्ट स्किल्स और संचार प्रशिक्षण",
+              "लाइव परियोजनाएं",
+              "इंटर्नशिप और प्लेसमेंट की तैयारी"
+            ],
+            outcomes: [
+              "UGC-मान्यता प्राप्त BCA डिग्री",
+              "IT और सॉफ्टवेयर भूमिकाएं",
+              "तकनीकी कंपनियों के लिए नौकरी-तैयार",
+              "उच्च अध्ययन का विकल्प"
+            ]
+          }
+        ];
+
+      case "marathi":
+        return [
+          {
+            id: "SOP",
+            name: "स्कूल ऑफ प्रोग्रामिंग (SOP)",
+            tag: "सॉफ्टवेअर डेव्हलपमेंट",
+            color: "blue",
+            description: "एक निवासी कार्यक्रम जिथे तुम्ही मूलभूत गोष्टींपासून कोडिंग शिकता आणि तंत्रज्ञान उद्योगात करिअर तयार करता। तुम्ही वेबसाइट आणि सॉफ्टवेअर अॅप्लिकेशन कसे तयार करायचे ते शिकाल.",
+            duration: "20–24 महिने (स्वयं-गती, कालावधी बदलू शकतो)",
+            location: "विविध कॅम्पस (दंतेवाडा, रायपूर, बेंगलुरु, इ.)",
+            eligibility: [
+              "किमान वय: 16.5 वर्षे",
+              "पदवीधर असणे आवश्यक",
+              "कौटुंबिक उत्पन्न 5 लाखांपेक्षा कमी",
+              "कोडिंग आणि समस्या सोडवण्यात तीव्र स्वारस्य",
+              "निवासी कार्यक्रमात राहण्यासाठी तयार"
+            ],
+            curriculum: [
+              "प्रोग्रामिंग मूलभूत आणि तार्किक विचार",
+              "फ्रंटएंड: HTML, CSS, JavaScript, React",
+              "बॅकएंड: Node.js, Express, डेटाबेस",
+              "Git आणि GitHub",
+              "इंग्रजी संप्रेषण आणि कार्यस्थळ कौशल्ये"
+            ],
+            outcomes: [
+              "सॉफ्टवेअर अभियंता",
+              "फुल स्टॅक डेव्हलपर",
+              "प्रवेश-स्तरीय IT नोकऱ्या",
+              "तंत्रज्ञान उद्योगात करिअर वाढ"
+            ]
+          },
+          {
+            id: "SOB",
+            name: "स्कूल ऑफ बिझनेस (SOB)",
+            tag: "ऑपरेशन्स आणि मार्केटिंग",
+            color: "emerald",
+            description: "एक व्यावहारिक कार्यक्रम जो तुम्हाला व्यवसाय ऑपरेशन्स, डिजिटल मार्केटिंग आणि कार्यालय व्यवस्थापनातील नोकऱ्यांसाठी तयार करतो.",
+            duration: "12–18 महिने (स्वयं-गती, कालावधी बदलू शकतो)",
+            location: "पुणे, बेंगलुरु, जशपूर, दंतेवाडा",
+            eligibility: [
+              "किमान वय: 16.5 वर्षे",
+              "12वी उत्तीर्ण असणे आवश्यक",
+              "कौटुंबिक उत्पन्न 5 लाखांपेक्षा कमी",
+              "चांगली संप्रेषण कौशल्ये आणि शिकण्याची इच्छा"
+            ],
+            curriculum: [
+              "व्यवसाय ऑपरेशन्स आणि रिपोर्टिंग",
+              "डिजिटल मार्केटिंग (SEO, सोशल मीडिया, कंटेंट राइटिंग)",
+              "ग्राहक आणि क्लायंट समन्वय",
+              "ईमेल लेखन आणि वेळ व्यवस्थापन",
+              "स्टार्टअप आणि NGO सह वास्तविक प्रकल्प"
+            ],
+            outcomes: [
+              "मार्केटिंग असोसिएट",
+              "ऑपरेशन्स एक्झिक्युटिव्ह",
+              "ग्राहक समर्थन एक्झिक्युटिव्ह",
+              "व्यवसाय विकास भूमिका"
+            ]
+          },
+          {
+            id: "SOF",
+            name: "स्कूल ऑफ फायनान्स (SOF)",
+            tag: "लेखा आणि कर आकारणी",
+            color: "amber",
+            description: "नोकरी-केंद्रित कार्यक्रम जिथे तुम्ही कंपन्यांमध्ये वापरले जाणारे व्यावहारिक लेखा, कर आकारणी आणि वित्त साधने शिकता.",
+            duration: "8–12 महिने (स्वयं-गती, कालावधी बदलू शकतो)",
+            location: "पुणे, महाराष्ट्र",
+            eligibility: [
+              "किमान वय: 16.5 वर्षे",
+              "12वी उत्तीर्ण असणे आवश्यक",
+              "कौटुंबिक उत्पन्न 5 लाखांपेक्षा कमी",
+              "वित्त आणि संख्यांमध्ये स्वारस्य"
+            ],
+            curriculum: [
+              "व्यावहारिक लेखा",
+              "GST आणि आयकर मूलभूत गोष्टी",
+              "पेरोल व्यवस्थापन",
+              "Tally आणि Advanced Excel",
+              "वित्तीय अहवाल"
+            ],
+            outcomes: [
+              "खाते एक्झिक्युटिव्ह",
+              "कर सहयोगी",
+              "वित्त ऑपरेशन्स एक्झिक्युटिव्ह",
+              "अनुपालन सहाय्यक"
+            ]
+          },
+          {
+            id: "BCA",
+            name: "बॅचलर ऑफ कॉम्प्युटर ऍप्लिकेशन्स (BCA)",
+            tag: "पदवी + तंत्रज्ञान",
+            color: "indigo",
+            description: "एटर्नल युनिव्हर्सिटीच्या भागीदारीत एक निवासी पदवी कार्यक्रम, बारुसाहिब येथे स्थित. तुम्हाला नोकरी-तयार तांत्रिक कौशल्यांसह UGC-मान्यताप्राप्त BCA पदवी मिळेल.",
+            duration: "3 वर्षे (संरचित पदवी कार्यक्रम)",
+            location: "हिमाचल प्रदेश (बारुसाहिब – निवासी कॅम्पस)",
+            eligibility: [
+              "किमान वय: 16.5 वर्षे",
+              "12वी उत्तीर्ण (विद्यापीठ प्रवेशासाठी पात्र)",
+              "कौटुंबिक उत्पन्न 5 लाखांपेक्षा कमी",
+              "उच्च शिक्षण आणि तंत्रज्ञानात तीव्र स्वारस्य"
+            ],
+            curriculum: [
+              "औपचारिक BCA पदवी कार्यक्रम (UGC-मान्यताप्राप्त)",
+              "प्रोग्रामिंग आणि सॉफ्टवेअर डेव्हलपमेंट",
+              "सॉफ्ट स्किल्स आणि संप्रेषण प्रशिक्षण",
+              "लाइव्ह प्रकल्प",
+              "इंटर्नशिप आणि प्लेसमेंट तयारी"
+            ],
+            outcomes: [
+              "UGC-मान्यताप्राप्त BCA पदवी",
+              "IT आणि सॉफ्टवेअर भूमिका",
+              "तंत्रज्ञान कंपन्यांसाठी नोकरी-तयार",
+              "उच्च अभ्यासाचा पर्याय"
+            ]
+          }
+        ];
+
+      default: // English
+        return [
+          {
+            id: "SOP",
+            name: "School of Programming (SOP)",
+            tag: "Software Development",
+            color: "blue",
+            description: "A residential program where you learn coding from basics and build a career in the tech industry. You will learn how to build websites and software applications.",
+            duration: "20–24 months (Self-paced, duration may vary)",
+            location: "Various Campuses (Dantewada, Raipur, Bengaluru, etc.)",
+            eligibility: [
+              "Minimum age: 16.5 years",
+              "Must be a Graduate",
+              "Family income less than 5 LPA",
+              "Strong interest in coding and problem solving",
+              "Ready to stay in a residential program"
+            ],
+            curriculum: [
+              "Programming Basics & Logical Thinking",
+              "Frontend: HTML, CSS, JavaScript, React",
+              "Backend: Node.js, Express, Databases",
+              "Git & GitHub",
+              "English Communication & Workplace Skills"
+            ],
+            outcomes: [
+              "Software Engineer",
+              "Full Stack Developer",
+              "Entry-level IT Jobs",
+              "Career growth in the tech industry"
+            ]
+          },
+          {
+            id: "SOB",
+            name: "School of Business (SOB)",
+            tag: "Operations & Marketing",
+            color: "emerald",
+            description: "A practical program that prepares you for jobs in business operations, digital marketing, and office management.",
+            duration: "12–18 months (Self-paced, duration may vary)",
+            location: "Pune, Bengaluru, Jashpur, Dantewada",
+            eligibility: [
+              "Minimum age: 16.5 years",
+              "Must be 12th pass",
+              "Family income less than 5 LPA",
+              "Good communication skills and willingness to learn"
+            ],
+            curriculum: [
+              "Business Operations & Reporting",
+              "Digital Marketing (SEO, Social Media, Content Writing)",
+              "Customer & Client Coordination",
+              "Email Writing & Time Management",
+              "Real-world projects with startups & NGOs"
+            ],
+            outcomes: [
+              "Marketing Associate",
+              "Operations Executive",
+              "Customer Support Executive",
+              "Business Development Roles"
+            ]
+          },
+          {
+            id: "SOF",
+            name: "School of Finance (SOF)",
+            tag: "Accounting & Taxation",
+            color: "amber",
+            description: "A job-oriented program where you learn practical accounting, taxation, and finance tools used in companies.",
+            duration: "8–12 months (Self-paced, duration may vary)",
+            location: "Pune, Maharashtra",
+            eligibility: [
+              "Minimum age: 16.5 years",
+              "Must be 12th pass",
+              "Family income less than 5 LPA",
+              "Interest in finance and numbers"
+            ],
+            curriculum: [
+              "Practical Accounting",
+              "GST & Income Tax Basics",
+              "Payroll Management",
+              "Tally & Advanced Excel",
+              "Financial Reporting"
+            ],
+            outcomes: [
+              "Accounts Executive",
+              "Tax Associate",
+              "Finance Operations Executive",
+              "Compliance Assistant"
+            ]
+          },
+          // {
+          //   id: "SODA",
+          //   name: "School of Digital Analytics (SODA)",
+          //   tag: "Data Analysis",
+          //   color: "purple",
+          //   description: "Equipping learners with data literacy and analytical thinking skills to translate data into usable business insights.",
+          //   duration: "6-12 months",
+          //   location: "Selected Pilot Campuses",
+          //   eligibility: [
+          //     "Minimum 16 years old",
+          //     "Analytical mindset",
+          //     "Problem-solving aptitude",
+          //     "No prior tech degree needed"
+          //   ],
+          //   curriculum: [
+          //     "Data Literacy & Analytical Thinking",
+          //     "Data Cleaning & Preparation",
+          //     "Descriptive Statistics",
+          //     "Spreadsheet Analysis: Excel & Google Sheets",
+          //     "Foundational SQL for data extraction"
+          //   ],
+          //   outcomes: [
+          //     "Data Analyst Associate",
+          //     "Reporting Specialist",
+          //     "Business Intelligence Assistant",
+          //     "Data Support Coordinator"
+          //   ]
+          // },
+          // {
+          //   id: "SOE",
+          //   name: "School of Educators (SOE)",
+          //   tag: "Educator Development",
+          //   color: "rose",
+          //   description: "For graduates interested in educator-adjacent roles such as facilitation, mentoring, and learning support.",
+          //   duration: "6-12 months",
+          //   location: "Residential (Various)",
+          //   eligibility: [
+          //     "College graduates preferred",
+          //     "Interested in education/social sector",
+          //     "Underserved background profile",
+          //     "Passion for mentoring and peer-learning"
+          //   ],
+          //   curriculum: [
+          //     "Educator Mindset & Pedagogy",
+          //     "Facilitation-led Learning Models",
+          //     "Peer-learning Management",
+          //     "Professional Discipline & Communication",
+          //     "Mentoring & Student Support"
+          //   ],
+          //   outcomes: [
+          //     "Learning Facilitator",
+          //     "Educational Mentor",
+          //     "Bootcamp Support Provider",
+          //     "Development Sector Professional"
+          //   ]
+          // },
+          {
+            id: "BCA",
+            name: "Bachelor of Computer Applications (BCA)",
+            tag: "Degree + Tech",
+            color: "indigo",
+            description: "A residential degree program in partnership with Eternal University, located in Barusahib. You will earn a UGC-recognized BCA degree along with job-ready tech skills.",
+            duration: "3 years (Structured degree program)",
+            location: "Himachal Pradesh (Barusahib – Residential Campus)",
+            eligibility: [
+              "Minimum age: 16.5 years",
+              "Must be 12th pass (eligible for university admission)",
+              "Family income less than 5 LPA",
+              "Strong interest in higher education and technology"
+            ],
+            curriculum: [
+              "Formal BCA Degree Program (UGC-recognized)",
+              "Programming & Software Development",
+              "Soft Skills & Communication Training",
+              "Live Projects",
+              "Internship & Placement Preparation"
+            ],
+            outcomes: [
+              "UGC-recognized BCA Degree",
+              "IT & Software Roles",
+              "Job-ready for tech companies",
+              "Option for higher studies"
+            ]
+          }
+        ];
     }
-  ];
+  };
+
+  const schoolDetails = getSchoolDetails();
+
+  // Helper function to check if a school is eligible based on qualification
+  const isSchoolEligible = (schoolId: string) => {
+    const qualificationId = formData.maximumQualification;
+    if (!qualificationId) return true; // Show all if no qualification selected
+
+    const qualification = qualifications.find(q => String(q.id) === qualificationId);
+    if (!qualification) return true;
+
+    const qualName = qualification.qualification_name.toLowerCase();
+
+    // Check eligibility rules
+    if (schoolId === 'SOP') {
+      // SOP requires Graduate or higher
+      return qualName.includes('graduate') || qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || qualName.includes('diploma');
+    }
+    if (schoolId === 'SOB' || schoolId === 'SOF') {
+      // SOB/SOF requires 12th pass or higher
+      return qualName.includes('12') || qualName.includes('intermediate') || qualName.includes('graduate') || qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || qualName.includes('diploma');
+    }
+    if (schoolId === 'BCA') {
+      // BCA requires 12th pass
+      return qualName.includes('12') || qualName.includes('intermediate');
+    }
+    return true;
+  };
+
+  // Get recommended schools count
+  const getRecommendedSchools = () => {
+    return schoolDetails.filter(school => isSchoolEligible(school.id));
+  };
 
   // Helper component for details
-  const SchoolDetailCard = ({ school }: { school: any }) => (
+  const SchoolDetailCard = ({ school }: { school: any }) => {
+    const isEligible = isSchoolEligible(school.id);
+    const hasQualification = formData.maximumQualification;
+    return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200`}>
       <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
         <div className={`p-6 text-white flex justify-between items-start bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-600 to-indigo-700' :
@@ -351,21 +628,28 @@ const StudentForm: React.FC = () => {
 
             <button
               onClick={() => {
+                if (!isEligible && !!hasQualification) return; // Disable if not eligible
                 const matchedSchool = schools.find(s => s.school_name.includes(school.id));
                 if (matchedSchool) {
                   handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
                   setSelectedSchoolInfo(null);
                 }
               }}
-              className="w-full mt-8 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg active:scale-95"
+              disabled={!isEligible && !!hasQualification}
+              className={`w-full mt-8 py-4 font-bold rounded-xl transition-all shadow-lg ${
+                !isEligible && !!hasQualification 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-primary text-white hover:bg-primary/90 active:scale-95'
+              }`}
             >
-              {content.applyToSchool}
+              {!isEligible && !!hasQualification ? content.notEligible : content.applyToSchool}
             </button>
           </section>
         </div>
       </div>
     </div>
   );
+  };
 
   // Convert camelCase → snake_case before API call
   const mapFormDataToApi = (data: typeof formData) => {
@@ -1075,6 +1359,11 @@ const StudentForm: React.FC = () => {
           applyToSchool: "इस स्कूल के लिए आवेदन करें",
           nextStep: "अगला कदम",
           phase: "चरण",
+          videoButtonText: "यह वीडियो देखें और यहां से परीक्षा की तैयारी करें",
+          // recommendedForYou: "आपके लिए अनुशंसित",
+          basedOnQualification: "आपकी योग्यता के आधार पर, हम इन स्कूलों की सिफारिश करते हैं",
+          notEligible: "पात्र नहीं",
+          requires: "आवश्यक है",
         };
 
       case "marathi":
@@ -1140,6 +1429,11 @@ const StudentForm: React.FC = () => {
           applyToSchool: "या शाळेसाठी अर्ज करा",
           nextStep: "पुढील पायरी",
           phase: "टप्पा",
+          videoButtonText: "हा व्हिडिओ पहा आणि येथून चाचणीची तयारी करा",
+          // recommendedForYou: "तुमच्यासाठी शिफारस केलेले",
+          basedOnQualification: "तुमच्या पात्रतेच्या आधारे, आम्ही या शाळांची शिफारस करतो",
+          notEligible: "पात्र नाही",
+          requires: "आवश्यक आहे",
         };
 
       default: // English
@@ -1203,6 +1497,11 @@ const StudentForm: React.FC = () => {
           applyToSchool: "Apply to this School",
           nextStep: "Next Step",
           phase: "Phase",
+          videoButtonText: "Watch this video and Prepare for the test from here",
+          // recommendedForYou: "Recommended for You",
+          // basedOnQualification: "Based on your qualification, we recommend these schools",
+          notEligible: "Not Eligible",
+          requires: "Requires",
         };
     }
   };
@@ -1399,8 +1698,8 @@ const StudentForm: React.FC = () => {
                     pattern="[0-9]{10}"
                     value={formData.alternateNumber}
                     onChange={handleInputChange}
-                    disabled
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-gray-100 cursor-not-allowed"
+                    disabled={!!formData.alternateNumber}
+                    className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${formData.alternateNumber ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     placeholder={content.enterAlternate}
                   />
                   {alternateError && (
@@ -1651,23 +1950,31 @@ const StudentForm: React.FC = () => {
                 className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white student-btn rounded-xl shadow-lg hover:shadow-primary/20 active:scale-95 transition-all"
               >
                 <PlayCircle className="w-4 h-4" />
-                <span>Watch this video and Prepare for the test from here</span>
+                <span>{content.videoButtonText}</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {schoolDetails.map((school) => {
                 const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
+                const isEligible = isSchoolEligible(school.id);
+                const hasQualification = formData.maximumQualification;
+                
                 return (
                   <div
                     key={school.id}
-                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white hover:border-primary/50 hover:shadow-xl ${isSelected ? "border-primary shadow-lg ring-1 ring-primary/20" : "border-gray-100"
-                      }`}
+                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white hover:border-primary/50 hover:shadow-xl ${
+                      isSelected ? "border-primary shadow-lg ring-1 ring-primary/20" : 
+                      isEligible && hasQualification ? "border-green-200" : "border-gray-100"
+                    } ${
+                      !isEligible && hasQualification ? "opacity-75" : ""
+                    }`}
                   >
                     {/* Interactive Overlay for Selection */}
                     <div
-                      className="absolute inset-0 z-0 cursor-pointer"
+                      className={`absolute inset-0 z-0 ${!isEligible && hasQualification ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                       onClick={() => {
+                        if (!isEligible && hasQualification) return; // Disable click if not eligible
                         const matchedSchool = schools.find(s => s.school_name.includes(school.id));
                         if (matchedSchool) {
                           handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
