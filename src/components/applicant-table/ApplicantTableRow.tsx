@@ -681,8 +681,8 @@ export const ApplicantTableRow = ({
           )}
         </TableCell>
       )}
-       {/* Status - Display stage_name directly */}
-      {isColumnVisible('status') && (
+       {/* Stage - Display stage_name directly */}
+      {isColumnVisible('stage') && (
         <TableCell className="min-w-[120px] max-w-[150px] px-2">
           <TooltipProvider>
             <Tooltip>
