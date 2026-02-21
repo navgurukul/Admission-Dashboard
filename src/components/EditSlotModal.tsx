@@ -229,7 +229,11 @@ export function EditSlotModal({
                   onSelect={setDate}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
-                  disabled={(date) => date < new Date()}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return date < today;
+                  }}
                 />
               </PopoverContent>
             </Popover>
