@@ -545,110 +545,109 @@ const StudentForm: React.FC = () => {
     const isEligible = isSchoolEligible(school.id);
     const hasQualification = formData.maximumQualification;
     return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200`}>
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-        <div className={`p-6 text-white flex justify-between items-start bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-600 to-indigo-700' :
-          school.color === 'emerald' ? 'from-emerald-600 to-teal-700' :
-            school.color === 'amber' ? 'from-amber-500 to-orange-600' :
-              school.color === 'purple' ? 'from-purple-600 to-fuchsia-700' :
-                school.color === 'rose' ? 'from-rose-600 to-pink-700' :
-                  'from-indigo-600 to-violet-700'
-          }`}>
-          <div>
-            <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full uppercase tracking-widest mb-2 inline-block">
-              {school.tag}
-            </span>
-            <h2 className="text-3xl font-bold">{school.name}</h2>
-          </div>
-          <button
-            onClick={() => setSelectedSchoolInfo(null)}
-            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <div className="p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8 custom-scrollbar">
-          <section>
-            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🎯</span>
-              {content.eligibility}
-            </h3>
-            <ul className="space-y-2">
-              {school.eligibility.map((item: string, i: number) => (
-                <li key={i} className="flex gap-2 text-sm text-gray-600">
-                  <span className="text-primary">•</span> {item}
-                </li>
-              ))}
-            </ul>
-
-            <h3 className="text-lg font-bold text-gray-800 mt-8 mb-3 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">📚</span>
-              {content.curriculumFocus}
-            </h3>
-            <ul className="space-y-2">
-              {school.curriculum.map((item: string, i: number) => (
-                <li key={i} className="flex gap-2 text-sm text-gray-600">
-                  <span className="text-primary">•</span> {item}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🏆</span>
-              {content.outcomes}
-            </h3>
-            <ul className="space-y-2">
-              {school.outcomes.map((item: string, i: number) => (
-                <li key={i} className="flex gap-2 text-sm text-gray-600">
-                  <span className="text-primary">•</span> {item}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
-                  <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">⏳</span>
-                  <span>{content.duration}</span>
-                </div>
-                <p className="font-semibold text-gray-800 text-sm pl-7">{school.duration}</p>
-              </div>
-              <div className="h-px bg-gray-200"></div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
-                  <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">📍</span>
-                  <span>{content.location}</span>
-                </div>
-                <p className="font-semibold text-gray-800 text-sm pl-7 leading-relaxed">{school.location}</p>
-              </div>
+      <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200`}>
+        <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+          <div className={`p-6 text-white flex justify-between items-start bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-600 to-indigo-700' :
+            school.color === 'emerald' ? 'from-emerald-600 to-teal-700' :
+              school.color === 'amber' ? 'from-amber-500 to-orange-600' :
+                school.color === 'purple' ? 'from-purple-600 to-fuchsia-700' :
+                  school.color === 'rose' ? 'from-rose-600 to-pink-700' :
+                    'from-indigo-600 to-violet-700'
+            }`}>
+            <div>
+              <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full uppercase tracking-widest mb-2 inline-block">
+                {school.tag}
+              </span>
+              <h2 className="text-3xl font-bold">{school.name}</h2>
             </div>
-
             <button
-              onClick={() => {
-                if (!isEligible && !!hasQualification) return; // Disable if not eligible
-                const matchedSchool = schools.find(s => s.school_name.includes(school.id));
-                if (matchedSchool) {
-                  handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
-                  setSelectedSchoolInfo(null);
-                }
-              }}
-              disabled={!isEligible && !!hasQualification}
-              className={`w-full mt-8 py-4 font-bold rounded-xl transition-all shadow-lg ${
-                !isEligible && !!hasQualification 
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                  : 'bg-primary text-white hover:bg-primary/90 active:scale-95'
-              }`}
+              onClick={() => setSelectedSchoolInfo(null)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
             >
-              {!isEligible && !!hasQualification ? content.notEligible : content.applyToSchool}
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-          </section>
+          </div>
+
+          <div className="p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8 custom-scrollbar">
+            <section>
+              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🎯</span>
+                {content.eligibility}
+              </h3>
+              <ul className="space-y-2">
+                {school.eligibility.map((item: string, i: number) => (
+                  <li key={i} className="flex gap-2 text-sm text-gray-600">
+                    <span className="text-primary">•</span> {item}
+                  </li>
+                ))}
+              </ul>
+
+              <h3 className="text-lg font-bold text-gray-800 mt-8 mb-3 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">📚</span>
+                {content.curriculumFocus}
+              </h3>
+              <ul className="space-y-2">
+                {school.curriculum.map((item: string, i: number) => (
+                  <li key={i} className="flex gap-2 text-sm text-gray-600">
+                    <span className="text-primary">•</span> {item}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🏆</span>
+                {content.outcomes}
+              </h3>
+              <ul className="space-y-2">
+                {school.outcomes.map((item: string, i: number) => (
+                  <li key={i} className="flex gap-2 text-sm text-gray-600">
+                    <span className="text-primary">•</span> {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
+                    <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">⏳</span>
+                    <span>{content.duration}</span>
+                  </div>
+                  <p className="font-semibold text-gray-800 text-sm pl-7">{school.duration}</p>
+                </div>
+                <div className="h-px bg-gray-200"></div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
+                    <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">📍</span>
+                    <span>{content.location}</span>
+                  </div>
+                  <p className="font-semibold text-gray-800 text-sm pl-7 leading-relaxed">{school.location}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (!isEligible && !!hasQualification) return; // Disable if not eligible
+                  const matchedSchool = schools.find(s => s.school_name.includes(school.id));
+                  if (matchedSchool) {
+                    handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
+                    setSelectedSchoolInfo(null);
+                  }
+                }}
+                disabled={!isEligible && !!hasQualification}
+                className={`w-full mt-8 py-4 font-bold rounded-xl transition-all shadow-lg ${!isEligible && !!hasQualification
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-primary text-white hover:bg-primary/90 active:scale-95'
+                  }`}
+              >
+                {!isEligible && !!hasQualification ? content.notEligible : content.applyToSchool}
+              </button>
+            </section>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
   };
 
   // Convert camelCase → snake_case before API call
@@ -1079,10 +1078,10 @@ const StudentForm: React.FC = () => {
     const blockRequired = blocks.length > 0 ? formData.blockCode : true;
 
     return (
-      formData.profileImage &&
+      // formData.profileImage &&
       formData.firstName &&
       formData.dateOfBirth &&
-      formData.whatsappNumber &&
+      (formData.whatsappNumber || formData.alternateNumber || formData.email) &&
       formData.gender &&
       formData.stateCode &&
       districtRequired &&
@@ -1101,14 +1100,14 @@ const StudentForm: React.FC = () => {
   const handleSubmit = async () => {
     const age = getAge(formData.dateOfBirth);
 
-    if (!formData.profileImage) {
-      return toast({
-        title: "⚠️ Profile Image Required",
-        description: "Please upload a profile image.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
+    // if (!formData.profileImage) {
+    //   return toast({
+    //     title: "⚠️ Profile Image Required",
+    //     description: "Please upload a profile image.",
+    //     variant: "default",
+    //     className: "border-orange-500 bg-orange-50 text-orange-900"
+    //   });
+    // }
 
     if (!formData.firstName) {
       return toast({
@@ -1962,16 +1961,14 @@ const StudentForm: React.FC = () => {
                 const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
                 const isEligible = isSchoolEligible(school.id);
                 const hasQualification = formData.maximumQualification;
-                
+
                 return (
                   <div
                     key={school.id}
-                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white hover:border-primary/50 hover:shadow-xl ${
-                      isSelected ? "border-primary shadow-lg ring-1 ring-primary/20" : 
+                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white hover:border-primary/50 hover:shadow-xl ${isSelected ? "border-primary shadow-lg ring-1 ring-primary/20" :
                       isEligible && hasQualification ? "border-green-200" : "border-gray-100"
-                    } ${
-                      !isEligible && hasQualification ? "opacity-75" : ""
-                    }`}
+                      } ${!isEligible && hasQualification ? "opacity-75" : ""
+                      }`}
                   >
                     {/* Interactive Overlay for Selection */}
                     <div
@@ -2028,7 +2025,7 @@ const StudentForm: React.FC = () => {
                         </button>
 
                         <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-100">
-                          <div 
+                          <div
                             className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2043,12 +2040,12 @@ const StudentForm: React.FC = () => {
                           >
                             <span className="text-base">📍</span>
                             <span className="text-xs text-gray-600 font-medium">
-                              {expandedLocations.has(school.id) 
-                                ? school.location 
+                              {expandedLocations.has(school.id)
+                                ? school.location
                                 : (school.id !== 'BCA'
-                                    ? content.variousCampuses 
-                                    : school.location
-                                  )
+                                  ? content.variousCampuses
+                                  : school.location
+                                )
                               }
                             </span>
                           </div>

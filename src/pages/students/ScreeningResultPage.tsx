@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
-import { getStudentDataByPhone } from "@/utils/api";
+import { getStudentDataByPhone, getStudentDataByEmail } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { ADMISSIONS_EMAIL } from "@/lib/const";
@@ -109,11 +109,12 @@ const ScreeningResultPage: React.FC = () => {
       // Get student's phone number from localStorage
       const savedFormData = localStorage.getItem("studentFormData");
       let phoneNumber = "";
-
+      let email = "";
       if (savedFormData) {
         try {
           const parsed = JSON.parse(savedFormData);
-          phoneNumber = parsed.whatsappNumber || parsed.phone_number || "";
+          phoneNumber = parsed.whatsappNumber || parsed.alternateNumber || parsed.phone_number || "";
+          email = parsed.email || "";
         } catch (e) {
           console.error("Error parsing studentFormData:", e);
         }
@@ -127,6 +128,7 @@ const ScreeningResultPage: React.FC = () => {
             const data = JSON.parse(studentDataStr);
             const profile = data?.data?.student || data?.student || data;
             phoneNumber = profile.whatsapp_number || profile.phone_number || "";
+            if (!email) email = profile.email || "";
           } catch (e) { }
         }
       }
@@ -138,21 +140,27 @@ const ScreeningResultPage: React.FC = () => {
           try {
             const user = JSON.parse(userStr);
             phoneNumber = user.mobile || user.phone || "";
+            if (!email) email = user.email || "";
           } catch (e) { }
         }
       }
 
-      if (!phoneNumber) {
+      if (!phoneNumber && !email) {
         toast({
-          title: "⚠️ Phone Number Missing",
-          description: "Could not find your phone number. Please login again.",
+          title: "⚠️ Identification Missing",
+          description: "Could not find your phone number or email. Please login again.",
           variant: "destructive",
         });
         return;
       }
 
-      // Call Get api :- students/getByPhone/[dynamic_phone]
-      const response = await getStudentDataByPhone(phoneNumber);
+      // Call API (phone first, then email)
+      let response;
+      if (phoneNumber) {
+        response = await getStudentDataByPhone(phoneNumber);
+      } else if (email) {
+        response = await getStudentDataByEmail(email);
+      }
 
       if (!response) {
         toast({
