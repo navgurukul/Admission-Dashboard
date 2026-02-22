@@ -191,8 +191,9 @@ const ScreeningResultPage: React.FC = () => {
       // Save user info for easy access in StudentResult page
       localStorage.setItem("user", JSON.stringify({
         email: studentData?.email || "",
-        mobile: studentData?.whatsapp_number || studentData?.phone_number || phoneNumber || "",
-        phone: studentData?.whatsapp_number || studentData?.phone_number || phoneNumber || "",
+        mobile: studentData?.phone_number || studentData?.whatsapp_number || phoneNumber || "",
+        phone: studentData?.phone_number || studentData?.whatsapp_number || phoneNumber || "",
+        whatsapp_number: studentData?.whatsapp_number || phoneNumber || "",
         first_name: studentData?.first_name || "",
         student_id: studentData?.student_id || studentData?.id
       }));

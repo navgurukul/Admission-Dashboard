@@ -490,8 +490,9 @@ export default function StudentLogin() {
           // Save user info with phone/email for easy access
           localStorage.setItem("user", JSON.stringify({
             email: profile.email || "",
-            mobile: profile.whatsapp_number || profile.phone_number || formData.phone || "",
-            phone: profile.whatsapp_number || profile.phone_number || formData.phone || "",
+            mobile: profile.phone_number || profile.whatsapp_number || formData.phone || "",
+            phone: profile.phone_number || profile.whatsapp_number || formData.phone || "",
+            whatsapp_number: profile.whatsapp_number || formData.phone || "",
             first_name: profile.first_name || formData.name || "",
             student_id: studentId
           }));
