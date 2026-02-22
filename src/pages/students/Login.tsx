@@ -486,6 +486,15 @@ export default function StudentLogin() {
           localStorage.setItem("studentData", JSON.stringify(existingStudentData));
           localStorage.setItem("registrationDone", "true");
           localStorage.setItem("testCompleted", "true");
+          
+          // Save user info with phone/email for easy access
+          localStorage.setItem("user", JSON.stringify({
+            email: profile.email || "",
+            mobile: profile.whatsapp_number || profile.phone_number || formData.phone || "",
+            phone: profile.whatsapp_number || profile.phone_number || formData.phone || "",
+            first_name: profile.first_name || formData.name || "",
+            student_id: studentId
+          }));
 
           toast({
             title: getContent().successMessage,
