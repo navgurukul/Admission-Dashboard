@@ -390,6 +390,7 @@ export function AdvancedFilterModal({
       filters.donor?.length > 0 ||
       filters.partnerFilter?.length > 0 ||
       filters.state ||
+      filters.gender ||
       filters.dateRange.from ||
       filters.dateRange.to;
 
@@ -993,26 +994,25 @@ export function AdvancedFilterModal({
             </div> */}
 
             {/* Gender */}
-            {/* <div className="space-y-3">
+            <div className="space-y-3">
               <h3 className="font-semibold text-sm">Gender</h3>
               <Select
                 value={filters.gender || "all"}
                 onValueChange={(value) =>
                   setFilters((prev) => ({ ...prev, gender: value === "all" ? undefined : value }))
                 }
-                disabled={true}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
                 <SelectContent className="z-50">
                   <SelectItem value="all">All Genders</SelectItem>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
-            </div> */}
+            </div>
 
             {/* Interview Mode */}
             {/* <div className="space-y-3">

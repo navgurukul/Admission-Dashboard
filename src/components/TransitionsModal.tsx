@@ -161,8 +161,8 @@ export function TransitionsModal({
 
         try {
             await deleteFeedback(feedbackToDelete);
-            toast({ 
-                title: "✅ Feedback Deleted", 
+            toast({
+                title: "✅ Feedback Deleted",
                 description: "Feedback deleted successfully",
                 variant: "default",
                 className: "border-green-500 bg-green-50 text-green-900",
@@ -203,16 +203,16 @@ export function TransitionsModal({
 
             if (editingId) {
                 await updateFeedback(editingId, payload);
-                toast({ 
-                    title: "✅ Feedback Updated", 
+                toast({
+                    title: "✅ Feedback Updated",
                     description: "Feedback updated successfully",
                     variant: "default",
                     className: "border-green-500 bg-green-50 text-green-900",
                 });
             } else {
                 await createFeedback(payload);
-                toast({ 
-                    title: "✅ Feedback Created", 
+                toast({
+                    title: "✅ Feedback Created",
                     description: "Feedback created successfully",
                     variant: "default",
                     className: "border-green-500 bg-green-50 text-green-900",
@@ -246,13 +246,7 @@ export function TransitionsModal({
     const getStatusName = (id: number, stageId?: number) => {
         if (!id) return "-";
 
-        // 1. Try to find in the main statuses list (global or prop-passed)
-        const status = statuses.find((s: any) => Number(s.id) === Number(id));
-        if (status) {
-            return status.current_status_name || status.status_name || status.name || `Status ${id}`;
-        }
-
-        // 2. If stageId is provided, try to find in the stage-specific statuses map
+        // 1. If stageId is provided, try to find in the stage-specific statuses map first
         if (stageId && stageStatusesMap[Number(stageId)]) {
             const stageStatus = stageStatusesMap[Number(stageId)].find((s: any) => Number(s.id) === Number(id));
             if (stageStatus) {
@@ -260,7 +254,12 @@ export function TransitionsModal({
             }
         }
 
-        // console.warn(`Status not found for id: ${id}`);
+        // 2. Try to find in the main statuses list (global or prop-passed)
+        const status = statuses.find((s: any) => Number(s.id) === Number(id));
+        if (status) {
+            return status.current_status_name || status.status_name || status.name || `Status ${id}`;
+        }
+
         return `Status ${id}`;
     };
 
@@ -269,11 +268,11 @@ export function TransitionsModal({
             <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
                 <DialogHeader className="flex-shrink-0 flex flex-row items-center justify-between pb-4">
                     <DialogTitle>Transitions Feedback</DialogTitle>
-                    {!isFormOpen && (
+                    {/* {!isFormOpen && (
                         <Button onClick={handleAddNew} size="sm" className="ml-4 mr-8">
                             <Plus className="w-4 h-4 mr-2" /> Add Feedback
                         </Button>
-                    )}
+                    )} */}
                 </DialogHeader>
 
                 <div className="flex-1 overflow-hidden">
@@ -292,7 +291,23 @@ export function TransitionsModal({
                                         <label className="text-sm font-medium">Stage</label>
                                         <Select
                                             value={formData.stage_id}
-                                            onValueChange={(val) => setFormData({ ...formData, stage_id: val })}
+                                            onValueChange={async (val) => {
+                                                setFormData({ ...formData, stage_id: val, stage_status_id: "" });
+                                                // Fetch statuses for this stage if not already loaded
+                                                if (val && !stageStatusesMap[Number(val)]) {
+                                                    try {
+                                                        const statusData = await getStageStatuses(Number(val));
+                                                        const fetchedStatuses = Array.isArray(statusData.data) ? statusData.data :
+                                                            Array.isArray(statusData) ? statusData : [];
+                                                        setStageStatusesMap((prev) => ({
+                                                            ...prev,
+                                                            [Number(val)]: fetchedStatuses
+                                                        }));
+                                                    } catch (err) {
+                                                        console.error(`Failed to load statuses for stage ${val}:`, err);
+                                                    }
+                                                }
+                                            }}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select Stage" />
@@ -321,12 +336,16 @@ export function TransitionsModal({
                                                 <SelectValue placeholder="Select Status" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {statuses.length === 0 ? (
+                                                {!formData.stage_id ? (
+                                                    <div className="p-2 text-sm text-muted-foreground">Please select a stage first...</div>
+                                                ) : !stageStatusesMap[Number(formData.stage_id)] ? (
                                                     <div className="p-2 text-sm text-muted-foreground">Loading statuses...</div>
+                                                ) : stageStatusesMap[Number(formData.stage_id)].length === 0 ? (
+                                                    <div className="p-2 text-sm text-muted-foreground">No statuses available</div>
                                                 ) : (
-                                                    statuses.map((status: any) => (
+                                                    stageStatusesMap[Number(formData.stage_id)].map((status: any) => (
                                                         <SelectItem key={status.id} value={status.id.toString()}>
-                                                            {status.current_status_name || status.status_name || status.name || `Status ${status.id}`}
+                                                            {status.status_name || status.current_status_name || status.name || `Status ${status.id}`}
                                                         </SelectItem>
                                                     ))
                                                 )}
@@ -421,7 +440,7 @@ export function TransitionsModal({
                     )}
                 </div>
             </DialogContent>
-            
+
             <DeleteConfirmDialog
                 isOpen={deleteDialogOpen}
                 onClose={() => {
