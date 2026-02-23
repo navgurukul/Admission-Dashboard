@@ -1010,9 +1010,22 @@ const ApplicantTable = () => {
       apiParams.current_status_id = filterState.currentStatus[0];
     }
 
-    // State
+    // State - prefer state_code (e.g. "AN") over full name
     if (filterState.state && filterState.state !== "all") {
-      apiParams.state = filterState.state;
+      const stateValue = (() => {
+        // Try to resolve from reference stateList where
+        // value = state_code, label = state_name
+        const match = stateList.find(
+          (s) =>
+            s.label === filterState.state ||
+            s.value === filterState.state
+        );
+        // If we find a match, use its state_code (value),
+        // otherwise fall back to whatever is in the filter
+        return match ? match.value : filterState.state;
+      })();
+
+      apiParams.state = stateValue;
     }
 
     // District
