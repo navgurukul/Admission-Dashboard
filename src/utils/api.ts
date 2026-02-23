@@ -1104,10 +1104,15 @@ export const getStudentById = async (id: string): Promise<Student> => {
 // Get Student By Email
 export const getStudentDataByEmail = async (
   email: string,
-): Promise<Student> => {
+): Promise<CompleteStudentData> => {
   try {
-    const response = await axios.get<Student>(
+    const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByEmail/${email}`,
+      {
+        headers: {
+          ...(getAuthHeaders() as Record<string, string>),
+        },
+      }
     );
 
     return response.data;
@@ -1121,10 +1126,15 @@ export const getStudentDataByEmail = async (
 // Get Student By Phone
 export const getStudentDataByPhone = async (
   phone: string,
-): Promise<Student> => {
+): Promise<CompleteStudentData> => {
   try {
-    const response = await axios.get<Student>(
+    const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByPhone/${phone}`,
+      {
+        headers: {
+          ...(getAuthHeaders() as Record<string, string>),
+        },
+      }
     );
 
     return response.data;

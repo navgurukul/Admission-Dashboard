@@ -7,6 +7,7 @@ import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import {
   getCompleteStudentData,
+  getStudentDataByPhone,
   CompleteStudentData,
 } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
@@ -164,32 +165,74 @@ export default function StudentResult() {
         if (!data) {
           const googleUser = localStorage.getItem("user");
           let email = "";
+          let phone = "";
 
           if (googleUser) {
             try {
               const parsedUser = JSON.parse(googleUser);
               email = parsedUser.email;
+              phone = parsedUser.mobile || parsedUser.phone || "";
             } catch (e) { }
           }
 
-          if (!email) {
-            const savedApiPayload = localStorage.getItem("studentData");
-            if (savedApiPayload) {
-              try {
-                const payload = JSON.parse(savedApiPayload);
-                // Look for email in various nested structures
-                email = payload?.data?.student?.email || payload?.student?.email || payload?.email || "";
+          // Always check studentData localStorage for phone number (more reliable for phone-based login)
+          const savedApiPayload = localStorage.getItem("studentData");
+          if (savedApiPayload) {
+            try {
+              const payload = JSON.parse(savedApiPayload);
+              
+              // Extract phone (prioritize if not already found)
+              const payloadPhone = payload?.data?.student?.whatsapp_number || 
+                      payload?.data?.student?.phone_number || 
+                      payload?.student?.whatsapp_number || 
+                      payload?.student?.phone_number ||
+                      payload?.whatsapp_number ||
+                      payload?.phone_number || "";
+              
+              // Extract email (prioritize if not already found)
+              const payloadEmail = payload?.data?.student?.email || 
+                      payload?.student?.email || 
+                      payload?.email || "";
+              
+              // Use payload values if not found in user localStorage
+              if (!phone && payloadPhone) {
+                phone = payloadPhone;
+                // console.log(" Found phone in studentData:", phone);
+              }
+              if (!email && payloadEmail) {
+                email = payloadEmail;
+              }
 
-                // If we found NO email but HAVE cached data, use the cached data as fallback
-                if (!email) {
+                // If we found NO email/phone but HAVE cached data, use the cached data as fallback
+                if (!email && !phone && payload) {
                   data = payload;
                 }
               } catch (e) { }
             }
-          }
 
-          if (email && !data) {
-            data = await getCompleteStudentData(email);
+          // Fetch fresh data if we have email or phone
+          if (!data) {
+            
+            // Try phone first
+            if (phone) {
+              try {
+                data = await getStudentDataByPhone(phone);
+              } catch (phoneError: any) {
+                // If phone fails, try email
+                if (email) {
+                  try {
+                    data = await getCompleteStudentData(email);
+                  } catch (emailError: any) {
+                    throw emailError; // Rethrow to trigger error handling below
+                  }
+                } else {
+                  throw phoneError; // No email to fallback to
+                }
+              }
+            } else if (email) {
+              // No phone, try email
+              data = await getCompleteStudentData(email);
+            }
           }
         }
 
@@ -197,18 +240,24 @@ export default function StudentResult() {
         if (data) {
           setCompleteData(data);
 
-          const profile = data?.data?.student || data?.student;
+          // Handle multiple response structures from getByPhone, getByEmail, or getCompleteStudentData
+          const profile = data?.data?.student || data?.student || data;
+          
+          // Extract student info with fallbacks for different field naming conventions
           if (profile) {
-            setStudent({
-              firstName: profile.first_name || "",
-              middleName: profile.middle_name || "",
-              lastName: profile.last_name || "",
+            const studentInfo = {
+              firstName: profile.first_name || profile.firstName || "",
+              middleName: profile.middle_name || profile.middleName || "",
+              lastName: profile.last_name || profile.lastName || "",
               email: profile.email || "",
               whatsappNumber:
-                profile.whatsapp_number || profile.phone_number || "",
+                profile.whatsapp_number || profile.whatsappNumber || 
+                profile.phone_number || profile.phoneNumber || 
+                profile.mobile || "",
               district: profile.district || "",
               state: profile.state || "",
-            });
+            };
+            setStudent(studentInfo);
 
             // Build tests array using API data (keep all relevant rows and history)
             const updatedTests: TestRow[] = [];

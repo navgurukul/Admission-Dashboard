@@ -334,6 +334,11 @@ export function InlineSubform({
     );
   }, [rows, fields]);
 
+  // Memoize filtered fields to ensure thead and tbody always use the same array
+  const visibleFields = useMemo(() => {
+    return fields.filter((f) => f.name !== "schedule_info");
+  }, [fields]);
+
   const updateRow = (index: number, field: string, value: any) => {
     setRows((prev) => {
       const newRows = [...prev];
@@ -753,7 +758,7 @@ export function InlineSubform({
         <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
-              {fields.filter((f) => f.name !== "schedule_info").map((f) => (
+              {visibleFields.map((f) => (
                 <th key={f.name} className="px-3 py-2 border-b whitespace-nowrap">
                   {f.label}
                 </th>
@@ -765,8 +770,8 @@ export function InlineSubform({
             {rows.filter(row => row.id || row.isEditing).map((row) => {
               const idx = rows.indexOf(row);
               return (
-              <tr key={idx} className="border-b hover:bg-gray-50">
-                {fields.filter((f) => f.name !== "schedule_info").map((f) => {
+              <tr key={row.id || `new-row-${idx}`} className="border-b hover:bg-gray-50">
+                {visibleFields.map((f) => {
                   // Audit fields should always be readonly
                   const isAuditField = ["created_at", "updated_at", "last_updated_by", "audit_info"].includes(f.name);
                   const isStatusField = f.name === "status" || f.name.includes("status");

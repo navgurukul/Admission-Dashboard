@@ -187,6 +187,16 @@ const ScreeningResultPage: React.FC = () => {
 
       // Update localStorage with fresh data for Final Result page
       localStorage.setItem("studentData", JSON.stringify(response));
+      
+      // Save user info for easy access in StudentResult page
+      localStorage.setItem("user", JSON.stringify({
+        email: studentData?.email || "",
+        mobile: studentData?.phone_number || studentData?.whatsapp_number || phoneNumber || "",
+        phone: studentData?.phone_number || studentData?.whatsapp_number || phoneNumber || "",
+        whatsapp_number: studentData?.whatsapp_number || phoneNumber || "",
+        first_name: studentData?.first_name || "",
+        student_id: studentData?.student_id || studentData?.id
+      }));
 
       // Navigate to final-result route and pass the data there
       navigate("/students/final-result", {

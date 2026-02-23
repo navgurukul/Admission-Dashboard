@@ -684,6 +684,11 @@ const ApplicantTable = () => {
     return column?.visible ?? true;
   }, [visibleColumns]); // Update when column visibility changes
 
+  // Calculate total visible columns for dynamic colspan
+  const visibleColumnCount = useMemo(() => {
+    return visibleColumns.filter(col => col.visible).length;
+  }, [visibleColumns]);
+
   const refreshData = useCallback(async () => {
     // Trigger dashboard stats refresh
     triggerRefresh();
@@ -1821,7 +1826,7 @@ const ApplicantTable = () => {
               <TableBody>
                 {isSearching || isFiltering || isLoadingData ? (
                   <TableRow>
-                    <TableCell colSpan={13} className="text-center py-12">
+                    <TableCell colSpan={visibleColumnCount} className="text-center py-12">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <span className="text-sm text-muted-foreground">
@@ -1833,7 +1838,7 @@ const ApplicantTable = () => {
                 ) : paginatedApplicants.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={12}
+                      colSpan={visibleColumnCount}
                       className="text-center text-muted-foreground py-6"
                     >
                       No applicants found.
