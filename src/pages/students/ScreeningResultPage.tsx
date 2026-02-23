@@ -106,41 +106,54 @@ const ScreeningResultPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Get student's phone number from localStorage
-      const savedFormData = localStorage.getItem("studentFormData");
+      // Get student's phone and email from localStorage
       let phoneNumber = "";
       let email = "";
-      if (savedFormData) {
+      let loginMethod: "email" | "phone" = "phone"; // Default to phone
+
+      // Detect actual login method - Google login stores google_credential in sessionStorage
+      const googleCredential = sessionStorage.getItem("google_credential");
+      if (googleCredential) {
+        loginMethod = "email";
+      } else {
+        loginMethod = "phone"; 
+      }
+
+      // 1. Check current user session
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
         try {
-          const parsed = JSON.parse(savedFormData);
-          phoneNumber = parsed.whatsappNumber || parsed.alternateNumber || parsed.phone_number || "";
-          email = parsed.email || "";
+          const user = JSON.parse(userStr);
+          email = user.email || "";
+          phoneNumber = user.mobile || user.phone || "";
         } catch (e) {
-          console.error("Error parsing studentFormData:", e);
+          console.error("Error parsing user:", e);
         }
       }
 
-      if (!phoneNumber) {
-        // 2. Try getting from existing student session data
+      // 2. Fallback: Try studentFormData (used after form submission)
+      if (!email && !phoneNumber) {
+        const savedFormData = localStorage.getItem("studentFormData");
+        if (savedFormData) {
+          try {
+            const parsed = JSON.parse(savedFormData);
+            phoneNumber = parsed.whatsappNumber || parsed.alternateNumber || parsed.phone_number || "";
+            email = parsed.email || "";
+          } catch (e) {
+            console.error("Error parsing studentFormData:", e);
+          }
+        }
+      }
+
+      // 3. Fallback: Try existing student session data (cached from previous API call)
+      if (!email && !phoneNumber) {
         const studentDataStr = localStorage.getItem("studentData");
         if (studentDataStr) {
           try {
             const data = JSON.parse(studentDataStr);
             const profile = data?.data?.student || data?.student || data;
             phoneNumber = profile.whatsapp_number || profile.phone_number || "";
-            if (!email) email = profile.email || "";
-          } catch (e) { }
-        }
-      }
-
-      if (!phoneNumber) {
-        // 3. Try getting from Google user if available
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          try {
-            const user = JSON.parse(userStr);
-            phoneNumber = user.mobile || user.phone || "";
-            if (!email) email = user.email || "";
+            email = profile.email || "";
           } catch (e) { }
         }
       }
@@ -156,10 +169,46 @@ const ScreeningResultPage: React.FC = () => {
 
       // Call API (phone first, then email)
       let response;
-      if (phoneNumber) {
-        response = await getStudentDataByPhone(phoneNumber);
-      } else if (email) {
-        response = await getStudentDataByEmail(email);
+      
+      if (loginMethod === "email" && email) {
+        // Email login (Google) - try email first
+        try {
+          response = await getStudentDataByEmail(email);
+        } catch (emailError: any) {
+          // Fallback to phone if available
+          if (phoneNumber) {
+            try {
+              response = await getStudentDataByPhone(phoneNumber);
+            } catch (phoneError: any) {
+              throw emailError; // Throw original email error
+            }
+          } else {
+            throw emailError;
+          }
+        }
+      } else if (loginMethod === "phone" && phoneNumber) {
+        // Phone login (OTP) - try phone first
+        try {
+          response = await getStudentDataByPhone(phoneNumber);
+        } catch (phoneError: any) {
+          // Fallback to email if available
+          if (email) {
+            try {
+              response = await getStudentDataByEmail(email);
+            } catch (emailError: any) {
+              throw phoneError; // Throw original phone error
+            }
+          } else {
+            throw phoneError;
+          }
+        }
+      } else {
+        // Fallback: If no identifier matches login method, try what's available
+        if (phoneNumber) {
+          response = await getStudentDataByPhone(phoneNumber);
+        } else if (email) {
+          response = await getStudentDataByEmail(email);
+        }
       }
 
       if (!response) {

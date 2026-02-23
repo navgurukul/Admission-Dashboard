@@ -166,6 +166,15 @@ export default function StudentResult() {
           const googleUser = localStorage.getItem("user");
           let email = "";
           let phone = "";
+          let loginMethod: "email" | "phone" = "phone";
+
+          // Detect actual login method - Google login stores google_credential in sessionStorage
+          const googleCredential = sessionStorage.getItem("google_credential");
+          if (googleCredential) {
+            loginMethod = "email"; 
+          } else {
+            loginMethod = "phone"; 
+          }
 
           if (googleUser) {
             try {
@@ -212,26 +221,44 @@ export default function StudentResult() {
 
           // Fetch fresh data if we have email or phone
           if (!data) {
-            
-            // Try phone first
-            if (phone) {
+            // PRIORITY 1: Use the method that was actually used for login
+            if (loginMethod === "email" && email) {
+              try {
+                data = await getCompleteStudentData(email);
+              } catch (emailError: any) {
+                // Fallback to phone if email fails and phone is available
+                if (phone) {
+                  try {
+                    data = await getStudentDataByPhone(phone);
+                  } catch (phoneError: any) {
+                    throw emailError; // Throw original email error
+                  }
+                } else {
+                  throw emailError;
+                }
+              }
+            } else if (loginMethod === "phone" && phone) {
               try {
                 data = await getStudentDataByPhone(phone);
               } catch (phoneError: any) {
-                // If phone fails, try email
+                // Fallback to email if phone fails and email is available
                 if (email) {
                   try {
                     data = await getCompleteStudentData(email);
                   } catch (emailError: any) {
-                    throw emailError; // Rethrow to trigger error handling below
+                    throw phoneError; // Throw original phone error
                   }
                 } else {
                   throw phoneError; // No email to fallback to
                 }
               }
-            } else if (email) {
-              // No phone, try email
-              data = await getCompleteStudentData(email);
+            } else {
+              // Fallback: If no identifier matches login method, try what's available
+              if (phone) {
+                data = await getStudentDataByPhone(phone);
+              } else if (email) {
+                data = await getCompleteStudentData(email);
+              }
             }
           }
         }
