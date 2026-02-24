@@ -54,6 +54,7 @@ export const getSlotTypeName = (slotType: string): string => {
  * @param endTime - End time in HH:mm format
  * @param slotType - Type of slot (LR or CFR)
  * @param excludeSlotId - Optional slot ID to exclude from validation (for edit mode)
+ * @param currentInterviewerId - Current interviewer's ID (to check only their own slots)
  */
 export const validateAgainstExistingSlots = async (
   date: Date,
@@ -61,6 +62,7 @@ export const validateAgainstExistingSlots = async (
   endTime: string,
   slotType: string,
   excludeSlotId?: number,
+  currentInterviewerId?: number,
 ): Promise<{ valid: boolean; message?: string }> => {
   try {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -80,6 +82,22 @@ export const validateAgainstExistingSlots = async (
       // Skip the slot being edited (if excludeSlotId is provided)
       if (excludeSlotId && existingSlot.id === excludeSlotId) {
         continue;
+      }
+      
+      // If current user's interviewer ID is available
+      if (currentInterviewerId) {
+        // Get the slot owner ID (could be interviewer_id or created_by)
+        const slotOwnerId = existingSlot.created_by || existingSlot.interviewer_id;
+        
+        // Skip if existing slot has no owner info (old data - assume different interviewer)
+        if (!slotOwnerId) {
+          continue;
+        }
+        // Skip if it's a different interviewer's slot
+        if (slotOwnerId !== currentInterviewerId) {
+          continue;
+        }
+        
       }
 
       const existingSlotType = getSlotTypeName(existingSlot.slot_type);

@@ -26,7 +26,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
-import { createSlotBookingTimes, getSlotByDate } from "@/utils/api";
+import { createSlotBookingTimes, getSlotByDate, getCurrentUser } from "@/utils/api";
 import {
   toMinutes,
   timesOverlap,
@@ -61,8 +61,8 @@ export function AddSlotsModal({
   const [loading, setLoading] = useState(false);
   const [openPopovers, setOpenPopovers] = useState<Record<number, boolean>>({});
   const [existingSlotsCache, setExistingSlotsCache] = useState<Record<string, any[]>>({});
-  const { toast } = useToast();
-
+  const { toast } = useToast();  const currentUser = getCurrentUser();
+  const currentInterviewerId = currentUser?.id;
   // Fetch existing slots when a date is selected
   const fetchExistingSlotsForDate = async (date: Date, slotType: string) => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -100,8 +100,8 @@ export function AddSlotsModal({
     // Ensure data is fetched and cached first
     await fetchExistingSlotsForDate(date, slotType);
     
-    // Now validate using the shared function
-    return validateAgainstExistingSlots(date, startTime, endTime, slotType);
+    // Now validate using the shared function with current interviewer ID
+    return validateAgainstExistingSlots(date, startTime, endTime, slotType, undefined, currentInterviewerId);
   };
 
   // Validate within the current form (check duplicates and overlaps)
