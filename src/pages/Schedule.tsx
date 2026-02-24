@@ -44,6 +44,8 @@ type SlotData = {
   interviewer_id?: number;
   interviewer_email?: string;
   interviewer_name?: string;
+  created_by?: number;
+  user_name?: string;
   is_booked: boolean;
   status: string;
   created_at: string;
@@ -561,10 +563,13 @@ const Schedule = () => {
                     <thead className="bg-muted/30 sticky top-0">
                       <tr>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
-                          Date
+                          Created by
                         </th>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Slot Type
+                        </th>
+                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                          Date
                         </th>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Start Time
@@ -586,14 +591,10 @@ const Schedule = () => {
                           key={slot.id}
                           className="border-b border-border hover:bg-muted/20 transition-all"
                         >
-                          {/* Date */}
+                          {/* Created by */}
                           <td className="p-4">
-                            <span className="text-sm text-foreground">
-                              {new Date(slot.date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
+                            <span className="text-sm text-foreground font-medium">
+                              {slot.user_name || "Unknown"}
                             </span>
                           </td>
 
@@ -612,6 +613,17 @@ const Schedule = () => {
                                 : slot.slot_type === "CFR"
                                   ? "Cultural Fit Round"
                                   : slot.slot_type || "N/A"}
+                            </span>
+                          </td>
+
+                          {/* Date */}
+                          <td className="p-4">
+                            <span className="text-sm text-foreground">
+                              {new Date(slot.date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
                             </span>
                           </td>
 
