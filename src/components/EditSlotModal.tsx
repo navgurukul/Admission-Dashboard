@@ -26,7 +26,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
-import { updateSlot } from "@/utils/api";
+import { updateSlot, getCurrentUser } from "@/utils/api";
 import {
   toMinutes,
   formatTime,
@@ -60,6 +60,8 @@ export function EditSlotModal({
   const [loading, setLoading] = useState(false);
   const [slotType, setSlotType] = useState("");
   const { toast } = useToast();
+  const currentUser = getCurrentUser();
+  const currentInterviewerId = currentUser?.id;
 
   useEffect(() => {
     if (slotData && isOpen) {
@@ -141,6 +143,7 @@ export function EditSlotModal({
       endTime,
       slotType,
       slotData!.id, // Exclude current slot from validation
+      currentInterviewerId, // Only check against same interviewer's slots
     );
 
     if (!validation.valid) {
