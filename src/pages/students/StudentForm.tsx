@@ -519,6 +519,10 @@ const StudentForm: React.FC = () => {
 
   // Helper function to check if a school is eligible based on qualification
   const isSchoolEligible = (schoolId: string) => {
+    if (schoolId === 'BCA' && formData.gender === 'male') {
+      return false;
+    }
+
     const qualificationId = formData.maximumQualification;
     if (!qualificationId) return true; // Show all if no qualification selected
 
@@ -641,7 +645,7 @@ const StudentForm: React.FC = () => {
                   : 'bg-primary text-white hover:bg-primary/90 active:scale-95'
                   }`}
               >
-                {!isEligible && !!hasQualification ? content.notEligible : content.applyToSchool}
+                {!isEligible && !!hasQualification ? (school.id === 'BCA' && formData.gender === 'male' ? 'You are not eligible' : content.notEligible) : content.applyToSchool}
               </button>
             </section>
           </div>
@@ -1451,7 +1455,7 @@ const StudentForm: React.FC = () => {
           male: "Male",
           female: "Female",
           whatsappNumber: "WhatsApp Number",
-          alternateNumber: "Alternate Number",
+          alternateNumber: "Phone Number",
           email: "Email Address",
           state: "State *",
           district: "District",
@@ -1476,7 +1480,7 @@ const StudentForm: React.FC = () => {
           enterMiddleName: "Enter Middle Name",
           enterLastName: "Enter Last Name",
           enterWhatsapp: "Enter WhatsApp Number",
-          enterAlternate: "Enter Alternate Number",
+          enterAlternate: "Enter Phone Number",
           enterEmail: "Enter Email Address",
           cityExample: "Ex. Bangalore",
           pinCodeExample: "Ex. 4402xx",
