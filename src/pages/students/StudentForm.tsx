@@ -1077,6 +1077,9 @@ const StudentForm: React.FC = () => {
     // Block is mandatory only if blocks are available
     const blockRequired = blocks.length > 0 ? formData.blockCode : true;
 
+    // Alternate number is mandatory when user logged in via email
+    const alternateRequired = location.state?.googleEmail ? formData.alternateNumber : true;
+
     return (
       // formData.profileImage &&
       formData.firstName &&
@@ -1092,6 +1095,7 @@ const StudentForm: React.FC = () => {
       formData.schoolMedium &&
       formData.casteTribe &&
       formData.religion &&
+      alternateRequired &&
       (currentStep === 2 ? formData.initial_school_id : true) &&
       age >= 16.5
     );
@@ -1136,10 +1140,28 @@ const StudentForm: React.FC = () => {
       });
     }
 
-    if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
+    // Alternate number validation - mandatory when logged in via email
+    if (location.state?.googleEmail) {
+      if (!formData.alternateNumber) {
+        return toast({
+          title: "⚠️ Phone Number Required",
+          description: "Please enter your phone number.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+      }
+      if (!/^\d{10}$/.test(formData.alternateNumber)) {
+        return toast({
+          title: "⚠️ Invalid Phone Number",
+          description: "Enter a valid 10-digit phone number.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+      }
+    } else if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
       return toast({
-        title: "⚠️ Invalid Alternate Number",
-        description: "Enter a valid 10-digit alternate number or leave it empty.",
+        title: "⚠️ Invalid Phone Number",
+        description: "Enter a valid 10-digit phone number.",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900"
       });
@@ -1309,7 +1331,7 @@ const StudentForm: React.FC = () => {
           male: "पुरुष",
           female: "महिला",
           whatsappNumber: "व्हाट्सऐप नंबर",
-          alternateNumber: "वैकल्पिक नंबर",
+          alternateNumber: "फोन नंबर",
           email: "ईमेल पता ",
           state: "राज्य चुनें *",
           district: "जिला चुनें",
@@ -1335,7 +1357,7 @@ const StudentForm: React.FC = () => {
           enterMiddleName: "मध्य नाम दर्ज करें",
           enterLastName: "अंतिम नाम दर्ज करें",
           enterWhatsapp: "व्हाट्सऐप नंबर दर्ज करें",
-          enterAlternate: "वैकल्पिक नंबर दर्ज करें",
+          enterAlternate: " फोन नंबर दर्ज करें",
           enterEmail: "ईमेल पता दर्ज करें",
           cityExample: "उदा. मुंबई",
           pinCodeExample: "उदा. 400001",
@@ -1380,7 +1402,7 @@ const StudentForm: React.FC = () => {
           male: "पुरुष",
           female: "स्त्री",
           whatsappNumber: "व्हाट्सअॅप नंबर",
-          alternateNumber: "पर्यायी नंबर",
+          alternateNumber: "फोन नंबर",
           email: "ईमेल पत्ता ",
           state: "राज्य निवडा *",
           district: "जिल्हा निवडा",
@@ -1406,7 +1428,7 @@ const StudentForm: React.FC = () => {
           enterMiddleName: "मध्यम नाव प्रविष्ट करा",
           enterLastName: "आडनाव प्रविष्ट करा",
           enterWhatsapp: "व्हाट्सअॅप नंबर प्रविष्ट करा",
-          enterAlternate: "पर्यायी नंबर प्रविष्ट करा",
+          enterAlternate: "फोन नंबर प्रविष्ट करा",
           enterEmail: "ईमेल पत्ता प्रविष्ट करा",
           cityExample: "उदा. पुणे",
           pinCodeExample: "उदा. 411001",
@@ -1451,7 +1473,7 @@ const StudentForm: React.FC = () => {
           male: "Male",
           female: "Female",
           whatsappNumber: "WhatsApp Number",
-          alternateNumber: "Alternate Number",
+          alternateNumber: "Phone Number",
           email: "Email Address",
           state: "State *",
           district: "District",
@@ -1476,7 +1498,7 @@ const StudentForm: React.FC = () => {
           enterMiddleName: "Enter Middle Name",
           enterLastName: "Enter Last Name",
           enterWhatsapp: "Enter WhatsApp Number",
-          enterAlternate: "Enter Alternate Number",
+          enterAlternate: "Enter Phone Number",
           enterEmail: "Enter Email Address",
           cityExample: "Ex. Bangalore",
           pinCodeExample: "Ex. 4402xx",
@@ -1691,7 +1713,7 @@ const StudentForm: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.alternateNumber}
+                    {content.alternateNumber}{location.state?.googleEmail ? ' *' : ''}
                   </label>
                   <input
                     type="tel"
@@ -1700,8 +1722,8 @@ const StudentForm: React.FC = () => {
                     pattern="[0-9]{10}"
                     value={formData.alternateNumber}
                     onChange={handleInputChange}
-                    disabled={!!formData.alternateNumber}
-                    className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${formData.alternateNumber ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    disabled={!!formData.alternateNumber && !location.state?.googleEmail}
+                    className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${(formData.alternateNumber && !location.state?.googleEmail) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     placeholder={content.enterAlternate}
                   />
                   {alternateError && (
