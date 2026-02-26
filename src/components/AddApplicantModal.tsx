@@ -1794,7 +1794,7 @@ export function AddApplicantModal({
                     )}
                   </div>
 
-                  {/* <div className="space-y-2">
+                  <div className="space-y-2">
                     <Label
                       htmlFor="qualifying_school_id"
                       className="text-sm font-medium"
@@ -1802,10 +1802,14 @@ export function AddApplicantModal({
                       Qualifying School
                     </Label>
                     <Combobox
-                      options={(Array.isArray(schoolList) ? schoolList : [])?.map((school: any) => ({
-                        value: String(school.id),
-                        label: school.school_name,
-                      })) || []}
+                      options={
+                        (Array.isArray(schoolList) ? schoolList : [])?.map(
+                          (school: any) => ({
+                            value: String(school.id),
+                            label: school.school_name,
+                          }),
+                        ) || []
+                      }
                       value={
                         formData.qualifying_school_id
                           ? String(formData.qualifying_school_id)
@@ -1814,16 +1818,16 @@ export function AddApplicantModal({
                       onValueChange={(value) =>
                         handleInputChange(
                           "qualifying_school_id",
-                          value === "none" ? "" : value
+                          value === "none" ? "" : value,
                         )
                       }
-                      onOpen={() => loadFieldData('school')}
+                      onOpen={() => loadFieldData("school")}
                       placeholder="Select qualifying school"
                       searchPlaceholder="Search school..."
                       emptyText="No school found."
                       className={cn(
                         "h-10 border shadow-sm hover:bg-accent",
-                        errors.qualifying_school_id && "border-red-500"
+                        errors.qualifying_school_id && "border-red-500",
                       )}
                     />
                     {errors.qualifying_school_id && (
@@ -1831,7 +1835,7 @@ export function AddApplicantModal({
                         {errors.qualifying_school_id}
                       </p>
                     )}
-                  </div> */}
+                  </div>
                 </div>
               </div>
             </TabsContent>
