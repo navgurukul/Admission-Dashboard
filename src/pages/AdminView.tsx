@@ -871,6 +871,7 @@ export default function AdminView() {
                             <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
                             <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
                             <TableHead className="font-semibold min-w-[100px]">Meeting Link</TableHead>
+                            <TableHead className="font-semibold min-w-[100px]">Scheduled By</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -930,6 +931,9 @@ export default function AdminView() {
                                 ) : (
                                   <span className="text-muted-foreground text-sm">No Link</span>
                                 )}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap min-w-[100px]">
+                                <span className="text-sm">{interview.created_by || "N/A"}</span>
                               </TableCell>
                             </TableRow>
                           ))}
