@@ -38,6 +38,8 @@ type TestRow = {
     status: BookingStatus;
     scheduledTime?: string;
   };
+  // Optional: when reattempt is locked due to 15-day cooldown after a fail
+  cooldownUntil?: string | null;
 };
 
 export default function StudentResult() {
@@ -46,6 +48,8 @@ export default function StudentResult() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  // Used for live countdown timers on cooldown rows
+  const [now, setNow] = useState<Date>(new Date());
   const { tests, setTests } = useTests();
   const navigate = useNavigate();
   const location = useLocation();
@@ -152,6 +156,15 @@ export default function StudentResult() {
   };
 
 
+
+  useEffect(() => {
+    // Update "now" every second so countdown timers refresh
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -441,7 +454,7 @@ export default function StudentResult() {
               });
             });
 
-            // Determine latest LR status (used for CFR gating)
+            // Determine latest LR status (used for CFR gating and cooldown)
             const latestLR =
               lrRounds.length > 0 ? lrRounds[lrRounds.length - 1] : null;
             let lrStatus: "Pass" | "Fail" | "Pending" = "Pending";
@@ -449,6 +462,15 @@ export default function StudentResult() {
               const lrText = latestLR.learning_round_status || "";
               if (lrText.toLowerCase().includes("pass")) lrStatus = "Pass";
               else if (lrText.toLowerCase().includes("fail")) lrStatus = "Fail";
+            }
+
+            // Compute 15-day cooldown end time after latest LR fail
+            let lrFailCooldownUntil: string | null = null;
+            if (lrStatus === "Fail" && latestLR?.created_at) {
+              const failDate = new Date(latestLR.created_at);
+              const cooldownEnd = new Date(failDate);
+              cooldownEnd.setDate(cooldownEnd.getDate() + 15);
+              lrFailCooldownUntil = cooldownEnd.toISOString();
             }
 
             // If screening passed but no LR rounds exist, create placeholder row
@@ -562,7 +584,7 @@ export default function StudentResult() {
               });
             });
 
-            // Determine latest CFR status
+            // Determine latest CFR status (for gating and cooldown)
             const latestCFR =
               cfrRounds.length > 0 ? cfrRounds[cfrRounds.length - 1] : null;
             let cfrStatus: "Pass" | "Fail" | "Pending" = "Pending";
@@ -571,6 +593,15 @@ export default function StudentResult() {
               if (cfrText.toLowerCase().includes("pass")) cfrStatus = "Pass";
               else if (cfrText.toLowerCase().includes("fail"))
                 cfrStatus = "Fail";
+            }
+
+            // Compute 15-day cooldown end time after latest CFR fail
+            let cfrFailCooldownUntil: string | null = null;
+            if (cfrStatus === "Fail" && latestCFR?.created_at) {
+              const failDate = new Date(latestCFR.created_at);
+              const cooldownEnd = new Date(failDate);
+              cooldownEnd.setDate(cooldownEnd.getDate() + 15);
+              cfrFailCooldownUntil = cooldownEnd.toISOString();
             }
 
             // If latest LR passed and no CFR rounds exist, create placeholder row
@@ -610,7 +641,7 @@ export default function StudentResult() {
               });
             }
 
-            // If latest LR failed, create new LR placeholder for rebooking
+            // If latest LR failed, create new LR placeholder for rebooking (with 15-day cooldown)
             if (lrStatus === "Fail") {
               const nextAttemptNumber = lrRounds.length + 1;
               // Find schedule for next attempt using title matching
@@ -645,10 +676,11 @@ export default function StudentResult() {
                   status: slotStatus,
                   scheduledTime: scheduledTime,
                 },
+                cooldownUntil: lrFailCooldownUntil,
               });
             }
 
-            // If latest CFR failed, create new CFR placeholder for rebooking
+            // If latest CFR failed, create new CFR placeholder for rebooking (with 15-day cooldown)
             if (cfrStatus === "Fail") {
               const nextAttemptNumber = cfrRounds.length + 1;
               // Find schedule for next attempt using title matching
@@ -683,6 +715,7 @@ export default function StudentResult() {
                   status: slotStatus,
                   scheduledTime: scheduledTime,
                 },
+                cooldownUntil: cfrFailCooldownUntil,
               });
             }
 
@@ -834,6 +867,47 @@ export default function StudentResult() {
                           hasTimePassed = scheduledDateTime < now;
                         }
 
+                        // Check if 15-day cooldown after latest fail is active (for LR/CFR)
+                        let isCooldownActive = false;
+                        let remainingText: string | null = null;
+                        if (test.cooldownUntil) {
+                          const cooldownEnd = new Date(test.cooldownUntil);
+                          if (cooldownEnd > now) {
+                            isCooldownActive = true;
+                            const diffMs = cooldownEnd.getTime() - now.getTime();
+                            const totalSeconds = Math.max(
+                              0,
+                              Math.floor(diffMs / 1000),
+                            );
+                            const days = Math.floor(totalSeconds / (24 * 3600));
+                            const hours = Math.floor(
+                              (totalSeconds % (24 * 3600)) / 3600,
+                            );
+                            const minutes = Math.floor(
+                              (totalSeconds % 3600) / 60,
+                            );
+                            const seconds = totalSeconds % 60;
+
+                            if (days > 0) {
+                              remainingText = `${days} day${
+                                days === 1 ? "" : "s"
+                              } ${hours.toString().padStart(2, "0")}:${minutes
+                                .toString()
+                                .padStart(2, "0")}:${seconds
+                                .toString()
+                                .padStart(2, "0")}`;
+                            } else {
+                              remainingText = `${hours
+                                .toString()
+                                .padStart(2, "0")}:${minutes
+                                .toString()
+                                .padStart(2, "0")}:${seconds
+                                .toString()
+                                .padStart(2, "0")}`;
+                            }
+                          }
+                        }
+
                         // Check if any attempt of the same type has passed
                         const hasPassedAttempt = tests.some((t: TestRow) => {
                           if (
@@ -922,6 +996,21 @@ export default function StudentResult() {
                                   {/* If completed (Pass/Fail), show nothing */}
                                   {test.action === "Completed" ? (
                                     <p className="text-muted-foreground">-</p>
+                                  ) : isCooldownActive ? (
+                                    <div className="flex flex-col gap-1">
+                                      <Button
+                                        disabled
+                                        className="bg-secondary text-muted-foreground cursor-not-allowed"
+                                        variant="outline"
+                                      >
+                                        {content.bookSlot}
+                                      </Button>
+                                      <p className="text-xs text-red-600">
+                                        You can book the slot after{" "}
+                                        {remainingText || "15 days"}{" "}
+                                        Till then please practice.
+                                      </p>
+                                    </div>
                                   ) : hasPassedAttempt ? (
                                     /* If another attempt passed, disable button */
                                     <Button
