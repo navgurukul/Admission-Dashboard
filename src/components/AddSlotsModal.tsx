@@ -359,7 +359,7 @@ export function AddSlotsModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* Time Slots */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">

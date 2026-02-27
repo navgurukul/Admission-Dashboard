@@ -578,7 +578,7 @@ export const ScheduleInterviewModal = ({
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
           {/* Date and Slot Selection (only in direct schedule mode) */}
           {isDirectScheduleMode && (
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-5">

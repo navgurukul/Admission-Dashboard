@@ -1493,7 +1493,7 @@ const PartnerPage = () => {
               <DialogTitle>Add New Partner</DialogTitle>
               <DialogDescription>Enter the details of the new partner organization.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddSubmit}>
+            <form onSubmit={handleAddSubmit} noValidate>
               <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Partner Name <span className="text-destructive">*</span></Label>
@@ -1775,7 +1775,7 @@ const PartnerPage = () => {
             <DialogHeader>
               <DialogTitle>Edit Partner</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleEditSubmit}>
+            <form onSubmit={handleEditSubmit} noValidate>
               <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-name">Partner Name <span className="text-destructive">*</span></Label>
