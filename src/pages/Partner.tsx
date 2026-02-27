@@ -1266,11 +1266,6 @@ const PartnerPage = () => {
                     <span className="hidden xs:inline">Advanced Filters</span>
                     <span className="xs:hidden">Filters</span>
                   </Button>
-                  {Object.values(filters).some(Boolean) && (
-                    <Button variant="ghost" size="sm" onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })} className="text-xs sm:text-sm">
-                      Clear
-                    </Button>
-                  )}
                   <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground text-xs sm:text-sm">
                     <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                     <span className="hidden xs:inline">Add Partner</span>
@@ -1280,6 +1275,57 @@ const PartnerPage = () => {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Active Filter Chips */}
+              {Object.values(filters).some(Boolean) && (
+                <div className="mb-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {filters.district && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
+                        onClick={() => setFilters(prev => ({ ...prev, district: "" }))}
+                      >
+                        <span className="text-sm inline-block">District: {filters.district}</span>
+                        <X className="w-3 h-3 flex-shrink-0" />
+                      </Button>
+                    )}
+                    {filters.slug && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
+                        onClick={() => setFilters(prev => ({ ...prev, slug: "" }))}
+                      >
+                        <span className="text-sm inline-block">Slug: {filters.slug}</span>
+                        <X className="w-3 h-3 flex-shrink-0" />
+                      </Button>
+                    )}
+                    {filters.emailDomain && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
+                        onClick={() => setFilters(prev => ({ ...prev, emailDomain: "" }))}
+                      >
+                        <span className="text-sm inline-block">Email Domain: {filters.emailDomain}</span>
+                        <X className="w-3 h-3 flex-shrink-0" />
+                      </Button>
+                    )}
+                    {/* Clear All Button - Right next to chips */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })} 
+                      className="rounded-full py-1.5 px-2 h-auto text-sm border"
+                    >
+                      <X className="w-3 h-3 ml-1.5" />
+                      Clear Filters
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
