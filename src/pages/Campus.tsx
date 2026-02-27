@@ -399,6 +399,7 @@ const CampusPage: React.FC = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4 animate-fade-in">
           <form
             onSubmit={handleAddCampus}
+            noValidate
             className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl border-2 border-primary/30 animate-scale-in"
           >
             <h2 className="text-xl font-semibold mb-4 text-primary">
@@ -442,6 +443,7 @@ const CampusPage: React.FC = () => {
                 handleUpdateCampus(selectedCampus.id, updatedCampusName);
               }
             }}
+            noValidate
             className="bg-card rounded-xl p-6 w-full max-w-md shadow-2xl border-2 border-secondary-purple/30 animate-scale-in"
           >
             <h2 className="text-xl font-semibold mb-4 text-secondary-purple">

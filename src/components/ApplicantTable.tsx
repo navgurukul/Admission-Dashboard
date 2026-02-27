@@ -1769,7 +1769,7 @@ const ApplicantTable = () => {
             <TableActions
               onCSVImport={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowCSVImport(true); } : undefined}
               onExportCSV={exportToCSV}
-              onShowFilters={() => { ensureReferenceDataLoaded(); setShowAdvancedFilters(true); }}
+              onShowFilters={() => { setShowAdvancedFilters(true); }}
               onAddApplicant={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowAddModal(true); } : undefined}
               isExporting={isExporting}
               hasActiveFilters={hasActiveFilters}

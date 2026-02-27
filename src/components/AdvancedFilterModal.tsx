@@ -98,7 +98,7 @@ export function AdvancedFilterModal({
   hideCampusFilter = false,
 }: AdvancedFilterModalProps) {
   const [filters, setFilters] = useState<FilterState>(currentFilters);
-  
+
   // ✅ DRY: Use on-demand reference data hook
   const {
     campusList,
@@ -257,13 +257,16 @@ export function AdvancedFilterModal({
         await loadMultipleFields(fieldsToLoad);
         console.log('✅ Initial data loaded');
 
+        // Fetch states directly since apiStateList won't be updated synchronously here
+        const apiStatesData = await getStatesList();
+
         // Combine API states with states from students
-        const allStates = [...apiStateList.map(s => ({
-          id: s.value,
-          name: s.label,
-          state_code: s.value
+        const allStates = [...apiStatesData.map(s => ({
+          id: s.state_code || s.id,
+          name: s.name,
+          state_code: s.state_code || s.id
         }))];
-        
+
         statesFromStudents.forEach((stateName) => {
           const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
 
@@ -379,7 +382,7 @@ export function AdvancedFilterModal({
     }
 
     // Check if at least one filter is selected (not default values)
-    const hasValidFilters = 
+    const hasValidFilters =
       (filters.stage && filters.stage !== "all") ||
       filters.partner?.length > 0 ||
       filters.district?.length > 0 ||
