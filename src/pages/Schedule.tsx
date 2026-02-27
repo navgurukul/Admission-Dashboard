@@ -365,20 +365,20 @@ const Schedule = () => {
         <div className="p-4 md:p-8 pt-16 md:pt-8">
           <div className="mb-6">
             {/* Back button - mobile: aligned with hamburger (top-4 right-4) */}
-            <div className="md:hidden fixed top-4 right-4 z-40">
+            <div className="md-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate("/admin-view?tab=my-interviews")}
-                className="flex items-center gap-2 bg-white shadow-lg"
+                className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Back to My Scheduled Interviews</span>
+                <span className="hidden sm:inline">Back</span>
                 <span className="sm:hidden">Back</span>
               </Button>
             </div>
             
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">
                   {isAdmin ? "Admin View" : "My Dashboard"}
@@ -388,7 +388,7 @@ const Schedule = () => {
                 </p>
               </div>
               {/* Back button - shown on desktop */}
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate("/admin-view?tab=my-interviews")}
@@ -396,7 +396,7 @@ const Schedule = () => {
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to My Scheduled Interviews
-              </Button>
+              </Button> */}
             </div>
           </div>
 
