@@ -380,6 +380,7 @@ const SchoolPage = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 p-4">
           <form
             onSubmit={handleAddSchool}
+            noValidate
             className="bg-card rounded-lg p-6 w-full max-w-md shadow-lg border border-border"
           >
             <h2 className="text-lg font-semibold mb-4 text-foreground">

@@ -467,7 +467,7 @@ const DonorPage = () => {
             <DialogTitle>Add New Donor</DialogTitle>
             <DialogDescription>Create a new donor partner.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleAddSubmit} className="space-y-4">
+          <form onSubmit={handleAddSubmit} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Donor Name <span className="text-destructive">*</span></Label>
               <Input
@@ -562,7 +562,7 @@ const DonorPage = () => {
             <DialogTitle>Edit Donor</DialogTitle>
             <DialogDescription>Update donor details.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
+          <form onSubmit={handleEditSubmit} noValidate className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Donor Name <span className="text-destructive">*</span></Label>
               <Input
