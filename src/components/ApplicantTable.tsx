@@ -1814,7 +1814,7 @@ const ApplicantTable = () => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="rounded-full py-1.4 px-2 h-auto text-sm border"
                   onClick={handleClearFilters}
                 >
                   <X className="w-4 h-4 mr-1" />
