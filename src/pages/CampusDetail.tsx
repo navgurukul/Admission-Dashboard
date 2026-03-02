@@ -758,16 +758,16 @@ const CampusDetail = () => {
     <div className="flex min-h-screen bg-background">
       <AdmissionsSidebar />
       <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 md:ml-64">
-        {/* Back button - mobile: aligned with hamburger (top-4 right-4) */}
-        <div className="md:hidden fixed top-4 right-4 z-40">
+        {/* Back button - positioned at top left */}
+        <div className="mb-6">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/campus")}
-            className="flex items-center gap-2 bg-white shadow-lg"
+            className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to Campus List</span>
+            <span className="hidden sm:inline">Back</span>
             <span className="sm:hidden">Back</span>
           </Button>
         </div>
@@ -777,15 +777,16 @@ const CampusDetail = () => {
             {campusName} Campus
           </h2>
           {/* Back button - shown on desktop */}
-          <Button
+          {/* <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/campus")}
-            className="hidden md:flex items-center gap-2 shrink-0"
+            // className="hidden md:flex items-center gap-2 shrink-0"
+            className="flex items-center gap-2 w-fit"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Campus List
-          </Button>
+          </Button> */}
         </div>
         <div className="flex justify-center mb-6 gap-2">
           {TABS.map((tab) => (
