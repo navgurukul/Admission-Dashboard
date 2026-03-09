@@ -71,7 +71,13 @@ export const useApplicantFilters = (
         return;
       }
 
-      // Clear filters when search is performed
+      // If there are active filters, don't clear them and don't do the basic search
+      // ApplicantTable will handle calling getFilterStudent with the search term
+      if (hasActiveFilters) {
+        return;
+      }
+
+      // Clear filters when search is performed and no filters were active
       setHasActiveFilters(false);
       setFilteredStudents([]);
 
@@ -93,16 +99,18 @@ export const useApplicantFilters = (
     };
 
     performSearch();
-  }, [debouncedSearchTerm, toast]);
+  }, [debouncedSearchTerm, toast, hasActiveFilters]);
 
   // Compute filtered applicants with mapped data
   const filteredApplicants = useMemo(() => {
-    // Priority: 1. Search results 2. Filtered students 3. All students
+    // Priority: 1. Filtered students (if filters active) 2. Search results (if search active but NO filters) 3. All students
     let source;
-    if (searchTerm.trim()) {
-      source = searchResults;
-    } else if (hasActiveFilters) {
+    if (hasActiveFilters) {
+      // When hasActiveFilters is true, the search term is sent along with filters to the filter API,
+      // so the comprehensive results will be in filteredStudents.
       source = filteredStudents;
+    } else if (searchTerm.trim()) {
+      source = searchResults;
     } else {
       source = applicantsToDisplay;
     }
@@ -177,5 +185,6 @@ export const useApplicantFilters = (
     hasActiveFilters,
     setHasActiveFilters,
     filteredApplicants,
+    debouncedSearchTerm, // Export this so ApplicantTable can use it
   };
 };
