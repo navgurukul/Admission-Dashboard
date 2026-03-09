@@ -14,21 +14,15 @@ PREV_BRANCH=$(git name-rev --name-only "$1" 2>/dev/null | sed 's/remotes\/origin
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 if [ "$BRANCH" = "master" ]; then
-  # Save current .env.development as dev backup before overwriting
-  if [ -f ".env.development" ]; then
-    cp .env.development .git/env-dev-backup
-  fi
-  # Load production environment into .env.development
+  # Use Vite's native .env.development.local to override keys without ever modifying your .env.development file
   if [ -f ".env.production" ]; then
-    cp .env.production .env.development
-    echo "Switched .env.development to production environment (master)"
+    cp .env.production .env.development.local
+    echo "Switched env to production (master) via .env.development.local override"
   fi
 else
-  # Switching away from master — restore dev backup if it exists
-  if [ "$PREV_BRANCH" = "master" ] && [ -f ".git/env-dev-backup" ]; then
-    cp .git/env-dev-backup .env.development
-    echo "Restored .env.development for $BRANCH (from dev backup)"
-  else
-    echo "Using existing .env.development for $BRANCH"
+  # Switching away from master — remove the override so Vite defaults back to .env.development
+  if [ -f ".env.development.local" ]; then
+    rm .env.development.local
   fi
+  echo "Using default dev environment for $BRANCH"
 fi
