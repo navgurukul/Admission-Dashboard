@@ -64,7 +64,8 @@ export default function AdminView() {
   // Search and filter states for interviews
   const [interviewSearchTerm, setInterviewSearchTerm] = useState("");
   const { debouncedValue: debouncedInterviewSearch, isPending: isInterviewSearching } = useDebounce(interviewSearchTerm, 800);
-  const [interviewDateFilter, setInterviewDateFilter] = useState("");
+  const [interviewStartDate, setInterviewStartDate] = useState("");
+  const [interviewEndDate, setInterviewEndDate] = useState("");
   const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
 
   // Search and filter states for slots
@@ -107,8 +108,14 @@ export default function AdminView() {
   useEffect(() => {
     if (activeTab !== "interviews") return;
 
-    fetchInterviews();
-  }, [activeTab, interviewCurrentPage, interviewDateFilter, debouncedInterviewSearch, interviewSlotTypeFilter, itemsPerPage]);
+    // Only fetch if both dates are selected or both are empty (prevent API call during date selection)
+    const bothDatesSelected = interviewStartDate && interviewEndDate;
+    const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
+    
+    if (bothDatesSelected || bothDatesEmpty) {
+      fetchInterviews();
+    }
+  }, [activeTab, interviewCurrentPage, interviewStartDate, interviewEndDate, debouncedInterviewSearch, interviewSlotTypeFilter, itemsPerPage]);
 
   // Only fetch slots when slots tab is active
   useEffect(() => {
@@ -126,10 +133,14 @@ export default function AdminView() {
 
   // Reset to page 1 when search or filters change for interviews
   useEffect(() => {
-    if (activeTab === "interviews" && interviewCurrentPage !== 1) {
+    // Only reset if both dates are selected or both are empty (prevent reset during date selection)
+    const bothDatesSelected = interviewStartDate && interviewEndDate;
+    const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
+    
+    if (activeTab === "interviews" && interviewCurrentPage !== 1 && (bothDatesSelected || bothDatesEmpty)) {
       setInterviewCurrentPage(1);
     }
-  }, [debouncedInterviewSearch, interviewDateFilter, interviewSlotTypeFilter]);
+  }, [debouncedInterviewSearch, interviewStartDate, interviewEndDate, interviewSlotTypeFilter]);
 
   // Reset to page 1 when search or filters change for slots
   useEffect(() => {
@@ -144,12 +155,15 @@ export default function AdminView() {
       
       // Trim the search query and only pass it if it's not empty
       const trimmedSearch = debouncedInterviewSearch?.trim() || "";
+      // Only apply date filter if both dates are selected or both are empty
+      const shouldApplyDateFilter = (interviewStartDate && interviewEndDate) || (!interviewStartDate && !interviewEndDate);
       
       const response = await getAllInterviewSchedules({
         page: interviewCurrentPage,
         pageSize: itemsPerPage,
         slot_type: interviewSlotTypeFilter && interviewSlotTypeFilter !== 'all' ? interviewSlotTypeFilter : undefined,
-        date: interviewDateFilter || undefined,
+        startDate: shouldApplyDateFilter && interviewStartDate ? interviewStartDate : undefined,
+        endDate: shouldApplyDateFilter && interviewEndDate ? interviewEndDate : undefined,
         search: trimmedSearch || undefined,
       });
 
@@ -474,14 +488,36 @@ export default function AdminView() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="w-48">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">From:</label>
                         <Input
                           type="date"
-                          value={interviewDateFilter}
-                          onChange={(e) => setInterviewDateFilter(e.target.value)}
-                          placeholder="Filter by date"
+                          value={interviewStartDate}
+                          onChange={(e) => setInterviewStartDate(e.target.value)}
+                          className="w-40"
                         />
                       </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">To:</label>
+                        <Input
+                          type="date"
+                          value={interviewEndDate}
+                          onChange={(e) => setInterviewEndDate(e.target.value)}
+                          className="w-40"
+                        />
+                      </div>
+                      {(interviewStartDate || interviewEndDate) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setInterviewStartDate("");
+                            setInterviewEndDate("");
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col overflow-hidden">

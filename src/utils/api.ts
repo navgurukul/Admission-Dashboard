@@ -2637,7 +2637,9 @@ export const getAllInterviewSchedules = async (params: {
   page?: number;
   pageSize?: number;
   slot_type?: 'LR' | 'CFR' | string;
-  date?: string;
+  // date?: string;
+  startDate?: string;
+  endDate?: string;
   search?: string;
 }): Promise<InterviewScheduleResponse> => {
   const queryParams = new URLSearchParams();
@@ -2645,7 +2647,9 @@ export const getAllInterviewSchedules = async (params: {
   if (params.page) queryParams.append('page', params.page.toString());
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
-  if (params.date) queryParams.append('date', params.date);
+  // if (params.date) queryParams.append('date', params.date);
+   if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.endDate) queryParams.append('endDate', params.endDate);
   if (params.search) queryParams.append('search', params.search);
 
   const response = await fetch(
