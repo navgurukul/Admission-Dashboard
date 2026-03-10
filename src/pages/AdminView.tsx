@@ -67,6 +67,7 @@ export default function AdminView() {
   const [interviewStartDate, setInterviewStartDate] = useState("");
   const [interviewEndDate, setInterviewEndDate] = useState("");
   const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
+  const [interviewStatusFilter, setInterviewStatusFilter] = useState("");
 
   // Search and filter states for slots
   const [slotSearchTerm, setSlotSearchTerm] = useState("");
@@ -115,7 +116,7 @@ export default function AdminView() {
     if (bothDatesSelected || bothDatesEmpty) {
       fetchInterviews();
     }
-  }, [activeTab, interviewCurrentPage, interviewStartDate, interviewEndDate, debouncedInterviewSearch, interviewSlotTypeFilter, itemsPerPage]);
+  }, [activeTab, interviewCurrentPage, interviewStartDate, interviewEndDate, debouncedInterviewSearch, interviewSlotTypeFilter, interviewStatusFilter, itemsPerPage]);
 
   // Only fetch slots when slots tab is active
   useEffect(() => {
@@ -140,7 +141,7 @@ export default function AdminView() {
     if (activeTab === "interviews" && interviewCurrentPage !== 1 && (bothDatesSelected || bothDatesEmpty)) {
       setInterviewCurrentPage(1);
     }
-  }, [debouncedInterviewSearch, interviewStartDate, interviewEndDate, interviewSlotTypeFilter]);
+  }, [debouncedInterviewSearch, interviewStartDate, interviewEndDate, interviewSlotTypeFilter, interviewStatusFilter]);
 
   // Reset to page 1 when search or filters change for slots
   useEffect(() => {
@@ -165,6 +166,7 @@ export default function AdminView() {
         startDate: shouldApplyDateFilter && interviewStartDate ? interviewStartDate : undefined,
         endDate: shouldApplyDateFilter && interviewEndDate ? interviewEndDate : undefined,
         search: trimmedSearch || undefined,
+        status: interviewStatusFilter && interviewStatusFilter !== 'all' ? interviewStatusFilter : undefined,
       });
 
       if (response.success && response.data) {
@@ -485,6 +487,24 @@ export default function AdminView() {
                             <SelectItem value="all">All Types</SelectItem>
                             <SelectItem value="LR">LR (Learning Round)</SelectItem>
                             <SelectItem value="CFR">CFR (Culture Fit)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-[180px]">
+                        <Select
+                          value={interviewStatusFilter}
+                          onValueChange={setInterviewStatusFilter}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Filter by status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="scheduled">Scheduled</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="passed">Passed</SelectItem>
+                            <SelectItem value="failed">Failed</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
