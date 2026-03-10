@@ -2641,6 +2641,7 @@ export const getAllInterviewSchedules = async (params: {
   startDate?: string;
   endDate?: string;
   search?: string;
+  status?: string;
 }): Promise<InterviewScheduleResponse> => {
   const queryParams = new URLSearchParams();
 
@@ -2651,6 +2652,7 @@ export const getAllInterviewSchedules = async (params: {
    if (params.startDate) queryParams.append('startDate', params.startDate);
   if (params.endDate) queryParams.append('endDate', params.endDate);
   if (params.search) queryParams.append('search', params.search);
+  if (params.status) queryParams.append('status', params.status);
 
   const response = await fetch(
     `${BASE_URL}/interview-schedules/all?${queryParams.toString()}`,
