@@ -112,7 +112,7 @@ export default function AdminView() {
     // Only fetch if both dates are selected or both are empty (prevent API call during date selection)
     const bothDatesSelected = interviewStartDate && interviewEndDate;
     const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
-    
+
     if (bothDatesSelected || bothDatesEmpty) {
       fetchInterviews();
     }
@@ -137,7 +137,7 @@ export default function AdminView() {
     // Only reset if both dates are selected or both are empty (prevent reset during date selection)
     const bothDatesSelected = interviewStartDate && interviewEndDate;
     const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
-    
+
     if (activeTab === "interviews" && interviewCurrentPage !== 1 && (bothDatesSelected || bothDatesEmpty)) {
       setInterviewCurrentPage(1);
     }
@@ -153,12 +153,12 @@ export default function AdminView() {
   const fetchInterviews = async () => {
     try {
       setInterviewsLoading(true);
-      
+
       // Trim the search query and only pass it if it's not empty
       const trimmedSearch = debouncedInterviewSearch?.trim() || "";
       // Only apply date filter if both dates are selected or both are empty
       const shouldApplyDateFilter = (interviewStartDate && interviewEndDate) || (!interviewStartDate && !interviewEndDate);
-      
+
       const response = await getAllInterviewSchedules({
         page: interviewCurrentPage,
         pageSize: itemsPerPage,
@@ -191,10 +191,10 @@ export default function AdminView() {
   const fetchSlots = async () => {
     try {
       setSlotsLoading(true);
-      
+
       // Trim the search query and only pass it if it's not empty
       const trimmedSearch = debouncedSlotSearch?.trim() || "";
-      
+
       const response = await getAllSlots({
         page: slotCurrentPage,
         pageSize: itemsPerPage,
@@ -560,135 +560,141 @@ export default function AdminView() {
                       <>
                         <div className="border rounded-lg overflow-auto flex-1 w-full min-h-0 mb-3">
                           <Table>
-                          <TableHeader className="sticky top-0 bg-muted/30 z-10">
-                            <TableRow className="bg-muted/30">
-                              <TableHead className="font-semibold min-w-[160px]">Applicant</TableHead>
-                              <TableHead className="font-semibold min-w-[160px]">Interviewer</TableHead>
-                              <TableHead className="font-semibold min-w-[130px]">Title</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
-                              <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
-                              <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
-                              <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {interviews.map((interview: any) => (
-                              <TableRow key={interview.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="min-w-[160px]">
-                                  <div
-                                    className="cursor-pointer hover:bg-muted p-1.5 rounded-md transition-colors group"
-                                    onClick={() => {
-                                      if (interview.student_id) {
-                                        setSelectedApplicant({ id: interview.student_id });
-                                        setIsApplicantModalOpen(true);
-                                      }
-                                    }}
-                                  >
-                                    <div className="font-medium text-foreground group-hover:text-foreground flex items-center gap-2">
-                                      {interview.student_name || "Unknown"}
-                                      {/* <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">{interview.student_email || "N/A"}</div>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="min-w-[160px]">
-                                  <div>
-                                    <div className="font-medium">{interview.interviewer_name || "Not Assigned"}</div>
-                                    <div className="text-xs text-muted-foreground">{interview.interviewer_email || "N/A"}</div>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap min-w-[130px]">
-                                  <span className="font-medium">{interview.title || "No Title"}</span>
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap text-sm min-w-[100px]">
-                                  {formatDate(interview.slot_date)}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap text-sm min-w-[140px]">
-                                  {formatTime(interview.start_time)} - {formatTime(interview.end_time)}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap min-w-[100px]">
-                                  {getStatusBadge(interview.status)}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap min-w-[90px]">
-                                  {interview.meeting_link ? (
-                                    String(interview.status || "").toLowerCase() === "cancelled" ? (
-                                      <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
-                                        <Video className="w-4 h-4" />
-                                        <span>Cancelled</span>
-                                      </span>
-                                    ) : String(interview.status || "").toLowerCase() === "expired" ? (
-                                      <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
-                                        <Video className="w-4 h-4" />
-                                        <span>Unavailable</span>
-                                      </span>
-                                    ) : (
-                                      <a
-                                        href={interview.meeting_link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-primary hover:underline"
-                                      >
-                                        <Video className="w-4 h-4" />
-                                        <span>Join</span>
-                                      </a>
-                                    )
-                                  ) : (
-                                    <span className="text-muted-foreground text-sm">No Link</span>
-                                  )}
-                                </TableCell>
-                                  <TableCell className="whitespace-nowrap min-w-[120px]">
-                                  <span className="text-sm">{interview.created_by || "N/A"}</span>
-                                </TableCell>
+                            <TableHeader className="sticky top-0 bg-muted/30 z-10">
+                              <TableRow className="bg-muted/30">
+                                <TableHead className="font-semibold min-w-[160px]">Applicant</TableHead>
+                                <TableHead className="font-semibold min-w-[160px]">Interviewer</TableHead>
+                                <TableHead className="font-semibold min-w-[100px]">Slot Type</TableHead>
+                                {/* <TableHead className="font-semibold min-w-[130px]">Title</TableHead> */}
+                                <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
+                                <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
+                                <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
+                                <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
+                                <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
                               </TableRow>
-                              
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      {interviewTotalCount > 0 && (
-                        <div className="flex justify-between items-center mt-4">
-                          <p className="text-sm text-muted-foreground">
-                            Showing {((interviewCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(interviewCurrentPage * itemsPerPage, interviewTotalCount)} of {interviewTotalCount}
-                          </p>
-                        <div className="flex gap-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm text-muted-foreground">Rows:</label>
-                            <select
-                              value={itemsPerPage}
-                              onChange={(e) => {
-                                setItemsPerPage(Number(e.target.value));
-                                setInterviewCurrentPage(1);
-                              }}
-                              className="border rounded px-2 py-1 bg-white text-sm"
-                            >
-                              <option value={10}>10</option>
-                              <option value={20}>20</option>
-                              <option value={50}>50</option>
-                              <option value={100}>100</option>
-                            </select>
-                          </div>
-                            <span className="px-3 py-1 text-sm">
-                            Page {interviewCurrentPage} of {interviewTotalPages}
-                          </span>
-                          <button
-                            onClick={() => setInterviewCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={interviewCurrentPage === 1}
-                            className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-                          >
-                            Previous
-                          </button>
-                        
-                          <button
-                            onClick={() => setInterviewCurrentPage(prev => Math.min(interviewTotalPages, prev + 1))}
-                            disabled={interviewCurrentPage === interviewTotalPages}
-                            className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-                          >
-                            Next
-                          </button>
+                            </TableHeader>
+                            <TableBody>
+                              {interviews.map((interview: any) => (
+                                <TableRow key={interview.id} className="hover:bg-muted/20 transition-colors">
+                                  <TableCell className="min-w-[160px]">
+                                    <div
+                                      className="cursor-pointer hover:bg-muted p-1.5 rounded-md transition-colors group"
+                                      onClick={() => {
+                                        if (interview.student_id) {
+                                          setSelectedApplicant({ id: interview.student_id });
+                                          setIsApplicantModalOpen(true);
+                                        }
+                                      }}
+                                    >
+                                      <div className="font-medium text-foreground group-hover:text-foreground flex items-center gap-2">
+                                        {interview.student_name || "Unknown"}
+                                        {/* <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">{interview.student_email || "N/A"}</div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="min-w-[160px]">
+                                    <div>
+                                      <div className="font-medium">{interview.interviewer_name || "Not Assigned"}</div>
+                                      <div className="text-xs text-muted-foreground">{interview.interviewer_email || "N/A"}</div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="min-w-[100px]">
+                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                      {interview.slot_type || "Not Specified"}
+                                    </Badge>
+                                  </TableCell>
+                                  {/* <TableCell className="whitespace-nowrap min-w-[130px]">
+                                    <span className="font-medium">{interview.title || "No Title"}</span>
+                                  </TableCell> */}
+                                  <TableCell className="whitespace-nowrap text-sm min-w-[100px]">
+                                    {formatDate(interview.slot_date)}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap text-sm min-w-[140px]">
+                                    {formatTime(interview.start_time)} - {formatTime(interview.end_time)}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap min-w-[100px]">
+                                    {getStatusBadge(interview.status)}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap min-w-[90px]">
+                                    {interview.meeting_link ? (
+                                      String(interview.status || "").toLowerCase() === "cancelled" ? (
+                                        <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                          <Video className="w-4 h-4" />
+                                          <span>Cancelled</span>
+                                        </span>
+                                      ) : String(interview.status || "").toLowerCase() === "expired" ? (
+                                        <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                          <Video className="w-4 h-4" />
+                                          <span>Unavailable</span>
+                                        </span>
+                                      ) : (
+                                        <a
+                                          href={interview.meeting_link}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-1 text-primary hover:underline"
+                                        >
+                                          <Video className="w-4 h-4" />
+                                          <span>Join</span>
+                                        </a>
+                                      )
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">No Link</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap min-w-[120px]">
+                                    <span className="text-sm">{interview.created_by || "N/A"}</span>
+                                  </TableCell>
+                                </TableRow>
+
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                      </div>
-                      )}
+                        {interviewTotalCount > 0 && (
+                          <div className="flex justify-between items-center mt-4">
+                            <p className="text-sm text-muted-foreground">
+                              Showing {((interviewCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(interviewCurrentPage * itemsPerPage, interviewTotalCount)} of {interviewTotalCount}
+                            </p>
+                            <div className="flex gap-2">
+                              <div className="flex items-center gap-2">
+                                <label className="text-sm text-muted-foreground">Rows:</label>
+                                <select
+                                  value={itemsPerPage}
+                                  onChange={(e) => {
+                                    setItemsPerPage(Number(e.target.value));
+                                    setInterviewCurrentPage(1);
+                                  }}
+                                  className="border rounded px-2 py-1 bg-white text-sm"
+                                >
+                                  <option value={10}>10</option>
+                                  <option value={20}>20</option>
+                                  <option value={50}>50</option>
+                                  <option value={100}>100</option>
+                                </select>
+                              </div>
+                              <span className="px-3 py-1 text-sm">
+                                Page {interviewCurrentPage} of {interviewTotalPages}
+                              </span>
+                              <button
+                                onClick={() => setInterviewCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={interviewCurrentPage === 1}
+                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                              >
+                                Previous
+                              </button>
+
+                              <button
+                                onClick={() => setInterviewCurrentPage(prev => Math.min(interviewTotalPages, prev + 1))}
+                                disabled={interviewCurrentPage === interviewTotalPages}
+                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                   </CardContent>
@@ -760,106 +766,106 @@ export default function AdminView() {
                       <>
                         <div className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3">
                           <Table>
-                          <TableHeader className="sticky top-0 bg-muted/30 z-10">
-                            <TableRow className="bg-muted/30">
-                              <TableHead className="font-semibold min-w-[160px]">Created By</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Slot type</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
-                              <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
-                              <TableHead className="font-semibold min-w-[90px]">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {slots.map((slot: any) => (
-                              <TableRow key={slot.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="min-w-[160px]">
-                                  <div>
-                                    <div className="font-medium">{slot.user_name || `User #${slot.created_by}`}</div>
-                                    <div className="text-xs text-muted-foreground">{slot.user_email}</div>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="min-w-[100px]">
-                                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                                    {slot.slot_type || "Not Specified"}
-                                  </Badge>
-                                </TableCell>
-
-                                <TableCell className="font-medium whitespace-nowrap min-w-[100px]">
-                                  {formatDate(slot.date)}
-                                </TableCell>
-                                <TableCell className="text-sm whitespace-nowrap min-w-[140px]">
-                                  {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                                </TableCell>
-                                <TableCell className="min-w-[100px]">
-                                  {getStatusBadge(slot.status || 'Available')}
-                                </TableCell>
-                                <TableCell className="min-w-[90px]">
-                                  {slot.status?.toLowerCase() === "available" ? (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedSlotForScheduling(slot);
-                                        setIsScheduleModalOpen(true);
-                                      }}
-                                      className="flex items-center gap-1 text-primary hover:bg-primary/5 border-primary/20 shadow-soft hover:shadow-medium transition-all"
-                                      title="Schedule interview"
-                                    >
-                                      <Video className="w-4 h-4" />
-                                      <span>Schedule</span>
-                                    </Button>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
+                            <TableHeader className="sticky top-0 bg-muted/30 z-10">
+                              <TableRow className="bg-muted/30">
+                                <TableHead className="font-semibold min-w-[160px]">Created By</TableHead>
+                                <TableHead className="font-semibold min-w-[100px]">Slot type</TableHead>
+                                <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
+                                <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
+                                <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
+                                <TableHead className="font-semibold min-w-[90px]">Actions</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      {slotTotalCount > 0 && (
-                        <div className="flex justify-between items-center mt-4">
-                        <p className="text-sm text-muted-foreground">
-                          Showing {((slotCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(slotCurrentPage * itemsPerPage, slotTotalCount)} of {slotTotalCount}
-                        </p>
-                        <div className="flex gap-2">
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm text-muted-foreground">Rows:</label>
-                            <select
-                              value={itemsPerPage}
-                              onChange={(e) => {
-                                setItemsPerPage(Number(e.target.value));
-                                setSlotCurrentPage(1);
-                              }}
-                              className="border rounded px-2 py-1 bg-white text-sm"
-                            >
-                              <option value={10}>10</option>
-                              <option value={20}>20</option>
-                              <option value={50}>50</option>
-                              <option value={100}>100</option>
-                            </select>
-                          </div>
-                           <span className="px-3 py-1 text-sm">
-                            Page {slotCurrentPage} of {slotTotalPages}
-                          </span>
-                          <button
-                            onClick={() => setSlotCurrentPage(prev => Math.max(1, prev - 1))}
-                            disabled={slotCurrentPage === 1}
-                            className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-                          >
-                            Previous
-                          </button>
-                          <button
-                            onClick={() => setSlotCurrentPage(prev => Math.min(slotTotalPages, prev + 1))}
-                            disabled={slotCurrentPage === slotTotalPages}
-                            className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-                          >
-                            Next
-                          </button>
+                            </TableHeader>
+                            <TableBody>
+                              {slots.map((slot: any) => (
+                                <TableRow key={slot.id} className="hover:bg-muted/20 transition-colors">
+                                  <TableCell className="min-w-[160px]">
+                                    <div>
+                                      <div className="font-medium">{slot.user_name || `User #${slot.created_by}`}</div>
+                                      <div className="text-xs text-muted-foreground">{slot.user_email}</div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="min-w-[100px]">
+                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                      {slot.slot_type || "Not Specified"}
+                                    </Badge>
+                                  </TableCell>
+
+                                  <TableCell className="font-medium whitespace-nowrap min-w-[100px]">
+                                    {formatDate(slot.date)}
+                                  </TableCell>
+                                  <TableCell className="text-sm whitespace-nowrap min-w-[140px]">
+                                    {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                                  </TableCell>
+                                  <TableCell className="min-w-[100px]">
+                                    {getStatusBadge(slot.status || 'Available')}
+                                  </TableCell>
+                                  <TableCell className="min-w-[90px]">
+                                    {slot.status?.toLowerCase() === "available" ? (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedSlotForScheduling(slot);
+                                          setIsScheduleModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-1 text-primary hover:bg-primary/5 border-primary/20 shadow-soft hover:shadow-medium transition-all"
+                                        title="Schedule interview"
+                                      >
+                                        <Video className="w-4 h-4" />
+                                        <span>Schedule</span>
+                                      </Button>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                      </div>
-                      )}
+                        {slotTotalCount > 0 && (
+                          <div className="flex justify-between items-center mt-4">
+                            <p className="text-sm text-muted-foreground">
+                              Showing {((slotCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(slotCurrentPage * itemsPerPage, slotTotalCount)} of {slotTotalCount}
+                            </p>
+                            <div className="flex gap-2">
+                              <div className="flex items-center gap-2">
+                                <label className="text-sm text-muted-foreground">Rows:</label>
+                                <select
+                                  value={itemsPerPage}
+                                  onChange={(e) => {
+                                    setItemsPerPage(Number(e.target.value));
+                                    setSlotCurrentPage(1);
+                                  }}
+                                  className="border rounded px-2 py-1 bg-white text-sm"
+                                >
+                                  <option value={10}>10</option>
+                                  <option value={20}>20</option>
+                                  <option value={50}>50</option>
+                                  <option value={100}>100</option>
+                                </select>
+                              </div>
+                              <span className="px-3 py-1 text-sm">
+                                Page {slotCurrentPage} of {slotTotalPages}
+                              </span>
+                              <button
+                                onClick={() => setSlotCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={slotCurrentPage === 1}
+                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                              >
+                                Previous
+                              </button>
+                              <button
+                                onClick={() => setSlotCurrentPage(prev => Math.min(slotTotalPages, prev + 1))}
+                                disabled={slotCurrentPage === slotTotalPages}
+                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                   </CardContent>
@@ -921,7 +927,8 @@ export default function AdminView() {
                         <TableHeader className="sticky top-0 bg-muted/30 z-10">
                           <TableRow className="bg-muted/30">
                             <TableHead className="font-semibold min-w-[160px]">Applicant</TableHead>
-                            <TableHead className="font-semibold min-w-[130px]">Title</TableHead>
+                            <TableHead className="font-semibold min-w-[100px]">Slot Type</TableHead>
+                            {/* <TableHead className="font-semibold min-w-[130px]">Title</TableHead> */}
                             <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
                             <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
                             <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
@@ -948,9 +955,14 @@ export default function AdminView() {
                                   <div className="text-xs text-muted-foreground">{interview.student_email || "N/A"}</div>
                                 </div>
                               </TableCell>
-                              <TableCell className="whitespace-nowrap min-w-[130px]">
-                                <span className="font-medium">{interview.title || "Interview"}</span>
+                              <TableCell className="min-w-[100px]">
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                  {interview.slot_type || "Not Specified"}
+                                </Badge>
                               </TableCell>
+                              {/* <TableCell className="whitespace-nowrap min-w-[130px]">
+                                <span className="font-medium">{interview.title || "Interview"}</span>
+                              </TableCell> */}
                               <TableCell className="whitespace-nowrap text-sm min-w-[100px]">
                                 {formatDate(interview.date || interview.start_time)}
                               </TableCell>
@@ -1002,7 +1014,7 @@ export default function AdminView() {
           </Tabs>
         </div>
       </div>
-      
+
       <ApplicantModal
         applicant={selectedApplicant}
         isOpen={isApplicantModalOpen}
