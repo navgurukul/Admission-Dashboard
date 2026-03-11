@@ -67,7 +67,7 @@ export default function AdminView() {
   const [interviewStartDate, setInterviewStartDate] = useState("");
   const [interviewEndDate, setInterviewEndDate] = useState("");
   const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
-  const [interviewStatusFilter, setInterviewStatusFilter] = useState("");
+  const [interviewStatusFilter, setInterviewStatusFilter] = useState("scheduled");
 
   // Search and filter states for slots
   const [slotSearchTerm, setSlotSearchTerm] = useState("");
@@ -498,9 +498,9 @@ export default function AdminView() {
                             <SelectValue placeholder="Filter by status" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
+                            {/* <SelectItem value="all">All Status</SelectItem> */}
                             <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
+                            {/* <SelectItem value="expired">Expired</SelectItem> */}
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                             <SelectItem value="Passed">Passed</SelectItem>
                             <SelectItem value="Failed">Failed</SelectItem>
