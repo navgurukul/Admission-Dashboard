@@ -502,8 +502,8 @@ export default function AdminView() {
                             <SelectItem value="scheduled">Scheduled</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
                             <SelectItem value="cancelled">Cancelled</SelectItem>
-                            <SelectItem value="passed">Passed</SelectItem>
-                            <SelectItem value="failed">Failed</SelectItem>
+                            <SelectItem value="Passed">Passed</SelectItem>
+                            <SelectItem value="Failed">Failed</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
