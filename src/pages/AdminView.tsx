@@ -64,8 +64,10 @@ export default function AdminView() {
   // Search and filter states for interviews
   const [interviewSearchTerm, setInterviewSearchTerm] = useState("");
   const { debouncedValue: debouncedInterviewSearch, isPending: isInterviewSearching } = useDebounce(interviewSearchTerm, 800);
-  const [interviewDateFilter, setInterviewDateFilter] = useState("");
+  const [interviewStartDate, setInterviewStartDate] = useState("");
+  const [interviewEndDate, setInterviewEndDate] = useState("");
   const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
+  const [interviewStatusFilter, setInterviewStatusFilter] = useState("");
 
   // Search and filter states for slots
   const [slotSearchTerm, setSlotSearchTerm] = useState("");
@@ -107,8 +109,14 @@ export default function AdminView() {
   useEffect(() => {
     if (activeTab !== "interviews") return;
 
-    fetchInterviews();
-  }, [activeTab, interviewCurrentPage, interviewDateFilter, debouncedInterviewSearch, interviewSlotTypeFilter, itemsPerPage]);
+    // Only fetch if both dates are selected or both are empty (prevent API call during date selection)
+    const bothDatesSelected = interviewStartDate && interviewEndDate;
+    const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
+    
+    if (bothDatesSelected || bothDatesEmpty) {
+      fetchInterviews();
+    }
+  }, [activeTab, interviewCurrentPage, interviewStartDate, interviewEndDate, debouncedInterviewSearch, interviewSlotTypeFilter, interviewStatusFilter, itemsPerPage]);
 
   // Only fetch slots when slots tab is active
   useEffect(() => {
@@ -126,10 +134,14 @@ export default function AdminView() {
 
   // Reset to page 1 when search or filters change for interviews
   useEffect(() => {
-    if (activeTab === "interviews" && interviewCurrentPage !== 1) {
+    // Only reset if both dates are selected or both are empty (prevent reset during date selection)
+    const bothDatesSelected = interviewStartDate && interviewEndDate;
+    const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
+    
+    if (activeTab === "interviews" && interviewCurrentPage !== 1 && (bothDatesSelected || bothDatesEmpty)) {
       setInterviewCurrentPage(1);
     }
-  }, [debouncedInterviewSearch, interviewDateFilter, interviewSlotTypeFilter]);
+  }, [debouncedInterviewSearch, interviewStartDate, interviewEndDate, interviewSlotTypeFilter, interviewStatusFilter]);
 
   // Reset to page 1 when search or filters change for slots
   useEffect(() => {
@@ -144,13 +156,17 @@ export default function AdminView() {
       
       // Trim the search query and only pass it if it's not empty
       const trimmedSearch = debouncedInterviewSearch?.trim() || "";
+      // Only apply date filter if both dates are selected or both are empty
+      const shouldApplyDateFilter = (interviewStartDate && interviewEndDate) || (!interviewStartDate && !interviewEndDate);
       
       const response = await getAllInterviewSchedules({
         page: interviewCurrentPage,
         pageSize: itemsPerPage,
         slot_type: interviewSlotTypeFilter && interviewSlotTypeFilter !== 'all' ? interviewSlotTypeFilter : undefined,
-        date: interviewDateFilter || undefined,
+        startDate: shouldApplyDateFilter && interviewStartDate ? interviewStartDate : undefined,
+        endDate: shouldApplyDateFilter && interviewEndDate ? interviewEndDate : undefined,
         search: trimmedSearch || undefined,
+        status: interviewStatusFilter && interviewStatusFilter !== 'all' ? interviewStatusFilter : undefined,
       });
 
       if (response.success && response.data) {
@@ -403,21 +419,20 @@ export default function AdminView() {
       <AdmissionsSidebar />
 
       <div className="flex-1 md:ml-64 min-w-0 overflow-hidden flex flex-col">
-        <div className="p-6 md:p-8 pt-20 md:pt-8">
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+        <div className="flex-1 overflow-hidden flex flex-col px-6 md:px-8 pt-16 md:pt-6 pb-4 md:pb-6">
+          {/* Page Header */}
+          <div className="mb-3 flex-shrink-0">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">
               {isAdmin ? "Admin View" : "Interviews"}
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground mt-2">
+            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
               {isAdmin
                 ? "Overview of all scheduled interviews and created slots"
                 : "Manage your scheduled interviews and availability"}
             </p>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-hidden px-6 md:px-8 pb-6 md:pb-8">
-          <Tabs value={activeTab} className="h-full flex flex-col" onValueChange={setActiveTab}>
+          <Tabs value={activeTab} className="flex-1 flex flex-col overflow-hidden" onValueChange={setActiveTab}>
             {isAdmin && (
               <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-lg" : "grid-cols-1 max-w-xs")}>
                 <TabsTrigger
@@ -443,7 +458,7 @@ export default function AdminView() {
 
             {/* Interviews Tab */}
             {isAdmin && (
-              <TabsContent value="interviews" className="mt-6 flex-1 overflow-hidden">
+              <TabsContent value="interviews" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
                 <Card className="h-full flex flex-col">
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2 mb-4">
@@ -474,14 +489,54 @@ export default function AdminView() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="w-48">
+                      <div className="w-[180px]">
+                        <Select
+                          value={interviewStatusFilter}
+                          onValueChange={setInterviewStatusFilter}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Filter by status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="scheduled">Scheduled</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="passed">Passed</SelectItem>
+                            <SelectItem value="failed">Failed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">From:</label>
                         <Input
                           type="date"
-                          value={interviewDateFilter}
-                          onChange={(e) => setInterviewDateFilter(e.target.value)}
-                          placeholder="Filter by date"
+                          value={interviewStartDate}
+                          onChange={(e) => setInterviewStartDate(e.target.value)}
+                          className="w-40"
                         />
                       </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">To:</label>
+                        <Input
+                          type="date"
+                          value={interviewEndDate}
+                          onChange={(e) => setInterviewEndDate(e.target.value)}
+                          className="w-40"
+                        />
+                      </div>
+                      {(interviewStartDate || interviewEndDate) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setInterviewStartDate("");
+                            setInterviewEndDate("");
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col overflow-hidden">
@@ -503,26 +558,26 @@ export default function AdminView() {
                       </div>
                     ) : (
                       <>
-                        <div className="border rounded-lg overflow-auto flex-1 w-full mb-4">
+                        <div className="border rounded-lg overflow-auto flex-1 w-full min-h-0 mb-3">
                           <Table>
                           <TableHeader className="sticky top-0 bg-muted/30 z-10">
                             <TableRow className="bg-muted/30">
-                              <TableHead className="font-semibold min-w-[200px]">Applicant</TableHead>
-                              <TableHead className="font-semibold min-w-[200px]">Interviewer</TableHead>
-                              <TableHead className="font-semibold min-w-[150px]">Title</TableHead>
-                              <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
-                              <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
-                              <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Meeting Link</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Scheduled By</TableHead>
+                              <TableHead className="font-semibold min-w-[160px]">Applicant</TableHead>
+                              <TableHead className="font-semibold min-w-[160px]">Interviewer</TableHead>
+                              <TableHead className="font-semibold min-w-[130px]">Title</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
+                              <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
+                              <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
+                              <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {interviews.map((interview: any) => (
                               <TableRow key={interview.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="min-w-[200px]">
+                                <TableCell className="min-w-[160px]">
                                   <div
-                                    className="cursor-pointer hover:bg-muted p-2 rounded-md transition-colors group"
+                                    className="cursor-pointer hover:bg-muted p-1.5 rounded-md transition-colors group"
                                     onClick={() => {
                                       if (interview.student_id) {
                                         setSelectedApplicant({ id: interview.student_id });
@@ -537,25 +592,25 @@ export default function AdminView() {
                                     <div className="text-xs text-muted-foreground">{interview.student_email || "N/A"}</div>
                                   </div>
                                 </TableCell>
-                                <TableCell className="min-w-[200px]">
+                                <TableCell className="min-w-[160px]">
                                   <div>
                                     <div className="font-medium">{interview.interviewer_name || "Not Assigned"}</div>
                                     <div className="text-xs text-muted-foreground">{interview.interviewer_email || "N/A"}</div>
                                   </div>
                                 </TableCell>
-                                <TableCell className="whitespace-nowrap min-w-[150px]">
+                                <TableCell className="whitespace-nowrap min-w-[130px]">
                                   <span className="font-medium">{interview.title || "No Title"}</span>
                                 </TableCell>
-                                <TableCell className="whitespace-nowrap text-sm min-w-[120px]">
+                                <TableCell className="whitespace-nowrap text-sm min-w-[100px]">
                                   {formatDate(interview.slot_date)}
                                 </TableCell>
-                                <TableCell className="whitespace-nowrap text-sm min-w-[150px]">
+                                <TableCell className="whitespace-nowrap text-sm min-w-[140px]">
                                   {formatTime(interview.start_time)} - {formatTime(interview.end_time)}
                                 </TableCell>
-                                <TableCell className="whitespace-nowrap min-w-[120px]">
+                                <TableCell className="whitespace-nowrap min-w-[100px]">
                                   {getStatusBadge(interview.status)}
                                 </TableCell>
-                                <TableCell className="whitespace-nowrap min-w-[100px]">
+                                <TableCell className="whitespace-nowrap min-w-[90px]">
                                   {interview.meeting_link ? (
                                     String(interview.status || "").toLowerCase() === "cancelled" ? (
                                       <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
@@ -582,7 +637,7 @@ export default function AdminView() {
                                     <span className="text-muted-foreground text-sm">No Link</span>
                                   )}
                                 </TableCell>
-                                  <TableCell className="whitespace-nowrap min-w-[100px]">
+                                  <TableCell className="whitespace-nowrap min-w-[120px]">
                                   <span className="text-sm">{interview.created_by || "N/A"}</span>
                                 </TableCell>
                               </TableRow>
@@ -643,7 +698,7 @@ export default function AdminView() {
 
             {/* Slots Tab */}
             {isAdmin && (
-              <TabsContent value="slots" className="mt-6 flex-1 overflow-hidden">
+              <TabsContent value="slots" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
                 <Card className="h-full flex flex-col">
                   <CardHeader className="flex-shrink-0">
                     <CardTitle className="flex items-center gap-2 mb-4">
@@ -703,43 +758,43 @@ export default function AdminView() {
                       </div>
                     ) : (
                       <>
-                        <div className="border rounded-lg overflow-auto flex-1 mb-4">
+                        <div className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3">
                           <Table>
                           <TableHeader className="sticky top-0 bg-muted/30 z-10">
                             <TableRow className="bg-muted/30">
-                              <TableHead className="font-semibold min-w-[200px]">Created By</TableHead>
-                              <TableHead className="font-semibold min-w-[120px]">Slot type</TableHead>
-                              <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
-                              <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
-                              <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
-                              <TableHead className="font-semibold min-w-[100px]">Actions</TableHead>
+                              <TableHead className="font-semibold min-w-[160px]">Created By</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Slot type</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
+                              <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
+                              <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
+                              <TableHead className="font-semibold min-w-[90px]">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {slots.map((slot: any) => (
                               <TableRow key={slot.id} className="hover:bg-muted/20 transition-colors">
-                                <TableCell className="min-w-[200px]">
+                                <TableCell className="min-w-[160px]">
                                   <div>
                                     <div className="font-medium">{slot.user_name || `User #${slot.created_by}`}</div>
                                     <div className="text-xs text-muted-foreground">{slot.user_email}</div>
                                   </div>
                                 </TableCell>
-                                <TableCell className="min-w-[120px]">
+                                <TableCell className="min-w-[100px]">
                                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                                     {slot.slot_type || "Not Specified"}
                                   </Badge>
                                 </TableCell>
 
-                                <TableCell className="font-medium whitespace-nowrap min-w-[120px]">
+                                <TableCell className="font-medium whitespace-nowrap min-w-[100px]">
                                   {formatDate(slot.date)}
                                 </TableCell>
-                                <TableCell className="text-sm whitespace-nowrap min-w-[150px]">
+                                <TableCell className="text-sm whitespace-nowrap min-w-[140px]">
                                   {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
                                 </TableCell>
-                                <TableCell className="min-w-[120px]">
+                                <TableCell className="min-w-[100px]">
                                   {getStatusBadge(slot.status || 'Available')}
                                 </TableCell>
-                                <TableCell className="min-w-[100px]">
+                                <TableCell className="min-w-[90px]">
                                   {slot.status?.toLowerCase() === "available" ? (
                                     <Button
                                       variant="outline"
@@ -813,7 +868,7 @@ export default function AdminView() {
             )}
 
             {/* My Interviews Tab */}
-            <TabsContent value="my-interviews" className="mt-6 flex-1 overflow-hidden">
+            <TabsContent value="my-interviews" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
               <Card className="h-full flex flex-col">
                 <CardHeader className="flex-shrink-0">
                   <CardTitle className="flex items-center gap-2 mb-4">
@@ -861,25 +916,25 @@ export default function AdminView() {
                       </p>
                     </div>
                   ) : (
-                    <div className="border rounded-lg overflow-auto flex-1 w-full">
+                    <div className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3 w-full">
                       <Table>
                         <TableHeader className="sticky top-0 bg-muted/30 z-10">
                           <TableRow className="bg-muted/30">
-                            <TableHead className="font-semibold min-w-[200px]">Applicant</TableHead>
-                            <TableHead className="font-semibold min-w-[150px]">Title</TableHead>
-                            <TableHead className="font-semibold min-w-[120px]">Date</TableHead>
-                            <TableHead className="font-semibold min-w-[150px]">Time</TableHead>
-                            <TableHead className="font-semibold min-w-[120px]">Status</TableHead>
-                            <TableHead className="font-semibold min-w-[100px]">Meeting Link</TableHead>
-                            <TableHead className="font-semibold min-w-[100px]">Scheduled By</TableHead>
+                            <TableHead className="font-semibold min-w-[160px]">Applicant</TableHead>
+                            <TableHead className="font-semibold min-w-[130px]">Title</TableHead>
+                            <TableHead className="font-semibold min-w-[100px]">Date</TableHead>
+                            <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
+                            <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
+                            <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {myInterviews.map((interview: any) => (
                             <TableRow key={interview.id} className="hover:bg-muted/20 transition-colors">
-                              <TableCell className="min-w-[200px]">
+                              <TableCell className="min-w-[160px]">
                                 <div
-                                  className="cursor-pointer hover:bg-muted p-2 rounded-md transition-colors group"
+                                  className="cursor-pointer hover:bg-muted p-1.5 rounded-md transition-colors group"
                                   onClick={() => {
                                     if (interview.student_id) {
                                       setSelectedApplicant({ id: interview.student_id });
@@ -893,19 +948,19 @@ export default function AdminView() {
                                   <div className="text-xs text-muted-foreground">{interview.student_email || "N/A"}</div>
                                 </div>
                               </TableCell>
-                              <TableCell className="whitespace-nowrap min-w-[150px]">
+                              <TableCell className="whitespace-nowrap min-w-[130px]">
                                 <span className="font-medium">{interview.title || "Interview"}</span>
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-sm min-w-[120px]">
+                              <TableCell className="whitespace-nowrap text-sm min-w-[100px]">
                                 {formatDate(interview.date || interview.start_time)}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-sm min-w-[150px]">
+                              <TableCell className="whitespace-nowrap text-sm min-w-[140px]">
                                 {formatTime(interview.start_time)} - {formatTime(interview.end_time)}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap min-w-[120px]">
+                              <TableCell className="whitespace-nowrap min-w-[100px]">
                                 {getStatusBadge(interview.status)}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap min-w-[100px]">
+                              <TableCell className="whitespace-nowrap min-w-[90px]">
                                 {interview.meeting_link ? (
                                   String(interview.status || "").toLowerCase() === "cancelled" ? (
                                     <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
@@ -932,7 +987,7 @@ export default function AdminView() {
                                   <span className="text-muted-foreground text-sm">No Link</span>
                                 )}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap min-w-[100px]">
+                              <TableCell className="whitespace-nowrap min-w-[120px]">
                                 <span className="text-sm">{interview.created_by || "N/A"}</span>
                               </TableCell>
                             </TableRow>
