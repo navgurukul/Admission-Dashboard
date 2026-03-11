@@ -409,7 +409,7 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = "Completed";
 
               if (matchingSchedule) {
-                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time} `;
+                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
                 slotStatus =
                   lrAttemptStatus === "Pending"
                     ? normalizeBooking(
@@ -482,7 +482,7 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
@@ -539,7 +539,7 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = "Completed";
 
               if (matchingSchedule) {
-                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time} `;
+                scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
                 slotStatus =
                   cfrAttemptStatus === "Pending"
                     ? normalizeBooking(
@@ -613,7 +613,7 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
@@ -651,7 +651,7 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
@@ -690,7 +690,7 @@ export default function StudentResult() {
               let slotStatus: BookingStatus = null;
 
               if (bookedSlotInfo) {
-                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time} `;
+                scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
                 const scheduledDateTime = new Date(scheduledTime);
                 const hasTimePassed = scheduledDateTime < new Date();
                 slotStatus = hasTimePassed
