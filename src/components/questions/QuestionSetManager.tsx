@@ -164,14 +164,22 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     try {
       // If this is a new custom set that hasn't been created yet
       if (activeSet.id === -1 && pendingSetData) {
+        const existingQs = selected.filter((q) => q.id && typeof q.id === 'number');
+        const newQs = selected.filter((q) => !q.id || typeof q.id === 'string' || q.isNew);
+
         const payload = {
           name: pendingSetData.name,
           description: pendingSetData.description,
           isRandom: false,
-          questions: selected.map((q) => ({
+          questions: existingQs.map((q) => ({
             question_id: q.id,
-            difficulty_level: q.difficulty_level
+            difficulty_level: q.difficulty_level || 1
           })),
+          newQuestions: newQs.map((q) => {
+            // Remove temp ids and ui flags
+            const { id, isNew, ...rest } = q;
+            return rest;
+          }),
           school_ids: pendingSetData.school_ids.map(Number),
           success: true
         };
@@ -534,37 +542,66 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           let fullQuestions = [];
           if (formData.questions && formData.questions.length > 0 && allQuestions) {
             const notFoundIds: number[] = [];
+            let newQuestionsCount = 0;
+
             fullQuestions = formData.questions
               .map((importedQ: any) => {
-                const fullQuestion = allQuestions.find((q: any) => q.id === importedQ.id);
-                if (fullQuestion) {
-                  return {
-                    ...fullQuestion,
-                    difficulty_level: importedQ.difficulty_level || fullQuestion.difficulty_level,
-                  };
-                } else {
-                  notFoundIds.push(importedQ.id);
-                  return null;
+                const qId = importedQ.id || importedQ.question_id;
+
+                // If ID is provided, try to find existing question
+                if (qId) {
+                  const fullQuestion = allQuestions.find((q: any) => q.id === qId);
+                  if (fullQuestion) {
+                    return {
+                      ...fullQuestion,
+                      difficulty_level: importedQ.difficulty_level || fullQuestion.difficulty_level,
+                    };
+                  } else {
+                    notFoundIds.push(qId);
+                    return null;
+                  }
                 }
+                // Alternatively, if it's a completely new question data block without an ID
+                else if (importedQ.english_text && importedQ.english_options && importedQ.answer_key) {
+                  newQuestionsCount++;
+                  return {
+                    ...importedQ,
+                    isNew: true, // Flag it so we know it hasn't been saved yet
+                    id: `tmp-${Date.now()}-${Math.random()}`, // Temporary ID for UI keys
+                    difficulty_level: importedQ.difficulty_level || 1
+                  };
+                }
+
+                return null;
               })
               .filter((q: any) => q !== null);
-            
+
             // console.log("Imported questions:", formData.questions);
             // console.log("Available allQuestions count:", allQuestions?.length);
             // console.log("Mapped imported questions to full objects:", fullQuestions);
-            
+
             if (notFoundIds.length > 0) {
               console.warn("Question IDs not found:", notFoundIds);
-              toast({
-                title: "⚠️ Some Questions Not Found",
-                description: `${notFoundIds.length} question(s) with IDs: ${notFoundIds.join(", ")} were not found in the database.`,
-                variant: "default",
-                className: "border-orange-500 bg-orange-50 text-orange-900",
-              });
+              if (newQuestionsCount > 0) {
+                toast({
+                  title: "⚠️ Some Questions Not Found",
+                  description: `${notFoundIds.length} question(s) with IDs: ${notFoundIds.join(", ")} were not found in the database. Loaded ${newQuestionsCount} new inline question(s).`,
+                  variant: "default",
+                  className: "border-orange-500 bg-orange-50 text-orange-900",
+                });
+              } else {
+                toast({
+                  title: "⚠️ Some Questions Not Found",
+                  description: `${notFoundIds.length} question(s) with IDs: ${notFoundIds.join(", ")} were not found in the database.`,
+                  variant: "default",
+                  className: "border-orange-500 bg-orange-50 text-orange-900",
+                });
+              }
             } else if (fullQuestions.length > 0) {
+              const loadedExisting = fullQuestions.length - newQuestionsCount;
               toast({
                 title: "✅ Questions Loaded",
-                description: `${fullQuestions.length} imported question(s) are pre-selected.`,
+                description: `Pre-selected ${loadedExisting} existing questions and ${newQuestionsCount} new inline questions.`,
                 variant: "default",
                 className: "border-green-500 bg-green-50 text-green-900",
               });
@@ -712,7 +749,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
     try {
       await updateQuestion(editingQuestion.id, questionData);
-      
+
       toast({
         title: "✅ Question Updated",
         description: "The question has been successfully updated.",
