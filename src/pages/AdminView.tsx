@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Calendar, Clock, AlertCircle, Video, MessageSquare } from "lucide-react";
+import { Calendar, Clock, AlertCircle, Video, MessageSquare, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -500,7 +500,7 @@ export default function AdminView() {
                           <SelectContent>
                             <SelectItem value="all">All Status</SelectItem>
                             <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
+                            {/* <SelectItem value="expired">Expired</SelectItem> */}
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                             <SelectItem value="Passed">Passed</SelectItem>
                             <SelectItem value="Failed">Failed</SelectItem>
@@ -525,19 +525,67 @@ export default function AdminView() {
                           className="w-40"
                         />
                       </div>
-                      {(interviewStartDate || interviewEndDate) && (
+                    </div>
+                    
+                    {/* Active Filter Chips */}
+                    {(interviewStartDate || interviewEndDate || interviewSlotTypeFilter || interviewStatusFilter) && (
+                      <div className="flex flex-wrap gap-2 mt-5 p-2">
+                        {interviewSlotTypeFilter && interviewSlotTypeFilter !== "all" && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => setInterviewSlotTypeFilter("")}
+                          >
+                            <span>Slot Type: {interviewSlotTypeFilter === "LR" ? "LR (Learning Round)" : "CFR (Culture Fit)"}</span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
+                        {interviewStatusFilter && interviewStatusFilter !== "all" && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => setInterviewStatusFilter("")}
+                          >
+                            <span>Status: {interviewStatusFilter}</span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
+                        {(interviewStartDate || interviewEndDate) && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => {
+                              setInterviewStartDate("");
+                              setInterviewEndDate("");
+                            }}
+                          >
+                            <span>
+                              Date: {interviewStartDate && new Date(interviewStartDate).toLocaleDateString('en-GB')} 
+                              {interviewStartDate && interviewEndDate && ' → '}
+                              {interviewEndDate && new Date(interviewEndDate).toLocaleDateString('en-GB')}
+                            </span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
                         <Button
-                          variant="outline"
                           size="sm"
+                          variant="ghost"
+                          className="rounded-full py-1.4 px-2 h-auto text-sm border"
                           onClick={() => {
                             setInterviewStartDate("");
                             setInterviewEndDate("");
+                            setInterviewSlotTypeFilter("");
+                            setInterviewStatusFilter("");
                           }}
                         >
-                          Clear
+                          <X className="w-4 h-4 mr-1" />
+                          Clear Filters
                         </Button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col overflow-hidden">
                     {interviewsLoading || isInterviewSearching ? (
@@ -744,6 +792,46 @@ export default function AdminView() {
                         />
                       </div>
                     </div>
+                    
+                    {/* Active Filter Chips */}
+                    {(slotDateFilter || slotTypeFilter) && (
+                      <div className="flex flex-wrap gap-2 mt-5">
+                        {slotTypeFilter && slotTypeFilter !== "all" && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => setSlotTypeFilter("")}
+                          >
+                            <span>Slot Type: {slotTypeFilter === "LR" ? "LR (Learning Round)" : "CFR (Culture Fit)"}</span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
+                        {slotDateFilter && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => setSlotDateFilter("")}
+                          >
+                            <span>Date: {new Date(slotDateFilter).toLocaleDateString('en-GB')}</span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full py-1.4 px-2 h-auto text-sm border"
+                          onClick={() => {
+                            setSlotDateFilter("");
+                            setSlotTypeFilter("");
+                          }}
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Clear Filters
+                        </Button>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col overflow-hidden">
                     {slotsLoading || isSlotSearching ? (
@@ -896,7 +984,7 @@ export default function AdminView() {
                         size="sm"
                         onClick={() => setMyInterviewDateFilter("")}
                       >
-                        Clear
+                        Clear Filter
                       </Button>
                     )}
                     <div className="flex-1" />
