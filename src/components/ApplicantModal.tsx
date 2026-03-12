@@ -2729,8 +2729,8 @@ Interviewer: ${interviewerName}`;
         onClose={() => setShowInterviewDetailsModal(false)}
         scheduleInfo={
           interviewDetailsRoundType === "LR" 
-            ? liveScheduleData.filter((s: any) => s.round_type === "LR" || s.title?.includes("Learning"))
-            : liveScheduleData.filter((s: any) => s.round_type === "CFR" || s.title?.includes("Cultural"))
+            ? liveScheduleData.filter((s: any) => s.slot_type === "LR")
+            : liveScheduleData.filter((s: any) => s.slot_type === "CFR")
         }
         roundType={interviewDetailsRoundType || "LR"}
         studentName={currentApplicant?.name || ""}
