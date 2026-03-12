@@ -395,6 +395,7 @@ export default function StudentLogin() {
       troubleSigning: "Having trouble signing in?",
       contactUs: "Contact us at",
       callUs: "Call us at",
+      phoneValidation: "Please enter exactly 10 digits.",
     },
     hindi: {
       title: "लॉगिन",
@@ -420,6 +421,7 @@ export default function StudentLogin() {
       troubleSigning: "साइन इन करने में परेशानी हो रही है?",
       contactUs: "हमसे संपर्क करें",
       callUs: "हमें कॉल करें",
+      phoneValidation: "कृपया ठीक 10 अंक दर्ज करें।",
     },
     marathi: {
       title: "लॉगिन",
@@ -445,6 +447,7 @@ export default function StudentLogin() {
       troubleSigning: "साइन इन करण्यात समस्या येत आहे?",
       contactUs: "आमच्याशी संपर्क साधा",
       callUs: "आम्हाला कॉल करा",
+      phoneValidation: "कृपया बरोबर 10 अंक प्रविष्ट करा.",
     },
   };
 
@@ -462,6 +465,17 @@ export default function StudentLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.phone.length !== 10) {
+      toast({
+        title: "Invalid Phone Number",
+        description: getContent().phoneValidation,
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
