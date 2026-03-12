@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
-import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+// import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import {
   getCompleteStudentData,
@@ -56,23 +56,23 @@ export default function StudentResult() {
   const location = useLocation();
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
-  const { signOut: googleSignOut } = useGoogleAuth();
+  // const { signOut: googleSignOut } = useGoogleAuth();
 
-  const handleLogout = () => {
-    // Sign out from Google if authenticated
-    try {
-      googleSignOut();
-    } catch (error) {
-      console.error("Google sign out error:", error);
-    }
+  // const handleLogout = () => {
+  //   // Sign out from Google if authenticated
+  //   try {
+  //     googleSignOut();
+  //   } catch (error) {
+  //     console.error("Google sign out error:", error);
+  //   }
 
-    // Clear all storage
-    localStorage.clear();
-    sessionStorage.clear();
+  //   // Clear all storage
+  //   localStorage.clear();
+  //   sessionStorage.clear();
 
-    // Redirect to login page
-    navigate("/students/login", { replace: true });
-  };
+  //   // Redirect to login page
+  //   navigate("/students/login", { replace: true });
+  // };
 
   const getContent = () => {
     switch (selectedLanguage) {
@@ -184,27 +184,27 @@ export default function StudentResult() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    // Invisible history state approach to handle back button and refresh reliably
-    const handlePopState = (event: PopStateEvent) => {
-      // If the state we pushed is gone, it means they clicked back
-      if (!event.state || !event.state.loggedIn) {
-        handleLogout();
-      }
-    };
+  // useEffect(() => {
+  //   // Invisible history state approach to handle back button and refresh reliably
+  //   const handlePopState = (event: PopStateEvent) => {
+  //     // If the state we pushed is gone, it means they clicked back
+  //     if (!event.state || !event.state.loggedIn) {
+  //       handleLogout();
+  //     }
+  //   };
 
-    window.addEventListener("popstate", handlePopState);
+  //   window.addEventListener("popstate", handlePopState);
 
-    // If there's no state flag, add it. This handles the initial land AND refreshes.
-    // It doesn't change the URL, so it's invisible to the user.
-    if (!window.history.state || !window.history.state.loggedIn) {
-      window.history.pushState({ loggedIn: true }, "", window.location.pathname);
-    }
+  //   // If there's no state flag, add it. This handles the initial land AND refreshes.
+  //   // It doesn't change the URL, so it's invisible to the user.
+  //   if (!window.history.state || !window.history.state.loggedIn) {
+  //     window.history.pushState({ loggedIn: true }, "", window.location.pathname);
+  //   }
 
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener("popstate", handlePopState);
+  //   };
+  // }, []);
 
   useEffect(() => {
     const fetchStudentData = async () => {
@@ -224,9 +224,9 @@ export default function StudentResult() {
           // Detect actual login method - Google login stores google_credential in sessionStorage
           const googleCredential = sessionStorage.getItem("google_credential");
           if (googleCredential) {
-            loginMethod = "email"; 
+            loginMethod = "email";
           } else {
-            loginMethod = "phone"; 
+            loginMethod = "phone";
           }
 
           if (googleUser) {
@@ -242,20 +242,20 @@ export default function StudentResult() {
           if (savedApiPayload) {
             try {
               const payload = JSON.parse(savedApiPayload);
-              
+
               // Extract phone (prioritize if not already found)
-              const payloadPhone = payload?.data?.student?.whatsapp_number || 
-                      payload?.data?.student?.phone_number || 
-                      payload?.student?.whatsapp_number || 
-                      payload?.student?.phone_number ||
-                      payload?.whatsapp_number ||
-                      payload?.phone_number || "";
-              
+              const payloadPhone = payload?.data?.student?.whatsapp_number ||
+                payload?.data?.student?.phone_number ||
+                payload?.student?.whatsapp_number ||
+                payload?.student?.phone_number ||
+                payload?.whatsapp_number ||
+                payload?.phone_number || "";
+
               // Extract email (prioritize if not already found)
-              const payloadEmail = payload?.data?.student?.email || 
-                      payload?.student?.email || 
-                      payload?.email || "";
-              
+              const payloadEmail = payload?.data?.student?.email ||
+                payload?.student?.email ||
+                payload?.email || "";
+
               // Use payload values if not found in user localStorage
               if (!phone && payloadPhone) {
                 phone = payloadPhone;
@@ -265,12 +265,12 @@ export default function StudentResult() {
                 email = payloadEmail;
               }
 
-                // If we found NO email/phone but HAVE cached data, use the cached data as fallback
-                if (!email && !phone && payload) {
-                  data = payload;
-                }
-              } catch (e) { }
-            }
+              // If we found NO email/phone but HAVE cached data, use the cached data as fallback
+              if (!email && !phone && payload) {
+                data = payload;
+              }
+            } catch (e) { }
+          }
 
           // Fetch fresh data if we have email or phone
           if (!data) {
@@ -322,7 +322,7 @@ export default function StudentResult() {
 
           // Handle multiple response structures from getByPhone, getByEmail, or getCompleteStudentData
           const profile = data?.data?.student || data?.student || data;
-          
+
           // Extract student info with fallbacks for different field naming conventions
           if (profile) {
             const studentInfo = {
@@ -331,8 +331,8 @@ export default function StudentResult() {
               lastName: profile.last_name || profile.lastName || "",
               email: profile.email || "",
               whatsappNumber:
-                profile.whatsapp_number || profile.whatsappNumber || 
-                profile.phone_number || profile.phoneNumber || 
+                profile.whatsapp_number || profile.whatsappNumber ||
+                profile.phone_number || profile.phoneNumber ||
                 profile.mobile || "",
               district: profile.district || "",
               state: profile.state || "",
@@ -931,19 +931,19 @@ export default function StudentResult() {
                             if (days > 0) {
                               remainingText = `${days} day${
                                 days === 1 ? "" : "s"
-                              } ${hours.toString().padStart(2, "0")}:${minutes
-                                .toString()
-                                .padStart(2, "0")}:${seconds
-                                .toString()
-                                .padStart(2, "0")}`;
+                                } ${hours.toString().padStart(2, "0")}:${minutes
+                                  .toString()
+                                  .padStart(2, "0")}:${seconds
+                                    .toString()
+                                    .padStart(2, "0")}`;
                             } else {
                               remainingText = `${hours
                                 .toString()
                                 .padStart(2, "0")}:${minutes
-                                .toString()
-                                .padStart(2, "0")}:${seconds
-                                .toString()
-                                .padStart(2, "0")}`;
+                                  .toString()
+                                  .padStart(2, "0")}:${seconds
+                                    .toString()
+                                    .padStart(2, "0")}`;
                             }
                           }
                         }
