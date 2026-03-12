@@ -35,6 +35,7 @@ interface InterviewSchedule {
   status: string;
   title?: string;
   google_event_id?: string;
+  slot_type?: string;
 }
 
 interface InterviewDetailsModalProps {
@@ -272,7 +273,12 @@ export function InterviewDetailsModal({
                       >
                         <td className="p-3">
                           <div className="font-medium">
-                            {schedule.title || `Attempt ${index + 1}`}
+                            {/* {schedule.title || `Attempt ${index + 1}`} */}
+                            {schedule.slot_type === "LR" 
+                              ? "Learning Round" 
+                              : schedule.slot_type === "CFR" 
+                                ? "Cultural Fit Round" 
+                                : `Attempt ${index + 1}`}
                           </div>
                         </td>
                         <td className="p-3">
