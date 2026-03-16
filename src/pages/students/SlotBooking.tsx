@@ -234,14 +234,26 @@ const SlotBooking: React.FC = () => {
   // Get language content
   const content = languageContent[selectedLanguage] || languageContent.english;
 
-  // Get slot_type from navigation state
-  const slotType = location.state?.slot_type as "LR" | "CFR" | undefined;
+  // Derive slot_type: use test.name as the primary/reliable source of truth,
+  // and fall back to navigation state only when the test name is unavailable.
+  // This prevents mismatches where nav state was absent (defaulting to "LR")
+  // while test.name correctly indicated "Cultural Fit Round".
+  const test = tests.find((t) => t.id === testId);
+  const slotTypeFromTestName: "LR" | "CFR" | undefined = test?.name
+    ? test.name.includes("Cultural Fit Round") || test.name.includes("Culture Fit Round")
+      ? "CFR"
+      : test.name.includes("Learning Round")
+      ? "LR"
+      : undefined
+    : undefined;
+  const slotType: "LR" | "CFR" =
+    slotTypeFromTestName ??
+    (location.state?.slot_type as "LR" | "CFR" | undefined) ??
+    "LR";
 
   // Get student ID from localStorage (only ID needed for API calls)
   const studentIdStr = localStorage.getItem("studentId");
   const studentId = studentIdStr ? parseInt(studentIdStr) : null;
-
-  const test = tests.find((t) => t.id === testId);
 
   // ---------- State ----------
   const [loading, setLoading] = useState(true);
