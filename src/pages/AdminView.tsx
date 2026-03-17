@@ -676,6 +676,11 @@ export default function AdminView() {
                                           <Video className="w-4 h-4" />
                                           <span>Unavailable</span>
                                         </span>
+                                      ) : String(interview.status || "").toLowerCase() === "passed" ? (
+                                        <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                          <Video className="w-4 h-4" />
+                                          <span>Completed</span>
+                                        </span>
                                       ) : (
                                         <a
                                           href={interview.meeting_link}
@@ -1071,6 +1076,11 @@ export default function AdminView() {
                                     <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
                                       <Video className="w-4 h-4" />
                                       <span>Unavailable</span>
+                                    </span>
+                                  ) : String(interview.status || "").toLowerCase() === "passed" ? (
+                                    <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                      <Video className="w-4 h-4" />
+                                      <span>Completed</span>
                                     </span>
                                   ) : (
                                     <a
