@@ -1827,10 +1827,10 @@ const ApplicantTable = () => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="rounded-full py-1.4 px-2 h-auto text-sm border"
+                  className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800"
                   onClick={handleClearFilters}
                 >
-                  <X className="w-4 h-4 mr-1" />
+                  <X className="w-3 h-3" />
                   Clear Filters
                 </Button>
               )}

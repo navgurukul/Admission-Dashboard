@@ -324,17 +324,19 @@ export default function AdminView() {
   };
 
   const getStatusBadge = (status: string) => {
-    let colorClass = "bg-gray-500";
-    let displayStatus = status;
+    const normalizedStatus = String(status || "").trim().toLowerCase();
 
-    switch (status?.toLowerCase()) {
+    let colorClass = "bg-slate-500";
+    let displayStatus = status || "Unknown";
+
+    switch (normalizedStatus) {
       // Interview statuses
       case "scheduled":
-        colorClass = "bg-green-500";
+        colorClass = "bg-emerald-500";
         displayStatus = "Scheduled";
         break;
       case "rescheduled":
-        colorClass = "bg-orange-500";
+        colorClass = "bg-amber-500";
         displayStatus = "Rescheduled";
         break;
       case "active":
@@ -342,17 +344,25 @@ export default function AdminView() {
         displayStatus = "Active";
         break;
       case "completed":
-        colorClass = "bg-green-500";
+        colorClass = "bg-green-600";
         displayStatus = "Completed";
+        break;
+      case "passed":
+        colorClass = "bg-green-600";
+        displayStatus = "Passed";
+        break;
+      case "failed":
+        colorClass = "bg-rose-600";
+        displayStatus = "Failed";
         break;
 
       // Slot statuses
       case "booked":
-        colorClass = "bg-green-500";
+        colorClass = "bg-indigo-600";
         displayStatus = "Booked";
         break;
       case "available":
-        colorClass = "bg-primary/90";
+        colorClass = "bg-cyan-600";
         displayStatus = "Available";
         break;
       case "expired":
@@ -412,6 +422,15 @@ export default function AdminView() {
       return timeString;
     }
   };
+
+  const hasInterviewFilters =
+    Boolean(interviewStartDate || interviewEndDate) ||
+    (Boolean(interviewSlotTypeFilter) && interviewSlotTypeFilter !== "all") ||
+    (Boolean(interviewStatusFilter) && interviewStatusFilter !== "all");
+
+  const hasSlotFilters =
+    Boolean(slotDateFilter) ||
+    (Boolean(slotTypeFilter) && slotTypeFilter !== "all");
 
 
   return (
@@ -528,7 +547,7 @@ export default function AdminView() {
                     </div>
                     
                     {/* Active Filter Chips */}
-                    {(interviewStartDate || interviewEndDate || interviewSlotTypeFilter || interviewStatusFilter) && (
+                    {hasInterviewFilters && (
                       <div className="flex flex-wrap gap-2 mt-5 p-2">
                         {interviewSlotTypeFilter && interviewSlotTypeFilter !== "all" && (
                           <Button
@@ -573,7 +592,7 @@ export default function AdminView() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="rounded-full py-1.4 px-2 h-auto text-sm border"
+                          className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800"
                           onClick={() => {
                             setInterviewStartDate("");
                             setInterviewEndDate("");
@@ -581,7 +600,7 @@ export default function AdminView() {
                             setInterviewStatusFilter("");
                           }}
                         >
-                          <X className="w-4 h-4 mr-1" />
+                          <X className="w-3 h-3" />
                           Clear Filters
                         </Button>
                       </div>
@@ -799,7 +818,7 @@ export default function AdminView() {
                     </div>
                     
                     {/* Active Filter Chips */}
-                    {(slotDateFilter || slotTypeFilter) && (
+                    {hasSlotFilters && (
                       <div className="flex flex-wrap gap-2 mt-5">
                         {slotTypeFilter && slotTypeFilter !== "all" && (
                           <Button
@@ -826,13 +845,13 @@ export default function AdminView() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="rounded-full py-1.4 px-2 h-auto text-sm border"
+                          className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800"
                           onClick={() => {
                             setSlotDateFilter("");
                             setSlotTypeFilter("");
                           }}
                         >
-                          <X className="w-4 h-4 mr-1" />
+                          <X className="w-3 h-3" />
                           Clear Filters
                         </Button>
                       </div>
