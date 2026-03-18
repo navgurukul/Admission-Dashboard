@@ -343,10 +343,10 @@ export default function AdminView() {
         colorClass = "bg-blue-500";
         displayStatus = "Active";
         break;
-      case "completed":
-        colorClass = "bg-green-600";
-        displayStatus = "Completed";
-        break;
+      // case "completed":
+      //   colorClass = "bg-green-600";
+      //   displayStatus = "Completed";
+      //   break;
       case "passed":
         colorClass = "bg-green-600";
         displayStatus = "Passed";
@@ -698,7 +698,12 @@ export default function AdminView() {
                                       ) : String(interview.status || "").toLowerCase() === "passed" ? (
                                         <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
                                           <Video className="w-4 h-4" />
-                                          <span>Completed</span>
+                                          <span>Closed</span>
+                                        </span>
+                                      ) : String(interview.status || "").toLowerCase() === "failed" ? (
+                                        <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                          <Video className="w-4 h-4" />
+                                          <span>Closed</span>
                                         </span>
                                       ) : (
                                         <a
@@ -1099,7 +1104,12 @@ export default function AdminView() {
                                   ) : String(interview.status || "").toLowerCase() === "passed" ? (
                                     <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
                                       <Video className="w-4 h-4" />
-                                      <span>Completed</span>
+                                      <span>Closed</span>
+                                    </span>
+                                  ) : String(interview.status || "").toLowerCase() === "failed" ? (
+                                    <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
+                                      <Video className="w-4 h-4" />
+                                      <span>Closed</span>
                                     </span>
                                   ) : (
                                     <a
