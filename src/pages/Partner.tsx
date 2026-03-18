@@ -1283,10 +1283,10 @@ const PartnerPage = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
+                        className="rounded-full py-1.5 px-3 flex items-center gap-2 border border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-100 hover:text-gray-700 h-auto whitespace-nowrap min-w-fit"
                         onClick={() => setFilters(prev => ({ ...prev, district: "" }))}
                       >
-                        <span className="text-sm inline-block">District: {filters.district}</span>
+                        <span className="text-xs inline-block">District: {filters.district}</span>
                         <X className="w-3 h-3 flex-shrink-0" />
                       </Button>
                     )}
@@ -1294,10 +1294,10 @@ const PartnerPage = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
+                        className="rounded-full py-1.5 px-3 flex items-center gap-2 border border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-100 hover:text-gray-700 h-auto whitespace-nowrap min-w-fit"
                         onClick={() => setFilters(prev => ({ ...prev, slug: "" }))}
                       >
-                        <span className="text-sm inline-block">Slug: {filters.slug}</span>
+                        <span className="text-xs inline-block">Slug: {filters.slug}</span>
                         <X className="w-3 h-3 flex-shrink-0" />
                       </Button>
                     )}
@@ -1305,10 +1305,10 @@ const PartnerPage = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
+                        className="rounded-full py-1.5 px-3 flex items-center gap-2 border border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-100 hover:text-gray-700 h-auto whitespace-nowrap min-w-fit"
                         onClick={() => setFilters(prev => ({ ...prev, emailDomain: "" }))}
                       >
-                        <span className="text-sm inline-block">Email Domain: {filters.emailDomain}</span>
+                        <span className="text-xs inline-block">Email Domain: {filters.emailDomain}</span>
                         <X className="w-3 h-3 flex-shrink-0" />
                       </Button>
                     )}
@@ -1316,10 +1316,10 @@ const PartnerPage = () => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })} 
-                      className="rounded-full py-1.5 px-2 h-auto text-sm border"
+                      onClick={() => setFilters({ district: "", slug: "", emailDomain: "" })}
+                      className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs border border-pink-200 bg-pink-50 text-pink-700 hover:text-pink-80"
                     >
-                      <X className="w-3 h-3 ml-1.5" />
+                      <X className="w-3 h-3" />
                       Clear Filters
                     </Button>
                   </div>

@@ -316,15 +316,44 @@ export function InterviewDetailsModal({
                         </td>
                         <td className="p-3">
                           {schedule.meeting_link ? (
-                            <a
-                              href={schedule.meeting_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              <Video className="w-4 h-4" />
-                              Join
-                            </a>
+                            (() => {
+                              const statusLower = schedule.status?.toLowerCase() || "";
+                              if (statusLower === "cancelled") {
+                                return (
+                                  <span className="flex items-center gap-2 text-sm text-muted-foreground cursor-not-allowed">
+                                    <Video className="w-4 h-4" />
+                                    Cancelled
+                                  </span>
+                                );
+                              }
+                              if (statusLower === "expired") {
+                                return (
+                                  <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-2 text-sm text-muted-foreground cursor-not-allowed">
+                                    <Video className="w-4 h-4" />
+                                    Unavailable
+                                  </span>
+                                );
+                              }
+                              if (statusLower === "passed") {
+                                return (
+                                  <span className="flex items-center gap-2 text-sm text-muted-foreground cursor-not-allowed">
+                                    <Video className="w-4 h-4" />
+                                    Completed
+                                  </span>
+                                );
+                              }
+                              return (
+                                <a
+                                  href={schedule.meeting_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                >
+                                  <Video className="w-4 h-4" />
+                                  Join
+                                </a>
+                              );
+                            })()
                           ) : (
                             <span className="text-sm text-muted-foreground">—</span>
                           )}
