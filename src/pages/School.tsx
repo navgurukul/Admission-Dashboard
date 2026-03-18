@@ -545,6 +545,17 @@ const SchoolPage = () => {
                       setEditCutOffError("Cut-off marks must be a valid number.");
                     }
 
+                    const isDuplicate = schools.some(
+                      (school) =>
+                        school.id !== selectedSchool.id &&
+                        school.school_name.toLowerCase() === trimmedSchoolName.toLowerCase(),
+                    );
+
+                    if (isDuplicate) {
+                      setEditSchoolNameError("This school name already exists. Please use a different name.");
+                      return;
+                    }
+
                     if (!trimmedSchoolName || !trimmedCutOff || Number.isNaN(parsedCutOff)) {
                       return;
                     }
