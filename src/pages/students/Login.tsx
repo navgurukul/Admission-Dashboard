@@ -390,7 +390,7 @@ export default function StudentLogin() {
       lastNamePlaceholder: "Enter last name",
       middleNamePlaceholder: "Enter middle name",
       phonePlaceholder: "Enter 10-digit phone number",
-      continueRegistration: "Register / Check result",
+      continueRegistration: "Register / Check Result",
       loading: "Loading...",
       troubleSigning: "Having trouble signing in?",
       contactUs: "Contact us at",
