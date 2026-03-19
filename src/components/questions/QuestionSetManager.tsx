@@ -393,6 +393,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
               }
             }
           });
+        } else if (firstRow.english_text !== undefined || firstRow.question_type !== undefined || firstRow.difficulty_level !== undefined) {
+          // This is a CSV containing a list of questions directly
+          parsedData = csvData;
         } else {
           // Standard format: name,description,school_ids (first data row)
           parsedData = firstRow;
@@ -409,14 +412,55 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       // console.log("Parsed data:", parsedData);
 
       // Normalize questions array - convert question_id to id if needed
-      let questions = parsedData.questions || [];
+      let questions = [];
+      if (Array.isArray(parsedData)) {
+        questions = parsedData;
+      } else {
+        questions = parsedData.questions || [];
+      }
+      
+      console.log("[DEBUG] handleImportJson - extracted raw questions:", questions);
+
       if (questions.length > 0) {
+        // Parse stringified JSON arrays like answer_key, english_options if they exist
+        const tryParseList = (val: any) => {
+          if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+            try { return JSON.parse(val); } catch(e) { return val; }
+          }
+          return val;
+        };
+
+        const tryParseOptions = (val: any) => {
+          const parsed = tryParseList(val);
+          if (Array.isArray(parsed)) {
+            // Extract the 'text' property if it's an object with an 'id' and 'text', otherwise keep string
+            return parsed.map(item => typeof item === 'object' && item.text !== undefined ? String(item.text) : String(item));
+          }
+          return parsed;
+        };
+
+        const tryParseIntArray = (val: any) => {
+          const parsed = tryParseList(val);
+          if (Array.isArray(parsed)) {
+            return parsed.map(item => parseInt(item, 10));
+          } else if (typeof parsed === 'string' || typeof parsed === 'number') {
+            return [parseInt(String(parsed), 10)];
+          }
+          return parsed;
+        };
+
         questions = questions.map((q: any) => ({
           ...q,
-          id: q.id || q.question_id, // Support both formats
-          difficulty_level: q.difficulty_level || 1, // Default to level 1 if not specified
+          id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
+          difficulty_level: q.difficulty_level ? parseInt(q.difficulty_level, 10) : 1, // Default to level 1
+          english_options: tryParseOptions(q.english_options),
+          hindi_options: tryParseOptions(q.hindi_options),
+          marathi_options: tryParseOptions(q.marathi_options),
+          answer_key: tryParseIntArray(q.answer_key),
         }));
       }
+
+      console.log("[DEBUG] handleImportJson - normalized questions:", questions);
 
       // Populate form fields with whatever data we have
       const updatedFormData = {
@@ -429,6 +473,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         questions: questions,
       };
 
+      console.log("[DEBUG] handleImportJson - setting formData:", updatedFormData);
       setFormData(updatedFormData);
 
       // Build a helpful message about what was imported
@@ -617,6 +662,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             active: true,
             isNewCustom: true // Optional helper flag
           };
+          
+          console.log("[DEBUG] handleSubmit - tempSet created:", tempSet);
+          
           setActiveSet(tempSet);
           return;
         }
