@@ -50,10 +50,14 @@ const SchoolPage = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
 
   const [newSchool, setNewSchool] = useState("");
-  const [newCutOffMarks, setNewCutOffMarks] = useState<number>(0);
+  const [newCutOffMarks, setNewCutOffMarks] = useState<string>("");
   const [updatedSchoolName, setUpdatedSchoolName] = useState("");
-  const [updatedCutOffMarks, setUpdatedCutOffMarks] = useState<number>(0);
+  const [updatedCutOffMarks, setUpdatedCutOffMarks] = useState<string>("");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [addSchoolNameError, setAddSchoolNameError] = useState("");
+  const [addCutOffError, setAddCutOffError] = useState("");
+  const [editSchoolNameError, setEditSchoolNameError] = useState("");
+  const [editCutOffError, setEditCutOffError] = useState("");
 
   const formatErrorMessage = (error: any): string => {
     // Check for nested API error response (e.g., error.data.message)
@@ -128,33 +132,51 @@ const SchoolPage = () => {
   const handleAddSchool = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    setAddSchoolNameError("");
+    setAddCutOffError("");
+
+    const trimmedSchoolName = newSchool.trim();
+    const trimmedCutOff = String(newCutOffMarks ?? "").trim();
+    const parsedCutOff = Number(trimmedCutOff);
+
+    if (!trimmedSchoolName) {
+      setAddSchoolNameError("School name is required.");
+    }
+
+    if (!trimmedCutOff) {
+      setAddCutOffError("Cut-off marks is required.");
+    }
+
+    if (
+      !trimmedSchoolName ||
+      !trimmedCutOff ||
+      Number.isNaN(parsedCutOff)
+    ) {
+      return;
+    }
+
     const isDuplicate = schools.some(
       (school) =>
-        school.school_name.toLowerCase() === newSchool.toLowerCase().trim(),
+        school.school_name.toLowerCase() === trimmedSchoolName.toLowerCase(),
     );
 
     if (isDuplicate) {
-      toast({
-        title: "⚠️ Duplicate School",
-        description: "This school name already exists. Please use a different name.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
+      setAddSchoolNameError("This school name already exists. Please use a different name.");
       return;
     }
     try {
-      const result = await createSchool(newSchool, newCutOffMarks);
+      const result = await createSchool(trimmedSchoolName, parsedCutOff);
       const newSchoolData: School = {
         id: result.id || result.data?.id || Date.now(),
-        school_name: newSchool,
-        cut_off_marks: newCutOffMarks,
+        school_name: trimmedSchoolName,
+        cut_off_marks: parsedCutOff,
         // status: true,
         // created_at: new Date().toISOString(),
       };
 
       setSchools((prev) => [...prev, newSchoolData]);
       setNewSchool("");
-      setNewCutOffMarks(0);
+      setNewCutOffMarks("");
       setAddDialog(false);
 
       toast({
@@ -315,7 +337,9 @@ const SchoolPage = () => {
                                 onClick={() => {
                                   setSelectedSchool(school);
                                   setUpdatedSchoolName(school.school_name);
-                                  setUpdatedCutOffMarks(school.cut_off_marks);
+                                  setUpdatedCutOffMarks(String(school.cut_off_marks ?? ""));
+                                  setEditSchoolNameError("");
+                                  setEditCutOffError("");
                                   setEditDialog(true);
                                 }}
                               >
@@ -395,9 +419,15 @@ const SchoolPage = () => {
                 placeholder="Enter school name"
                 className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 value={newSchool}
-                onChange={(e) => setNewSchool(e.target.value)}
+                onChange={(e) => {
+                  setNewSchool(e.target.value);
+                  if (addSchoolNameError) setAddSchoolNameError("");
+                }}
                 required
               />
+              {addSchoolNameError && (
+                <p className="mt-1 text-xs text-red-500">{addSchoolNameError}</p>
+              )}
             </div>
             <div className="mt-4">
               <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -408,9 +438,15 @@ const SchoolPage = () => {
                 placeholder="Enter cut-off marks"
                 className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 value={newCutOffMarks}
-                onChange={(e) => setNewCutOffMarks(Number(e.target.value))}
+                onChange={(e) => {
+                  setNewCutOffMarks(e.target.value);
+                  if (addCutOffError) setAddCutOffError("");
+                }}
                 required
               />
+              {addCutOffError && (
+                <p className="mt-1 text-xs text-red-500">{addCutOffError}</p>
+              )}
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
@@ -447,9 +483,15 @@ const SchoolPage = () => {
                 placeholder="Enter school name"
                 className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 value={updatedSchoolName}
-                onChange={(e) => setUpdatedSchoolName(e.target.value)}
+                onChange={(e) => {
+                  setUpdatedSchoolName(e.target.value);
+                  if (editSchoolNameError) setEditSchoolNameError("");
+                }}
                 required
               />
+              {editSchoolNameError && (
+                <p className="mt-1 text-xs text-red-500">{editSchoolNameError}</p>
+              )}
             </div>
             <div className="mt-4">
               <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -460,9 +502,15 @@ const SchoolPage = () => {
                 placeholder="Enter cut-off marks"
                 className="border border-border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 value={updatedCutOffMarks}
-                onChange={(e) => setUpdatedCutOffMarks(Number(e.target.value))}
+                onChange={(e) => {
+                  setUpdatedCutOffMarks(e.target.value);
+                  if (editCutOffError) setEditCutOffError("");
+                }}
                 required
               />
+              {editCutOffError && (
+                <p className="mt-1 text-xs text-red-500">{editCutOffError}</p>
+              )}
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
@@ -470,6 +518,8 @@ const SchoolPage = () => {
                 onClick={() => {
                   setEditDialog(false);
                   setSelectedSchool(null);
+                  setEditSchoolNameError("");
+                  setEditCutOffError("");
                 }}
               >
                 Cancel
@@ -478,7 +528,39 @@ const SchoolPage = () => {
                 className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
                 onClick={() => {
                   if (selectedSchool) {
-                    handleUpdateSchool(selectedSchool.id, updatedSchoolName, updatedCutOffMarks);
+                    setEditSchoolNameError("");
+                    setEditCutOffError("");
+
+                    const trimmedSchoolName = updatedSchoolName.trim();
+                    const trimmedCutOff = String(updatedCutOffMarks ?? "").trim();
+                    const parsedCutOff = Number(trimmedCutOff);
+
+                    if (!trimmedSchoolName) {
+                      setEditSchoolNameError("School name is required.");
+                    }
+
+                    if (!trimmedCutOff) {
+                      setEditCutOffError("Cut-off marks is required.");
+                    } else if (Number.isNaN(parsedCutOff)) {
+                      setEditCutOffError("Cut-off marks must be a valid number.");
+                    }
+
+                    const isDuplicate = schools.some(
+                      (school) =>
+                        school.id !== selectedSchool.id &&
+                        school.school_name.toLowerCase() === trimmedSchoolName.toLowerCase(),
+                    );
+
+                    if (isDuplicate) {
+                      setEditSchoolNameError("This school name already exists. Please use a different name.");
+                      return;
+                    }
+
+                    if (!trimmedSchoolName || !trimmedCutOff || Number.isNaN(parsedCutOff)) {
+                      return;
+                    }
+
+                    handleUpdateSchool(selectedSchool.id, trimmedSchoolName, parsedCutOff);
                     setEditDialog(false);
                     setSelectedSchool(null);
                   }
