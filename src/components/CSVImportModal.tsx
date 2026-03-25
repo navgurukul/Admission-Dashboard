@@ -7,17 +7,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { UploadCloud, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertCircle } from "lucide-react";
-import { addApplicants } from "@/utils/localStorage";
 import { bulkUploadStudents } from "@/utils/api";
 import { Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -25,32 +25,151 @@ interface CSVImportModalProps {
   onSuccess: () => void;
 }
 
-interface ApplicantData {
-  mobile_no: string;
-  unique_number: string | null;
-  name: string | null;
-  city: string | null;
-  block: string | null;
-  caste: string | null;
-  gender: string | null;
-  qualification: string | null;
-  current_work: string | null;
-  qualifying_school: string | null;
-  whatsapp_number: string | null;
-  set_name: string | null;
-  exam_centre: string | null;
-  date_of_testing: string | null;
-  lr_status: string | null;
-  lr_comments: string | null;
-  cfr_status: string | null;
-  cfr_comments: string | null;
-  final_marks: number | null;
-  offer_letter_status: string | null;
-  allotted_school: string | null;
-  joining_status: string | null;
-  final_notes: string | null;
-  triptis_notes: string | null;
-}
+type GuideItem = {
+  title: string;
+  body: string[];
+};
+
+const instructionGuide: GuideItem[] = [
+  {
+    title: "1. Use Exact Values Only",
+    body: [
+      "Some columns only accept specific words like Gender, State, Qualification, and similar fields.",
+      "Always enter the exact text as instructed.",
+      "Do not change spelling, add extra spaces, or use shortcuts.",
+    ],
+  },
+  {
+    title: "2. Do Not Leave Important Fields Empty",
+    body: [
+      "Fields like Name, Phone Number, State, and similar required columns must be filled.",
+      "Make sure you complete all mandatory fields.",
+    ],
+  },
+  {
+    title: "3. Follow the Correct Format",
+    body: [
+      "Date of Birth: use YYYY-MM-DD. Example: 2005-10-16",
+      "Phone Number: enter a valid 10-digit number.",
+      "Email: use a proper email format like example@gmail.com.",
+      "Pin Code: numbers only, no letters.",
+    ],
+  },
+  {
+    title: "4. Avoid Special Characters",
+    body: [
+      "Do not use symbols like @, #, %, *, or / unless the field requires it, such as email.",
+      "Keep the text clean and simple.",
+    ],
+  },
+  {
+    title: "5. Marks and Percentage",
+    body: [
+      "If not required, keep the cells blank.",
+      "Enter only numbers. Do not add the % sign.",
+      "Correct: 85",
+      "Wrong: 85%",
+    ],
+  },
+  {
+    title: "6. Spelling Matters",
+    body: [
+      "Even small spelling mistakes can cause errors.",
+      "Correct: Male",
+      "Wrong: male, MALE, Mle",
+    ],
+  },
+  {
+    title: "7. One Row = One Person",
+    body: [
+      "Each row should contain details for only one student.",
+      "Do not mix data from multiple people in the same row.",
+    ],
+  },
+  {
+    title: "8. Do Not Change Column Names",
+    body: [
+      "Keep the column headers exactly as they are.",
+      "Do not rename, delete, or rearrange them.",
+    ],
+  },
+  {
+    title: "9. Save File Correctly",
+    body: [
+      "Save the file in .csv format only.",
+      "Do not convert it to Excel (.xlsx) or any other format.",
+    ],
+  },
+  {
+    title: "10. When in Doubt",
+    body: [
+      "If you are unsure about any value, check the reference guide or ask before filling the file.",
+    ],
+  },
+];
+
+const referenceGuide: GuideItem[] = [
+  {
+    title: "Qualification",
+    body: ["10th Pass, 12th Pass, Graduate, Undergraduate"],
+  },
+  {
+    title: "CurrentStatus",
+    body: ["Student, Working, Job Searching"],
+  },
+  {
+    title: "Cast",
+    body: ["General, OBC, SC, ST, Other"],
+  },
+  {
+    title: "Religion",
+    body: ["Hinduism, Islam, Christianity, Sikhism, Buddhism, Jainism, Other"],
+  },
+  {
+    title: "School",
+    body: ["SOP, SOB, SOF, BCA"],
+  },
+  {
+    title: "Campus",
+    body: ["Dantewad, Sarjapur, Pune"],
+  },
+  {
+    title: "QuestionSetName",
+    body: [
+      "Must match the set names available in the dashboard.",
+      "Legacy Migrated Exam",
+      "Random Set 310075",
+      "pota-cabin-dnt-SOP",
+      "jashpur-SOP",
+    ],
+  },
+  {
+    title: "Statuses",
+    body: [
+      "ExamStatus: Screening Test Pass, Screening Test Fail",
+      "LearningRoundStatus: Learning Round Pass, Learning Round Fail",
+      "CulturalFitStatus: Culture Fit Round Pass, Culture Fit Round Fail",
+      "OfferLetterStatus: Offer Sent, Offer Accepted, Offer Declined, Selected but not joined",
+      "OnboardedStatus: Onboarded",
+    ],
+  },
+  {
+    title: "Gender",
+    body: ["Male, Female, Other", "Use a consistent value across rows."],
+  },
+  {
+    title: "Email Fields",
+    body: ["Use a valid email format."],
+  },
+  {
+    title: "Date Fields",
+    body: ["Use YYYY-MM-DD for DOB, DateOfTest, and JoiningDate."],
+  },
+  {
+    title: "Percentage / Marks Fields",
+    body: ["Use numeric values only. Examples: 85.5, 78, 90"],
+  },
+];
 
 const CSVImportModal = ({
   isOpen,
@@ -58,7 +177,6 @@ const CSVImportModal = ({
   onSuccess,
 }: CSVImportModalProps) => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
@@ -70,7 +188,6 @@ const CSVImportModal = ({
     if (isOpen) {
       // Reset modal state each time it opens
       setCsvFile(null);
-      setData([]);
       setError(null);
       setShowSuccess(false);
       setSuccessCount(0);
@@ -115,7 +232,6 @@ const CSVImportModal = ({
         skipEmptyLines: true,
         dynamicTyping: false,
         complete: (results) => {
-          setData(results.data);
           processCSVData(results.data); // this will update successCount
         },
         error: (err) => {
@@ -380,7 +496,7 @@ const CSVImportModal = ({
       "SOB",
       "Kishanganj",
       "Called on 01-Dec-2025",
-      "A",
+      "screening-test-set",
       "Jaipur Center",
       "2025-11-15",
       "28",
@@ -425,9 +541,25 @@ const CSVImportModal = ({
     });
   };
 
+  const renderGuideItems = (items: GuideItem[]) => (
+    <div className="space-y-4">
+      {items.map((item) => (
+        <div key={item.title} className="rounded-md border p-3">
+          <p className="text-sm font-semibold">{item.title}</p>
+          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+            {item.body.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[700px] max-h-[90vh] overflow-hidden p-0 sm:rounded-lg">
+        <div className="flex max-h-[90vh] flex-col overflow-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Import Applicants from CSV</DialogTitle>
           <DialogDescription>
@@ -435,7 +567,53 @@ const CSVImportModal = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid flex-1 gap-4 overflow-y-auto py-4 pr-1">
+          <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+            <div>
+              <p className="text-sm font-medium">CSV Help Guide</p>
+              <p className="text-xs text-muted-foreground">
+                Review these instructions before filling or uploading the CSV.
+              </p>
+            </div>
+
+            <Tabs defaultValue="instructions" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                <TabsTrigger value="reference">Exact Values</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="instructions">
+                <ScrollArea className="h-64 rounded-md border bg-background p-4">
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold">
+                      CSV Data Filling Guide
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      This guide will help you fill the file correctly so your
+                      data gets accepted without errors.
+                    </p>
+                  </div>
+                  {renderGuideItems(instructionGuide)}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="reference">
+                <ScrollArea className="h-64 rounded-md border bg-background p-4">
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold">
+                      Exact Data Reference Guide
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Type these values exactly as shown, including spaces and
+                      capitalization.
+                    </p>
+                  </div>
+                  {renderGuideItems(referenceGuide)}
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
+          </div>
+
           {/* Download Template Buttons */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Download Template:</Label>
@@ -516,11 +694,12 @@ const CSVImportModal = ({
         <Button
           onClick={handleParse}
           disabled={!csvFile || isProcessing}
-          className="flex items-center gap-2"
+          className="mt-2 w-full flex items-center gap-2 sm:w-auto"
         >
           {isProcessing && <Loader2 className="animate-spin h-4 w-4" />}
           {isProcessing ? "Importing..." : "Import"}
         </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
