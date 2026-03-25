@@ -184,6 +184,7 @@ const ApplicantTable = () => {
   const { triggerRefresh } = useDashboardRefresh();
   const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   const [stageStatuses, setStageStatuses] = useState<any[]>([]);
+  const [stageStatusesByStageId, setStageStatusesByStageId] = useState<Record<string, any[]>>({});
 
   // ✅ CRITICAL OPTIMIZATION: Only fetch students data on initial load
   const {
@@ -428,6 +429,58 @@ const ApplicantTable = () => {
     religionList,
     questionSetList
   );
+
+  // This enables stage_id + stage_status_id based when round arrays are empty.
+  useEffect(() => {
+    const stageIds: string[] = Array.from(
+      new Set(
+        (filteredApplicants || [])
+          .map((a: any) => a?.stage_id)
+          .filter((id: any) => id !== null && id !== undefined && id !== "")
+          .map((id: any) => String(id))
+      )
+    );
+
+    const missingStageIds: string[] = stageIds.filter((id: string) => !stageStatusesByStageId[id]);
+    if (missingStageIds.length === 0) return;
+
+    let isCancelled = false;
+
+    const fetchMissingStatuses = async () => {
+      try {
+        const results = await Promise.all(
+          missingStageIds.map(async (stageId) => {
+            try {
+              const response = await getStatusesByStageId(stageId);
+              const statuses = response?.data || response || [];
+              return [stageId, statuses] as const;
+            } catch (error) {
+              console.error(`❌ Error fetching statuses for stage ${stageId}:`, error);
+              return [stageId, []] as const;
+            }
+          })
+        );
+
+        if (isCancelled) return;
+
+        setStageStatusesByStageId((prev) => {
+          const next = { ...prev };
+          for (const [stageId, statuses] of results) {
+            next[stageId] = statuses;
+          }
+          return next;
+        });
+      } catch (error) {
+        console.error("❌ Error fetching stage status map:", error);
+      }
+    };
+
+    fetchMissingStatuses();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [filteredApplicants, stageStatusesByStageId]);
 
   // Reset to page 1 when search term changes
   useEffect(() => {
@@ -1889,6 +1942,7 @@ const ApplicantTable = () => {
                       religionList={religionList}
                       currentstatusList={currentstatusList}
                       stageStatusList={stageStatusList}
+                      stageStatusesByStageId={stageStatusesByStageId}
                       questionSetList={questionSetList}
                       partnerList={partnerList}
                       donorList={donorList}
