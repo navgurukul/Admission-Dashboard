@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ListChecks, Trash2, Plus, Edit, Download, Eye } from "lucide-react";
+import { ListChecks, Trash2, Plus, Edit, Download, Eye, Upload } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { QuestionPicker } from "./QuestionPicker";
+import { QuestionEditor } from "./QuestionEditor";
 import { useToast } from "@/components/ui/use-toast";
+import Papa from "papaparse";
 import {
   Select,
   SelectContent,
@@ -37,6 +39,7 @@ import {
   setDefaultOnlineQuestionSet,
   downloadQuestionSetPDF,
   getAllSchools,
+  updateQuestion,
 } from "@/utils/api";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels }) {
@@ -52,6 +55,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     nameType: "random", // "random" | "custom"
     isRandom: true,
     school_ids: [] as string[],
+    importJsonText: "",
+    questions: [] as any[],
   });
   const [schools, setSchools] = useState<any[]>([]);
   const [pendingSetData, setPendingSetData] = useState<any>(null);
@@ -64,6 +69,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const [setToDelete, setSetToDelete] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingSet, setViewingSet] = useState<any>(null);
+  const [editingQuestion, setEditingQuestion] = useState<any>(null);
 
 
   const fetchSets = async (loadQuestions = true) => {
@@ -158,14 +164,22 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     try {
       // If this is a new custom set that hasn't been created yet
       if (activeSet.id === -1 && pendingSetData) {
+        const existingQs = selected.filter((q) => q.id && typeof q.id === 'number');
+        const newQs = selected.filter((q) => !q.id || typeof q.id === 'string' || q.isNew);
+
         const payload = {
           name: pendingSetData.name,
           description: pendingSetData.description,
           isRandom: false,
-          questions: selected.map((q) => ({
+          questions: existingQs.map((q) => ({
             question_id: q.id,
-            difficulty_level: q.difficulty_level
+            difficulty_level: q.difficulty_level || 1
           })),
+          newQuestions: newQs.map((q) => {
+            // Remove temp ids and ui flags
+            const { id, isNew, ...rest } = q;
+            return rest;
+          }),
           school_ids: pendingSetData.school_ids.map(Number),
           success: true
         };
@@ -262,8 +276,231 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const openAddModal = () => {
     setEditingSet(null);
     const randomName = `Set ${sets.length + 1}`;
-    setFormData({ name: randomName, description: "", nameType: "random", isRandom: true, school_ids: [] });
+    setFormData({ name: randomName, description: "", nameType: "random", isRandom: true, school_ids: [], importJsonText: "", questions: [] });
     setIsModalOpen(true);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const isCSV = file.type === "text/csv" || file.name.endsWith(".csv");
+    const isJSON = file.type === "application/json" || file.name.endsWith(".json");
+
+    if (!isCSV && !isJSON) {
+      toast({
+        title: "⚠️ Invalid File",
+        description: "Please upload a CSV or JSON file",
+        variant: "destructive",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (typeof e.target?.result === "string") {
+        setFormData({ ...formData, importJsonText: e.target.result });
+        toast({
+          title: "✅ File Loaded",
+          description: `${file.name} has been loaded. Click Import to populate fields.`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
+        });
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset the input so the same file can be uploaded again
+    event.target.value = "";
+  };
+
+  const downloadCSVTemplate = () => {
+    const template = [
+      "field,value",
+      "name,My Question Set",
+      "description,A sample question set for reference",
+      "school_ids,\"1,2,3\"",
+      "isRandom,false"
+    ].join("\n");
+
+    const blob = new Blob([template], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "question_set_template.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "✅ Template Downloaded",
+      description: "CSV template has been downloaded",
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
+    });
+  };
+
+  const handleImportJson = () => {
+    if (!formData.importJsonText.trim()) {
+      toast({
+        title: "⚠️ Empty Data",
+        description: "Please paste JSON data or upload a file",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    try {
+      const dataText = formData.importJsonText.trim();
+      let parsedData: any = {};
+
+      // Check if data is JSON (starts with { or [)
+      if (dataText.startsWith('{') || dataText.startsWith('[')) {
+        // Parse as JSON
+        parsedData = JSON.parse(dataText);
+      } else {
+        // Parse as CSV
+        const parseResult = Papa.parse(dataText, {
+          header: true,
+          skipEmptyLines: true,
+          transform: (value) => value.trim(),
+        });
+
+        if (parseResult.errors.length > 0) {
+          throw new Error(`CSV parsing error: ${parseResult.errors[0].message}`);
+        }
+
+        const csvData = parseResult.data;
+
+        if (csvData.length === 0) {
+          throw new Error("CSV file is empty or invalid");
+        }
+
+        // Check if it's key-value format (field, value columns)
+        const firstRow: any = csvData[0];
+        if (firstRow.field && firstRow.value) {
+          // Key-value format: field,value
+          csvData.forEach((row: any) => {
+            if (row.field && row.value) {
+              if (row.field === 'school_ids') {
+                // Parse comma-separated school IDs
+                parsedData.school_ids = row.value.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id));
+              } else if (row.field === 'isRandom') {
+                parsedData.isRandom = row.value.toLowerCase() === 'true';
+              } else {
+                parsedData[row.field] = row.value;
+              }
+            }
+          });
+        } else if (firstRow.english_text !== undefined || firstRow.question_type !== undefined || firstRow.difficulty_level !== undefined) {
+          // This is a CSV containing a list of questions directly
+          parsedData = csvData;
+        } else {
+          // Standard format: name,description,school_ids (first data row)
+          parsedData = firstRow;
+          if (parsedData.school_ids && typeof parsedData.school_ids === 'string') {
+            parsedData.school_ids = parsedData.school_ids.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id));
+          }
+          if (parsedData.isRandom !== undefined) {
+            parsedData.isRandom = String(parsedData.isRandom).toLowerCase() === 'true';
+          }
+        }
+      }
+
+      // Log parsed data for debugging
+      // console.log("Parsed data:", parsedData);
+
+      // Normalize questions array - convert question_id to id if needed
+      let questions = [];
+      if (Array.isArray(parsedData)) {
+        questions = parsedData;
+      } else {
+        questions = parsedData.questions || [];
+      }
+      
+      console.log("[DEBUG] handleImportJson - extracted raw questions:", questions);
+
+      if (questions.length > 0) {
+        // Parse stringified JSON arrays like answer_key, english_options if they exist
+        const tryParseList = (val: any) => {
+          if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+            try { return JSON.parse(val); } catch(e) { return val; }
+          }
+          return val;
+        };
+
+        const tryParseOptions = (val: any) => {
+          const parsed = tryParseList(val);
+          if (Array.isArray(parsed)) {
+            // Extract the 'text' property if it's an object with an 'id' and 'text', otherwise keep string
+            return parsed.map(item => typeof item === 'object' && item.text !== undefined ? String(item.text) : String(item));
+          }
+          return parsed;
+        };
+
+        const tryParseIntArray = (val: any) => {
+          const parsed = tryParseList(val);
+          if (Array.isArray(parsed)) {
+            return parsed.map(item => parseInt(item, 10));
+          } else if (typeof parsed === 'string' || typeof parsed === 'number') {
+            return [parseInt(String(parsed), 10)];
+          }
+          return parsed;
+        };
+
+        questions = questions.map((q: any) => ({
+          ...q,
+          id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
+          difficulty_level: q.difficulty_level ? parseInt(q.difficulty_level, 10) : 1, // Default to level 1
+          english_options: tryParseOptions(q.english_options),
+          hindi_options: tryParseOptions(q.hindi_options),
+          marathi_options: tryParseOptions(q.marathi_options),
+          answer_key: tryParseIntArray(q.answer_key),
+        }));
+      }
+
+      console.log("[DEBUG] handleImportJson - normalized questions:", questions);
+
+      // Populate form fields with whatever data we have
+      const updatedFormData = {
+        ...formData,
+        name: parsedData.name || formData.name,
+        description: parsedData.description || formData.description,
+        school_ids: parsedData.school_ids ? parsedData.school_ids.map(String) : formData.school_ids,
+        nameType: "custom",
+        isRandom: parsedData.isRandom !== undefined ? parsedData.isRandom : false,
+        questions: questions,
+      };
+
+      console.log("[DEBUG] handleImportJson - setting formData:", updatedFormData);
+      setFormData(updatedFormData);
+
+      // Build a helpful message about what was imported
+      const importedFields = [];
+      if (parsedData.name) importedFields.push("name");
+      if (parsedData.description) importedFields.push("description");
+      if (parsedData.school_ids && parsedData.school_ids.length > 0) {
+        importedFields.push(`${parsedData.school_ids.length} school(s)`);
+      }
+      if (questions && questions.length > 0) {
+        importedFields.push(`${questions.length} question(s)`);
+      }
+
+      toast({
+        title: "✅ Data Imported",
+        description: `Imported: ${importedFields.join(", ") || "some fields"}. Please fill in any remaining required fields.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+    } catch (err: any) {
+      toast({
+        title: "❌ Invalid Format",
+        description: err.message || "Please check your file format. Supported: JSON or CSV",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+    }
   };
 
   const openEditModal = (set: any) => {
@@ -274,6 +511,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       nameType: "custom", // Always custom when editing
       isRandom: false,
       school_ids: set.school_ids ? set.school_ids.map(String) : [],
+      importJsonText: "",
+      questions: [],
     });
     setIsModalOpen(true);
   };
@@ -344,15 +583,88 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             school_ids: formData.school_ids
           });
 
+          // Map imported question IDs to full question objects from allQuestions
+          let fullQuestions = [];
+          if (formData.questions && formData.questions.length > 0 && allQuestions) {
+            const notFoundIds: number[] = [];
+            let newQuestionsCount = 0;
+
+            fullQuestions = formData.questions
+              .map((importedQ: any) => {
+                const qId = importedQ.id || importedQ.question_id;
+
+                // If ID is provided, try to find existing question
+                if (qId) {
+                  const fullQuestion = allQuestions.find((q: any) => q.id === qId);
+                  if (fullQuestion) {
+                    return {
+                      ...fullQuestion,
+                      difficulty_level: importedQ.difficulty_level || fullQuestion.difficulty_level,
+                    };
+                  } else {
+                    notFoundIds.push(qId);
+                    return null;
+                  }
+                }
+                // Alternatively, if it's a completely new question data block without an ID
+                else if (importedQ.english_text && importedQ.english_options && importedQ.answer_key) {
+                  newQuestionsCount++;
+                  return {
+                    ...importedQ,
+                    isNew: true, // Flag it so we know it hasn't been saved yet
+                    id: `tmp-${Date.now()}-${Math.random()}`, // Temporary ID for UI keys
+                    difficulty_level: importedQ.difficulty_level || 1
+                  };
+                }
+
+                return null;
+              })
+              .filter((q: any) => q !== null);
+
+            // console.log("Imported questions:", formData.questions);
+            // console.log("Available allQuestions count:", allQuestions?.length);
+            // console.log("Mapped imported questions to full objects:", fullQuestions);
+
+            if (notFoundIds.length > 0) {
+              console.warn("Question IDs not found:", notFoundIds);
+              if (newQuestionsCount > 0) {
+                toast({
+                  title: "⚠️ Some Questions Not Found",
+                  description: `${notFoundIds.length} question(s) with IDs: ${notFoundIds.join(", ")} were not found in the database. Loaded ${newQuestionsCount} new inline question(s).`,
+                  variant: "default",
+                  className: "border-orange-500 bg-orange-50 text-orange-900",
+                });
+              } else {
+                toast({
+                  title: "⚠️ Some Questions Not Found",
+                  description: `${notFoundIds.length} question(s) with IDs: ${notFoundIds.join(", ")} were not found in the database.`,
+                  variant: "default",
+                  className: "border-orange-500 bg-orange-50 text-orange-900",
+                });
+              }
+            } else if (fullQuestions.length > 0) {
+              const loadedExisting = fullQuestions.length - newQuestionsCount;
+              toast({
+                title: "✅ Questions Loaded",
+                description: `Pre-selected ${loadedExisting} existing questions and ${newQuestionsCount} new inline questions.`,
+                variant: "default",
+                className: "border-green-500 bg-green-50 text-green-900",
+              });
+            }
+          }
+
           // Create a temporary "fake" set to trigger the picker
           const tempSet = {
             id: -1, // signal that this is new
             name: finalName,
             limit: 0,
-            questions: [],
+            questions: fullQuestions, // Pre-load imported questions with full data
             active: true,
             isNewCustom: true // Optional helper flag
           };
+          
+          console.log("[DEBUG] handleSubmit - tempSet created:", tempSet);
+          
           setActiveSet(tempSet);
           return;
         }
@@ -476,6 +788,46 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     setIsDownloadModalOpen(true);
   };
 
+  const handleEditQuestion = (question: any) => {
+    setEditingQuestion(question);
+  };
+
+  const handleSaveEditedQuestion = async (questionData: any) => {
+    if (!editingQuestion) return;
+
+    try {
+      await updateQuestion(editingQuestion.id, questionData);
+
+      toast({
+        title: "✅ Question Updated",
+        description: "The question has been successfully updated.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+
+      // Refresh the questions in the current set
+      if (viewingSet) {
+        const updatedSet = await loadSetQuestions(viewingSet.id);
+        if (updatedSet) {
+          setViewingSet(updatedSet);
+        }
+      }
+
+      setEditingQuestion(null);
+    } catch (err: any) {
+      toast({
+        title: "❌ Update Failed",
+        description: err.message || "Failed to update question. Please try again.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingQuestion(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end items-center gap-3">
@@ -531,8 +883,8 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                     size="icon"
                     onClick={async () => {
                       const updatedSet = await loadSetQuestions(set.id);
-                      console.log('Viewing set:', updatedSet);
-                      console.log('Selected questions:', updatedSet?.questions);
+                      // console.log('Viewing set:', updatedSet);
+                      // console.log('Selected questions:', updatedSet?.questions);
                       setViewingSet(updatedSet || set);
                       setIsViewModalOpen(true);
                     }}
@@ -718,6 +1070,66 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 searchPlaceholder="Search schools..."
               />
             </div>
+
+            {/* Import Section */}
+            {!editingSet && formData.nameType === "custom" && (
+              <div className="space-y-2 border-t pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="import-json" className="text-sm font-semibold">Import from File/JSON</Label>
+                  <div className="flex gap-2">
+                    {/* <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={downloadCSVTemplate}
+                      className="h-7 text-xs"
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Template
+                    </Button> */}
+                    <input
+                      type="file"
+                      accept=".csv,.json"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="set-file-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => document.getElementById("set-file-upload")?.click()}
+                      className="h-7 text-xs"
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Upload File
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleImportJson}
+                      className="h-7 text-xs"
+                    >
+                      Import
+                    </Button>
+                  </div>
+                </div>
+                <Textarea
+                  id="import-json"
+                  value={formData.importJsonText}
+                  onChange={(e) =>
+                    setFormData({ ...formData, importJsonText: e.target.value })
+                  }
+                  placeholder="Paste csv here"
+                  rows={6}
+                  className="font-mono text-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  💡 Paste JSON data above, then click Import. Include question IDs to pre-select questions. All fields are optional.
+                </p>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -807,13 +1219,29 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       />
 
       {/* View Questions Modal */}
-      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+      <Dialog open={isViewModalOpen} onOpenChange={(open) => {
+        setIsViewModalOpen(open);
+        if (!open) {
+          setEditingQuestion(null);
+        }
+      }}>
         <DialogContent className="max-w-4xl h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
           </DialogHeader>
 
-          {viewingSet && (
+          {editingQuestion ? (
+            <div className="flex-1 overflow-y-auto pr-2">
+              <QuestionEditor
+                question={editingQuestion}
+                onSave={handleSaveEditedQuestion}
+                onCancel={handleCancelEdit}
+                difficultyLevels={difficultyLevels}
+                schools={schools}
+                setSelectedQuestion={setEditingQuestion}
+              />
+            </div>
+          ) : viewingSet && (
             <div className="flex-1 overflow-y-auto pr-2">
               <div className="space-y-4">
                 {viewingSet.description && (
@@ -824,7 +1252,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">
                     {viewingSet.questions.map((question: any, index: number) => (
-                      <div key={question.id} className="p-4 border rounded-lg bg-white">
+                      <div key={question.id} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">``
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
@@ -841,6 +1269,15 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                               </div>
                             )}
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditQuestion(question)}
+                            title="Edit question"
+                            className="h-8 w-8"
+                          >
+                            <Edit className="h-4 w-4 text-blue-600" />
+                          </Button>
                         </div>
 
                         <div className="flex flex-wrap gap-2 mt-3">

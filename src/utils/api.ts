@@ -1634,6 +1634,7 @@ export const createQuestionSet = async (data: {
   maximumMarks?: number;
   isRandom?: boolean;
   questions?: { question_id: number; difficulty_level: number }[];
+  newQuestions?: any[];
   partnerId?: number;
   partner_name?: string;
   school_ids?: number[];

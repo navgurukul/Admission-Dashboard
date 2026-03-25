@@ -36,14 +36,41 @@ export function QuestionPicker({
     if (!activeSet?.name) return; // exit if type is missing
 
     const fetchQuestions = async () => {
+      console.log("[DEBUG] QuestionPicker fetchQuestions - activeSet received:", activeSet);
       setLoading(true);
       try {
-        const mainSet = await getQuestionsBySetType(activeSet.name);
-        const remainingSet = await getQuestionsBySetType("Remaining");
-        const mergedQuestions = [
-          ...(mainSet.data || []),
-          ...(remainingSet.data || []),
+        let mainData: any[] = [];
+        try {
+          const mainSet = await getQuestionsBySetType(activeSet.name);
+          mainData = mainSet?.data || [];
+        } catch (e) {
+          console.warn(`Could not fetch main set questions for ${activeSet.name} (it might be new).`);
+        }
+        
+        let remainData: any[] = [];
+        try {
+          const remainingSet = await getQuestionsBySetType("Remaining");
+          remainData = remainingSet?.data || [];
+        } catch (e) {
+          console.warn(`Could not fetch remaining questions.`);
+        }
+        
+        const mergedQuestions: any[] = [
+          ...mainData,
+          ...remainData,
         ];
+        
+        // Ensure any newly staged/imported questions from activeSet are rendered
+        const activeQs = activeSet.questions || [];
+        activeQs.forEach((aq: any) => {
+          if (!mergedQuestions.some(mq => mq.id === aq.id)) {
+            mergedQuestions.unshift(aq); // Add to the top of the list
+          }
+        });
+        
+        console.log("[DEBUG] QuestionPicker fetchQuestions - mergedQuestions pre-set:", mergedQuestions);
+        console.log("[DEBUG] QuestionPicker fetchQuestions - activeSet.questions pre-set:", activeSet.questions);
+
         setQuestions(mergedQuestions);
         setSelected(activeSet.questions || []);
       } catch (err) {
@@ -127,9 +154,9 @@ export function QuestionPicker({
   const filteredQuestions = useMemo(() => {
     return questions.filter((q) => {
       const matchesSearch =
-        q.english_text.toLowerCase().includes(searchText.toLowerCase()) ||
-        q.hindi_text.toLowerCase().includes(searchText.toLowerCase()) ||
-        q.marathi_text.toLowerCase().includes(searchText.toLowerCase());
+        (q.english_text || "").toLowerCase().includes(searchText.toLowerCase()) ||
+        (q.hindi_text || "").toLowerCase().includes(searchText.toLowerCase()) ||
+        (q.marathi_text || "").toLowerCase().includes(searchText.toLowerCase());
 
       const matchesDifficulty =
         difficultyFilter === null || q.difficulty_level === difficultyFilter;
