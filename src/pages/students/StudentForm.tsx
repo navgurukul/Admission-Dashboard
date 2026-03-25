@@ -534,7 +534,8 @@ const StudentForm: React.FC = () => {
     // Check eligibility rules
     if (schoolId === 'SOP') {
       // SOP requires Graduate or higher (completed degree only)
-      return qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || (qualName.includes('graduate') && !qualName.includes('under') && !qualName.includes('pursuing'));
+      // return qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || (qualName.includes('graduate') && !qualName.includes('under') && !qualName.includes('pursuing'));
+      return qualName.includes('pursuing college') || (qualName.includes('graduate') && !qualName.includes('under'));
     }
     return true;
   };
