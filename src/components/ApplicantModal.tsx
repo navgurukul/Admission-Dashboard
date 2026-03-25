@@ -2332,8 +2332,9 @@ Interviewer: ${interviewerName}`;
 
             {/* Offer and Final Status */}
             <div className="space-y-4">
-              <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
+                <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Campus <span className="text-red-500">*</span>
@@ -2532,11 +2533,9 @@ Interviewer: ${interviewerName}`;
                     />
                   )}
                 </div>
-              </div>
-
-              <div className="w-full">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Joining Date
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Joining Date
                 </label>
                 {isStageDisabled(currentApplicant, "OFFER") &&
                   !currentApplicant.final_decisions?.[0]?.joining_date ? (
@@ -2546,7 +2545,7 @@ Interviewer: ${interviewerName}`;
                         <div>
                           <input
                             type="date"
-                            className="border rounded px-2 py-1 w-full cursor-not-allowed opacity-60"
+                            className="border rounded px-2 py-1 w-full block cursor-not-allowed opacity-60"
                             value=""
                             disabled={true}
                           />
@@ -2560,7 +2559,7 @@ Interviewer: ${interviewerName}`;
                 ) : (
                   <input
                     type="date"
-                    className="border rounded px-2 py-1 w-full text-sm sm:text-base"
+                    className="border rounded px-2 py-1 w-full block text-sm sm:text-base"
                     value={
                       joiningDate ||
                       currentApplicant.final_decisions?.[0]?.joining_date?.split(
@@ -2596,6 +2595,8 @@ Interviewer: ${interviewerName}`;
                     }}
                   />
                 )}
+                </div>
+              </div>
               </div>
             </div>
 

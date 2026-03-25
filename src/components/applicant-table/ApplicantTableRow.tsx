@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -77,6 +77,7 @@ interface ApplicantTableRowProps {
   // casteList: any[];
   currentstatusList: any[];
   stageStatusList?: any[];
+  stageStatusesByStageId?: Record<string, any[]>;
   questionSetList: any[];
   partnerList?: any[];
   donorList?: any[];
@@ -105,6 +106,7 @@ export const ApplicantTableRow = ({
   // casteList,
   currentstatusList,
   stageStatusList = [],
+  stageStatusesByStageId = {},
   questionSetList,
   partnerList = [],
   donorList = [],
@@ -244,6 +246,80 @@ export const ApplicantTableRow = ({
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getStageStatusName = (applicant: any) => {
+    if (!applicant.stage_status_id) return null;
+
+    const statusesForStage =
+      stageStatusesByStageId[String(applicant.stage_id)] || stageStatusList || [];
+
+    const statusObj = statusesForStage.find(
+      (s) => Number(s.id) === Number(applicant.stage_status_id)
+    );
+
+    return statusObj?.status_name || statusObj?.current_status_name || statusObj?.name || null;
+  };
+
+  const shouldUseRoundFallback = (applicant: any) => {
+    const hasLr = Array.isArray(applicant.interview_learner_round) && applicant.interview_learner_round.length > 0;
+    const hasCfr = Array.isArray(applicant.interview_cultural_fit_round) && applicant.interview_cultural_fit_round.length > 0;
+    const hasFinal = Array.isArray(applicant.final_decisions) && applicant.final_decisions.length > 0;
+    return !hasLr && !hasCfr && !hasFinal;
+  };
+
+  const isLearningStatusLabel = (value: string | null | undefined) => {
+    if (!value) return false;
+    return value.toLowerCase().includes("learning");
+  };
+
+  const isCfrStatusLabel = (value: string | null | undefined) => {
+    if (!value) return false;
+    const normalized = value.toLowerCase();
+    return (
+      normalized.includes("culture") ||
+      normalized.includes("fit")
+    );
+  };
+
+  const isOnboardedStatusLabel = (value: string | null | undefined) => {
+    if (!value) return false;
+    const normalized = value.toLowerCase();
+    return normalized.includes("onboard") || normalized.includes("join");
+  };
+
+  const isOfferStatusLabel = (value: string | null | undefined) => {
+    if (!value) return false;
+    const normalized = value.toLowerCase();
+    return (
+      normalized.includes("offer") ||
+      normalized.includes("selected") ||
+      normalized.includes("declined")  
+    ) && !isOnboardedStatusLabel(value);
+  };
+
+  const getLearningStageStatusName = (applicant: any) => {
+    if (!shouldUseRoundFallback(applicant)) return null;
+    const stageStatusName = getStageStatusName(applicant);
+    return isLearningStatusLabel(stageStatusName) ? stageStatusName : null;
+  };
+
+  const getCfrStageStatusName = (applicant: any) => {
+    if (!shouldUseRoundFallback(applicant)) return null;
+    const stageStatusName = getStageStatusName(applicant);
+    return isCfrStatusLabel(stageStatusName) ? stageStatusName : null;
+  };
+
+  const getFinalOfferStageStatusName = (applicant: any) => {
+    if (!shouldUseRoundFallback(applicant)) return null;
+    const stageStatusName = getStageStatusName(applicant);
+    return isOfferStatusLabel(stageStatusName) ? stageStatusName : null;
+  };
+
+  const getOnboardedStageStatusName = (applicant: any) => {
+    if (!shouldUseRoundFallback(applicant)) return null;
+    const stageStatusName = getStageStatusName(applicant);
+    return isOnboardedStatusLabel(stageStatusName) ? stageStatusName : null;
   };
 
   const getLatestStatus = (applicant: any) => {
@@ -886,7 +962,9 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.interview_learner_round?.[0]?.learning_round_status || "N/A"}
+                  {(isLearningStatusLabel(applicant.interview_learner_round?.[0]?.learning_round_status)
+                    ? applicant.interview_learner_round?.[0]?.learning_round_status
+                    : null) || getLearningStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -938,7 +1016,9 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status || "N/A"}
+                  {(isCfrStatusLabel(applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status)
+                    ? applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status
+                    : null) || getCfrStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -990,7 +1070,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.final_decisions?.[0]?.offer_letter_status || "N/A"}
+                  {applicant.final_decisions?.[0]?.offer_letter_status || getFinalOfferStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -1007,7 +1087,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.final_decisions?.[0]?.onboarded_status || "N/A"}
+                  {applicant.final_decisions?.[0]?.onboarded_status || getOnboardedStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
