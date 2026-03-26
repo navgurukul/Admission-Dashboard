@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { User, Mail, Phone, MapPin, Calendar, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
@@ -823,39 +824,70 @@ export default function StudentResult() {
     <div className="min-h-screen student-bg-gradient p-4 flex flex-col">
       <div className="flex-1 flex">
         <div className="bg-card rounded-t-md shadow-2xl p-6 w-full overflow-y-auto">
-          <header className="mb-6">
+          <header className="mb-6 mt-14 md:mt-0 px-1 sm:px-0">
             <LanguageSelector />
             <LogoutButton />
-            <h1 className="text-2xl font-bold text-foreground">{content.title}</h1>
-            <p className="text-muted-foreground">
-              {content.subtitle}
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2 sm:p-3 rounded-xl sm:rounded-2xl hidden sm:block">
+                 <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">{content.title}</h1>
+                <p className="text-sm sm:text-base text-muted-foreground mt-1 font-medium">
+                  {content.subtitle}
+                </p>
+              </div>
+            </div>
           </header>
 
           {/* Student Details */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{content.studentDetails}</CardTitle>
+          <Card className="mb-6 border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/20">
+            <CardHeader className="pb-4 px-5 sm:px-6 border-b border-border/40 bg-muted/30">
+              <CardTitle className="text-lg md:text-xl font-bold flex items-center gap-2">
+                <User className="w-5 h-5 text-primary" />
+                {content.studentDetails}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-4">
-              <p>
-                <span className="font-semibold">{content.name}</span>{" "}
-                {student?.firstName || "-"} {student?.middleName || ""}{" "}
-                {student?.lastName || ""}
-              </p>
-              <p>
-                <span className="font-semibold">{content.email}</span>{" "}
-                {student?.email || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">{content.phoneNumber}</span>{" "}
-                {student?.whatsappNumber || "-"}
-              </p>
-              <p>
-                <span className="font-semibold">{content.state}</span>{" "}
-                {student?.state ? student.state : "-"}
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm md:text-base px-5 sm:px-6 py-5 sm:py-6">
+              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
+                <div className="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-full text-blue-600 dark:text-blue-400 flex-shrink-0">
+                  <User className="w-5 h-5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.name}</span>
+                  <span className="font-semibold sm:font-medium text-foreground truncate">{student?.firstName || "-"} {student?.middleName || ""} {student?.lastName || ""}</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-2.5 rounded-full text-purple-600 dark:text-purple-400 flex-shrink-0">
+                  <Mail className="w-5 h-5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="flex flex-col overflow-hidden min-w-0">
+                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.email}</span>
+                  <span className="font-semibold sm:font-medium text-foreground truncate block w-full">{student?.email || "-"}</span>
+                </div>
+              </div>
 
-              </p>
+              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
+                <div className="bg-green-100 dark:bg-green-900/30 p-2.5 rounded-full text-green-600 dark:text-green-400 flex-shrink-0">
+                  <Phone className="w-5 h-5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.phoneNumber}</span>
+                  <span className="font-semibold sm:font-medium text-foreground truncate">{student?.whatsappNumber || "-"}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
+                <div className="bg-orange-100 dark:bg-orange-900/30 p-2.5 rounded-full text-orange-600 dark:text-orange-400 flex-shrink-0">
+                  <MapPin className="w-5 h-5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.state}</span>
+                  <span className="font-semibold sm:font-medium text-foreground truncate">{student?.state ? student.state : "-"}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -872,23 +904,26 @@ export default function StudentResult() {
             )}
 
           {/* Test Results & Slot Booking */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{content.testResults}</CardTitle>
+          <Card className="border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/10">
+            <CardHeader className="pb-4 px-5 sm:px-6 border-b border-border/40 bg-muted/30">
+              <CardTitle className="text-lg md:text-xl font-bold flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                {content.testResults}
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="min-w-full border border-border text-left rounded-lg">
-                  <thead className="bg-muted">
+            <CardContent className="px-4 sm:px-6 py-5 sm:py-6">
+              <div className="w-full">
+                <table className="w-full border-collapse text-left">
+                  <thead className="hidden md:table-header-group bg-muted text-sm border border-border rounded-t-lg overflow-hidden">
                     <tr>
-                      <th className="px-4 py-2 border">{content.stage}</th>
-                      <th className="px-4 py-2 border">{content.status}</th>
-                      <th className="px-4 py-2 border">{content.scheduledTime}</th>
-                      <th className="px-4 py-2 border">{content.actions}</th>
-                      <th className="px-4 py-2 border">{content.marks}</th>
+                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.stage}</th>
+                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.status}</th>
+                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.scheduledTime}</th>
+                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.actions}</th>
+                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs">{content.marks}</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="block md:table-row-group">
                     {tests && tests.length > 0 ? (
                       tests.map((test: TestRow) => {
                         const slotStatus = test.slotBooking?.status;
@@ -972,19 +1007,64 @@ export default function StudentResult() {
                         });
 
                         return (
-                          <tr key={test.id} className="hover:bg-muted">
-                            <td className="px-4 py-2 border">{test.name}</td>
-                            <td className="px-4 py-2 border">
+                          <tr key={test.id} className="block md:table-row bg-background md:bg-card border border-border/60 md:border md:border-border rounded-2xl md:rounded-none mb-6 md:mb-0 hover:bg-muted/30 overflow-hidden shadow-lg shadow-black/5 md:shadow-none relative transition-all">
+                            {/* Mobile decorative edge indicator */}
+                            <div className={`md:hidden absolute left-0 top-0 bottom-0 w-1.5 ${
+                              test.status === "Pass" ? "bg-green-500" : test.status === "Fail" ? "bg-red-500" : isSlotBooked && test.slotBooking?.scheduledTime ? "bg-blue-500" : "bg-yellow-500"
+                            }`} />
+                            
+                            <td className="block md:table-cell px-5 pt-5 pb-3 md:py-4 border-b border-border/20 md:border-none md:border-b md:border-border/60 text-base md:text-sm font-bold md:font-medium">
+                              <div className="flex justify-between items-start md:block ml-1 md:ml-0">
+                                <span className="text-left text-foreground flex items-center md:items-start gap-2 max-w-[70%]">
+                                  <span className="md:hidden text-muted-foreground/50 opacity-0 absolute">Row</span>
+                                  {test.name}
+                                  {test.score && (
+                                     <span className="md:hidden inline-flex items-center ml-2 bg-muted/50 px-2 py-0.5 rounded text-[10px] font-bold text-muted-foreground uppercase">{content.marks}: {test.score}</span>
+                                  )}
+                                </span>
+                                
+                                {/* Mobile Status Badge */}
+                                <div className="md:hidden flex-shrink-0">
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-[11px] font-extrabold tracking-widest uppercase flex items-center gap-1.5 border ${
+                                      test.status === "Pass"
+                                        ? "bg-green-50 text-green-700 border-green-200"
+                                        : test.status === "Pending"
+                                          ? isSlotBooked && test.slotBooking?.scheduledTime
+                                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                                            : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                          : "bg-red-50 text-red-700 border-red-200"
+                                      }`}
+                                  >
+                                    {test.status === "Pass" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                    {test.status === "Fail" && <XCircle className="w-3.5 h-3.5" />}
+                                    {test.status === "Pending" && <Clock className="w-3.5 h-3.5" />}
+                                    {test.status === "Pending" && isSlotBooked && test.slotBooking?.scheduledTime
+                                      ? content.scheduled
+                                      : test.status === "Pass"
+                                        ? content.pass
+                                        : test.status === "Fail"
+                                          ? content.fail
+                                          : content.pending}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="hidden md:table-cell px-5 py-4 md:border-b border-border/60 text-sm">
                               <span
-                                className={`px-2 py-1 rounded text-sm font-medium ${test.status === "Pass"
-                                  ? "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]"
+                                className={`px-2.5 py-1 rounded-md text-sm font-semibold flex-shrink-0 inline-flex items-center gap-1 border ${test.status === "Pass"
+                                  ? "bg-green-100 text-green-700 border-green-200"
                                   : test.status === "Pending"
                                     ? isSlotBooked && test.slotBooking?.scheduledTime
-                                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                      : "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                                    : "bg-destructive/10 text-destructive"
+                                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                                      : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                    : "bg-red-50 text-red-700 border-red-200"
                                   }`}
                               >
+                                {test.status === "Pass" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                {test.status === "Fail" && <XCircle className="w-3.5 h-3.5" />}
+                                {test.status === "Pending" && <Clock className="w-3.5 h-3.5" />}
                                 {test.status === "Pending" && isSlotBooked && test.slotBooking?.scheduledTime
                                   ? content.scheduled
                                   : test.status === "Pass"
@@ -994,118 +1074,132 @@ export default function StudentResult() {
                                       : content.pending}
                               </span>
                             </td>
-                            <td className="px-4 py-2 border">
-                              {test.slotBooking?.scheduledTime
-                                ? new Date(
-                                  test.slotBooking.scheduledTime,
-                                ).toLocaleString("en-US", {
-                                  year: "numeric",
-                                  month: "2-digit",
-                                  day: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                })
-                                : "-"}
+
+                            <td className="flex md:table-cell items-center gap-3 px-5 py-3 md:py-4 border-b border-border/20 md:border-b md:border-border/60 text-sm">
+                              <Calendar className="w-4 h-4 md:hidden text-muted-foreground/70 ml-1 flex-shrink-0" />
+                              <span className="text-left text-muted-foreground md:text-foreground font-medium md:font-normal">
+                                {test.slotBooking?.scheduledTime
+                                  ? new Date(
+                                    test.slotBooking.scheduledTime,
+                                  ).toLocaleString("en-US", {
+                                    year: "numeric",
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  })
+                                  : <span className="italic opacity-70">Not Scheduled</span>}
+                              </span>
                             </td>
-                            <td className="px-4 py-2 border">
-                              {/* Screening Test Actions - Only show Retest button for Fail */}
-                              {test.name.includes("Screening Test") ? (
-                                test.status === "Pass" ? (
-                                  <p className="text-muted-foreground">-</p>
-                                ) : hasPassedAttempt ? (
-                                  <Button
-                                    disabled
-                                    className="bg-secondary text-muted-foreground cursor-not-allowed"
-                                  >
-                                    {content.retest}
-                                  </Button>
-                                ) : test.status === "Fail" ? (
-                                  <Button
-                                    onClick={handleRetestNavigation}
-                                    className="bg-primary hover:bg-primary/90"
-                                  >
-                                    {content.retest}
-                                  </Button>
+
+                            <td className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center md:table-cell px-5 pt-3 pb-5 md:py-4 md:border-b md:border-border/60 text-sm">
+                              <div className="w-full sm:w-auto text-left relative z-10 ml-1 md:ml-0">
+                                <span className="md:hidden block text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">{content.actions}</span>
+                                {/* Screening Test Actions - Only show Retest button for Fail */}
+                                {test.name.includes("Screening Test") ? (
+                                  test.status === "Pass" ? (
+                                    <p className="text-muted-foreground font-medium">-</p>
+                                  ) : hasPassedAttempt ? (
+                                    <Button
+                                      disabled
+                                      className="bg-secondary/50 text-muted-foreground cursor-not-allowed w-full sm:w-auto font-medium shadow-none h-11 md:h-9"
+                                    >
+                                      {content.retest}
+                                    </Button>
+                                  ) : test.status === "Fail" ? (
+                                    <Button
+                                      onClick={handleRetestNavigation}
+                                      className="bg-primary hover:bg-primary/90 w-full sm:w-auto font-semibold shadow-md md:shadow-sm h-11 md:h-9 active:scale-[0.98] transition-all"
+                                    >
+                                      {content.retest}
+                                    </Button>
+                                  ) : (
+                                    <p className="text-muted-foreground font-medium">-</p>
+                                  )
                                 ) : (
-                                  <p className="text-muted-foreground">-</p>
-                                )
-                              ) : (
-                                /* Book/Reschedule for LR & CFR only */
-                                <>
-                                  {/* If completed (Pass/Fail), show nothing */}
-                                  {test.action === "Completed" ? (
-                                    <p className="text-muted-foreground">-</p>
-                                  ) : isCooldownActive ? (
-                                    <div className="flex flex-col gap-1">
+                                  /* Book/Reschedule for LR & CFR only */
+                                  <div className="w-full">
+                                    {/* If completed (Pass/Fail), show nothing */}
+                                    {test.action === "Completed" ? (
+                                      <p className="text-muted-foreground font-medium">-</p>
+                                    ) : isCooldownActive ? (
+                                      <div className="flex flex-col gap-2">
+                                        <Button
+                                          disabled
+                                          className="bg-secondary/50 text-muted-foreground cursor-not-allowed w-full sm:w-auto shadow-none h-11 md:h-9"
+                                          variant="outline"
+                                        >
+                                          {content.bookSlot}
+                                        </Button>
+                                        <p className="text-[11px] md:text-xs text-destructive/90 bg-destructive/5 p-2 rounded-md leading-relaxed border border-destructive/10">
+                                          You can book the slot after{" "}
+                                          <span className="font-bold">{remainingText || "15 days"}</span>
+                                          {" "}Till then please practice.
+                                        </p>
+                                      </div>
+                                    ) : hasPassedAttempt ? (
+                                      /* If another attempt passed, disable button */
                                       <Button
                                         disabled
-                                        className="bg-secondary text-muted-foreground cursor-not-allowed"
+                                        className="bg-secondary/50 text-muted-foreground cursor-not-allowed w-full sm:w-auto shadow-none h-11 md:h-9"
                                         variant="outline"
+                                      >
+                                        {isSlotBooked ? content.reschedule : content.bookSlot}
+                                      </Button>
+                                    ) : hasTimePassed && !isSlotCompleted ? (
+                                      /* If time passed but not completed, disable (awaiting result) */
+                                      <Button
+                                        disabled
+                                        className="bg-secondary/50 text-muted-foreground cursor-not-allowed w-full sm:w-auto whitespace-normal h-auto py-3 md:py-2 px-4 shadow-none font-medium border-dashed"
+                                        variant="outline"
+                                      >
+                                        Interview Completed
+                                      </Button>
+                                    ) : isSlotBooked && !isSlotCancelled ? (
+                                      /* If slot is booked and time not passed, show Reschedule */
+                                      <Button
+                                        onClick={() =>
+                                          handleBooking(test.id, test.name)
+                                        }
+                                        variant="outline"
+                                        className="w-full sm:w-auto border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-semibold h-11 md:h-9 active:scale-[0.98] transition-all"
+                                      >
+                                        {content.reschedule}
+                                      </Button>
+                                    ) : (
+                                      /* Default: Show Book Slot */
+                                      <Button
+                                        onClick={() =>
+                                          handleBooking(test.id, test.name)
+                                        }
+                                        className="bg-[hsl(var(--status-active))] hover:bg-[hsl(var(--status-active))]/90 w-full sm:w-auto font-semibold border-0 shadow-md md:shadow-sm h-11 md:h-9 text-white active:scale-[0.98] transition-all"
                                       >
                                         {content.bookSlot}
                                       </Button>
-                                      <p className="text-xs text-red-600">
-                                        You can book the slot after{" "}
-                                        {remainingText || "15 days"}{" "}
-                                        Till then please practice.
-                                      </p>
-                                    </div>
-                                  ) : hasPassedAttempt ? (
-                                    /* If another attempt passed, disable button */
-                                    <Button
-                                      disabled
-                                      className="bg-secondary text-muted-foreground cursor-not-allowed"
-                                      variant="outline"
-                                    >
-                                      {isSlotBooked ? content.reschedule : content.bookSlot}
-                                    </Button>
-                                  ) : hasTimePassed && !isSlotCompleted ? (
-                                    /* If time passed but not completed, disable (awaiting result) */
-                                    <Button
-                                      disabled
-                                      className="bg-secondary text-muted-foreground cursor-not-allowed"
-                                      variant="outline"
-                                    >
-                                      Interview Completed
-                                    </Button>
-                                  ) : isSlotBooked && !isSlotCancelled ? (
-                                    /* If slot is booked and time not passed, show Reschedule */
-                                    <Button
-                                      onClick={() =>
-                                        handleBooking(test.id, test.name)
-                                      }
-                                      variant="outline"
-                                    >
-                                      {content.reschedule}
-                                    </Button>
-                                  ) : (
-                                    /* Default: Show Book Slot */
-                                    <Button
-                                      onClick={() =>
-                                        handleBooking(test.id, test.name)
-                                      }
-                                      className="bg-[hsl(var(--status-active))] hover:bg-[hsl(var(--status-active))]/90"
-                                    >
-                                      {content.bookSlot}
-                                    </Button>
-                                  )}
-                                </>
-                              )}
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </td>
-                            <td className="px-4 py-2 border">
-                              {test.score ?? "-"}
+
+                            {/* Desktop only marks - Mobile marks are moved to the top header for cleaner look */}
+                            <td className="hidden md:table-cell px-5 py-4 border-b border-border/60 text-sm">
+                              <span className="font-semibold px-3 py-1 bg-muted/30 rounded-md block w-max">{test.score ?? "-"}</span>
                             </td>
                           </tr>
                         );
                       })
                     ) : (
-                      <tr>
+                      <tr className="block md:table-row border border-border md:border-none rounded-xl md:rounded-none md:border-b">
                         <td
                           colSpan={5}
-                          className="px-4 py-8 text-center text-muted-foreground"
+                          className="block md:table-cell px-4 py-12 text-center text-muted-foreground text-sm md:text-base bg-muted/10 md:bg-transparent rounded-xl md:rounded-none"
                         >
-                          No test data available
+                          <div className="flex flex-col items-center justify-center space-y-3">
+                            <span className="text-4xl md:text-5xl opacity-50">📄</span>
+                            <span className="font-medium">No test data available</span>
+                          </div>
                         </td>
                       </tr>
                     )}
