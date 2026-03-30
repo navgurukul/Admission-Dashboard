@@ -34,6 +34,7 @@ import {
   formatDateTimeForCalendar,
 } from "@/utils/googleCalendar";
 import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
+import { BulkEditSlotModal } from "@/components/BulkEditSlotModal";
 
 type SlotData = {
   id: number;
@@ -87,6 +88,12 @@ const Schedule = () => {
   const [slotToDelete, setSlotToDelete] = useState<SlotData | null>(null);
   const [isDeletingSlot, setIsDeletingSlot] = useState(false);
 
+  // Bulk Delete state
+  const [selectedSlotIds, setSelectedSlotIds] = useState<number[]>([]);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+
   // Initialize Google API on mount
   useEffect(() => {
     const initGoogle = async () => {
@@ -134,6 +141,7 @@ const Schedule = () => {
       setAvailableSlots(fetchedSlots);
       setAllSlots(fetchedSlots);
       setTotalPages(response?.totalPages || 1);
+      setSelectedSlotIds([]);
 
     } catch (error) {
       console.error("Error fetching slots:", error);
@@ -256,8 +264,8 @@ const Schedule = () => {
 
   // Check if slot can be deleted
   const canDeleteSlot = (slot: SlotData): boolean => {
-    // Cannot delete if booked
-    if (slot.is_booked) {
+    // Cannot delete if booked or status is anything other than available
+    if (slot.is_booked || (slot.status && slot.status.toLowerCase() !== "available")) {
       return false;
     }
 
@@ -321,6 +329,82 @@ const Schedule = () => {
     }
   };
 
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const deletableIds = availableSlots
+        .filter(canDeleteSlot)
+        .map((slot) => slot.id);
+      setSelectedSlotIds(deletableIds);
+    } else {
+      setSelectedSlotIds([]);
+    }
+  };
+
+  const handleSelectToggle = (id: number) => {
+    setSelectedSlotIds((prev) =>
+      prev.includes(id)
+        ? prev.filter((slotId) => slotId !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    try {
+      setIsBulkDeleting(true);
+      const deletePromises = selectedSlotIds.map((id) =>
+        deleteInterviewSlot(id)
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+
+      const fulfilledCount = results.filter((r) => r.status === "fulfilled").length;
+      const rejectedResults = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+      const rejectedCount = rejectedResults.length;
+
+      if (fulfilledCount > 0) {
+        toast({
+          title: "✅ Slots Deleted",
+          description: `${fulfilledCount} slot(s) deleted successfully.`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900"
+        });
+      }
+
+      if (rejectedCount > 0) {
+        // Extract unique error reasons
+        const errorMessages = rejectedResults
+          .map((r) => getFriendlyErrorMessage(r.reason))
+          .filter(Boolean);
+        const uniqueErrorMessages = Array.from(new Set(errorMessages));
+
+        const errorMessageStr = uniqueErrorMessages.length > 0
+          ? uniqueErrorMessages.join(" | ")
+          : "Server rejected the request.";
+
+        toast({
+          title: "❌ Partial Deletion Failed",
+          description: `Failed to delete ${rejectedCount} slot(s). Reasons: ${errorMessageStr}`,
+          variant: "destructive",
+          className: "border-red-500 bg-red-50 text-red-900"
+        });
+      }
+
+      fetchAllAvailableSlots();
+      setBulkDeleteDialogOpen(false);
+      setSelectedSlotIds([]);
+    } catch (error: any) {
+      console.error("Error bulk deleting slots:", error);
+      toast({
+        title: "❌ Unable to Bulk Delete Slots",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900"
+      });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   // Calculate statistics
   const todaySlots = allSlots.filter((slot) => {
     const slotDate = new Date(slot.date).toDateString();
@@ -377,7 +461,7 @@ const Schedule = () => {
                 <span className="sm:hidden">Back</span>
               </Button>
             </div>
-            
+
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -489,6 +573,24 @@ const Schedule = () => {
                   Available Slots Management
                 </h2>
                 <div className="flex gap-3">
+                  {/* <Button
+                    onClick={() => setIsBulkEditModalOpen(true)}
+                    disabled={selectedSlotIds.length === 0}
+                    variant="outline"
+                    className="shadow-soft hover:shadow-medium transition-all"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Bulk Edit
+                  </Button> */}
+                  <Button
+                    onClick={() => setBulkDeleteDialogOpen(true)}
+                    disabled={selectedSlotIds.length === 0}
+                    variant="destructive"
+                    className="shadow-soft hover:shadow-medium transition-all"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Bulk Delete
+                  </Button>
                   <Button
                     onClick={() => setIsAddSlotsModalOpen(true)}
                     className="bg-gradient-primary hover:bg-primary/90 text-white"
@@ -562,6 +664,19 @@ const Schedule = () => {
                   <table className="w-full">
                     <thead className="bg-muted/30 sticky top-0">
                       <tr>
+                        <th className="text-left p-4 font-medium text-muted-foreground text-sm w-12">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={
+                              availableSlots.length > 0 &&
+                              selectedSlotIds.length ===
+                              availableSlots.filter(canDeleteSlot).length
+                            }
+                            onChange={handleSelectAll}
+                            disabled={availableSlots.filter(canDeleteSlot).length === 0}
+                          />
+                        </th>
                         <th className="text-left p-4 font-medium text-muted-foreground text-sm">
                           Created by
                         </th>
@@ -591,6 +706,17 @@ const Schedule = () => {
                           key={slot.id}
                           className="border-b border-border hover:bg-muted/20 transition-all"
                         >
+                          {/* Checkbox */}
+                          <td className="p-4">
+                            <input
+                              type="checkbox"
+                              className="rounded border-gray-300"
+                              checked={selectedSlotIds.includes(slot.id)}
+                              onChange={() => handleSelectToggle(slot.id)}
+                              disabled={!canDeleteSlot(slot)}
+                            />
+                          </td>
+
                           {/* Created by */}
                           <td className="p-4">
                             <span className="text-sm text-foreground font-medium">
@@ -648,11 +774,11 @@ const Schedule = () => {
                                 slot.status?.toLowerCase() === "booked"
                                   ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                                   : slot.status?.toLowerCase() === "expired"
-                                  ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                                  : slot.status?.toLowerCase() === "cancelled"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                  : "bg-primary/10 text-primary"
-                              }`}
+                                    ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                    : slot.status?.toLowerCase() === "cancelled"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                      : "bg-primary/10 text-primary"
+                                }`}
                             >
                               {slot.status || "Available"}
                             </span>
@@ -811,6 +937,29 @@ const Schedule = () => {
         }
         confirmText="Delete Slot"
         isLoading={isDeletingSlot}
+      />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={bulkDeleteDialogOpen}
+        onClose={() => setBulkDeleteDialogOpen(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        title="Bulk Delete Slots"
+        description={`Are you sure you want to delete ${selectedSlotIds.length} selected slot(s)?\nThis action cannot be revert.`}
+        confirmText="Delete Slots"
+        isLoading={isBulkDeleting}
+      />
+
+      {/* Bulk Edit Modal */}
+      <BulkEditSlotModal
+        isOpen={isBulkEditModalOpen}
+        onClose={() => setIsBulkEditModalOpen(false)}
+        onSuccess={() => {
+          setIsBulkEditModalOpen(false);
+          fetchAllAvailableSlots();
+          setSelectedSlotIds([]);
+        }}
+        slots={availableSlots.filter((slot) => selectedSlotIds.includes(slot.id))}
       />
     </div>
   );
