@@ -34,6 +34,7 @@ import {
   formatDateTimeForCalendar,
 } from "@/utils/googleCalendar";
 import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
+import { BulkEditSlotModal } from "@/components/BulkEditSlotModal";
 
 type SlotData = {
   id: number;
@@ -91,6 +92,7 @@ const Schedule = () => {
   const [selectedSlotIds, setSelectedSlotIds] = useState<number[]>([]);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
 
   // Initialize Google API on mount
   useEffect(() => {
@@ -572,6 +574,15 @@ const Schedule = () => {
                 </h2>
                 <div className="flex gap-3">
                   <Button
+                    onClick={() => setIsBulkEditModalOpen(true)}
+                    disabled={selectedSlotIds.length === 0}
+                    variant="outline"
+                    className="shadow-soft hover:shadow-medium transition-all"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Bulk Edit
+                  </Button>
+                  <Button
                     onClick={() => setBulkDeleteDialogOpen(true)}
                     disabled={selectedSlotIds.length === 0}
                     variant="destructive"
@@ -937,6 +948,18 @@ const Schedule = () => {
         description={`Are you sure you want to delete ${selectedSlotIds.length} selected slot(s)?\nThis action cannot be revert.`}
         confirmText="Delete Slots"
         isLoading={isBulkDeleting}
+      />
+
+      {/* Bulk Edit Modal */}
+      <BulkEditSlotModal
+        isOpen={isBulkEditModalOpen}
+        onClose={() => setIsBulkEditModalOpen(false)}
+        onSuccess={() => {
+          setIsBulkEditModalOpen(false);
+          fetchAllAvailableSlots();
+          setSelectedSlotIds([]);
+        }}
+        slots={availableSlots.filter((slot) => selectedSlotIds.includes(slot.id))}
       />
     </div>
   );
