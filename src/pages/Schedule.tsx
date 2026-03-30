@@ -369,16 +369,16 @@ const Schedule = () => {
           className: "border-green-500 bg-green-50 text-green-900"
         });
       }
-      
+
       if (rejectedCount > 0) {
         // Extract unique error reasons
         const errorMessages = rejectedResults
           .map((r) => getFriendlyErrorMessage(r.reason))
           .filter(Boolean);
         const uniqueErrorMessages = Array.from(new Set(errorMessages));
-        
-        const errorMessageStr = uniqueErrorMessages.length > 0 
-          ? uniqueErrorMessages.join(" | ") 
+
+        const errorMessageStr = uniqueErrorMessages.length > 0
+          ? uniqueErrorMessages.join(" | ")
           : "Server rejected the request.";
 
         toast({
@@ -461,7 +461,7 @@ const Schedule = () => {
                 <span className="sm:hidden">Back</span>
               </Button>
             </div>
-            
+
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">
@@ -573,7 +573,7 @@ const Schedule = () => {
                   Available Slots Management
                 </h2>
                 <div className="flex gap-3">
-                  <Button
+                  {/* <Button
                     onClick={() => setIsBulkEditModalOpen(true)}
                     disabled={selectedSlotIds.length === 0}
                     variant="outline"
@@ -581,7 +581,7 @@ const Schedule = () => {
                   >
                     <Edit className="w-4 h-4 mr-2" />
                     Bulk Edit
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={() => setBulkDeleteDialogOpen(true)}
                     disabled={selectedSlotIds.length === 0}
@@ -671,7 +671,7 @@ const Schedule = () => {
                             checked={
                               availableSlots.length > 0 &&
                               selectedSlotIds.length ===
-                                availableSlots.filter(canDeleteSlot).length
+                              availableSlots.filter(canDeleteSlot).length
                             }
                             onChange={handleSelectAll}
                             disabled={availableSlots.filter(canDeleteSlot).length === 0}
@@ -774,11 +774,11 @@ const Schedule = () => {
                                 slot.status?.toLowerCase() === "booked"
                                   ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                                   : slot.status?.toLowerCase() === "expired"
-                                  ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                                  : slot.status?.toLowerCase() === "cancelled"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                  : "bg-primary/10 text-primary"
-                              }`}
+                                    ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                    : slot.status?.toLowerCase() === "cancelled"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                      : "bg-primary/10 text-primary"
+                                }`}
                             >
                               {slot.status || "Available"}
                             </span>
