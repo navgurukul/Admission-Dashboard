@@ -99,6 +99,8 @@ const StudentForm: React.FC = () => {
     casteTribe: "",
     religion: "",
     initial_school_id: "",
+    pursuingYear: "",
+    collegeAttendanceMethod: "",
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -523,6 +525,10 @@ const StudentForm: React.FC = () => {
       return false;
     }
 
+    if (schoolId === 'SOP' && formData.gender === 'male') {
+      return false;
+    }
+
     const qualificationId = formData.maximumQualification;
     if (!qualificationId) return true; // Show all if no qualification selected
 
@@ -535,7 +541,19 @@ const StudentForm: React.FC = () => {
     if (schoolId === 'SOP') {
       // SOP requires Graduate or higher (completed degree only)
       // return qualName.includes('bachelor') || qualName.includes('master') || qualName.includes('phd') || (qualName.includes('graduate') && !qualName.includes('under') && !qualName.includes('pursuing'));
-      return qualName.includes('pursuing college') || (qualName.includes('graduate') && !qualName.includes('under'));
+      
+      const isGraduate = qualName.includes('graduate') && !qualName.includes('under');
+      const isPursuingCollege = qualName.includes('pursuing college');
+
+      if (isPursuingCollege && formData.gender === 'female') {
+        // Female pursuing college: eligible only if year is 2nd/3rd/4th/Final AND attendance is "Only Exam"
+        const allowedYears = ['2nd Year', '3rd Year', '4th Year', 'Final Year'];
+        const isYearAllowed = allowedYears.includes(formData.pursuingYear);
+        const isExamOnly = formData.collegeAttendanceMethod === 'Only Exam';
+        return isYearAllowed && isExamOnly;
+      }
+
+      return isPursuingCollege || isGraduate;
     }
     return true;
   };
@@ -680,6 +698,8 @@ const StudentForm: React.FC = () => {
       religion_id: Number(data.religion) || null,
       partner_id: partnerId ? Number(partnerId) : null,
       initial_school_id: Number(data.initial_school_id) || null,
+      graduation_year: data.pursuingYear || null,
+      graduation_mode: data.collegeAttendanceMethod || null,
     };
   };
 
@@ -1102,7 +1122,10 @@ const StudentForm: React.FC = () => {
       formData.religion &&
       alternateRequired &&
       (currentStep === 2 ? formData.initial_school_id : true) &&
-      age >= 16.5
+      age >= 16.5 &&
+      // Conditional fields for pursuing graduation
+      (qualifications.find(q => String(q.id) === formData.maximumQualification)?.qualification_name.toLowerCase().includes('pursuing') ? 
+        formData.pursuingYear && formData.collegeAttendanceMethod : true)
     );
   };
 
@@ -1223,6 +1246,29 @@ const StudentForm: React.FC = () => {
         description: "Please fill all required additional fields.",
         variant: "destructive",
       });
+    }
+
+    // Validate pursuing graduation fields
+    const selectedQual = qualifications.find(q => String(q.id) === formData.maximumQualification);
+    const isPursuing = selectedQual?.qualification_name.toLowerCase().includes('pursuing');
+
+    if (isPursuing) {
+      if (!formData.pursuingYear) {
+        return toast({
+          title: "⚠️ Question Required",
+          description: "Please select which year is going on.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+      }
+      if (!formData.collegeAttendanceMethod) {
+        return toast({
+          title: "⚠️ Question Required",
+          description: "Please select your college attendance method.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+      }
     }
 
     if (currentStep === 1) {
@@ -1391,6 +1437,15 @@ const StudentForm: React.FC = () => {
           basedOnQualification: "आपकी योग्यता के आधार पर, हम इन स्कूलों की सिफारिश करते हैं",
           notEligible: "पात्र नहीं",
           requires: "आवश्यक है",
+          pursuingYear: "कौन सा साल चल रहा है? *",
+          collegeAttendanceMethod: "कॉलेज जाने का तरीका *",
+          year1st: "प्रथम वर्ष (1st Year)",
+          year2nd: "द्वितीय वर्ष (2nd Year)",
+          year3rd: "तृतीय वर्ष (3rd Year)",
+          year4th: "चतुर्थ वर्ष (4th Year)",
+          yearFinal: "अंतिम वर्ष (Final Year)",
+          attendanceRegular: "मैं नियमित रूप से कॉलेज जाता हूँ, प्रतिदिन कक्षाओं में उपस्थित रहता हूँ। (Regular)",
+          attendancePrivate: "मैं केवल परीक्षा देने जाता हूँ और घर पर अध्ययन करता हूँ। (Private/Exam-only)",
         };
 
       case "marathi":
@@ -1462,6 +1517,15 @@ const StudentForm: React.FC = () => {
           basedOnQualification: "तुमच्या पात्रतेच्या आधारे, आम्ही या शाळांची शिफारस करतो",
           notEligible: "पात्र नाही",
           requires: "आवश्यक आहे",
+          pursuingYear: "कोणते वर्ष सुरू आहे? *",
+          collegeAttendanceMethod: "कॉलेजला जाण्याची पद्धत *",
+          year1st: "पहिले वर्ष (1st Year)",
+          year2nd: "दुसरे वर्ष (2nd Year)",
+          year3rd: "तिसरे वर्ष (3rd Year)",
+          year4th: "चौथे वर्ष (4th Year)",
+          yearFinal: "अंतिम वर्ष (Final Year)",
+          attendanceRegular: "मी नियमितपणे कॉलेजला जातो, रोज वर्गात हजर राहतो. (Regular)",
+          attendancePrivate: "मी फक्त परीक्षा द्यायला जातो आणि घरी अभ्यास करतो. (Private/Exam-only)",
         };
 
       default: // English
@@ -1531,6 +1595,15 @@ const StudentForm: React.FC = () => {
           // basedOnQualification: "Based on your qualification, we recommend these schools",
           notEligible: "Not Eligible",
           requires: "Requires",
+          pursuingYear: "Which year is going on? *",
+          collegeAttendanceMethod: "College Attendance Method *",
+          year1st: "1st Year",
+          year2nd: "2nd Year",
+          year3rd: "3rd Year",
+          year4th: "4th Year",
+          yearFinal: "Final Year",
+          attendanceRegular: "I go to college regularly, attend classes daily.",
+          attendancePrivate: "I only go to write exams and study at home.",
         };
     }
   };
@@ -1903,6 +1976,53 @@ const StudentForm: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Conditional Graduation Fields */}
+              {qualifications.find(q => String(q.id) === formData.maximumQualification)?.qualification_name.toLowerCase().includes('pursuing') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 animate-in fade-in slide-in-from-top-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {content.pursuingYear}
+                    </label>
+                    <Combobox
+                      options={[
+                        { value: "1st Year", label: content.year1st },
+                        { value: "2nd Year", label: content.year2nd },
+                        { value: "3rd Year", label: content.year3rd },
+                        { value: "4th Year", label: content.year4th },
+                        { value: "Final Year", label: content.yearFinal },
+                      ]}
+                      value={formData.pursuingYear}
+                      onValueChange={(value) => {
+                        handleInputChange({ target: { name: 'pursuingYear', value } } as any);
+                      }}
+                      placeholder={content.selectOption}
+                      searchPlaceholder="Search..."
+                      emptyText="No option found."
+                      className="h-12"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {content.collegeAttendanceMethod}
+                    </label>
+                    <Combobox
+                      options={[
+                        { value: "Regular", label: content.attendanceRegular },
+                        { value: "Only Exam", label: content.attendancePrivate },
+                      ]}
+                      value={formData.collegeAttendanceMethod}
+                      onValueChange={(value) => {
+                        handleInputChange({ target: { name: 'collegeAttendanceMethod', value } } as any);
+                      }}
+                      placeholder={content.selectOption}
+                      searchPlaceholder="Search..."
+                      emptyText="No option found."
+                      className="h-12"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* School Medium, Caste/Tribe, Religion */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -9,7 +9,9 @@ import {
   Trash2,
   Edit,
   ArrowLeft,
+  Search,
 } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,10 +80,13 @@ const Schedule = () => {
   const [availableSlots, setAvailableSlots] = useState<SlotData[]>([]);
   const [allSlots, setAllSlots] = useState<SlotData[]>([]); // Store all slots
   const [selectedDate, setSelectedDate] = useState<string>(""); // Empty means show all
+  const [selectedStatus, setSelectedStatus] = useState<string>(""); // New state for status filter
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const { debouncedValue: debouncedSearchTerm } = useDebounce(searchTerm, 500);
 
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -111,7 +116,7 @@ const Schedule = () => {
 
   useEffect(() => {
     fetchAllAvailableSlots(currentPage);
-  }, [currentPage, selectedDate, pageSize]);
+  }, [currentPage, selectedDate, selectedStatus, debouncedSearchTerm, pageSize]);
 
   // Reset to page 1 when pageSize changes
   useEffect(() => {
@@ -129,7 +134,9 @@ const Schedule = () => {
       const response = await getAllSlots({
         page,
         pageSize,
-        date: selectedDate || undefined
+        date: selectedDate || undefined,
+        status: selectedStatus || undefined,
+        search: debouncedSearchTerm || undefined
       });
 
       // Handle different response formats (some APIs wrap data twice)
@@ -168,6 +175,14 @@ const Schedule = () => {
   // Clear filter and show all slots
   const handleClearFilter = () => {
     setSelectedDate("");
+    setSelectedStatus("");
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
+
+  // Handle status change
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedStatus(e.target.value);
     setCurrentPage(1);
   };
 
@@ -612,9 +627,27 @@ const Schedule = () => {
                 </div>
               </div>
 
-              {/* Date Filter */}
-              <div className="flex items-center gap-4">
-                <div className="flex-1 max-w-xs">
+              {/* Filters Section */}
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex-1 min-w-[200px] max-w-xs">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Search
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      placeholder="Search interviewer..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full pl-10 pr-4 p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-[150px] max-w-xs">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
                     Filter by Date
                   </label>
@@ -625,20 +658,31 @@ const Schedule = () => {
                     className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
                   />
                 </div>
-                {selectedDate && (
+                <div className="flex-1 min-w-[150px] max-w-xs">
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Filter by Status
+                  </label>
+                  <select
+                    value={selectedStatus}
+                    onChange={handleStatusChange}
+                    className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="Available">Available</option>
+                    <option value="Booked">Booked</option>
+                    <option value="Cancelled">Cancelled</option>
+                    <option value="Expired">Expired</option>
+                  </select>
+                </div>
+                {(selectedDate || selectedStatus || searchTerm) && (
                   <Button
                     variant="outline"
                     onClick={handleClearFilter}
-                    className="mt-6"
+                    className="whitespace-nowrap"
                   >
                     Clear Filter
                   </Button>
                 )}
-                {/* <div className="mt-6 text-sm text-muted-foreground">
-                  {selectedDate && 
-                     `Showing slots for ${new Date(selectedDate).toLocaleDateString()}`}
-                     
-                </div> */}
               </div>
             </div>
 
