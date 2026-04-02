@@ -1104,6 +1104,14 @@ const ApplicantTable = () => {
       apiParams.gender = filterState.gender;
     }
 
+    // Exam Centre (multi-select)
+    if (filterState.exam_centre?.length) {
+      const centres = filterState.exam_centre.filter((c: any) => c !== "all");
+      if (centres.length > 0) {
+        apiParams.exam_centre = centres;
+      }
+    }
+
     return apiParams;
   };
 
@@ -1398,6 +1406,18 @@ const ApplicantTable = () => {
       });
     }
 
+    // Exam Centre
+    if ((filters as any).exam_centre?.length) {
+      const centres = (filters as any).exam_centre.filter((c: any) => c !== "all");
+      centres.forEach((c: any) => {
+        tags.push({
+          key: `exam_centre-${c}`,
+          label: `Exam Centre: ${c}`,
+          onRemove: () => handleClearSingleFilter("exam_centre", c),
+        });
+      });
+    }
+
     // Date range
     if ((filters as any).dateRange?.from && (filters as any).dateRange?.to) {
       const fromDate = new Date((filters as any).dateRange.from);
@@ -1446,6 +1466,7 @@ const ApplicantTable = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.exam_centre?.length > 0) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
     if (!hasFilters) {
@@ -1506,6 +1527,7 @@ const ApplicantTable = () => {
       gender: undefined,
       donor: [],
       partnerFilter: [],
+      exam_centre: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },
     });
     setHasActiveFilters(false);
@@ -1560,6 +1582,7 @@ const ApplicantTable = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.exam_centre?.length > 0) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
     if (!hasFilters) {
@@ -1582,14 +1605,14 @@ const ApplicantTable = () => {
 
   // Clear individual filter and re-apply
   const handleClearSingleFilter = async (filterKey: string, valueToRemove?: any) => {
-    let newFilters = { ...filters } as any;
+    const newFilters = { ...filters } as any;
 
     if (valueToRemove !== undefined) {
       const currentVal = newFilters[filterKey];
       if (Array.isArray(currentVal)) {
         newFilters[filterKey] = currentVal.filter((v: any) => String(v) !== String(valueToRemove));
         if (newFilters[filterKey].length === 0) {
-          if (['partnerFilter', 'donor', 'school', 'partner', 'currentStatus', 'qualification', 'district', 'religion'].includes(filterKey)) {
+            if (['partnerFilter', 'donor', 'school', 'partner', 'currentStatus', 'qualification', 'district', 'religion', 'exam_centre'].includes(filterKey)) {
             newFilters[filterKey] = [];
           } else {
             newFilters[filterKey] = "all";
@@ -1639,6 +1662,9 @@ const ApplicantTable = () => {
         case "gender":
           newFilters.gender = undefined;
           break;
+          case "exam_centre":
+            newFilters.exam_centre = [];
+            break;
         case "dateRange":
         case "daterange":
           newFilters.dateRange = { type: newFilters.dateRange.type, from: undefined, to: undefined };
@@ -1665,6 +1691,7 @@ const ApplicantTable = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.exam_centre?.length > 0) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
     if (!hasFilters) {

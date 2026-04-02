@@ -36,6 +36,7 @@ import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import {
   getFilterStudent,
+  getExamCentres,
   getStatusesByStageId,
 } from "@/utils/api";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,7 @@ interface FilterState {
   gender?: string;
   donor: string[];
   partnerFilter: string[];
+  exam_centre: string[];
   dateRange: {
     type: "applicant" | "lastUpdate" | "interview";
     from?: Date;
@@ -122,8 +124,32 @@ export function AdvancedFilterModal({
     districts: false,
     general: false,
   });
+  const [examCentres, setExamCentres] = useState<string[]>([]);
+  const [isLoadingExamCentres, setIsLoadingExamCentres] = useState(false);
+  const isExamCentresLoaded = useRef(false);
 
   const { toast } = useToast();
+
+  const fetchExamCentres = useCallback(async () => {
+    if (isExamCentresLoaded.current || isLoadingExamCentres) return;
+    setIsLoadingExamCentres(true);
+
+    try {
+      const centres = await getExamCentres();
+      setExamCentres(centres);
+      isExamCentresLoaded.current = true;
+    } catch (error) {
+      console.error("Error fetching exam centres:", error);
+      toast({
+        title: "⚠️ Unable to Load Exam Centres",
+        description: "Failed to fetch exam centre options. Please try again.",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+    } finally {
+      setIsLoadingExamCentres(false);
+    }
+  }, [isLoadingExamCentres, toast]);
 
   // Use ref to track if initial load is done
   const isInitialLoadDone = useRef(false);
@@ -257,6 +283,10 @@ export function AdvancedFilterModal({
         await loadMultipleFields(fieldsToLoad);
         console.log('✅ Initial data loaded');
 
+        if (currentFilters.exam_centre?.length) {
+          await fetchExamCentres();
+        }
+
         // Fetch states directly since apiStateList won't be updated synchronously here
         const apiStatesData = await getStatesList();
 
@@ -322,6 +352,7 @@ export function AdvancedFilterModal({
       state: undefined,
       donor: [],
       partnerFilter: [],
+      exam_centre: [],
       dateRange: { type: "applicant" },
     });
     setAvailableDistricts([]);
@@ -392,6 +423,7 @@ export function AdvancedFilterModal({
       filters.currentStatus?.length > 0 ||
       filters.donor?.length > 0 ||
       filters.partnerFilter?.length > 0 ||
+      filters.exam_centre?.length > 0 ||
       filters.state ||
       filters.gender ||
       filters.dateRange.from ||
@@ -516,6 +548,8 @@ export function AdvancedFilterModal({
           return { ...newFilters, stage: "all", stage_id: undefined, stage_status: "all" };
         case "stage_status":
           return { ...newFilters, stage_status: "all" };
+        case "exam_centre":
+          return { ...newFilters, exam_centre: [] };
         case "state":
           setAvailableDistricts([]);
           return { ...newFilters, state: undefined, district: [] };
@@ -677,6 +711,16 @@ export function AdvancedFilterModal({
     });
   }
 
+  if (filters.exam_centre?.length) {
+    filters.exam_centre.forEach(ec => {
+      activeFilters.push({
+        key: `exam_centre-${ec}`,
+        label: `Exam Centre: ${ec}`,
+        onRemove: () => clearSingleFilter("exam_centre", ec),
+      });
+    });
+  }
+
   if (filters.dateRange.from || filters.dateRange.to) {
     const from = filters.dateRange.from ? format(filters.dateRange.from, "dd/MM/yyyy") : "";
     const to = filters.dateRange.to ? format(filters.dateRange.to, "dd/MM/yyyy") : "";
@@ -742,7 +786,7 @@ export function AdvancedFilterModal({
 
         <div className="space-y-6">
           {/* Stage & Status & Modes */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
             <div className="space-y-3">
               <h3 className="font-semibold text-sm">Stage</h3>
               <Select
@@ -1015,6 +1059,33 @@ export function AdvancedFilterModal({
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Exam Centre */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm">Exam Centre</h3>
+              <MultiSelectCombobox
+                options={examCentres.map((c) => ({
+                  value: String(c),
+                  label: String(c),
+                }))}
+                value={filters.exam_centre || []}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    exam_centre: value,
+                  }))
+                }
+                onOpen={fetchExamCentres}
+                placeholder={
+                  isLoading.general || isLoadingExamCentres
+                    ? "Loading..."
+                    : "Select exam centres"
+                }
+                searchPlaceholder="Search centre..."
+                emptyText="No exam centre found."
+                disabled={isLoading.general || isLoadingExamCentres}
+              />
             </div>
 
             {/* Interview Mode */}
