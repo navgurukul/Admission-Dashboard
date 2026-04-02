@@ -36,6 +36,7 @@ interface FilterState {
   currentStatus: string[];
   state?: string;
   gender?: string;
+  exam_centre: string[];
   donor: string[];
   partnerFilter: string[];
   dateRange: {
@@ -83,6 +84,7 @@ const CampusDetail = () => {
     currentStatus: [],
     donor: [],
     partnerFilter: [],
+    exam_centre: [],
     dateRange: { type: "applicant" },
   });
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
@@ -145,6 +147,7 @@ const CampusDetail = () => {
     if (f.state && f.state !== "all") apiParams.state = f.state;
     if (f.district?.length && f.district[0] !== "all") apiParams.district = f.district[0];
     if (f.gender && f.gender !== "all") apiParams.gender = f.gender;
+    if (f.exam_centre?.length) apiParams.exam_centre = f.exam_centre;
 
     return apiParams;
   }, [id]);
@@ -554,6 +557,18 @@ const CampusDetail = () => {
       tags.push({ key: `gender-${(filters as any).gender}`, label: `Gender: ${(filters as any).gender}` });
     }
 
+    // Exam Centre
+    if ((filters as any).exam_centre?.length) {
+      const centres = (filters as any).exam_centre.filter((c: any) => c !== "all");
+      if (centres.length > 0) {
+        tags.push({
+          key: `exam_centre`,
+          label: `Exam Centre: ${centres.join(", ")}`,
+          onRemove: () => handleClearSingleFilter("exam_centre"),
+        });
+      }
+    }
+
     // Date range
     if ((filters as any).dateRange?.from && (filters as any).dateRange?.to) {
       const from = new Date((filters as any).dateRange.from).toLocaleDateString();
@@ -583,6 +598,7 @@ const CampusDetail = () => {
       gender: undefined,
       donor: [],
       partnerFilter: [],
+      exam_centre: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },
     });
     setHasActiveFilters(false);
@@ -628,7 +644,7 @@ const CampusDetail = () => {
 
   // Clear individual filter and re-apply
   const handleClearSingleFilter = async (filterKey: string) => {
-    let newFilters = { ...filters } as any;
+    const newFilters = { ...filters } as any;
 
     switch (filterKey) {
       case "stage":
@@ -666,6 +682,9 @@ const CampusDetail = () => {
         break;
       case "gender":
         newFilters.gender = undefined;
+        break;
+      case "exam_centre":
+        newFilters.exam_centre = [];
         break;
       case "dateRange":
       case "daterange":
@@ -707,6 +726,7 @@ const CampusDetail = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.exam_centre?.length && newFilters.exam_centre[0] !== "all") ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
     if (!hasFilters) {
@@ -1032,6 +1052,11 @@ const CampusDetail = () => {
                     // Gender
                     if (f.gender && f.gender !== "all") {
                       apiParams.gender = f.gender;
+                    }
+
+                    // Exam Centre (multi-select)
+                    if (f.exam_centre?.length) {
+                      apiParams.exam_centre = f.exam_centre;
                     }
 
                     // Check if any filters are applied

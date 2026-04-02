@@ -13,6 +13,7 @@ interface FilterState {
   partner: any[];
   district: any[];
   market: any[];
+  exam_centre: string[];
   school: any[];
   religion: any[];
   qualification: any[];
@@ -43,6 +44,7 @@ export const useApplicantFilters = (
     partner: [],
     district: [],
     market: [],
+    exam_centre: [],
     school: [],
     religion: [],
     qualification: [],

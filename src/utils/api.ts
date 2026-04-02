@@ -1980,6 +1980,45 @@ export const getCampusesApi = async (): Promise<
   }));
 };
 
+// Fetch exam centres for filtering applicants
+export const getExamCentres = async (): Promise<string[]> => {
+  const response = await fetch(`${BASE_URL}/students/exam-centres`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Failed to fetch exam centres");
+  }
+
+  const raw = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.exam_centres)
+        ? data.exam_centres
+        : [];
+
+  const centres = raw
+    .map((item: any) => {
+      if (typeof item === "string") return item;
+      return (
+        item?.exam_centre ??
+        item?.examCentre ??
+        item?.centre ??
+        item?.name ??
+        item?.label ??
+        item?.value
+      );
+    })
+    .filter((v: any) => typeof v === "string" && v.trim().length > 0)
+    .map((v: string) => v.trim());
+
+  return Array.from(new Set(centres));
+};
+
 // Get campus by ID
 export const getCampusById = async (id: number) => {
   const response = await fetch(`${BASE_URL}/campuses/getCampusById/${id}`, {

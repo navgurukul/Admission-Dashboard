@@ -330,6 +330,19 @@ export function ApplicantModal({
     return stateList;
   }, [stateList]);
 
+  const graduationYearOptions = useMemo(() => [
+    { value: "1st Year", label: "1st Year" },
+    { value: "2nd Year", label: "2nd Year" },
+    { value: "3rd Year", label: "3rd Year" },
+    { value: "4th Year", label: "4th Year" },
+    { value: "Final Year", label: "Final Year" },
+  ], []);
+
+  const graduationModeOptions = useMemo(() => [
+    { value: "Regular", label: "Regular" },
+    { value: "Only Exam", label: "Only Exam" },
+  ], []);
+
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Confirmation dialog state for "Offer Sent"
@@ -1968,6 +1981,41 @@ Interviewer: ${interviewerName}`;
                     disabled={!hasEditAccess}
                   />
                 </div>
+
+                {/* Conditional Graduation Fields */}
+                {(currentApplicant.qualification_name?.toLowerCase().includes('pursuing') || 
+                  qualifications.find(q => q.value === currentApplicant.qualification_id?.toString())?.label?.toLowerCase().includes('pursuing')) && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Graduation Year
+                      </label>
+                      <EditableCell
+                        applicant={currentApplicant}
+                        field="graduation_year"
+                        value={currentApplicant.graduation_year}
+                        displayValue={currentApplicant.graduation_year || "—"}
+                        onUpdate={handleUpdate}
+                        options={graduationYearOptions}
+                        disabled={!hasEditAccess}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Graduation Mode
+                      </label>
+                      <EditableCell
+                        applicant={currentApplicant}
+                        field="graduation_mode"
+                        value={currentApplicant.graduation_mode}
+                        displayValue={currentApplicant.graduation_mode || "—"}
+                        onUpdate={handleUpdate}
+                        options={graduationModeOptions}
+                        disabled={!hasEditAccess}
+                      />
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Current Work
