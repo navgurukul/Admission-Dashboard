@@ -670,7 +670,7 @@ const Schedule = () => {
                     <option value="">All Statuses</option>
                     <option value="Available">Available</option>
                     <option value="Booked">Booked</option>
-                    <option value="Cancelled">Cancelled</option>
+                    {/* <option value="Cancelled">Cancelled</option> */}
                     <option value="Expired">Expired</option>
                   </select>
                 </div>
