@@ -14,12 +14,15 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getStudentDataByEmail, getCurrentUser } from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { useEffect } from "react";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
+// import demoVideoInterview from "@/assets/demo-video-interview.mp4";
 
 interface ScheduleInterviewModalProps {
   isOpen: boolean;
@@ -449,6 +452,38 @@ export const ScheduleInterviewModal = ({
     );
   }, [selectedDate, allAvailableSlots]);
 
+  const scheduleInterviewGuideSteps = [
+    {
+      id: "schedule-interview-title",
+      target: '[data-onboarding="schedule-interview-title"]',
+      text: "Schedule interviews from here.",
+    },
+    ...(isDirectScheduleMode
+      ? [
+          {
+            id: "schedule-interview-slot",
+            target: '[data-onboarding="schedule-interview-slot"]',
+            text: "Select a date and slot here.",
+          },
+        ]
+      : []),
+    {
+      id: "schedule-interview-student",
+      target: '[data-onboarding="schedule-interview-student"]',
+      text: "Confirm applicant details here.",
+    },
+    {
+      id: "schedule-interview-interviewer",
+      target: '[data-onboarding="schedule-interview-interviewer"]',
+      text: "Confirm interviewer details here.",
+    },
+    {
+      id: "schedule-interview-submit",
+      target: '[data-onboarding="schedule-interview-submit"]',
+      text: "Save the interview from here.",
+    },
+  ];
+
   if (!isOpen) return null;
 
   // Get selected slot details
@@ -565,23 +600,60 @@ export const ScheduleInterviewModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-large border border-border">
+      <DialogContent
+        className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl bg-card shadow-large border border-border"
+        data-onboarding-portal-root="true"
+      >
         <DialogHeader className="pb-4 border-b border-border">
-          <DialogTitle className="flex items-center justify-between text-lg font-semibold text-foreground">
+          <DialogTitle
+            className="flex items-center justify-between text-lg font-semibold text-foreground"
+            data-onboarding="schedule-interview-title"
+          >
             <span>{isRescheduleMode ? "Reschedule Interview" : "Schedule Interview"}</span>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Schedule or reschedule interview slots and interviewer details.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground mt-1">
             {isRescheduleMode 
               ? "Select a new time slot and update the interview details"
               : "Create Google Meet link and schedule the interview"
             }
           </p>
+          <div className="pt-3">
+            <ContextualHelpWidget
+              sectionId="schedule-interview-modal"
+              sectionTitle="Schedule Interview"
+              steps={scheduleInterviewGuideSteps}
+              demo={{
+                title: "Schedule interview demo",
+                embedUrl: "https://www.youtube.com/embed/VIDEO_ID_APPLICANT_DASHBOARD?rel=0",
+                note: "Replace this with a short interview scheduling walkthrough.",
+              }}
+              faqs={[
+                {
+                  question: "Can I reschedule from this modal?",
+                  answer: "Yes. The same modal supports rescheduling when it opens in reschedule mode.",
+                },
+                {
+                  question: "Why is scheduling blocked?",
+                  answer: "The status message explains if a prior round or active booking is preventing scheduling.",
+                },
+              ]}
+              showInlineButtons={false}
+              showFloatingButton={true}
+              autoStartOnFirstVisit={false}
+            />
+          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
           {/* Date and Slot Selection (only in direct schedule mode) */}
           {isDirectScheduleMode && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-5">
+            <div
+              className="bg-primary/5 border border-primary/20 rounded-lg p-5"
+              data-onboarding="schedule-interview-slot"
+            >
               <h3 className="font-semibold text-foreground mb-3 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-primary" />
                 Select Date & Slot
@@ -713,7 +785,10 @@ export const ScheduleInterviewModal = ({
           )}
 
           {/* Student Info */}
-          <div className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border">
+          <div
+            className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border"
+            data-onboarding="schedule-interview-student"
+          >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Interview Type <span className="text-red-500">*</span>
@@ -805,7 +880,10 @@ export const ScheduleInterviewModal = ({
           </div>
 
           {/* Interviewer Info */}
-          <div className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border">
+          <div
+            className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border"
+            data-onboarding="schedule-interview-interviewer"
+          >
             <h3 className="font-semibold text-foreground flex items-center">
               <Mail className="w-5 h-5 mr-2 text-primary" />
               Interviewer Information
@@ -870,6 +948,7 @@ export const ScheduleInterviewModal = ({
             <Button
               type="submit"
               className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              data-onboarding="schedule-interview-submit"
               disabled={
                 isLoading || (!isRescheduleMode && interviewStatus && !interviewStatus.canBook)
               }

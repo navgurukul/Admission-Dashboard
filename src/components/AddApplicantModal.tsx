@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -48,12 +49,14 @@ interface AddApplicantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newApplicant: any) => void;
+  guidedTab?: "basic" | "screening" | null;
 }
 
 export function AddApplicantModal({
   isOpen,
   onClose,
   onSuccess,
+  guidedTab = null,
 }: AddApplicantModalProps) {
   // ✅ DRY: Use on-demand reference data loading hook
   const {
@@ -74,9 +77,10 @@ export function AddApplicantModal({
   useEffect(() => {
     const loadInitialData = async () => {
       if (isOpen && stateList.length === 0) {
-        console.log("🔄 AddApplicantModal: Loading state data...");
+        // console.log("🔄 AddApplicantModal: Loading state data...");
         await loadFieldData('state');
-        console.log("✅ AddApplicantModal: State data loaded");
+        // console.log("✅ AddApplicantModal: State data loaded");
+        
       }
     };
 
@@ -203,6 +207,12 @@ export function AddApplicantModal({
       }
     }
   }, [formData.question_set_id, questionSetList]);
+
+  useEffect(() => {
+    if (isOpen && guidedTab) {
+      setActiveTab(guidedTab);
+    }
+  }, [guidedTab, isOpen]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     // Handle name fields - only allow letters and spaces (no numbers)
@@ -823,11 +833,21 @@ export function AddApplicantModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-5xl h-[95vh] max-h-[95vh] overflow-hidden flex flex-col p-0 sm:p-6">
+      <DialogContent
+        className="w-[95vw] max-w-5xl h-[95vh] max-h-[95vh] overflow-hidden flex flex-col p-0 sm:p-6"
+        data-onboarding="applicant-modal"
+        data-onboarding-portal-root="true"
+      >
         <DialogHeader className="pb-4 sm:pb-6 px-4 sm:px-0 pt-4 sm:pt-0 flex-shrink-0">
-          <DialogTitle className="text-xl sm:text-2xl font-bold text-center">
+          <DialogTitle
+            className="text-xl sm:text-2xl font-bold text-center"
+            data-onboarding="applicant-modal-title"
+          >
             Add New Applicant
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Fill applicant basic and screening details before saving.
+          </DialogDescription>
 
           <div className="flex justify-center mt-3 sm:mt-4">
             <div className="flex item-center space-x-4 sm:space-x-6 justify-between">
@@ -875,9 +895,13 @@ export function AddApplicantModal({
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="flex w-full justify-between mb-4 sm:mb-8 h-auto">
+            <TabsList
+              className="flex w-full justify-between mb-4 sm:mb-8 h-auto"
+              data-onboarding="applicant-modal-tabs"
+            >
               <TabsTrigger
                 value="basic"
+                data-onboarding="applicant-basic-tab"
                 className="flex-1 flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
               >
                 <User className="w-4 h-4" />
@@ -885,6 +909,7 @@ export function AddApplicantModal({
               </TabsTrigger>
               <TabsTrigger
                 value="screening"
+                data-onboarding="applicant-screening-tab"
                 className="flex-1 flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2 p-2 sm:p-3"
               >
                 <FileText className="w-4 h-4" />

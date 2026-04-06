@@ -1202,7 +1202,13 @@ export const ApplicantTableRow = ({
         <TableCell className="w-16 px-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Open actions for ${fullName}`}
+                title="Open applicant actions"
+                data-onboarding="applicant-row-actions-button"
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -1211,8 +1217,12 @@ export const ApplicantTableRow = ({
               side="bottom"
               sideOffset={5}
               className="bg-background border border-border shadow-lg z-50"
+              data-onboarding="applicant-row-actions-menu"
             >
-              <DropdownMenuItem onClick={() => onViewDetails(applicant)}>
+              <DropdownMenuItem
+                onClick={() => onViewDetails(applicant)}
+                data-onboarding="applicant-row-view-details"
+              >
                 View Details
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -39,7 +39,13 @@ export const TableActions = ({
   return (
     <div className="flex flex-wrap gap-2">
       {onCSVImport && (
-        <Button onClick={onCSVImport} variant="outline" size="sm" className="flex-shrink-0">
+        <Button
+          onClick={onCSVImport}
+          variant="outline"
+          size="sm"
+          className="flex-shrink-0"
+          data-onboarding="applicant-import-button"
+        >
           <Upload className="h-4 w-4 md:mr-2" />
           <span className="hidden md:inline">Import CSV</span>
         </Button>
@@ -115,7 +121,12 @@ export const TableActions = ({
         <span className="hidden md:inline">Filters</span>
       </Button>
       {onAddApplicant && (
-        <Button onClick={onAddApplicant} size="sm" className="flex-shrink-0">
+        <Button
+          onClick={onAddApplicant}
+          size="sm"
+          className="flex-shrink-0"
+          data-onboarding="applicant-add-button"
+        >
           <Plus className="h-4 w-4 md:mr-2" />
           <span className="hidden md:inline">Add Applicant</span>
         </Button>

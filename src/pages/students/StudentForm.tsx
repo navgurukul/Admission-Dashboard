@@ -26,6 +26,7 @@ import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { ExternalLink, PlayCircle } from "lucide-react";
 import { LearningRoundModal } from "@/components/LearningRoundModal";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 interface State {
   id: string;
   state_name: string;
@@ -1609,14 +1610,128 @@ const StudentForm: React.FC = () => {
   };
 
   const content = getContent();
+  const formGuideText = (() => {
+    switch (selectedLanguage) {
+      case "hindi":
+        return {
+          header1: "आगे बढ़ने के लिए यह फॉर्म भरें।",
+          basic: "यहां अपनी बेसिक जानकारी भरें।",
+          contact: "यहां फोन और ईमेल भरें।",
+          addition: "यहां अतिरिक्त जानकारी भरें।",
+          nextStep: "अगले स्टेप के लिए यहां क्लिक करें।",
+          header2: "यह स्कूल चुनने का स्टेप है।",
+          options: "यहां सभी स्कूल विकल्प देखें।",
+          card: "अप्लाई करने के लिए स्कूल कार्ड चुनें।",
+          submit: "सेव करके आगे बढ़ने के लिए यहां क्लिक करें।",
+        };
+      case "marathi":
+        return {
+          header1: "पुढे जाण्यासाठी हा फॉर्म भरा.",
+          basic: "येथे तुमची मूलभूत माहिती भरा.",
+          contact: "येथे फोन आणि ईमेल भरा.",
+          addition: "येथे अतिरिक्त माहिती भरा.",
+          nextStep: "पुढच्या स्टेपसाठी येथे क्लिक करा.",
+          header2: "ही शाळा निवडीची पायरी आहे.",
+          options: "येथे सर्व शाळांचे पर्याय पहा.",
+          card: "अर्ज करण्यासाठी शाळेचे कार्ड निवडा.",
+          submit: "जतन करून पुढे जाण्यासाठी येथे क्लिक करा.",
+        };
+      default:
+        return {
+          header1: "Fill this form to continue.",
+          basic: "Add your basic details here.",
+          contact: "Add your phone and email here.",
+          addition: "Fill additional details here.",
+          nextStep: "Click here for the next step.",
+          header2: "This is the school selection step.",
+          options: "See all school options here.",
+          card: "Click a school card to apply.",
+          submit: "Click here to save and continue.",
+        };
+    }
+  })();
+  const studentFormGuideSteps = currentStep === 1
+    ? [
+        {
+          id: "student-form-header",
+          target: '[data-onboarding="student-form-header"]',
+          text: formGuideText.header1,
+        },
+        {
+          id: "student-form-basic",
+          target: '[data-onboarding="student-form-basic"]',
+          text: formGuideText.basic,
+        },
+        {
+          id: "student-form-contact",
+          target: '[data-onboarding="student-form-contact"]',
+          text: formGuideText.contact,
+        },
+        {
+          id: "student-addition-information",
+          target: '[data-onboarding="student-form-addition"]',
+          text: formGuideText.addition,
+        },
+        {
+          id: "student-form-school-step",
+          target: '[data-onboarding="student-form-school-step"]',
+          text: formGuideText.nextStep,
+        },
+      ]
+    : [
+        {
+          id: "student-form-header",
+          target: '[data-onboarding="student-form-header"]',
+          text: formGuideText.header2,
+        },
+        
+        {
+          id: "student-form-school-options",
+          target: '[data-onboarding="student-form-school-options"]',
+          text: formGuideText.options,
+        },
+        {
+          id: "student-form-school-card",
+          target: '[data-onboarding="student-form-school-card"]',
+          text: formGuideText.card,
+        },
+        {
+          id: "student-form-submit",
+          target: '[data-onboarding="student-form-submit"]',
+          text: formGuideText.submit,
+        },
+      ];
 
   return (
     <div className="min-h-screen student-bg-gradient flex justify-center p-4 pt-20 md:pt-24 relative">
+      <ContextualHelpWidget
+        sectionId="student-registration-form"
+        sectionTitle="Student Registration"
+        steps={studentFormGuideSteps}
+        demo={{
+          title: "Student registration demo",
+          embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_REGISTRATION?rel=0",
+          note: "Replace this with a short registration walkthrough.",
+        }}
+        faqs={[
+          {
+            question: "What should I complete on this page?",
+            answer: "Complete your basic details first, then choose the school or program that fits you.",
+          },
+          {
+            question: "Can I continue in parts?",
+            answer: "The form saves progress in local storage while you fill the student details.",
+          },
+        ]}
+        showInlineButtons={false}
+        showFloatingButton={!selectedSchoolInfo && !isLearningModalOpen}
+        autoStartOnFirstVisit={true}
+      />
       <LanguageSelector />
       <LogoutButton className="shadow-lg" />
       <div ref={scrollContainerRef} className={`bg-card rounded-2xl shadow-large p-6 w-full overflow-y-auto relative ${currentStep === 1 ? 'max-w-6xl' : 'max-w-7xl'} max-h-[85vh]`}>
         {/* Header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-6" data-onboarding="student-form-header">
           <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
             {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
           </h1>
@@ -1653,7 +1768,7 @@ const StudentForm: React.FC = () => {
             </div>
 
             {/* Section Title */}
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4" data-onboarding="student-form-basic">
               {content.basicDetails}
             </h2>
 
@@ -1766,7 +1881,7 @@ const StudentForm: React.FC = () => {
             </div>
 
             {/* Contact Information */}
-            <div className="mb-4">
+            <div className="mb-4" data-onboarding="student-form-contact">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 {content.contactInfo}
               </h3>
@@ -1832,7 +1947,7 @@ const StudentForm: React.FC = () => {
             </div>
 
             {/* Additional Fields */}
-            <div className="mb-4">
+            <div className="mb-4" data-onboarding="student-form-addition">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Additional Information
               </h3>
@@ -2103,7 +2218,7 @@ const StudentForm: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-onboarding="student-form-school-options">
               {schoolDetails.map((school) => {
                 const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
                 const isEligible = isSchoolEligible(school.id);
@@ -2112,6 +2227,7 @@ const StudentForm: React.FC = () => {
                 return (
                   <div
                     key={school.id}
+                    data-onboarding="student-form-school-card"
                     className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white hover:border-primary/50 hover:shadow-xl ${isSelected ? "border-primary shadow-lg ring-1 ring-primary/20" :
                       isEligible && hasQualification ? "border-green-200" : "border-gray-100"
                       } ${!isEligible && hasQualification ? "opacity-75" : ""
@@ -2222,6 +2338,7 @@ const StudentForm: React.FC = () => {
           </button>
           <button
             onClick={handleSubmit}
+            data-onboarding={currentStep === 1 ? "student-form-school-step" : "student-form-submit"}
             className={`px-6 py-3 rounded-2xl transition-all student-btn text-white font-bold min-w-[140px] shadow-lg hover:shadow-primary/20 active:scale-95`}
           >
             {currentStep === 1 ? content.nextStep : content.saveContinue}

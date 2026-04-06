@@ -4,6 +4,7 @@ import { getRandomQuestions as getQuestions } from "@/utils/api";
 import { useLanguage } from "@/routes/LaunguageContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
 const ScreeningRoundStartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -85,6 +86,28 @@ const ScreeningRoundStartPage: React.FC = () => {
   };
 
   const content = getContent();
+  const guideText = (() => {
+    switch (selectedLanguage) {
+      case "hindi":
+        return {
+          title: "यहां टेस्ट की जानकारी देखें।",
+          timer: "यहां प्रश्न और समय देखें।",
+          button: "टेस्ट शुरू करने के लिए यहां क्लिक करें।",
+        };
+      case "marathi":
+        return {
+          title: "येथे टेस्टची माहिती पहा.",
+          timer: "येथे प्रश्न आणि वेळ पहा.",
+          button: "टेस्ट सुरू करण्यासाठी येथे क्लिक करा.",
+        };
+      default:
+        return {
+          title: "See your test details here.",
+          timer: "Check questions and time here.",
+          button: "Click here to start the test.",
+        };
+    }
+  })();
 
   const handleStartTest = () => {
     if (!questions.length || !duration) return;
@@ -111,17 +134,57 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex items-center justify-center">
+      <ContextualHelpWidget
+        sectionId="student-screening-start"
+        sectionTitle="Screening Test Start"
+        steps={[
+          {
+            id: "student-screening-start-title",
+            target: '[data-onboarding="student-screening-start-title"]',
+            text: guideText.title,
+          },
+          {
+            id: "student-screening-start-timer",
+            target: '[data-onboarding="student-screening-start-timer"]',
+            text: guideText.timer,
+          },
+          {
+            id: "student-screening-start-button",
+            target: '[data-onboarding="student-screening-start-button"]',
+            text: guideText.button,
+          },
+        ]}
+        demo={{
+          title: "Screening start demo",
+          embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_SCREENING_START?rel=0",
+          note: "Replace this with a short screening start walkthrough.",
+        }}
+        faqs={[
+          {
+            question: "Can I start later?",
+            answer: "You can stay on this page until you are ready to begin the screening test.",
+          },
+          {
+            question: "Will this guide show inside the test?",
+            answer: "No. The tour is limited to the start page so the actual test stays distraction-free.",
+          },
+        ]}
+        showInlineButtons={false}
+        showFloatingButton={true}
+        autoStartOnFirstVisit={true}
+      />
       <LanguageSelector />
       <LogoutButton />
       <div className="bg-card rounded-2xl shadow-large p-8 max-w-lg w-full flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-semibold mb-4">{content.heading}</h1>
+        <h1 className="text-2xl font-semibold mb-4" data-onboarding="student-screening-start-title">{content.heading}</h1>
         <p className="text-muted-foreground mb-2">{content.description1}</p>
         <p className="text-foreground font-medium mb-2">{content.description2}</p>
-        <p className="text-foreground font-semibold mb-2">
+        <p className="text-foreground font-semibold mb-2" data-onboarding="student-screening-start-timer">
           {content.description3}
         </p>
         <button
           onClick={handleStartTest}
+          data-onboarding="student-screening-start-button"
           className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200 shadow-large"
         >
           {content.buttonText}

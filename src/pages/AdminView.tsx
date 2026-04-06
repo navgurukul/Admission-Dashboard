@@ -29,6 +29,7 @@ import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
 import { useToast } from "@/components/ui/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import {
   initClient,
   signIn,
@@ -432,6 +433,67 @@ export default function AdminView() {
     Boolean(slotDateFilter) ||
     (Boolean(slotTypeFilter) && slotTypeFilter !== "all");
 
+  const createdSlotsGuideSteps =
+    activeTab === "slots"
+      ? [
+          {
+            id: "slots-header",
+            target: '[data-onboarding="adminview-slots-header"]',
+            text: "See available slots for scheduling here.",
+          },
+          {
+            id: "slots-filters",
+            target: '[data-onboarding="adminview-slots-filters"]',
+            text: "Filter available slots from here.",
+          },
+          {
+            id: "slots-table",
+            target: '[data-onboarding="adminview-slots-table"]',
+            text: "Available slots are listed here.",
+          },
+          {
+            id: "slots-schedule-button",
+            target: '[data-onboarding="adminview-slot-schedule-button"]',
+            text: "Click Schedule for a student interview.",
+          },
+        ]
+      : [
+          {
+            id: "interviews-header",
+            target: '[data-onboarding="adminview-interviews-header"]',
+            text: "Check the scheduled interview status from here.",
+          },
+          {
+            id: "slots-tab",
+            target: '[data-onboarding="adminview-slots-tab"]',
+            text: "Open Created Slots from here.",
+          },
+          {
+            id: "slots-header",
+            target: '[data-onboarding="adminview-slots-header"]',
+            text: "See available slots for scheduling here.",
+            onBeforeShow: () => setActiveTab("slots"),
+          },
+          {
+            id: "slots-filters",
+            target: '[data-onboarding="adminview-slots-filters"]',
+            text: "Filter available slots from here.",
+            onBeforeShow: () => setActiveTab("slots"),
+          },
+          {
+            id: "slots-table",
+            target: '[data-onboarding="adminview-slots-table"]',
+            text: "Available slots are listed here.",
+            onBeforeShow: () => setActiveTab("slots"),
+          },
+          {
+            id: "slots-schedule-button",
+            target: '[data-onboarding="adminview-slot-schedule-button"]',
+            text: "Click Schedule for a student interview.",
+            onBeforeShow: () => setActiveTab("slots"),
+          },
+        ];
+
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -456,12 +518,14 @@ export default function AdminView() {
               <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-lg" : "grid-cols-1 max-w-xs")}>
                 <TabsTrigger
                   value="interviews"
+                  data-onboarding="adminview-interviews-tab"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   Scheduled Interviews
                 </TabsTrigger>
                 <TabsTrigger
                   value="slots"
+                  data-onboarding="adminview-slots-tab"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   Created Slots
@@ -474,13 +538,79 @@ export default function AdminView() {
                 </TabsTrigger>
               </TabsList>
             )}
+            {isAdmin && (
+              <ContextualHelpWidget
+                sectionId="adminview-created-slots"
+                sectionTitle="Created Slots Guide"
+                showFloatingButton={
+                  (activeTab === "interviews" || activeTab === "slots") &&
+                  !isScheduleModalOpen
+                }
+                demo={{
+                  title: "Created slots scheduling demo",
+                  embedUrl: "https://www.youtube.com/embed/VIDEO_ID_ADMIN_CREATED_SLOTS?rel=0",
+                  note: "Replace this with a short demo showing how to schedule from available slots.",
+                }}
+                faqs={[
+                  {
+                    question: "How do I schedule an interview from Admin View?",
+                    answer: "Open Created Slots, find an Available slot, and click Schedule to open the interview form.",
+                  },
+                  {
+                    question: "Which rows can be scheduled?",
+                    answer: "Only rows with Available status show the Schedule action button.",
+                  },
+                ]}
+                steps={createdSlotsGuideSteps}
+              />
+            )}
+            <ContextualHelpWidget
+              sectionId="adminview-my-interviews"
+              sectionTitle="My Scheduled Interviews"
+              showFloatingButton={activeTab === "my-interviews" && !isScheduleModalOpen}
+              demo={{
+                title: "My scheduled interviews demo",
+                embedUrl: "https://www.youtube.com/embed/VIDEO_ID_MY_INTERVIEWS?rel=0",
+                note: "Replace this with a short walkthrough of scheduled calls and slot management.",
+              }}
+              faqs={[
+                {
+                  question: "What can I do in My Scheduled Interviews?",
+                  answer: "You can review scheduled calls here and use Manage Available Slots to create and manage slots.",
+                },
+                {
+                  question: "Where do I manage slot availability?",
+                  answer: "Use the Manage Available Slots button to create slots and manage call scheduling.",
+                },
+              ]}
+              steps={[
+                {
+                  id: "my-interviews-header",
+                  target: '[data-onboarding="adminview-my-interviews-header"]',
+                  text: "See your scheduled calls here.",
+                },
+                {
+                  id: "my-interviews-filter",
+                  target: '[data-onboarding="adminview-my-interviews-filter"]',
+                  text: "Filter scheduled calls by date.",
+                },
+                {
+                  id: "my-interviews-manage-slots",
+                  target: '[data-onboarding="adminview-my-interviews-manage-slots"]',
+                  text: "Click here to create and manage slot and call schedule.",
+                },      
+              ]}
+            />
 
             {/* Interviews Tab */}
             {isAdmin && (
               <TabsContent value="interviews" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
                 <Card className="h-full flex flex-col">
                   <CardHeader className="flex-shrink-0">
-                    <CardTitle className="flex items-center gap-2 mb-4">
+                    <CardTitle
+                      className="flex items-center gap-2"
+                      data-onboarding="adminview-interviews-header"
+                    >
                       <Calendar className="w-5 h-5" />
                       All Scheduled Interviews
                     </CardTitle>
@@ -784,11 +914,11 @@ export default function AdminView() {
               <TabsContent value="slots" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
                 <Card className="h-full flex flex-col">
                   <CardHeader className="flex-shrink-0">
-                    <CardTitle className="flex items-center gap-2 mb-4">
+                    <CardTitle className="flex items-center gap-2" data-onboarding="adminview-slots-header">
                       <Clock className="w-5 h-5" />
                       All Created Slots
                     </CardTitle>
-                    <div className="flex gap-3 items-center flex-wrap">
+                    <div className="flex gap-3 items-center flex-wrap" data-onboarding="adminview-slots-filters">
                       <div className="w-[300px]">
                         <Input
                           placeholder="Search by creator name or email..."
@@ -881,7 +1011,10 @@ export default function AdminView() {
                       </div>
                     ) : (
                       <>
-                        <div className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3">
+                        <div
+                          className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3"
+                          data-onboarding="adminview-slots-table"
+                        >
                           <Table>
                             <TableHeader className="sticky top-0 bg-muted/30 z-10">
                               <TableRow className="bg-muted/30">
@@ -928,6 +1061,7 @@ export default function AdminView() {
                                         }}
                                         className="flex items-center gap-1 text-primary hover:bg-primary/5 border-primary/20 shadow-soft hover:shadow-medium transition-all"
                                         title="Schedule interview"
+                                        data-onboarding="adminview-slot-schedule-button"
                                       >
                                         <Video className="w-4 h-4" />
                                         <span>Schedule</span>
@@ -994,12 +1128,15 @@ export default function AdminView() {
             <TabsContent value="my-interviews" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
               <Card className="h-full flex flex-col">
                 <CardHeader className="flex-shrink-0">
-                  <CardTitle className="flex items-center gap-2 mb-4">
+                  <CardTitle
+                    className="flex items-center gap-2"
+                    data-onboarding="adminview-my-interviews-header"
+                  >
                     <MessageSquare className="w-5 h-5" />
                     My Scheduled Interviews
                   </CardTitle>
                   <div className="flex gap-3 items-center flex-wrap">
-                    <div className="w-48">
+                    <div className="w-48" data-onboarding="adminview-my-interviews-filter">
                       <Input
                         type="date"
                         value={myInterviewDateFilter}
@@ -1020,6 +1157,7 @@ export default function AdminView() {
                     <Button
                       className="bg-primary hover:bg-primary/90 text-white"
                       onClick={() => navigate("/schedule")}
+                      data-onboarding="adminview-my-interviews-manage-slots"
                     >
                       <Calendar className="w-4 h-4 mr-2" />
                       Manage Available Slots
@@ -1039,7 +1177,10 @@ export default function AdminView() {
                       </p>
                     </div>
                   ) : (
-                    <div className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3 w-full">
+                    <div
+                      className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3 w-full"
+                      data-onboarding="adminview-my-interviews-table"
+                    >
                       <Table>
                         <TableHeader className="sticky top-0 bg-muted/30 z-10">
                           <TableRow className="bg-muted/30">

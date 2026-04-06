@@ -37,6 +37,7 @@ import {
 } from "@/utils/googleCalendar";
 import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
 import { BulkEditSlotModal } from "@/components/BulkEditSlotModal";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
 type SlotData = {
   id: number;
@@ -462,7 +463,7 @@ const Schedule = () => {
 
       <main className="md:ml-64 overflow-auto h-screen">
         <div className="p-4 md:p-8 pt-16 md:pt-8">
-          <div className="mb-6">
+          <div className="mb-6" data-onboarding="schedule-header">
             {/* Back button - mobile: aligned with hamburger (top-4 right-4) */}
             <div className="md-3">
               <Button
@@ -486,6 +487,80 @@ const Schedule = () => {
                   Manage interview slots and availability
                 </p>
               </div>
+              <ContextualHelpWidget
+                className="shrink-0"
+                sectionId="call-scheduling"
+                sectionTitle="Call Scheduling"
+                showFloatingButton={
+                  !isScheduleModalOpen &&
+                  !isAddSlotsModalOpen &&
+                  !isEditSlotModalOpen &&
+                  !isBulkEditModalOpen
+                }
+                demo={{
+                  title: "Call Scheduling Demo",
+                  embedUrl: "https://www.youtube.com/embed/VIDEO_ID_CALL_SCHEDULING?rel=0",
+                }}
+                faqs={[
+                  {
+                    question: "What does the first tour show?",
+                    answer:
+                      "The guide shows where to view scheduled calls, manage available slots, use the new filters, and create fresh slots.",
+                  },
+                  {
+                    question: "Can I schedule without creating slots first?",
+                    answer:
+                      "Yes. The Schedule button opens direct scheduling mode, while Add Slots is used to create reusable availability windows.",
+                  },
+                  {
+                    question: "What can I do in My Interviews section?",
+                    answer:
+                      "You can view scheduled calls here, manage available slots, and create new slots when you need more availability.",
+                  },
+                  {
+                    question: "Where do I find help later?",
+                    answer:
+                      "Use See How It Works in the header or the floating help button in the bottom-right corner.",
+                  },
+                ]}
+                steps={[
+                  {
+                    id: "schedule-overview",
+                    target: '[data-onboarding="schedule-header"]',
+                    text: "Manage interview calls from here.",
+                  },
+                  {
+                    id: "schedule-add-slots",
+                    target: '[data-onboarding="schedule-add-slots"]',
+                    text: "Create fresh call slots here.",
+                  },
+                  {
+                    id: "schedule-direct",
+                    target: '[data-onboarding="schedule-direct-button"]',
+                    text: "Start direct scheduling from here.",
+                  },
+                  {
+                    id: "schedule-search",
+                    target: '[data-onboarding="schedule-search"]',
+                    text: "Search interviewer slots here.",
+                  },
+                  {
+                    id: "schedule-date-filter",
+                    target: '[data-onboarding="schedule-date-filter"]',
+                    text: "Filter slots by date here.",
+                  },
+                  {
+                    id: "schedule-status-filter",
+                    target: '[data-onboarding="schedule-status-filter"]',
+                    text: "Filter slots by status here.",
+                  },
+                  {
+                    id: "schedule-table",
+                    target: '[data-onboarding="schedule-table"]',
+                    text: "Review and manage slots here.",
+                  },
+                ]}
+              />
               {/* Back button - shown on desktop */}
               {/* <Button
                 variant="outline"
@@ -581,9 +656,12 @@ const Schedule = () => {
           </div>
 
           {/* Available Slots Management */}
-          <div className="bg-card rounded-xl shadow-soft border border-border mb-8">
-            <div className="p-6 border-b border-border">
-              <div className="flex items-center justify-between mb-4">
+          <div
+            className="bg-card rounded-xl shadow-soft border border-border mb-6"
+            data-onboarding="schedule-panel"
+          >
+            <div className="p-4 border-b border-border">
+              <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-foreground">
                   Available Slots Management
                 </h2>
@@ -608,6 +686,7 @@ const Schedule = () => {
                   </Button>
                   <Button
                     onClick={() => setIsAddSlotsModalOpen(true)}
+                    data-onboarding="schedule-add-slots"
                     className="bg-gradient-primary hover:bg-primary/90 text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
@@ -619,6 +698,7 @@ const Schedule = () => {
                       setSelectedSlotForScheduling(null);
                       setIsScheduleModalOpen(true);
                     }}
+                    data-onboarding="schedule-direct-button"
                     className="bg-primary hover:bg-primary/90 text-white shadow-soft hover:shadow-medium transition-all"
                   >
                     <Video className="w-4 h-4 mr-2" />
@@ -628,8 +708,8 @@ const Schedule = () => {
               </div>
 
               {/* Filters Section */}
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="flex-1 min-w-[200px] max-w-xs">
+              <div className="flex flex-wrap items-end gap-4" data-onboarding="schedule-filter">
+                <div className="flex-1 min-w-[200px] max-w-xs" data-onboarding="schedule-search">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
                     Search
                   </label>
@@ -647,7 +727,7 @@ const Schedule = () => {
                     />
                   </div>
                 </div>
-                <div className="flex-1 min-w-[150px] max-w-xs">
+                <div className="flex-1 min-w-[150px] max-w-xs" data-onboarding="schedule-date-filter">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
                     Filter by Date
                   </label>
@@ -658,7 +738,7 @@ const Schedule = () => {
                     className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
                   />
                 </div>
-                <div className="flex-1 min-w-[150px] max-w-xs">
+                <div className="flex-1 min-w-[150px] max-w-xs" data-onboarding="schedule-status-filter">
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
                     Filter by Status
                   </label>
@@ -686,7 +766,7 @@ const Schedule = () => {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4">
               {loadingSlots ? (
                 <div className="text-center text-muted-foreground py-8">
                   Loading slots...
@@ -704,11 +784,14 @@ const Schedule = () => {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+                <div
+                  className="max-h-[60vh] overflow-x-auto overflow-y-auto rounded-lg border"
+                  data-onboarding="schedule-table"
+                >
+                  <table className="w-full min-w-[920px]">
                     <thead className="bg-muted/30 sticky top-0">
                       <tr>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm w-12">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm w-10">
                           <input
                             type="checkbox"
                             className="rounded border-gray-300"
@@ -721,25 +804,25 @@ const Schedule = () => {
                             disabled={availableSlots.filter(canDeleteSlot).length === 0}
                           />
                         </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Created by
                         </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Slot Type
                         </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Date
                         </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Start Time
                         </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           End Time
                         </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Status
                         </th>
-                        <th className="text-left p-4 font-medium text-muted-foreground text-sm">
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Actions
                         </th>
                       </tr>
@@ -751,7 +834,7 @@ const Schedule = () => {
                           className="border-b border-border hover:bg-muted/20 transition-all"
                         >
                           {/* Checkbox */}
-                          <td className="p-4">
+                          <td className="p-3">
                             <input
                               type="checkbox"
                               className="rounded border-gray-300"
@@ -762,14 +845,14 @@ const Schedule = () => {
                           </td>
 
                           {/* Created by */}
-                          <td className="p-4">
+                          <td className="p-3">
                             <span className="text-sm text-foreground font-medium">
                               {slot.user_name || "Unknown"}
                             </span>
                           </td>
 
                           {/* Slot Type */}
-                          <td className="p-4">
+                          <td className="p-3">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${slot.slot_type === "LR"
                                 ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
@@ -787,7 +870,7 @@ const Schedule = () => {
                           </td>
 
                           {/* Date */}
-                          <td className="p-4">
+                          <td className="p-3">
                             <span className="text-sm text-foreground">
                               {new Date(slot.date).toLocaleDateString("en-US", {
                                 month: "short",
@@ -798,21 +881,21 @@ const Schedule = () => {
                           </td>
 
                           {/* Start Time */}
-                          <td className="p-4">
+                          <td className="p-3">
                             <span className="text-sm text-foreground font-medium">
                               {formatTime(slot.start_time)}
                             </span>
                           </td>
 
                           {/* End Time */}
-                          <td className="p-4">
+                          <td className="p-3">
                             <span className="text-sm text-foreground font-medium">
                               {formatTime(slot.end_time)}
                             </span>
                           </td>
 
                           {/* Status */}
-                          <td className="p-4">
+                          <td className="p-3">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 slot.status?.toLowerCase() === "booked"
@@ -829,8 +912,8 @@ const Schedule = () => {
                           </td>
 
                           {/* Actions */}
-                          <td className="p-4">
-                            <div className="flex items-center gap-2">
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5">
                               {/* Only show edit/delete if user is owner or admin */}
                               {(isAdmin || slot.interviewer_id === currentUser?.id) ? (
                                 <>
@@ -879,7 +962,7 @@ const Schedule = () => {
 
               {/* Pagination Controls */}
               {availableSlots.length > 0 && (
-                <div className="flex items-center justify-between mt-6 px-6 pb-6">
+                <div className="mt-4 flex items-center justify-between px-4 pb-4">
                   <p className="text-sm text-muted-foreground">
                     Page <span className="font-medium text-foreground">{currentPage}</span> of{" "}
                     <span className="font-medium text-foreground">{totalPages}</span>
