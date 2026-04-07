@@ -1203,6 +1203,7 @@ export const bulkUpdateStudents = async (payload: {
   cast_id?: number;
   partner_id?: number;
   donor_id?: number;
+  is_duplicate?: boolean;
   offer_letter_status?: string;
   onboarded_status?: string;
   joining_date?: string;
