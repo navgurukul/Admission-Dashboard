@@ -508,11 +508,6 @@ const Schedule = () => {
                       "The guide shows where to view scheduled calls, manage available slots, use the new filters, and create fresh slots.",
                   },
                   {
-                    question: "Can I schedule without creating slots first?",
-                    answer:
-                      "Yes. The Schedule button opens direct scheduling mode, while Add Slots is used to create reusable availability windows.",
-                  },
-                  {
                     question: "What can I do in My Interviews section?",
                     answer:
                       "You can view scheduled calls here, manage available slots, and create new slots when you need more availability.",
@@ -1044,6 +1039,7 @@ const Schedule = () => {
         isDirectScheduleMode={isDirectScheduleMode}
         onSchedule={handleAdminScheduleMeet}
         isLoading={schedulingInProgress}
+        helpVariant="created-slots"
 
       />
 

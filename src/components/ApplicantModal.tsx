@@ -1863,7 +1863,6 @@ Interviewer: ${interviewerName}`;
   const hasLearningRoundData = (currentApplicant?.interview_learner_round || []).length > 0;
   const hasCulturalRoundData = (currentApplicant?.interview_cultural_fit_round || []).length > 0;
   const hasOfferData = !!currentApplicant?.campus_id || (currentApplicant?.final_decisions || []).length > 0;
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -1871,6 +1870,15 @@ Interviewer: ${interviewerName}`;
           className="max-w-[95vw] sm:max-w-[90vw] md:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6"
           data-onboarding="applicant-details-modal"
           data-onboarding-portal-root="true"
+          onPointerDownOutside={(event) => {
+            event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            event.preventDefault();
+          }}
+          onFocusOutside={(event) => {
+            event.preventDefault();
+          }}
         >
           <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
             <div>
@@ -1917,6 +1925,7 @@ Interviewer: ${interviewerName}`;
                   !isScheduleModalOpen &&
                   !showTransitionsModal
                 }
+                floatingContainer="body"
                 showDemoButton={false}
                 autoStartOnFirstVisit={false}
               />

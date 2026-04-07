@@ -12,13 +12,14 @@ type ContextualHelpWidgetProps = {
   sectionId: string;
   sectionTitle: string;
   steps: OnboardingStep[];
-  demo: OnboardingDemo;
+  demo?: OnboardingDemo;
   faqs: OnboardingFaq[];
   className?: string;
   showInlineButtons?: boolean;
   showFloatingButton?: boolean;
   autoStartOnFirstVisit?: boolean;
   floatingContainer?: "local" | "body";
+  floatingVariant?: "fixed" | "sticky";
   showDemoButton?: boolean;
 };
 
@@ -33,6 +34,7 @@ export function ContextualHelpWidget({
   showFloatingButton = true,
   autoStartOnFirstVisit = true,
   floatingContainer = "local",
+  floatingVariant = "fixed",
   showDemoButton = false,
 }: ContextualHelpWidgetProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -75,13 +77,19 @@ export function ContextualHelpWidget({
   const closeMenu = () => setIsMenuOpen(false);
   const floatingHelpMenu = (
     <div
-      className="fixed bottom-4 right-4 md:bottom-5 md:right-5 z-[80] pb-[env(safe-area-inset-bottom)]"
+      className={cn(
+        "z-[80] flex flex-col items-end",
+        floatingVariant === "fixed"
+          ? "fixed bottom-4 right-4 md:bottom-5 md:right-5 pb-[env(safe-area-inset-bottom)]"
+          : "sticky bottom-0 bg-background/95 pt-3 pb-1 pr-4 backdrop-blur supports-[backdrop-filter]:bg-background/80",
+      )}
       data-contextual-help-floating="true"
     >
       {/* Rendered via portal so it stays pinned to viewport, not scroll containers. */}
       {isMenuOpen ? (
         <div className="mb-3 w-52 rounded-2xl border border-border bg-background/95 p-2 shadow-2xl backdrop-blur">
           <Button
+            type="button"
             variant="ghost"
             className="w-full justify-start"
             onClick={() => {
@@ -94,6 +102,7 @@ export function ContextualHelpWidget({
           </Button>
           {showDemoButton ? (
             <Button
+              type="button"
               variant="ghost"
               className="w-full justify-start"
               onClick={() => {
@@ -106,6 +115,7 @@ export function ContextualHelpWidget({
             </Button>
           ) : null}
           <Button
+            type="button"
             variant="ghost"
             className="w-full justify-start"
             onClick={() => {
@@ -120,6 +130,7 @@ export function ContextualHelpWidget({
       ) : null}
 
       <Button
+        type="button"
         size="icon"
         className="h-14 w-14 rounded-full shadow-xl"
         onClick={() => setIsMenuOpen((value) => !value)}
@@ -135,19 +146,34 @@ export function ContextualHelpWidget({
       {showInlineButtons ? (
         <div className={cn("flex flex-wrap items-center gap-2", className)}>
           {hasVisitedBefore ? (
-            <Button variant="outline" size="sm" onClick={() => setIsTourOpen(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTourOpen(true)}
+            >
               <Sparkles className="mr-2 h-4 w-4" />
               Take Tour
             </Button>
           ) : null}
 
-          <Button variant="outline" size="sm" onClick={() => setIsTourOpen(true)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsTourOpen(true)}
+          >
             <Sparkles className="mr-2 h-4 w-4" />
             Start Guide
           </Button>
 
           {showDemoButton ? (
-            <Button variant="outline" size="sm" onClick={() => setIsDemoOpen(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDemoOpen(true)}
+            >
               <PlayCircle className="mr-2 h-4 w-4" />
               Watch Demo
             </Button>
@@ -171,7 +197,7 @@ export function ContextualHelpWidget({
         onFinish={() => setIsTourOpen(false)}
       />
 
-      {showDemoButton ? (
+      {showDemoButton && demo ? (
         <DemoVideoModal
           demo={demo}
           open={isDemoOpen}

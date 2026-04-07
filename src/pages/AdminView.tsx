@@ -1302,6 +1302,7 @@ export default function AdminView() {
         allAvailableSlots={slots}
         onSchedule={handleAdminScheduleMeet}
         isLoading={schedulingInProgress}
+        helpVariant="created-slots"
       />
     </div >
   );

@@ -1,13 +1,11 @@
 import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  X,
   Loader2,
   Calendar,
   Clock,
   User,
   Mail,
-  FileText,
   Search,
 } from "lucide-react";
 import {
@@ -68,6 +66,7 @@ interface ScheduleInterviewModalProps {
   initialStudentEmail?: string;
   initialStudentName?: string;
   isRescheduleMode?: boolean; // Flag to indicate if we're rescheduling
+  helpVariant?: "created-slots" | "applicant";
 }
 
 export const ScheduleInterviewModal = ({
@@ -82,6 +81,7 @@ export const ScheduleInterviewModal = ({
   initialStudentEmail,
   initialStudentName,
   isRescheduleMode = false,
+  helpVariant = "created-slots",
 }: ScheduleInterviewModalProps) => {
   const [studentId, setStudentId] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
@@ -452,37 +452,78 @@ export const ScheduleInterviewModal = ({
     );
   }, [selectedDate, allAvailableSlots]);
 
+  const helpTitle =
+    helpVariant === "applicant" ? "Applicant Interview Scheduling" : "Created Slot Scheduling";
+
   const scheduleInterviewGuideSteps = [
     {
       id: "schedule-interview-title",
       target: '[data-onboarding="schedule-interview-title"]',
-      text: "Schedule interviews from here.",
+      text:
+        helpVariant === "applicant"
+          ? "Use this form to schedule or reschedule the applicant interview."
+          : "Use this form to assign an applicant to the selected created slot.",
     },
     ...(isDirectScheduleMode
       ? [
           {
             id: "schedule-interview-slot",
             target: '[data-onboarding="schedule-interview-slot"]',
-            text: "Select a date and slot here.",
+            text:
+              helpVariant === "applicant"
+                ? "Pick the date and interview slot available for this applicant."
+                : "Pick the created date and slot you want to book from here.",
           },
         ]
       : []),
     {
       id: "schedule-interview-student",
       target: '[data-onboarding="schedule-interview-student"]',
-      text: "Confirm applicant details here.",
+      text:
+        helpVariant === "applicant"
+          ? "Confirm the applicant details before saving the interview."
+          : "Search and confirm the applicant details you want to assign to this slot.",
     },
     {
       id: "schedule-interview-interviewer",
       target: '[data-onboarding="schedule-interview-interviewer"]',
-      text: "Confirm interviewer details here.",
+      text:
+        helpVariant === "applicant"
+          ? "Review interviewer details here before sending the invite."
+          : "Verify the interviewer details for the created slot and update them if needed.",
     },
     {
       id: "schedule-interview-submit",
       target: '[data-onboarding="schedule-interview-submit"]',
-      text: "Save the interview from here.",
+      text:
+        helpVariant === "applicant"
+          ? "Finish scheduling the applicant interview from here."
+          : "Book the selected created slot and generate the meeting from here.",
     },
   ];
+
+  const scheduleInterviewFaqs =
+    helpVariant === "applicant"
+      ? [
+          {
+            question: "Can I reschedule from this modal?",
+            answer: "Yes. The same modal supports rescheduling when it opens in reschedule mode.",
+          },
+          {
+            question: "Why is scheduling blocked?",
+            answer: "The status message explains if a prior round or active booking is preventing scheduling.",
+          },
+        ]
+      : [
+          {
+            question: "How do I schedule from Created Slots?",
+            answer: "Open an available slot, select or confirm the applicant details, and save to generate the interview link.",
+          },
+          {
+            question: "Can I change interviewer details before booking?",
+            answer: "Yes. Review the interviewer section and update the name or email before you confirm the schedule.",
+          },
+        ];
 
   if (!isOpen) return null;
 
@@ -620,31 +661,6 @@ export const ScheduleInterviewModal = ({
               : "Create Google Meet link and schedule the interview"
             }
           </p>
-          <div className="pt-3">
-            <ContextualHelpWidget
-              sectionId="schedule-interview-modal"
-              sectionTitle="Schedule Interview"
-              steps={scheduleInterviewGuideSteps}
-              demo={{
-                title: "Schedule interview demo",
-                embedUrl: "https://www.youtube.com/embed/VIDEO_ID_APPLICANT_DASHBOARD?rel=0",
-                note: "Replace this with a short interview scheduling walkthrough.",
-              }}
-              faqs={[
-                {
-                  question: "Can I reschedule from this modal?",
-                  answer: "Yes. The same modal supports rescheduling when it opens in reschedule mode.",
-                },
-                {
-                  question: "Why is scheduling blocked?",
-                  answer: "The status message explains if a prior round or active booking is preventing scheduling.",
-                },
-              ]}
-              showInlineButtons={false}
-              showFloatingButton={true}
-              autoStartOnFirstVisit={false}
-            />
-          </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
@@ -972,6 +988,17 @@ export const ScheduleInterviewModal = ({
               )}
             </Button>
           </div>
+
+          <ContextualHelpWidget
+            sectionId={`schedule-interview-${helpVariant}`}
+            sectionTitle={helpTitle}
+            steps={scheduleInterviewGuideSteps}
+            faqs={scheduleInterviewFaqs}
+            autoStartOnFirstVisit={false}
+            floatingContainer="local"
+            floatingVariant="sticky"
+            showDemoButton={false}
+          />
         </form>
       </DialogContent>
     </Dialog>
