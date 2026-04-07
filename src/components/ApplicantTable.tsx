@@ -1946,7 +1946,6 @@ const ApplicantTable = () => {
               <BulkActions
                 selectedRowsCount={selectedRows.length}
                 onBulkUpdate={() => { ensureReferenceDataLoaded(); setShowBulkUpdate(true); }}
-                // onBulkUpdate={handleBulkUpdate}
                 onSendOfferLetters={handleSendOfferLetters}
                 onBulkDelete={() => setShowDeleteConfirm(true)}
               />
