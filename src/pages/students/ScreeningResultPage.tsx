@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { ADMISSIONS_EMAIL } from "@/lib/const";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { useLanguage } from "@/routes/LaunguageContext";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
 const ScreeningResultPage: React.FC = () => {
   const { tests, setTests } = useTests();
@@ -101,6 +102,66 @@ const ScreeningResultPage: React.FC = () => {
   };
 
   const content = getContent();
+  const guideText = (() => {
+    switch (selectedLanguage) {
+      case "hindi":
+        return {
+          title: "यहां अपना टेस्ट रिजल्ट देखें।",
+          summary: "यहां अपना स्कोर देखें।",
+          next: "अगला स्टेप देखने के लिए यहां क्लिक करें।",
+          continue: "आगे बढ़ने के लिए यहां क्लिक करें।",
+        };
+      case "marathi":
+        return {
+          title: "येथे तुमचा टेस्ट निकाल पहा.",
+          summary: "येथे तुमचा स्कोअर पहा.",
+          next: "पुढचा टप्पा पाहण्यासाठी येथे क्लिक करा.",
+          continue: "पुढे जाण्यासाठी येथे क्लिक करा.",
+        };
+      default:
+        return {
+          title: "See your test result here.",
+          summary: "Check your score here.",
+          next: "Click here to see the next step.",
+          continue: "Click here to continue.",
+        };
+    }
+  })();
+  const screeningResultGuideSteps = status === "pass"
+    ? [
+        {
+          id: "student-screening-result-title",
+          target: '[data-onboarding="student-screening-result-title"]',
+          text: guideText.title,
+        },
+        {
+          id: "student-screening-result-summary",
+          target: '[data-onboarding="student-screening-result-summary"]',
+          text: guideText.summary,
+        },
+        {
+          id: "student-screening-result-action",
+          target: '[data-onboarding="student-screening-result-action"]',
+          text: guideText.next,
+        },
+      ]
+    : [
+        {
+          id: "student-screening-result-title",
+          target: '[data-onboarding="student-screening-result-title"]',
+          text: guideText.title,
+        },
+        {
+          id: "student-screening-result-summary",
+          target: '[data-onboarding="student-screening-result-summary"]',
+          text: guideText.summary,
+        },
+        {
+          id: "student-screening-result-action",
+          target: '[data-onboarding="student-screening-result-action"]',
+          text: guideText.continue,
+        },
+      ];
 
   const handleSubmit = async () => {
     try {
@@ -269,15 +330,38 @@ const ScreeningResultPage: React.FC = () => {
 
   return (
     <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
+      <ContextualHelpWidget
+        sectionId="student-screening-result"
+        sectionTitle="Screening Result"
+        steps={screeningResultGuideSteps}
+        demo={{
+          title: "Screening result demo",
+          embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_SCREENING_RESULT?rel=0",
+          note: "Replace this with a short result walkthrough.",
+        }}
+        faqs={[
+          {
+            question: "What happens after this page?",
+            answer: "This action takes you to the student result section for the next stage details.",
+          },
+          {
+            question: "Will my score be saved?",
+            answer: "Yes. The result flow stores the latest student data before continuing.",
+          },
+        ]}
+        showInlineButtons={false}
+        showFloatingButton={true}
+        autoStartOnFirstVisit={true}
+      />
       <LanguageSelector />
       <LogoutButton />
       <div className="bg-card rounded-3xl shadow-large p-10 max-w-2xl w-full flex flex-col items-center text-center">
         {status === "pass" ? (
           <>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4" data-onboarding="student-screening-result-title">
               {content.pass.congratulations}
             </h1>
-            <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-6">
+            <h2 className="text-2xl md:text-3xl font-semibold text-foreground mb-6" data-onboarding="student-screening-result-summary">
               {content.pass.passedText}{" "}
               <span className="text-primary">{score}</span> /{" "}
               <span className="text-primary">{total}</span>
@@ -320,6 +404,7 @@ const ScreeningResultPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
+              data-onboarding="student-screening-result-action"
               className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
@@ -334,10 +419,10 @@ const ScreeningResultPage: React.FC = () => {
           </>
         ) : (
           <>
-            <h1 className="text-3xl font-semibold text-foreground mb-6">
+            <h1 className="text-3xl font-semibold text-foreground mb-6" data-onboarding="student-screening-result-title">
               {content.fail.sorry}
             </h1>
-            <p className="text-muted-foreground mb-4 text-lg">
+            <p className="text-muted-foreground mb-4 text-lg" data-onboarding="student-screening-result-summary">
               {content.fail.failedText}{" "}
               <span className="font-bold">{score}</span>{" "}
               {content.fail.marksText}
@@ -357,6 +442,7 @@ const ScreeningResultPage: React.FC = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
+              data-onboarding="student-screening-result-action"
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (

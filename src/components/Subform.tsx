@@ -51,6 +51,7 @@ interface InlineSubformProps {
   customActions?: React.ReactNode; // Custom action buttons to display alongside Add Row
   canDelete?: boolean; // Permission to delete entries (admin only)
   disableDelete?: boolean; // Disable delete when student has moved to next round
+  containerId?: string;
 }
 
 // Map payload based on round type
@@ -266,6 +267,7 @@ export function InlineSubform({
   customActions,
   canDelete = false, // Default to false (no delete permission)
   disableDelete = false, // Default to false (deletion not disabled by round progression)
+  containerId,
 }: InlineSubformProps) {
   const [rows, setRows] = useState(initialData.map((r) => ({ ...r })));
   const [originalRows, setOriginalRows] = useState(initialData.map((r) => ({ ...r })));
@@ -712,7 +714,10 @@ export function InlineSubform({
   };
 
   return (
-    <div className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto">
+    <div
+      className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto"
+      data-onboarding={containerId}
+    >
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-base font-semibold">{title}</h3>
         <div className="flex items-center gap-2">

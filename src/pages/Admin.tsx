@@ -31,6 +31,7 @@ import {
   Role,
 } from "@/utils/api";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import { searchUsers } from "@/utils/api";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
@@ -453,7 +454,10 @@ const AdminPage: React.FC = () => {
         <main className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6">
+            <div
+              className="bg-card rounded-xl shadow-sm border border-border p-6 mb-6"
+              data-onboarding="user-header"
+            >
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-3">
@@ -469,18 +473,76 @@ const AdminPage: React.FC = () => {
                   </p>
                 </div>
 
-                <button
-                  onClick={openAddUserDialog}
-                  className="bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Add User</span>
-                  <span className="sm:hidden">Add</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ContextualHelpWidget
+                    sectionId="user-management"
+                    sectionTitle="User Management"
+                    demo={{
+                      title: "User Management Demo",
+                      embedUrl: "https://www.youtube.com/embed/VIDEO_ID_USER_MANAGEMENT?rel=0",
+                      note:
+                        "Replace this placeholder with your own sub-60-second onboarding clip.",
+                    }}
+                    faqs={[
+                      {
+                        question: "When does the guide open automatically?",
+                        answer:
+                          "The tour opens the first time someone lands on User Management. After that, the page keeps the interface quiet and leaves tour access in the header and help button.",
+                      },
+                      {
+                        question: "Can I reopen the tour later?",
+                        answer:
+                          "Yes. Use See How It Works near the page header or Start Guide from the floating help menu.",
+                      },
+                      {
+                        question: "What can admins do here?",
+                        answer:
+                          "Admins can add new users, search the directory, edit records, and delete non-protected accounts from the table actions.",
+                      },
+                    ]}
+                    steps={[
+                      {
+                        id: "overview",
+                        target: '[data-onboarding="user-header"]',
+                        text: "Manage dashboard users from this page.",
+                      },
+                      {
+                        id: "add-user",
+                        target: '[data-onboarding="user-add-button"]',
+                        text: "Add a user from here.",
+                      },
+                      {
+                        id: "search-users",
+                        target: '[data-onboarding="user-search"]',
+                        text: "Find users by name or email.",
+                      },
+                      {
+                        id: "user-stats",
+                        target: '[data-onboarding="user-stats"]',
+                        text: "Check user totals at a glance.",
+                      },
+                      {
+                        id: "user-table",
+                        target: '[data-onboarding="user-table"]',
+                        text: "Edit or delete users here.",
+                      },
+                    ]}
+                  />
+
+                  <button
+                    onClick={openAddUserDialog}
+                    data-onboarding="user-add-button"
+                    className="bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span className="hidden sm:inline">Add User</span>
+                    <span className="sm:hidden">Add</span>
+                  </button>
+                </div>
               </div>
 
               {/* Search Bar */}
-              <div className="mt-4 relative">
+              <div className="mt-4 relative" data-onboarding="user-search">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-muted-foreground" />
                 </div>
@@ -511,7 +573,10 @@ const AdminPage: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
+              data-onboarding="user-stats"
+            >
               <div className="bg-card p-6 rounded-xl shadow-sm border border-border">
                 <div className="flex items-center">
                   <div className="p-2 bg-primary/10 rounded-lg">
@@ -572,7 +637,10 @@ const AdminPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+              <div
+                className="bg-card rounded-xl shadow-sm border border-border overflow-hidden"
+                data-onboarding="user-table"
+              >
                 {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="min-w-full divide-y divide-border">

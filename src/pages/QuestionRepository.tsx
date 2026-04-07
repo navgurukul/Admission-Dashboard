@@ -29,6 +29,7 @@ import { useQuestions } from "@/hooks/useQuestions";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/use-toast";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import { QuestionSetManager } from "@/components/questions/QuestionSetManager";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -206,11 +207,118 @@ export default function QuestionRepository() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-onboarding="questions-header-actions">
+              <ContextualHelpWidget
+                sectionId="question-repository"
+                sectionTitle="Question Repository"
+                demo={{
+                  title: "Question Repository Demo",
+                  embedUrl: "https://www.youtube.com/embed/VIDEO_ID_QUESTION_REPOSITORY?rel=0",
+                  note:
+                    "Replace this placeholder with a short under-60-second repository demo.",
+                }}
+                faqs={[
+                  {
+                    question: "Which area is covered by this guide?",
+                    answer:
+                      "This onboarding covers the full repository flow: question library, editor, import, and set creation.",
+                  },
+                  {
+                    question: "Does the guide switch tabs automatically?",
+                    answer:
+                      "Yes. The tour moves across Questions, Editor, Import, and Sets so each highlighted element is visible when needed.",
+                  },
+                  {
+                    question: "How do I open help later?",
+                    answer:
+                      "Use Take Tour near the header or the floating help launcher at the bottom-right corner.",
+                  },
+                ]}
+                steps={[
+                  {
+                    id: "questions-list-tab",
+                    target: '[data-onboarding="questions-list-tab"]',
+                    text: "Start in the questions library.",
+                    onBeforeShow: () => setActiveTab("list"),
+                  },
+                  {
+                    id: "questions-search",
+                    target: '[data-onboarding="questions-search"]',
+                    text: "Search questions from this box.",
+                    onBeforeShow: () => setActiveTab("list"),
+                  },
+                  {
+                    id: "questions-filter",
+                    target: '[data-onboarding="questions-filter-button"]',
+                    text: "Refine results with filters.",
+                    onBeforeShow: () => setActiveTab("list"),
+                  },
+                  {
+                    id: "questions-new",
+                    target: '[data-onboarding="questions-new-button"]',
+                    text: "Create a new question here.",
+                  },
+                  {
+                    id: "questions-editor-tab",
+                    target: '[data-onboarding="questions-editor-tab"]',
+                    text: "Use Editor to add details.",
+                    onBeforeShow: () => setActiveTab("editor"),
+                  },
+                  {
+                    id: "questions-editor-panel",
+                    target: '[data-onboarding="questions-editor-panel"]',
+                    text: "Fill question content in this panel.",
+                    onBeforeShow: () => setActiveTab("editor"),
+                  },
+                  {
+                    id: "questions-import-button",
+                    target: '[data-onboarding="questions-import-button"]',
+                    text: "Import questions in bulk here.",
+                  },
+                  {
+                    id: "questions-import-tab",
+                    target: '[data-onboarding="questions-import-tab"]',
+                    text: "The Import tab handles CSV uploads.",
+                    onBeforeShow: () => setActiveTab("import"),
+                  },
+                  {
+                    id: "questions-import-panel",
+                    target: '[data-onboarding="questions-import-panel"]',
+                    text: "Upload and validate import files here.",
+                    onBeforeShow: () => setActiveTab("import"),
+                  },
+                  {
+                    id: "sets-tab",
+                    target: '[data-onboarding="questions-sets-tab"]',
+                    text: "Open Sets to manage question groups.",
+                    onBeforeShow: () => setActiveTab("sets"),
+                  },
+                  {
+                    id: "sets-actions",
+                    target: '[data-onboarding="questions-add-set"]',
+                    text: "Create a new set here.",
+                    onBeforeShow: () => setActiveTab("sets"),
+                  },
+                  {
+                    id: "sets-download",
+                    target: '[data-onboarding="questions-download-set"]',
+                    text: "Export set PDFs from here.",
+                    onBeforeShow: () => setActiveTab("sets"),
+                  },
+                  {
+                    id: "sets-panel",
+                    target: '[data-onboarding="questions-sets-panel"]',
+                    text: "Review every saved set here.",
+                    onBeforeShow: () => setActiveTab("sets"),
+                  },
+                ]}
+              />
+
               <Button
                 variant="outline"
                 onClick={() => setActiveTab("import")}
                 className="flex items-center gap-2"
+                data-onboarding="questions-import-button"
               >
                 <Upload className="w-4 h-4" />
                 Bulk Import
@@ -218,6 +326,7 @@ export default function QuestionRepository() {
               <Button
                 onClick={handleCreateQuestion}
                 className="flex items-center gap-2"
+                data-onboarding="questions-new-button"
               >
                 <Plus className="w-4 h-4" />
                 New Question
@@ -240,10 +349,18 @@ export default function QuestionRepository() {
             className="flex-1 flex flex-col overflow-hidden"
           >
             <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="list">Questions</TabsTrigger>
-              <TabsTrigger value="editor">Editor</TabsTrigger>
-              <TabsTrigger value="sets">Sets</TabsTrigger>
-              <TabsTrigger value="import">Import</TabsTrigger>
+              <TabsTrigger value="list" data-onboarding="questions-list-tab">
+                Questions
+              </TabsTrigger>
+              <TabsTrigger value="editor" data-onboarding="questions-editor-tab">
+                Editor
+              </TabsTrigger>
+              <TabsTrigger value="sets" data-onboarding="questions-sets-tab">
+                Sets
+              </TabsTrigger>
+              <TabsTrigger value="import" data-onboarding="questions-import-tab">
+                Import
+              </TabsTrigger>
               {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
               {/* <TabsTrigger value="history">History</TabsTrigger> */}
               {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
@@ -255,7 +372,7 @@ export default function QuestionRepository() {
                   <CardTitle className="flex items-center justify-between">
                     Question Library
                     <div className="flex items-center gap-2">
-                      <div className="relative">
+                      <div className="relative" data-onboarding="questions-search">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                         <Input
                           placeholder="Search questions..."
@@ -269,6 +386,7 @@ export default function QuestionRepository() {
                         size="sm"
                         onClick={() => setShowFilters(!showFilters)}
                         className="flex items-center gap-2"
+                        data-onboarding="questions-filter-button"
                       >
                         <Filter className="w-4 h-4" />
                         Filters
@@ -305,7 +423,7 @@ export default function QuestionRepository() {
             </TabsContent>
 
             <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
-              <Card className="h-full flex flex-col">
+              <Card className="h-full flex flex-col" data-onboarding="questions-editor-panel">
                 <CardHeader className="flex-shrink-0">
                   <CardTitle>
                     {selectedQuestion ? "Edit Question" : "Create New Question"}
@@ -371,7 +489,7 @@ export default function QuestionRepository() {
             </TabsContent> */}
 
             <TabsContent value="import" className="flex-1 overflow-hidden m-0">
-              <Card className="h-full flex flex-col">
+              <Card className="h-full flex flex-col" data-onboarding="questions-import-panel">
                 <CardHeader className="flex-shrink-0">
                   <CardTitle>Bulk Import Questions</CardTitle>
                 </CardHeader>

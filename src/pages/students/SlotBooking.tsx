@@ -27,6 +27,7 @@ import {
   cancelScheduledInterview,
   getCompleteStudentData,
 } from "@/utils/api";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
 // ================== Types ==================
 interface TimeSlot {
@@ -289,6 +290,80 @@ const SlotBooking: React.FC = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
+  const guideText = (() => {
+    switch (selectedLanguage) {
+      case "hindi":
+        return {
+          bookingHeader: "यहां इंटरव्यू बुक करें।",
+          date: "यहां तारीख चुनें।",
+          time: "यहां टाइम स्लॉट चुनें।",
+          submit: "स्लॉट बुक करने के लिए यहां क्लिक करें।",
+          detailsHeader: "यहां बुक किया गया इंटरव्यू देखें।",
+          detailsCard: "यहां स्लॉट की जानकारी देखें।",
+          actions: "यहां से reschedule या cancel करें।",
+        };
+      case "marathi":
+        return {
+          bookingHeader: "येथे interview book करा.",
+          date: "येथे तारीख निवडा.",
+          time: "येथे time slot निवडा.",
+          submit: "Slot book करण्यासाठी येथे क्लिक करा.",
+          detailsHeader: "येथे booked interview पहा.",
+          detailsCard: "येथे slot details पहा.",
+          actions: "येथून reschedule किंवा cancel करा.",
+        };
+      default:
+        return {
+          bookingHeader: "Book your interview here.",
+          date: "Choose a date here.",
+          time: "Pick a time slot here.",
+          submit: "Click here to book this slot.",
+          detailsHeader: "See your booked interview here.",
+          detailsCard: "Check your slot details here.",
+          actions: "Reschedule or cancel from here.",
+        };
+    }
+  })();
+  const slotBookingGuideSteps = slot.is_cancelled || isRescheduling
+    ? [
+        {
+          id: "student-slot-booking-header",
+          target: '[data-onboarding="student-slot-booking-header"]',
+          text: guideText.bookingHeader,
+        },
+        {
+          id: "student-slot-booking-date",
+          target: '[data-onboarding="student-slot-booking-date"]',
+          text: guideText.date,
+        },
+        {
+          id: "student-slot-booking-times",
+          target: '[data-onboarding="student-slot-booking-times"]',
+          text: guideText.time,
+        },
+        {
+          id: "student-slot-booking-submit",
+          target: '[data-onboarding="student-slot-booking-submit"]',
+          text: guideText.submit,
+        },
+      ]
+    : [
+        {
+          id: "student-slot-details-header",
+          target: '[data-onboarding="student-slot-details-header"]',
+          text: guideText.detailsHeader,
+        },
+        {
+          id: "student-slot-details-card",
+          target: '[data-onboarding="student-slot-details-card"]',
+          text: guideText.detailsCard,
+        },
+        {
+          id: "student-slot-details-actions",
+          target: '[data-onboarding="student-slot-details-actions"]',
+          text: guideText.actions,
+        },
+      ];
 
   const navigate = useNavigate();
 
@@ -1038,6 +1113,29 @@ const SlotBooking: React.FC = () => {
   // ---------- UI ----------
   return (
     <div className="min-h-screen student-bg-gradient py-8 px-4">
+      <ContextualHelpWidget
+        sectionId="student-slot-booking"
+        sectionTitle="Student Interview Booking"
+        steps={slotBookingGuideSteps}
+        demo={{
+          title: "Student slot booking demo",
+          embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_SLOT_BOOKING?rel=0",
+          note: "Replace this with a short slot booking walkthrough.",
+        }}
+        faqs={[
+          {
+            question: "What can I do on this page?",
+            answer: "You can book a new interview slot, reschedule an existing slot, or review your booked meeting details.",
+          },
+          {
+            question: "Why do I need Google sign-in here?",
+            answer: "Google access is used to create the Meet link for your interview automatically.",
+          },
+        ]}
+        showInlineButtons={false}
+        showFloatingButton={true}
+        autoStartOnFirstVisit={true}
+      />
       {/* Notification */}
       {showNotification && (
         <div
@@ -1094,7 +1192,7 @@ const SlotBooking: React.FC = () => {
           // ---------- Booking Section ----------
           <div className="bg-card rounded-2xl shadow-2xl overflow-hidden border border-border">
             {/* Header */}
-            <div className="bg-primary px-8 py-6 text-primary-foreground shadow-md">
+            <div className="bg-primary px-8 py-6 text-primary-foreground shadow-md" data-onboarding="student-slot-booking-header">
               <h1 className="text-3xl font-bold mb-2">
                 {isRescheduling
                   ? content.rescheduleTitle
@@ -1133,7 +1231,7 @@ const SlotBooking: React.FC = () => {
 
             <div className="p-8">
               {/* Date Picker */}
-              <div className="mb-8">
+              <div className="mb-8" data-onboarding="student-slot-booking-date">
                 <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
                   <Calendar className="w-6 h-6 mr-2 text-primary" />
                   {content.selectDate}
@@ -1159,7 +1257,7 @@ const SlotBooking: React.FC = () => {
               </div>
 
               {/* Time Slots */}
-              <div className="mb-8">
+              <div className="mb-8" data-onboarding="student-slot-booking-times">
                 <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center">
                   <Clock className="w-6 h-6 mr-2 text-primary" />
                   {content.availableTimeSlots}
@@ -1304,6 +1402,7 @@ const SlotBooking: React.FC = () => {
                 <button
                   onClick={handleSlotBooking}
                   disabled={!slot.id || isBookingInProgress}
+                  data-onboarding="student-slot-booking-submit"
                   className={`w-full py-4 px-6 rounded-lg font-semibold text-lg transition-all ${
                     !slot.id || isBookingInProgress
                       ? "bg-muted text-muted-foreground cursor-not-allowed border-2 border-border"
@@ -1327,14 +1426,14 @@ const SlotBooking: React.FC = () => {
         ) : (
           // ---------- Booked Details Section ----------
           <div className="bg-card rounded-xl shadow-2xl overflow-hidden border border-border">
-            <div className="bg-primary px-8 py-6 text-primary-foreground shadow-md">
+            <div className="bg-primary px-8 py-6 text-primary-foreground shadow-md" data-onboarding="student-slot-details-header">
               <div className="flex items-center justify-center space-x-3 mb-2">
                 <CheckCircle className="w-8 h-8" />
                 <h1 className="text-3xl font-bold">{content.interviewSlotBooked}</h1>
               </div>
             </div>
 
-            <div className="p-8">
+            <div className="p-8" data-onboarding="student-slot-details-card">
               <h2 className="text-2xl font-semibold text-foreground mb-6">
                 {content.slotDetails}
               </h2>
@@ -1410,7 +1509,7 @@ const SlotBooking: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4" data-onboarding="student-slot-details-actions">
                 <button
                   onClick={handleDeleteSlot}
                   disabled={isBookingInProgress || isCancelling}

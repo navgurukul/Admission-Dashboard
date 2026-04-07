@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -74,6 +75,7 @@ import {
   getStudentDataByEmail,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 // import { Input } from "@/components/ui/input";
 // import { cn } from "@/lib/utils";
 // import StageDropdown, {
@@ -1737,6 +1739,62 @@ Interviewer: ${interviewerName}`;
     [currentApplicant, liveScheduleData]
   );
 
+  const applicantDetailsGuideSteps = useMemo(
+    () => [
+      {
+        id: "modal-overview",
+        target: '[data-onboarding="applicant-details-title"]',
+        text: "Review applicant details here.",
+      },
+      {
+        id: "transitions",
+        target: '[data-onboarding="applicant-details-transitions"]',
+        text: "Check applicant transitions here.",
+      },
+      {
+        id: "personal-information",
+        target: '[data-onboarding="applicant-details-personal"]',
+        text: "Review personal information here.",
+      },
+      {
+        id: "timestamps",
+        target: '[data-onboarding="applicant-details-timestamps"]',
+        text: "See latest audit history here.",
+      },
+      {
+        id: "screening-round",
+        target: '[data-onboarding="applicant-round-screening"]',
+        text: "Track screening round results here.",
+      },
+      {
+        id: "learning-round",
+        target: '[data-onboarding="applicant-round-learning"]',
+        text: "Manage learning round updates.",
+      },
+      {
+        id: "learning-schedules",
+        target: '[data-onboarding="applicant-details-learning-action"]',
+        text: "Open learning round schedules here.",
+      },
+      {
+        id: "cultural-round",
+        target: '[data-onboarding="applicant-round-cultural"]',
+        text: "Manage cultural fit round updates.",
+      },
+      {
+        id: "cultural-schedules",
+        target: '[data-onboarding="applicant-details-cultural-action"]',
+        text: "Open cultural schedules here.",
+      },
+      {
+        id: "offer-status",
+        target: '[data-onboarding="applicant-details-offer"]',
+        text: "Finish with final status.",
+      },
+    ],
+    [],
+  );
+
   // Early return AFTER all hooks
   if (!applicant || !currentApplicant) return null;
 
@@ -1805,19 +1863,78 @@ Interviewer: ${interviewerName}`;
   const hasLearningRoundData = (currentApplicant?.interview_learner_round || []).length > 0;
   const hasCulturalRoundData = (currentApplicant?.interview_cultural_fit_round || []).length > 0;
   const hasOfferData = !!currentApplicant?.campus_id || (currentApplicant?.final_decisions || []).length > 0;
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent
+          className="max-w-[95vw] sm:max-w-[90vw] md:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6"
+          data-onboarding="applicant-details-modal"
+          data-onboarding-portal-root="true"
+          onPointerDownOutside={(event) => {
+            event.preventDefault();
+          }}
+          onInteractOutside={(event) => {
+            event.preventDefault();
+          }}
+          onFocusOutside={(event) => {
+            event.preventDefault();
+          }}
+        >
           <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-            <DialogTitle className="text-lg sm:text-xl">Applicant Details</DialogTitle>
-            <div className="flex items-center gap-2 mr-8">
+            <div>
+              <DialogTitle
+                className="text-lg sm:text-xl"
+                data-onboarding="applicant-details-title"
+              >
+                Applicant Details
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Review applicant information, round progress, and final status actions.
+              </DialogDescription>
+            </div>
+            <div
+              className="flex items-center gap-2 mr-8"
+              data-onboarding="applicant-details-actions"
+            >
+              <ContextualHelpWidget
+                sectionId="applicant-details-rounds"
+                sectionTitle="Applicant Details Guide"
+                steps={applicantDetailsGuideSteps}
+                demo={{
+                  title: "Applicant details demo",
+                  embedUrl: "https://www.youtube.com/embed/VIDEO_ID_APPLICANT_ROUNDS",
+                  note: "Use a short under-60-second applicant details walkthrough here.",
+                }}
+                faqs={[
+                  {
+                    question: "How do I review round progress?",
+                    answer: "Open the applicant details modal and follow Screening, Learning, and Cultural Fit sections in order.",
+                  },
+                  {
+                    question: "Where can I view interview schedules?",
+                    answer: "Use the View Schedules button inside Learning Round or Cultural Fit Round.",
+                  },
+                  {
+                    question: "When do I update final status?",
+                    answer: "After rounds are complete, use Offer & Final Status to save the applicant outcome.",
+                  },
+                ]}
+                showInlineButtons={false}
+                showFloatingButton={
+                  !showInterviewDetailsModal &&
+                  !isScheduleModalOpen &&
+                  !showTransitionsModal
+                }
+                floatingContainer="body"
+                showDemoButton={false}
+                autoStartOnFirstVisit={false}
+              />
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleTransitions}
                 className="flex items-center gap-2"
+                data-onboarding="applicant-details-transitions"
               >
                 Transitions
               </Button>
@@ -1844,7 +1961,7 @@ Interviewer: ${interviewerName}`;
 
           <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Personal Information */}
-            <div className="space-y-4">
+            <div className="space-y-4" data-onboarding="applicant-details-personal">
               <h3 className="text-base sm:text-lg font-semibold">Personal Information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
@@ -2150,7 +2267,7 @@ Interviewer: ${interviewerName}`;
             </div>
 
             {/* Timestamps for Personal Details */}
-            <div className="space-y-3 pt-4">
+            <div className="space-y-3 pt-4" data-onboarding="applicant-details-timestamps">
               <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Personal Details</h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
@@ -2191,6 +2308,7 @@ Interviewer: ${interviewerName}`;
             title="Screening Round"
             studentId={currentApplicant.id}
             initialData={initialScreeningData}
+            containerId="applicant-round-screening"
             fields={screeningFields}
             submitApi={screeningSubmit}
             updateApi={screeningUpdate}
@@ -2211,12 +2329,14 @@ Interviewer: ${interviewerName}`;
                 title="Learning Round"
                 studentId={currentApplicant.id}
                 initialData={initialLearningData}
+                containerId="applicant-round-learning"
                 customActions={
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleOpenInterviewDetails("LR")}
                     className="flex items-center gap-2"
+                    data-onboarding="applicant-details-learning-action"
                   >
                     <CalendarIcon className="h-4 w-4" />
                     View Schedules
@@ -2320,12 +2440,14 @@ Interviewer: ${interviewerName}`;
                 title="Cultural Fit Round"
                 studentId={currentApplicant.id}
                 initialData={initialCulturalData}
+                containerId="applicant-round-cultural"
                 customActions={
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleOpenInterviewDetails("CFR")}
                     className="flex items-center gap-2"
+                    data-onboarding="applicant-details-cultural-action"
                   >
                     <CalendarIcon className="h-4 w-4" />
                     View Schedules
@@ -2379,7 +2501,7 @@ Interviewer: ${interviewerName}`;
             </div>
 
             {/* Offer and Final Status */}
-            <div className="space-y-4">
+            <div className="space-y-4" data-onboarding="applicant-details-offer">
               <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
                 <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -2715,9 +2837,9 @@ Interviewer: ${interviewerName}`;
                 </div>
               </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </DialogContent>
+    </Dialog>
 
       {showEditModal && (
         <InlineEditModal
