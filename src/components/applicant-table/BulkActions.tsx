@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CopyMinus, Edit, Mail, Trash2 } from "lucide-react";
+import { Edit, Mail, Trash2 } from "lucide-react";
 
 interface BulkActionsProps {
   selectedRowsCount: number;
   onBulkUpdate: () => void;
-  onMarkDuplicate: () => void;
   onSendOfferLetters: () => void;
   onBulkDelete: () => void;
 }
@@ -13,7 +12,6 @@ interface BulkActionsProps {
 export const BulkActions = ({
   selectedRowsCount,
   onBulkUpdate,
-  onMarkDuplicate,
   onSendOfferLetters,
   onBulkDelete,
 }: BulkActionsProps) => {
@@ -27,10 +25,6 @@ export const BulkActions = ({
       <Button variant="outline" size="sm" onClick={onBulkUpdate} className="flex-shrink-0">
         <Edit className="h-4 w-4 md:mr-2" />
         <span className="hidden sm:inline">Bulk Update</span>
-      </Button>
-      <Button variant="outline" size="sm" onClick={onMarkDuplicate} className="flex-shrink-0">
-        <CopyMinus className="h-4 w-4 md:mr-2" />
-        <span className="hidden sm:inline">Mark Duplicate</span>
       </Button>
       <Button variant="outline" size="sm" onClick={onSendOfferLetters} className="flex-shrink-0">
         <Mail className="h-4 w-4 md:mr-2" />

@@ -45,7 +45,6 @@ import {
   getFilterStudent,
   sendBulkOfferLetters,
   getStatusesByStageId,
-  bulkUpdateStudents,
 } from "@/utils/api";
 import { exportApplicantsToCSV } from "@/utils/exportApplicants";
 import {
@@ -886,43 +885,6 @@ const ApplicantTable = () => {
 
     // All students have campus - show confirmation dialog
     setShowBulkOfferConfirmation(true);
-  };
-
-  const handleMarkDuplicates = async () => {
-    if (!selectedRows.length) {
-      toast({
-        title: "No Selection",
-        description: "Please select applicants to mark as duplicates",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
-
-    try {
-      await bulkUpdateStudents({
-        student_ids: selectedRows.map((id) => Number(id)),
-        is_duplicate: true,
-      });
-
-      toast({
-        title: "Duplicates Marked",
-        description: `Marked ${selectedRows.length} applicant${selectedRows.length > 1 ? "s" : ""} as duplicate.`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
-
-      setSelectedRows([]);
-      refreshData();
-    } catch (error: any) {
-      console.error("Error marking applicants as duplicates:", error);
-      toast({
-        title: "Unable to Mark Duplicates",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
-      });
-    }
   };
 
   const handleSendBulkOfferLetters = async () => {
@@ -1892,7 +1854,6 @@ const ApplicantTable = () => {
               <BulkActions
                 selectedRowsCount={selectedRows.length}
                 onBulkUpdate={() => { ensureReferenceDataLoaded(); setShowBulkUpdate(true); }}
-                onMarkDuplicate={handleMarkDuplicates}
                 onSendOfferLetters={handleSendOfferLetters}
                 onBulkDelete={() => setShowDeleteConfirm(true)}
               />
