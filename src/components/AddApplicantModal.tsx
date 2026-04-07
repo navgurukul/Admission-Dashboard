@@ -650,7 +650,7 @@ export function AddApplicantModal({
         email: formData.email || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
-        state: formData.state || null, // Send NAME instead of code
+        state: formData.stateCode || null, 
         city: formData.city || null,
         district: formData.district || null, // Send NAME instead of code
         block: formData.block || null, // Send NAME instead of code

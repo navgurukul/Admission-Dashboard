@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import LanguageSelector from "@/components/ui/LanguageSelector";
 import {
   getCompleteStudentData,
   getStudentDataByPhone,
+  getAllStates,
   CompleteStudentData,
 } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
@@ -27,6 +28,11 @@ interface Student {
   whatsappNumber: string;
   district: string;
   state: string;
+}
+
+interface StateOption {
+  state_code: string;
+  state_name: string;
 }
 
 type BookingStatus = "Pending" | "Booked" | "Cancelled" | "Completed" | null;
@@ -47,6 +53,7 @@ type TestRow = {
 
 export default function StudentResult() {
   const [student, setStudent] = useState<Student | null>(null);
+  const [states, setStates] = useState<StateOption[]>([]);
   const [completeData, setCompleteData] = useState<CompleteStudentData | null>(
     null,
   );
@@ -181,6 +188,21 @@ export default function StudentResult() {
   };
 
   const content = getContent();
+  const displayState = useMemo(() => {
+    if (!student?.state) return "-";
+
+    const stateValue = String(student.state).trim();
+    const matchedState = states.find(
+      (state) =>
+        state.state_code === stateValue ||
+        state.state_name === stateValue ||
+        state.state_code?.toLowerCase() === stateValue.toLowerCase() ||
+        state.state_name?.toLowerCase() === stateValue.toLowerCase(),
+    );
+
+    return matchedState?.state_name || stateValue;
+  }, [states, student?.state]);
+
   const guideText = (() => {
     switch (selectedLanguage) {
       case "hindi":
@@ -241,6 +263,20 @@ export default function StudentResult() {
   };
 
 
+
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const response = await getAllStates();
+        const statesData = response?.data || response || [];
+        setStates(Array.isArray(statesData) ? statesData : []);
+      } catch (error) {
+        console.error("Error fetching states:", error);
+      }
+    };
+
+    fetchStates();
+  }, []);
 
   useEffect(() => {
     // Update "now" every second so countdown timers refresh
@@ -975,7 +1011,7 @@ export default function StudentResult() {
                 </div>
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.state}</span>
-                  <span className="font-semibold sm:font-medium text-foreground truncate">{student?.state ? student.state : "-"}</span>
+                  <span className="font-semibold sm:font-medium text-foreground truncate">{displayState}</span>
                 </div>
               </div>
             </CardContent>

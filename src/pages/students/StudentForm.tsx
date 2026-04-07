@@ -688,7 +688,7 @@ const StudentForm: React.FC = () => {
       phone_number: data.alternateNumber,
       email: data.email,
       gender: data.gender,
-      state: data.state, // Send NAME (e.g., "Telangana")
+      state: data.stateCode, 
       district: data.district, // Send NAME (e.g., "Hyderabad")
       block: data.block, // Send NAME (e.g., "Asifnagar")
       city: data.city,
