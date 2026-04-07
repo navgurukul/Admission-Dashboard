@@ -16,7 +16,7 @@ import { Search, Filter, X, ArrowLeft } from "lucide-react";
 import { AdvancedFilterModal } from "@/components/AdvancedFilterModal";
 import { ApplicantModal } from "@/components/ApplicantModal";
 import { Pagination } from "@/components/applicant-table/Pagination";
-import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats, getStatusesByStageId } from "@/utils/api";
+import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats, getStatusesByStageId, getAllStates } from "@/utils/api";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 import { useToast } from "@/hooks/use-toast";
@@ -105,6 +105,7 @@ const CampusDetail = () => {
     qualificationList,
     partnerList,
     donorList,
+    stateList,
     loadFieldData, // For loading individual fields on-demand
     loadMultipleFields, // For loading multiple fields at once
   } = useOnDemandReferenceData();
@@ -112,8 +113,28 @@ const CampusDetail = () => {
   // Local state to store stage-specific statuses
   const [stageStatuses, setStageStatuses] = useState<any[]>([]);
 
+  const resolveStateFilterValue = useCallback((value: any, statesOverride?: any[]) => {
+    if (!value || value === "all") return undefined;
+
+    const statesToSearch = statesOverride || stateList;
+
+    const match = statesToSearch.find(
+      (state: any) =>
+        state.value === value ||
+        state.state_code === value ||
+        state.label === value ||
+        state.state_name === value ||
+        String(state.value).toLowerCase() === String(value).toLowerCase() ||
+        String(state.label).toLowerCase() === String(value).toLowerCase() ||
+        String(state.state_code || "").toLowerCase() === String(value).toLowerCase() ||
+        String(state.state_name || "").toLowerCase() === String(value).toLowerCase(),
+    );
+
+    return match?.value || match?.state_code || value;
+  }, [stateList]);
+
   // Transform filters to API params helper function
-  const transformFiltersToAPI = useCallback((f: any) => {
+  const transformFiltersToAPI = useCallback((f: any, statesOverride?: any[]) => {
     const apiParams: any = { campus_id: Number(id) };
 
     if (f.dateRange?.from && f.dateRange?.to) {
@@ -144,13 +165,13 @@ const CampusDetail = () => {
     if (f.donor?.length && f.donor[0] !== "all") apiParams.donor_id = f.donor[0];
     if (f.school?.length && f.school[0] !== "all") apiParams.school_id = f.school[0];
     if (f.currentStatus?.length && f.currentStatus[0] !== "all") apiParams.current_status_id = f.currentStatus[0];
-    if (f.state && f.state !== "all") apiParams.state = f.state;
+    if (f.state && f.state !== "all") apiParams.state = resolveStateFilterValue(f.state, statesOverride);
     if (f.district?.length && f.district[0] !== "all") apiParams.district = f.district[0];
     if (f.gender && f.gender !== "all") apiParams.gender = f.gender;
     if (f.exam_centre?.length) apiParams.exam_centre = f.exam_centre;
 
     return apiParams;
-  }, [id]);
+  }, [id, resolveStateFilterValue]);
 
   // ✅ Smart on-demand loading: Load reference data ONLY for active filters
   // This ensures filter tags can display names without pre-loading everything
@@ -184,6 +205,9 @@ const CampusDetail = () => {
     }
     if ((filters as any).cast?.length) {
       fieldsToLoad.push('cast');
+    }
+    if ((filters as any).state) {
+      fieldsToLoad.push('state');
     }
 
     // Remove duplicates and load only if needed
@@ -979,85 +1003,24 @@ const CampusDetail = () => {
                       setStageStatuses([]);
                     }
 
-                    // Build API params from filters
-                    const apiParams: any = { campus_id: Number(id) };
+                    let resolvedStateList = stateList;
 
-                    // Date range mapping based on type
-                    if (f.dateRange?.from && f.dateRange?.to) {
-                      const formatDate = (date: Date) => {
-                        const d = new Date(date);
-                        const year = d.getFullYear();
-                        const month = String(d.getMonth() + 1).padStart(2, "0");
-                        const day = String(d.getDate()).padStart(2, "0");
-                        return `${year}-${month}-${day}`;
-                      };
-
-                      if (f.dateRange.type === "applicant") {
-                        apiParams.created_at_from = formatDate(f.dateRange.from);
-                        apiParams.created_at_to = formatDate(f.dateRange.to);
-                      } else if (f.dateRange.type === "lastUpdate") {
-                        apiParams.updated_at_from = formatDate(f.dateRange.from);
-                        apiParams.updated_at_to = formatDate(f.dateRange.to);
-                      } else if (f.dateRange.type === "interview") {
-                        apiParams.interview_date_from = formatDate(f.dateRange.from);
-                        apiParams.interview_date_to = formatDate(f.dateRange.to);
+                    if (f.state && f.state !== "all" && resolvedStateList.length === 0) {
+                      try {
+                        const statesResponse = await getAllStates();
+                        const statesData = statesResponse?.data || statesResponse || [];
+                        resolvedStateList = statesData.map((state: any) => ({
+                          value: state.state_code,
+                          label: state.state_name,
+                          ...state,
+                        }));
+                        void loadFieldData("state");
+                      } catch (error) {
+                        console.error("Failed to resolve state code for filters:", error);
                       }
                     }
 
-                    // Stage ID
-                    if (f.stage_id) {
-                      apiParams.stage_id = f.stage_id;
-                    }
-
-                    // Stage Status
-                    if (f.stage_status && f.stage_status !== "all") {
-                      apiParams.stage_status = f.stage_status;
-                    }
-
-                    // Qualification ID
-                    if (f.qualification?.length && f.qualification[0] !== "all") {
-                      apiParams.qualification_id = f.qualification[0];
-                    }
-
-                    // Partner ID (from partnerFilter field)
-                    if (f.partnerFilter?.length && f.partnerFilter[0] !== "all") {
-                      apiParams.partner_id = f.partnerFilter[0];
-                    }
-
-                    // Donor ID
-                    if (f.donor?.length && f.donor[0] !== "all") {
-                      apiParams.donor_id = f.donor[0];
-                    }
-
-                    // School ID
-                    if (f.school?.length && f.school[0] !== "all") {
-                      apiParams.school_id = f.school[0];
-                    }
-
-                    // Current Status ID
-                    if (f.currentStatus?.length && f.currentStatus[0] !== "all") {
-                      apiParams.current_status_id = f.currentStatus[0];
-                    }
-
-                    // State
-                    if (f.state && f.state !== "all") {
-                      apiParams.state = f.state;
-                    }
-
-                    // District
-                    if (f.district?.length && f.district[0] !== "all") {
-                      apiParams.district = f.district[0];
-                    }
-
-                    // Gender
-                    if (f.gender && f.gender !== "all") {
-                      apiParams.gender = f.gender;
-                    }
-
-                    // Exam Centre (multi-select)
-                    if (f.exam_centre?.length) {
-                      apiParams.exam_centre = f.exam_centre;
-                    }
+                    const apiParams = transformFiltersToAPI(f, resolvedStateList);
 
                     // Check if any filters are applied
                     const hasFilters = Object.keys(apiParams).length > 1; // More than just campus_id
