@@ -85,12 +85,11 @@ const DonorPage = () => {
       const trimmedSearch = debouncedSearchQuery?.trim() || "";
       
       const response = await getDonors(page, rowsPerPage, trimmedSearch);
-    
-      // Extract data from nested structure
-      // API returns: { success, data: { data: [...], total, page, pageSize, totalPages } }
-      const donorList = response?.data?.data || [];
-      const total = response?.data?.total || 0;
-      const pages = response?.data?.totalPages || 0;
+
+      const donorsContainer = response?.data?.donors ?? response?.data;
+      const donorList = donorsContainer?.data || [];
+      const total = donorsContainer?.total || 0;
+      const pages = donorsContainer?.totalPages || 0;
 
       setDonors(donorList);
       setTotalDonors(total);
