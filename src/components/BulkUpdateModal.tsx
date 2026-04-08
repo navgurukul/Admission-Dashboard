@@ -393,9 +393,8 @@ export function BulkUpdateModal({
           : Number(updateData.campusId);
     }
     if (updateData.state !== "no_change") {
-      // Convert state code to name before sending to API
-      const stateName = stateOptions.find((opt) => opt.value === updateData.state)?.label || updateData.state;
-      payload.state = stateName;  // Send NAME to API (e.g., "Tripura")
+      // Send state code (e.g. "TR"), not state name.
+      payload.state = updateData.state;
     }
     if (updateData.district !== "no_change") {
       // Convert district code to name before sending to API

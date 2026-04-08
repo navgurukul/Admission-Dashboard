@@ -270,9 +270,9 @@ const StudentLandingPage = () => {
             alt="NavGurukul Logo"
             className="h-8 md:h-10 lg:h-12"
           />
-          <span className="hidden sm:block text-lg md:text-xl font-bold text-foreground">
+          {/* <span className="hidden sm:block text-lg md:text-xl font-bold text-foreground">
             {content[selectedLanguage].title}
-          </span>
+          </span> */}
         </div>
 
         {/* Right Section - Language Selector & CTA */}
