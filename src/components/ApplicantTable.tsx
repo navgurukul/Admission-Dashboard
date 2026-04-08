@@ -39,6 +39,7 @@ import { ApplicantTableHeader } from "./applicant-table/ApplicantTableHeader";
 import { Pagination } from "./applicant-table/Pagination";
 import { SearchBar } from "./applicant-table/SearchBar";
 import { ColumnVisibility, ColumnConfig } from "./applicant-table/ColumnVisibility";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import {
   deleteStudent,
   searchStudentsApi,
@@ -64,6 +65,7 @@ import {
 const ApplicantTable = () => {
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
+  const [guidedApplicantTab, setGuidedApplicantTab] = useState<"basic" | "screening" | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
@@ -1836,8 +1838,8 @@ const ApplicantTable = () => {
   const showingEnd = Math.min(currentPage * itemsPerPage, currentTotalCount);
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
+    <Card className="h-full flex flex-col" data-onboarding="dashboard-applicants-card">
+      <CardHeader data-onboarding="dashboard-applicants-header">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
           <div className="flex flex-col mr-10">
             <CardTitle>Applicants</CardTitle>
@@ -1849,12 +1851,101 @@ const ApplicantTable = () => {
                   : `${totalStudents} total applicants`}
             </CardDescription>
           </div>
-          <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+          <div className="flex flex-wrap gap-2 mt-2 md:mt-0" data-onboarding="dashboard-actions">
+            <ContextualHelpWidget
+              sectionId="dashboard-applicants"
+              sectionTitle="Applicants Dashboard"
+              showFloatingButton={!showAddModal && !applicantToView}
+              demo={{
+                title: "Applicants Dashboard Demo",
+                embedUrl: "https://www.youtube.com/embed/VIDEO_ID_APPLICANT_DASHBOARD?rel=0",
+                note:
+                  "Replace this placeholder with a short applicant workflow demo under 60 seconds.",
+              }}
+              faqs={[
+                {
+                  question: "What does this guide cover?",
+                  answer:
+                    "It walks through the applicants table, action buttons, and the add-applicant modal so new teammates can follow the workflow quickly.",
+                },
+                {
+                  question: "Does the guide open the applicant form?",
+                  answer:
+                    "Yes. The tour can open the Add Applicant modal and move between Basic and Screening tabs while explaining the key fields.",
+                },
+                {
+                  question: "Can I replay the guide later?",
+                  answer:
+                    "Yes. Use Take Tour near the actions row or Start Guide from the floating help launcher.",
+                },
+              ]}
+              steps={[
+                {
+                  id: "dashboard-overview",
+                  target: '[data-onboarding="dashboard-applicants-header"]',
+                  text: "See total number of applicant and tools here",
+                },
+                {
+                  id: "dashboard-actions",
+                  target: '[data-onboarding="dashboard-actions"]',
+                  text: "Use these actions for imports,filters and column option to view and manage all columns.",
+                },
+                {
+                  id: "dashboard-add",
+                  target: '[data-onboarding="applicant-add-button"]',
+                  text: "Add a new applicant here.",
+                },
+                {
+                  id: "modal-title",
+                  target: '[data-onboarding="applicant-modal-title"]',
+                  text: "Fill this form to add applicants.",
+                  onBeforeShow: () => {
+                    setGuidedApplicantTab("basic");
+                    setShowAddModal(true);
+                  },
+                },
+                {
+                  id: "modal-basic-tab",
+                  target: '[data-onboarding="applicant-basic-tab"]',
+                  text: "Start with basic details first.",
+                  onBeforeShow: () => {
+                    setGuidedApplicantTab("basic");
+                    setShowAddModal(true);
+                  },
+                },
+                {
+                  id: "modal-screening-tab",
+                  target: '[data-onboarding="applicant-screening-tab"]',
+                  text: "Then complete screening round details here.",
+                  onBeforeShow: () => {
+                    setGuidedApplicantTab("screening");
+                    setShowAddModal(true);
+                  },
+                },
+                {
+                  id: "dashboard-table",
+                  target: '[data-onboarding="dashboard-applicants-table"]',
+                  text: "Review applicants in this table.",
+                  onBeforeShow: () => {
+                    setShowAddModal(false);
+                    setGuidedApplicantTab(null);
+                  },
+                },
+                {
+                  id: "row-actions",
+                  target: '[data-onboarding="applicant-row-actions-button"]',
+                  text: "Open applicant actions from here.",
+                  onBeforeShow: () => {
+                    setShowAddModal(false);
+                    setGuidedApplicantTab(null);
+                  },
+                },
+              ]}
+            />
             {hasEditAccess && (
               <BulkActions
                 selectedRowsCount={selectedRows.length}
                 onBulkUpdate={() => { ensureReferenceDataLoaded(); setShowBulkUpdate(true); }}
-                // onBulkUpdate={handleBulkUpdate}
                 onSendOfferLetters={handleSendOfferLetters}
                 onBulkDelete={() => setShowDeleteConfirm(true)}
               />
@@ -1880,7 +1971,7 @@ const ApplicantTable = () => {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col">
-        <div className="mb-4 space-y-2">
+        <div className="mb-4 space-y-2" data-onboarding="dashboard-applicants-search">
           {/* Selected filter tags shown above the search input */}
           {activeFilterTags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
@@ -1919,7 +2010,10 @@ const ApplicantTable = () => {
           <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         </div>
 
-        <div className="flex-1 border rounded-md overflow-hidden relative">
+        <div
+          className="flex-1 border rounded-md overflow-hidden relative"
+          data-onboarding="dashboard-applicants-table"
+        >
           <div className="h-full overflow-auto">
             <Table>
               <ApplicantTableHeader
@@ -2003,8 +2097,12 @@ const ApplicantTable = () => {
       {/* Modals */}
       <AddApplicantModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => {
+          setShowAddModal(false);
+          setGuidedApplicantTab(null);
+        }}
         onSuccess={refreshData}
+        guidedTab={guidedApplicantTab}
       />
       <CSVImportModal
         isOpen={showCSVImport}

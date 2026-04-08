@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
 interface InterviewSchedule {
   id: number;
@@ -126,6 +127,32 @@ export function InterviewDetailsModal({
   // 2. Stage is NOT disabled (previous round passed)
   // 3. Either no active bookings OR all interviews have expired
   const canScheduleNew = !hasPassedRound && !isStageDisabled && (!hasActiveBooking || hasAllInterviewsExpired);
+  const interviewDetailsGuideSteps = [
+    {
+      id: "interview-details-title",
+      target: '[data-onboarding="interview-details-title"]',
+      text: "Review scheduled interviews here.",
+    },
+    ...(canScheduleNew && onScheduleNew
+      ? [
+          {
+            id: "interview-details-schedule-new",
+            target: '[data-onboarding="interview-details-schedule-new"]',
+            text: "Create another interview here.",
+          },
+        ]
+      : []),
+    {
+      id: "interview-details-table",
+      target: '[data-onboarding="interview-details-table"]',
+      text: "Check schedules and statuses here.",
+    },
+    {
+      id: "interview-details-actions",
+      target: '[data-onboarding="interview-details-actions"]',
+      text: "Use reschedule or cancel here.",
+    },
+  ];
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -191,11 +218,17 @@ export function InterviewDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent
+        className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col"
+        data-onboarding-portal-root="true"
+      >
         <DialogHeader className="border-b pb-4">
           <div className="flex items-start justify-between gap-4 pr-8">
             <div className="flex-1">
-              <DialogTitle className="flex items-center gap-2 text-xl">
+              <DialogTitle
+                className="flex items-center gap-2 text-xl"
+                data-onboarding="interview-details-title"
+              >
                 <Calendar className="w-6 h-6 text-primary" />
                 {roundName} - Interview Schedules
               </DialogTitle>
@@ -211,11 +244,37 @@ export function InterviewDetailsModal({
                 }}
                 className="flex items-center gap-2 flex-shrink-0"
                 size="sm"
+                data-onboarding="interview-details-schedule-new"
               >
                 <Plus className="w-4 h-4" />
                 Schedule New
               </Button>
             )}
+          </div>
+          <div className="pt-3">
+            <ContextualHelpWidget
+              sectionId={`interview-details-${roundType.toLowerCase()}`}
+              sectionTitle={`${roundName} Details`}
+              steps={interviewDetailsGuideSteps}
+              demo={{
+                title: `${roundName} schedules demo`,
+                embedUrl: "https://www.youtube.com/embed/VIDEO_ID_INTERVIEW_DETAILS?rel=0",
+                note: "Replace this with a short schedule details walkthrough.",
+              }}
+              faqs={[
+                {
+                  question: "What can I do here?",
+                  answer: "You can review interview attempts, join meetings, and manage reschedule or cancel actions.",
+                },
+                {
+                  question: "When does Schedule New appear?",
+                  answer: "It shows only when the applicant can still book another interview for this round.",
+                },
+              ]}
+              showInlineButtons={false}
+              showFloatingButton={true}
+              autoStartOnFirstVisit={false}
+            />
           </div>
         </DialogHeader>
 
@@ -245,7 +304,7 @@ export function InterviewDetailsModal({
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" data-onboarding="interview-details-table">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-muted/50 border-b">
@@ -360,7 +419,10 @@ export function InterviewDetailsModal({
                         </td>
                         <td className="p-3">
                           {!hasPassedRound && canManageThis && isActive && !isCancelled ? (
-                            <div className="flex items-center justify-end gap-2">
+                            <div
+                              className="flex items-center justify-end gap-2"
+                              data-onboarding="interview-details-actions"
+                            >
                               {onReschedule && (
                                 <Button
                                   size="sm"

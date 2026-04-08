@@ -1011,16 +1011,20 @@ export const getAllDonors = async (): Promise<any[]> => {
     throw new Error(data.message || "Failed to fetch donors");
   }
 
-  // Handle different response formats
-  if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
-    return data.data.data;
-  } else if (data && data.data && Array.isArray(data.data)) {
-    return data.data;
-  } else if (Array.isArray(data)) {
-    return data;
-  } else {
-    return [];
+  // Handle both old and new API payload shapes.
+  const donorsContainer = data?.data?.donors ?? data?.data ?? data;
+
+  if (Array.isArray(donorsContainer?.data)) {
+    return donorsContainer.data;
   }
+  if (Array.isArray(donorsContainer)) {
+    return donorsContainer;
+  }
+  if (Array.isArray(data?.result)) {
+    return data.result;
+  }
+
+  return [];
 };
 
 // Delete Religion

@@ -830,13 +830,21 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-onboarding="questions-sets-panel">
       <div className="flex justify-end items-center gap-3">
-        <Button onClick={openAddModal} variant="outline">
+        <Button
+          onClick={openAddModal}
+          variant="outline"
+          data-onboarding="questions-add-set"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Set
         </Button>
-        <Button onClick={openDownloadModal} variant="outline">
+        <Button
+          onClick={openDownloadModal}
+          variant="outline"
+          data-onboarding="questions-download-set"
+        >
           <Download className="h-4 w-4 mr-2" />
           Download PDF
         </Button>

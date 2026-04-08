@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import LanguageSelector from "@/components/ui/LanguageSelector";
 import {
   getCompleteStudentData,
   getStudentDataByPhone,
+  getAllStates,
   CompleteStudentData,
 } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +18,7 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { OfferLetterCard } from "./OfferLetterCard";
 import Footer from "@/components/Footer";
 import { useLanguage } from "@/routes/LaunguageContext";
+import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
 interface Student {
   firstName: string;
@@ -26,6 +28,11 @@ interface Student {
   whatsappNumber: string;
   district: string;
   state: string;
+}
+
+interface StateOption {
+  state_code: string;
+  state_name: string;
 }
 
 type BookingStatus = "Pending" | "Booked" | "Cancelled" | "Completed" | null;
@@ -46,6 +53,7 @@ type TestRow = {
 
 export default function StudentResult() {
   const [student, setStudent] = useState<Student | null>(null);
+  const [states, setStates] = useState<StateOption[]>([]);
   const [completeData, setCompleteData] = useState<CompleteStudentData | null>(
     null,
   );
@@ -103,6 +111,12 @@ export default function StudentResult() {
           pass: "उत्तीर्ण",
           fail: "अनुत्तीर्ण",
           pending: "लंबित",
+          notScheduled: "अनुसूचित नहीं",
+          cooldownPrefix: "आप स्लॉट इसके बाद बुक कर सकते हैं",
+          cooldownFallback: "15 दिन",
+          cooldownSuffix: "तब तक कृपया अभ्यास करें।",
+          interviewCompleted: "साक्षात्कार पूरा हो चुका है",
+          noTestDataAvailable: "कोई परीक्षा डेटा उपलब्ध नहीं है",
         };
       case "marathi":
         return {
@@ -130,6 +144,12 @@ export default function StudentResult() {
           pass: "उत्तीर्ण",
           fail: "अनुत्तीर्ण",
           pending: "प्रलंबित",
+          notScheduled: "नियोजित नाही",
+          cooldownPrefix: "तुम्ही यानंतर स्लॉट बुक करू शकता",
+          cooldownFallback: "15 दिवस",
+          cooldownSuffix: "तोपर्यंत कृपया सराव करा.",
+          interviewCompleted: "मुलाखत पूर्ण झाली आहे",
+          noTestDataAvailable: "परीक्षा डेटा उपलब्ध नाही",
         };
       default: // English
         return {
@@ -157,11 +177,79 @@ export default function StudentResult() {
           pass: "Pass",
           fail: "Fail",
           pending: "Pending",
+          notScheduled: "Not Scheduled",
+          cooldownPrefix: "You can book the slot after",
+          cooldownFallback: "15 days",
+          cooldownSuffix: "Till then please practice.",
+          interviewCompleted: "Interview Completed",
+          noTestDataAvailable: "No test data available",
         };
     }
   };
 
   const content = getContent();
+  const displayState = useMemo(() => {
+    if (!student?.state) return "-";
+
+    const stateValue = String(student.state).trim();
+    const matchedState = states.find(
+      (state) =>
+        state.state_code === stateValue ||
+        state.state_name === stateValue ||
+        state.state_code?.toLowerCase() === stateValue.toLowerCase() ||
+        state.state_name?.toLowerCase() === stateValue.toLowerCase(),
+    );
+
+    return matchedState?.state_name || stateValue;
+  }, [states, student?.state]);
+
+  const guideText = (() => {
+    switch (selectedLanguage) {
+      case "hindi":
+        return {
+          // header: "यहां अपना पूरा परिणाम देखें।",
+          details: "यहां अपनी जानकारी देखें।",
+          table: "यहां सभी चरण और स्थिति देखें।",
+          action: "अगला चरण यहाँ दिखाई देगा। स्लॉट बुक बटन पर क्लिक करके आप अपने अगले राउंड के लिए इंटरव्यू शेड्यूल कर सकते हैं।",
+        };
+      case "marathi":
+        return {
+          // header: "येथे तुमचा पूर्ण निकाल पहा.",
+          details: "येथे तुमची माहिती पहा.",
+          table: "येथे सर्व टप्पे आणि स्थिती पहा.",
+          action: "पुढील टप्पा येथे दिसेल.स्लॉट बुक बटणावर क्लिक करून तुम्ही पुढील राऊंडसाठी तुमची मुलाखत शेड्यूल करू शकता।",
+        };
+      default:
+        return {
+          // header: "See your full result here.",
+          details: "Check your details here.",
+          table: "See all rounds and status here.",
+          action: "Your next step will be shown here.Click on “Book Slot” to schedule your interview for the next round.",
+        };
+    }
+  })();
+  const studentResultGuideSteps = [
+    // {
+    //   id: "student-result-header",
+    //   target: '[data-onboarding="student-result-header"]',
+    //   text: guideText.header,
+    // },
+    {
+      id: "student-result-details",
+      target: '[data-onboarding="student-result-details"]',
+      text: guideText.details,
+    },
+    {
+      id: "student-result-table",
+      target: '[data-onboarding="student-result-table"]',
+      text: guideText.table,
+    },
+    {
+      id: "student-result-action",
+      target: '[data-onboarding="student-result-action-header"]',
+      text: guideText.action,
+    },
+  ];
 
   // Helper: normalize booking status
   const normalizeBooking = (val: any): BookingStatus => {
@@ -175,6 +263,20 @@ export default function StudentResult() {
   };
 
 
+
+  useEffect(() => {
+    const fetchStates = async () => {
+      try {
+        const response = await getAllStates();
+        const statesData = response?.data || response || [];
+        setStates(Array.isArray(statesData) ? statesData : []);
+      } catch (error) {
+        console.error("Error fetching states:", error);
+      }
+    };
+
+    fetchStates();
+  }, []);
 
   useEffect(() => {
     // Update "now" every second so countdown timers refresh
@@ -822,6 +924,30 @@ export default function StudentResult() {
 
   return (
     <div className="min-h-screen student-bg-gradient p-4 flex flex-col">
+      <ContextualHelpWidget
+        sectionId="student-final-result"
+        sectionTitle="Student Final Result"
+        steps={studentResultGuideSteps}
+        demo={{
+          title: "Student final result demo",
+          embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_FINAL_RESULT?rel=0",
+          note: "Replace this with a short final result walkthrough.",
+        }}
+        faqs={[
+          {
+            question: "What can I do on this page?",
+            answer: "You can review your student profile, test progress, and slot booking status from here.",
+          },
+          {
+            question: "Where do I book the next round slot?",
+            answer: "Use the action buttons shown in the results table when a round is ready for slot booking.",
+          },
+        ]}
+        showInlineButtons={false}
+        showFloatingButton={true}
+        floatingContainer="body"
+        autoStartOnFirstVisit={true}
+      />
       <div className="flex-1 flex">
         <div className="bg-card rounded-t-md shadow-2xl p-6 w-full overflow-y-auto">
           <header className="mb-6 mt-14 md:mt-0 px-1 sm:px-0">
@@ -841,7 +967,7 @@ export default function StudentResult() {
           </header>
 
           {/* Student Details */}
-          <Card className="mb-6 border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/20">
+          <Card className="mb-6 border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/20" data-onboarding="student-result-details">
             <CardHeader className="pb-4 px-5 sm:px-6 border-b border-border/40 bg-muted/30">
               <CardTitle className="text-lg md:text-xl font-bold flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" />
@@ -885,7 +1011,7 @@ export default function StudentResult() {
                 </div>
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.state}</span>
-                  <span className="font-semibold sm:font-medium text-foreground truncate">{student?.state ? student.state : "-"}</span>
+                  <span className="font-semibold sm:font-medium text-foreground truncate">{displayState}</span>
                 </div>
               </div>
             </CardContent>
@@ -904,7 +1030,7 @@ export default function StudentResult() {
             )}
 
           {/* Test Results & Slot Booking */}
-          <Card className="border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/10">
+          <Card className="border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/10" data-onboarding="student-result-table">
             <CardHeader className="pb-4 px-5 sm:px-6 border-b border-border/40 bg-muted/30">
               <CardTitle className="text-lg md:text-xl font-bold flex items-center gap-2">
                 <FileText className="w-5 h-5 text-primary" />
@@ -919,7 +1045,7 @@ export default function StudentResult() {
                       <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.stage}</th>
                       <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.status}</th>
                       <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.scheduledTime}</th>
-                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.actions}</th>
+                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50" data-onboarding="student-result-action-header">{content.actions}</th>
                       <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs">{content.marks}</th>
                     </tr>
                   </thead>
@@ -964,9 +1090,15 @@ export default function StudentResult() {
                             const seconds = totalSeconds % 60;
 
                             if (days > 0) {
-                              remainingText = `${days} day${
-                                days === 1 ? "" : "s"
-                                } ${hours.toString().padStart(2, "0")}:${minutes
+                              const dayLabel =
+                                selectedLanguage === "hindi"
+                                  ? "दिन"
+                                  : selectedLanguage === "marathi"
+                                    ? "दिवस"
+                                    : `day${days === 1 ? "" : "s"}`;
+                              remainingText = `${days} ${dayLabel} ${hours
+                                .toString()
+                                .padStart(2, "0")}:${minutes
                                   .toString()
                                   .padStart(2, "0")}:${seconds
                                     .toString()
@@ -1089,7 +1221,7 @@ export default function StudentResult() {
                                     minute: "2-digit",
                                     hour12: true,
                                   })
-                                  : <span className="italic opacity-70">Not Scheduled</span>}
+                                  : <span className="italic opacity-70">{content.notScheduled}</span>}
                               </span>
                             </td>
 
@@ -1133,9 +1265,9 @@ export default function StudentResult() {
                                           {content.bookSlot}
                                         </Button>
                                         <p className="text-[11px] md:text-xs text-destructive/90 bg-destructive/5 p-2 rounded-md leading-relaxed border border-destructive/10">
-                                          You can book the slot after{" "}
-                                          <span className="font-bold">{remainingText || "15 days"}</span>
-                                          {" "}Till then please practice.
+                                          {content.cooldownPrefix}{" "}
+                                          <span className="font-bold">{remainingText || content.cooldownFallback}</span>
+                                          {" "}{content.cooldownSuffix}
                                         </p>
                                       </div>
                                     ) : hasPassedAttempt ? (
@@ -1154,7 +1286,7 @@ export default function StudentResult() {
                                         className="bg-secondary/50 text-muted-foreground cursor-not-allowed w-full sm:w-auto whitespace-normal h-auto py-3 md:py-2 px-4 shadow-none font-medium border-dashed"
                                         variant="outline"
                                       >
-                                        Interview Completed
+                                        {content.interviewCompleted}
                                       </Button>
                                     ) : isSlotBooked && !isSlotCancelled ? (
                                       /* If slot is booked and time not passed, show Reschedule */
@@ -1198,7 +1330,7 @@ export default function StudentResult() {
                         >
                           <div className="flex flex-col items-center justify-center space-y-3">
                             <span className="text-4xl md:text-5xl opacity-50">📄</span>
-                            <span className="font-medium">No test data available</span>
+                            <span className="font-medium">{content.noTestDataAvailable}</span>
                           </div>
                         </td>
                       </tr>

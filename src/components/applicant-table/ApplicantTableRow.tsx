@@ -10,12 +10,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MoreHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { EditableCell } from "./EditableCell";
 import StatusDropdown from "./StatusDropdown";
 import StageDropdown from "./StageDropdown";
 import { CampusSelector } from "../CampusSelector";
 import { getDistrictsByState, getBlocksByDistrict, getStudentDataByEmail } from "@/utils/api";
+import { updateStudent } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { cn } from "@/lib/utils";
 
 // ✅ MANDATORY: Cache for getByState API to prevent repeated calls
 const districtCache = new Map<string, { data: any[]; timestamp: number }>();
@@ -122,6 +126,7 @@ export const ApplicantTableRow = ({
   const { hasEditAccess } = usePermissions();
   const { toast } = useToast();
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [isUpdatingDuplicate, setIsUpdatingDuplicate] = useState(false);
 
   // State for dynamic district and block options
   const [districtOptions, setDistrictOptions] = useState<{ id: string | number; name: string }[]>([]);
@@ -238,6 +243,7 @@ export const ApplicantTableRow = ({
       .join(" ") ||
     applicant.name ||
     "No name";
+  const isDuplicate = Boolean(applicant.is_duplicate);
 
   const getInitials = (name: string) => {
     return name
@@ -424,8 +430,43 @@ export const ApplicantTableRow = ({
     return parts.length > 0 ? parts.join('\n') : 'N/A';
   };
 
+  const handleDuplicateToggle = async () => {
+    if (!hasEditAccess || isUpdatingDuplicate) return;
+
+    const nextDuplicateState = !isDuplicate;
+    setIsUpdatingDuplicate(true);
+
+    try {
+      await updateStudent(applicant.id, { is_duplicate: nextDuplicateState });
+      toast({
+        title: nextDuplicateState ? "Duplicate Marked" : "Duplicate Removed",
+        description: nextDuplicateState
+          ? `${fullName} has been marked as a duplicate record.`
+          : `${fullName} is no longer marked as a duplicate.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+      onUpdate();
+    } catch (error: any) {
+      console.error("Error updating duplicate status:", error);
+      toast({
+        title: "Unable to Update Duplicate Status",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+    } finally {
+      setIsUpdatingDuplicate(false);
+    }
+  };
+
   return (
-    <TableRow key={applicant.id}>
+    <TableRow
+      key={applicant.id}
+      className={cn(
+        isDuplicate && "opacity-50 grayscale-[0.5] bg-slate-50/50"
+      )}
+    >
       {/* Checkbox */}
       {isColumnVisible('checkbox') && (
         <TableCell className="sticky left-0 z-30 bg-white w-12 px-2">
@@ -458,7 +499,7 @@ export const ApplicantTableRow = ({
       {/* Full Name - Editable */}
       {isColumnVisible('name') && (
         <TableCell className="sticky left-10  bg-white z-20 min-w-[150px] max-w-[180px] px-2">
-          <div className="truncate">
+          <div className="flex items-center gap-2 min-w-0">
             <EditableCell
               applicant={applicant}
               field="first_name"
@@ -466,6 +507,11 @@ export const ApplicantTableRow = ({
               onUpdate={onUpdate}
               disabled={true}
             />
+            {isDuplicate && (
+              <Badge className="border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-100">
+                Duplicate
+              </Badge>
+            )}
           </div>
         </TableCell>
       )}
@@ -1202,7 +1248,13 @@ export const ApplicantTableRow = ({
         <TableCell className="w-16 px-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Open actions for ${fullName}`}
+                title="Open applicant actions"
+                data-onboarding="applicant-row-actions-button"
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -1211,10 +1263,26 @@ export const ApplicantTableRow = ({
               side="bottom"
               sideOffset={5}
               className="bg-background border border-border shadow-lg z-50"
+              data-onboarding="applicant-row-actions-menu"
             >
-              <DropdownMenuItem onClick={() => onViewDetails(applicant)}>
+              <DropdownMenuItem
+                onClick={() => onViewDetails(applicant)}
+                data-onboarding="applicant-row-view-details"
+              >
                 View Details
               </DropdownMenuItem>
+              {hasEditAccess && (
+                <DropdownMenuItem
+                  onClick={handleDuplicateToggle}
+                  disabled={isUpdatingDuplicate}
+                >
+                  {isUpdatingDuplicate
+                    ? "Updating Duplicate Status..."
+                    : isDuplicate
+                      ? "Unmark as Duplicate"
+                      : "Mark as Duplicate"}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </TableCell>
