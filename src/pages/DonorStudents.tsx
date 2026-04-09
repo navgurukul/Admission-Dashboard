@@ -190,25 +190,23 @@ const DonorStudents = () => {
         setLoading(true);
         try {
             const data = await getStudentsByDonorId(id, currentPage, itemsPerPage, debouncedSearch);
-            let studentList = [];
+            let studentList: any[] = [];
             let totalCount = 0;
             let pages = 0;
 
-            if (data?.data?.data && Array.isArray(data.data.data)) {
-                studentList = data.data.data;
-                totalCount = data.data.total || data.total || studentList.length;
-                pages = data.data.totalPages || Math.ceil(totalCount / itemsPerPage);
-            } else if (data && data.data && Array.isArray(data.data)) {
-                studentList = data.data;
-                totalCount = data.total || studentList.length;
+            const studentsContainer = data?.data?.students ?? data?.data ?? data;
+
+            if (Array.isArray(studentsContainer?.data)) {
+                studentList = studentsContainer.data;
+                totalCount = Number(studentsContainer.total ?? data?.total ?? studentList.length);
+                pages = Number(studentsContainer.totalPages ?? Math.ceil(totalCount / itemsPerPage));
+            } else if (Array.isArray(studentsContainer)) {
+                studentList = studentsContainer;
+                totalCount = studentList.length;
                 pages = Math.ceil(totalCount / itemsPerPage);
-            } else if (Array.isArray(data)) {
-                studentList = data;
-                totalCount = data.length;
-                pages = Math.ceil(totalCount / itemsPerPage);
-            } else if (data && data.students && Array.isArray(data.students)) {
+            } else if (Array.isArray(data?.students)) {
                 studentList = data.students;
-                totalCount = data.total || data.students.length;
+                totalCount = Number(data.total ?? studentList.length);
                 pages = Math.ceil(totalCount / itemsPerPage);
             }
 
