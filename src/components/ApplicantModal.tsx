@@ -1062,7 +1062,8 @@ Interviewer: ${interviewerName}`;
   // Handler for "Offer Sent" confirmation
   const handleOfferLetterStatusChange = async (value: any) => {
     // Get current offer letter status
-    const currentOfferStatus = currentApplicant.final_decisions?.[0]?.offer_letter_status;
+    const currentOfferStatus =
+      currentApplicant.final_decisions?.[0]?.offer_letter_status;
 
     if (!currentApplicant.campus_id) {
       toast({
@@ -1097,6 +1098,41 @@ Interviewer: ${interviewerName}`;
           duration: 4000,
         });
         return;
+      }
+
+      const latestEmail = currentApplicant?.email?.trim();
+      if (!latestEmail) {
+        try {
+          const response = await getStudentById(currentApplicant.id);
+          const studentData =
+            response && typeof response === "object" && "data" in response
+              ? (response as any).data
+              : response;
+
+          if (studentData?.email?.trim()) {
+            setCurrentApplicant((prev: any) => ({
+              ...prev,
+              email: studentData.email,
+            }));
+          } else {
+            toast({
+              title: "Unable to Send Offer Letter",
+              description: "This student does not have an email address. Please add an email address before sending the offer letter.",
+              variant: "destructive",
+              className: "border-red-500 bg-red-50 text-red-900",
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Failed to verify student email before showing offer confirmation", error);
+          toast({
+            title: "Unable to Send Offer Letter",
+            description: "This student does not have an email address. Please add an email address before sending the offer letter.",
+            variant: "destructive",
+            className: "border-red-500 bg-red-50 text-red-900",
+          });
+          return;
+        }
       }
 
       // Show confirmation dialog before proceeding
