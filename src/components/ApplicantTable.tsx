@@ -1836,6 +1836,17 @@ const ApplicantTable = () => {
   const showingStart =
     paginatedApplicants.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const showingEnd = Math.min(currentPage * itemsPerPage, currentTotalCount);
+  const shouldShowDashboardHelp =
+    !showAddModal &&
+    !applicantToView &&
+    !showAdvancedFilters &&
+    !showCSVImport &&
+    !showBulkUpdate &&
+    !showBulkOfferResults &&
+    !bulkOfferResults &&
+    !applicantForComments &&
+    !showDeleteConfirm &&
+    !showBulkOfferConfirmation;
 
   return (
     <Card className="h-full flex flex-col" data-onboarding="dashboard-applicants-card">
@@ -1855,7 +1866,8 @@ const ApplicantTable = () => {
             <ContextualHelpWidget
               sectionId="dashboard-applicants"
               sectionTitle="Applicants Dashboard"
-              showFloatingButton={!showAddModal && !applicantToView}
+              showFloatingButton={shouldShowDashboardHelp}
+              autoStartOnFirstVisit={false}
               demo={{
                 title: "Applicants Dashboard Demo",
                 embedUrl: "https://www.youtube.com/embed/VIDEO_ID_APPLICANT_DASHBOARD?rel=0",

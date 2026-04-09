@@ -75,23 +75,29 @@ export function ContextualHelpWidget({
   }, [autoStartOnFirstVisit, storageKeys.visited]);
 
   const closeMenu = () => setIsMenuOpen(false);
+  const isFixedFloatingHelp = floatingVariant === "fixed";
   const floatingHelpMenu = (
     <div
       className={cn(
         "z-[80] flex flex-col items-end",
         floatingVariant === "fixed"
-          ? "fixed bottom-4 right-4 md:bottom-5 md:right-5 pb-[env(safe-area-inset-bottom)]"
+          ? "fixed bottom-2 right-2 md:bottom-3 md:right-3 pb-[env(safe-area-inset-bottom)]"
           : "sticky bottom-0 bg-background/95 pt-3 pb-1 pr-4 backdrop-blur supports-[backdrop-filter]:bg-background/80",
       )}
       data-contextual-help-floating="true"
     >
       {/* Rendered via portal so it stays pinned to viewport, not scroll containers. */}
       {isMenuOpen ? (
-        <div className="mb-3 w-52 rounded-2xl border border-border bg-background/95 p-2 shadow-2xl backdrop-blur">
+        <div
+          className={cn(
+            "mb-3 rounded-2xl border border-border bg-background/95 p-2 shadow-2xl backdrop-blur",
+            isFixedFloatingHelp ? "w-44" : "w-52",
+          )}
+        >
           <Button
             type="button"
             variant="ghost"
-            className="w-full justify-start"
+            className={cn("w-full justify-start", isFixedFloatingHelp && "h-9 px-3 text-sm")}
             onClick={() => {
               closeMenu();
               setIsTourOpen(true);
@@ -104,7 +110,7 @@ export function ContextualHelpWidget({
             <Button
               type="button"
               variant="ghost"
-              className="w-full justify-start"
+              className={cn("w-full justify-start", isFixedFloatingHelp && "h-9 px-3 text-sm")}
               onClick={() => {
                 closeMenu();
                 setIsDemoOpen(true);
@@ -117,7 +123,7 @@ export function ContextualHelpWidget({
           <Button
             type="button"
             variant="ghost"
-            className="w-full justify-start"
+            className={cn("w-full justify-start", isFixedFloatingHelp && "h-9 px-3 text-sm")}
             onClick={() => {
               closeMenu();
               setIsFaqOpen(true);
@@ -132,11 +138,14 @@ export function ContextualHelpWidget({
       <Button
         type="button"
         size="icon"
-        className="h-14 w-14 rounded-full shadow-xl"
+        className={cn(
+          "rounded-full shadow-xl",
+          isFixedFloatingHelp ? "h-11 w-11" : "h-14 w-14",
+        )}
         onClick={() => setIsMenuOpen((value) => !value)}
         aria-label={`Open help for ${sectionTitle}`}
       >
-        <CircleHelp className="h-6 w-6" />
+        <CircleHelp className={cn(isFixedFloatingHelp ? "h-5 w-5" : "h-6 w-6")} />
       </Button>
     </div>
   );
