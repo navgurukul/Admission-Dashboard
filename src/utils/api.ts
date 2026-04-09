@@ -673,7 +673,25 @@ export const submitFinalDecision = async (payload: any) => {
     body: JSON.stringify(payload),
   });
 
-  if (response.ok && payload.student_id) {
+  let responseData: any = null;
+  try {
+    responseData = await response.clone().json();
+  } catch (error) {
+    responseData = null;
+  }
+
+  const isFailure = responseData?.success === false;
+
+  if (!response.ok || isFailure) {
+    const errorMessage =
+      responseData?.email_status?.error ||
+      responseData?.email_status?.message ||
+      responseData?.message ||
+      "Failed to update final decision";
+    throw new Error(errorMessage);
+  }
+
+  if (payload.student_id) {
     if (payload.onboarded_status) {
       await triggerStudentStatusUpdate(payload.student_id, "onboarded", payload.onboarded_status);
     } else if (payload.offer_letter_status) {
