@@ -1062,7 +1062,8 @@ Interviewer: ${interviewerName}`;
   // Handler for "Offer Sent" confirmation
   const handleOfferLetterStatusChange = async (value: any) => {
     // Get current offer letter status
-    const currentOfferStatus = currentApplicant.final_decisions?.[0]?.offer_letter_status;
+    const currentOfferStatus =
+      currentApplicant.final_decisions?.[0]?.offer_letter_status;
 
     if (!currentApplicant.campus_id) {
       toast({
@@ -1097,6 +1098,41 @@ Interviewer: ${interviewerName}`;
           duration: 4000,
         });
         return;
+      }
+
+      const latestEmail = currentApplicant?.email?.trim();
+      if (!latestEmail) {
+        try {
+          const response = await getStudentById(currentApplicant.id);
+          const studentData =
+            response && typeof response === "object" && "data" in response
+              ? (response as any).data
+              : response;
+
+          if (studentData?.email?.trim()) {
+            setCurrentApplicant((prev: any) => ({
+              ...prev,
+              email: studentData.email,
+            }));
+          } else {
+            toast({
+              title: "Unable to Send Offer Letter",
+              description: "This student does not have an email address. Please add an email address before sending the offer letter.",
+              variant: "destructive",
+              className: "border-red-500 bg-red-50 text-red-900",
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Failed to verify student email before showing offer confirmation", error);
+          toast({
+            title: "Unable to Send Offer Letter",
+            description: "This student does not have an email address. Please add an email address before sending the offer letter.",
+            variant: "destructive",
+            className: "border-red-500 bg-red-50 text-red-900",
+          });
+          return;
+        }
       }
 
       // Show confirmation dialog before proceeding
@@ -1329,8 +1365,15 @@ Interviewer: ${interviewerName}`;
   const getCode = (options: Array<{ value: string; label: string }>, name: string | null | undefined): string | null => {
     if (!name) return null;
     if (!Array.isArray(options) || options.length === 0) return null;
-    const matchedOption = options.find((o) => o.label === name);
-    return matchedOption?.value || null;
+    const normalized = String(name).trim().toLowerCase();
+
+    // If the incoming value is already a code.
+    const byValue = options.find((o) => String(o.value).trim().toLowerCase() === normalized);
+    if (byValue) return byValue.value;
+
+    //  resolve by label/name.
+    const byLabel = options.find((o) => String(o.label).trim().toLowerCase() === normalized);
+    return byLabel?.value || null;
   };
 
   const handleStateChange = async (value: string) => {
@@ -1340,11 +1383,12 @@ Interviewer: ${interviewerName}`;
     setBlockOptions([]);
 
     // Convert state code to name before sending to API
-    const stateName = stateOptions.find((opt) => opt.value === value)?.label || value;
+    // const stateName = stateOptions.find((opt) => opt.value === value)?.label || value;
 
     if (currentApplicant?.id) {
       await updateStudent(currentApplicant.id, {
-        state: stateName,  // Send NAME to API (e.g., "Tripura")
+        // Send state code (e.g. "TR"), not state name.
+        state: value,
         district: null,
         block: null
       });
@@ -2160,8 +2204,8 @@ Interviewer: ${interviewerName}`;
                   <EditableCell
                     applicant={currentApplicant}
                     field="state"
-                    displayValue={currentApplicant.state}
-                    value={getCode(stateOptions, currentApplicant.state) || ""}
+                    displayValue={getLabel(stateOptions, currentApplicant.state, currentApplicant.state || "", "state_name")}
+                    value={getStateCodeFromNameOrCode(currentApplicant.state) || ""}
                     onUpdate={handleStateChange}
                     options={stateOptions}
                     onEditStart={() => ensureFieldDataLoaded('state')}

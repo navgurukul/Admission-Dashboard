@@ -526,10 +526,6 @@ const StudentForm: React.FC = () => {
       return false;
     }
 
-    if (schoolId === 'SOP' && formData.gender === 'male') {
-      return false;
-    }
-
     const qualificationId = formData.maximumQualification;
     if (!qualificationId) return true; // Show all if no qualification selected
 
@@ -546,8 +542,8 @@ const StudentForm: React.FC = () => {
       const isGraduate = qualName.includes('graduate') && !qualName.includes('under');
       const isPursuingCollege = qualName.includes('pursuing college');
 
-      if (isPursuingCollege && formData.gender === 'female') {
-        // Female pursuing college: eligible only if year is 2nd/3rd/4th/Final AND attendance is "Only Exam"
+      if (isPursuingCollege) {
+        // Pursuing college: eligible only if year is 2nd/3rd/4th/Final AND attendance is "Only Exam"
         const allowedYears = ['2nd Year', '3rd Year', '4th Year', 'Final Year'];
         const isYearAllowed = allowedYears.includes(formData.pursuingYear);
         const isExamOnly = formData.collegeAttendanceMethod === 'Only Exam';
