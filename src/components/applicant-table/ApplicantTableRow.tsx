@@ -19,6 +19,7 @@ import { getDistrictsByState, getBlocksByDistrict, getStudentDataByEmail } from 
 import { updateStudent } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { validateEmailAddress } from "@/utils/emailValidation";
 import { cn } from "@/lib/utils";
 
 // ✅ MANDATORY: Cache for getByState API to prevent repeated calls
@@ -208,10 +209,9 @@ export const ApplicantTableRow = ({
   // Handle email validation
   const handleEmailValidation = useCallback(async (newEmail: string): Promise<boolean> => {
     setEmailError(null);
-    // Basic email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail)) {
-      const errorMsg = "Please enter a valid email address";
+    const emailValidation = validateEmailAddress(newEmail);
+    if (!emailValidation.isValid) {
+      const errorMsg = emailValidation.error || "Please enter a valid email address";
       setEmailError(errorMsg);
       return false;
     }
@@ -219,7 +219,7 @@ export const ApplicantTableRow = ({
     // Check if email already exists
     setIsCheckingEmail(true);
     try {
-      const existingStudent = await getStudentDataByEmail(newEmail);
+      const existingStudent = await getStudentDataByEmail(emailValidation.normalizedEmail);
 
       if (existingStudent && existingStudent.id !== applicant?.id) {
         const errorMsg = "This email already exists, please use another email";

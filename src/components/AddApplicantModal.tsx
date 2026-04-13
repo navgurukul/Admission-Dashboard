@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { validateEmailAddress } from "@/utils/emailValidation";
 
 import {
   createStudent,
@@ -412,14 +413,19 @@ export function AddApplicantModal({
   const handleEmailBlur = async () => {
     if (!formData.email) return;
 
-    // basic format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) return;
+    const emailValidation = validateEmailAddress(formData.email);
+    if (!emailValidation.isValid) {
+      setErrors((prev) => ({
+        ...prev,
+        email: emailValidation.error || "Please enter a valid email address",
+      }));
+      return;
+    }
 
     setIsCheckingEmail(true);
 
     try {
-      const existingStudent = await getStudentDataByEmail(formData.email);
+      const existingStudent = await getStudentDataByEmail(emailValidation.normalizedEmail);
 
       if (existingStudent) {
         setErrors((prev) => ({
@@ -465,8 +471,11 @@ export function AddApplicantModal({
 
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
+    } else {
+      const emailValidation = validateEmailAddress(formData.email);
+      if (!emailValidation.isValid) {
+        newErrors.email = emailValidation.error || "Please enter a valid email address";
+      }
     }
 
     if (!formData.gender) {
@@ -647,7 +656,7 @@ export function AddApplicantModal({
         last_name: formData.last_name,
         gender: formData.gender || null,
         dob: formData.dob || null,
-        email: formData.email || null,
+        email: formData.email ? validateEmailAddress(formData.email).normalizedEmail : null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
         state: formData.stateCode || null, 

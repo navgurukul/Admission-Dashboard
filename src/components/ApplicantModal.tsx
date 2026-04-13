@@ -46,6 +46,7 @@ import { EditableCell } from "./applicant-table/EditableCell";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { validateEmailAddress } from "@/utils/emailValidation";
 import {
   updateStudent,
   getStudentById,
@@ -1272,28 +1273,22 @@ Interviewer: ${interviewerName}`;
     setEmailError("");
     setEmailExists(false);
 
+    const emailValidation = validateEmailAddress(newEmail);
+
     // If email hasn't changed, allow update
-    if (newEmail === currentApplicant?.email) {
+    if (emailValidation.normalizedEmail === currentApplicant?.email?.trim()?.toLowerCase()) {
       return true;
     }
 
-    // Basic email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newEmail)) {
-      setEmailError("Please enter a valid email address");
-      // toast({
-      //   title: "❌ Invalid Email",
-      //   description: "Please enter a valid email address",
-      //   variant: "destructive",
-      //   className: "border-red-500 bg-red-50 text-red-900",
-      // });
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error || "Please enter a valid email address");
       return false;
     }
 
     // Check if email already exists
     setIsCheckingEmail(true);
     try {
-      const existingStudent = await getStudentDataByEmail(newEmail);
+      const existingStudent = await getStudentDataByEmail(emailValidation.normalizedEmail);
 
       if (existingStudent && existingStudent.id !== currentApplicant?.id) {
         setEmailError("This email already exists, please use another email");

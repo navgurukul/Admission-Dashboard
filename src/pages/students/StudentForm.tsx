@@ -24,6 +24,7 @@ import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { validateEmailAddress } from "@/utils/emailValidation";
 import { ExternalLink, PlayCircle } from "lucide-react";
 import { LearningRoundModal } from "@/components/LearningRoundModal";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
@@ -689,7 +690,7 @@ const StudentForm: React.FC = () => {
       dob: data.dateOfBirth,
       whatsapp_number: data.whatsappNumber,
       phone_number: data.alternateNumber,
-      email: data.email,
+      email: data.email ? validateEmailAddress(data.email).normalizedEmail : "",
       gender: data.gender,
       state: data.stateCode, 
       district: data.district, // Send NAME (e.g., "Hyderabad")
@@ -1004,17 +1005,9 @@ const StudentForm: React.FC = () => {
 
     // Live email validation
     if (name === "email") {
-      if (processedValue && !validateEmail(processedValue)) {
-        setEmailError("Please enter a valid email address");
-      } else {
-        setEmailError("");
-      }
+      const emailValidation = validateEmailAddress(processedValue);
+      setEmailError(processedValue ? emailValidation.error || "" : "");
     }
-  };
-
-  const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1205,6 +1198,20 @@ const StudentForm: React.FC = () => {
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900"
       });
+    }
+
+    if (formData.email) {
+      const emailValidation = validateEmailAddress(formData.email);
+      if (!emailValidation.isValid) {
+        setEmailError(emailValidation.error || "");
+        return toast({
+          title: "Invalid Email",
+          description:
+            emailValidation.error || "Please enter a valid email address.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900"
+        });
+      }
     }
 
     if (!formData.gender) {
