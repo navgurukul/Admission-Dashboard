@@ -205,7 +205,7 @@ const StudentForm: React.FC = () => {
             duration: "3 वर्ष (संरचित डिग्री कार्यक्रम)",
             location: "हिमाचल प्रदेश (बारूसाहिब – आवासीय परिसर)",
             eligibility: [
-              "न्यूनतम आयु: 16.5 वर्ष",
+              "न्यूनतम आयु: 16 वर्ष",
               "12वीं पास (विश्वविद्यालय प्रवेश के लिए पात्र)",
               "पारिवारिक आय 5 लाख से कम",
               "उच्च शिक्षा और तकनीक में गहरी रुचि"
@@ -322,7 +322,7 @@ const StudentForm: React.FC = () => {
             duration: "3 वर्षे (संरचित पदवी कार्यक्रम)",
             location: "हिमाचल प्रदेश (बारुसाहिब – निवासी कॅम्पस)",
             eligibility: [
-              "किमान वय: 16.5 वर्षे",
+              "किमान वय: 16 वर्षे",
               "12वी उत्तीर्ण (विद्यापीठ प्रवेशासाठी पात्र)",
               "कौटुंबिक उत्पन्न 5 लाखांपेक्षा कमी",
               "उच्च शिक्षण आणि तंत्रज्ञानात तीव्र स्वारस्य"
@@ -495,7 +495,7 @@ const StudentForm: React.FC = () => {
             duration: "3 years (Structured degree program)",
             location: "Himachal Pradesh (Barusahib – Residential Campus)",
             eligibility: [
-              "Minimum age: 16.5 years",
+              "Minimum age: 16 years",
               "Must be 12th pass (eligible for university admission)",
               "Family income less than 5 LPA",
               "Strong interest in higher education and technology"
@@ -522,6 +522,13 @@ const StudentForm: React.FC = () => {
 
   // Helper function to check if a school is eligible based on qualification
   const isSchoolEligible = (schoolId: string) => {
+    // Check age eligibility
+    const age = getAge(formData.dateOfBirth);
+    const ageThreshold = schoolId === 'BCA' ? 16 : 16.5;
+    if (formData.dateOfBirth && age < ageThreshold) {
+      return false;
+    }
+
     if (schoolId === 'BCA' && formData.gender === 'male') {
       return false;
     }
@@ -1102,6 +1109,10 @@ const StudentForm: React.FC = () => {
     // Alternate number is mandatory when user logged in via email
     const alternateRequired = location.state?.googleEmail ? formData.alternateNumber : true;
 
+    const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
+    const isBCASchool = selectedSchool?.school_name.includes('BCA');
+    const ageThreshold = formData.initial_school_id ? (isBCASchool ? 16 : 16.5) : 16;
+
     return (
       // formData.profileImage &&
       formData.firstName &&
@@ -1119,7 +1130,7 @@ const StudentForm: React.FC = () => {
       formData.religion &&
       alternateRequired &&
       (currentStep === 2 ? formData.initial_school_id : true) &&
-      age >= 16.5 &&
+      age >= ageThreshold &&
       // Conditional fields for pursuing graduation
       (qualifications.find(q => String(q.id) === formData.maximumQualification)?.qualification_name.toLowerCase().includes('pursuing') ? 
         formData.pursuingYear && formData.collegeAttendanceMethod : true)
@@ -1147,10 +1158,14 @@ const StudentForm: React.FC = () => {
       });
     }
 
-    if (!formData.dateOfBirth || age < 16.5) {
+    const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
+    const isBCASchool = selectedSchool?.school_name.includes('BCA');
+    const ageThreshold = isBCASchool ? 16 : 16.5;
+
+    if (!formData.dateOfBirth || age < ageThreshold) {
       return toast({
         title: "⚠️ Invalid Date of Birth",
-        description: "You must be at least 16.5 years old.",
+        description: `You must be at least ${ageThreshold} years old.`,
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900"
       });
