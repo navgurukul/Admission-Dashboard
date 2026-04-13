@@ -183,7 +183,7 @@ export default function StudentLogin() {
       }
 
       // Ensure student user data exists
-      if (googleUser && !storedUser) {
+      if (googleUser) {
         const studentUserData = {
           id: googleUser.id,
           name: googleUser.name,
@@ -245,6 +245,17 @@ export default function StudentLogin() {
 
           localStorage.setItem("role", "student");
           localStorage.setItem("userRole", JSON.stringify("student"));
+          localStorage.setItem("studentLoginMethod", "email");
+          localStorage.setItem("user", JSON.stringify({
+            id: studentId,
+            name: googleUser.name,
+            email: profile?.email || googleUser.email,
+            first_name: profile?.first_name || googleUser.name || "",
+            student_id: studentId,
+            profile_pic: googleUser.avatar,
+            user_role_id: 3,
+            role_name: "STUDENT",
+          }));
 
           // Derive progress flags from payload
           const registrationDone = Boolean(
@@ -338,6 +349,17 @@ export default function StudentLogin() {
           localStorage.setItem("studentId", String(googleUser.id));
           localStorage.setItem("role", "student");
           localStorage.setItem("userRole", JSON.stringify("student"));
+          localStorage.setItem("studentLoginMethod", "email");
+          localStorage.setItem("user", JSON.stringify({
+            id: googleUser.id,
+            name: googleUser.name,
+            email: googleUser.email,
+            first_name: googleUser.name || "",
+            student_id: googleUser.id,
+            profile_pic: googleUser.avatar,
+            user_role_id: 3,
+            role_name: "STUDENT",
+          }));
           setHasProcessedAuth(true);
           sessionStorage.removeItem("google_credential");
           navigate("/students/details/instructions", {
@@ -498,6 +520,7 @@ export default function StudentLogin() {
           localStorage.setItem("userRole", JSON.stringify("student"));
           localStorage.setItem("studentId", studentId.toString());
           localStorage.setItem("studentData", JSON.stringify(existingStudentData));
+          localStorage.setItem("studentLoginMethod", "phone");
           localStorage.setItem("registrationDone", "true");
           localStorage.setItem("testCompleted", "true");
           
@@ -531,6 +554,7 @@ export default function StudentLogin() {
       // If no existing student, proceed to instructions (normal flow)
       // Save minimal data to localStorage for the next steps
       localStorage.setItem("role", "student");
+      localStorage.setItem("studentLoginMethod", "phone");
       localStorage.setItem("studentFormData", JSON.stringify({
         firstName: formData.name,
         lastName: formData.lastname,

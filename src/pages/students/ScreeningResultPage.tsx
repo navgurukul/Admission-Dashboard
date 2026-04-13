@@ -170,15 +170,10 @@ const ScreeningResultPage: React.FC = () => {
       // Get student's phone and email from localStorage
       let phoneNumber = "";
       let email = "";
-      let loginMethod: "email" | "phone" = "phone"; // Default to phone
-
-      // Detect actual login method - Google login stores google_credential in sessionStorage
-      const googleCredential = sessionStorage.getItem("google_credential");
-      if (googleCredential) {
-        loginMethod = "email";
-      } else {
-        loginMethod = "phone"; 
-      }
+      let loginMethod: "email" | "phone" =
+        localStorage.getItem("studentLoginMethod") === "email"
+          ? "email"
+          : "phone";
 
       // 1. Check current user session
       const userStr = localStorage.getItem("user");
@@ -186,19 +181,27 @@ const ScreeningResultPage: React.FC = () => {
         try {
           const user = JSON.parse(userStr);
           email = user.email || "";
-          phoneNumber = user.mobile || user.phone || "";
+          if (loginMethod === "phone") {
+            phoneNumber = user.mobile || user.phone || "";
+          }
         } catch (e) {
           console.error("Error parsing user:", e);
         }
       }
 
       // 2. Fallback: Try studentFormData (used after form submission)
-      if (!email && !phoneNumber) {
+      if (
+        (loginMethod === "email" && !email) ||
+        (loginMethod === "phone" && !phoneNumber && !email) ||
+        (!email && !phoneNumber)
+      ) {
         const savedFormData = localStorage.getItem("studentFormData");
         if (savedFormData) {
           try {
             const parsed = JSON.parse(savedFormData);
-            phoneNumber = parsed.whatsappNumber || parsed.alternateNumber || parsed.phone_number || "";
+            if (loginMethod === "phone") {
+              phoneNumber = parsed.whatsappNumber || parsed.alternateNumber || parsed.phone_number || "";
+            }
             email = parsed.email || "";
           } catch (e) {
             console.error("Error parsing studentFormData:", e);
@@ -207,13 +210,19 @@ const ScreeningResultPage: React.FC = () => {
       }
 
       // 3. Fallback: Try existing student session data (cached from previous API call)
-      if (!email && !phoneNumber) {
+      if (
+        (loginMethod === "email" && !email) ||
+        (loginMethod === "phone" && !phoneNumber && !email) ||
+        (!email && !phoneNumber)
+      ) {
         const studentDataStr = localStorage.getItem("studentData");
         if (studentDataStr) {
           try {
             const data = JSON.parse(studentDataStr);
             const profile = data?.data?.student || data?.student || data;
-            phoneNumber = profile.whatsapp_number || profile.phone_number || "";
+            if (loginMethod === "phone") {
+              phoneNumber = profile.whatsapp_number || profile.phone_number || "";
+            }
             email = profile.email || "";
           } catch (e) { }
         }

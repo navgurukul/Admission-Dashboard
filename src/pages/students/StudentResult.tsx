@@ -322,21 +322,18 @@ export default function StudentResult() {
           const googleUser = localStorage.getItem("user");
           let email = "";
           let phone = "";
-          let loginMethod: "email" | "phone" = "phone";
-
-          // Detect actual login method - Google login stores google_credential in sessionStorage
-          const googleCredential = sessionStorage.getItem("google_credential");
-          if (googleCredential) {
-            loginMethod = "email";
-          } else {
-            loginMethod = "phone";
-          }
+          let loginMethod: "email" | "phone" =
+            localStorage.getItem("studentLoginMethod") === "email"
+              ? "email"
+              : "phone";
 
           if (googleUser) {
             try {
               const parsedUser = JSON.parse(googleUser);
               email = parsedUser.email;
-              phone = parsedUser.mobile || parsedUser.phone || "";
+              if (loginMethod === "phone") {
+                phone = parsedUser.mobile || parsedUser.phone || "";
+              }
             } catch (e) { }
           }
 
@@ -360,7 +357,7 @@ export default function StudentResult() {
                 payload?.email || "";
 
               // Use payload values if not found in user localStorage
-              if (!phone && payloadPhone) {
+              if (loginMethod === "phone" && !phone && payloadPhone) {
                 phone = payloadPhone;
                 // console.log(" Found phone in studentData:", phone);
               }
