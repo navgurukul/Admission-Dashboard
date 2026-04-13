@@ -1,6 +1,14 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DOMAIN_LABEL_REGEX = /^[a-z][a-z0-9-]*$/;
 const TLD_REGEX = /^[a-z]{2,}$/;
+const ALLOWED_EMAIL_PROVIDERS = new Set([
+  "gmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "icloud.com",
+]);
 
 const COMMON_DOMAIN_TYPOS: Record<string, string> = {
   "gamil.com": "gmail.com",
@@ -97,6 +105,15 @@ export const validateEmailAddress = (
       normalizedEmail,
       suggestion: `${localPart}@${suggestedDomain}`,
       error: `Did you mean ${localPart}@${suggestedDomain}?`,
+    };
+  }
+
+  if (!ALLOWED_EMAIL_PROVIDERS.has(domain)) {
+    return {
+      isValid: false,
+      normalizedEmail,
+      error:
+        "Please use a supported email provider (gmail.com, yahoo.com, outlook.com, hotmail.com, live.com, icloud.com)",
     };
   }
 
