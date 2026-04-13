@@ -20,6 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { validateEmailAddress } from "@/utils/emailValidation";
 
 type Option = {
   id?: number | string;
@@ -130,6 +131,7 @@ export function EditableCell({
 
   const saveCellEdit = async () => {
     setLocalError(null);
+    let nextValue = cellValue;
     if (!applicant?.id) {
       console.error("Applicant ID is missing in EditableCell:", applicant);
       toast({
@@ -143,8 +145,8 @@ export function EditableCell({
 
     if (
       (field === "phone_number" || field === "whatsapp_number") &&
-      cellValue &&
-      !/^\d{10}$/.test(cellValue)
+      nextValue &&
+       !/^\d{10}$/.test(nextValue)
     ) {
       toast({
         title: "⚠️ Invalid Mobile Number",
@@ -157,8 +159,8 @@ export function EditableCell({
 
     if (
       field === "pin_code" &&
-      cellValue &&
-      !/^\d{6}$/.test(cellValue)
+      nextValue &&
+      !/^\d{6}$/.test(nextValue)
     ) {
       toast({
         title: "⚠️ Invalid Pincode",
@@ -169,24 +171,25 @@ export function EditableCell({
       return;
     }
 
-    if (
-      field === "email" &&
-      cellValue &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellValue)
-    ) {
-      toast({
+    if (field === "email" && nextValue) {
+      const emailValidation = validateEmailAddress(String(nextValue));
+      if (!emailValidation.isValid) {
+        toast({
         title: "⚠️ Invalid Email",
-        description: "Please enter a valid email address",
+        description: emailValidation.error || "Please enter a valid email address",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
+        });
+        return;
+      }
+
+      nextValue = emailValidation.normalizedEmail;
     }
 
     // Validate date of birth - cannot be empty and minimum age 16.5 years
     if (field === "dob") {
       // Check if date is empty or invalid (like "N/A")
-      if (!cellValue || cellValue === "" || cellValue === null || cellValue === "N/A" || cellValue === "n/a") {
+      if (!nextValue || nextValue === "" || nextValue === null || nextValue === "N/A" || nextValue === "n/a") {
         toast({
           title: "⚠️ Date of Birth Required",
           description: "Please select a date of birth. This field cannot be empty.",
@@ -196,7 +199,7 @@ export function EditableCell({
         return;
       }
 
-      const selectedDate = new Date(cellValue);
+      const selectedDate = new Date(nextValue);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to compare only dates
       
@@ -240,14 +243,14 @@ export function EditableCell({
 
     // ✅ Skip if value hasn't changed from original
     const originalValue = value ?? displayValue ?? "";
-    if (cellValue === originalValue) {
+    if (nextValue === originalValue) {
       setEditingCell(null);
       return;
     }
 
     // ✅ Custom validation/pre-update hook
     if (onBeforeUpdate) {
-      const isValid = await onBeforeUpdate(cellValue);
+      const isValid = await onBeforeUpdate(nextValue);
       if (!isValid) return;
     }
 
@@ -262,7 +265,7 @@ export function EditableCell({
 
     // ✅ Check if user is trying to clear a required field
     const isRequiredField = requiredFields.includes(field);
-    const isEmptyValue = !cellValue || cellValue.toString().trim() === '';
+    const isEmptyValue = !nextValue || nextValue.toString().trim() === '';
     
     if (isRequiredField && isEmptyValue) {
       toast({
@@ -281,9 +284,9 @@ export function EditableCell({
 
       if (isIdField) {
         payload[field] =
-          cellValue === "" || cellValue === "none" ? null : Number(cellValue);
+          nextValue === "" || nextValue === "none" ? null : Number(nextValue);
       } else {
-        payload[field] = cellValue ?? "";
+        payload[field] = nextValue ?? "";
       }
 
       await updateStudent(applicant.id, payload);
