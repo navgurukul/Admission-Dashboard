@@ -1,4 +1,6 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DOMAIN_LABEL_REGEX = /^[a-z][a-z0-9-]*$/;
+const TLD_REGEX = /^[a-z]{2,}$/;
 
 const COMMON_DOMAIN_TYPOS: Record<string, string> = {
   "gamil.com": "gmail.com",
@@ -45,6 +47,7 @@ export const validateEmailAddress = (
   }
 
   const [localPart, domain = ""] = normalizedEmail.split("@");
+  const domainParts = domain.split(".");
 
   if (!localPart || !domain || localPart.startsWith(".") || localPart.endsWith(".")) {
     return {
@@ -55,6 +58,31 @@ export const validateEmailAddress = (
   }
 
   if (normalizedEmail.includes("..")) {
+    return {
+      isValid: false,
+      normalizedEmail,
+      error: "Please enter a valid email address",
+    };
+  }
+
+  if (
+    domainParts.length < 2 ||
+    domainParts.some((part) => !part || part.startsWith("-") || part.endsWith("-"))
+  ) {
+    return {
+      isValid: false,
+      normalizedEmail,
+      error: "Please enter a valid email address",
+    };
+  }
+
+  const mainDomainParts = domainParts.slice(0, -1);
+  const tld = domainParts[domainParts.length - 1];
+
+  if (
+    mainDomainParts.some((part) => !DOMAIN_LABEL_REGEX.test(part)) ||
+    !TLD_REGEX.test(tld)
+  ) {
     return {
       isValid: false,
       normalizedEmail,

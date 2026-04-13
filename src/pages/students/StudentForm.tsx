@@ -1205,7 +1205,7 @@ const StudentForm: React.FC = () => {
       if (!emailValidation.isValid) {
         setEmailError(emailValidation.error || "");
         return toast({
-          title: "âš ï¸ Invalid Email",
+          title: "Invalid Email",
           description:
             emailValidation.error || "Please enter a valid email address.",
           variant: "default",
