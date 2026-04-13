@@ -430,13 +430,39 @@ const StudentLandingPage = () => {
 
       {/* ---- Footer ---- */}
       <footer className="bg-muted text-center text-xs md:text-sm py-4 md:py-6 mt-auto px-4">
-        {content[selectedLanguage].footerText}{" "}
-        <a
-          href={`mailto:${content[selectedLanguage].footerContact}`}
-          className="text-primary hover:underline break-all md:break-normal"
-        >
-          {content[selectedLanguage].footerContact}
-        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+          <div>
+            {content[selectedLanguage].footerText}{" "}
+            <a
+              href={`mailto:${content[selectedLanguage].footerContact}`}
+              className="text-primary hover:underline break-all md:break-normal"
+            >
+              {content[selectedLanguage].footerContact}
+            </a>
+          </div>
+
+          <span className="hidden sm:inline text-muted-foreground">|</span>
+
+          <a
+            href="https://www.navgurukul.org/legal-and-privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Privacy Policy
+          </a>
+
+          <span className="hidden sm:inline text-muted-foreground">|</span>
+
+          <a
+            href="https://learn.navgurukul.org/termsofuse"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Terms of Service
+          </a>
+        </div>
       </footer>
     </div>
   );
