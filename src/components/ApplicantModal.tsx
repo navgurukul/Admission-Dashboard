@@ -2401,6 +2401,10 @@ Interviewer: ${interviewerName}`;
                         value: "Learning Round Fail",
                         label: "Learning Round Fail",
                       },
+                      {
+                        value: "Not Eligible",
+                        label: "Not Eligible",
+                      },
                       { value: "Reschedule", label: "Reschedule" },
                       { value: "No Show", label: "No Show" },
                     ],
@@ -2511,6 +2515,10 @@ Interviewer: ${interviewerName}`;
                       {
                         value: " Culture Fit Round Fail",
                         label: " Culture Fit Round Fail",
+                      },
+                      {
+                        value: "Not Eligible",
+                        label: "Not Eligible",
                       },
                       { value: "Reschedule", label: "Reschedule" },
                       { value: "No Show", label: "No Show" },

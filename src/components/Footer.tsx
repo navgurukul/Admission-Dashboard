@@ -35,6 +35,28 @@ const Footer = () => {
             </a>
           </div>
 
+          <span className="hidden sm:inline text-muted-foreground">|</span>
+
+          <a
+            href="https://www.navgurukul.org/legal-and-privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Privacy Policy
+          </a>
+
+          <span className="hidden sm:inline text-muted-foreground">|</span>
+
+          <a
+            href="https://learn.navgurukul.org/termsofuse"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Terms of Service
+          </a>
+
         </div>
 
         <p className="mt-3 text-center text-xs text-muted-foreground">

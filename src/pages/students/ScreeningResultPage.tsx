@@ -350,7 +350,7 @@ const ScreeningResultPage: React.FC = () => {
           },
         ]}
         showInlineButtons={false}
-        showFloatingButton={true}
+        showFloatingButton={false}
         autoStartOnFirstVisit={true}
       />
       <LanguageSelector />
