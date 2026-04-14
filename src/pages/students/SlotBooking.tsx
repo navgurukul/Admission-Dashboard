@@ -575,20 +575,20 @@ const SlotBooking: React.FC = () => {
     try {
       setIsBookingInProgress(true);
 
+      /*
+      // Commented out to avoid "This app is blocked" error
       // Check Google sign-in
       if (!isSignedIn()) {
         const signInSuccess = await handleGoogleSignIn();
-        // console.log("Google sign-in success:", signInSuccess);
         if (!signInSuccess) {
           return;
         }
-        // Update the signed-in state
         setIsGoogleSignedIn(true);
       }
+      */
 
       // Find selected slot details
       const selectedSlotDetails = timings.find((t) => t.id === slot.id);
-      // console.log("Selected slot details:", selectedSlotDetails);
 
       if (!selectedSlotDetails) {
         showNotificationMessage("Selected slot not found", "error");
@@ -623,13 +623,13 @@ const SlotBooking: React.FC = () => {
         topic_name: test.name,
         interviewer_email: selectedSlotDetails.interviewer_email,
         interviewer_name: selectedSlotDetails.interviewer_name,
-        // slot_type: slotType, // Add slot type from navigation
       };
 
+      /*
+      // Commented out to avoid "This app is blocked" error
       // Create Google Calendar event
       showNotificationMessage("Creating Google Meet...", "info");
       const calendarResult = await scheduleGoogleMeet(bookedSlot);
-      // console.log("Google Calendar result:", calendarResult);
 
       if (!calendarResult.meetLink) {
         showNotificationMessage("Failed to create Google Meet link", "error");
@@ -639,6 +639,7 @@ const SlotBooking: React.FC = () => {
       // Add calendar event details
       bookedSlot.calendar_event_id = calendarResult.eventId;
       bookedSlot.meet_link = calendarResult.meetLink;
+      */
 
       //  Build backend payload with validated data
       const backendPayload = {
@@ -646,10 +647,10 @@ const SlotBooking: React.FC = () => {
         slot_id: slot.id,
         title: `${bookedSlot.topic_name} - Interview`,
         description: `Interview for ${bookedSlot.student_name}. Topic: ${bookedSlot.topic_name}. Interviewer: ${bookedSlot.interviewer_name || bookedSlot.interviewer_email}. Student: ${currentStudent.email}`,
-        meeting_link: bookedSlot.meet_link,
-        google_event_id: bookedSlot.calendar_event_id,
+        meeting_link: bookedSlot.meet_link || "", // Use existing or empty (backend handles)
+        google_event_id: bookedSlot.calendar_event_id || "", 
         created_by: "Student" as const,
-        slot_type: slotType || "LR", // Add slot_type to backend payload
+        slot_type: slotType || "LR", 
       };
 
       // console.log("Backend payload for scheduling interview:", backendPayload);
