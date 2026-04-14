@@ -578,12 +578,14 @@ export const triggerStudentStatusUpdate = async (
       if (normalizedStatus.includes("pass")) stageStatusId = 10;
       else if (normalizedStatus.includes("fail")) stageStatusId = 9;
       else if (normalizedStatus === "not eligible") stageStatusId = 25;
+      else if (normalizedStatus === "disinterested") stageStatusId = 26;
       break;
     case "cultural":
       stageId = 4;
       if (normalizedStatus.includes("pass")) stageStatusId = 23;
       else if (normalizedStatus.includes("fail")) stageStatusId = 15;
       else if (normalizedStatus === "not eligible") stageStatusId = 25;
+      else if (normalizedStatus === "disinterested") stageStatusId = 26;
       break;
     case "final":
       stageId = 5;
