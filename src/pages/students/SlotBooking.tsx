@@ -88,7 +88,7 @@ const languageContent = {
     rescheduling: "Rescheduling...",
     selectNewTimeSlot: "Select New Time Slot",
     booking: "Booking...",
-    bookSelectedSlot: "Book Selected Slot & Schedule Meet",
+    bookSelectedSlot: "Book Selected Slot",
     selectTimeSlot: "Select a Time Slot",
     interviewSlotBooked: "Interview Slot Booked",
     slotDetails: "Slot Details",
@@ -141,7 +141,7 @@ const languageContent = {
     rescheduling: "पुनर्निर्धारण हो रहा है...",
     selectNewTimeSlot: "नया समय स्लॉट चुनें",
     booking: "बुकिंग हो रही है...",
-    bookSelectedSlot: "चयनित स्लॉट बुक करें और Meet शेड्यूल करें",
+    bookSelectedSlot: "चयनित स्लॉट बुक करें",
     selectTimeSlot: "समय स्लॉट चुनें",
     interviewSlotBooked: "इंटरव्यू स्लॉट बुक हो गया",
     slotDetails: "स्लॉट विवरण",
@@ -194,7 +194,7 @@ const languageContent = {
     rescheduling: "पुनर्निर्धारण होत आहे...",
     selectNewTimeSlot: "नवीन वेळ स्लॉट निवडा",
     booking: "बुकिंग होत आहे...",
-    bookSelectedSlot: "निवडलेला स्लॉट बुक करा आणि Meet शेड्यूल करा",
+    bookSelectedSlot: "निवडलेला स्लॉट बुक करा",
     selectTimeSlot: "वेळ स्लॉट निवडा",
     interviewSlotBooked: "मुलाखत स्लॉट बुक झाला",
     slotDetails: "स्लॉट तपशील",
@@ -1199,7 +1199,7 @@ const SlotBooking: React.FC = () => {
               )}
 
               {/* Google Sign-in Status */}
-              {!isGoogleSignedIn && (slot.id || newSlot.id) && (
+              {/* {!isGoogleSignedIn && (slot.id || newSlot.id) && (
                 <div className="mb-6 bg-accent border-2 border-primary/30 rounded-lg p-4">
                   <div className="flex items-start space-x-3">
                     <Video className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
@@ -1216,7 +1216,7 @@ const SlotBooking: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* {isGoogleSignedIn && (slot.id || newSlot.id) && (
                 <div className="mb-6 bg-accent border-2 border-[hsl(var(--primary))] rounded-lg p-4 shadow-sm">
