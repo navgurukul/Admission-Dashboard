@@ -4,7 +4,7 @@ const CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
   "203783247002-amrp0mkp58jna7mhcf368vcn0ilnq7hd.apps.googleusercontent.com";
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
-const SCOPES = "openid email profile";
+const SCOPES = "https://www.googleapis.com/auth/calendar.events";
 
 interface EventDetails {
   summary: string;
