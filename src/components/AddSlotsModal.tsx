@@ -36,6 +36,12 @@ import {
   isValidTimeFormat,
   validateTimeRange,
 } from "@/utils/slotValidation";
+import {
+  isSignedIn,
+  signIn,
+  createCalendarEvent,
+  formatDateTimeForCalendar,
+} from "@/utils/googleCalendar";
 
 interface TimeSlot {
   date?: Date;
@@ -307,14 +313,64 @@ export function AddSlotsModal({
     try {
       setLoading(true);
 
-      const slotsData = timeSlots.map((slot) => ({
-        date: format(slot.date!, "yyyy-MM-dd"),
-        start_time: slot.startTime,
-        end_time: slot.endTime,
-        slot_type: slot.slot_type,
-        created_at: new Date().toISOString(),
-      }));
+      // 1. Ensure Google Sign-in
+      if (!isSignedIn()) {
+        toast({
+          title: "⚠️ Google Sign-in Required",
+          description: "Please sign in with Google to create Meet links for your slots.",
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+        });
+        const success = await signIn();
+        if (!success) {
+          setLoading(false);
+          return;
+        }
+      }
 
+      // 2. Generate Meet links for each slot
+      toast({
+        title: "Creating Meeting Links...",
+        description: "Generating Google Meet links for each slot. This may take a moment...",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+
+      const slotsData = [];
+      for (const slot of timeSlots) {
+        try {
+          const dateStr = format(slot.date!, "yyyy-MM-dd");
+          const startDateTime = formatDateTimeForCalendar(dateStr, slot.startTime);
+          const endDateTime = formatDateTimeForCalendar(dateStr, slot.endTime);
+          
+          const eventDetails = {
+            summary: `${getSlotTypeName(slot.slot_type)} - Availability`,
+            description: `Scheduled interview slot for ${getSlotTypeName(slot.slot_type)}.`,
+            startDateTime,
+            endDateTime,
+            attendeeEmail: currentUser?.email || "",
+            studentName: "Student", // Placeholder
+            attendees: [currentUser?.email || ""].filter(Boolean),
+          };
+
+          const calendarResult = await createCalendarEvent(eventDetails);
+
+          slotsData.push({
+            date: dateStr,
+            start_time: slot.startTime,
+            end_time: slot.endTime,
+            slot_type: slot.slot_type,
+            meeting_link: calendarResult.meetLink,
+            google_event_id: calendarResult.eventId,
+            created_at: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.error("Error creating calendar event for slot:", slot, error);
+          throw new Error("Failed to create Google Meet link for one or more slots.");
+        }
+      }
+
+      // 3. Save to backend
       await createSlotBookingTimes(slotsData);
       // console.log("Slots created via API", slotsData);
 
