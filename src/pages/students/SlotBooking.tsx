@@ -26,6 +26,7 @@ import {
   updateScheduledInterview,
   cancelScheduledInterview,
   getCompleteStudentData,
+  getStudentDataByPhone,
 } from "@/utils/api";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
@@ -39,6 +40,7 @@ interface TimeSlot {
   interviewer_name?: string;
   is_booked: boolean;
   status: string;
+  meet_link?: string;
 }
 
 interface SlotData {
@@ -86,7 +88,7 @@ const languageContent = {
     rescheduling: "Rescheduling...",
     selectNewTimeSlot: "Select New Time Slot",
     booking: "Booking...",
-    bookSelectedSlot: "Book Selected Slot & Schedule Meet",
+    bookSelectedSlot: "Book Selected Slot",
     selectTimeSlot: "Select a Time Slot",
     interviewSlotBooked: "Interview Slot Booked",
     slotDetails: "Slot Details",
@@ -139,7 +141,7 @@ const languageContent = {
     rescheduling: "पुनर्निर्धारण हो रहा है...",
     selectNewTimeSlot: "नया समय स्लॉट चुनें",
     booking: "बुकिंग हो रही है...",
-    bookSelectedSlot: "चयनित स्लॉट बुक करें और Meet शेड्यूल करें",
+    bookSelectedSlot: "चयनित स्लॉट बुक करें",
     selectTimeSlot: "समय स्लॉट चुनें",
     interviewSlotBooked: "इंटरव्यू स्लॉट बुक हो गया",
     slotDetails: "स्लॉट विवरण",
@@ -192,7 +194,7 @@ const languageContent = {
     rescheduling: "पुनर्निर्धारण होत आहे...",
     selectNewTimeSlot: "नवीन वेळ स्लॉट निवडा",
     booking: "बुकिंग होत आहे...",
-    bookSelectedSlot: "निवडलेला स्लॉट बुक करा आणि Meet शेड्यूल करा",
+    bookSelectedSlot: "निवडलेला स्लॉट बुक करा",
     selectTimeSlot: "वेळ स्लॉट निवडा",
     interviewSlotBooked: "मुलाखत स्लॉट बुक झाला",
     slotDetails: "स्लॉट तपशील",
@@ -426,6 +428,7 @@ const SlotBooking: React.FC = () => {
           interviewer_name: s.user_name,
           is_booked: s.is_booked || false,
           status: s.status || "available",
+          meet_link: s.meeting_link, // New field from backend
         }));
 
       setTimings(availableSlots);
@@ -451,9 +454,10 @@ const SlotBooking: React.FC = () => {
       setNewSlot({ from: "", to: "", id: null, is_cancelled: true });
     }
      
-  }, [selectedDate]);
+  }, [selectedDate, slotType]);
 
   // ---------- Google Calendar Integration ----------
+  // kept for potential use in cancellation which might still need Google permissions if deleting events
   const handleGoogleSignIn = async () => {
     try {
       setIsBookingInProgress(true);
@@ -494,63 +498,16 @@ const SlotBooking: React.FC = () => {
     }
   };
 
-  const scheduleGoogleMeet = async (bookedSlotData: SlotData) => {
-    try {
-      const startDateTime = formatDateTimeForCalendar(
-        bookedSlotData.on_date!,
-        bookedSlotData.start_time!,
-      );
-      const endDateTime = formatDateTimeForCalendar(
-        bookedSlotData.on_date!,
-        bookedSlotData.end_time_expected!,
-      );
-
-      // Use both student and interviewer emails
-      const attendees = [
-        bookedSlotData.interviewer_email || "",
-        currentStudent?.email || "",
-      ].filter(Boolean);
-
-      const eventDetails = {
-        summary: `${bookedSlotData.topic_name} - Interview`,
-        description: `Interview scheduled for ${bookedSlotData.student_name}\nTopic: ${bookedSlotData.topic_name}\nInterviewer: ${bookedSlotData.interviewer_name || bookedSlotData.interviewer_email}\nStudent Email: ${currentStudent?.email || ""}`,
-        startDateTime,
-        endDateTime,
-        attendeeEmail: bookedSlotData.interviewer_email || "", // Primary attendee
-        studentName: bookedSlotData.student_name!,
-        attendees: attendees, //  Add all attendees
-      };
-
-      const result = await createCalendarEvent(eventDetails);
-      // console.log("Calendar event created:", result);
-      return result;
-    } catch (error) {
-      console.error("Error creating calendar event:", error);
-      throw error;
-    }
-  };
-
   //  Slot Actions - Complete API Integration
   const handleSlotBooking = async () => {
-    // console.log(
-    //   "Booking attempt - slot:",
-    //   slot,
-    //   "currentStudent:",
-    //   currentStudent,
-    //   "test:",
-    //   test,
-    // );
-    // console.log("Available timings:", timings);
-    // console.log("studentId:", studentId);
-
     if (!slot.id) {
       showNotificationMessage("Please select a slot to book", "error");
       return;
     }
 
-    if (!currentStudent || !currentStudent.email) {
+    if (!currentStudent || (!currentStudent.email && !currentStudent.phone && !currentStudent.whatsapp_number)) {
       showNotificationMessage(
-        "Contect Admin to book your slot.",
+        "Contact Admin to book your slot.",
         "error",
       );
       return;
@@ -575,41 +532,11 @@ const SlotBooking: React.FC = () => {
     try {
       setIsBookingInProgress(true);
 
-      // Check Google sign-in
-      if (!isSignedIn()) {
-        const signInSuccess = await handleGoogleSignIn();
-        // console.log("Google sign-in success:", signInSuccess);
-        if (!signInSuccess) {
-          return;
-        }
-        // Update the signed-in state
-        setIsGoogleSignedIn(true);
-      }
-
       // Find selected slot details
       const selectedSlotDetails = timings.find((t) => t.id === slot.id);
-      // console.log("Selected slot details:", selectedSlotDetails);
 
       if (!selectedSlotDetails) {
         showNotificationMessage("Selected slot not found", "error");
-        return;
-      }
-
-      //  Validate emails
-      if (!selectedSlotDetails.interviewer_email) {
-        console.error(
-          "Interviewer email missing for slot:",
-          selectedSlotDetails,
-        );
-        showNotificationMessage("Interviewer email not found", "error");
-        return;
-      }
-
-      if (!currentStudent || !currentStudent.email) {
-        showNotificationMessage(
-          "Student email not found. Please login again.",
-          "error",
-        );
         return;
       }
 
@@ -623,41 +550,21 @@ const SlotBooking: React.FC = () => {
         topic_name: test.name,
         interviewer_email: selectedSlotDetails.interviewer_email,
         interviewer_name: selectedSlotDetails.interviewer_name,
-        // slot_type: slotType, // Add slot type from navigation
       };
 
-      // Create Google Calendar event
-      showNotificationMessage("Creating Google Meet...", "info");
-      const calendarResult = await scheduleGoogleMeet(bookedSlot);
-      // console.log("Google Calendar result:", calendarResult);
-
-      if (!calendarResult.meetLink) {
-        showNotificationMessage("Failed to create Google Meet link", "error");
-        return;
-      }
-
-      // Add calendar event details
-      bookedSlot.calendar_event_id = calendarResult.eventId;
-      bookedSlot.meet_link = calendarResult.meetLink;
-
-      //  Build backend payload with validated data
+      //  Build backend payload
       const backendPayload = {
         student_id: studentId,
         slot_id: slot.id,
         title: `${bookedSlot.topic_name} - Interview`,
-        description: `Interview for ${bookedSlot.student_name}. Topic: ${bookedSlot.topic_name}. Interviewer: ${bookedSlot.interviewer_name || bookedSlot.interviewer_email}. Student: ${currentStudent.email}`,
-        meeting_link: bookedSlot.meet_link,
-        google_event_id: bookedSlot.calendar_event_id,
+        description: `Interview for ${bookedSlot.student_name}. Topic: ${bookedSlot.topic_name}. Interviewer: ${bookedSlot.interviewer_name || bookedSlot.interviewer_email}. Student Identity: ${currentStudent.email || currentStudent.phone || currentStudent.whatsapp_number}`,
         created_by: "Student" as const,
-        slot_type: slotType || "LR", // Add slot_type to backend payload
+        slot_type: slotType || "LR", 
       };
 
-      // console.log("Backend payload for scheduling interview:", backendPayload);
-
       //  Save to backend
-      showNotificationMessage("Saving slot to server...", "info");
+      showNotificationMessage("Booking your interview...", "info");
       const scheduleResponse = await scheduleInterview(backendPayload);
-      // console.log("Slot booked successfully:", scheduleResponse);
 
       // Store the scheduled interview ID from response
       if (scheduleResponse?.data?.id) {
@@ -666,7 +573,12 @@ const SlotBooking: React.FC = () => {
         bookedSlot.scheduled_interview_id = scheduleResponse.id;
       }
 
-      // Update local state (no localStorage dependency)
+      // Add meeting link from response if returned
+      if (scheduleResponse?.data?.meeting_link) {
+        bookedSlot.meet_link = scheduleResponse.data.meeting_link;
+      }
+
+      // Update local state
       setSlot(bookedSlot);
 
       updateSlot(testId, {
@@ -675,26 +587,14 @@ const SlotBooking: React.FC = () => {
       });
 
       showNotificationMessage(
-        "Slot Booked! Google Meet link sent to your email.",
+        "Slot Booked! You will receive an email with interview details shortly.",
         "success",
       );
 
       fetchTimings(selectedDate);
     } catch (error: any) {
       console.error("Booking error:", error);
-
-      let errorMessage = "Failed to book slot. Please try again.";
-
-      if (error.message?.includes("calendar")) {
-        errorMessage =
-          "Failed to create Google Meet. Check calendar permissions.";
-      } else if (error.message?.includes("API")) {
-        errorMessage = "Failed to save booking. Please contact support.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      showNotificationMessage(errorMessage, "error");
+      showNotificationMessage(error.message || "Failed to book slot. Please try again.", "error");
     } finally {
       setIsBookingInProgress(false);
     }
@@ -749,22 +649,19 @@ const SlotBooking: React.FC = () => {
           }
           
           if (isSignedIn()) {
-            // console.log("Deleting calendar event ID:", slot.calendar_event_id);
             showNotificationMessage("Removing event from Google Calendar...", "info");
             await deleteCalendarEvent(slot.calendar_event_id);
-            // console.log("Google Calendar event deleted successfully");
           }
         } catch (error) {
           console.error("Error deleting calendar event:", error);
           showNotificationMessage("Warning: Could not remove event from calendar. Proceeding with cancellation...", "info");
-          // Continue even if deletion fails
         }
       }
 
       // Call cancel API with reason
       await cancelScheduledInterview(slot.scheduled_interview_id, cancelReason.trim());
 
-      // Clear local state (no localStorage dependency)
+      // Clear local state
       setSlot({ from: "", to: "", id: null, is_cancelled: true });
 
       updateSlot(testId, {
@@ -776,7 +673,6 @@ const SlotBooking: React.FC = () => {
       setCancelReason("");
       showNotificationMessage("Interview slot cancelled and removed from calendar!", "success");
 
-      // Navigate back to results page
       setTimeout(() => {
         navigate("/students/final-result");
       }, 2000);
@@ -814,17 +710,6 @@ const SlotBooking: React.FC = () => {
     try {
       setIsBookingInProgress(true);
 
-      // Check Google sign-in - only sign in if not already signed in
-      if (!isSignedIn()) {
-        const signInSuccess = await handleGoogleSignIn();
-        // console.log("Google sign-in success:", signInSuccess);
-        if (!signInSuccess) {
-          return;
-        }
-        // Update the signed-in state
-        setIsGoogleSignedIn(true);
-      }
-
       // Find new slot details
       const newSlotDetails = timings.find((t) => t.id === newSlot.id);
       if (!newSlotDetails) {
@@ -832,33 +717,16 @@ const SlotBooking: React.FC = () => {
         return;
       }
 
-      // Validate emails
-      if (!newSlotDetails.interviewer_email) {
-        showNotificationMessage("Interviewer email not found", "error");
-        return;
-      }
-
-      if (!currentStudent || !currentStudent.email) {
-        showNotificationMessage(
-          "Student email not found. Please login again.",
-          "error",
-        );
-        return;
-      }
-
-      // Delete old calendar event
-      if (slot.calendar_event_id) {
+      // Delete old calendar event if possible
+      if (slot.calendar_event_id && isSignedIn()) {
         try {
           await deleteCalendarEvent(slot.calendar_event_id);
           showNotificationMessage("Old Google Meet deleted", "info");
         } catch (error) {
           console.error("Error deleting old calendar event:", error);
-          // Continue even if deletion fails
         }
       }
 
-      // Create new Google Calendar event
-      showNotificationMessage("Creating new Google Meet...", "info");
       const newBookedSlot: SlotData = {
         ...newSlot,
         is_cancelled: false,
@@ -869,34 +737,19 @@ const SlotBooking: React.FC = () => {
         topic_name: test.name,
         interviewer_email: newSlotDetails.interviewer_email,
         interviewer_name: newSlotDetails.interviewer_name,
+        meet_link: newSlotDetails.meet_link, // Use the link from the new slot
       };
 
-      const calendarResult = await scheduleGoogleMeet(newBookedSlot);
-      // console.log("New Google Calendar result:", calendarResult);
-
-      if (!calendarResult.meetLink) {
-        throw new Error("Failed to create Google Meet link");
-      }
-
-      newBookedSlot.calendar_event_id = calendarResult.eventId;
-      newBookedSlot.meet_link = calendarResult.meetLink;
-
-      // Call reschedule API with old scheduled_interview_id and new slot_id
+      // Call reschedule API
       const reschedulePayload = {
-        slot_id: newSlot.id, // New slot ID
+        slot_id: newSlot.id,
         title: `${newBookedSlot.topic_name} - Interview (Rescheduled)`,
-        description: `Rescheduled interview for ${newBookedSlot.student_name}. Topic: ${newBookedSlot.topic_name}. Interviewer: ${newBookedSlot.interviewer_name || newBookedSlot.interviewer_email}. Student: ${currentStudent.email}`,
-        meeting_link: newBookedSlot.meet_link,
-        google_event_id: newBookedSlot.calendar_event_id,
+        description: `Rescheduled interview for ${newBookedSlot.student_name}. Topic: ${newBookedSlot.topic_name}. Interviewer: ${newBookedSlot.interviewer_name || newBookedSlot.interviewer_email}. Student Identity: ${currentStudent.email || currentStudent.phone || currentStudent.whatsapp_number}`,
+        meeting_link: newBookedSlot.meet_link || "",
       };
-
-      // console.log("Rescheduling with:", {
-      //   scheduledInterviewId: slot.scheduled_interview_id,
-      //   payload: reschedulePayload,
-      // });
 
       const rescheduleResponse = await updateScheduledInterview(
-        slot.scheduled_interview_id, // Old scheduled interview ID
+        slot.scheduled_interview_id,
         reschedulePayload,
       );
 
@@ -959,13 +812,17 @@ const SlotBooking: React.FC = () => {
         const userStr = localStorage.getItem("user");
         if (userStr) {
           const user = JSON.parse(userStr);
-          const email = user.email;
+            const email = user.email;
+            const phone = user.mobile || user.phone || user.whatsapp_number;
 
-          if (email) {
-            // console.log("Fetching student data for email:", email);
-            const response = await getCompleteStudentData(email);
+            // console.log("Fetching student data for:", email || phone);
+            const response = email 
+              ? await getCompleteStudentData(email)
+              : phone 
+                ? await getStudentDataByPhone(phone)
+                : null;
 
-            if (response.success && response.data.student) {
+            if (response && response.success && response.data.student) {
               const studentData = response.data.student;
               // console.log("Student data fetched from API:", studentData);
 
@@ -974,6 +831,7 @@ const SlotBooking: React.FC = () => {
                   studentData.first_name || studentData.firstName || "",
                 lastName: studentData.last_name || studentData.lastName || "",
                 email: studentData.email || "",
+                phone: studentData.phone_number || studentData.whatsapp_number || "",
                 ...studentData,
               });
 
@@ -1001,21 +859,28 @@ const SlotBooking: React.FC = () => {
               
               const matchingSchedule = schedules
                 .filter((s: any) => {
-                  const title = s.title || "";
+                  const title = String(s.title || "").toLowerCase();
                   const status = String(s.status || "").toLowerCase();
                   
                   // Skip cancelled schedules
-                  if (status === "cancelled") return false;
+                  if (status === "cancelled" || status === "expired") return false;
                   
+                  // Flexible round name matching
+                  const isCultureFit = title.includes("culture fit round") || title.includes("cultural fit round");
+                  const isLearningRound = title.includes("learning round");
+
+                  const isCorrectRound = slotType === "CFR" ? isCultureFit : isLearningRound;
+                  if (!isCorrectRound) return false;
+
                   if (attemptNumber === 1) {
                     // For attempt 1, match titles without "(Attempt X)" or with "(Attempt 1)"
-                    const hasAttemptNumber = /\(Attempt \d+\)/i.test(title);
-                    if (!hasAttemptNumber && title.includes(roundName)) return true;
-                    if (/\(Attempt 1\)/i.test(title)) return true;
+                    const hasAttemptNumber = /\(attempt \d+\)/i.test(title);
+                    if (!hasAttemptNumber) return true;
+                    if (/\(attempt 1\)/i.test(title)) return true;
                     return false;
                   } else {
                     // For attempt N, match titles with "(Attempt N)"
-                    const attemptPattern = new RegExp(`\\(Attempt ${attemptNumber}\\)`, "i");
+                    const attemptPattern = new RegExp(`\\(attempt ${attemptNumber}\\)`, "i");
                     return attemptPattern.test(title);
                   }
                 })
@@ -1059,11 +924,8 @@ const SlotBooking: React.FC = () => {
               }
             }
           } else {
-            console.error("No email found in user data");
+            console.error("No user data in localStorage");
           }
-        } else {
-          console.error("No user data in localStorage");
-        }
       } catch (error) {
         console.error("Failed to fetch student data:", error);
       } finally {
@@ -1337,7 +1199,7 @@ const SlotBooking: React.FC = () => {
               )}
 
               {/* Google Sign-in Status */}
-              {!isGoogleSignedIn && (slot.id || newSlot.id) && (
+              {/* {!isGoogleSignedIn && (slot.id || newSlot.id) && (
                 <div className="mb-6 bg-accent border-2 border-primary/30 rounded-lg p-4">
                   <div className="flex items-start space-x-3">
                     <Video className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
@@ -1354,7 +1216,7 @@ const SlotBooking: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* {isGoogleSignedIn && (slot.id || newSlot.id) && (
                 <div className="mb-6 bg-accent border-2 border-[hsl(var(--primary))] rounded-lg p-4 shadow-sm">

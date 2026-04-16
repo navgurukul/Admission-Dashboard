@@ -180,17 +180,22 @@ const CSVImportModal = ({
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [skippedCount, setSkippedCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const [rowErrors, setRowErrors] = useState<Array<{ row: number; identifier: string; error: string }>>([]);
+  const [showResults, setShowResults] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
-      // Reset modal state each time it opens
       setCsvFile(null);
       setError(null);
-      setShowSuccess(false);
+      setShowResults(false);
       setSuccessCount(0);
+      setSkippedCount(0);
+      setFailedCount(0);
+      setRowErrors([]);
       setUploadProgress(0);
       setIsProcessing(false);
     }
@@ -198,8 +203,11 @@ const CSVImportModal = ({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
-    setShowSuccess(false);
+    setShowResults(false);
     setSuccessCount(0);
+    setSkippedCount(0);
+    setFailedCount(0);
+    setRowErrors([]);
     setUploadProgress(0);
 
     const file = event.target.files && event.target.files[0];
@@ -218,43 +226,52 @@ const CSVImportModal = ({
     }
 
     setError(null);
-    setShowSuccess(false);
+    setShowResults(false);
     setSuccessCount(0);
-    setIsProcessing(true); // set loading **before API call**
+    setSkippedCount(0);
+    setFailedCount(0);
+    setRowErrors([]);
+    setIsProcessing(true);
 
     try {
       // Call API
-      await bulkUploadStudents(csvFile);
+      const result = await bulkUploadStudents(csvFile);
+      
+      console.log("Upload result:", result);
 
-      // Parse CSV
-      Papa.parse(csvFile, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: false,
-        complete: (results) => {
-          processCSVData(results.data); // this will update successCount
-        },
-        error: (err) => {
-          setError(
-            "Something went wrong while uploading your CSV file. Please check it and try again.",
-          );
-          setIsProcessing(false);
-        },
-      });
-    } catch (error: any) {
-      console.error("Upload failed:", error);
-      // Display API error message or fallback
-      const customMsg =
-        error &&
-        "Something went wrong while uploading your CSV file. Please check it and try again.";
-      setError(customMsg);
+      setSuccessCount(result.inserted_count || result.updated_count || 0);
+      setSkippedCount(result.skipped_count || 0);
+      setFailedCount(result.failed_count || 0);
+      setRowErrors(result.errors || []);
+      setShowResults(true);
       setIsProcessing(false);
 
-      // toast({
-      //   title: "Upload Failed",
-      //   description: customMsg,
-      //   variant: "destructive",
-      // });
+      const totalSuccess = (result.inserted_count || 0) + (result.updated_count || 0);
+      
+      if (result.failed_count > 0) {
+        toast({
+          title: "⚠️ Partial Import",
+          description: `Processed ${result.total_processed} rows: ${totalSuccess} success, ${result.failed_count} failed.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "✅ Import Successful",
+          description: `Successfully processed ${result.total_processed} rows!`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
+        });
+        
+        // Only auto-close and refresh if there are NO errors to show
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 1500);
+      }
+    } catch (error: any) {
+      console.error("Upload failed:", error);
+      setError(error.message || "Something went wrong while uploading your CSV file. Please check it and try again.");
+      setIsProcessing(false);
     }
   };
 
@@ -287,71 +304,8 @@ const CSVImportModal = ({
     return null;
   };
 
-  const processCSVData = async (data: any[]) => {
-    try {
-      setIsProcessing(true);
+  // Removed client-side processCSVData as backend now handles everything and returns results
 
-      const processedData = data.map((row, index) => {
-        // console.log(`Processing row ${index + 1}:`, row);
-
-        const processedRow = {
-          mobile_no: row["Mobile No."]?.toString() || "",
-          unique_number: row["Unique Number"]?.toString() || null, // if exists
-          name: row["Name"] || null,
-          city: row["City"] || null,
-          block: row["Block"] || null,
-          caste: row["Caste"] || null,
-          gender: row["Gender"] || null,
-          qualification: row["Qualification"] || null,
-          current_work: row["Current Work"] || null,
-          qualifying_school: row["Qualifying SOP/SOB"] || null,
-          whatsapp_number: row["WA NO."]?.toString() || null,
-          set_name: row["Set"] || null,
-          exam_centre: row["Offline Exam Centre"] || null,
-          date_of_testing: row["Date of Testing"] || null,
-          final_marks: parseNumericValue(row["Final Marks"]?.toString()),
-          // Optional fields (comment if not needed)
-          // lr_status: row["LR Status"] || null,
-          // lr_comments: row["LR Comments"] || null,
-          // cfr_status: row["CFR Status"] || null,
-          // cfr_comments: row["CFR Comments"] || null,
-          final_notes: row["Final Notes"] || null,
-          triptis_notes: row["Triptis Notes"] || null,
-        };
-
-        // console.log(
-        //   `Processed row ${index + 1} final_marks:`,
-        //   processedRow.final_marks
-        // );
-        return processedRow;
-      });
-
-      // Save to localStorage first
-      // addApplicants(processedData);
-
-      setSuccessCount(processedData.length);
-      setShowSuccess(true);
-
-      // Show toast
-      toast({
-        title: "✅ Import Successful",
-        description: `Successfully imported ${processedData.length} applicant${processedData.length > 1 ? 's' : ''}!`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
-
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error("Import error:", error);
-
-      setError(
-        error instanceof Error ? error.message : "Unknown error occurred",
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const downloadTemplate = (templateType: 'full' | 'update' = 'full') => {
     if (templateType === 'update') {
@@ -683,10 +637,62 @@ const CSVImportModal = ({
             </div>
           )}
 
-          {showSuccess && (
-            <div className="flex items-center text-sm text-green-500">
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Successfully imported {successCount} applicants!
+          {showResults && (
+            <div className="space-y-3 rounded-lg border bg-background p-4 shadow-sm">
+              <div className="flex items-center justify-between border-b pb-2">
+                <p className="text-sm font-semibold">Import Summary</p>
+                <div className="flex gap-2">
+                   <span className="flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800">
+                    {successCount} Success
+                  </span>
+                  <span className="flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
+                    {skippedCount} Skipped
+                  </span>
+                  <span className="flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-800">
+                    {failedCount} Failed
+                  </span>
+                </div>
+              </div>
+
+              {failedCount > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Specific Error Details:
+                  </p>
+                  <ScrollArea className="h-40 rounded-md border bg-muted/30 p-2">
+                    <div className="space-y-2">
+                      {rowErrors.map((err, idx) => (
+                        <div key={idx} className="border-b last:border-0 pb-2 last:pb-0">
+                          <p className="text-xs font-semibold text-foreground">
+                            Row {err.row}: {err.identifier}
+                          </p>
+                          <p className="text-xs text-muted-foreground italic">
+                            {err.error}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              ) : (
+                <div className="flex items-center text-sm text-green-600 font-medium">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  All rows processed successfully!
+                </div>
+              )}
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full mt-2" 
+                onClick={() => {
+                  onSuccess();
+                  onClose();
+                }}
+              >
+                Close and Refresh List
+              </Button>
             </div>
           )}
         </div>
