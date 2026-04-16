@@ -205,7 +205,7 @@ const StudentForm: React.FC = () => {
             duration: "3 वर्ष (संरचित डिग्री कार्यक्रम)",
             location: "हिमाचल प्रदेश (बारूसाहिब – आवासीय परिसर)",
             eligibility: [
-              "न्यूनतम आयु: 16 वर्ष",
+              "न्यूनतम आयु: 15 वर्ष",
               "12वीं पास (विश्वविद्यालय प्रवेश के लिए पात्र)",
               "पारिवारिक आय 5 लाख से कम",
               "उच्च शिक्षा और तकनीक में गहरी रुचि"
@@ -322,7 +322,7 @@ const StudentForm: React.FC = () => {
             duration: "3 वर्षे (संरचित पदवी कार्यक्रम)",
             location: "हिमाचल प्रदेश (बारुसाहिब – निवासी कॅम्पस)",
             eligibility: [
-              "किमान वय: 16 वर्षे",
+              "किमान वय: 15 वर्षे",
               "12वी उत्तीर्ण (विद्यापीठ प्रवेशासाठी पात्र)",
               "कौटुंबिक उत्पन्न 5 लाखांपेक्षा कमी",
               "उच्च शिक्षण आणि तंत्रज्ञानात तीव्र स्वारस्य"
@@ -495,7 +495,7 @@ const StudentForm: React.FC = () => {
             duration: "3 years (Structured degree program)",
             location: "Himachal Pradesh (Barusahib – Residential Campus)",
             eligibility: [
-              "Minimum age: 16 years",
+              "Minimum age: 15 years",
               "Must be 12th pass (eligible for university admission)",
               "Family income less than 5 LPA",
               "Strong interest in higher education and technology"
@@ -524,7 +524,7 @@ const StudentForm: React.FC = () => {
   const isSchoolEligible = (schoolId: string) => {
     // Check age eligibility
     const age = getAge(formData.dateOfBirth);
-    const ageThreshold = schoolId === 'BCA' ? 16 : 16.5;
+    const ageThreshold = schoolId === 'BCA' ? 15 : 15;
     if (formData.dateOfBirth && age < ageThreshold) {
       return false;
     }
