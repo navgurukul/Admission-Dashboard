@@ -524,7 +524,7 @@ const StudentForm: React.FC = () => {
   const isSchoolEligible = (schoolId: string) => {
     // Check age eligibility
     const age = getAge(formData.dateOfBirth);
-    const ageThreshold = schoolId === 'BCA' ? 15 : 15;
+    const ageThreshold = schoolId === 'BCA' ? 15 : 16.5;
     if (formData.dateOfBirth && age < ageThreshold) {
       return false;
     }
