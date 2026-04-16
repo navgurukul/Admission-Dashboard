@@ -1160,7 +1160,7 @@ const StudentForm: React.FC = () => {
 
     const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
     const isBCASchool = selectedSchool?.school_name.includes('BCA');
-    const ageThreshold = isBCASchool ? 16 : 16.5;
+    const ageThreshold = isBCASchool ? 15 : 15;
 
     if (!formData.dateOfBirth || age < ageThreshold) {
       return toast({
@@ -1372,8 +1372,7 @@ const StudentForm: React.FC = () => {
   // Calculate the maximum date allowed
   const getMaxDOB = () => {
     const today = new Date();
-    today.setFullYear(today.getFullYear() - 16);
-    today.setMonth(today.getMonth() - 6);
+    today.setFullYear(today.getFullYear() - 15);
     return today.toISOString().split("T")[0];
   };
 
