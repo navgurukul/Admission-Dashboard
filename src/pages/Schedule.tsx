@@ -45,6 +45,8 @@ type SlotData = {
   start_time: string;
   end_time: string;
   slot_type?: string; // Add this field
+  meeting_link?: string;
+  google_event_id?: string;
   interviewer_id?: number;
   interviewer_email?: string;
   interviewer_name?: string;
@@ -783,7 +785,7 @@ const Schedule = () => {
                   className="max-h-[60vh] overflow-x-auto overflow-y-auto rounded-lg border"
                   data-onboarding="schedule-table"
                 >
-                  <table className="w-full min-w-[920px]">
+                  <table className="w-full min-w-[1120px]">
                     <thead className="bg-muted/30 sticky top-0">
                       <tr>
                         <th className="text-left p-3 font-medium text-muted-foreground text-sm w-10">
@@ -815,7 +817,13 @@ const Schedule = () => {
                           End Time
                         </th>
                         <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                          Meeting Link
+                        </th>
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Status
+                        </th>
+                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                          Created On
                         </th>
                         <th className="text-left p-3 font-medium text-muted-foreground text-sm">
                           Actions
@@ -867,11 +875,7 @@ const Schedule = () => {
                           {/* Date */}
                           <td className="p-3">
                             <span className="text-sm text-foreground">
-                              {new Date(slot.date).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
+                              {new Date(slot.date).toLocaleDateString("en-GB")}
                             </span>
                           </td>
 
@@ -889,6 +893,22 @@ const Schedule = () => {
                             </span>
                           </td>
 
+                          {/* Meeting Link */}
+                          <td className="p-3">
+                            <span className="text-sm text-foreground">
+                              {slot.meeting_link ? (
+                                <a
+                                  href={slot.meeting_link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline break-all"
+                                >
+                                  Join
+                                </a>
+                              ) : "-"}
+                            </span>
+                          </td>
+
                           {/* Status */}
                           <td className="p-3">
                             <span
@@ -903,6 +923,15 @@ const Schedule = () => {
                                 }`}
                             >
                               {slot.status || "Available"}
+                            </span>
+                          </td>
+
+                          {/* Created On */}
+                          <td className="p-3">
+                            <span className="text-sm text-foreground">
+                              {slot.created_at
+                                ? new Date(slot.created_at).toLocaleDateString("en-GB")
+                                : "-"}
                             </span>
                           </td>
 
