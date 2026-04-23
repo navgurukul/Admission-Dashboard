@@ -10,8 +10,8 @@ import {
   Qualification,
   getAllStatus,
   CurrentStatus,
-  Religion,
-  getAllReligions,
+  // Religion,
+  // getAllReligions,
   createStudent,
   getAllStates,
   getDistrictsByState,
@@ -55,7 +55,7 @@ const StudentForm: React.FC = () => {
   const [casts, setCasts] = useState<Cast[]>([]);
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
-  const [religions, setReligions] = useState<Religion[]>([]);
+  // const [religions, setReligions] = useState<Religion[]>([]);
   const [states, setStates] = useState<State[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -882,15 +882,15 @@ const StudentForm: React.FC = () => {
     fetchStatuses();
 
     // fetch religions
-    const fetchReligions = async () => {
-      try {
-        const response = await getAllReligions();
-        setReligions(response);
-      } catch (error) {
-        // console.error("Error fetching religions:", error);
-      }
-    };
-    fetchReligions();
+    // const fetchReligions = async () => {
+    //   try {
+    //     const response = await getAllReligions();
+    //     setReligions(response);
+    //   } catch (error) {
+    //     // console.error("Error fetching religions:", error);
+    //   }
+    // };
+    // fetchReligions();
 
     // fetch schools
     const fetchSchools = async () => {
@@ -1127,7 +1127,7 @@ const StudentForm: React.FC = () => {
       formData.maximumQualification &&
       formData.schoolMedium &&
       formData.casteTribe &&
-      formData.religion &&
+      // formData.religion &&
       alternateRequired &&
       (currentStep === 2 ? formData.initial_school_id : true) &&
       age >= ageThreshold &&
@@ -1250,8 +1250,7 @@ const StudentForm: React.FC = () => {
       !formData.currentStatus ||
       !formData.maximumQualification ||
       !formData.schoolMedium ||
-      !formData.casteTribe ||
-      !formData.religion
+      !formData.casteTribe
     ) {
       return toast({
         title: "Additional Info Required",
@@ -2191,7 +2190,8 @@ const StudentForm: React.FC = () => {
                     className="h-12"
                   />
                 </div>
-                <div>
+                {/* Religion field hidden as requested */}
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {content.religion}
                   </label>
@@ -2209,7 +2209,7 @@ const StudentForm: React.FC = () => {
                     emptyText="No religion found."
                     className="h-12"
                   />
-                </div>
+                </div> */}
               </div>
             </div>
           </>
