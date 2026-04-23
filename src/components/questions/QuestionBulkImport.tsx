@@ -74,10 +74,9 @@ export function QuestionBulkImport({
   const downloadTemplate = () => {
     const template = [
       "difficulty_level,question_type,english_text,hindi_text,marathi_text,english_options,hindi_options,marathi_options,answer_key,topic",
-      '1,MCQ,"Try to understand the given data and convert unknowns into variables. Use equations like 3x + 2y = 100. Even if you\'re not confident in maths, try with focus – you’ll be able to solve it.\n\nWeight of one apple is 60 grams. And weight of one orange is 40 grams. You have 3600 grams of fruits. Which of the following combinations has 3600 grams of weight?","इन प्रश्नों को करने के लिए आप सोचिए - आपके पास जो जानकारी नहीं है, उसे एक्स और वाई जैसे वेरिएबल्स दे कर मनानी पड़ेगी। फिर उन चरों का समीकरण बन सकता है जैसे 3x+2y=100. अगर आप गणित से डरते हैं तो भी मत घबराइए, आप थोड़ा सा ध्यान लगा कर सोचेंगे तो कुछ प्रश्न भी हल करेंगे।\n\nएक सेब का वजन 60 ग्राम है और एक संतरे का वजन 40 ग्राम है। आपके पास 3600 ग्राम फल हैं। निम्नलिखित में से कौन सा संयोजन 3600 ग्राम के बराबर है?","प्रश्न को हल करने के लिए दिए गए आंकड़ों को ध्यानपूर्वक समझें और जिन जानकारियों का उल्लेख नहीं किया गया है, उन्हें x और y जैसे चर (variables) मान लें।\nइसके आधार पर आप एक समीकरण बना सकते हैं, जैसे: 3x + 2y = 100।\nयदि आपको गणित से डर लगता है या आप इसमें बहुत आत्मविश्वासी नहीं हैं, तब भी चिंता न करें —\nथोड़ा ध्यान लगाकर और मन लगाकर प्रयास करेंगे, तो आप निश्चित रूप से इन प्रश्नों को हल कर पाएंगे।\n\nएका सफरचंदाचं वजन ६० ग्राम आहे आणि एका संत्र्याचं वजन ४० ग्राम आहे। तुमच्याकडे एकूण ३६०० ग्राम फळं आहेत। खालीलपैकी कोणतं संयोजन बरोबर आहे?","[{""id"":1,""text"":""40 apples, 30 oranges""},{""id"":2,""text"":""42 apples, 28 oranges""},{""id"":3,""text"":""45 apples, 20 oranges""},{""id"":4,""text"":""35 apples, 35 oranges""}]","[]","[]","[1]",2',
-      '2,MCQ,"Weight of one banana is 100 grams. Weight of one mango is 200 grams. Total weight of fruits is 4000 grams. How many bananas and mangoes are there?","एक केले का वजन 100 ग्राम है और एक आम का वजन 200 ग्राम है। फलों का कुल वजन 4000 ग्राम है। कितने केले और आम हैं?","एका केळ्याचं वजन १०० ग्राम आहे. एका आंब्याचं वजन २०० ग्राम आहे. एकूण फळांचं वजन ४००० ग्राम आहे. किती केळी आणि आंबे असतील?","[{""id"":1,""text"":""20 bananas, 15 mangoes""},{""id"":2,""text"":""30 bananas, 10 mangoes""},{""id"":3,""text"":""4 bananas, 18 mangoes""},{""id"":4,""text"":""20 bananas, 20 mangoes""}]","[]","[]","[3]",2',
-      '2,MCQ,"Weight of one apple is 80 grams and one orange weighs 60 grams. You have a total of 5500 grams of fruits. The number of apples is double the number of oranges. How many apples do you have?","एक सेब का वजन 80 ग्राम है और एक संतरे का वजन 60 ग्राम है। आपके पास कुल 5600 ग्राम फल हैं। सेबों की संख्या संतरे से दोगुनी है। आपके पास कितने सेब हैं?","एका सफरचंदाचं वजन ८० ग्राम आहे आणि एका संत्र्याचं वजन ६० ग्राम आहे. तुमच्याकडे एकूण 5500 ग्राम फळं आहेत. सफरचंदांची संख्या संत्र्यांपेक्षा दुप्पट आहे. किती सफरचंदं आहेत?","[{""id"":1,""text"":""50""},{""id"":2,""text"":""60""},{""id"":3,""text"":""80""},{""id"":4,""text"":""100""}]","[]","[]","[1]",2',
-      '3,MCQ,"Weight of one apple is 75 grams. One apple is 3 times heavier than an orange. The number of oranges is 5 times that of apples. You have 3600 grams of fruit. How many apples do you have?","एक सेब का वजन 90 ग्राम है। सेब संतरे से 3 गुना भारी है। संतरे की संख्या सेब से 4 गुना है। कुल वजन 6300 ग्राम है। बताएं कितने सेब हैं?","एका सफरचंदाचं वजन ९० ग्राम आहे. एक सफरचंद संत्र्याच्या वजनाच्या ३ पट आहे. संत्र्यांची संख्या सफरचंदांपेक्षा ४ पट आहे. तुमच्याकडे एकूण ६३०० ग्राम फळं आहेत. किती सफरचंदं आहेत?","[{""id"":1,""text"":""30""},{""id"":2,""text"":""32""},{""id"":3,""text"":""28""},{""id"":4,""text"":""25""}]","[]","[]","[1]",2',
+      '1,MCQ,"What is the weight of one apple if 3 apples and 2 oranges weigh 260g and the orange is 40g?","यदि 3 सेब और 2 संतरे का वजन 260 ग्राम है और संतरे का वजन 40 ग्राम है, तो एक सेब का वजन क्या है?","जर ३ सफरचंदे आणि २ संत्र्यांचे वजन २६० ग्रॅम असेल आणि संत्र्याचे वजन ४० ग्रॅम असेल, तर एका सफरचंदाचे वजन किती?","60g; 50g; 70g; 40g","60 ग्राम; 50 ग्राम; 70 ग्राम; 40 ग्राम","६० ग्रॅम; ५० ग्रॅम; ७० ग्रॅम; ४० ग्रॅम","1",2',
+      '2,MCQ,"Weight of one banana is 100 grams. Weight of one mango is 200 grams. Total weight of fruits is 4000 grams. How many bananas and mangoes are there?","एक केले का वजन 100 ग्राम है और एक आम का वजन 200 ग्राम है। फलों का कुल वजन 4000 ग्राम है। कितने केले और आम हैं?","एका केळ्याचं वजन १०० ग्राम आहे. एका आंब्याचं वजन २०० ग्राम आहे. एकूण फळांचं वजन ४००० ग्राम आहे. किती केळी आणि आंबे असतील?","20 bananas, 15 mangoes; 30 bananas, 10 mangoes; 4 bananas, 18 mangoes; 20 bananas, 20 mangoes","20 केले, 15 आम; 30 केले, 10 आम; 4 केले, 18 आम; 20 केले, 20 आम","२० केळी, १५ आंबे; ३० केळी, १० आंबे; ४ केळी, १८ आंबे; २० केळी, २० आंबे","3",2',
+      '2,MCQ,"The number of apples is double the number of oranges. Total weight is 5600g. Apple=80g, Orange=60g. How many apples?","सेबों की संख्या संतरे से दोगुनी है। कुल वजन 5600 ग्राम है। सेब=80 ग्राम, संतरा=60 ग्राम। कितने सेब हैं?","सफरचंदांची संख्या संत्र्यांपेक्षा दुप्पट आहे. एकूण वजन ५६०० ग्रॅम आहे. सफरचंद=८० ग्रॅम, संत्रा=६० ग्रॅम. किती सफरचंद आहेत?","50; 60; 80; 100","50; 60; 80; 100","५०; ६०; ८०; १००","1",2',
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
@@ -141,33 +140,46 @@ export function QuestionBulkImport({
               return;
             }
 
+            // Helper: Smart Parse Options (JSON or Semicolon Separated)
+            const smartParseOptions = (val: string) => {
+              if (!val || !val.trim()) return [];
+              const trimmed = val.trim();
+              if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+                try {
+                  return JSON.parse(trimmed);
+                } catch (e) {}
+              }
+              // Fallback to semicolon separation
+              return trimmed.split(";").map((opt, idx) => ({
+                id: idx + 1,
+                text: opt.trim(),
+              }));
+            };
+
+            // Helper: Smart Parse Answer Key
+            const smartParseAnswerKey = (val: string) => {
+              if (!val || !val.trim()) return null;
+              const trimmed = val.trim();
+              if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+                try {
+                  return JSON.parse(trimmed);
+                } catch (e) {}
+              }
+              if (!isNaN(Number(trimmed))) {
+                return [Number(trimmed)];
+              }
+              return null;
+            };
+
             // Parse options and answers
-            let englishOptions = [];
-            let hindiOptions = [];
-            let marathiOptions = [];
-            let correctAnswer = null;
+            const englishOptions = smartParseOptions(row.english_options || "");
+            const hindiOptions = smartParseOptions(row.hindi_options || "");
+            const marathiOptions = smartParseOptions(row.marathi_options || "");
+            const correctAnswer = smartParseAnswerKey(row.answer_key || "");
 
-            try {
-              // Parse English options
-              if (row.english_options && row.english_options.trim()) {
-                englishOptions = JSON.parse(row.english_options);
-              }
-
-              // Parse Hindi options
-              if (row.hindi_options && row.hindi_options.trim()) {
-                hindiOptions = JSON.parse(row.hindi_options);
-              }
-
-              // Parse Marathi options
-              if (row.marathi_options && row.marathi_options.trim()) {
-                marathiOptions = JSON.parse(row.marathi_options);
-              }
-
-              // Parse correct answer
-              correctAnswer = JSON.parse(row.answer_key);
-            } catch (e) {
+            if (!correctAnswer) {
               parseErrors.push(
-                `Row ${index + 1}: Invalid JSON format in options or answer_key`,
+                `Row ${index + 1}: Invalid answer_key format. Use [1] or simply 1.`,
               );
               return;
             }
@@ -367,11 +379,15 @@ export function QuestionBulkImport({
 
   return (
     <div className="space-y-6">
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Import questions in bulk using CSV. Supports English/Hindi/Marathi
-          text and options. Follow the template format.
+      <Alert className="bg-blue-50 border-blue-200">
+        <AlertCircle className="h-4 w-4 text-blue-600" />
+        <AlertDescription className="text-blue-800">
+          <p className="font-semibold mb-1">How to format your CSV:</p>
+          <ul className="list-disc list-inside space-y-1 text-xs">
+            <li><strong>Options:</strong> Separate choices with a semicolon (e.g. Option A; Option B; Option C)</li>
+            <li><strong>Answer Key:</strong> Just use the number of the correct option (e.g. 1 for the first option)</li>
+            <li><strong>Languages:</strong> You can provide text and options for English, Hindi, and Marathi.</li>
+          </ul>
         </AlertDescription>
       </Alert>
 

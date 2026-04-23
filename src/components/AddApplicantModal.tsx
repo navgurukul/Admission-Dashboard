@@ -62,7 +62,7 @@ export function AddApplicantModal({
   const {
     schoolList,
     currentstatusList,
-    religionList,
+    // religionList,
     questionSetList,
     qualificationList,
     castList,
@@ -519,9 +519,9 @@ export function AddApplicantModal({
     //   newErrors.campus_id = "Campus is required";
     // }
 
-    if (!formData.religion_id) {
-      newErrors.religion_id = "Religion is required";
-    }
+    // if (!formData.religion_id) {
+    //   newErrors.religion_id = "Religion is required";
+    // }
 
     if (!formData.communication_notes.trim()) {
       newErrors.communication_notes = "Communication notes are required";
@@ -575,7 +575,7 @@ export function AddApplicantModal({
         cast_id: "Caste",
         qualification_id: "Qualification",
         current_status_id: "Current Work",
-        religion_id: "Religion",
+        // religion_id: "Religion",
         communication_notes: "Communication Notes",
         question_set_id: "Question Set",
         exam_centre: "Exam Centre",
@@ -809,7 +809,7 @@ export function AddApplicantModal({
           formData.qualification_id &&
           formData.current_status_id &&
           // formData.campus_id &&
-          formData.religion_id &&
+          // formData.religion_id &&
           formData.communication_notes
         );
       case "screening":
@@ -1482,7 +1482,8 @@ export function AddApplicantModal({
                     )}
                   </div> */}
 
-                  <div className="space-y-2">
+                  {/* Religion field hidden as requested */}
+                  {/* <div className="space-y-2">
                     <Label
                       htmlFor="religion_id"
                       className="text-sm font-medium"
@@ -1518,7 +1519,7 @@ export function AddApplicantModal({
                         {errors.religion_id}
                       </p>
                     )}
-                  </div>
+                  </div> */}
 
                   <div className="space-y-2">
                     <Label
