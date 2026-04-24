@@ -140,7 +140,7 @@ export function AddApplicantModal({
     status: "",
     is_passed: false,
     question_set_id: "",
-    total_marks: 36,
+    total_marks: 32,
     obtained_marks: "",
     exam_centre: "",
     date_of_test: "",
