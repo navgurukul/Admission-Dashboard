@@ -1522,10 +1522,10 @@ Interviewer: ${interviewerName}`;
     },
     {
       name: "obtained_marks",
-      label: "Obtained Marks * (Max: 36)",
+      label: "Obtained Marks * (Max: 32)",
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
-        const maxMarks = 36;
+        const maxMarks = 32;
         
         // Read-only mode (no updateRow passed)
         if (!updateRow) {
@@ -1558,7 +1558,7 @@ Interviewer: ${interviewerName}`;
               disabled={!!disabled}
               min="0"
               max={maxMarks}
-              placeholder="0-36"
+              placeholder="0-32"
             />
           </div>
         );

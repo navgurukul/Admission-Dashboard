@@ -444,10 +444,10 @@ export function InlineSubform({
         // Validate obtained_marks should not exceed 36 for screening round
         if (isScreeningRound && field.name === "obtained_marks") {
           const obtainedMarks = Number(row.obtained_marks);
-          if (obtainedMarks > 36) {
+          if (obtainedMarks > 32) {
             toast({
               title: "⚠️ Validation Error",
-              description: "Obtained marks cannot exceed 36",
+              description: "Obtained marks cannot exceed 32",
               variant: "destructive",
               className: "border-orange-500 bg-orange-50 text-orange-900",
             });
