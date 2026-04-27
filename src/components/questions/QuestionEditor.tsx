@@ -280,7 +280,7 @@ export function QuestionEditor({
     const payload = {
       difficulty_level: formData.difficulty_level,
       question_type: formData.question_type,
-      topic: Number(formData.topic),
+      ...(formData.topic !== "" ? { topic: Number(formData.topic) } : {}),
       english_text: formData.question_text.english,
       hindi_text: formData.question_text.hindi,
       marathi_text: formData.question_text.marathi,
