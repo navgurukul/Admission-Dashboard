@@ -4,10 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit, Archive, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { useLanguage } from "@/routes/LaunguageContext";
+import { Language } from "@/utils/student.types";
 
 interface Question {
   id: number;
   difficulty_level: number;
+  topic?: number | string;
   question_type: string;
   english_text: string;
   hindi_text: string;
@@ -27,6 +30,7 @@ interface QuestionListProps {
   onArchive: (questionId: number) => void;
   onDelete: (questionId: number) => void;
   schools: any[];
+  topics?: Array<{ id: number; topic: string }>;
 }
 
 export function QuestionList({
@@ -38,7 +42,33 @@ export function QuestionList({
   onArchive,
   onDelete,
   schools,
+  topics = [],
 }: QuestionListProps) {
+  const { selectedLanguage, setSelectedLanguage } = useLanguage();
+
+  React.useEffect(() => {
+    const savedLanguage = localStorage.getItem("selectedLanguage") as Language | null;
+    if (
+      savedLanguage &&
+      ["english", "hindi", "marathi"].includes(savedLanguage) &&
+      savedLanguage !== selectedLanguage
+    ) {
+      setSelectedLanguage(savedLanguage);
+    }
+  }, [selectedLanguage, setSelectedLanguage]);
+
+  const getQuestionTextByLanguage = (question: Question) => {
+    if (selectedLanguage === "hindi") {
+      return question.hindi_text || question.english_text;
+    }
+
+    if (selectedLanguage === "marathi") {
+      return question.marathi_text || question.english_text;
+    }
+
+    return question.english_text;
+  };
+
   const getDifficultyLabel = (level: number) => {
     if (level <= 1)
       return { label: "Easy", color: "bg-green-100 text-green-800" };
@@ -103,6 +133,17 @@ export function QuestionList({
     <div className="space-y-4">
       {questions.map((question) => {
         const difficulty = getDifficultyLabel(question.difficulty_level);
+        const topicId = Number(question.topic);
+        const matchedTopic = Number.isInteger(topicId)
+          ? topics.find((topic) => topic.id === topicId)
+          : null;
+        const topicLabel =
+          matchedTopic?.topic ||
+          (question.topic !== undefined &&
+          question.topic !== null &&
+          String(question.topic).trim() !== ""
+            ? String(question.topic)
+            : "");
         return (
           <Card key={question.id}>
             <CardContent className="p-4">
@@ -115,6 +156,9 @@ export function QuestionList({
                     <Badge variant="outline">
                       {getQuestionTypeLabel(question.question_type)}
                     </Badge>
+                    {topicLabel && (
+                      <Badge variant="outline">{topicLabel}</Badge>
+                    )}
                     {question.points && (
                       <Badge variant="outline">{question.points} pts</Badge>
                     )}
@@ -135,13 +179,7 @@ export function QuestionList({
                   <h3 className="font-medium text-sm mb-2">
                     <div className="space-y-1">
                       <div className="whitespace-pre-line">
-                        <strong>EN:</strong> {question.english_text}
-                      </div>
-                      <div className="whitespace-pre-line">
-                        <strong>HI:</strong> {question.hindi_text}
-                      </div>
-                      <div className="whitespace-pre-line">
-                        <strong>MR:</strong> {question.marathi_text}
+                        {getQuestionTextByLanguage(question)}
                       </div>
                     </div>
                   </h3>
