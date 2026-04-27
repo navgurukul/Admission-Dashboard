@@ -1439,8 +1439,16 @@ export interface TopicOption {
   message?: string;
 }
 
-const getTopicErrorMessage = (data: any): string => {
-  return data?.message || data?.error?.message || data?.errors?.[0]?.message || "";
+const getTopicErrorMessage = (
+  data: any,
+  defaultMessage: string = "Failed to process topic request",
+): string => {
+  const message =
+    data?.message || data?.error?.message || data?.errors?.[0]?.message;
+
+  return typeof message === "string" && message.trim()
+    ? message
+    : defaultMessage;
 };
 
 interface TopicApiResponse {
