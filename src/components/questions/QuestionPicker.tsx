@@ -85,21 +85,19 @@ export function QuestionPicker({
             mainData = firstPageResponse.questions || [];
 
             if (firstPageResponse.totalPages > 1) {
-              const remainingPages = await Promise.all(
-                Array.from({ length: firstPageResponse.totalPages - 1 }, (_, index) =>
-                  getQuestionsPaginated({
-                    topic: selectedTopic === "all" ? undefined : selectedTopic,
-                    difficulty_level: difficultyFilter ?? undefined,
-                    search: debouncedSearchText,
-                    page: index + 2,
-                  }),
-                ),
-              );
+              for (let page = 2; page <= firstPageResponse.totalPages; page += 1) {
+                const pageResponse = await getQuestionsPaginated({
+                  topic: selectedTopic === "all" ? undefined : selectedTopic,
+                  difficulty_level: difficultyFilter ?? undefined,
+                  search: debouncedSearchText,
+                  page,
+                });
 
-              mainData = [
-                ...mainData,
-                ...remainingPages.flatMap((pageResponse) => pageResponse.questions || []),
-              ];
+                mainData = [
+                  ...mainData,
+                  ...(pageResponse.questions || []),
+                ];
+              }
             }
           } else {
             const mainSet = await getQuestionsBySetType(activeSet.name);
