@@ -17,6 +17,7 @@ import { QuestionOptionsEditor } from "./QuestionOptionsEditor";
 import { useToast } from "@/hooks/use-toast";
 import { Option, type TopicOption } from "@/utils/api";
 import { TopicManagementDialog } from "./TopicManagementDialog";
+import { DifficultyLevelManagementDialog } from "./DifficultyLevelManagementDialog";
 
 interface DifficultyLevel {
   id: number;
@@ -35,6 +36,9 @@ interface QuestionEditorProps {
   onCreateTopic: (topicName: string) => Promise<TopicOption> | TopicOption;
   onUpdateTopic: (topicId: number, topicName: string) => Promise<TopicOption | void> | TopicOption | void;
   onDeleteTopic: (topicId: number) => Promise<{ message?: string } | void> | { message?: string } | void;
+  onCreateDifficultyLevel: (name: string, marks: number) => Promise<any> | any;
+  onUpdateDifficultyLevel: (id: number, name: string, marks: number) => Promise<any> | any;
+  onDeleteDifficultyLevel: (id: number) => Promise<any> | any;
 }
 
 export function QuestionEditor({
@@ -48,9 +52,13 @@ export function QuestionEditor({
   onCreateTopic,
   onUpdateTopic,
   onDeleteTopic,
+  onCreateDifficultyLevel,
+  onUpdateDifficultyLevel,
+  onDeleteDifficultyLevel,
 }: QuestionEditorProps) {
   const { toast } = useToast();
   const [isTopicDialogOpen, setIsTopicDialogOpen] = useState(false);
+  const [isDifficultyDialogOpen, setIsDifficultyDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState<{
     question_type: string;
@@ -314,7 +322,19 @@ export function QuestionEditor({
         </div>
 
         <div className="space-y-2">
-          <Label>Difficulty</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Difficulty</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 text-xs"
+              onClick={() => setIsDifficultyDialogOpen(true)}
+            >
+              <PencilLine className="mr-1 h-3.5 w-3.5" />
+              Manage Difficulty
+            </Button>
+          </div>
           <Select
             value={formData.difficulty_level}
             onValueChange={(v) => {
@@ -466,6 +486,21 @@ export function QuestionEditor({
         onCreateTopic={onCreateTopic}
         onUpdateTopic={onUpdateTopic}
         onDeleteTopic={onDeleteTopic}
+      />
+
+      <DifficultyLevelManagementDialog
+        open={isDifficultyDialogOpen}
+        onOpenChange={setIsDifficultyDialogOpen}
+        levels={difficultyLevels}
+        selectedLevelId={formData.difficulty_level}
+        onSelectedLevelChange={(value) => {
+          updateField("difficulty_level", value);
+          const level = difficultyLevels.find(lvl => lvl.id.toString() === value);
+          if (level) updateField("points", level.points);
+        }}
+        onCreateLevel={onCreateDifficultyLevel}
+        onUpdateLevel={onUpdateDifficultyLevel}
+        onDeleteLevel={onDeleteDifficultyLevel}
       />
     </form>
   );

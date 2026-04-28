@@ -32,27 +32,27 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   );
   const { toast } = useToast();
 
+  const fetchLevels = async () => {
+    try {
+      const levelsRaw: any = await difficultyLevelAPI.getDifficultyLevels();
+
+      const arr = Array.isArray(levelsRaw.data?.data)
+        ? levelsRaw.data.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            points: item.marks ?? 0,
+          }))
+        : [];
+
+      setDifficultyLevels(arr);
+    } catch (err) {
+      console.error("Failed to fetch difficulty levels:", err);
+      setDifficultyLevels([]); // fallback
+    }
+  };
+
   // Fetch difficulty levels once
   useEffect(() => {
-    const fetchLevels = async () => {
-      try {
-        const levelsRaw:any = await difficultyLevelAPI.getDifficultyLevels();
-
-        const arr = Array.isArray(levelsRaw.data?.data)
-          ? levelsRaw.data.data.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              points: item.marks ?? 0,
-            }))
-          : [];
-
-        setDifficultyLevels(arr);
-      } catch (err) {
-        console.error("Failed to fetch difficulty levels:", err);
-        setDifficultyLevels([]); // fallback
-      }
-    };
-
     fetchLevels();
   }, []);
 
@@ -166,6 +166,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
     restoreQuestion,
     refetch: fetchQuestions,
     difficultyLevels,
+    refetchDifficultyLevels: fetchLevels,
     getDifficultyLabel,
     currentPage,
     setCurrentPage,

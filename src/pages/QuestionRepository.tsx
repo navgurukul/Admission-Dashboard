@@ -44,6 +44,7 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useLanguage } from "@/routes/LaunguageContext";
 import { Language } from "@/utils/student.types";
+import { difficultyLevelAPI } from "@/utils/difficultyLevelAPI";
 import {
   Dialog,
   DialogContent,
@@ -88,6 +89,7 @@ export default function QuestionRepository() {
     archiveQuestion,
     restoreQuestion,
     difficultyLevels,
+    refetchDifficultyLevels,
     refetch,
     currentPage,
     setCurrentPage,
@@ -210,6 +212,31 @@ export default function QuestionRepository() {
   const handleDeleteTopic = async (topicId: number) => {
     const result = await deleteTopic(topicId);
     setTopics((prev) => prev.filter((topic) => topic.id !== topicId));
+    return result;
+  };
+
+  const handleCreateDifficultyLevel = async (name: string, marks: number) => {
+    const createdLevel = await difficultyLevelAPI.createDifficultyLevel({
+      name: name.trim(),
+      marks: marks,
+      status: true,
+    });
+    await refetchDifficultyLevels();
+    return createdLevel;
+  };
+
+  const handleUpdateDifficultyLevel = async (id: number, name: string, marks: number) => {
+    const updatedLevel = await difficultyLevelAPI.updateDifficultyLevel(id, {
+      name: name.trim(),
+      marks: marks,
+    });
+    await refetchDifficultyLevels();
+    return updatedLevel;
+  };
+
+  const handleDeleteDifficultyLevel = async (id: number) => {
+    const result = await difficultyLevelAPI.deleteDifficultyLevel(id);
+    await refetchDifficultyLevels();
     return result;
   };
 
@@ -581,6 +608,9 @@ export default function QuestionRepository() {
                     onCreateTopic={handleCreateTopic}
                     onUpdateTopic={handleUpdateTopic}
                     onDeleteTopic={handleDeleteTopic}
+                    onCreateDifficultyLevel={handleCreateDifficultyLevel}
+                    onUpdateDifficultyLevel={handleUpdateDifficultyLevel}
+                    onDeleteDifficultyLevel={handleDeleteDifficultyLevel}
                     setSelectedQuestion={setSelectedQuestion}
                     onCancel={() => {
                       setActiveTab("list");
