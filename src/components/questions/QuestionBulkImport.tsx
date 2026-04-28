@@ -74,9 +74,9 @@ export function QuestionBulkImport({
   const downloadTemplate = () => {
     const template = [
       "difficulty_level,question_type,english_text,hindi_text,marathi_text,english_options,hindi_options,marathi_options,answer_key,topic",
-      'Easy,MCQ,"3, 8, 13, 18, ___. What will be the next number in the pattern?","3, 8, 13, 18, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 13, 18, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","28; 29; 30; 23","28; 29; 30; 23","28; 29; 30; 23","4","5"',
-      'Medium,MCQ,"3, 8, 15, 24, ___. What will be the next number in the pattern?","3, 8, 15, 24, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 15, 24, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","35; 32; 34; 33","35; 32; 34; 33","35; 32; 34; 33","1","5"',
-      'Hard,MCQ,"8, 4, 16, 12, 32, ___. What will be the next number in the pattern?","8, 4, 16, 12, 32, ___. संख्या क्रम में अगली संख्या क्या होगी?","8, 4, 16, 12, 32, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","34; 30; 36; 40","34; 30; 36; 40","34; 30; 36; 40","3","5"',
+      'Easy,MCQ,"3, 8, 13, 18, ___. What will be the next number in the pattern?","3, 8, 13, 18, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 13, 18, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","28; 29; 30; 23","28; 29; 30; 23","28; 29; 30; 23","4","Algebra"',
+      'Medium,MCQ,"3, 8, 15, 24, ___. What will be the next number in the pattern?","3, 8, 15, 24, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 15, 24, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","35; 32; 34; 33","35; 32; 34; 33","35; 32; 34; 33","1","Number Patterns"',
+      'Hard,MCQ,"8, 4, 16, 12, 32, ___. What will be the next number in the pattern?","8, 4, 16, 12, 32, ___. संख्या क्रम में अगली संख्या क्या होगी?","8, 4, 16, 12, 32, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","34; 30; 36; 40","34; 30; 36; 40","34; 30; 36; 40","3","Percentage"',
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
@@ -387,10 +387,21 @@ export function QuestionBulkImport({
         <AlertDescription className="text-blue-800">
           <p className="font-semibold mb-1">How to format your CSV:</p>
           <ul className="list-disc list-inside space-y-1 text-xs">
+            <li><strong>Difficulty Level:</strong> Use "Easy", "Medium", or "Hard".</li>
             <li><strong>Options:</strong> Separate choices with a semicolon (e.g. Option A; Option B; Option C)</li>
             <li><strong>Answer Key:</strong> Just use the number of the correct option (e.g. 1 for the first option)</li>
             <li><strong>Languages:</strong> You can provide text and options for English, Hindi, and Marathi.</li>
+            <li><strong>Topic:</strong> Enter the topic name (e.g. Algebra, Number Patterns, Percentage).</li>
           </ul>
+          <div className="mt-3 text-sm">
+            <p className="font-semibold mb-1">How to use:</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs">
+              <li>Click <strong>Download Template</strong> to get a sample CSV.</li>
+              <li>Edit the file (or paste rows) keeping the header exact and save as .csv.</li>
+              <li>Paste the CSV into the textbox or upload the file, then click <strong>Parse CSV Data</strong>.</li>
+              <li>Fix any errors shown, then click <strong>Import</strong> to upload questions.</li>
+            </ol>
+          </div>
         </AlertDescription>
       </Alert>
 
