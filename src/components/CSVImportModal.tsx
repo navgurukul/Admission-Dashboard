@@ -121,10 +121,10 @@ const referenceGuide: GuideItem[] = [
     title: "Cast",
     body: ["General, OBC, SC, ST, Other"],
   },
-  {
-    title: "Religion",
-    body: ["Hinduism, Islam, Christianity, Sikhism, Buddhism, Jainism, Other"],
-  },
+  // {
+  //   title: "Religion",
+  //   body: ["Hinduism, Islam, Christianity, Sikhism, Buddhism, Jainism, Other"],
+  // },
   {
     title: "School",
     body: ["SOP, SOB, SOF, BCA"],
@@ -400,7 +400,7 @@ const CSVImportModal = ({
       "PercentageIn12th",
       "MathMarksIn12th",
       "Cast",
-      "Religion",
+      // "Religion",
       "School",
       "Campus",
       "CommunicationNotes",
