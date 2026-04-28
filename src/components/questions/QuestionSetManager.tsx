@@ -462,6 +462,32 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         return parsed;
       };
 
+      const normalizeTopicId = (value: any, fallback = "1") => {
+        if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+          return value;
+        }
+
+        if (typeof value === "string") {
+          const trimmed = value.trim();
+          if (!trimmed) return fallback;
+
+          const numericValue = Number(trimmed);
+          if (Number.isInteger(numericValue) && numericValue > 0) {
+            return numericValue;
+          }
+
+          const matchedTopic = Array.isArray(topics)
+            ? topics.find((t: any) => t.topic?.toLowerCase() === trimmed.toLowerCase())
+            : null;
+
+          if (matchedTopic?.id) {
+            return matchedTopic.id;
+          }
+        }
+
+        return fallback;
+      };
+
       const validQuestions: any[] = [];
 
       questions.forEach((q: any, index: number) => {
@@ -469,6 +495,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           ...q,
           id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
           difficulty_level: normalizeDifficultyLevel(q.difficulty_level),
+          topic: normalizeTopicId(q.topic),
           english_options: tryParseOptions(q.english_options),
           hindi_options: tryParseOptions(q.hindi_options),
           marathi_options: tryParseOptions(q.marathi_options),
@@ -647,7 +674,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const downloadCSVTemplate = () => {
     const template = [
       "difficulty_level,question_type,english_text,hindi_text,marathi_text,english_options,hindi_options,marathi_options,answer_key,topic",
-      'Easy,MCQ,"Sample english question?","Sample hindi question?","Sample marathi question?","Option 1;Option 2;Option 3;Option 4","विकल्प 1;विकल्प 2;विकल्प 3;विकल्प 4","पर्याय 1;पर्याय 2;पर्याय 3;पर्याय 4","1","5"',
+      'Easy,MCQ,"3, 8, 13, 18, ___. What will be the next number in the pattern?","3, 8, 13, 18, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 13, 18, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","28; 29; 30; 23","28; 29; 30; 23","28; 29; 30; 23","4","Algebra"',
+      'Medium,MCQ,"3, 8, 15, 24, ___. What will be the next number in the pattern?","3, 8, 15, 24, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 15, 24, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","35; 32; 34; 33","35; 32; 34; 33","35; 32; 34; 33","1","Number Patterns"',
+      'Hard,MCQ,"8, 4, 16, 12, 32, ___. What will be the next number in the pattern?","8, 4, 16, 12, 32, ___. संख्या क्रम में अगली संख्या क्या होगी?","8, 4, 16, 12, 32, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","34; 30; 36; 40","34; 30; 36; 40","34; 30; 36; 40","3","Percentage"',
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
