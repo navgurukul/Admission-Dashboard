@@ -647,7 +647,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const downloadCSVTemplate = () => {
     const template = [
       "difficulty_level,question_type,english_text,hindi_text,marathi_text,english_options,hindi_options,marathi_options,answer_key,topic",
-      '1,MCQ,"Sample english question?","Sample hindi question?","Sample marathi question?","Option 1;Option 2;Option 3;Option 4","विकल्प 1;विकल्प 2;विकल्प 3;विकल्प 4","पर्याय 1;पर्याय 2;पर्याय 3;पर्याय 4","1",Sample Topic',
+      'Easy,MCQ,"Sample english question?","Sample hindi question?","Sample marathi question?","Option 1;Option 2;Option 3;Option 4","विकल्प 1;विकल्प 2;विकल्प 3;विकल्प 4","पर्याय 1;पर्याय 2;पर्याय 3;पर्याय 4","1","5"',
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
