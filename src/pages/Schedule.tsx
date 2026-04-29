@@ -10,6 +10,8 @@ import {
   Edit,
   ArrowLeft,
   Search,
+  X,
+  Filter,
 } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useNavigate } from "react-router-dom";
@@ -37,6 +39,7 @@ import {
 } from "@/utils/googleCalendar";
 import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
 import { BulkEditSlotModal } from "@/components/BulkEditSlotModal";
+import { AvailableSlotsFilterModal } from "@/components/AvailableSlotsFilterModal";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 
 type SlotData = {
@@ -82,6 +85,7 @@ const Schedule = () => {
   const [allSlots, setAllSlots] = useState<SlotData[]>([]); // Store all slots
   const [selectedDate, setSelectedDate] = useState<string>(""); // Empty means show all
   const [selectedStatus, setSelectedStatus] = useState<string>(""); // New state for status filter
+  const [isAvailableSlotsFilterModalOpen, setIsAvailableSlotsFilterModalOpen] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -166,24 +170,11 @@ const Schedule = () => {
     }
   };
 
-  // Filter slots by date
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    setSelectedDate(newDate);
-    setCurrentPage(1); // Important: Reset page when date changes
-  };
-
   // Clear filter and show all slots
   const handleClearFilter = () => {
     setSelectedDate("");
     setSelectedStatus("");
     setSearchTerm("");
-    setCurrentPage(1);
-  };
-
-  // Handle status change
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedStatus(e.target.value);
     setCurrentPage(1);
   };
 
@@ -457,13 +448,15 @@ const Schedule = () => {
     {} as Record<string, SlotData[]>,
   );
 
+  const hasAvailableSlotFilters = Boolean(selectedDate || selectedStatus);
+
   return (
     <div className="min-h-screen bg-background">
       <AdmissionsSidebar />
 
       <main className="md:ml-64 overflow-auto h-screen">
-        <div className="p-4 md:p-8 pt-16 md:pt-8">
-          <div className="mb-6" data-onboarding="schedule-header">
+        <div className="p-3 md:p-6 pt-14 md:pt-6 pb-3 md:pb-4">
+          <div className="mb-4" data-onboarding="schedule-header">
             {/* Back button - mobile: aligned with hamburger (top-4 right-4) */}
             <div className="md-3">
               <Button
@@ -478,12 +471,12 @@ const Schedule = () => {
               </Button>
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">
                   {isAdmin ? "Admin View" : "My Dashboard"}
                 </h1>
-                <p className="text-muted-foreground mt-2">
+                <p className="text-xs md:text-sm text-muted-foreground mt-1">
                   Manage interview slots and availability
                 </p>
               </div>
@@ -540,14 +533,9 @@ const Schedule = () => {
                     text: "Search interviewer slots here.",
                   },
                   {
-                    id: "schedule-date-filter",
-                    target: '[data-onboarding="schedule-date-filter"]',
-                    text: "Filter slots by date here.",
-                  },
-                  {
-                    id: "schedule-status-filter",
-                    target: '[data-onboarding="schedule-status-filter"]',
-                    text: "Filter slots by status here.",
+                    id: "schedule-filters-button",
+                    target: '[data-onboarding="schedule-filters-button"]',
+                    text: "Open filter modal from here.",
                   },
                   {
                     id: "schedule-table",
@@ -570,8 +558,8 @@ const Schedule = () => {
           </div>
 
           {isAdmin && (
-            <Tabs value="my-interviews" className="w-full mb-6">
-              <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-xl" : "grid-cols-1 max-w-xs")}>
+            <Tabs value="my-interviews" className="w-full mb-4">
+              <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-lg" : "grid-cols-1 max-w-xs")}>
                 <>
                   <TabsTrigger
                     value="interviews"
@@ -600,51 +588,51 @@ const Schedule = () => {
           )}
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="bg-card rounded-xl p-6 shadow-medium border border-border hover:border-primary/30 transition-all">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-primary/30 transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     Today's Booked
                   </p>
-                  <p className="text-3xl font-bold text-foreground">
+                  <p className="text-2xl font-bold text-foreground">
                     {bookedTodayCount}
                   </p>
                 </div>
-                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-7 h-7 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-primary" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-6 shadow-medium border border-border hover:border-secondary-purple/30 transition-all">
+            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-secondary-purple/30 transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     Available Today
                   </p>
-                  <p className="text-3xl font-bold text-foreground">
+                  <p className="text-2xl font-bold text-foreground">
                     {availableTodayCount}
                   </p>
                 </div>
-                <div className="w-14 h-14 bg-secondary-purple/10 rounded-xl flex items-center justify-center">
-                  <Clock className="w-7 h-7 text-secondary-purple" />
+                <div className="w-12 h-12 bg-secondary-purple/10 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-secondary-purple" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-6 shadow-medium border border-border hover:border-primary/30  transition-all">
+            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-primary/30  transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     Total Slots
                   </p>
-                  <p className="text-3xl font-bold text-foreground">
+                  <p className="text-2xl font-bold text-foreground">
                     {allSlots.length}
                   </p>
                 </div>
-                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Users className="w-7 h-7 text-primary" />
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
                 </div>
               </div>
             </div>
@@ -652,15 +640,15 @@ const Schedule = () => {
 
           {/* Available Slots Management */}
           <div
-            className="bg-card rounded-xl shadow-soft border border-border mb-6"
+            className="bg-card rounded-xl shadow-soft border border-border mb-4"
             data-onboarding="schedule-panel"
           >
-            <div className="p-4 border-b border-border">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-foreground">
+            <div className="p-3 border-b border-border">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 className="text-lg md:text-xl font-semibold text-foreground">
                   Available Slots Management
                 </h2>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2">
                   {/* <Button
                     onClick={() => setIsBulkEditModalOpen(true)}
                     disabled={selectedSlotIds.length === 0}
@@ -674,15 +662,24 @@ const Schedule = () => {
                     onClick={() => setBulkDeleteDialogOpen(true)}
                     disabled={selectedSlotIds.length === 0}
                     variant="destructive"
-                    className="shadow-soft hover:shadow-medium transition-all"
+                    className="shadow-soft hover:shadow-medium transition-all h-9 px-3"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Bulk Delete
                   </Button>
                   <Button
+                    variant="outline"
+                    onClick={() => setIsAvailableSlotsFilterModalOpen(true)}
+                    data-onboarding="schedule-filters-button"
+                    className="gap-2 h-9 px-3 shadow-soft hover:shadow-medium transition-all"
+                  >
+                    <Filter className="w-4 h-4" />
+                    Filters
+                  </Button>
+                  <Button
                     onClick={() => setIsAddSlotsModalOpen(true)}
                     data-onboarding="schedule-add-slots"
-                    className="bg-gradient-primary hover:bg-primary/90 text-white"
+                    className="bg-gradient-primary hover:bg-primary/90 text-white h-9 px-3"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Slots
@@ -694,7 +691,7 @@ const Schedule = () => {
                       setIsScheduleModalOpen(true);
                     }}
                     data-onboarding="schedule-direct-button"
-                    className="bg-primary hover:bg-primary/90 text-white shadow-soft hover:shadow-medium transition-all"
+                    className="bg-primary hover:bg-primary/90 text-white shadow-soft hover:shadow-medium transition-all h-9 px-3"
                   >
                     <Video className="w-4 h-4 mr-2" />
                     Schedule
@@ -703,11 +700,9 @@ const Schedule = () => {
               </div>
 
               {/* Filters Section */}
-              <div className="flex flex-wrap items-end gap-4" data-onboarding="schedule-filter">
-                <div className="flex-1 min-w-[200px] max-w-xs" data-onboarding="schedule-search">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Search
-                  </label>
+              <div className="flex flex-wrap items-end gap-3" data-onboarding="schedule-filter">
+                <div className="flex-1 min-w-[180px] max-w-sm" data-onboarding="schedule-search">
+                  
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
@@ -718,58 +713,67 @@ const Schedule = () => {
                         setSearchTerm(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="w-full pl-10 pr-4 p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
+                      className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
                     />
                   </div>
                 </div>
-                <div className="flex-1 min-w-[150px] max-w-xs" data-onboarding="schedule-date-filter">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Filter by Date
-                  </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
-                  />
-                </div>
-                <div className="flex-1 min-w-[150px] max-w-xs" data-onboarding="schedule-status-filter">
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                    Filter by Status
-                  </label>
-                  <select
-                    value={selectedStatus}
-                    onChange={handleStatusChange}
-                    className="w-full p-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-card"
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="Available">Available</option>
-                    <option value="Booked">Booked</option>
-                    {/* <option value="Cancelled">Cancelled</option> */}
-                    <option value="Expired">Expired</option>
-                  </select>
-                </div>
-                {(selectedDate || selectedStatus || searchTerm) && (
-                  <Button
-                    variant="outline"
-                    onClick={handleClearFilter}
-                    className="whitespace-nowrap"
-                  >
-                    Clear Filter
-                  </Button>
-                )}
               </div>
+              {hasAvailableSlotFilters && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {selectedDate && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                      onClick={() => {
+                        setSelectedDate("");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <span>Date: {new Date(selectedDate).toLocaleDateString("en-GB")}</span>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
+                  {selectedStatus && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                      onClick={() => {
+                        setSelectedStatus("");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <span>Status: {selectedStatus}</span>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800"
+                    onClick={() => {
+                      setSelectedDate("");
+                      setSelectedStatus("");
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
             </div>
 
-            <div className="p-4">
+            <div className="p-3 md:p-4">
               {loadingSlots ? (
-                <div className="text-center text-muted-foreground py-8">
+                <div className="text-center text-muted-foreground py-6">
                   Loading slots...
                 </div>
               ) : availableSlots.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-lg mb-2">
+                <div className="text-center text-muted-foreground py-6">
+                  <Calendar className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                  <p className="text-base mb-2">
                     {selectedDate
                       ? `No slots available for ${new Date(selectedDate).toLocaleDateString()}`
                       : "No slots available"}
@@ -780,13 +784,13 @@ const Schedule = () => {
                 </div>
               ) : (
                 <div
-                  className="max-h-[60vh] overflow-x-auto overflow-y-auto rounded-lg border"
+                  className="max-h-[56vh] overflow-x-auto overflow-y-auto rounded-lg border"
                   data-onboarding="schedule-table"
                 >
-                  <table className="w-full min-w-[920px]">
-                    <thead className="bg-muted/30 sticky top-0">
-                      <tr>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm w-10">
+                  <table className="w-full min-w-[820px]">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="border-b border-border bg-background shadow-sm">
+                        <th className="w-8 bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           <input
                             type="checkbox"
                             className="rounded border-gray-300"
@@ -799,25 +803,25 @@ const Schedule = () => {
                             disabled={availableSlots.filter(canDeleteSlot).length === 0}
                           />
                         </th>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                        <th className="bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           Created by
                         </th>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                        <th className="bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           Slot Type
                         </th>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                        <th className="bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           Date
                         </th>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                        <th className="bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           Start Time
                         </th>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                        <th className="bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           End Time
                         </th>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                        <th className="bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           Status
                         </th>
-                        <th className="text-left p-3 font-medium text-muted-foreground text-sm">
+                        <th className="bg-background px-2 py-2 text-left text-sm font-medium text-muted-foreground">
                           Actions
                         </th>
                       </tr>
@@ -829,7 +833,7 @@ const Schedule = () => {
                           className="border-b border-border hover:bg-muted/20 transition-all"
                         >
                           {/* Checkbox */}
-                          <td className="p-3">
+                          <td className="px-2 py-2">
                             <input
                               type="checkbox"
                               className="rounded border-gray-300"
@@ -840,16 +844,16 @@ const Schedule = () => {
                           </td>
 
                           {/* Created by */}
-                          <td className="p-3">
+                          <td className="px-2 py-2">
                             <span className="text-sm text-foreground font-medium">
                               {slot.user_name || "Unknown"}
                             </span>
                           </td>
 
                           {/* Slot Type */}
-                          <td className="p-3">
+                          <td className="px-2 py-2">
                             <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${slot.slot_type === "LR"
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${slot.slot_type === "LR"
                                 ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                                 : slot.slot_type === "CFR"
                                   ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
@@ -865,7 +869,7 @@ const Schedule = () => {
                           </td>
 
                           {/* Date */}
-                          <td className="p-3">
+                          <td className="px-2 py-2">
                             <span className="text-sm text-foreground">
                               {new Date(slot.date).toLocaleDateString("en-US", {
                                 month: "short",
@@ -876,21 +880,21 @@ const Schedule = () => {
                           </td>
 
                           {/* Start Time */}
-                          <td className="p-3">
+                          <td className="px-2 py-2">
                             <span className="text-sm text-foreground font-medium">
                               {formatTime(slot.start_time)}
                             </span>
                           </td>
 
                           {/* End Time */}
-                          <td className="p-3">
+                          <td className="px-2 py-2">
                             <span className="text-sm text-foreground font-medium">
                               {formatTime(slot.end_time)}
                             </span>
                           </td>
 
                           {/* Status */}
-                          <td className="p-3">
+                          <td className="px-2 py-2">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 slot.status?.toLowerCase() === "booked"
@@ -907,8 +911,8 @@ const Schedule = () => {
                           </td>
 
                           {/* Actions */}
-                          <td className="p-3">
-                            <div className="flex items-center gap-1.5">
+                          <td className="px-2 py-2">
+                            <div className="flex items-center gap-0.5">
                               {/* Only show edit/delete if user is owner or admin */}
                               {(isAdmin || slot.interviewer_id === currentUser?.id) ? (
                                 <>
@@ -926,7 +930,7 @@ const Schedule = () => {
                                         : "Edit slot"
                                     }
                                   >
-                                    <Edit className="w-3 h-3 mr-1" />
+                                      <Edit className="w-3 h-3" />
                                   </Button>
 
                                   <Button
@@ -940,7 +944,7 @@ const Schedule = () => {
                                         : "Delete slot"
                                     }
                                   >
-                                    <Trash2 className="w-3 h-3 mr-1" />
+                                      <Trash2 className="w-3 h-3" />
                                   </Button>
                                 </>
                               ) : (
@@ -957,12 +961,12 @@ const Schedule = () => {
 
               {/* Pagination Controls */}
               {availableSlots.length > 0 && (
-                <div className="mt-4 flex items-center justify-between px-4 pb-4">
+                <div className="mt-3 flex items-center justify-between px-3 pb-3">
                   <p className="text-sm text-muted-foreground">
                     Page <span className="font-medium text-foreground">{currentPage}</span> of{" "}
                     <span className="font-medium text-foreground">{totalPages}</span>
                   </p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       <label className="text-sm text-muted-foreground">Rows:</label>
                       <select
@@ -1083,6 +1087,19 @@ const Schedule = () => {
           setSelectedSlotIds([]);
         }}
         slots={availableSlots.filter((slot) => selectedSlotIds.includes(slot.id))}
+      />
+      <AvailableSlotsFilterModal
+        isOpen={isAvailableSlotsFilterModalOpen}
+        onClose={() => setIsAvailableSlotsFilterModalOpen(false)}
+        currentFilters={{
+          date: selectedDate,
+          status: selectedStatus,
+        }}
+        onApplyFilters={(filters) => {
+          setSelectedDate(filters.date);
+          setSelectedStatus(filters.status);
+          setCurrentPage(1);
+        }}
       />
     </div>
   );

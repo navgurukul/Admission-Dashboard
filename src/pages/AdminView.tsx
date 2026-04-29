@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Calendar, Clock, AlertCircle, Video, MessageSquare, X } from "lucide-react";
+import { Calendar, Clock, AlertCircle, Video, MessageSquare, X, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,8 @@ import {
 } from "@/utils/api";
 import { ApplicantModal } from "@/components/ApplicantModal";
 import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
+import { ScheduledInterviewFilterModal } from "@/components/ScheduledInterviewFilterModal";
+import { CreatedSlotsFilterModal } from "@/components/CreatedSlotsFilterModal";
 import { useToast } from "@/components/ui/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
@@ -69,12 +71,14 @@ export default function AdminView() {
   const [interviewEndDate, setInterviewEndDate] = useState("");
   const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
   const [interviewStatusFilter, setInterviewStatusFilter] = useState("");
+  const [isInterviewFilterModalOpen, setIsInterviewFilterModalOpen] = useState(false);
 
   // Search and filter states for slots
   const [slotSearchTerm, setSlotSearchTerm] = useState("");
   const { debouncedValue: debouncedSlotSearch, isPending: isSlotSearching } = useDebounce(slotSearchTerm, 800);
   const [slotDateFilter, setSlotDateFilter] = useState("");
   const [slotTypeFilter, setSlotTypeFilter] = useState("");
+  const [isSlotFilterModalOpen, setIsSlotFilterModalOpen] = useState(false);
 
   // Filter states for my interviews
   const [myInterviewDateFilter, setMyInterviewDateFilter] = useState("");
@@ -606,79 +610,38 @@ export default function AdminView() {
             {isAdmin && (
               <TabsContent value="interviews" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
                 <Card className="h-full flex flex-col">
-                  <CardHeader className="flex-shrink-0">
-                    <CardTitle
-                      className="flex items-center gap-2"
-                      data-onboarding="adminview-interviews-header"
-                    >
-                      <Calendar className="w-5 h-5" />
-                      All Scheduled Interviews
-                    </CardTitle>
-                    <div className="flex gap-3 items-center flex-wrap">
-                      <div className="w-[300px]">
-                        <Input
-                          placeholder="Search by name, email, interviewer..."
-                          value={interviewSearchTerm}
-                          onChange={(e) => setInterviewSearchTerm(e.target.value)}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="w-40">
-                        <Select
-                          value={interviewSlotTypeFilter}
-                          onValueChange={setInterviewSlotTypeFilter}
+                  <CardHeader className="flex-shrink-0 gap-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <CardTitle
+                        className="flex items-center gap-2 pt-1"
+                        data-onboarding="adminview-interviews-header"
+                      >
+                        <Calendar className="w-5 h-5" />
+                        All Scheduled Interviews
+                      </CardTitle>
+                      <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:justify-end">
+                        <div className="w-full sm:w-[320px]">
+                          <Input
+                            placeholder="Search by name, email, interviewer..."
+                            value={interviewSearchTerm}
+                            onChange={(e) => setInterviewSearchTerm(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsInterviewFilterModalOpen(true)}
+                          className="shrink-0 gap-2"
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Slot Type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem value="LR">LR (Learning Round)</SelectItem>
-                            <SelectItem value="CFR">CFR (Culture Fit)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-[180px]">
-                        <Select
-                          value={interviewStatusFilter}
-                          onValueChange={setInterviewStatusFilter}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Filter by status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            {/* <SelectItem value="expired">Expired</SelectItem> */}
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                            <SelectItem value="Passed">Passed</SelectItem>
-                            <SelectItem value="Failed">Failed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">From:</label>
-                        <Input
-                          type="date"
-                          value={interviewStartDate}
-                          onChange={(e) => setInterviewStartDate(e.target.value)}
-                          className="w-40"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">To:</label>
-                        <Input
-                          type="date"
-                          value={interviewEndDate}
-                          onChange={(e) => setInterviewEndDate(e.target.value)}
-                          className="w-40"
-                        />
+                          <Filter className="w-4 h-4" />
+                          Filters
+                        </Button>
                       </div>
                     </div>
                     
                     {/* Active Filter Chips */}
                     {hasInterviewFilters && (
-                      <div className="flex flex-wrap gap-2 mt-5 p-2">
+                      <div className="flex flex-wrap gap-2 pt-1">
                         {interviewSlotTypeFilter && interviewSlotTypeFilter !== "all" && (
                           <Button
                             size="sm"
@@ -736,7 +699,7 @@ export default function AdminView() {
                       </div>
                     )}
                   </CardHeader>
-                  <CardContent className="flex-1 flex flex-col overflow-hidden">
+                  <CardContent className="flex-1 flex flex-col overflow-hidden pt-2">
                     {interviewsLoading || isInterviewSearching ? (
                       <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-2">
@@ -755,8 +718,8 @@ export default function AdminView() {
                       </div>
                     ) : (
                       <>
-                        <div className="border rounded-lg overflow-auto flex-1 w-full min-h-0 mb-3">
-                          <Table>
+                        <div className="table-scroll-area border rounded-lg overflow-auto flex-1 w-full min-h-0 mb-2">
+                          <Table className="[&_th]:px-1.5 [&_th]:py-1.5 [&_th]:text-xs [&_td]:px-1.5 [&_td]:py-1.5 [&_td]:text-sm">
                             <TableHeader className="sticky top-0 bg-muted/30 z-10">
                               <TableRow className="bg-muted/30">
                                 <TableHead className="font-semibold min-w-[160px]">Applicant</TableHead>
@@ -775,7 +738,7 @@ export default function AdminView() {
                                 <TableRow key={interview.id} className="hover:bg-muted/20 transition-colors">
                                   <TableCell className="min-w-[160px]">
                                     <div
-                                      className="cursor-pointer hover:bg-muted p-1.5 rounded-md transition-colors group"
+                                      className="cursor-pointer hover:bg-muted p-1 rounded-md transition-colors group"
                                       onClick={() => {
                                         if (interview.student_id) {
                                           setSelectedApplicant({ id: interview.student_id });
@@ -783,7 +746,7 @@ export default function AdminView() {
                                         }
                                       }}
                                     >
-                                      <div className="font-medium text-foreground group-hover:text-foreground flex items-center gap-2">
+                                      <div className="font-medium text-foreground group-hover:text-foreground flex items-center gap-1">
                                         {interview.student_name || "Unknown"}
                                         {/* <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" /> */}
                                       </div>
@@ -797,7 +760,7 @@ export default function AdminView() {
                                     </div>
                                   </TableCell>
                                   <TableCell className="min-w-[100px]">
-                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs px-2 py-0.5">
                                       {interview.slot_type || "Not Specified"}
                                     </Badge>
                                   </TableCell>
@@ -816,23 +779,23 @@ export default function AdminView() {
                                   <TableCell className="whitespace-nowrap min-w-[90px]">
                                     {interview.meeting_link ? (
                                       String(interview.status || "").toLowerCase() === "cancelled" ? (
-                                        <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
-                                          <Video className="w-4 h-4" />
+                                        <span className="flex items-center gap-1 text-muted-foreground text-xs sm:text-sm cursor-not-allowed">
+                                          <Video className="w-3.5 h-3.5" />
                                           <span>Cancelled</span>
                                         </span>
                                       ) : String(interview.status || "").toLowerCase() === "expired" ? (
-                                        <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
-                                          <Video className="w-4 h-4" />
+                                        <span title="This meeting link is available only during the scheduled time." className="flex items-center gap-1 text-muted-foreground text-xs sm:text-sm cursor-not-allowed">
+                                          <Video className="w-3.5 h-3.5" />
                                           <span>Unavailable</span>
                                         </span>
                                       ) : String(interview.status || "").toLowerCase() === "passed" ? (
-                                        <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
-                                          <Video className="w-4 h-4" />
+                                        <span className="flex items-center gap-1 text-muted-foreground text-xs sm:text-sm cursor-not-allowed">
+                                          <Video className="w-3.5 h-3.5" />
                                           <span>Closed</span>
                                         </span>
                                       ) : String(interview.status || "").toLowerCase() === "failed" ? (
-                                        <span className="flex items-center gap-1 text-muted-foreground text-sm cursor-not-allowed">
-                                          <Video className="w-4 h-4" />
+                                        <span className="flex items-center gap-1 text-muted-foreground text-xs sm:text-sm cursor-not-allowed">
+                                          <Video className="w-3.5 h-3.5" />
                                           <span>Closed</span>
                                         </span>
                                       ) : (
@@ -840,18 +803,18 @@ export default function AdminView() {
                                           href={interview.meeting_link}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="flex items-center gap-1 text-primary hover:underline"
+                                          className="flex items-center gap-1 text-primary hover:underline text-xs sm:text-sm"
                                         >
-                                          <Video className="w-4 h-4" />
+                                          <Video className="w-3.5 h-3.5" />
                                           <span>Join</span>
                                         </a>
                                       )
                                     ) : (
-                                      <span className="text-muted-foreground text-sm">No Link</span>
+                                      <span className="text-muted-foreground text-xs sm:text-sm">No Link</span>
                                     )}
                                   </TableCell>
                                   <TableCell className="whitespace-nowrap min-w-[120px]">
-                                    <span className="text-sm">{interview.created_by || "N/A"}</span>
+                                    <span className="text-xs sm:text-sm">{interview.created_by || "N/A"}</span>
                                   </TableCell>
                                 </TableRow>
 
@@ -860,8 +823,8 @@ export default function AdminView() {
                           </Table>
                         </div>
                         {interviewTotalCount > 0 && (
-                          <div className="flex justify-between items-center mt-4">
-                            <p className="text-sm text-muted-foreground">
+                          <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               Showing {((interviewCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(interviewCurrentPage * itemsPerPage, interviewTotalCount)} of {interviewTotalCount}
                             </p>
                             <div className="flex gap-2">
@@ -913,48 +876,35 @@ export default function AdminView() {
             {isAdmin && (
               <TabsContent value="slots" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
                 <Card className="h-full flex flex-col">
-                  <CardHeader className="flex-shrink-0">
-                    <CardTitle className="flex items-center gap-2" data-onboarding="adminview-slots-header">
-                      <Clock className="w-5 h-5" />
-                      All Created Slots
-                    </CardTitle>
-                    <div className="flex gap-3 items-center flex-wrap" data-onboarding="adminview-slots-filters">
-                      <div className="w-[300px]">
-                        <Input
-                          placeholder="Search by creator name or email..."
-                          value={slotSearchTerm}
-                          onChange={(e) => setSlotSearchTerm(e.target.value)}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="w-40">
-                        <Select
-                          value={slotTypeFilter}
-                          onValueChange={setSlotTypeFilter}
+                  <CardHeader className="flex-shrink-0 gap-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <CardTitle className="flex items-center gap-2 pt-1" data-onboarding="adminview-slots-header">
+                        <Clock className="w-5 h-5" />
+                        All Created Slots
+                      </CardTitle>
+                      <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end" data-onboarding="adminview-slots-filters">
+                        <div className="w-full sm:w-[320px]">
+                          <Input
+                            placeholder="Search by creator name or email..."
+                            value={slotSearchTerm}
+                            onChange={(e) => setSlotSearchTerm(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsSlotFilterModalOpen(true)}
+                          className="gap-2"
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Slot Type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem value="LR">LR (Learning Round)</SelectItem>
-                            <SelectItem value="CFR">CFR (Culture Fit)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-48">
-                        <Input
-                          type="date"
-                          value={slotDateFilter}
-                          onChange={(e) => setSlotDateFilter(e.target.value)}
-                          placeholder="Select Date"
-                        />
+                          <Filter className="w-4 h-4" />
+                          Filters
+                        </Button>
                       </div>
                     </div>
                     
                     {/* Active Filter Chips */}
                     {hasSlotFilters && (
-                      <div className="flex flex-wrap gap-2 mt-5">
+                      <div className="flex flex-wrap gap-2 pt-1">
                         {slotTypeFilter && slotTypeFilter !== "all" && (
                           <Button
                             size="sm"
@@ -992,7 +942,7 @@ export default function AdminView() {
                       </div>
                     )}
                   </CardHeader>
-                  <CardContent className="flex-1 flex flex-col overflow-hidden">
+                  <CardContent className="flex-1 flex flex-col overflow-hidden pt-2">
                     {slotsLoading || isSlotSearching ? (
                       <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-2">
@@ -1012,10 +962,10 @@ export default function AdminView() {
                     ) : (
                       <>
                         <div
-                          className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3"
+                          className="table-scroll-area border rounded-lg overflow-auto flex-1 min-h-0 mb-2"
                           data-onboarding="adminview-slots-table"
                         >
-                          <Table>
+                          <Table className="[&_th]:px-1.5 [&_th]:py-1.5 [&_th]:text-xs [&_td]:px-1.5 [&_td]:py-1.5 [&_td]:text-sm">
                             <TableHeader className="sticky top-0 bg-muted/30 z-10">
                               <TableRow className="bg-muted/30">
                                 <TableHead className="font-semibold min-w-[160px]">Created By</TableHead>
@@ -1036,7 +986,7 @@ export default function AdminView() {
                                     </div>
                                   </TableCell>
                                   <TableCell className="min-w-[100px]">
-                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs px-2 py-0.5">
                                       {slot.slot_type || "Not Specified"}
                                     </Badge>
                                   </TableCell>
@@ -1059,11 +1009,11 @@ export default function AdminView() {
                                           setSelectedSlotForScheduling(slot);
                                           setIsScheduleModalOpen(true);
                                         }}
-                                        className="flex items-center gap-1 text-primary hover:bg-primary/5 border-primary/20 shadow-soft hover:shadow-medium transition-all"
+                                        className="flex items-center gap-1 text-primary hover:bg-primary/5 border-primary/20 shadow-soft hover:shadow-medium transition-all text-xs sm:text-sm h-8 px-2"
                                         title="Schedule interview"
                                         data-onboarding="adminview-slot-schedule-button"
                                       >
-                                        <Video className="w-4 h-4" />
+                                        <Video className="w-3.5 h-3.5" />
                                         <span>Schedule</span>
                                       </Button>
                                     ) : (
@@ -1076,20 +1026,20 @@ export default function AdminView() {
                           </Table>
                         </div>
                         {slotTotalCount > 0 && (
-                          <div className="flex justify-between items-center mt-4">
-                            <p className="text-sm text-muted-foreground">
+                          <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               Showing {((slotCurrentPage - 1) * itemsPerPage) + 1} – {Math.min(slotCurrentPage * itemsPerPage, slotTotalCount)} of {slotTotalCount}
                             </p>
-                            <div className="flex gap-2">
-                              <div className="flex items-center gap-2">
-                                <label className="text-sm text-muted-foreground">Rows:</label>
+                            <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
+                              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                <label className="text-xs sm:text-sm text-muted-foreground">Rows:</label>
                                 <select
                                   value={itemsPerPage}
                                   onChange={(e) => {
                                     setItemsPerPage(Number(e.target.value));
                                     setSlotCurrentPage(1);
                                   }}
-                                  className="border rounded px-2 py-1 bg-white text-sm"
+                                  className="border rounded px-2 py-1 bg-white text-xs sm:text-sm"
                                 >
                                   <option value={10}>10</option>
                                   <option value={20}>20</option>
@@ -1097,20 +1047,20 @@ export default function AdminView() {
                                   <option value={100}>100</option>
                                 </select>
                               </div>
-                              <span className="px-3 py-1 text-sm">
+                              <span className="px-2 py-1 text-xs sm:text-sm whitespace-nowrap">
                                 Page {slotCurrentPage} of {slotTotalPages}
                               </span>
                               <button
                                 onClick={() => setSlotCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={slotCurrentPage === 1}
-                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                                className="px-2.5 py-1 rounded border bg-white text-xs sm:text-sm disabled:opacity-50 whitespace-nowrap"
                               >
                                 Previous
                               </button>
                               <button
                                 onClick={() => setSlotCurrentPage(prev => Math.min(slotTotalPages, prev + 1))}
                                 disabled={slotCurrentPage === slotTotalPages}
-                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
+                                className="px-2.5 py-1 rounded border bg-white text-xs sm:text-sm disabled:opacity-50 whitespace-nowrap"
                               >
                                 Next
                               </button>
@@ -1128,40 +1078,42 @@ export default function AdminView() {
             <TabsContent value="my-interviews" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
               <Card className="h-full flex flex-col">
                 <CardHeader className="flex-shrink-0">
-                  <CardTitle
-                    className="flex items-center gap-2"
-                    data-onboarding="adminview-my-interviews-header"
-                  >
-                    <MessageSquare className="w-5 h-5" />
-                    My Scheduled Interviews
-                  </CardTitle>
-                  <div className="flex gap-3 items-center flex-wrap">
-                    <div className="w-48" data-onboarding="adminview-my-interviews-filter">
-                      <Input
-                        type="date"
-                        value={myInterviewDateFilter}
-                        onChange={(e) => setMyInterviewDateFilter(e.target.value)}
-                        placeholder="Filter by date"
-                      />
-                    </div>
-                    {myInterviewDateFilter && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setMyInterviewDateFilter("")}
-                      >
-                        Clear Filter
-                      </Button>
-                    )}
-                    <div className="flex-1" />
-                    <Button
-                      className="bg-primary hover:bg-primary/90 text-white"
-                      onClick={() => navigate("/schedule")}
-                      data-onboarding="adminview-my-interviews-manage-slots"
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <CardTitle
+                      className="flex items-center gap-2"
+                      data-onboarding="adminview-my-interviews-header"
                     >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Manage Available Slots
-                    </Button>
+                      <MessageSquare className="w-5 h-5" />
+                      My Scheduled Interviews
+                    </CardTitle>
+                    <div className="flex flex-wrap items-center gap-3 md:justify-end">
+                      <div className="w-full sm:w-48" data-onboarding="adminview-my-interviews-filter">
+                        <Input
+                          type="date"
+                          value={myInterviewDateFilter}
+                          onChange={(e) => setMyInterviewDateFilter(e.target.value)}
+                          placeholder="Filter by date"
+                          className="flex-1"
+                        />
+                      </div>
+                      {myInterviewDateFilter && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setMyInterviewDateFilter("")}
+                        >
+                          Clear Filter
+                        </Button>
+                      )}
+                      <Button
+                        className="bg-primary hover:bg-primary/90 text-white"
+                        onClick={() => navigate("/schedule")}
+                        data-onboarding="adminview-my-interviews-manage-slots"
+                      >
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Manage Available Slots
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col overflow-hidden">
@@ -1178,7 +1130,7 @@ export default function AdminView() {
                     </div>
                   ) : (
                     <div
-                      className="border rounded-lg overflow-auto flex-1 min-h-0 mb-3 w-full"
+                      className="table-scroll-area border rounded-lg overflow-auto flex-1 min-h-0 mb-3 w-full"
                       data-onboarding="adminview-my-interviews-table"
                     >
                       <Table>
@@ -1303,6 +1255,34 @@ export default function AdminView() {
         onSchedule={handleAdminScheduleMeet}
         isLoading={schedulingInProgress}
         helpVariant="created-slots"
+      />
+      <ScheduledInterviewFilterModal
+        isOpen={isInterviewFilterModalOpen}
+        onClose={() => setIsInterviewFilterModalOpen(false)}
+        currentFilters={{
+          slotType: interviewSlotTypeFilter,
+          status: interviewStatusFilter,
+          startDate: interviewStartDate,
+          endDate: interviewEndDate,
+        }}
+        onApplyFilters={(filters) => {
+          setInterviewSlotTypeFilter(filters.slotType);
+          setInterviewStatusFilter(filters.status);
+          setInterviewStartDate(filters.startDate);
+          setInterviewEndDate(filters.endDate);
+        }}
+      />
+      <CreatedSlotsFilterModal
+        isOpen={isSlotFilterModalOpen}
+        onClose={() => setIsSlotFilterModalOpen(false)}
+        currentFilters={{
+          slotType: slotTypeFilter,
+          date: slotDateFilter,
+        }}
+        onApplyFilters={(filters) => {
+          setSlotTypeFilter(filters.slotType);
+          setSlotDateFilter(filters.date);
+        }}
       />
     </div >
   );
