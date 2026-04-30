@@ -49,6 +49,7 @@ import {
 
 export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const DEFAULT_SET_DESCRIPTION = "N/A";
+  type PreviewLanguage = "english" | "hindi" | "marathi";
   const { toast } = useToast();
   const [sets, setSets] = useState([]);
   const [activeSet, setActiveSet] = useState(null);
@@ -75,6 +76,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const [setToDelete, setSetToDelete] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingSet, setViewingSet] = useState<any>(null);
+  const [previewLanguage, setPreviewLanguage] = useState<PreviewLanguage>("english");
   const [editingQuestion, setEditingQuestion] = useState<any>(null);
   const [importPreviewQuestions, setImportPreviewQuestions] = useState<any[]>([]);
   const [importPreviewMeta, setImportPreviewMeta] = useState({
@@ -963,6 +965,39 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     setEditingQuestion(question);
   };
 
+  const getQuestionTextByLanguage = (question: any) => {
+    if (previewLanguage === "hindi") {
+      return question.hindi_text || question.english_text || question.question_text || question.question || "N/A";
+    }
+
+    if (previewLanguage === "marathi") {
+      return question.marathi_text || question.english_text || question.question_text || question.question || "N/A";
+    }
+
+    return question.english_text || question.question_text || question.question || "N/A";
+  };
+
+  const getOptionText = (option: any) => {
+    if (typeof option === "string") return option;
+    return option?.text || option?.value || "";
+  };
+
+  const getOptionTextByLanguage = (question: any, optionIndex: number) => {
+    const englishOption = question.english_options?.[optionIndex];
+    const hindiOption = question.hindi_options?.[optionIndex];
+    const marathiOption = question.marathi_options?.[optionIndex];
+
+    if (previewLanguage === "hindi") {
+      return getOptionText(hindiOption) || getOptionText(englishOption);
+    }
+
+    if (previewLanguage === "marathi") {
+      return getOptionText(marathiOption) || getOptionText(englishOption);
+    }
+
+    return getOptionText(englishOption);
+  };
+
   const handleSaveEditedQuestion = async (questionData: any) => {
     if (!editingQuestion) return;
 
@@ -1521,11 +1556,31 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         setIsViewModalOpen(open);
         if (!open) {
           setEditingQuestion(null);
+          setPreviewLanguage("english");
         }
       }}>
         <DialogContent className="max-w-4xl h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
+              {!editingQuestion && viewingSet?.questions?.length > 0 && (
+                <div className="flex items-center gap-2 pr-8">
+                  <Select
+                    value={previewLanguage}
+                    onValueChange={(value) => setPreviewLanguage(value as PreviewLanguage)}
+                  >
+                    <SelectTrigger id="preview-language" className="h-9 w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="hindi">Hindi</SelectItem>
+                      <SelectItem value="marathi">Marathi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </DialogHeader>
 
           {editingQuestion ? (
@@ -1554,22 +1609,12 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">
                     {viewingSet.questions.map((question: any, index: number) => (
-                      <div key={question.id} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">``
+                      <div key={question.id ?? index} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
-                              {index + 1}. <span className="font-semibold">English:</span> {question.english_text || question.question_text || question.question || 'N/A'}
+                              {getQuestionTextByLanguage(question)}
                             </div>
-                            {question.hindi_text && (
-                              <div className="text-sm text-gray-700 mb-1 whitespace-pre-line">
-                                <span className="font-semibold">Hindi:</span> {question.hindi_text}
-                              </div>
-                            )}
-                            {question.marathi_text && (
-                              <div className="text-sm text-gray-700 whitespace-pre-line">
-                                <span className="font-semibold">Marathi:</span> {question.marathi_text}
-                              </div>
-                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -1600,7 +1645,6 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                           <div className="mt-4">
                             <div className="space-y-2">
                               {question.english_options.map((option: any, optIndex: number) => {
-                                const optionText = typeof option === 'string' ? option : option.text || option.value;
                                 const optionId = typeof option === 'string' ? optIndex + 1 : option.id;
                                 const isCorrect = question.answer_key && question.answer_key.includes(optionId);
 
@@ -1612,21 +1656,11 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                                       </span>
                                       <div className="flex-1">
                                         <div className="text-sm text-gray-900 whitespace-pre-line">
-                                          <span className="font-semibold">English:</span> {optionText}
+                                          {getOptionTextByLanguage(question, optIndex) || "N/A"}
                                           {isCorrect && (
                                             <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
                                           )}
                                         </div>
-                                        {question.hindi_options && question.hindi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
-                                            <span className="font-semibold">Hindi:</span> {typeof question.hindi_options[optIndex] === 'string' ? question.hindi_options[optIndex] : question.hindi_options[optIndex]?.text || question.hindi_options[optIndex]?.value}
-                                          </div>
-                                        )}
-                                        {question.marathi_options && question.marathi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
-                                            <span className="font-semibold">Marathi:</span> {typeof question.marathi_options[optIndex] === 'string' ? question.marathi_options[optIndex] : question.marathi_options[optIndex]?.text || question.marathi_options[optIndex]?.value}
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   </div>
