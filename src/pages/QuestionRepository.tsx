@@ -2,21 +2,30 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Plus,
   Search,
   Filter,
   Upload,
-  Archive,
-  Edit,
-  Trash2,
-  Eye,
-  History,
   HelpCircle,
+  X,
 } from "lucide-react";
-import { getAllSchools } from "@/utils/api";
+import {
+  createTopic,
+  deleteTopic,
+  getAllSchools,
+  getTopics,
+  type TopicOption,
+  updateTopic,
+} from "@/utils/api";
 import { QuestionEditor } from "@/components/questions/QuestionEditor";
 import { QuestionList } from "@/components/questions/QuestionList";
 import { QuestionBulkImport } from "@/components/questions/QuestionBulkImport";
@@ -33,6 +42,9 @@ import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidg
 import { QuestionSetManager } from "@/components/questions/QuestionSetManager";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { useLanguage } from "@/routes/LaunguageContext";
+import { Language } from "@/utils/student.types";
+import { difficultyLevelAPI } from "@/utils/difficultyLevelAPI";
 import {
   Dialog,
   DialogContent,
@@ -42,21 +54,30 @@ import {
 
 
 export default function QuestionRepository() {
-  const [activeTab, setActiveTab] = useState("list");
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const { debouncedValue: debouncedSearchTerm, isPending: isSearching } = useDebounce(searchTerm, 800);
-  const [filters, setFilters] = useState({
+  const defaultFilters = {
     status: "All",
     difficulty_level: "All",
     question_type: "All",
     topic: "",
-  });
+  };
+  const [activeTab, setActiveTab] = useState("list");
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const { debouncedValue: debouncedSearchTerm, isPending: isSearching } = useDebounce(searchTerm, 800);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [draftFilters, setDraftFilters] = useState(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<any>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [schools, setSchools] = useState<any[]>([]);
+  const [topics, setTopics] = useState<TopicOption[]>([]);
+  const { selectedLanguage, setSelectedLanguage } = useLanguage();
+
+  const handleLanguageChange = (language: Language) => {
+    setSelectedLanguage(language);
+    localStorage.setItem("selectedLanguage", language);
+  };
 
   const { toast } = useToast();
   const {
@@ -68,7 +89,12 @@ export default function QuestionRepository() {
     archiveQuestion,
     restoreQuestion,
     difficultyLevels,
+    refetchDifficultyLevels,
     refetch,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    totalQuestions,
   } = useQuestions(filters, debouncedSearchTerm);
 
   useEffect(() => { }, [questions]);
@@ -82,7 +108,18 @@ export default function QuestionRepository() {
         console.error("Error fetching schools:", error);
       }
     };
+
+    const fetchTopicsData = async () => {
+      try {
+        const data = await getTopics();
+        setTopics((data || []).filter((topic) => topic?.status !== false));
+      } catch (error) {
+        console.error("Error fetching topics:", error);
+      }
+    };
+
     fetchSchoolsData();
+    fetchTopicsData();
   }, []);
 
   const handleImportComplete = () => {
@@ -147,6 +184,62 @@ export default function QuestionRepository() {
     }
   };
 
+  const handleCreateTopic = async (topicName: string) => {
+    const createdTopic = await createTopic({
+      topic: topicName.trim(),
+      status: true,
+    });
+
+    setTopics((prev) => [...prev, createdTopic]);
+    return createdTopic;
+  };
+
+  const handleUpdateTopic = async (topicId: number, topicName: string) => {
+    const updatedTopic = await updateTopic(topicId, {
+      topic: topicName.trim(),
+      status: true,
+    });
+
+    setTopics((prev) =>
+      prev.map((topic) =>
+        topic.id === topicId ? { ...topic, ...updatedTopic } : topic,
+      ),
+    );
+
+    return updatedTopic;
+  };
+
+  const handleDeleteTopic = async (topicId: number) => {
+    const result = await deleteTopic(topicId);
+    setTopics((prev) => prev.filter((topic) => topic.id !== topicId));
+    return result;
+  };
+
+  const handleCreateDifficultyLevel = async (name: string, marks: number) => {
+    const createdLevel = await difficultyLevelAPI.createDifficultyLevel({
+      name: name.trim(),
+      marks: marks,
+      status: true,
+    });
+    await refetchDifficultyLevels();
+    return createdLevel;
+  };
+
+  const handleUpdateDifficultyLevel = async (id: number, name: string, marks: number) => {
+    const updatedLevel = await difficultyLevelAPI.updateDifficultyLevel(id, {
+      name: name.trim(),
+      marks: marks,
+    });
+    await refetchDifficultyLevels();
+    return updatedLevel;
+  };
+
+  const handleDeleteDifficultyLevel = async (id: number) => {
+    const result = await difficultyLevelAPI.deleteDifficultyLevel(id);
+    await refetchDifficultyLevels();
+    return result;
+  };
+
   const handleArchiveQuestion = async (questionId) => {
     try {
       await archiveQuestion(questionId);
@@ -191,6 +284,35 @@ export default function QuestionRepository() {
     setQuestionToDelete(questionId);
     setDeleteConfirmOpen(true);
   };
+
+  const activeFilterChips: Array<{
+    key: string;
+    label: string;
+    onRemove: () => void;
+  }> = [];
+
+  if (filters.difficulty_level !== defaultFilters.difficulty_level) {
+    const difficulty = difficultyLevels.find(
+      (level: any) => String(level.id) === String(filters.difficulty_level),
+    );
+    activeFilterChips.push({
+      key: `difficulty-${filters.difficulty_level}`,
+      label: `Difficulty: ${difficulty?.name || filters.difficulty_level}`,
+      onRemove: () =>
+        setFilters((prev) => ({ ...prev, difficulty_level: defaultFilters.difficulty_level })),
+    });
+  }
+
+  if (filters.topic !== defaultFilters.topic) {
+    const topic = topics.find(
+      (topicItem) => String(topicItem.id) === String(filters.topic),
+    );
+    activeFilterChips.push({
+      key: `topic-${filters.topic}`,
+      label: `Topic: ${topic?.topic || filters.topic}`,
+      onRemove: () => setFilters((prev) => ({ ...prev, topic: defaultFilters.topic })),
+    });
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -384,27 +506,49 @@ export default function QuestionRepository() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setShowFilters(!showFilters)}
+                        onClick={() => {
+                          setDraftFilters(filters);
+                          setShowFilters(true);
+                        }}
                         className="flex items-center gap-2"
                         data-onboarding="questions-filter-button"
                       >
                         <Filter className="w-4 h-4" />
                         Filters
                       </Button>
+                      <Select
+                        value={selectedLanguage}
+                        onValueChange={(value) => handleLanguageChange(value as Language)}
+                      >
+                        <SelectTrigger className="h-10 w-[112px] rounded-2xl px-3 text-base font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="english">English</SelectItem>
+                          <SelectItem value="hindi">Hindi</SelectItem>
+                          <SelectItem value="marathi">Marathi</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col overflow-hidden">
-                  {showFilters && (
-                    <div className="mb-4">
-                      <QuestionFilters
-                        difficultyLevels={difficultyLevels}
-                        filters={filters}
-                        onFiltersChange={setFilters}
-                      />
+                  {activeFilterChips.length > 0 && (
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      {activeFilterChips.map((filter) => (
+                        <Button
+                          key={filter.key}
+                          size="sm"
+                          variant="ghost"
+                          className="h-auto min-w-fit whitespace-nowrap rounded-full border px-2 py-1.5"
+                          onClick={filter.onRemove}
+                        >
+                          <span className="inline-block text-sm">{filter.label}</span>
+                          <X className="ml-2 h-3 w-3 flex-shrink-0" />
+                        </Button>
+                      ))}
                     </div>
                   )}
-
                   <div className="flex-1 overflow-y-auto pr-2">
                     <QuestionList
                       questions={questions}
@@ -416,7 +560,34 @@ export default function QuestionRepository() {
                       onArchive={handleArchiveQuestion}
                       onDelete={openDeleteConfirm}
                       schools={schools}
+                      topics={topics}
                     />
+                  </div>
+                  <div className="mt-4 flex items-center justify-between border-t pt-4">
+                    <div className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                      {totalQuestions > 0 ? ` • ${totalQuestions} total questions` : ""}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage <= 1 || loading || isSearching}
+                        onClick={() => setCurrentPage((prev: number) => Math.max(prev - 1, 1))}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage >= totalPages || loading || isSearching}
+                        onClick={() =>
+                          setCurrentPage((prev: number) => Math.min(prev + 1, totalPages))
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -434,12 +605,19 @@ export default function QuestionRepository() {
                     difficultyLevels={difficultyLevels}
                     question={selectedQuestion}
                     onSave={handleSaveQuestion}
+                    onCreateTopic={handleCreateTopic}
+                    onUpdateTopic={handleUpdateTopic}
+                    onDeleteTopic={handleDeleteTopic}
+                    onCreateDifficultyLevel={handleCreateDifficultyLevel}
+                    onUpdateDifficultyLevel={handleUpdateDifficultyLevel}
+                    onDeleteDifficultyLevel={handleDeleteDifficultyLevel}
                     setSelectedQuestion={setSelectedQuestion}
                     onCancel={() => {
                       setActiveTab("list");
                       setSelectedQuestion(null);
                     }}
                     schools={schools}
+                    topics={topics}
                   />
                 </CardContent>
               </Card>
@@ -609,6 +787,56 @@ export default function QuestionRepository() {
         confirmText="Delete"
         cancelText="Cancel"
       />
+
+      <Dialog open={showFilters} onOpenChange={setShowFilters}>
+        <DialogContent className="mx-4 max-h-[90vh] max-w-2xl overflow-y-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              {/* <Filter className="h-5 w-5" /> */}
+              Filters
+            </DialogTitle>
+          </DialogHeader>
+          <QuestionFilters
+            difficultyLevels={difficultyLevels}
+            filters={draftFilters}
+            onFiltersChange={setDraftFilters}
+            topics={topics}
+            className="mb-0"
+          />
+          <div className="mt-4 flex justify-between border-t pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDraftFilters(defaultFilters);
+              }}
+              size="sm"
+            >
+              Reset All
+            </Button>
+            <div className="space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDraftFilters(filters);
+                  setShowFilters(false);
+                }}
+                size="sm"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setFilters(draftFilters);
+                  setShowFilters(false);
+                }}
+                size="sm"
+              >
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

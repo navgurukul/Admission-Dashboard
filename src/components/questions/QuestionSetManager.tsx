@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,13 +29,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
+  createTopic,
   getAllQuestionSets,
   deleteQuestionFromSet,
   createQuestionSetMappings,
+  deleteTopic,
   getQuestionsBySetType,
   deleteQuestionSet,
   createQuestionSet,
+  getTopics,
+  type TopicOption,
   updateQuestionSet,
+  updateTopic,
   setDefaultOnlineQuestionSet,
   downloadQuestionSetPDF,
   getAllSchools,
@@ -43,6 +48,8 @@ import {
 } from "@/utils/api";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels }) {
+  const DEFAULT_SET_DESCRIPTION = "N/A";
+  type PreviewLanguage = "english" | "hindi" | "marathi";
   const { toast } = useToast();
   const [sets, setSets] = useState([]);
   const [activeSet, setActiveSet] = useState(null);
@@ -52,14 +59,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    nameType: "random", // "random" | "custom"
-    isRandom: true,
+    nameType: "custom", // "random" | "custom"
+    isRandom: false,
     school_ids: [] as string[],
     importJsonText: "",
     questions: [] as any[],
   });
   const [schools, setSchools] = useState<any[]>([]);
-  const [pendingSetData, setPendingSetData] = useState<any>(null);
+  const [topics, setTopics] = useState<TopicOption[]>([]);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [downloadFormData, setDownloadFormData] = useState({
     selectedSet: "",
@@ -69,7 +76,77 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const [setToDelete, setSetToDelete] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingSet, setViewingSet] = useState<any>(null);
+  const [previewLanguage, setPreviewLanguage] = useState<PreviewLanguage>("english");
   const [editingQuestion, setEditingQuestion] = useState<any>(null);
+  const [importPreviewQuestions, setImportPreviewQuestions] = useState<any[]>([]);
+  const [importPreviewMeta, setImportPreviewMeta] = useState({
+    count: 0,
+    source: "",
+  });
+  const [isImportPreviewModalOpen, setIsImportPreviewModalOpen] = useState(false);
+  const [importPreviewSet, setImportPreviewSet] = useState<any>(null);
+  const [importFileStatusMessage, setImportFileStatusMessage] = useState("");
+  const importFileStatusTimeoutRef = useRef<number | null>(null);
+  const [importSummary, setImportSummary] = useState({
+    total: 0,
+    success: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [] as string[],
+  });
+
+  const clearImportFileStatusTimeout = () => {
+    if (importFileStatusTimeoutRef.current) {
+      window.clearTimeout(importFileStatusTimeoutRef.current);
+      importFileStatusTimeoutRef.current = null;
+    }
+  };
+
+  const normalizeDifficultyLevel = (value: any, fallback = 1) => {
+    if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return fallback;
+
+      const numericValue = Number(trimmed);
+      if (Number.isInteger(numericValue) && numericValue > 0) {
+        return numericValue;
+      }
+
+      const matchedLevel = Array.isArray(difficultyLevels)
+        ? difficultyLevels.find((level: any) => level.name?.toLowerCase() === trimmed.toLowerCase())
+        : null;
+
+      if (matchedLevel?.id) {
+        return matchedLevel.id;
+      }
+    }
+
+    return fallback;
+  };
+
+  const showDelayedImportFileStatusMessage = (message: string, delayMs = 2200) => {
+    clearImportFileStatusTimeout();
+    setImportFileStatusMessage("");
+    importFileStatusTimeoutRef.current = window.setTimeout(() => {
+      setImportFileStatusMessage(message);
+      importFileStatusTimeoutRef.current = null;
+    }, delayMs);
+  };
+
+  const resetImportPreviewState = () => {
+    setImportPreviewQuestions([]);
+    setImportPreviewMeta({ count: 0, source: "" });
+    setImportSummary({ total: 0, success: 0, skipped: 0, failed: 0, errors: [] });
+  };
+
+  const clearImportStatusMessage = () => {
+    clearImportFileStatusTimeout();
+    setImportFileStatusMessage("");
+  };
 
 
   const fetchSets = async (loadQuestions = true) => {
@@ -133,9 +210,25 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     }
   };
 
+  const fetchTopics = async () => {
+    try {
+      const topicsData = await getTopics();
+      setTopics((topicsData || []).filter((topic) => topic?.status !== false));
+    } catch (error) {
+      console.error("Error fetching topics:", error);
+    }
+  };
+
   useEffect(() => {
     fetchSets(false); // prevent unnecessary api call for sets.
     fetchSchools();
+    fetchTopics();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearImportFileStatusTimeout();
+    };
   }, []);
 
   const loadSetQuestions = async (setId: number) => {
@@ -162,42 +255,6 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   // Function to handle saving selected questions
   const handleSaveQuestions = async (selected: any[], activeSet: any) => {
     try {
-      // If this is a new custom set that hasn't been created yet
-      if (activeSet.id === -1 && pendingSetData) {
-        const existingQs = selected.filter((q) => q.id && typeof q.id === 'number');
-        const newQs = selected.filter((q) => !q.id || typeof q.id === 'string' || q.isNew);
-
-        const payload = {
-          name: pendingSetData.name,
-          description: pendingSetData.description,
-          isRandom: false,
-          questions: existingQs.map((q) => ({
-            question_id: q.id,
-            difficulty_level: q.difficulty_level || 1
-          })),
-          newQuestions: newQs.map((q) => {
-            // Remove temp ids and ui flags
-            const { id, isNew, ...rest } = q;
-            return rest;
-          }),
-          school_ids: pendingSetData.school_ids.map(Number),
-          success: true
-        };
-
-        await createQuestionSet(payload);
-        toast({
-          title: "✅ Set Created Successfully",
-          description: `"${pendingSetData.name}" has been created with ${selected.length} questions.`,
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900",
-        });
-
-        setActiveSet(null);
-        setPendingSetData(null);
-        await fetchSets(false);
-        return;
-      }
-
       const prevSelected = activeSet.questions || [];
 
       // Find newly added
@@ -220,19 +277,10 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         await createQuestionSetMappings(addPayload);
       }
 
-      // Delete removed mappings
-      // if (removed.length > 0) {
-      //   const removePayload = removed.map((q) => ({
-      //     question_set_id: activeSet.id,
-      //     question_id: q.id,
-      //   }));
-      //   await deleteQuestionFromSet(removePayload);
-      // }
-
       if (removed.length > 0) {
         await Promise.all(removed.map((q) => deleteQuestionFromSet(q.id)));
       }
-      // Update local state
+
       setSets((prev) =>
         prev.map((s) =>
           s.id === activeSet.id ? { ...s, questions: selected } : s,
@@ -240,14 +288,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       );
 
       toast({
-        title: "✅ Questions Added Successfully",
+        title: "Questions Added Successfully",
         description: `Added: ${added.length}`,
         variant: "default",
         className: "border-green-500 bg-green-50 text-green-900",
       });
     } catch (err: any) {
       toast({
-        title: " Failed to Update Questions",
+        title: "Failed to Update Questions",
         description: err.message || "An error occurred while updating questions. Please try again.",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
@@ -275,12 +323,300 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const openAddModal = () => {
     setEditingSet(null);
-    const randomName = `Set ${sets.length + 1}`;
-    setFormData({ name: randomName, description: "", nameType: "random", isRandom: true, school_ids: [], importJsonText: "", questions: [] });
+    setFormData({ name: "", description: "", nameType: "custom", isRandom: false, school_ids: [], importJsonText: "", questions: [] });
+    resetImportPreviewState();
+    clearImportStatusMessage();
     setIsModalOpen(true);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const parseImportData = (rawText: string) => {
+    const dataText = rawText.trim();
+
+    if (!dataText) {
+      throw new Error("Please paste JSON data or upload a file");
+    }
+
+    let parsedData: any = {};
+    const csvParseErrors: string[] = [];
+    const csvValidationErrors: string[] = [];
+
+    if (dataText.startsWith("{") || dataText.startsWith("[")) {
+      parsedData = JSON.parse(dataText);
+    } else {
+      const parseResult = Papa.parse(dataText, {
+        header: true,
+        skipEmptyLines: true,
+        transform: (value) => value.trim(),
+      });
+
+      if (parseResult.errors.length > 0) {
+        parseResult.errors.forEach((error) => {
+          const rowNumber = typeof error.row === "number" ? error.row + 2 : "unknown";
+          csvParseErrors.push(`Row ${rowNumber}: ${error.message}`);
+        });
+      }
+
+      const csvData = parseResult.data;
+      const csvHeaders = (parseResult.meta.fields || []).map((field) => String(field || "").trim());
+
+      if (csvData.length === 0) {
+        throw new Error("CSV file is empty or invalid");
+      }
+
+      const firstRow: any = csvData[0];
+      if (firstRow.field && firstRow.value) {
+        csvData.forEach((row: any) => {
+          if (row.field && row.value) {
+            if (row.field === "school_ids") {
+              parsedData.school_ids = row.value
+                .split(",")
+                .map((id: string) => parseInt(id.trim(), 10))
+                .filter((id: number) => !isNaN(id));
+            } else if (row.field === "isRandom") {
+              parsedData.isRandom = row.value.toLowerCase() === "true";
+            } else {
+              parsedData[row.field] = row.value;
+            }
+          }
+        });
+      } else if (
+        firstRow.english_text !== undefined ||
+        firstRow.question_type !== undefined ||
+        firstRow.difficulty_level !== undefined
+      ) {
+        const requiredHeaders = ["english_text", "english_options", "answer_key"];
+        const missingHeaders = requiredHeaders.filter((header) => !csvHeaders.includes(header));
+        if (missingHeaders.length > 0) {
+          csvValidationErrors.push(
+            `Missing required column(s): ${missingHeaders.join(", ")}. Please use the Template file to keep exact header names.`,
+          );
+        }
+        parsedData = csvData;
+      } else {
+        parsedData = [];
+        csvValidationErrors.push(
+          "CSV format not recognized. Please use the Template file and do not rename/remove headers.",
+        );
+      }
+    }
+
+    let questions = Array.isArray(parsedData) ? parsedData : parsedData.questions || [];
+    const rowErrors = [...csvParseErrors, ...csvValidationErrors];
+    const totalRows = questions.length;
+
+    if (questions.length > 0) {
+      const tryParseList = (val: any) => {
+        if (typeof val === "string" && (val.startsWith("[") || val.startsWith("{"))) {
+          try {
+            return JSON.parse(val);
+          } catch {
+            return val;
+          }
+        }
+        return val;
+      };
+
+      const tryParseOptions = (val: any) => {
+        const parsed = tryParseList(val);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) =>
+            typeof item === "object" && item.text !== undefined ? String(item.text) : String(item),
+          );
+        }
+        if (typeof parsed === "string") {
+          const trimmed = parsed.trim();
+          if (!trimmed) return [];
+          // New CSV template uses semicolon-delimited options.
+          if (trimmed.includes(";")) {
+            return trimmed
+              .split(";")
+              .map((item) => item.trim())
+              .filter(Boolean);
+          }
+          return [trimmed];
+        }
+        return parsed;
+      };
+
+      const tryParseIntArray = (val: any) => {
+        const parsed = tryParseList(val);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((item) => parseInt(item, 10))
+            .filter((num) => Number.isInteger(num));
+        }
+        if (typeof parsed === "string") {
+          const trimmed = parsed.trim();
+          if (!trimmed) return [];
+          if (trimmed.includes(";")) {
+            return trimmed
+              .split(";")
+              .map((item) => parseInt(item.trim(), 10))
+              .filter((num) => Number.isInteger(num));
+          }
+          const parsedNumber = parseInt(trimmed, 10);
+          return Number.isInteger(parsedNumber) ? [parsedNumber] : [];
+        }
+        if (typeof parsed === "number") {
+          const parsedNumber = parseInt(String(parsed), 10);
+          return Number.isInteger(parsedNumber) ? [parsedNumber] : [];
+        }
+        return parsed;
+      };
+
+      const normalizeTopicId = (value: any, fallback = "1") => {
+        if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+          return value;
+        }
+
+        if (typeof value === "string") {
+          const trimmed = value.trim();
+          if (!trimmed) return fallback;
+
+          const numericValue = Number(trimmed);
+          if (Number.isInteger(numericValue) && numericValue > 0) {
+            return numericValue;
+          }
+
+          const matchedTopic = Array.isArray(topics)
+            ? topics.find((t: any) => t.topic?.toLowerCase() === trimmed.toLowerCase())
+            : null;
+
+          if (matchedTopic?.id) {
+            return matchedTopic.id;
+          }
+        }
+
+        return fallback;
+      };
+
+      const validQuestions: any[] = [];
+
+      questions.forEach((q: any, index: number) => {
+        const normalizedQuestion = {
+          ...q,
+          id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
+          difficulty_level: normalizeDifficultyLevel(q.difficulty_level),
+          topic: normalizeTopicId(q.topic),
+          english_options: tryParseOptions(q.english_options),
+          hindi_options: tryParseOptions(q.hindi_options),
+          marathi_options: tryParseOptions(q.marathi_options),
+          answer_key: tryParseIntArray(q.answer_key),
+        };
+
+        const rowLabel = `Row ${index + 1}`;
+        const hasExistingId = typeof normalizedQuestion.id === "number" && !isNaN(normalizedQuestion.id);
+        const hasQuestionText = Boolean(
+          normalizedQuestion.english_text || normalizedQuestion.question_text || normalizedQuestion.question,
+        );
+        const isEnglishOptionsArray = Array.isArray(normalizedQuestion.english_options);
+        const isAnswerKeyArray = Array.isArray(normalizedQuestion.answer_key);
+        const hasValidOptions = isEnglishOptionsArray && normalizedQuestion.english_options.length > 0;
+        const hasValidAnswerKey =
+          isAnswerKeyArray &&
+          normalizedQuestion.answer_key.length > 0 &&
+          normalizedQuestion.answer_key.every((value: any) => Number.isInteger(value));
+        const rowIssues: string[] = [];
+
+        if (normalizedQuestion.english_options && !isEnglishOptionsArray) {
+          rowIssues.push('Invalid "english_options" format. Use semicolon-separated values, for example: Option 1;Option 2.');
+        }
+
+        if (normalizedQuestion.answer_key && !isAnswerKeyArray) {
+          rowIssues.push('Invalid "answer_key" format. Use option number(s) with semicolon if multiple, for example: 1 or 1;3.');
+        }
+
+        if (!hasExistingId) {
+          if (!hasQuestionText) {
+            rowIssues.push('Missing "english_text" (question text).');
+          }
+          if (!hasValidOptions) {
+            rowIssues.push(
+              isEnglishOptionsArray
+                ? 'Column "english_options" cannot be empty.'
+                : 'Invalid "english_options" format. Use semicolon-separated values, for example: Option 1;Option 2.',
+            );
+          }
+          if (!hasValidAnswerKey) {
+            rowIssues.push(
+              isAnswerKeyArray
+                ? 'Column "answer_key" cannot be empty and must contain integer option number(s), for example: 1 or 1;3.'
+                : 'Invalid "answer_key" format. Use option number(s), for example: 1 or 1;3.',
+            );
+          }
+        }
+
+        if (rowIssues.length > 0) {
+          rowErrors.push(`${rowLabel}: ${rowIssues.join(" ")}`);
+          return;
+        }
+
+        validQuestions.push(normalizedQuestion);
+      });
+
+      questions = validQuestions;
+    }
+
+    return {
+      parsedData,
+      questions,
+      summary: {
+        total: totalRows,
+        success: questions.length,
+        skipped: 0,
+        failed: rowErrors.length,
+        errors: rowErrors,
+      },
+    };
+  };
+
+  const applyImportedData = (
+    rawText: string,
+    sourceLabel = "uploaded file",
+    options?: { keepRawText?: boolean; displayText?: string },
+  ) => {
+    const { parsedData, questions, summary } = parseImportData(rawText);
+    const canImportQuestions = summary.failed === 0;
+    const importedQuestions = canImportQuestions ? questions : [];
+    const keepRawText = options?.keepRawText ?? true;
+    const displayText = options?.displayText;
+
+    setFormData((prev) => ({
+      ...prev,
+      importJsonText: keepRawText ? rawText : (displayText || ""),
+      name: parsedData.name || prev.name,
+      description: parsedData.description || prev.description,
+      school_ids: parsedData.school_ids ? parsedData.school_ids.map(String) : prev.school_ids,
+      nameType: "custom",
+      isRandom: parsedData.isRandom !== undefined ? parsedData.isRandom : false,
+      questions: importedQuestions,
+    }));
+
+    setImportPreviewQuestions(importedQuestions);
+    setImportPreviewMeta({
+      count: importedQuestions.length,
+      source: sourceLabel,
+    });
+    setImportSummary(summary);
+
+    return { parsedData, questions: importedQuestions, summary };
+  };
+
+  const openImportedQuestionsPreview = (
+    questions: any[],
+    sourceLabel: string,
+    setName = formData.name || "Imported Questions",
+  ) => {
+    setImportPreviewSet({
+      id: "import-preview",
+      name: setName,
+      questions,
+      sourceLabel,
+    });
+    setIsImportPreviewModalOpen(true);
+  };
+
+  const handlePreviewFileUploadParsed = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -288,8 +624,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     const isJSON = file.type === "application/json" || file.name.endsWith(".json");
 
     if (!isCSV && !isJSON) {
+      clearImportStatusMessage();
       toast({
-        title: "⚠️ Invalid File",
+        title: "Invalid File",
         description: "Please upload a CSV or JSON file",
         variant: "destructive",
         className: "border-orange-500 bg-orange-50 text-orange-900",
@@ -300,30 +637,48 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (typeof e.target?.result === "string") {
-        setFormData({ ...formData, importJsonText: e.target.result });
-        toast({
-          title: "✅ File Loaded",
-          description: `${file.name} has been loaded. Click Import to populate fields.`,
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900",
-        });
+        try {
+          const { questions, summary } = applyImportedData(e.target.result, file.name, {
+            keepRawText: true,
+          });
+          if (summary.failed > 0) {
+            showDelayedImportFileStatusMessage(
+              `Import blocked. ${summary.failed} row(s) failed validation. Please fix errors in Import Summary and upload again.`,
+            );
+          } else if (questions.length > 0) {
+            const message =
+              "File imported successfully. You can check in Preview section.";
+            showDelayedImportFileStatusMessage(message);
+          } else {
+            clearImportStatusMessage();
+          }
+        } catch (err: any) {
+          clearImportStatusMessage();
+          resetImportPreviewState();
+          setFormData((prev) => ({
+            ...prev,
+            importJsonText: e.target.result as string,
+            questions: [],
+          }));
+          toast({
+            title: "Invalid Format",
+            description: err.message || "Please check your file format. Supported: JSON or CSV",
+            variant: "destructive",
+            className: "border-red-500 bg-red-50 text-red-900",
+          });
+        }
       }
     };
     reader.readAsText(file);
-
-    // Reset the input so the same file can be uploaded again
     event.target.value = "";
   };
 
   const downloadCSVTemplate = () => {
     const template = [
-      
       "difficulty_level,question_type,english_text,hindi_text,marathi_text,english_options,hindi_options,marathi_options,answer_key,topic",
-      '1,MCQ,"Try to understand the given data and convert unknowns into variables. Use equations like 3x + 2y = 100. Even if you\'re not confident in maths, try with focus – you’ll be able to solve it.\n\nWeight of one apple is 60 grams. And weight of one orange is 40 grams. You have 3600 grams of fruits. Which of the following combinations has 3600 grams of weight?","इन प्रश्नों को करने के लिए आप सोचिए - आपके पास जो जानकारी नहीं है, उसे एक्स और वाई जैसे वेरिएबल्स दे कर मनानी पड़ेगी। फिर उन चरों का समीकरण बन सकता है जैसे 3x+2y=100. अगर आप गणित से डरते हैं तो भी मत घबराइए, आप थोड़ा सा ध्यान लगा कर सोचेंगे तो कुछ प्रश्न भी हल करेंगे।\n\nएक सेब का वजन 60 ग्राम है और एक संतरे का वजन 40 ग्राम है। आपके पास 3600 ग्राम फल हैं। निम्नलिखित में से कौन सा संयोजन 3600 ग्राम के बराबर है?","प्रश्न को हल करने के लिए दिए गए आंकड़ों को ध्यानपूर्वक समझें और जिन जानकारियों का उल्लेख नहीं किया गया है, उन्हें x और y जैसे चर (variables) मान लें।\nइसके आधार पर आप एक समीकरण बना सकते हैं, जैसे: 3x + 2y = 100।\nयदि आपको गणित से डर लगता है या आप इसमें बहुत आत्मविश्वासी नहीं हैं, तब भी चिंता न करें —\nथोड़ा ध्यान लगाकर और मन लगाकर प्रयास करेंगे, तो आप निश्चित रूप से इन प्रश्नों को हल कर पाएंगे।\n\nएका सफरचंदाचं वजन ६० ग्राम आहे आणि एका संत्र्याचं वजन ४० ग्राम आहे। तुमच्याकडे एकूण ३६०० ग्राम फळं आहेत। खालीलपैकी कोणतं संयोजन बरोबर आहे?","[{""id"":1,""text"":""40 apples, 30 oranges""},{""id"":2,""text"":""42 apples, 28 oranges""},{""id"":3,""text"":""45 apples, 20 oranges""},{""id"":4,""text"":""35 apples, 35 oranges""}]","[]","[]","[1]",2',
-      '2,MCQ,"Weight of one banana is 100 grams. Weight of one mango is 200 grams. Total weight of fruits is 4000 grams. How many bananas and mangoes are there?","एक केले का वजन 100 ग्राम है और एक आम का वजन 200 ग्राम है। फलों का कुल वजन 4000 ग्राम है। कितने केले और आम हैं?","एका केळ्याचं वजन १०० ग्राम आहे. एका आंब्याचं वजन २०० ग्राम आहे. एकूण फळांचं वजन ४००० ग्राम आहे. किती केळी आणि आंबे असतील?","[{""id"":1,""text"":""20 bananas, 15 mangoes""},{""id"":2,""text"":""30 bananas, 10 mangoes""},{""id"":3,""text"":""4 bananas, 18 mangoes""},{""id"":4,""text"":""20 bananas, 20 mangoes""}]","[]","[]","[3]",2',
-      '2,MCQ,"Weight of one apple is 80 grams and one orange weighs 60 grams. You have a total of 5500 grams of fruits. The number of apples is double the number of oranges. How many apples do you have?","एक सेब का वजन 80 ग्राम है और एक संतरे का वजन 60 ग्राम है। आपके पास कुल 5600 ग्राम फल हैं। सेबों की संख्या संतरे से दोगुनी है। आपके पास कितने सेब हैं?","एका सफरचंदाचं वजन ८० ग्राम आहे आणि एका संत्र्याचं वजन ६० ग्राम आहे. तुमच्याकडे एकूण 5500 ग्राम फळं आहेत. सफरचंदांची संख्या संत्र्यांपेक्षा दुप्पट आहे. किती सफरचंदं आहेत?","[{""id"":1,""text"":""50""},{""id"":2,""text"":""60""},{""id"":3,""text"":""80""},{""id"":4,""text"":""100""}]","[]","[]","[1]",2',
-      '3,MCQ,"Weight of one apple is 75 grams. One apple is 3 times heavier than an orange. The number of oranges is 5 times that of apples. You have 3600 grams of fruit. How many apples do you have?","एक सेब का वजन 90 ग्राम है। सेब संतरे से 3 गुना भारी है। संतरे की संख्या सेब से 4 गुना है। कुल वजन 6300 ग्राम है। बताएं कितने सेब हैं?","एका सफरचंदाचं वजन ९० ग्राम आहे. एक सफरचंद संत्र्याच्या वजनाच्या ३ पट आहे. संत्र्यांची संख्या सफरचंदांपेक्षा ४ पट आहे. तुमच्याकडे एकूण ६३०० ग्राम फळं आहेत. किती सफरचंदं आहेत?","[{""id"":1,""text"":""30""},{""id"":2,""text"":""32""},{""id"":3,""text"":""28""},{""id"":4,""text"":""25""}]","[]","[]","[1]",2',
-    
+      'Easy,MCQ,"3, 8, 13, 18, ___. What will be the next number in the pattern?","3, 8, 13, 18, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 13, 18, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","28; 29; 30; 23","28; 29; 30; 23","28; 29; 30; 23","4","Algebra"',
+      'Medium,MCQ,"3, 8, 15, 24, ___. What will be the next number in the pattern?","3, 8, 15, 24, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 15, 24, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","35; 32; 34; 33","35; 32; 34; 33","35; 32; 34; 33","1","Number Patterns"',
+      'Hard,MCQ,"8, 4, 16, 12, 32, ___. What will be the next number in the pattern?","8, 4, 16, 12, 32, ___. संख्या क्रम में अगली संख्या क्या होगी?","8, 4, 16, 12, 32, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","34; 30; 36; 40","34; 30; 36; 40","34; 30; 36; 40","3","Percentage"',
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
@@ -335,7 +690,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     window.URL.revokeObjectURL(url);
 
     toast({
-      title: "✅ Template Downloaded",
+      title: "Template Downloaded",
       description: "Question import CSV template has been downloaded",
       variant: "default",
       className: "border-green-500 bg-green-50 text-green-900",
@@ -343,10 +698,10 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     });
   };
 
-  const handleImportJson = () => {
+  const handleImportWithPreviewParsed = () => {
     if (!formData.importJsonText.trim()) {
       toast({
-        title: "⚠️ Empty Data",
+        title: "Empty Data",
         description: "Please paste JSON data or upload a file",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
@@ -355,129 +710,15 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     }
 
     try {
-      const dataText = formData.importJsonText.trim();
-      let parsedData: any = {};
-
-      // Check if data is JSON (starts with { or [)
-      if (dataText.startsWith('{') || dataText.startsWith('[')) {
-        // Parse as JSON
-        parsedData = JSON.parse(dataText);
-      } else {
-        // Parse as CSV
-        const parseResult = Papa.parse(dataText, {
-          header: true,
-          skipEmptyLines: true,
-          transform: (value) => value.trim(),
-        });
-
-        if (parseResult.errors.length > 0) {
-          throw new Error(`CSV parsing error: ${parseResult.errors[0].message}`);
-        }
-
-        const csvData = parseResult.data;
-
-        if (csvData.length === 0) {
-          throw new Error("CSV file is empty or invalid");
-        }
-
-        // Check if it's key-value format (field, value columns)
-        const firstRow: any = csvData[0];
-        if (firstRow.field && firstRow.value) {
-          // Key-value format: field,value
-          csvData.forEach((row: any) => {
-            if (row.field && row.value) {
-              if (row.field === 'school_ids') {
-                // Parse comma-separated school IDs
-                parsedData.school_ids = row.value.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id));
-              } else if (row.field === 'isRandom') {
-                parsedData.isRandom = row.value.toLowerCase() === 'true';
-              } else {
-                parsedData[row.field] = row.value;
-              }
-            }
-          });
-        } else if (firstRow.english_text !== undefined || firstRow.question_type !== undefined || firstRow.difficulty_level !== undefined) {
-          // This is a CSV containing a list of questions directly
-          parsedData = csvData;
-        } else {
-          // Standard format: name,description,school_ids (first data row)
-          parsedData = firstRow;
-          if (parsedData.school_ids && typeof parsedData.school_ids === 'string') {
-            parsedData.school_ids = parsedData.school_ids.split(',').map((id: string) => parseInt(id.trim())).filter((id: number) => !isNaN(id));
-          }
-          if (parsedData.isRandom !== undefined) {
-            parsedData.isRandom = String(parsedData.isRandom).toLowerCase() === 'true';
-          }
-        }
-      }
-
-      // Log parsed data for debugging
-      // console.log("Parsed data:", parsedData);
-
-      // Normalize questions array - convert question_id to id if needed
-      let questions = [];
-      if (Array.isArray(parsedData)) {
-        questions = parsedData;
-      } else {
-        questions = parsedData.questions || [];
-      }
-      
-      console.log("[DEBUG] handleImportJson - extracted raw questions:", questions);
-
+      const { parsedData, questions, summary } = applyImportedData(
+        formData.importJsonText,
+        "pasted content",
+      );
       if (questions.length > 0) {
-        // Parse stringified JSON arrays like answer_key, english_options if they exist
-        const tryParseList = (val: any) => {
-          if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
-            try { return JSON.parse(val); } catch(e) { return val; }
-          }
-          return val;
-        };
-
-        const tryParseOptions = (val: any) => {
-          const parsed = tryParseList(val);
-          if (Array.isArray(parsed)) {
-            // Extract the 'text' property if it's an object with an 'id' and 'text', otherwise keep string
-            return parsed.map(item => typeof item === 'object' && item.text !== undefined ? String(item.text) : String(item));
-          }
-          return parsed;
-        };
-
-        const tryParseIntArray = (val: any) => {
-          const parsed = tryParseList(val);
-          if (Array.isArray(parsed)) {
-            return parsed.map(item => parseInt(item, 10));
-          } else if (typeof parsed === 'string' || typeof parsed === 'number') {
-            return [parseInt(String(parsed), 10)];
-          }
-          return parsed;
-        };
-
-        questions = questions.map((q: any) => ({
-          ...q,
-          id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
-          difficulty_level: q.difficulty_level ? parseInt(q.difficulty_level, 10) : 1, // Default to level 1
-          english_options: tryParseOptions(q.english_options),
-          hindi_options: tryParseOptions(q.hindi_options),
-          marathi_options: tryParseOptions(q.marathi_options),
-          answer_key: tryParseIntArray(q.answer_key),
-        }));
+        openImportedQuestionsPreview(questions, "pasted content");
       }
 
-      // Populate form fields with whatever data we have
-      const updatedFormData = {
-        ...formData,
-        name: parsedData.name || formData.name,
-        description: parsedData.description || formData.description,
-        school_ids: parsedData.school_ids ? parsedData.school_ids.map(String) : formData.school_ids,
-        nameType: "custom",
-        isRandom: parsedData.isRandom !== undefined ? parsedData.isRandom : false,
-        questions: questions,
-      };
-
-      setFormData(updatedFormData);
-
-      // Build a helpful message about what was imported
-      const importedFields = [];
+      const importedFields: string[] = [];
       if (parsedData.name) importedFields.push("name");
       if (parsedData.description) importedFields.push("description");
       if (parsedData.school_ids && parsedData.school_ids.length > 0) {
@@ -487,14 +728,25 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         importedFields.push(`${questions.length} question(s)`);
       }
 
-      toast({
-        title: "✅ Data Imported",
-        description: `Imported: ${importedFields.join(", ") || "some fields"}. Please fill in any remaining required fields.`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-        duration:1000,
-      });
+      if (summary.failed > 0) {
+        toast({
+          title: "Import Blocked",
+          description: `${summary.failed} row(s) failed validation, so no questions were imported. Review Import Summary and try again.`,
+          variant: "default",
+          className: "border-orange-500 bg-orange-50 text-orange-900",
+          duration: 1000,
+        });
+      } else {
+        toast({
+          title: "Data Imported",
+          description: `Imported: ${importedFields.join(", ") || "some fields"}. Preview modal is ready.`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
+          duration: 1000,
+        });
+      }
     } catch (err: any) {
+      resetImportPreviewState();
       toast({
         title: "❌ Invalid Format",
         description: err.message || "Please check your file format. Supported: JSON or CSV",
@@ -509,19 +761,20 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     setFormData({
       name: set.name,
       description: set.description || "",
-      nameType: "custom", // Always custom when editing
+      nameType: "custom",
       isRandom: false,
       school_ids: set.school_ids ? set.school_ids.map(String) : [],
       importJsonText: "",
       questions: [],
     });
+    resetImportPreviewState();
+    clearImportStatusMessage();
     setIsModalOpen(true);
   };
 
   const handleSubmit = async () => {
-    // Validation
-    // let limit = 0; // Default limit since we removed the field
-    let finalName = formData.name;
+    const finalName = formData.name;
+    const finalDescription = formData.description.trim() || DEFAULT_SET_DESCRIPTION;
 
     if (!formData.name.trim()) {
       toast({
@@ -533,15 +786,6 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       return;
     }
 
-    if (!formData.description.trim()) {
-      toast({
-        title: "⚠️ Required Field Missing",
-        description: "Please enter a description",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
-      return;
-    }
     if (!formData.school_ids || formData.school_ids.length === 0) {
       toast({
         title: "⚠️ Required Field Missing",
@@ -555,136 +799,64 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     try {
       const payload = {
         name: finalName,
-        description: formData.description,
-        isRandom: formData.isRandom,
+        description: finalDescription,
+        isRandom: formData.nameType === "random",
         school_ids: formData.school_ids.map(Number),
         success: true,
       };
 
       if (editingSet) {
-        // Update existing set
-        await updateQuestionSet(editingSet.id, payload);
+        const response = await updateQuestionSet(editingSet.id, payload);
         toast({
-          title: "✅ Set Updated Successfully",
-          description: `"${finalName}" has been updated successfully.`,
+          title: "Set Updated",
+          description: response.message,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
         setIsModalOpen(false);
         await fetchSets(false);
       } else {
-        // Create new set
+        const importedQuestions = formData.questions || [];
+        const existingQuestions = importedQuestions.filter(
+          (question: any) => question.id && typeof question.id === "number",
+        );
+        const newQuestions = importedQuestions.filter(
+          (question: any) => !question.id || typeof question.id !== "number",
+        );
 
-        // If Custom Name (and thus "Next" flow), defer creation
-        if (formData.nameType === "custom") {
-          setIsModalOpen(false);
-          setPendingSetData({
-            name: finalName,
-            description: formData.description,
-            school_ids: formData.school_ids
-          });
+        const createPayload = {
+          ...payload,
+          questions: existingQuestions.map((question: any) => ({
+            question_id: question.id,
+            difficulty_level: normalizeDifficultyLevel(question.difficulty_level),
+          })),
+          newQuestions: newQuestions.map((question: any) => {
+            const { id, isNew, ...rest } = question;
+            return {
+              ...rest,
+              difficulty_level: normalizeDifficultyLevel(rest.difficulty_level),
+            };
+          }),
+        };
 
-          // Map imported question IDs to full question objects from allQuestions
-          let fullQuestions = [];
-          if (formData.questions && formData.questions.length > 0 && allQuestions) {
-            const notFoundIds: number[] = [];
-            let newQuestionsCount = 0;
-
-            fullQuestions = formData.questions
-              .map((importedQ: any) => {
-                const qId = importedQ.id || importedQ.question_id;
-
-                // If ID is provided, try to find existing question
-                if (qId) {
-                  const fullQuestion = allQuestions.find((q: any) => q.id === qId);
-                  if (fullQuestion) {
-                    return {
-                      ...fullQuestion,
-                      difficulty_level: importedQ.difficulty_level || fullQuestion.difficulty_level,
-                    };
-                  } else {
-                    notFoundIds.push(qId);
-                    return null;
-                  }
-                }
-                // Alternatively, if it's a completely new question data block without an ID
-                else if (importedQ.english_text && importedQ.english_options && importedQ.answer_key) {
-                  newQuestionsCount++;
-                  return {
-                    ...importedQ,
-                    isNew: true, // Flag it so we know it hasn't been saved yet
-                    id: `tmp-${Date.now()}-${Math.random()}`, // Temporary ID for UI keys
-                    difficulty_level: importedQ.difficulty_level || 1
-                  };
-                }
-
-                return null;
-              })
-              .filter((q: any) => q !== null);
-
-            // console.log("Imported questions:", formData.questions);
-            // console.log("Available allQuestions count:", allQuestions?.length);
-            // console.log("Mapped imported questions to full objects:", fullQuestions);
-
-            if (notFoundIds.length > 0) {
-              console.warn("Question IDs not found:", notFoundIds);
-              if (newQuestionsCount > 0) {
-                toast({
-                  title: "⚠️ Some Questions Not Found",
-                  description: `${notFoundIds.length} question(s) with IDs: ${notFoundIds.join(", ")} were not found in the database. Loaded ${newQuestionsCount} new inline question(s).`,
-                  variant: "default",
-                  className: "border-orange-500 bg-orange-50 text-orange-900",
-                });
-              } else {
-                toast({
-                  title: "⚠️ Some Questions Not Found",
-                  description: `${notFoundIds.length} question(s) with IDs: ${notFoundIds.join(", ")} were not found in the database.`,
-                  variant: "default",
-                  className: "border-orange-500 bg-orange-50 text-orange-900",
-                });
-              }
-            } else if (fullQuestions.length > 0) {
-              const loadedExisting = fullQuestions.length - newQuestionsCount;
-              toast({
-                title: "✅ Questions Loaded",
-                description: `Pre-selected ${loadedExisting} existing questions and ${newQuestionsCount} new inline questions.`,
-                variant: "default",
-                className: "border-green-500 bg-green-50 text-green-900",
-              });
-            }
-          }
-
-          // Create a temporary "fake" set to trigger the picker
-          const tempSet = {
-            id: -1, // signal that this is new
-            name: finalName,
-            limit: 0,
-            questions: fullQuestions, // Pre-load imported questions with full data
-            active: true,
-            isNewCustom: true // Optional helper flag
-          };
-          
-          console.log("[DEBUG] handleSubmit - tempSet created:", tempSet);
-          
-          setActiveSet(tempSet);
-          return;
-        }
-
-        const newSet = await createQuestionSet(payload);
+        const response = await createQuestionSet(createPayload);
         toast({
-          title: "✅ Set Created Successfully",
-          description: `"${finalName}" has been added.`,
+          title: "Set Created",
+          description: response.message,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
 
         setIsModalOpen(false);
+        resetImportPreviewState();
+        setImportPreviewSet(null);
+        setIsImportPreviewModalOpen(false);
         await fetchSets(false);
       }
     } catch (err: any) {
       toast({
-        title: "Oops!",
-        description: "There was a small issue while processing your request. Please try again.",
+        title: "Unable to create!",
+        description: err.message,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
       });
@@ -793,6 +965,39 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     setEditingQuestion(question);
   };
 
+  const getQuestionTextByLanguage = (question: any) => {
+    if (previewLanguage === "hindi") {
+      return question.hindi_text || question.english_text || question.question_text || question.question || "N/A";
+    }
+
+    if (previewLanguage === "marathi") {
+      return question.marathi_text || question.english_text || question.question_text || question.question || "N/A";
+    }
+
+    return question.english_text || question.question_text || question.question || "N/A";
+  };
+
+  const getOptionText = (option: any) => {
+    if (typeof option === "string") return option;
+    return option?.text || option?.value || "";
+  };
+
+  const getOptionTextByLanguage = (question: any, optionIndex: number) => {
+    const englishOption = question.english_options?.[optionIndex];
+    const hindiOption = question.hindi_options?.[optionIndex];
+    const marathiOption = question.marathi_options?.[optionIndex];
+
+    if (previewLanguage === "hindi") {
+      return getOptionText(hindiOption) || getOptionText(englishOption);
+    }
+
+    if (previewLanguage === "marathi") {
+      return getOptionText(marathiOption) || getOptionText(englishOption);
+    }
+
+    return getOptionText(englishOption);
+  };
+
   const handleSaveEditedQuestion = async (questionData: any) => {
     if (!editingQuestion) return;
 
@@ -827,6 +1032,37 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const handleCancelEdit = () => {
     setEditingQuestion(null);
+  };
+
+  const handleCreateTopic = async (topicName: string) => {
+    const createdTopic = await createTopic({
+      topic: topicName.trim(),
+      status: true,
+    });
+
+    setTopics((prev) => [...prev, createdTopic]);
+    return createdTopic;
+  };
+
+  const handleUpdateTopic = async (topicId: number, topicName: string) => {
+    const updatedTopic = await updateTopic(topicId, {
+      topic: topicName.trim(),
+      status: true,
+    });
+
+    setTopics((prev) =>
+      prev.map((topic) =>
+        topic.id === topicId ? { ...topic, ...updatedTopic } : topic,
+      ),
+    );
+
+    return updatedTopic;
+  };
+
+  const handleDeleteTopic = async (topicId: number) => {
+    const result = await deleteTopic(topicId);
+    setTopics((prev) => prev.filter((topic) => topic.id !== topicId));
+    return result;
   };
 
   return (
@@ -1003,23 +1239,54 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
       {activeSet && (
         <QuestionPicker
-          // allQuestions={allQuestions}
           activeSet={sets.find((s) => s.id === activeSet.id) || activeSet}
           onClose={() => setActiveSet(null)}
           difficultyLevel={difficultyLevels}
           onSave={(selected) => handleSaveQuestions(selected, activeSet)}
         />
       )}
+
+      {isImportPreviewModalOpen && importPreviewSet && (
+        <QuestionPicker
+          activeSet={importPreviewSet}
+          onClose={() => {
+            setIsImportPreviewModalOpen(false);
+            setImportPreviewSet(null);
+          }}
+          onSave={(selected) => {
+            setFormData((prev) => ({ ...prev, questions: selected }));
+            setImportPreviewQuestions(selected);
+            setImportPreviewMeta((prev) => ({ ...prev, count: selected.length }));
+          }}
+          difficultyLevel={difficultyLevels}
+          fetchQuestionsFromApi={false}
+          previewMode
+          showLanguageLabels
+          showCorrectAnswer
+          saveLabel="Use These Questions"
+          title= "Preview Imported Questions"
+          footerNote={`${importPreviewMeta.count || importPreviewSet.questions?.length || 0} imported question(s) selected for this set`}
+        />
+      )}
       {/* Add/Edit Set Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogHeader>
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            clearImportFileStatusTimeout();
+            setImportFileStatusMessage("");
+          }
+          setIsModalOpen(open);
+        }}
+      >
+        <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col overflow-hidden p-0 sm:rounded-xl">
+          <DialogHeader className="border-b px-6 py-5">
             <DialogTitle>
               {editingSet ? "Edit Question Set" : "Create Question Set"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
             <div className="space-y-2">
               <Label className="block">Set Generation Method</Label>
               <RadioGroup
@@ -1032,13 +1299,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 className="flex items-center gap-4"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="random" id="r-random" />
-                  <Label htmlFor="r-random">Random</Label>
-                </div>
-                <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="r-custom" />
                   <Label htmlFor="r-custom">Custom Name</Label>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="random" id="r-random" />
+                  <Label htmlFor="r-random">Random</Label>
+                </div>
+                
               </RadioGroup>
             </div>
 
@@ -1055,16 +1323,6 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                placeholder="Brief description of this question set"
-                rows={3}
-              />
               <Label htmlFor="school">Schools <span className="text-red-500">*</span></Label>
               <MultiSelectCombobox
                 options={schools.map((school) => ({
@@ -1083,7 +1341,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             {/* Import Section */}
             {!editingSet && formData.nameType === "custom" && (
               <div className="space-y-2 border-t pt-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <Label htmlFor="import-json" className="text-sm font-semibold">Import from File/JSON</Label>
                   <div className="flex gap-2">
                     <Button
@@ -1093,13 +1351,13 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                       onClick={downloadCSVTemplate}
                       className="h-7 text-xs"
                     >
-                      <Download className="h-3 w-3 mr-1" />
+                      <Download className="mr-1 h-3 w-3" />
                       Template
                     </Button>
                     <input
                       type="file"
                       accept=".csv,.json"
-                      onChange={handleFileUpload}
+                      onChange={handlePreviewFileUploadParsed}
                       className="hidden"
                       id="set-file-upload"
                     />
@@ -1110,43 +1368,109 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                       onClick={() => document.getElementById("set-file-upload")?.click()}
                       className="h-7 text-xs"
                     >
-                      <Upload className="h-3 w-3 mr-1" />
+                      <Upload className="mr-1 h-3 w-3" />
                       Upload File
                     </Button>
-                    <Button
+                    {/* <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={handleImportJson}
+                      onClick={handleImportWithPreviewParsed}
                       className="h-7 text-xs"
                     >
                       Import
-                    </Button>
+                    </Button> */}
+                    {importPreviewQuestions.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          openImportedQuestionsPreview(
+                            importPreviewQuestions,
+                            importPreviewMeta.source || "imported content",
+                            formData.name || "Imported Questions",
+                          )
+                        }
+                        className="h-7 text-xs"
+                      >
+                        <Eye className="mr-1 h-3 w-3" />
+                        Preview
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <Textarea
                   id="import-json"
                   value={formData.importJsonText}
-                  onChange={(e) =>
-                    setFormData({ ...formData, importJsonText: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, importJsonText: e.target.value });
+                    clearImportStatusMessage();
+                    resetImportPreviewState();
+                  }}
                   placeholder="Paste csv here"
                   rows={6}
                   className="font-mono text-xs"
                 />
-                <p className="text-xs text-muted-foreground">
-                  💡 First download the template, add questions according to the template format, then upload the questions CSV file, click Import to parse it, and finally click Next.
-                </p>
+                {importFileStatusMessage && (
+                  <div className="rounded-md border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+                    {importFileStatusMessage}
+                  </div>
+                )}
+                {(importSummary.total > 0 || importSummary.failed > 0) && (
+                  <div className="space-y-3 rounded-md border bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-slate-900">Import Summary</p>
+                      <Badge variant="secondary" className="border-blue-200 bg-blue-50 text-blue-700">
+                        {importSummary.total} total rows
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Badge className="border border-green-200 bg-green-50 text-green-700 hover:bg-green-50">
+                        {importSummary.success} Success
+                      </Badge>
+                      <Badge className="border border-yellow-200 bg-yellow-50 text-yellow-700 hover:bg-yellow-50">
+                        {importSummary.skipped} Skipped
+                      </Badge>
+                      <Badge className="border border-red-200 bg-red-50 text-red-700 hover:bg-red-50">
+                        {importSummary.failed} Failed
+                      </Badge>
+                    </div>
+
+                    {importSummary.failed > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-red-700">Specific Error Details:</p>
+                        <div className="max-h-28 overflow-y-auto rounded-md border border-red-200 bg-red-50 p-2">
+                          <div className="space-y-1">
+                            {importSummary.errors.map((error, index) => (
+                              <p key={`${error}-${index}`} className="text-xs text-red-700">
+                                {index + 1}. {error}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+          <DialogFooter className="border-t bg-background px-6 py-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                clearImportFileStatusTimeout();
+                setImportFileStatusMessage("");
+                setIsModalOpen(false);
+              }}
+            >
               Cancel
             </Button>
             <Button onClick={handleSubmit}>
-              {editingSet ? "Update" : (formData.nameType === "custom" ? "Next" : "Create")}
+              {editingSet ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1232,11 +1556,31 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         setIsViewModalOpen(open);
         if (!open) {
           setEditingQuestion(null);
+          setPreviewLanguage("english");
         }
       }}>
         <DialogContent className="max-w-4xl h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
+              {!editingQuestion && viewingSet?.questions?.length > 0 && (
+                <div className="flex items-center gap-2 pr-8">
+                  <Select
+                    value={previewLanguage}
+                    onValueChange={(value) => setPreviewLanguage(value as PreviewLanguage)}
+                  >
+                    <SelectTrigger id="preview-language" className="h-9 w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="hindi">Hindi</SelectItem>
+                      <SelectItem value="marathi">Marathi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </DialogHeader>
 
           {editingQuestion ? (
@@ -1247,6 +1591,10 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 onCancel={handleCancelEdit}
                 difficultyLevels={difficultyLevels}
                 schools={schools}
+                topics={topics}
+                onCreateTopic={handleCreateTopic}
+                onUpdateTopic={handleUpdateTopic}
+                onDeleteTopic={handleDeleteTopic}
                 setSelectedQuestion={setEditingQuestion}
               />
             </div>
@@ -1261,22 +1609,12 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">
                     {viewingSet.questions.map((question: any, index: number) => (
-                      <div key={question.id} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">``
+                      <div key={question.id ?? index} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
-                              {index + 1}. <span className="font-semibold">English:</span> {question.english_text || question.question_text || question.question || 'N/A'}
+                              {getQuestionTextByLanguage(question)}
                             </div>
-                            {question.hindi_text && (
-                              <div className="text-sm text-gray-700 mb-1 whitespace-pre-line">
-                                <span className="font-semibold">Hindi:</span> {question.hindi_text}
-                              </div>
-                            )}
-                            {question.marathi_text && (
-                              <div className="text-sm text-gray-700 whitespace-pre-line">
-                                <span className="font-semibold">Marathi:</span> {question.marathi_text}
-                              </div>
-                            )}
                           </div>
                           <Button
                             variant="ghost"
@@ -1307,7 +1645,6 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                           <div className="mt-4">
                             <div className="space-y-2">
                               {question.english_options.map((option: any, optIndex: number) => {
-                                const optionText = typeof option === 'string' ? option : option.text || option.value;
                                 const optionId = typeof option === 'string' ? optIndex + 1 : option.id;
                                 const isCorrect = question.answer_key && question.answer_key.includes(optionId);
 
@@ -1319,21 +1656,11 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                                       </span>
                                       <div className="flex-1">
                                         <div className="text-sm text-gray-900 whitespace-pre-line">
-                                          <span className="font-semibold">English:</span> {optionText}
+                                          {getOptionTextByLanguage(question, optIndex) || "N/A"}
                                           {isCorrect && (
                                             <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
                                           )}
                                         </div>
-                                        {question.hindi_options && question.hindi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
-                                            <span className="font-semibold">Hindi:</span> {typeof question.hindi_options[optIndex] === 'string' ? question.hindi_options[optIndex] : question.hindi_options[optIndex]?.text || question.hindi_options[optIndex]?.value}
-                                          </div>
-                                        )}
-                                        {question.marathi_options && question.marathi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
-                                            <span className="font-semibold">Marathi:</span> {typeof question.marathi_options[optIndex] === 'string' ? question.marathi_options[optIndex] : question.marathi_options[optIndex]?.text || question.marathi_options[optIndex]?.value}
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   </div>

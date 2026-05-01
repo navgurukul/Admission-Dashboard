@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import {
-  getQuestions,
+  getQuestionsPaginated,
   createQuestion as apiCreateQuestion,
   updateQuestion as updateQuestionApi,
   deleteQuestionbyId,
@@ -12,6 +12,7 @@ import { difficultyLevelAPI } from "@/utils/difficultyLevelAPI";
 interface QuestionFilters {
   question_type?: string;
   difficulty_level?: string;
+  topic?: string;
 }
 
 export interface DifficultyLevel {
@@ -23,32 +24,35 @@ export interface DifficultyLevel {
 export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalQuestions, setTotalQuestions] = useState(0);
   const [difficultyLevels, setDifficultyLevels] = useState<DifficultyLevel[]>(
     [],
   );
   const { toast } = useToast();
 
+  const fetchLevels = async () => {
+    try {
+      const levelsRaw: any = await difficultyLevelAPI.getDifficultyLevels();
+
+      const arr = Array.isArray(levelsRaw.data?.data)
+        ? levelsRaw.data.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            points: item.marks ?? 0,
+          }))
+        : [];
+
+      setDifficultyLevels(arr);
+    } catch (err) {
+      console.error("Failed to fetch difficulty levels:", err);
+      setDifficultyLevels([]); // fallback
+    }
+  };
+
   // Fetch difficulty levels once
   useEffect(() => {
-    const fetchLevels = async () => {
-      try {
-        const levelsRaw:any = await difficultyLevelAPI.getDifficultyLevels();
-
-        const arr = Array.isArray(levelsRaw.data?.data)
-          ? levelsRaw.data.data.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              points: item.marks ?? 0,
-            }))
-          : [];
-
-        setDifficultyLevels(arr);
-      } catch (err) {
-        console.error("Failed to fetch difficulty levels:", err);
-        setDifficultyLevels([]); // fallback
-      }
-    };
-
     fetchLevels();
   }, []);
 
@@ -65,35 +69,18 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const data = await getQuestions();
-
-      const filtered = data.filter((q) => {
-        const difficultyValue = getDifficultyLabel(q.difficulty_level);
-
-        if (
-          filters.difficulty_level &&
-          filters.difficulty_level !== "All" &&
-          String(q.difficulty_level) !== String(filters.difficulty_level)
-        )
-          return false;
-
-        if (
-          filters.question_type &&
-          filters.question_type !== "All" &&
-          q.question_type !== filters.question_type
-        )
-          return false;
-
-        if (
-          searchTerm &&
-          !q.english_text?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-          return false;
-
-        return true;
+      const response = await getQuestionsPaginated({
+        topic: filters.topic === "All" ? undefined : filters.topic,
+        difficulty_level: filters.difficulty_level === "All" ? undefined : filters.difficulty_level,
+        question_type: filters.question_type === "All" ? undefined : filters.question_type,
+        search: searchTerm,
+        page: currentPage,
       });
 
-      setQuestions(filtered);
+      setQuestions(response.questions);
+      setCurrentPage(response.page || 1);
+      setTotalPages(response.totalPages || 1);
+      setTotalQuestions(response.total || response.questions.length);
     } catch (error: any) {
       console.error("Error fetching questions:", error);
       toast({
@@ -106,6 +93,10 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, searchTerm]);
 
   const createQuestion = async (questionData: any) => {
     try {
@@ -162,7 +153,7 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
 
   useEffect(() => {
     fetchQuestions();
-  }, [filters, searchTerm]);
+  }, [filters, searchTerm, currentPage]);
 
   // console.log(difficultyLevels)
   return {
@@ -175,6 +166,11 @@ export function useQuestions(filters: QuestionFilters = {}, searchTerm = "") {
     restoreQuestion,
     refetch: fetchQuestions,
     difficultyLevels,
+    refetchDifficultyLevels: fetchLevels,
     getDifficultyLabel,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    totalQuestions,
   };
 }

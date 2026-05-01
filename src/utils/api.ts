@@ -1430,6 +1430,32 @@ export interface Question {
   updated_at: string; // ISO date
 }
 
+export interface TopicOption {
+  id: number;
+  topic: string;
+  status: boolean;
+  created_at?: string;
+  updated_at?: string;
+  message?: string;
+}
+
+const getTopicErrorMessage = (
+  data: any,
+  defaultMessage: string = "Failed to process topic request",
+): string => {
+  const message =
+    data?.message || data?.error?.message || data?.errors?.[0]?.message;
+
+  return typeof message === "string" && message.trim()
+    ? message
+    : defaultMessage;
+};
+
+interface TopicApiResponse {
+  message?: string;
+  topic: TopicOption;
+}
+
 export type CreateQuestionData = Omit<
   Question,
   "id" | "created_at" | "updated_at"
@@ -1453,19 +1479,14 @@ export const createQuestion = async (
   return data.data as Question;
 };
 
-// Get questions
-export const getQuestions = async (): Promise<Question[]> => {
-  const response = await fetch(`${BASE_URL}/questions/getQuestions`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+export interface PaginatedQuestionsResponse {
+  questions: Question[];
+  page: number;
+  totalPages: number;
+  total: number;
+}
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch Questions");
-  }
-  // Return the data array from the response
+const extractQuestionArray = (data: any): Question[] => {
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
@@ -1478,6 +1499,168 @@ export const getQuestions = async (): Promise<Question[]> => {
     console.error("Data structure:", JSON.stringify(data, null, 2));
     return [];
   }
+};
+
+// Get questions
+export const getQuestions = async (filters?: {
+  topic?: string | number;
+  difficulty_level?: string | number;
+  question_type?: string;
+  search?: string;
+}): Promise<Question[]> => {
+  const params = new URLSearchParams();
+  if (filters?.topic && filters.topic !== "all") params.append("topic", String(filters.topic));
+  if (filters?.difficulty_level && filters.difficulty_level !== "All") params.append("difficulty_level", String(filters.difficulty_level));
+  if (filters?.question_type && filters.question_type !== "All") params.append("question_type", String(filters.question_type));
+  if (filters?.search?.trim()) {
+    const normalizedSearch = filters.search.trim();
+    params.append("search", normalizedSearch);
+  }
+  
+  const query = params.toString();
+  const endpoint = `/questions/getQuestions${query ? `?${query}` : ""}`;
+  
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch Questions");
+  }
+  return extractQuestionArray(data);
+};
+
+export const getQuestionsPaginated = async (filters?: {
+  topic?: string | number;
+  difficulty_level?: string | number;
+  question_type?: string;
+  search?: string;
+  page?: number;
+}): Promise<PaginatedQuestionsResponse> => {
+  const params = new URLSearchParams();
+  if (filters?.topic && filters.topic !== "all") params.append("topic", String(filters.topic));
+  if (filters?.difficulty_level && filters.difficulty_level !== "all") params.append("difficulty_level", String(filters.difficulty_level));
+  if (filters?.question_type && filters.question_type !== "All") params.append("question_type", String(filters.question_type));
+  if (filters?.search?.trim()) params.append("search", filters.search.trim());
+  if (filters?.page && filters.page > 0) params.append("page", String(filters.page));
+
+  const query = params.toString();
+  const endpoint = `/questions/getQuestions${query ? `?${query}` : ""}`;
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch Questions");
+  }
+
+  const questions = extractQuestionArray(data);
+  const meta = data?.data && !Array.isArray(data.data) ? data.data : data;
+
+  return {
+    questions,
+    page: Number(meta?.page ?? filters?.page ?? 1),
+    totalPages: Number(meta?.totalPages ?? meta?.total_pages ?? 1),
+    total: Number(meta?.total ?? meta?.count ?? questions.length),
+  };
+};
+
+export const getTopics = async (): Promise<TopicOption[]> => {
+  const response = await fetch(`${BASE_URL}/topics`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(getTopicErrorMessage(data));
+  }
+
+  const topics = data?.data?.data || data?.data || [];
+  return Array.isArray(topics) ? topics : [];
+};
+
+export interface TopicPayload {
+  topic: string;
+  status: boolean;
+}
+
+const extractTopicFromResponse = (data: any): TopicOption => {
+  return (data?.data?.data || data?.data || data) as TopicOption;
+};
+
+const extractTopicApiResponse = (data: any): TopicApiResponse => {
+  return {
+    message: data?.message,
+    topic: extractTopicFromResponse(data),
+  };
+};
+
+export const createTopic = async (
+  payload: TopicPayload,
+): Promise<TopicOption> => {
+  const response = await fetch(`${BASE_URL}/topics/`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(getTopicErrorMessage(data));
+  }
+
+  const result = extractTopicApiResponse(data);
+  return {
+    ...result.topic,
+    message: result.message,
+  };
+};
+
+export const updateTopic = async (
+  topicId: number,
+  payload: TopicPayload,
+): Promise<TopicOption> => {
+  const response = await fetch(`${BASE_URL}/topics/${topicId}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(getTopicErrorMessage(data));
+  }
+
+  const result = extractTopicApiResponse(data);
+  return {
+    ...result.topic,
+    message: result.message,
+  };
+};
+
+export const deleteTopic = async (topicId: number): Promise<{ message?: string }> => {
+  const response = await fetch(`${BASE_URL}/topics/${topicId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false),
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(getTopicErrorMessage(data));
+  }
+
+  return { message: data?.message };
 };
 
 // delete question by id
@@ -1654,6 +1837,12 @@ export const deleteQuestionFromSet = async (id: number) => {
 };
 
 // Create a question set
+export interface QuestionSetMutationResponse {
+  success: boolean;
+  message?: string;
+  data?: QuestionSet;
+}
+
 export const createQuestionSet = async (data: {
   name: string;
   description: string;
@@ -1665,7 +1854,7 @@ export const createQuestionSet = async (data: {
   partner_name?: string;
   school_ids?: number[];
   success?: boolean;
-}): Promise<QuestionSet> => {
+}): Promise<QuestionSetMutationResponse> => {
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "POST",
     headers: getAuthHeaders(),
@@ -1678,7 +1867,7 @@ export const createQuestionSet = async (data: {
     throw new Error(json.message || "Failed to create question set");
   }
 
-  return json.data || json;
+  return json;
 };
 
 // Update a question set
@@ -1692,7 +1881,7 @@ export const updateQuestionSet = async (
     school_ids?: number[];
     success?: boolean;
   }
-): Promise<QuestionSet> => {
+): Promise<QuestionSetMutationResponse> => {
   const response = await fetch(
     `${BASE_URL}/questions/question-sets/${id}`,
     {
@@ -1708,7 +1897,7 @@ export const updateQuestionSet = async (
     throw new Error(json.message || "Failed to update question set");
   }
 
-  return json.data || json;
+  return json;
 };
 
 // Delete a question set

@@ -74,9 +74,9 @@ export function QuestionBulkImport({
   const downloadTemplate = () => {
     const template = [
       "difficulty_level,question_type,english_text,hindi_text,marathi_text,english_options,hindi_options,marathi_options,answer_key,topic",
-      '1,MCQ,"What is the weight of one apple if 3 apples and 2 oranges weigh 260g and the orange is 40g?","यदि 3 सेब और 2 संतरे का वजन 260 ग्राम है और संतरे का वजन 40 ग्राम है, तो एक सेब का वजन क्या है?","जर ३ सफरचंदे आणि २ संत्र्यांचे वजन २६० ग्रॅम असेल आणि संत्र्याचे वजन ४० ग्रॅम असेल, तर एका सफरचंदाचे वजन किती?","60g; 50g; 70g; 40g","60 ग्राम; 50 ग्राम; 70 ग्राम; 40 ग्राम","६० ग्रॅम; ५० ग्रॅम; ७० ग्रॅम; ४० ग्रॅम","1",2',
-      '2,MCQ,"Weight of one banana is 100 grams. Weight of one mango is 200 grams. Total weight of fruits is 4000 grams. How many bananas and mangoes are there?","एक केले का वजन 100 ग्राम है और एक आम का वजन 200 ग्राम है। फलों का कुल वजन 4000 ग्राम है। कितने केले और आम हैं?","एका केळ्याचं वजन १०० ग्राम आहे. एका आंब्याचं वजन २०० ग्राम आहे. एकूण फळांचं वजन ४००० ग्राम आहे. किती केळी आणि आंबे असतील?","20 bananas, 15 mangoes; 30 bananas, 10 mangoes; 4 bananas, 18 mangoes; 20 bananas, 20 mangoes","20 केले, 15 आम; 30 केले, 10 आम; 4 केले, 18 आम; 20 केले, 20 आम","२० केळी, १५ आंबे; ३० केळी, १० आंबे; ४ केळी, १८ आंबे; २० केळी, २० आंबे","3",2',
-      '2,MCQ,"The number of apples is double the number of oranges. Total weight is 5600g. Apple=80g, Orange=60g. How many apples?","सेबों की संख्या संतरे से दोगुनी है। कुल वजन 5600 ग्राम है। सेब=80 ग्राम, संतरा=60 ग्राम। कितने सेब हैं?","सफरचंदांची संख्या संत्र्यांपेक्षा दुप्पट आहे. एकूण वजन ५६०० ग्रॅम आहे. सफरचंद=८० ग्रॅम, संत्रा=६० ग्रॅम. किती सफरचंद आहेत?","50; 60; 80; 100","50; 60; 80; 100","५०; ६०; ८०; १००","1",2',
+      'Easy,MCQ,"3, 8, 13, 18, ___. What will be the next number in the pattern?","3, 8, 13, 18, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 13, 18, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","28; 29; 30; 23","28; 29; 30; 23","28; 29; 30; 23","4","Algebra"',
+      'Medium,MCQ,"3, 8, 15, 24, ___. What will be the next number in the pattern?","3, 8, 15, 24, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 15, 24, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","35; 32; 34; 33","35; 32; 34; 33","35; 32; 34; 33","1","Number Patterns"',
+      'Hard,MCQ,"8, 4, 16, 12, 32, ___. What will be the next number in the pattern?","8, 4, 16, 12, 32, ___. संख्या क्रम में अगली संख्या क्या होगी?","8, 4, 16, 12, 32, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","34; 30; 36; 40","34; 30; 36; 40","34; 30; 36; 40","3","Percentage"',
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
@@ -202,6 +202,9 @@ export function QuestionBulkImport({
               easy: "easy",
               medium: "medium",
               hard: "hard",
+              Easy: "easy",
+              Medium: "medium",
+              Hard: "hard",
             };
 
             const question = {
@@ -384,10 +387,21 @@ export function QuestionBulkImport({
         <AlertDescription className="text-blue-800">
           <p className="font-semibold mb-1">How to format your CSV:</p>
           <ul className="list-disc list-inside space-y-1 text-xs">
+            <li><strong>Difficulty Level:</strong> Use "Easy", "Medium", or "Hard".</li>
             <li><strong>Options:</strong> Separate choices with a semicolon (e.g. Option A; Option B; Option C)</li>
             <li><strong>Answer Key:</strong> Just use the number of the correct option (e.g. 1 for the first option)</li>
             <li><strong>Languages:</strong> You can provide text and options for English, Hindi, and Marathi.</li>
+            <li><strong>Topic:</strong> Enter the topic name (e.g. Algebra, Number Patterns, Percentage).</li>
           </ul>
+          <div className="mt-3 text-sm">
+            <p className="font-semibold mb-1">How to use:</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs">
+              <li>Click <strong>Download Template</strong> to get a sample CSV.</li>
+              <li>Edit the file (or paste rows) keeping the header exact and save as .csv.</li>
+              <li>Paste the CSV into the textbox or upload the file, then click <strong>Parse CSV Data</strong>.</li>
+              <li>Fix any errors shown, then click <strong>Import</strong> to upload questions.</li>
+            </ol>
+          </div>
         </AlertDescription>
       </Alert>
 

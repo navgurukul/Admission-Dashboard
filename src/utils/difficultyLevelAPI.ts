@@ -26,22 +26,22 @@ export interface UpdateDifficultyLevelData {
   status?: boolean;
 }
 
-// Get auth token from localStorage
+// Get auth token from sessionStorage
 const getAuthToken = (): string | null => {
   try {
-    const token = localStorage.getItem("authToken");
+    const token = sessionStorage.getItem("authToken");
     return token;
   } catch (error) {
-    console.error("Error accessing localStorage:", error);
+    console.error("Error accessing sessionStorage:", error);
     return null;
   }
 };
 
 // Create headers with authentication
-const getAuthHeaders = (): HeadersInit => {
+const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
   const token = getAuthToken();
   return {
-    "Content-Type": "application/json",
+    ...(withJson && { "Content-Type": "application/json" }),
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 };
@@ -57,11 +57,17 @@ const apiFetch = async (
 
   const url = `${BASE_URL}${endpoint}`;
 
+  // Determine if we should include Content-Type
+  const isJson = options.method !== 'DELETE' && options.method !== 'GET' && !!options.body;
+
   try {
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
-      headers: getAuthHeaders(),
+      headers: {
+        ...getAuthHeaders(isJson),
+        ...options.headers,
+      },
     });
 
     clearTimeout(timeoutId);
@@ -87,7 +93,7 @@ const apiFetch = async (
 export const difficultyLevelAPI = {
   // Create new difficulty level
   async createDifficultyLevel(
-    data: CreateDifficultyLevelData,
+    data: CreateDifficultyLevelData & { marks: number },
   ): Promise<DifficultyLevel> {
     try {
       const validationErrors =
@@ -96,7 +102,7 @@ export const difficultyLevelAPI = {
         throw new Error(validationErrors.join(", "));
       }
 
-      return await apiFetch("/difficulty-levels/createDifficultyLevels", {
+      return await apiFetch("/difficulty-levels/", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -107,9 +113,15 @@ export const difficultyLevelAPI = {
   },
 
   // Get all difficulty levels
-  async getDifficultyLevels(): Promise<DifficultyLevel[]> {
+  async getDifficultyLevels(params?: { page?: number; pageSize?: number; status?: boolean }): Promise<any> {
     try {
-      return await apiFetch("/difficulty-levels/getDifficultyLevels");
+      const query = new URLSearchParams();
+      if (params?.page) query.append('page', String(params.page));
+      if (params?.pageSize) query.append('pageSize', String(params.pageSize));
+      if (params?.status !== undefined) query.append('status', String(params.status));
+      
+      const queryString = query.toString();
+      return await apiFetch(`/difficulty-levels/${queryString ? `?${queryString}` : ''}`);
     } catch (error) {
       console.error("Get difficulty levels error:", error);
       throw new Error(error.message || "Failed to fetch difficulty levels");
@@ -119,7 +131,7 @@ export const difficultyLevelAPI = {
   // Get difficulty level by ID
   async getDifficultyLevelById(id: number): Promise<DifficultyLevel> {
     try {
-      return await apiFetch(`/difficulty-levels/getDifficultyLevelsById/${id}`);
+      return await apiFetch(`/difficulty-levels/${id}`);
     } catch (error) {
       console.error("Get difficulty level by ID error:", error);
       throw new Error(error.message || "Failed to fetch difficulty level");
@@ -129,7 +141,7 @@ export const difficultyLevelAPI = {
   // Update difficulty level
   async updateDifficultyLevel(
     id: number,
-    data: UpdateDifficultyLevelData,
+    data: UpdateDifficultyLevelData & { marks?: number },
   ): Promise<DifficultyLevel> {
     try {
       if (data.name) {
@@ -142,7 +154,7 @@ export const difficultyLevelAPI = {
         }
       }
 
-      return await apiFetch(`/difficulty-levels/updateDifficultyLevels/${id}`, {
+      return await apiFetch(`/difficulty-levels/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
       });
@@ -155,7 +167,7 @@ export const difficultyLevelAPI = {
   // Delete difficulty level
   async deleteDifficultyLevel(id: number): Promise<void> {
     try {
-      await apiFetch(`/difficulty-levels/deleteDifficultyLevels/${id}`, {
+      await apiFetch(`/difficulty-levels/${id}`, {
         method: "DELETE",
       });
     } catch (error) {
@@ -167,8 +179,9 @@ export const difficultyLevelAPI = {
   // Get active difficulty levels only
   async getActiveDifficultyLevels(): Promise<DifficultyLevel[]> {
     try {
-      const allLevels = await this.getDifficultyLevels();
-      return allLevels.filter((level) => level.status);
+      const response = await this.getDifficultyLevels({ status: true });
+      // The pagination helper returns { data: [...] }
+      return response.data || [];
     } catch (error) {
       console.error("Get active difficulty levels error:", error);
       throw new Error(

@@ -12,10 +12,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Save, X } from "lucide-react";
+import { PencilLine, Save, X } from "lucide-react";
 import { QuestionOptionsEditor } from "./QuestionOptionsEditor";
 import { useToast } from "@/hooks/use-toast";
-import { Option } from "@/utils/api";
+import { Option, type TopicOption } from "@/utils/api";
+import { TopicManagementDialog } from "./TopicManagementDialog";
+import { DifficultyLevelManagementDialog } from "./DifficultyLevelManagementDialog";
 
 interface DifficultyLevel {
   id: number;
@@ -30,6 +32,13 @@ interface QuestionEditorProps {
   difficultyLevels: DifficultyLevel[];
   setSelectedQuestion?: (question: any) => void;
   schools: any[];
+  topics: TopicOption[];
+  onCreateTopic: (topicName: string) => Promise<TopicOption> | TopicOption;
+  onUpdateTopic: (topicId: number, topicName: string) => Promise<TopicOption | void> | TopicOption | void;
+  onDeleteTopic: (topicId: number) => Promise<{ message?: string } | void> | { message?: string } | void;
+  onCreateDifficultyLevel: (name: string, marks: number) => Promise<any> | any;
+  onUpdateDifficultyLevel: (id: number, name: string, marks: number) => Promise<any> | any;
+  onDeleteDifficultyLevel: (id: number) => Promise<any> | any;
 }
 
 export function QuestionEditor({
@@ -39,13 +48,23 @@ export function QuestionEditor({
   setSelectedQuestion,
   difficultyLevels,
   schools,
+  topics,
+  onCreateTopic,
+  onUpdateTopic,
+  onDeleteTopic,
+  onCreateDifficultyLevel,
+  onUpdateDifficultyLevel,
+  onDeleteDifficultyLevel,
 }: QuestionEditorProps) {
   const { toast } = useToast();
+  const [isTopicDialogOpen, setIsTopicDialogOpen] = useState(false);
+  const [isDifficultyDialogOpen, setIsDifficultyDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState<{
     question_type: string;
     difficulty_level: string;
     points: number;
+    topic: string;
     question_text: { english: string; hindi: string; marathi: string };
     options: {
       english: Option[];
@@ -59,6 +78,7 @@ export function QuestionEditor({
     question_type: "MCQ",
     difficulty_level: "",
     points: 0,
+    topic: "",
     question_text: { english: "", hindi: "", marathi: "" },
     options: {
       english: [],
@@ -151,6 +171,7 @@ export function QuestionEditor({
       question_type: question.question_type ?? "MCQ",
       difficulty_level: question.difficulty_level?.toString() ?? "",
       points: level?.points ?? 0,
+      topic: question.topic !== undefined && question.topic !== null ? String(question.topic) : "",
       question_text: {
         english: question.english_text ?? "",
         hindi: question.hindi_text ?? "",
@@ -267,6 +288,7 @@ export function QuestionEditor({
     const payload = {
       difficulty_level: formData.difficulty_level,
       question_type: formData.question_type,
+      ...(formData.topic !== "" ? { topic: Number(formData.topic) } : {}),
       english_text: formData.question_text.english,
       hindi_text: formData.question_text.hindi,
       marathi_text: formData.question_text.marathi,
@@ -283,7 +305,7 @@ export function QuestionEditor({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Question Type & Difficulty */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Question Type</Label>
           <Select
@@ -300,7 +322,19 @@ export function QuestionEditor({
         </div>
 
         <div className="space-y-2">
-          <Label>Difficulty</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Difficulty</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 text-xs"
+              onClick={() => setIsDifficultyDialogOpen(true)}
+            >
+              <PencilLine className="mr-1 h-3.5 w-3.5" />
+              Manage Difficulty
+            </Button>
+          </div>
           <Select
             value={formData.difficulty_level}
             onValueChange={(v) => {
@@ -318,6 +352,37 @@ export function QuestionEditor({
               {difficultyLevels.map((level) => (
                 <SelectItem key={level.id} value={level.id.toString()}>
                   {level.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label>Topic</Label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 text-xs"
+              onClick={() => setIsTopicDialogOpen(true)}
+            >
+              <PencilLine className="mr-1 h-3.5 w-3.5" />
+              Manage Topics
+            </Button>
+          </div>
+          <Select
+            value={formData.topic}
+            onValueChange={(v) => updateField("topic", v)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select topic" />
+            </SelectTrigger>
+            <SelectContent>
+              {topics.map((topic) => (
+                <SelectItem key={topic.id} value={topic.id.toString()}>
+                  {topic.topic}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -411,6 +476,32 @@ export function QuestionEditor({
           {question ? "Update Question" : "Create Question"}
         </Button>
       </div>
+
+      <TopicManagementDialog
+        open={isTopicDialogOpen}
+        onOpenChange={setIsTopicDialogOpen}
+        topics={topics}
+        selectedTopicId={formData.topic}
+        onSelectedTopicChange={(value) => updateField("topic", value)}
+        onCreateTopic={onCreateTopic}
+        onUpdateTopic={onUpdateTopic}
+        onDeleteTopic={onDeleteTopic}
+      />
+
+      <DifficultyLevelManagementDialog
+        open={isDifficultyDialogOpen}
+        onOpenChange={setIsDifficultyDialogOpen}
+        levels={difficultyLevels}
+        selectedLevelId={formData.difficulty_level}
+        onSelectedLevelChange={(value) => {
+          updateField("difficulty_level", value);
+          const level = difficultyLevels.find(lvl => lvl.id.toString() === value);
+          if (level) updateField("points", level.points);
+        }}
+        onCreateLevel={onCreateDifficultyLevel}
+        onUpdateLevel={onUpdateDifficultyLevel}
+        onDeleteLevel={onDeleteDifficultyLevel}
+      />
     </form>
   );
 }
