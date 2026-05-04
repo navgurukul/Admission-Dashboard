@@ -1140,12 +1140,11 @@ export default function StudentResult() {
 
                         return (
                           <tr key={test.id} className="block md:table-row bg-background md:bg-card border border-border/60 md:border md:border-border rounded-2xl md:rounded-none mb-6 md:mb-0 hover:bg-muted/30 overflow-hidden shadow-lg shadow-black/5 md:shadow-none relative transition-all">
-                            {/* Mobile decorative edge indicator */}
-                            <div className={`md:hidden absolute left-0 top-0 bottom-0 w-1.5 ${
-                              test.status === "Pass" ? "bg-green-500" : test.status === "Fail" ? "bg-red-500" : isSlotBooked && test.slotBooking?.scheduledTime ? "bg-blue-500" : "bg-yellow-500"
-                            }`} />
-                            
-                            <td className="block md:table-cell px-5 pt-5 pb-3 md:py-4 border-b border-border/20 md:border-none md:border-b md:border-border/60 text-base md:text-sm font-bold md:font-medium">
+                            <td className="relative block md:table-cell px-5 pt-5 pb-3 md:py-4 border-b border-border/20 md:border-none md:border-b md:border-border/60 text-base md:text-sm font-bold md:font-medium">
+                              {/* Mobile decorative edge indicator */}
+                              <div className={`md:hidden absolute left-0 top-0 bottom-0 w-1.5 ${
+                                test.status === "Pass" ? "bg-green-500" : test.status === "Fail" ? "bg-red-500" : isSlotBooked && test.slotBooking?.scheduledTime ? "bg-blue-500" : "bg-yellow-500"
+                              }`} />
                               <div className="flex justify-between items-start md:block ml-1 md:ml-0">
                                 <span className="text-left text-foreground flex items-center md:items-start gap-2 max-w-[70%]">
                                   <span className="md:hidden text-muted-foreground/50 opacity-0 absolute">Row</span>

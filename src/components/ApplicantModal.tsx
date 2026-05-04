@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 // import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -73,6 +74,8 @@ import {
   cancelScheduledInterview,
   updateScheduledInterview,
   getStudentDataByEmail,
+  getStudentDataByPhone,
+  type CompleteStudentData,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
@@ -216,6 +219,75 @@ export function ApplicantModal({
   const [interviewDetailsRoundType, setInterviewDetailsRoundType] = useState<"LR" | "CFR" | null>(null);
   const [liveScheduleData, setLiveScheduleData] = useState<any[]>([]);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+  const [studentViewPhone, setStudentViewPhone] = useState("");
+  const [studentViewData, setStudentViewData] = useState<CompleteStudentData | null>(null);
+  const [showStudentPreviewDialog, setShowStudentPreviewDialog] = useState(false);
+  const [showEmbeddedStudent, setShowEmbeddedStudent] = useState(false);
+  const [iframeSrc, setIframeSrc] = useState("");
+  const studentPreviewStorageKeys = useMemo(
+    () => [
+      "studentData",
+      "studentId",
+      "registrationDone",
+      "testStarted",
+      "testCompleted",
+      "allowRetest",
+    ],
+    [],
+  );
+  const studentPreviewStorageBackupRef = useRef<Record<string, string | null> | null>(null);
+
+  const ensureStudentPreviewStorageBackup = useCallback(() => {
+    if (studentPreviewStorageBackupRef.current) {
+      return;
+    }
+
+    try {
+      const backup: Record<string, string | null> = {};
+      studentPreviewStorageKeys.forEach((key) => {
+        backup[key] = localStorage.getItem(key);
+      });
+      studentPreviewStorageBackupRef.current = backup;
+    } catch (err) {
+      console.warn("Failed to backup student preview localStorage", err);
+    }
+  }, [studentPreviewStorageKeys]);
+
+  const isExamSessionCompleted = useCallback((session: any) => {
+    const status = String(session?.status || "").toLowerCase();
+    return Boolean(
+      session?.is_passed === true ||
+      session?.submitted_at ||
+      session?.completed_at ||
+      status.includes("pass") ||
+      status.includes("complete"),
+    );
+  }, []);
+
+  const clearStudentPreviewLocalStorage = useCallback(() => {
+    try {
+      const backup = studentPreviewStorageBackupRef.current;
+
+      if (backup) {
+        studentPreviewStorageKeys.forEach((key) => {
+          const value = backup[key];
+          if (value === null) {
+            localStorage.removeItem(key);
+          } else {
+            localStorage.setItem(key, value);
+          }
+        });
+        studentPreviewStorageBackupRef.current = null;
+        return;
+      }
+
+      // Fallback when backup is unavailable.
+      studentPreviewStorageKeys.forEach((k) => localStorage.removeItem(k));
+    } catch (err) {
+      // swallow errors — localStorage may be unavailable in some environments
+      console.warn("Failed to clear student preview localStorage", err);
+    }
+  }, [studentPreviewStorageKeys]);
 
   // ✅ OPTIMIZATION: Use useReferenceData hook for cached reference data
   const {
@@ -442,6 +514,35 @@ export function ApplicantModal({
     fetchQuestionSets,
   ]);
 
+  const getStudentPreviewRoute = useCallback((payload: any) => {
+    const profile = payload?.student ?? payload ?? null;
+
+    const registrationDone = Boolean(
+      profile && profile.student_id && profile.dob && profile.gender,
+    );
+
+    const examSessions = Array.isArray(payload?.exam_sessions)
+      ? payload.exam_sessions
+      : [];
+    const testStarted = examSessions.length > 0;
+    const testCompleted = examSessions.some((session: any) => isExamSessionCompleted(session));
+    const allowRetest = Boolean(payload?.allow_retest ?? false);
+
+    if (!registrationDone) {
+      return "/students/details/instructions";
+    }
+
+    if (testStarted && !testCompleted) {
+      return "/students/test/start";
+    }
+
+    if (testCompleted && !allowRetest) {
+      return "/students/final-result";
+    }
+
+    return "/students/details/instructions";
+  }, [isExamSessionCompleted]);
+
   // Check Google sign-in status
   useEffect(() => {
     const checkSignInStatus = async () => {
@@ -456,6 +557,21 @@ export function ApplicantModal({
     };
     checkSignInStatus();
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const nextPhone =
+      currentApplicant?.phone_number ||
+      currentApplicant?.whatsapp_number ||
+      applicant?.phone_number ||
+      applicant?.whatsapp_number ||
+      "";
+
+    setStudentViewPhone(String(nextPhone || ""));
+  }, [isOpen, currentApplicant?.phone_number, currentApplicant?.whatsapp_number, applicant?.phone_number, applicant?.whatsapp_number]);
 
   // Fetch schedule data from API
   const fetchScheduleData = useCallback(async () => {
@@ -1294,8 +1410,10 @@ Interviewer: ${interviewerName}`;
     setIsCheckingEmail(true);
     try {
       const existingStudent = await getStudentDataByEmail(newEmail);
+      const existingStudentId = (existingStudent as any)?.student_id ?? (existingStudent as any)?.id ?? (existingStudent as any)?.studentId ?? null;
+      const currentStudentId = (currentApplicant as any)?.student_id ?? (currentApplicant as any)?.studentId ?? null;
 
-      if (existingStudent && existingStudent.id !== currentApplicant?.id) {
+      if (existingStudent && existingStudentId !== currentStudentId) {
         setEmailError("This email already exists, please use another email");
         setEmailExists(true);
         return false;
@@ -1336,6 +1454,68 @@ Interviewer: ${interviewerName}`;
   const handleTransitions = async () => {
     setShowTransitionsModal(true);
   };
+
+  const handleOpenStudentPreview = useCallback(async () => {
+    try {
+      const normalizedPhone = (studentViewPhone || "").trim();
+      const normalizedEmail = (currentApplicant?.email || "").trim();
+
+      // Use phone if available, otherwise use email
+      const identifier = normalizedPhone || normalizedEmail;
+
+      if (!identifier) {
+        toast({ title: "Error", description: "No phone number or email available", variant: "destructive" });
+        return;
+      }
+
+      ensureStudentPreviewStorageBackup();
+
+      // Use phone API if phone available, otherwise use email API
+      let resp;
+      if (normalizedPhone) {
+        resp = await getStudentDataByPhone(normalizedPhone);
+      } else {
+        resp = await getStudentDataByEmail(normalizedEmail);
+      }
+
+      const payload = (resp as any)?.data ?? resp ?? null;
+
+      if (!payload) {
+        toast({ title: "Error", description: "No student data available", variant: "destructive" });
+        return;
+      }
+
+      const profile = payload?.student ?? payload ?? null;
+      const mergedPayload: any = {
+        ...payload,
+        student: profile,
+      };
+      setStudentViewData(mergedPayload as any);
+
+      localStorage.setItem("studentData", JSON.stringify(mergedPayload));
+      const sid = profile?.student_id ?? profile?.id ?? profile?.studentId ?? null;
+      if (sid) localStorage.setItem("studentId", String(sid));
+
+      const route = getStudentPreviewRoute(mergedPayload);
+      const registrationDone = Boolean(profile && profile.student_id && profile.dob && profile.gender);
+      const examSessions = Array.isArray(mergedPayload?.exam_sessions) ? mergedPayload.exam_sessions : [];
+      const testStarted = examSessions.length > 0;
+      const testCompleted = examSessions.some((s: any) => isExamSessionCompleted(s));
+      const allowRetest = Boolean((mergedPayload as any)?.allow_retest ?? false);
+
+      localStorage.setItem("registrationDone", registrationDone ? "true" : "false");
+      localStorage.setItem("testStarted", testStarted ? "true" : "false");
+      localStorage.setItem("testCompleted", testCompleted ? "true" : "false");
+      localStorage.setItem("allowRetest", allowRetest ? "true" : "false");
+
+      setIframeSrc(route);
+      setShowEmbeddedStudent(true);
+      setShowStudentPreviewDialog(true);
+    } catch (err) {
+      console.error("Failed to open student page:", err);
+      toast({ title: "Error", description: "Failed to open student page", variant: "destructive" });
+    }
+  }, [studentViewPhone, currentApplicant?.email, toast]);
 
   const getLabel = (
     options: { value: string; label: string }[],
@@ -1911,7 +2091,7 @@ Interviewer: ${interviewerName}`;
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="max-w-[95vw] sm:max-w-[90vw] md:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6"
+          className="max-w-[95vw] sm:max-w-[90vw] md:max-w-6xl max-h-[86vh] overflow-y-auto p-0 flex flex-col"
           data-onboarding="applicant-details-modal"
           data-onboarding-portal-root="true"
           onPointerDownOutside={(event) => {
@@ -1924,10 +2104,10 @@ Interviewer: ${interviewerName}`;
             event.preventDefault();
           }}
         >
-          <DialogHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-            <div>
+          <DialogHeader className="sticky top-0 z-50 flex w-full flex-col gap-3 bg-white p-4 px-6 sm:flex-row sm:items-center sm:justify-between border-b shadow-sm">
+            <div className="min-w-0 flex-1">
               <DialogTitle
-                className="text-lg sm:text-xl"
+                className="text-xl font-bold text-gray-900"
                 data-onboarding="applicant-details-title"
               >
                 Applicant Details
@@ -1937,7 +2117,7 @@ Interviewer: ${interviewerName}`;
               </DialogDescription>
             </div>
             <div
-              className="flex items-center gap-2 mr-8"
+              className="flex flex-shrink-0 items-center justify-end gap-3 pr-4"
               data-onboarding="applicant-details-actions"
             >
               <ContextualHelpWidget
@@ -1967,7 +2147,8 @@ Interviewer: ${interviewerName}`;
                 showFloatingButton={
                   !showInterviewDetailsModal &&
                   !isScheduleModalOpen &&
-                  !showTransitionsModal
+                  !showTransitionsModal &&
+                  !showStudentPreviewDialog
                 }
                 floatingContainer="body"
                 showDemoButton={false}
@@ -1976,34 +2157,35 @@ Interviewer: ${interviewerName}`;
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleOpenStudentPreview}
+                className="flex items-center gap-2 hover:bg-pink-50 shadow-sm transition-all"
+                data-onboarding="applicant-details-student-preview"
+              >
+                Student Preview
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleTransitions}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:bg-pink-50 shadow-sm transition-all"
                 data-onboarding="applicant-details-transitions"
               >
                 Transitions
               </Button>
-              {/* <Button
-                variant="outline"
+              <Button
+                variant="ghost"
                 size="sm"
-                onClick={handleCommentsClick}
-                className="flex items-center gap-2"
+                onClick={onClose}
+                className="h-8 w-8 p-0 flex items-center justify-center"
               >
-                <MessageSquare className="h-4 w-4" />
-                Comments
-              </Button> */}
-              {/* <Button
-                variant="outline"
-                size="sm"
-                onClick={handleEditClick}
-                className="flex items-center gap-2"
-              >
-                <Edit className="h-4 w-4" />
-                Edit Details
-              </Button> */}
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </Button>
             </div>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 gap-4 sm:gap-6">
+          <div className="w-full px-3 sm:px-4 py-3 sm:py-4 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Personal Information */}
             <div className="space-y-4" data-onboarding="applicant-details-personal">
               <h3 className="text-base sm:text-lg font-semibold">Personal Information</h3>
@@ -2891,6 +3073,56 @@ Interviewer: ${interviewerName}`;
                 </div>
               </div>
             </div>
+        </div>
+          </div>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog
+      open={showStudentPreviewDialog}
+      onOpenChange={(open) => {
+        setShowStudentPreviewDialog(open);
+        if (!open) {
+          setShowEmbeddedStudent(false);
+          setIframeSrc("");
+          setStudentViewData(null);
+          setStudentViewPhone("");
+          clearStudentPreviewLocalStorage();
+        }
+      }}
+    >
+      <DialogContent className="max-w-[98vw] sm:max-w-6xl max-h-[95vh] overflow-y-auto p-3 sm:p-4">
+        <DialogHeader className="space-y-1">
+          <DialogTitle>Student View Preview</DialogTitle>
+          <DialogDescription>
+            Student page preview inside this modal.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+
+          {showEmbeddedStudent && (
+            <div className="overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
+              <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                <div className="flex-1">
+                  {/* Header section intentionally minimal */}
+                </div>
+                <div className="flex items-center gap-2">
+                 
+                  <Button size="sm" className="h-8 px-3 text-xs" onClick={() => window.open(iframeSrc || "/students/final-result", "_blank")}>
+                    Open in new tab
+                  </Button>
+                </div>
+              </div>
+              <div className="h-[72vh] w-full">
+                <iframe
+                  src={iframeSrc || "/students/final-result"}
+                  className="h-full w-full border-0"
+                  title="Student View Preview"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
