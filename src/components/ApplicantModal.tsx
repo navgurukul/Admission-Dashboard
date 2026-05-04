@@ -72,6 +72,7 @@ import {
   cancelScheduledInterview,
   updateScheduledInterview,
   getStudentDataByEmail,
+  getAdmissionStageStatusOptions,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
 // import { Input } from "@/components/ui/input";
@@ -331,10 +332,56 @@ export function ApplicantModal({
   }, [stateList]);
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [learningStatusOptions, setLearningStatusOptions] = useState<any[]>([]);
+  const [culturalStatusOptions, setCulturalStatusOptions] = useState<any[]>([]);
+  const [offerStatusOptions, setOfferStatusOptions] = useState<any[]>([]);
+  const [onboardedStatusOptions, setOnboardedStatusOptions] = useState<any[]>([]);
 
   // Confirmation dialog state for "Offer Sent"
   const [showOfferSentConfirmation, setShowOfferSentConfirmation] = useState(false);
   const [pendingOfferLetterValue, setPendingOfferLetterValue] = useState<string | null>(null);
+  const allowedOfferLetterStatusList = useMemo(
+    () => [
+      "Offer Pending",
+      "Offer Sent",
+      "Offer Accepted",
+      "Offer Declined",
+      "Waitlisted",
+      "Selected but not joined",
+    ],
+    []
+  );
+  const allowedOfferLetterStatuses = useMemo(
+    () => new Set(allowedOfferLetterStatusList),
+    []
+  );
+
+  const normalizeOfferLetterStatus = useCallback((value: string | null | undefined) => {
+    if (!value) return value;
+    const normalizedValue = value === "Offer Letter Sent" ? "Offer Sent" : value;
+    return allowedOfferLetterStatuses.has(normalizedValue) ? normalizedValue : normalizedValue;
+  }, [allowedOfferLetterStatuses]);
+
+  const interviewStageId = useMemo(() => {
+    const interviewStage = stages.find(
+      (stage) => stage.name?.toLowerCase() === "interview"
+    );
+    return interviewStage?.id ?? null;
+  }, [stages]);
+
+  const finalDecisionStageId = useMemo(() => {
+    const finalStage = stages.find(
+      (stage) => stage.name?.toLowerCase() === "final decision"
+    );
+    return finalStage?.id ?? null;
+  }, [stages]);
+
+  const onboardedStageId = useMemo(() => {
+    const onboardedStage = stages.find(
+      (stage) => stage.name?.toLowerCase() === "onboarded"
+    );
+    return onboardedStage?.id ?? null;
+  }, [stages]);
 
   // ✅ OPTIMIZATION: Load reference data on-demand (only when user clicks edit on specific field)
   const ensureFieldDataLoaded = useCallback(async (field: string) => {
@@ -425,6 +472,127 @@ export function ApplicantModal({
     fetchSchools,
     fetchStates,
     fetchQuestionSets,
+  ]);
+
+  useEffect(() => {
+    const ensureStageListLoaded = async () => {
+      if (!isOpen || stageList.length > 0) return;
+
+      try {
+        const stagesData = await getAllStages();
+        setStageList(stagesData || []);
+      } catch (error) {
+        console.error("Failed to fetch stages:", error);
+        setStageList([]);
+      }
+    };
+
+    ensureStageListLoaded();
+  }, [isOpen, stageList.length]);
+
+  useEffect(() => {
+    const loadDynamicStageStatuses = async () => {
+      try {
+        if (interviewStageId) {
+          const learningOptions = await getAdmissionStageStatusOptions(
+            interviewStageId,
+            (status) => {
+              const name = (
+                status.status_name ||
+                status.current_status_name ||
+                status.name ||
+                ""
+              ).toLowerCase();
+
+              return (
+                name.includes("learning") ||
+                name.includes("reschedule") ||
+                name.includes("no show")
+              );
+            }
+          );
+
+          const culturalOptions = await getAdmissionStageStatusOptions(
+            interviewStageId,
+            (status) => {
+              const name = (
+                status.status_name ||
+                status.current_status_name ||
+                status.name ||
+                ""
+              ).toLowerCase();
+
+              return (
+                name.includes("culture") ||
+                name.includes("cultural") ||
+                name.includes("reschedule") ||
+                name.includes("no show")
+              );
+            }
+          );
+
+          setLearningStatusOptions(learningOptions);
+          setCulturalStatusOptions(culturalOptions);
+        } else {
+          setLearningStatusOptions([]);
+          setCulturalStatusOptions([]);
+        }
+
+        if (finalDecisionStageId) {
+          const finalOptions = await getAdmissionStageStatusOptions(
+            finalDecisionStageId
+          );
+          const normalizedFinalOptions = finalOptions
+            .map((option) => ({
+              ...option,
+              value: normalizeOfferLetterStatus(option.value),
+              label: normalizeOfferLetterStatus(option.label),
+            }))
+            .filter((option) => option.value && allowedOfferLetterStatuses.has(option.value));
+
+          const mergedFinalOptions = allowedOfferLetterStatusList.map((statusLabel) => {
+            const matchedOption = normalizedFinalOptions.find(
+              (option) => option.value === statusLabel
+            );
+
+            return (
+              matchedOption || {
+                value: statusLabel,
+                label: statusLabel,
+                stage_id: finalDecisionStageId,
+              }
+            );
+          });
+
+          setOfferStatusOptions(mergedFinalOptions);
+        } else {
+          setOfferStatusOptions([]);
+        }
+
+        if (onboardedStageId) {
+          const onboardedOptions = await getAdmissionStageStatusOptions(
+            onboardedStageId
+          );
+          setOnboardedStatusOptions(onboardedOptions);
+        } else {
+          setOnboardedStatusOptions([]);
+        }
+      } catch (error) {
+        console.error("Failed to load dynamic stage status options:", error);
+      }
+    };
+
+    if (isOpen) {
+      loadDynamicStageStatuses();
+    }
+  }, [
+    isOpen,
+    interviewStageId,
+    finalDecisionStageId,
+    onboardedStageId,
+    normalizeOfferLetterStatus,
+    allowedOfferLetterStatuses,
+    allowedOfferLetterStatusList,
   ]);
 
   // Check Google sign-in status
@@ -1046,8 +1214,11 @@ Interviewer: ${interviewerName}`;
 
   // Handler for "Offer Sent" confirmation
   const handleOfferLetterStatusChange = async (value: any) => {
+    const normalizedValue = normalizeOfferLetterStatus(value);
     // Get current offer letter status
-    const currentOfferStatus = currentApplicant.final_decisions?.[0]?.offer_letter_status;
+    const currentOfferStatus = normalizeOfferLetterStatus(
+      currentApplicant.final_decisions?.[0]?.offer_letter_status
+    );
 
     if (!currentApplicant.campus_id) {
       toast({
@@ -1059,8 +1230,19 @@ Interviewer: ${interviewerName}`;
       return;
     }
 
+    if (!allowedOfferLetterStatuses.has(normalizedValue)) {
+      toast({
+        title: "Invalid Offer Status",
+        description:
+          "Allowed values: Offer Pending, Offer Sent, Offer Accepted, Offer Declined, Waitlisted, Selected but not joined",
+        variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
+      });
+      return;
+    }
+
     // Prevent changing back to "Offer Pending" if already sent or beyond
-    if (value === "Offer Pending" && currentOfferStatus && currentOfferStatus !== "Offer Pending") {
+    if (normalizedValue === "Offer Pending" && currentOfferStatus && currentOfferStatus !== "Offer Pending") {
       toast({
         title: "❌ Action Not Allowed",
         description: `Cannot change status back to "Offer Pending" from "${currentOfferStatus}". Once an offer has progressed beyond pending status, it cannot be reverted to pending.`,
@@ -1071,7 +1253,7 @@ Interviewer: ${interviewerName}`;
       return; // Don't proceed with the update
     }
 
-    if (value === "Offer Sent") {
+    if (normalizedValue === "Offer Sent") {
       // Prevent sending offer again if already sent
       if (currentOfferStatus === "Offer Sent") {
         toast({
@@ -1085,12 +1267,12 @@ Interviewer: ${interviewerName}`;
       }
 
       // Show confirmation dialog before proceeding
-      setPendingOfferLetterValue(value);
+      setPendingOfferLetterValue(normalizedValue);
       setShowOfferSentConfirmation(true);
       return;
     }
     // For other values, proceed directly
-    await handleFinalDecisionUpdate("offer_letter_status", value);
+    await handleFinalDecisionUpdate("offer_letter_status", normalizedValue);
   };
 
   // Confirm "Offer Sent" selection
@@ -1111,6 +1293,11 @@ Interviewer: ${interviewerName}`;
   const handleFinalDecisionUpdate = async (field: string, value: any) => {
     if (!currentApplicant?.id) return;
     try {
+      const normalizedValue =
+        field === "offer_letter_status"
+          ? normalizeOfferLetterStatus(value)
+          : value;
+
       // Use existing local state instead of fetching again
       const existingDecision = currentApplicant?.final_decisions?.[0] || {};
 
@@ -1130,40 +1317,49 @@ Interviewer: ${interviewerName}`;
         final_notes: existingDecision.final_notes ?? null,
         joining_date: currentJoiningDate || null,
         stage_id: existingDecision.stage_id ?? null,
+        stage_status_id: existingDecision.stage_status_id ?? null,
       };
 
       // Override with the new value being updated
       if (field === "joining_date") {
         payload.joining_date = value !== "" ? value : null;
       } else {
-        payload[field] = value;
+        payload[field] = normalizedValue;
       }
 
-      // Determine stage_id based on offer_letter_status and onboarded_status
+      // Determine stage_id/stage_status_id based on selected dynamic options
       const offerLetterStatus = payload.offer_letter_status;
       const onboardedStatus = payload.onboarded_status;
 
-      // Find stage IDs by name
-      const finalDecisionStage = stages.find(
-        (s) => s.name === "Final Decision"
-      );
-      const onboardedStage = stages.find((s) => s.name === "Onboarded");
-
       let newStageId = payload.stage_id; // Keep existing stage by default
+      let newStageStatusId = payload.stage_status_id;
+
+      if (field === "offer_letter_status") {
+        const selectedOfferOption = offerStatusOptions.find(
+          (option) => option.value === normalizedValue
+        );
+        newStageId = selectedOfferOption?.stage_id ?? finalDecisionStageId ?? newStageId;
+        newStageStatusId = selectedOfferOption?.stage_status_id ?? null;
+      }
+
+      if (field === "onboarded_status") {
+        const selectedOnboardedOption = onboardedStatusOptions.find(
+          (option) => option.value === value
+        );
+        newStageId = selectedOnboardedOption?.stage_id ?? onboardedStageId ?? newStageId;
+        newStageStatusId = selectedOnboardedOption?.stage_status_id ?? null;
+      }
 
       if (offerLetterStatus != null && onboardedStatus != null) {
-        // Both offer letter and onboarded exist -> stage 5 (Onboarded)
-        newStageId = onboardedStage?.id || 5;
+        newStageId = onboardedStageId ?? newStageId;
       } else if (offerLetterStatus != null && onboardedStatus == null) {
-        // Only offer letter exists -> stage 4 (Final Decision)
-        newStageId = finalDecisionStage?.id || 4;
+        newStageId = finalDecisionStageId ?? newStageId;
       } else if (onboardedStatus != null) {
-        // Only onboarded exists -> stage 5 (Onboarded)
-        newStageId = onboardedStage?.id || 5;
+        newStageId = onboardedStageId ?? newStageId;
       }
-      // else: keep existing stage (newStageId remains payload.stage_id)
 
       payload.stage_id = newStageId;
+      payload.stage_status_id = newStageStatusId;
 
       await submitFinalDecision(payload);
 
@@ -1173,9 +1369,10 @@ Interviewer: ${interviewerName}`;
         final_decisions: [
           {
             ...existingDecision,
-            [field]: value,
+            [field]: normalizedValue,
             joining_date: field === "joining_date" ? value : currentJoiningDate,
             stage_id: newStageId,
+            stage_status_id: newStageStatusId,
           },
         ],
       }));
@@ -1641,6 +1838,8 @@ Interviewer: ${interviewerName}`;
         return schedules.map((schedule: any) => ({
           id: null, // No ID means it's a placeholder
           learning_round_status: "",
+          stage_id: interviewStageId ?? null,
+          stage_status_id: null,
           comments: "",
           schedule_info: [schedule], // Pass single schedule as array
           audit_info: {
@@ -1659,6 +1858,8 @@ Interviewer: ${interviewerName}`;
         
         return {
           ...round,
+          stage_id: round.stage_id ?? interviewStageId ?? null,
+          stage_status_id: round.stage_status_id ?? null,
           schedule_info: scheduleForThisRow,
           audit_info: {
             created_at: round.created_at || "",
@@ -1668,7 +1869,7 @@ Interviewer: ${interviewerName}`;
         };
       });
     },
-    [currentApplicant, liveScheduleData]
+    [currentApplicant, liveScheduleData, interviewStageId]
   );
 
   // Map cultural fit round data with audit info and schedule info from API
@@ -1694,6 +1895,8 @@ Interviewer: ${interviewerName}`;
         return schedules.map((schedule: any) => ({
           id: null, // No ID means it's a placeholder
           cultural_fit_status: "",
+          stage_id: interviewStageId ?? null,
+          stage_status_id: null,
           comments: "",
           schedule_info: [schedule], // Pass single schedule as array
           audit_info: {
@@ -1712,6 +1915,8 @@ Interviewer: ${interviewerName}`;
         
         return {
           ...round,
+          stage_id: round.stage_id ?? interviewStageId ?? null,
+          stage_status_id: round.stage_status_id ?? null,
           schedule_info: scheduleForThisRow,
           audit_info: {
             created_at: round.created_at || "",
@@ -1721,7 +1926,7 @@ Interviewer: ${interviewerName}`;
         };
       });
     },
-    [currentApplicant, liveScheduleData]
+    [currentApplicant, liveScheduleData, interviewStageId]
   );
 
   // Early return AFTER all hooks
@@ -2180,18 +2385,7 @@ Interviewer: ${interviewerName}`;
                     label: "Status *",
                     type: "select" as const,
                     disabled: isStageDisabled(currentApplicant, "LR") || isLearningPassed,
-                    options: [
-                      {
-                        value:"Learning Round Pass",
-                        label: "Learning Round Pass"
-                      },
-                      {
-                        value: "Learning Round Fail",
-                        label: "Learning Round Fail",
-                      },
-                      { value: "Reschedule", label: "Reschedule" },
-                      { value: "No Show", label: "No Show" },
-                    ],
+                    options: learningStatusOptions,
                   },
                   {
                     name: "school_id",
@@ -2289,18 +2483,7 @@ Interviewer: ${interviewerName}`;
                     label: "Status *",
                     type: "select" as const,
                     disabled: isStageDisabled(currentApplicant, "CFR") || isCulturalPassed,
-                    options: [
-                      {
-                        value: " Culture Fit Round Pass",
-                        label: " Culture Fit Round Pass",
-                      },
-                      {
-                        value: " Culture Fit Round Fail",
-                        label: " Culture Fit Round Fail",
-                      },
-                      { value: "Reschedule", label: "Reschedule" },
-                      { value: "No Show", label: "No Show" },
-                    ],
+                    options: culturalStatusOptions,
                   },
                   {
                     name: "comments",
@@ -2409,26 +2592,7 @@ Interviewer: ${interviewerName}`;
                                 currentApplicant.final_decisions?.[0]
                                   ?.offer_letter_status || ""
                               }
-                              options={[
-                                {
-                                  value: "Offer Pending",
-                                  label: "Offer Pending",
-                                },
-                                { value: "Offer Sent", label: "Offer Sent" },
-                                {
-                                  value: "Offer Accepted",
-                                  label: "Offer Accepted",
-                                },
-                                {
-                                  value: "Offer Declined",
-                                  label: "Offer Declined",
-                                },
-                                { value: "Waitlisted", label: "Waitlisted" },
-                                {
-                                  value: "Selected but not joined",
-                                  label: "Selected but not joined",
-                                },
-                              ]}
+                              options={offerStatusOptions}
                               disabled={true}
                               onUpdate={async (value) => {
                                 await handleOfferLetterStatusChange(value);
@@ -2453,17 +2617,7 @@ Interviewer: ${interviewerName}`;
                         currentApplicant.final_decisions?.[0]
                           ?.offer_letter_status || ""
                       }
-                      options={[
-                        { value: "Offer Pending", label: "Offer Pending" },
-                        { value: "Offer Sent", label: "Offer Sent" },
-                        { value: "Offer Accepted", label: "Offer Accepted" },
-                        { value: "Offer Declined", label: "Offer Declined" },
-                        { value: "Waitlisted", label: "Waitlisted" },
-                        {
-                          value: "Selected but not joined",
-                          label: "Selected but not joined",
-                        },
-                      ]}
+                      options={offerStatusOptions}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
@@ -2492,9 +2646,7 @@ Interviewer: ${interviewerName}`;
                                 currentApplicant.final_decisions?.[0]
                                   ?.onboarded_status || ""
                               }
-                              options={[
-                                { value: "Onboarded", label: "Onboarded" },
-                              ]}
+                              options={onboardedStatusOptions}
                               disabled={true}
                               onUpdate={async (value) => {
                                 await handleFinalDecisionUpdate(
@@ -2522,7 +2674,7 @@ Interviewer: ${interviewerName}`;
                         currentApplicant.final_decisions?.[0]
                           ?.onboarded_status || ""
                       }
-                      options={[{ value: "Onboarded", label: "Onboarded" }]}
+                      options={onboardedStatusOptions}
                       disabled={!hasEditAccess}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(

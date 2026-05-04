@@ -31,7 +31,12 @@ interface RowField {
   name: string;
   label: string;
   type: "text" | "number" | "select" | "component" | "readonly";
-  options?: { value: string; label: string }[];
+  options?: {
+    value: string;
+    label: string;
+    stage_id?: number;
+    stage_status_id?: number;
+  }[];
   component?: React.ComponentType<any>;
   disabled?: boolean;
 }
@@ -76,6 +81,8 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
       exam_centre: row.exam_centre || null,
       date_of_test: row.date_of_test || null,
       status: statusVal,
+      stage_id: row.stage_id || null,
+      stage_status_id: row.stage_status_id || null,
     };
     return row.id ? payload : { student_id: studentId, ...payload };
   }
@@ -84,12 +91,16 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
     return row.id
       ? {
         learning_round_status: row.learning_round_status,
+        stage_id: row.stage_id || null,
+        stage_status_id: row.stage_status_id || null,
         school_id: row.school_id || null,
         comments: row.comments,
       }
       : {
         student_id: studentId,
         learning_round_status: row.learning_round_status,
+        stage_id: row.stage_id || null,
+        stage_status_id: row.stage_status_id || null,
         school_id: row.school_id || null,
         comments: row.comments,
       };
@@ -97,11 +108,15 @@ function mapPayload(row: any, fields: RowField[], studentId?: number | string) {
     return row.id
       ? {
         cultural_fit_status: row.cultural_fit_status,
+        stage_id: row.stage_id || null,
+        stage_status_id: row.stage_status_id || null,
         comments: row.comments,
       }
       : {
         student_id: studentId,
         cultural_fit_status: row.cultural_fit_status,
+        stage_id: row.stage_id || null,
+        stage_status_id: row.stage_status_id || null,
         comments: row.comments,
       };
   }
@@ -166,6 +181,22 @@ const EditableCell = ({ row, field, isEditable, updateRow }: any) => {
           // Convert CLEAR_SELECTION back to empty string
           const actualValue = val === "CLEAR_SELECTION" ? "" : val;
           updateRow(field.name, actualValue);
+
+          const selectedOption = field.options?.find(
+            (opt) => opt.value === actualValue
+          );
+
+          if (selectedOption?.stage_id !== undefined) {
+            updateRow("stage_id", selectedOption.stage_id);
+          }
+
+          if (selectedOption?.stage_status_id !== undefined) {
+            updateRow("stage_status_id", selectedOption.stage_status_id);
+          }
+
+          if (!selectedOption && actualValue === "") {
+            updateRow("stage_status_id", null);
+          }
         }}
         disabled={isDisabled}
       >

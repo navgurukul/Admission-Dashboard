@@ -445,10 +445,18 @@ export const submitLearningRound = async (row: any) => {
   });
 
   if (response.ok && row.student_id) {
-    const data = await response.clone().json();
-    const status = row.learning_round_status || data?.data?.learning_round_status || data?.learning_round_status;
-    if (status) {
-      await triggerStudentStatusUpdate(row.student_id, "learning", status);
+    if (row.stage_id && row.stage_status_id) {
+      await syncStudentStageStatus({
+        studentId: row.student_id,
+        stageId: Number(row.stage_id),
+        stageStatusId: Number(row.stage_status_id),
+      });
+    } else {
+      const data = await response.clone().json();
+      const status = row.learning_round_status || data?.data?.learning_round_status || data?.learning_round_status;
+      if (status) {
+        await triggerStudentStatusUpdate(row.student_id, "learning", status);
+      }
     }
   }
   return response;
@@ -464,9 +472,17 @@ export const updateLearningRound = async (id: number, row: any) => {
   if (response.ok) {
     // For updates, we might need to get student_id if not in row
     const studentId = row.student_id;
-    const status = row.learning_round_status;
-    if (studentId && status) {
-      await triggerStudentStatusUpdate(studentId, "learning", status);
+    if (studentId && row.stage_id && row.stage_status_id) {
+      await syncStudentStageStatus({
+        studentId,
+        stageId: Number(row.stage_id),
+        stageStatusId: Number(row.stage_status_id),
+      });
+    } else {
+      const status = row.learning_round_status;
+      if (studentId && status) {
+        await triggerStudentStatusUpdate(studentId, "learning", status);
+      }
     }
   }
   return response;
@@ -481,10 +497,18 @@ export const submitScreeningRound = async (row: any) => {
   });
 
   if (response.ok && row.student_id) {
-    const data = await response.clone().json();
-    const status = row.status || data?.data?.status || data?.status;
-    if (status) {
-      await triggerStudentStatusUpdate(row.student_id, "screening", status);
+    if (row.stage_id && row.stage_status_id) {
+      await syncStudentStageStatus({
+        studentId: row.student_id,
+        stageId: Number(row.stage_id),
+        stageStatusId: Number(row.stage_status_id),
+      });
+    } else {
+      const data = await response.clone().json();
+      const status = row.status || data?.data?.status || data?.status;
+      if (status) {
+        await triggerStudentStatusUpdate(row.student_id, "screening", status);
+      }
     }
   }
   return response;
@@ -499,9 +523,17 @@ export const updateScreeningRound = async (id: number, row: any) => {
 
   if (response.ok) {
     const studentId = row.student_id;
-    const status = row.status;
-    if (studentId && status) {
-      await triggerStudentStatusUpdate(studentId, "screening", status);
+    if (studentId && row.stage_id && row.stage_status_id) {
+      await syncStudentStageStatus({
+        studentId,
+        stageId: Number(row.stage_id),
+        stageStatusId: Number(row.stage_status_id),
+      });
+    } else {
+      const status = row.status;
+      if (studentId && status) {
+        await triggerStudentStatusUpdate(studentId, "screening", status);
+      }
     }
   }
   return response;
@@ -516,10 +548,18 @@ export const submitCulturalFit = async (row: any) => {
   });
 
   if (response.ok && row.student_id) {
-    const data = await response.clone().json();
-    const status = row.cultural_fit_status || data?.data?.cultural_fit_status || data?.cultural_fit_status;
-    if (status) {
-      await triggerStudentStatusUpdate(row.student_id, "cultural", status);
+    if (row.stage_id && row.stage_status_id) {
+      await syncStudentStageStatus({
+        studentId: row.student_id,
+        stageId: Number(row.stage_id),
+        stageStatusId: Number(row.stage_status_id),
+      });
+    } else {
+      const data = await response.clone().json();
+      const status = row.cultural_fit_status || data?.data?.cultural_fit_status || data?.cultural_fit_status;
+      if (status) {
+        await triggerStudentStatusUpdate(row.student_id, "cultural", status);
+      }
     }
   }
   return response;
@@ -534,9 +574,17 @@ export const updateCulturalFit = async (id: number, row: any) => {
 
   if (response.ok) {
     const studentId = row.student_id;
-    const status = row.cultural_fit_status;
-    if (studentId && status) {
-      await triggerStudentStatusUpdate(studentId, "cultural", status);
+    if (studentId && row.stage_id && row.stage_status_id) {
+      await syncStudentStageStatus({
+        studentId,
+        stageId: Number(row.stage_id),
+        stageStatusId: Number(row.stage_status_id),
+      });
+    } else {
+      const status = row.cultural_fit_status;
+      if (studentId && status) {
+        await triggerStudentStatusUpdate(studentId, "cultural", status);
+      }
     }
   }
   return response;
@@ -554,9 +602,102 @@ export const updateStudentStatus = async (payload: {
   });
 };
 
-/**
- * Helper to trigger student status update based on round and feedback status
- */
+export type AdmissionStageOption = {
+  id: number;
+  stage_name?: string;
+  name?: string;
+};
+
+export type AdmissionStageStatusOption = {
+  id: number;
+  stage_id: number;
+  status_name?: string;
+  current_status_name?: string;
+  name?: string;
+};
+
+let admissionStagesCache: AdmissionStageOption[] | null = null;
+const admissionStageStatusesCache = new Map<number, AdmissionStageStatusOption[]>();
+
+const getStageDisplayName = (stage: AdmissionStageOption) =>
+  stage.stage_name || stage.name || "";
+
+const getStatusDisplayName = (status: AdmissionStageStatusOption) =>
+  status.status_name || status.current_status_name || status.name || "";
+
+export const clearAdmissionStageMetadataCache = () => {
+  admissionStagesCache = null;
+  admissionStageStatusesCache.clear();
+};
+
+export const getAdmissionStages = async (): Promise<AdmissionStageOption[]> => {
+  if (admissionStagesCache) return admissionStagesCache;
+
+  const stages = await getStagesApi();
+  admissionStagesCache = stages;
+  return stages;
+};
+
+export const getAdmissionStageStatuses = async (
+  stageId: number
+): Promise<AdmissionStageStatusOption[]> => {
+  if (admissionStageStatusesCache.has(stageId)) {
+    return admissionStageStatusesCache.get(stageId) || [];
+  }
+
+  const statuses = await getStatusesByStageId(stageId);
+  admissionStageStatusesCache.set(stageId, statuses);
+  return statuses;
+};
+
+export const getAdmissionStageOptions = async () => {
+  const stages = await getAdmissionStages();
+
+  return stages.map((stage) => ({
+    value: String(stage.id),
+    label: getStageDisplayName(stage),
+    stage_id: stage.id,
+  }));
+};
+
+export const getAdmissionStageStatusOptions = async (
+  stageId: number,
+  filterFn?: (status: AdmissionStageStatusOption) => boolean
+) => {
+  const statuses = await getAdmissionStageStatuses(stageId);
+  const filteredStatuses = filterFn ? statuses.filter(filterFn) : statuses;
+
+  return filteredStatuses.map((status) => ({
+    value: getStatusDisplayName(status),
+    label: getStatusDisplayName(status),
+    stage_id: stageId,
+    stage_status_id: status.id,
+  }));
+};
+
+export const syncStudentStageStatus = async ({
+  studentId,
+  stageId,
+  stageStatusId,
+}: {
+  studentId: number;
+  stageId?: number | null;
+  stageStatusId?: number | null;
+}) => {
+  if (!studentId || !stageId || !stageStatusId) return;
+
+  try {
+    await updateStudentStatus({
+      student_id: studentId,
+      stage_id: stageId,
+      stage_status_id: stageStatusId,
+    });
+  } catch (error) {
+    console.error("Failed to sync student stage/status automatically:", error);
+  }
+};
+
+/*
 export const triggerStudentStatusUpdate = async (
   studentId: number,
   roundType: "screening" | "learning" | "cultural" | "final" | "onboarded",
@@ -613,6 +754,14 @@ export const triggerStudentStatusUpdate = async (
     }
   }
 };
+*/
+
+// Legacy fallback. Kept as a no-op so older callsites do not break during cleanup.
+export const triggerStudentStatusUpdate = async (
+  _studentId: number,
+  _roundType: "screening" | "learning" | "cultural" | "final" | "onboarded",
+  _status: string
+) => {};
 
 // Delete APIs for feedback rounds
 export const deleteScreeningRoundFeedback = async (id: number) => {
@@ -674,7 +823,13 @@ export const submitFinalDecision = async (payload: any) => {
   });
 
   if (response.ok && payload.student_id) {
-    if (payload.onboarded_status) {
+    if (payload.stage_id && payload.stage_status_id) {
+      await syncStudentStageStatus({
+        studentId: payload.student_id,
+        stageId: Number(payload.stage_id),
+        stageStatusId: Number(payload.stage_status_id),
+      });
+    } else if (payload.onboarded_status) {
       await triggerStudentStatusUpdate(payload.student_id, "onboarded", payload.onboarded_status);
     } else if (payload.offer_letter_status) {
       await triggerStudentStatusUpdate(payload.student_id, "final", payload.offer_letter_status);
