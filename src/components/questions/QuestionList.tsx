@@ -6,6 +6,7 @@ import { Edit, Archive, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useLanguage } from "@/routes/LaunguageContext";
 import { Language } from "@/utils/student.types";
+import { QuestionFormattedText } from "./QuestionFormattedText";
 
 interface Question {
   id: number;
@@ -176,13 +177,11 @@ export function QuestionList({
                     )}
                   </div>
 
-                  <h3 className="font-medium text-sm mb-2">
-                    <div className="space-y-1">
-                      <div className="whitespace-pre-line">
-                        {getQuestionTextByLanguage(question)}
-                      </div>
-                    </div>
-                  </h3>
+                  <div className="mb-2">
+                    <QuestionFormattedText
+                      text={getQuestionTextByLanguage(question)}
+                    />
+                  </div>
 
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>
