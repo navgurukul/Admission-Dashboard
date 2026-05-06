@@ -715,7 +715,7 @@ export function InlineSubform({
 
   return (
     <div
-      className="space-y-3 border rounded-lg p-4 max-h-[60vh] overflow-auto"
+      className="min-w-0 space-y-3 border rounded-lg p-4 max-h-[60vh] max-w-full overflow-auto"
       data-onboarding={containerId}
     >
       <div className="flex justify-between items-center mb-2">
@@ -759,16 +759,24 @@ export function InlineSubform({
       </div>
 
       {/* Table container: allow vertical and horizontal scrolling if content is large */}
-      <div className="overflow-x-auto w-full max-h-[48vh] overflow-auto">
+      <div className="min-w-0 max-w-full overflow-x-auto w-full max-h-[50vh] overflow-auto border rounded-md">
         <table className="w-full min-w-full border-collapse text-sm table-auto">
           <thead>
             <tr className="bg-gray-100 text-left font-medium text-gray-700">
               {visibleFields.map((f) => (
-                <th key={f.name} className="px-3 py-2 border-b whitespace-nowrap">
+                <th 
+                  key={f.name} 
+                  className={`px-3 py-2 border-b whitespace-nowrap ${
+                    f.name === "audit_info" ? "min-w-[280px]" : 
+                    f.name === "status" || f.name.includes("status") ? "min-w-[200px]" :
+                    f.name === "obtained_marks" ? "min-w-[150px]" :
+                    "min-w-[120px]"
+                  }`}
+                >
                   {f.label}
                 </th>
               ))}
-              <th className="px-3 py-2 border-b text-right whitespace-nowrap">Actions</th>
+              <th className="px-3 py-2 border-b text-right whitespace-nowrap min-w-[100px]">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -787,14 +795,14 @@ export function InlineSubform({
                     <td
                       key={f.name}
                       className={`px-3 py-2 align-top ${isTextAreaField
-                        ? "whitespace-pre-wrap break-words w-full min-w-[250px] max-w-[400px]"
+                        ? "whitespace-pre-wrap break-words min-w-[250px] max-w-[400px]"
                         : f.name === "audit_info"
-                          ? "w-auto min-w-[280px] max-w-[320px]"
+                          ? "min-w-[280px] max-w-[320px]"
                           : isAuditField
-                            ? "w-auto min-w-[200px]"
+                            ? "min-w-[200px]"
                             : isStatusField
-                              ? "w-auto min-w-[250px] max-w-[300px]"
-                              : "w-auto"
+                              ? "min-w-[200px] max-w-[300px]"
+                              : "min-w-[120px]"
                         }`}
                     >
                       {!isEditable && f.type === "component" && f.component ? (

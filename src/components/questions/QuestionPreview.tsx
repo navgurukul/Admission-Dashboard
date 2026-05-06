@@ -6,12 +6,36 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Clock, Award } from "lucide-react";
+import { QuestionFormattedText } from "./QuestionFormattedText";
+import { useLanguage } from "@/routes/LaunguageContext";
 
 interface QuestionPreviewProps {
   question: any;
 }
 
 export function QuestionPreview({ question }: QuestionPreviewProps) {
+  const { selectedLanguage } = useLanguage();
+
+  const renderRichQuestionText = () => {
+    // choose language-specific text if available
+    let questionText: any = "";
+    if (question?.question_text && typeof question.question_text === "object") {
+      questionText = question.question_text[selectedLanguage] || question.question_text.english || "";
+    } else if (question?.[`${selectedLanguage}_text`]) {
+      questionText = question[`${selectedLanguage}_text`];
+    } else if (question?.question_text) {
+      questionText = question.question_text;
+    } else if (question?.question) {
+      questionText = question.question;
+    }
+
+    if (typeof questionText === "string" && questionText.includes("<")) {
+      return <div dangerouslySetInnerHTML={{ __html: questionText }} />;
+    }
+
+    return <QuestionFormattedText text={String(questionText)} />;
+  };
+
   const renderQuestionContent = () => {
     switch (question.question_type) {
       case "multiple_choice":
@@ -21,7 +45,7 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
               {question.options?.map((option, index) => (
                 <div key={option.id} className="flex items-center space-x-2">
                   <RadioGroupItem value={option.id} id={option.id} />
-                  <Label htmlFor={option.id} className="font-normal">
+                  <Label htmlFor={option.id} className="font-normal text-base">
                     {option.text}
                   </Label>
                 </div>
@@ -35,13 +59,13 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
           <RadioGroup>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="true" id="true" />
-              <Label htmlFor="true" className="font-normal">
+              <Label htmlFor="true" className="font-normal text-base">
                 True
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="false" id="false" />
-              <Label htmlFor="false" className="font-normal">
+              <Label htmlFor="false" className="font-normal text-base">
                 False
               </Label>
             </div>
@@ -73,8 +97,8 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
       case "fill_in_blank":
         return (
           <div className="space-y-2">
-            <div dangerouslySetInnerHTML={{ __html: question.question_text }} />
-            <p className="text-sm text-muted-foreground">
+            {renderRichQuestionText()}
+            <p className="text-base text-muted-foreground">
               Fill in the blanks in the question above
             </p>
           </div>
@@ -134,10 +158,8 @@ export function QuestionPreview({ question }: QuestionPreviewProps) {
         <CardContent className="space-y-4">
           {/* Question Text */}
           {question.question_type !== "fill_in_blank" && (
-            <div className="prose prose-sm max-w-none">
-              <div
-                dangerouslySetInnerHTML={{ __html: question.question_text }}
-              />
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm text-slate-900">
+              {renderRichQuestionText()}
             </div>
           )}
 
