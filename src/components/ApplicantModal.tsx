@@ -183,6 +183,11 @@ export function ApplicantModal({
 }: ApplicantModalProps) {
   const { toast } = useToast();
   const { hasEditAccess, isAdmin, user } = usePermissions();
+  const isTeamUser = useMemo(() => {
+    const roleName = String(user?.role_name || "").trim().toLowerCase();
+    return Number(user?.user_role_id) === 3 || roleName === "team";
+  }, [user?.role_name, user?.user_role_id]);
+  const canEditApplicantDetails = hasEditAccess && !isTeamUser;
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTransitionsModal, setShowTransitionsModal] = useState(false);
@@ -2201,7 +2206,7 @@ Interviewer: ${interviewerName}`;
                       currentApplicant?.first_name || ""
                     }
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2215,7 +2220,7 @@ Interviewer: ${interviewerName}`;
                       currentApplicant?.middle_name || ""
                     }
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2227,7 +2232,7 @@ Interviewer: ${interviewerName}`;
                     field="last_name"
                     displayValue={currentApplicant?.last_name || ""}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2242,7 +2247,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     onEditStart={() => setEmailError("")}
                     error={emailError}
-                    disabled={!hasEditAccess || isCheckingEmail}
+                    disabled={!canEditApplicantDetails || isCheckingEmail}
                   />
                 </div>
                 <div>
@@ -2254,7 +2259,7 @@ Interviewer: ${interviewerName}`;
                     field="phone_number"
                     displayValue={currentApplicant.phone_number}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2268,7 +2273,7 @@ Interviewer: ${interviewerName}`;
                       currentApplicant.whatsapp_number || ""
                     }
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
 
@@ -2286,7 +2291,7 @@ Interviewer: ${interviewerName}`;
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2301,7 +2306,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={castes}
                     onEditStart={() => ensureFieldDataLoaded('cast_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2321,7 +2326,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={qualifications}
                     onEditStart={() => ensureFieldDataLoaded('qualification_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
 
@@ -2340,7 +2345,7 @@ Interviewer: ${interviewerName}`;
                         displayValue={currentApplicant.graduation_year || "—"}
                         onUpdate={handleUpdate}
                         options={graduationYearOptions}
-                        disabled={!hasEditAccess}
+                        disabled={!canEditApplicantDetails}
                       />
                     </div>
                     <div>
@@ -2354,7 +2359,7 @@ Interviewer: ${interviewerName}`;
                         displayValue={currentApplicant.graduation_mode || "—"}
                         onUpdate={handleUpdate}
                         options={graduationModeOptions}
-                        disabled={!hasEditAccess}
+                        disabled={!canEditApplicantDetails}
                       />
                     </div>
                   </>
@@ -2376,7 +2381,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={currentWorks}
                     onEditStart={() => ensureFieldDataLoaded('current_status_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2391,7 +2396,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleStateChange}
                     options={stateOptions}
                     onEditStart={() => ensureFieldDataLoaded('state')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 {/* <div>
@@ -2417,7 +2422,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleDistrictChange}
                     options={districtOptions}
                     disabled={
-                      !hasEditAccess || !selectedState || isLoadingDistricts
+                      !canEditApplicantDetails || !selectedState || isLoadingDistricts
                     }
                     placeholder={!selectedState ? "Select state first" : "Select district"}
                   />
@@ -2434,7 +2439,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleBlockChange}
                     options={blockOptions}
                     disabled={
-                      !hasEditAccess || !selectedDistrict || isLoadingBlocks
+                      !canEditApplicantDetails || !selectedDistrict || isLoadingBlocks
                     }
                     placeholder={!selectedDistrict ? "Select district first" : "Select block"}
                   />
@@ -2448,7 +2453,7 @@ Interviewer: ${interviewerName}`;
                     field="pin_code"
                     displayValue={currentApplicant.pin_code || ""}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2463,7 +2468,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={partners}
                     onEditStart={() => ensureFieldDataLoaded('partner_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2478,7 +2483,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={donors}
                     onEditStart={() => ensureFieldDataLoaded('donor_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2539,11 +2544,12 @@ Interviewer: ${interviewerName}`;
             submitApi={screeningSubmit}
             updateApi={screeningUpdate}
             deleteApi={API_MAP.screening.delete}
-            canDelete={isAdmin}
+            canDelete={isAdmin && !isTeamUser}
             disableDelete={hasLearningRoundData}
             onSave={handleUpdate}
             disableAdd={isScreeningPassed}
-          // disabled={!hasEditAccess}
+            hideActions={isTeamUser}
+            disabled={!canEditApplicantDetails}
           // disabledReason={!hasEditAccess ? "You do not have edit access" : undefined}
           />
 
@@ -2653,11 +2659,12 @@ Interviewer: ${interviewerName}`;
                 submitApi={API_MAP.learning.submit}
                 updateApi={API_MAP.learning.update}
                 deleteApi={API_MAP.learning.delete}
-                canDelete={isAdmin}
+                canDelete={isAdmin && !isTeamUser}
                 disableDelete={hasCulturalRoundData}
                 onSave={handleUpdate}
                 disableAdd={isLearningPassed}
-                disabled={isStageDisabled(currentApplicant, "LR")}
+                hideActions={isTeamUser}
+                disabled={isTeamUser || isStageDisabled(currentApplicant, "LR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "LR")
                     ? "Student need to pass Screening Round"
@@ -2723,11 +2730,12 @@ Interviewer: ${interviewerName}`;
                 submitApi={API_MAP.cultural.submit}
                 updateApi={API_MAP.cultural.update}
                 deleteApi={API_MAP.cultural.delete}
-                canDelete={isAdmin}
+                canDelete={isAdmin && !isTeamUser}
                 disableDelete={hasOfferData}
                 onSave={handleUpdate}
                 disableAdd={isCulturalPassed}
-                disabled={isStageDisabled(currentApplicant, "CFR")}
+                hideActions={isTeamUser}
+                disabled={isTeamUser || isStageDisabled(currentApplicant, "CFR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "CFR")
                     ? "Student need to pass Learning Round"
@@ -2788,7 +2796,7 @@ Interviewer: ${interviewerName}`;
                         onUpdate={handleUpdate}
                         options={campus}
                         onEditStart={() => ensureFieldDataLoaded('campus_id')}
-                        disabled={!hasEditAccess}
+                        disabled={!canEditApplicantDetails}
                       />
                     </div>
                   )}
@@ -2870,7 +2878,7 @@ Interviewer: ${interviewerName}`;
                           label: "Selected but not joined",
                         },
                       ]}
-                      disabled={!hasEditAccess}
+                      disabled={!canEditApplicantDetails}
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
                       }}
@@ -2929,7 +2937,7 @@ Interviewer: ${interviewerName}`;
                           ?.onboarded_status || ""
                       }
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
-                      disabled={!hasEditAccess}
+                      disabled={!canEditApplicantDetails}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
@@ -2973,7 +2981,7 @@ Interviewer: ${interviewerName}`;
                       )[0] ||
                       ""
                     }
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                     onChange={async (e) => {
                       const selectedDate = e.target.value;
                       setJoiningDate(selectedDate);
@@ -3035,6 +3043,7 @@ Interviewer: ${interviewerName}`;
                   onUpdate={async (value) => {
                     await handleFinalDecisionUpdate("final_notes", value);
                   }}
+                  disabled={!canEditApplicantDetails}
                 />
               </div>
 
