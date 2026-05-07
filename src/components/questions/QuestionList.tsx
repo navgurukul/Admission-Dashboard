@@ -27,9 +27,10 @@ interface Question {
 interface QuestionListProps {
   questions: Question[];
   loading: boolean;
-  onEdit: (question: Question) => void;
-  onArchive: (questionId: number) => void;
-  onDelete: (questionId: number) => void;
+  onEdit?: (question: Question) => void;
+  onArchive?: (questionId: number) => void;
+  onDelete?: (questionId: number) => void;
+  canManage?: boolean;
   schools: any[];
   topics?: Array<{ id: number; topic: string }>;
 }
@@ -42,6 +43,7 @@ export function QuestionList({
   // onHistory,
   onArchive,
   onDelete,
+  canManage = true,
   schools,
   topics = [],
 }: QuestionListProps) {
@@ -194,39 +196,41 @@ export function QuestionList({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 ml-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit(question)}
-                    title="Edit"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(question.id)}
-                    title="Delete Permanently"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-
-                  {/* {question.status ? (
+                {canManage && (
+                  <div className="flex items-center gap-1 ml-4">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onArchive(question.id)}
-                      title="Archive"
+                      onClick={() => onEdit?.(question)}
+                      title="Edit"
                     >
-                      <Archive className="w-4 h-4" />
+                      <Edit className="w-4 h-4" />
                     </Button>
-                  ) : (
-                   
-                  )} */}
-                </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete?.(question.id)}
+                      title="Delete Permanently"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+
+                    {/* {question.status ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onArchive(question.id)}
+                        title="Archive"
+                      >
+                        <Archive className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                     
+                    )} */}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

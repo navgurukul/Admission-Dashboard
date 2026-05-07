@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AdmissionsSidebar } from "../components/AdmissionsSidebar";
 import {
   Table,
@@ -58,6 +58,19 @@ const SchoolPage = () => {
   const [addCutOffError, setAddCutOffError] = useState("");
   const [editSchoolNameError, setEditSchoolNameError] = useState("");
   const [editCutOffError, setEditCutOffError] = useState("");
+  const isTeamUser = useMemo(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return false;
+      const parsedUser = JSON.parse(storedUser);
+      const roleIdNum = Number(parsedUser?.user_role_id);
+      const roleName = String(parsedUser?.role_name || "").toUpperCase();
+      return roleIdNum === 3 || roleName === "TEAM";
+    } catch (error) {
+      console.error("Error parsing user for role checks:", error);
+      return false;
+    }
+  }, []);
 
   const formatErrorMessage = (error: any): string => {
     // Check for nested API error response (e.g., error.data.message)
@@ -287,9 +300,11 @@ const SchoolPage = () => {
                     }}
                   />
                 </div>
-                <Button onClick={() => setAddDialog(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Add School
-                </Button>
+                {!isTeamUser && (
+                  <Button onClick={() => setAddDialog(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add School
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -307,13 +322,13 @@ const SchoolPage = () => {
                         <TableHead>S.No</TableHead>
                         <TableHead>School Name</TableHead>
                         <TableHead>Cut-off Marks</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        {!isTeamUser && <TableHead className="text-right">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {currentItems.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center">
+                          <TableCell colSpan={isTeamUser ? 3 : 4} className="text-center">
                             No schools found.
                           </TableCell>
                         </TableRow>
@@ -329,34 +344,36 @@ const SchoolPage = () => {
                             <TableCell>
                               {school.cut_off_marks ?? 0}
                             </TableCell>
-                            <TableCell className="text-right space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-primary"
-                                onClick={() => {
-                                  setSelectedSchool(school);
-                                  setUpdatedSchoolName(school.school_name);
-                                  setUpdatedCutOffMarks(String(school.cut_off_marks ?? ""));
-                                  setEditSchoolNameError("");
-                                  setEditCutOffError("");
-                                  setEditDialog(true);
-                                }}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive"
-                                onClick={() => {
-                                  setSelectedSchool(school);
-                                  setDeleteDialog(true);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
+                            {!isTeamUser && (
+                              <TableCell className="text-right space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-primary"
+                                  onClick={() => {
+                                    setSelectedSchool(school);
+                                    setUpdatedSchoolName(school.school_name);
+                                    setUpdatedCutOffMarks(String(school.cut_off_marks ?? ""));
+                                    setEditSchoolNameError("");
+                                    setEditCutOffError("");
+                                    setEditDialog(true);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive"
+                                  onClick={() => {
+                                    setSelectedSchool(school);
+                                    setDeleteDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))
                       )}

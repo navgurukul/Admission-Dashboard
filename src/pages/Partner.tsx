@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import {
@@ -178,6 +178,19 @@ const PartnerPage = () => {
   // Track partners with existing assessments
   const [partnersWithAssessments, setPartnersWithAssessments] = useState<Set<number>>(new Set());
   const [partnerCreatingAssessment, setPartnerCreatingAssessment] = useState<number | null>(null);
+  const isTeamUser = useMemo(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return false;
+      const parsedUser = JSON.parse(storedUser);
+      const roleIdNum = Number(parsedUser?.user_role_id);
+      const roleName = String(parsedUser?.role_name || "").toUpperCase();
+      return roleIdNum === 3 || roleName === "TEAM";
+    } catch (error) {
+      console.error("Error parsing user for role checks:", error);
+      return false;
+    }
+  }, []);
 
   const loadPartners = async (p = page, search = searchQuery) => {
     // Cancel previous request if still pending
@@ -1266,11 +1279,13 @@ const PartnerPage = () => {
                     <span className="hidden xs:inline">Advanced Filters</span>
                     <span className="xs:hidden">Filters</span>
                   </Button>
-                  <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground text-xs sm:text-sm">
-                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                    <span className="hidden xs:inline">Add Partner</span>
-                    <span className="xs:hidden">Add</span>
-                  </Button>
+                  {!isTeamUser && (
+                    <Button onClick={openAddDialog} size="sm" className="bg-primary text-primary-foreground text-xs sm:text-sm">
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">Add Partner</span>
+                      <span className="xs:hidden">Add</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -1363,14 +1378,14 @@ const PartnerPage = () => {
                     <TableHead>Districts</TableHead>
                     <TableHead>Slug</TableHead>
                     <TableHead>View Assessment</TableHead>
-                    <TableHead>Create Assessment</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {!isTeamUser && <TableHead>Create Assessment</TableHead>}
+                    {!isTeamUser && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading || isSearching ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">
+                      <TableCell colSpan={isTeamUser ? 5 : 8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                           {isSearching ? "Searching..." : "Loading data..."}
@@ -1379,7 +1394,7 @@ const PartnerPage = () => {
                     </TableRow>
                   ) : paginatedPartners.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                      <TableCell colSpan={isTeamUser ? 5 : 8} className="h-32 text-center text-muted-foreground">
                         No partners found matching your criteria.
                       </TableCell>
                     </TableRow>
@@ -1418,66 +1433,70 @@ const PartnerPage = () => {
                             <Eye className="mr-2 h-4 w-4" /> View
                           </Button>
                         </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCreateAssessment(partner)}
-                            className={`h-8 px-2 ${partnersWithAssessments.has(partner.id) ? 'text-green-600 hover:bg-green-50' : 'text-primary hover:text-primary/80'}`}
-                            disabled={questionsLoading || partnersWithAssessments.has(partner.id)}
-                          >
-                            {partnerCreatingAssessment === partner.id ? (
-                              <>
-                                <FileText className="mr-2 h-4 w-4 animate-spin" /> Creating...
-                              </>
-                            ) : partnersWithAssessments.has(partner.id) ? (
-                              <>
-                                <FileText className="mr-2 h-4 w-4" /> Created
-                              </>
-                            ) : (
-                              <>
-                                <FileText className="mr-2 h-4 w-4" /> Create
-                              </>
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => openEditDialog(idx)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Edit Details
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePartner(partner.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete Partner
-                              </DropdownMenuItem>
-                              {partner.meraki_link ? (
-                                <DropdownMenuItem onClick={() => {
-                                  navigator.clipboard.writeText(partner.meraki_link);
-                                  toast({
-                                    title: "✅ Link Copied",
-                                    description: "Link copied to clipboard.",
-                                    variant: "default",
-                                    className: "border-green-500 bg-green-50 text-green-900"
-                                  });
-                                }}>
-                                  <ExternalLink className="mr-2 h-4 w-4" /> Copy Test Link
-                                </DropdownMenuItem>
+                        {!isTeamUser && (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCreateAssessment(partner)}
+                              className={`h-8 px-2 ${partnersWithAssessments.has(partner.id) ? 'text-green-600 hover:bg-green-50' : 'text-primary hover:text-primary/80'}`}
+                              disabled={questionsLoading || partnersWithAssessments.has(partner.id)}
+                            >
+                              {partnerCreatingAssessment === partner.id ? (
+                                <>
+                                  <FileText className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                                </>
+                              ) : partnersWithAssessments.has(partner.id) ? (
+                                <>
+                                  <FileText className="mr-2 h-4 w-4" /> Created
+                                </>
                               ) : (
-                                <DropdownMenuItem onClick={() => handleCreateMerakiLink(partner.id)}>
-                                  <ExternalLink className="mr-2 h-4 w-4" /> Generate Link
-                                </DropdownMenuItem>
+                                <>
+                                  <FileText className="mr-2 h-4 w-4" /> Create
+                                </>
                               )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                            </Button>
+                          </TableCell>
+                        )}
+                        {!isTeamUser && (
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => openEditDialog(idx)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePartner(partner.id)}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete Partner
+                                </DropdownMenuItem>
+                                {partner.meraki_link ? (
+                                  <DropdownMenuItem onClick={() => {
+                                    navigator.clipboard.writeText(partner.meraki_link);
+                                    toast({
+                                      title: "✅ Link Copied",
+                                      description: "Link copied to clipboard.",
+                                      variant: "default",
+                                      className: "border-green-500 bg-green-50 text-green-900"
+                                    });
+                                  }}>
+                                    <ExternalLink className="mr-2 h-4 w-4" /> Copy Test Link
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onClick={() => handleCreateMerakiLink(partner.id)}>
+                                    <ExternalLink className="mr-2 h-4 w-4" /> Generate Link
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}
