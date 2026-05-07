@@ -840,6 +840,56 @@ const ApplicantTable = () => {
     }
   };
 
+  // function to check if all rounds are passed and campus is assigned
+  const checkOfferEligibility = (student: any) => {
+    const issues: string[] = [];
+
+    // Check campus
+    if (!student.campus_name || student.campus_name === "N/A") {
+      issues.push("Campus not assigned");
+    }
+
+    // Check if screening passed
+    const screeningPassed = (student?.exam_sessions || []).some((session: any) => {
+      const status = session?.status || "";
+      return (
+        status.toLowerCase().includes("pass") ||
+        status === "Created Student Without Exam"
+      );
+    });
+
+    if (!screeningPassed) {
+      issues.push("Screening not passed");
+    }
+
+    // Check if learning round passed
+    const learningRounds = student?.interview_learner_round || [];
+    const learningPassed = learningRounds.some((round: any) => {
+      const status = round?.learning_round_status || "";
+      return status.toLowerCase().includes("pass");
+    });
+
+    if (!learningPassed) {
+      issues.push("Learning Round not passed");
+    }
+
+    // Check if CFR passed
+    const cfrRounds = student?.interview_cultural_fit_round || [];
+    const cfrPassed = cfrRounds.some((round: any) => {
+      const status = round?.cultural_fit_status || "";
+      return status.toLowerCase().includes("pass");
+    });
+
+    if (!cfrPassed) {
+      issues.push("CFR not passed");
+    }
+
+    return {
+      isEligible: issues.length === 0,
+      issues,
+    };
+  };
+
   const handleSendOfferLetters = async () => {
     if (!selectedRows.length) {
       toast({
@@ -855,31 +905,39 @@ const ApplicantTable = () => {
       selectedRows.includes(applicant.id)
     );
 
-    // Check for students without campus (check campus_name)
-    const studentsWithoutCampus = selectedStudents.filter(
-      (student) => !student.campus_name || student.campus_name === "N/A"
+    // Check eligibility for all selected students
+    const eligibilityResults = selectedStudents.map((student) => ({
+      student,
+      eligibility: checkOfferEligibility(student),
+    }));
+
+    const ineligibleStudents = eligibilityResults.filter(
+      (result) => !result.eligibility.isEligible
     );
 
-    if (studentsWithoutCampus.length > 0) {
-      // Show names of first 3 students without campus
-      const studentNames = studentsWithoutCampus
+    if (ineligibleStudents.length > 0) {
+      // Group ineligible students by their issues
+      const ineligibleList = ineligibleStudents
         .slice(0, 3)
-        .map((s) => s.name || `${s.first_name} ${s.last_name}`)
-        .join(", ");
+        .map((result) => {
+          const studentName =
+            result.student.name ||
+            `${result.student.first_name} ${result.student.last_name}`;
+          const issues = result.eligibility.issues.join(", ");
+          return `${studentName}: ${issues}`;
+        })
+        .join("\n");
 
-      const moreCount = studentsWithoutCampus.length - 3;
+      const moreCount = ineligibleStudents.length - 3;
 
       toast({
-        title: "⚠️ Campus Required",
-        description: `You’ve selected ${selectedStudents.length} students, but ${studentsWithoutCampus.length} ${studentsWithoutCampus.length === 1 ? "student doesn’t" : "students don’t"
-          } have a campus assigned${studentNames
-            ? `. Please assign a campus to: ${studentNames}${moreCount > 0 ? ` and ${moreCount} others` : ""
-            }`
-            : ""
-          }. Once campus is assigned, you can send offer letters.`,
+        title: "⚠️ Students Not Eligible",
+        description: `${ineligibleStudents.length} of ${selectedStudents.length} selected students cannot receive offer letters:\n\n${ineligibleList}${
+          moreCount > 0 ? `\n...and ${moreCount} more` : ""
+        }\n\nPlease ensure all rounds are passed and campus is assigned.`,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
-        duration: 8000,
+        duration: 10000,
       });
 
       return;
