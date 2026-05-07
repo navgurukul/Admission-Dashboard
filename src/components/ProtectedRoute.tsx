@@ -28,7 +28,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       }
 
       // Role not allowed → redirect to default page
-      if (allowedRoles && !allowedRoles.includes(googleUser.role_id)) {
+      const roleIdNum = Number(googleUser.role_id);
+      const isTeam = roleIdNum === 3 || googleUser.role_name === "Team" || googleUser.role_name?.toUpperCase() === "TEAM";
+      const isAdminRoute = allowedRoles && allowedRoles.includes(1);
+      
+      if (allowedRoles && !allowedRoles.includes(roleIdNum) && !(isAdminRoute && isTeam)) {
         setAllowed(false);
         return;
       }

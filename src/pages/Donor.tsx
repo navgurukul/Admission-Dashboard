@@ -28,7 +28,7 @@ import {
   Eye
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -57,6 +57,19 @@ const DonorPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isTeamUser = useMemo(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return false;
+      const parsedUser = JSON.parse(storedUser);
+      const roleIdNum = Number(parsedUser?.user_role_id);
+      const roleName = String(parsedUser?.role_name || "").toUpperCase();
+      return roleIdNum === 3 || roleName === "TEAM";
+    } catch (error) {
+      console.error("Error parsing user for role checks:", error);
+      return false;
+    }
+  }, []);
 
   // Dialog States
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -293,22 +306,24 @@ const DonorPage = () => {
                     {debouncedSearchQuery ? ' (Search)' : ' total'}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                  <Button onClick={() => {
-                    setFormData({
-                      donor_name: "",
-                      donor_email: "",
-                      donor_phone: "",
-                      donor_address: "",
-                      donor_city: "",
-                      donor_state: "",
-                      donor_country: ""
-                    });
-                    setAddDialogOpen(true);
-                  }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Donor
-                  </Button>
-                </div>
+                {!isTeamUser && (
+                  <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                    <Button onClick={() => {
+                      setFormData({
+                        donor_name: "",
+                        donor_email: "",
+                        donor_phone: "",
+                        donor_address: "",
+                        donor_city: "",
+                        donor_state: "",
+                        donor_country: ""
+                      });
+                      setAddDialogOpen(true);
+                    }}>
+                      <Plus className="mr-2 h-4 w-4" /> Add Donor
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -335,13 +350,13 @@ const DonorPage = () => {
                     <TableHead>City</TableHead>
                     <TableHead>State</TableHead>
                     <TableHead>Country</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {!isTeamUser && <TableHead className="text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading || isSearching ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center">
+                      <TableCell colSpan={isTeamUser ? 7 : 8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                           {isSearching ? "Searching..." : "Loading..."}
@@ -350,7 +365,7 @@ const DonorPage = () => {
                     </TableRow>
                   ) : donors.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                      <TableCell colSpan={isTeamUser ? 7 : 8} className="h-24 text-center text-muted-foreground">
                         {debouncedSearchQuery 
                           ? "No donors match your search." 
                           : "No donors found."}
@@ -373,28 +388,30 @@ const DonorPage = () => {
                         <TableCell>{donor.donor_city || "-"}</TableCell>
                         <TableCell>{donor.donor_state || "-"}</TableCell>
                         <TableCell>{donor.donor_country || "-"}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleEditClick(donor)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/donors/${donor.id}/students`)}>
-                                <Eye className="mr-2 h-4 w-4" /> View Students
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(donor.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        {!isTeamUser && (
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleEditClick(donor)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate(`/donors/${donor.id}/students`)}>
+                                  <Eye className="mr-2 h-4 w-4" /> View Students
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(donor.id)}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}

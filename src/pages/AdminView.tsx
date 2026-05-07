@@ -44,8 +44,9 @@ export default function AdminView() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = getCurrentUser();
-  const roleId = currentUser?.user_role_id || 2; // 1: Admin, 2: Interviewer
-  const isAdmin = roleId === 1;
+  const roleId = currentUser?.user_role_id || 2; // 1: Admin, 2: Interviewer, 3: Team
+  const isAdmin = roleId === 1 || roleId === 3;
+  const hasEditAccess = roleId === 1;
 
   // Check URL parameter for active tab
   const searchParams = new URLSearchParams(location.search);
@@ -1001,7 +1002,7 @@ export default function AdminView() {
                                     {getStatusBadge(slot.status || 'Available')}
                                   </TableCell>
                                   <TableCell className="min-w-[90px]">
-                                    {slot.status?.toLowerCase() === "available" ? (
+                                    {hasEditAccess && slot.status?.toLowerCase() === "available" ? (
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -1105,14 +1106,16 @@ export default function AdminView() {
                           Clear Filter
                         </Button>
                       )}
-                      <Button
-                        className="bg-primary hover:bg-primary/90 text-white"
-                        onClick={() => navigate("/schedule")}
-                        data-onboarding="adminview-my-interviews-manage-slots"
-                      >
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Manage Available Slots
-                      </Button>
+                      {hasEditAccess && (
+                        <Button
+                          className="bg-primary hover:bg-primary/90 text-white"
+                          onClick={() => navigate("/schedule")}
+                          data-onboarding="adminview-my-interviews-manage-slots"
+                        >
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Manage Available Slots
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
