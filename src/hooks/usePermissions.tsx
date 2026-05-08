@@ -40,16 +40,18 @@ export function usePermissions() {
   // STAFF (user_role_id = 2) does NOT have edit access
   // Memoize to prevent recalculation on every render
   const hasEditAccess = useMemo(() => {
-    const hasAccess = user?.user_role_id === 1;
+    const roleIdNum = Number(user?.user_role_id);
+    const hasAccess = roleIdNum === 1 || roleIdNum === 3;
     // console.log("Permissions check - user_role_id:", user?.user_role_id, "hasAccess:", hasAccess);
     return hasAccess;
   }, [user?.user_role_id]);
 
   const canEdit = () => hasEditAccess;
 
-  // isAdmin is the same as hasEditAccess (user_role_id === 1)
+  // isAdmin is the same as hasEditAccess (user_role_id === 1 or 3)
   const isAdmin = useMemo(() => {
-    return user?.user_role_id === 1;
+    const roleIdNum = Number(user?.user_role_id);
+    return roleIdNum === 1 || roleIdNum === 3;
   }, [user?.user_role_id]);
 
   return {

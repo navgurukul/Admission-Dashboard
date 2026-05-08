@@ -48,7 +48,7 @@ import {
 } from "@/utils/api";
 import { QuestionSetDownloadPreview } from "./QuestionSetDownloadPreview";
 
-export function QuestionSetManager({ allQuestions, difficultyLevels }) {
+export function QuestionSetManager({ allQuestions, difficultyLevels, canManage = true }) {
   const DEFAULT_SET_DESCRIPTION = "N/A";
   type PreviewLanguage = "english" | "hindi" | "marathi";
   const { toast } = useToast();
@@ -1036,14 +1036,16 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   return (
     <div className="space-y-4" data-onboarding="questions-sets-panel">
       <div className="flex justify-end items-center gap-3">
-        <Button
-          onClick={openAddModal}
-          variant="outline"
-          data-onboarding="questions-add-set"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Set
-        </Button>
+        {canManage && (
+          <Button
+            onClick={openAddModal}
+            variant="outline"
+            data-onboarding="questions-add-set"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Set
+          </Button>
+        )}
         <Button
           onClick={openDownloadModal}
           variant="outline"
@@ -1105,22 +1107,26 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                   >
                     <Eye className="h-4 w-4 text-blue-500" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEditModal(set)}
-                    title="Edit set"
-                  >
-                    <Edit className="h-4 w-4 text-black-500" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openDeleteConfirm(set)}
-                    title="Delete set"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
+                  {canManage && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditModal(set)}
+                        title="Edit set"
+                      >
+                        <Edit className="h-4 w-4 text-black-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteConfirm(set)}
+                        title="Delete set"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -1143,17 +1149,19 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </p> */}
 
               <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    await loadSetQuestions(set.id)
-                    setActiveSet(set)
-                  }}
-                >
-                  <ListChecks className="h-4 w-4 mr-2" />
-                  Pick Questions
-                </Button>
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await loadSetQuestions(set.id)
+                      setActiveSet(set)
+                    }}
+                  >
+                    <ListChecks className="h-4 w-4 mr-2" />
+                    Pick Questions
+                  </Button>
+                )}
 
                 {/* <div className="flex items-center gap-2">
                   <Checkbox
@@ -1584,15 +1592,17 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                               {getQuestionTextByLanguage(question)}
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditQuestion(question)}
-                            title="Edit question"
-                            className="h-8 w-8"
-                          >
-                            <Edit className="h-4 w-4 text-blue-600" />
-                          </Button>
+                          {canManage && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditQuestion(question)}
+                              title="Edit question"
+                              className="h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap gap-2 mt-3">

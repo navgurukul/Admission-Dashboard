@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,6 +72,19 @@ export default function QuestionRepository() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [schools, setSchools] = useState<any[]>([]);
   const [topics, setTopics] = useState<TopicOption[]>([]);
+  const isTeamUser = useMemo(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return false;
+      const parsedUser = JSON.parse(storedUser);
+      const roleIdNum = Number(parsedUser?.user_role_id);
+      const roleName = String(parsedUser?.role_name || "").toUpperCase();
+      return roleIdNum === 3 || roleName === "TEAM";
+    } catch (error) {
+      console.error("Error parsing user for role checks:", error);
+      return false;
+    }
+  }, []);
   const { selectedLanguage, setSelectedLanguage } = useLanguage();
 
   const handleLanguageChange = (language: Language) => {
@@ -134,6 +147,7 @@ export default function QuestionRepository() {
   };
 
   const handleCreateQuestion = () => {
+    if (isTeamUser) return;
     setSelectedQuestion(null);
     setActiveTab("editor");
   };
@@ -436,23 +450,27 @@ export default function QuestionRepository() {
                 ]}
               />
 
-              <Button
-                variant="outline"
-                onClick={() => setActiveTab("import")}
-                className="flex items-center gap-2"
-                data-onboarding="questions-import-button"
-              >
-                <Upload className="w-4 h-4" />
-                Bulk Import
-              </Button>
-              <Button
-                onClick={handleCreateQuestion}
-                className="flex items-center gap-2"
-                data-onboarding="questions-new-button"
-              >
-                <Plus className="w-4 h-4" />
-                New Question
-              </Button>
+              {!isTeamUser && (
+                <Button
+                  variant="outline"
+                  onClick={() => setActiveTab("import")}
+                  className="flex items-center gap-2"
+                  data-onboarding="questions-import-button"
+                >
+                  <Upload className="w-4 h-4" />
+                  Bulk Import
+                </Button>
+              )}
+              {!isTeamUser && (
+                <Button
+                  onClick={handleCreateQuestion}
+                  className="flex items-center gap-2"
+                  data-onboarding="questions-new-button"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Question
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -470,19 +488,23 @@ export default function QuestionRepository() {
             onValueChange={setActiveTab}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsList className={`grid w-full mb-6 ${isTeamUser ? "grid-cols-2" : "grid-cols-4"}`}>
               <TabsTrigger value="list" data-onboarding="questions-list-tab">
                 Questions
               </TabsTrigger>
-              <TabsTrigger value="editor" data-onboarding="questions-editor-tab">
-                Editor
-              </TabsTrigger>
+              {!isTeamUser && (
+                <TabsTrigger value="editor" data-onboarding="questions-editor-tab">
+                  Editor
+                </TabsTrigger>
+              )}
               <TabsTrigger value="sets" data-onboarding="questions-sets-tab">
                 Sets
               </TabsTrigger>
-              <TabsTrigger value="import" data-onboarding="questions-import-tab">
-                Import
-              </TabsTrigger>
+              {!isTeamUser && (
+                <TabsTrigger value="import" data-onboarding="questions-import-tab">
+                  Import
+                </TabsTrigger>
+              )}
               {/* <TabsTrigger value="preview">Preview</TabsTrigger> */}
               {/* <TabsTrigger value="history">History</TabsTrigger> */}
               {/* <TabsTrigger value="tags">Tags</TabsTrigger> */}
@@ -553,12 +575,17 @@ export default function QuestionRepository() {
                     <QuestionList
                       questions={questions}
                       loading={loading || isSearching}
-                      onEdit={(q) => {
-                        handleEditQuestion(q);
-                        setActiveTab("editor");
-                      }}
-                      onArchive={handleArchiveQuestion}
-                      onDelete={openDeleteConfirm}
+                      onEdit={
+                        isTeamUser
+                          ? undefined
+                          : (q) => {
+                              handleEditQuestion(q);
+                              setActiveTab("editor");
+                            }
+                      }
+                      onArchive={isTeamUser ? undefined : handleArchiveQuestion}
+                      onDelete={isTeamUser ? undefined : openDeleteConfirm}
+                      canManage={!isTeamUser}
                       schools={schools}
                       topics={topics}
                     />
@@ -593,35 +620,37 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
-              <Card className="h-full flex flex-col" data-onboarding="questions-editor-panel">
-                <CardHeader className="flex-shrink-0">
-                  <CardTitle>
-                    {selectedQuestion ? "Edit Question" : "Create New Question"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto">
-                  <QuestionEditor
-                    difficultyLevels={difficultyLevels}
-                    question={selectedQuestion}
-                    onSave={handleSaveQuestion}
-                    onCreateTopic={handleCreateTopic}
-                    onUpdateTopic={handleUpdateTopic}
-                    onDeleteTopic={handleDeleteTopic}
-                    onCreateDifficultyLevel={handleCreateDifficultyLevel}
-                    onUpdateDifficultyLevel={handleUpdateDifficultyLevel}
-                    onDeleteDifficultyLevel={handleDeleteDifficultyLevel}
-                    setSelectedQuestion={setSelectedQuestion}
-                    onCancel={() => {
-                      setActiveTab("list");
-                      setSelectedQuestion(null);
-                    }}
-                    schools={schools}
-                    topics={topics}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
+            {!isTeamUser && (
+              <TabsContent value="editor" className="flex-1 overflow-hidden m-0">
+                <Card className="h-full flex flex-col" data-onboarding="questions-editor-panel">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle>
+                      {selectedQuestion ? "Edit Question" : "Create New Question"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-y-auto">
+                    <QuestionEditor
+                      difficultyLevels={difficultyLevels}
+                      question={selectedQuestion}
+                      onSave={handleSaveQuestion}
+                      onCreateTopic={handleCreateTopic}
+                      onUpdateTopic={handleUpdateTopic}
+                      onDeleteTopic={handleDeleteTopic}
+                      onCreateDifficultyLevel={handleCreateDifficultyLevel}
+                      onUpdateDifficultyLevel={handleUpdateDifficultyLevel}
+                      onDeleteDifficultyLevel={handleDeleteDifficultyLevel}
+                      setSelectedQuestion={setSelectedQuestion}
+                      onCancel={() => {
+                        setActiveTab("list");
+                        setSelectedQuestion(null);
+                      }}
+                      schools={schools}
+                      topics={topics}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
             <TabsContent value="sets" className="flex-1 overflow-hidden m-0">
               <Card className="h-full flex flex-col">
                 <CardHeader className="flex-shrink-0">
@@ -631,6 +660,7 @@ export default function QuestionRepository() {
                   <QuestionSetManager
                     allQuestions={questions}
                     difficultyLevels={difficultyLevels}
+                    canManage={!isTeamUser}
                   />
                 </CardContent>
               </Card>
@@ -666,16 +696,18 @@ export default function QuestionRepository() {
               </Card>
             </TabsContent> */}
 
-            <TabsContent value="import" className="flex-1 overflow-hidden m-0">
-              <Card className="h-full flex flex-col" data-onboarding="questions-import-panel">
-                <CardHeader className="flex-shrink-0">
-                  <CardTitle>Bulk Import Questions</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto">
-                  <QuestionBulkImport onImportComplete={handleImportComplete} />
-                </CardContent>
-              </Card>
-            </TabsContent>
+            {!isTeamUser && (
+              <TabsContent value="import" className="flex-1 overflow-hidden m-0">
+                <Card className="h-full flex flex-col" data-onboarding="questions-import-panel">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle>Bulk Import Questions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-y-auto">
+                    <QuestionBulkImport onImportComplete={handleImportComplete} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
 
             {/* <TabsContent value="tags">
               <Card>
