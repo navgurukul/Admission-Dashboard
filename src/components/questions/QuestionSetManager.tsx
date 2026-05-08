@@ -46,6 +46,7 @@ import {
   getAllSchools,
   updateQuestion,
 } from "@/utils/api";
+import { QuestionSetDownloadPreview } from "./QuestionSetDownloadPreview";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels, canManage = true }) {
   const DEFAULT_SET_DESCRIPTION = "N/A";
@@ -94,6 +95,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
     failed: 0,
     errors: [] as string[],
   });
+  const [showDownloadPreview, setShowDownloadPreview] = useState(false);
+  const [downloadPreviewSet, setDownloadPreviewSet] = useState<any>(null);
+  const [downloadPreviewLanguage, setDownloadPreviewLanguage] = useState<PreviewLanguage>("english");
 
   const clearImportFileStatusTimeout = () => {
     if (importFileStatusTimeoutRef.current) {
@@ -906,50 +910,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
       return;
     }
 
-    try {
-      // Find the set ID from the selected set name
-      const selectedSet = sets.find((s) => s.name === downloadFormData.selectedSet);
-      if (!selectedSet) {
-        throw new Error("Selected set not found");
-      }
-
-      toast({
-        title: "⏳ Generating PDF...",
-        description: `Please wait while we generate the PDF`,
-        variant: "default",
-        className: "border-blue-500 bg-blue-50 text-blue-900",
-      });
-
-      // Call the API to download PDF
-      const pdfBlob = await downloadQuestionSetPDF(
-        selectedSet.id,
-        downloadFormData.language
-      );
-
-      // Create a download link and trigger download
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${downloadFormData.selectedSet}_${downloadFormData.language}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "✅ PDF Downloaded",
-        description: `${downloadFormData.selectedSet} in ${downloadFormData.language} has been downloaded`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
+    const selectedSet = sets.find((s) => s.name === downloadFormData.selectedSet);
+    if (selectedSet) {
+      const updatedSet = await loadSetQuestions(selectedSet.id);
+      const normalizedLanguage = (downloadFormData.language || "English").toLowerCase() as PreviewLanguage;
+      setDownloadPreviewLanguage(normalizedLanguage);
+      setDownloadPreviewSet(updatedSet || selectedSet);
+      setShowDownloadPreview(true);
       setIsDownloadModalOpen(false);
-    } catch (err: any) {
-      toast({
-        title: "❌ Download Failed",
-        description: err.message || "Unable to download PDF. Please try again.",
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
-      });
     }
   };
 
@@ -1698,6 +1666,18 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showDownloadPreview && downloadPreviewSet && (
+        <QuestionSetDownloadPreview
+          set={downloadPreviewSet}
+          difficultyLevels={difficultyLevels}
+          initialLanguage={downloadPreviewLanguage}
+          onClose={() => {
+            setShowDownloadPreview(false);
+            setDownloadPreviewSet(null);
+          }}
+        />
+      )}
     </div>
   );
 }
