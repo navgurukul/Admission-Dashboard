@@ -182,7 +182,9 @@ const ApplicantTable = () => {
   }, []);
 
   const { toast } = useToast();
-  const { hasEditAccess } = usePermissions();
+  const { hasEditAccess, user, isAdmin } = usePermissions();
+  const isTeamUser = Boolean(user && (user.user_role_id === 3 || String(user.role_name).toLowerCase() === 'team'));
+  const canEditApplicantDetails = hasEditAccess && !isTeamUser;
   const { triggerRefresh } = useDashboardRefresh();
   const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   const [stageStatuses, setStageStatuses] = useState<any[]>([]);
@@ -2000,7 +2002,7 @@ const ApplicantTable = () => {
                 },
               ]}
             />
-            {hasEditAccess && (
+            {canEditApplicantDetails && (
               <BulkActions
                 selectedRowsCount={selectedRows.length}
                 onBulkUpdate={() => { ensureReferenceDataLoaded(); setShowBulkUpdate(true); }}
@@ -2009,10 +2011,10 @@ const ApplicantTable = () => {
               />
             )}
             <TableActions
-              onCSVImport={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowCSVImport(true); } : undefined}
+              onCSVImport={canEditApplicantDetails ? () => { ensureReferenceDataLoaded(); setShowCSVImport(true); } : undefined}
               onExportCSV={exportToCSV}
               onShowFilters={() => { setShowAdvancedFilters(true); }}
-              onAddApplicant={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowAddModal(true); } : undefined}
+              onAddApplicant={canEditApplicantDetails ? () => { ensureReferenceDataLoaded(); setShowAddModal(true); } : undefined}
               isExporting={isExporting}
               hasActiveFilters={hasActiveFilters}
               searchTerm={searchTerm}

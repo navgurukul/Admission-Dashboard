@@ -123,7 +123,9 @@ export const ApplicantTableRow = ({
 }: ApplicantTableRowProps) => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const { hasEditAccess } = usePermissions();
+  const { hasEditAccess, user, isAdmin } = usePermissions();
+  const isTeamUser = Boolean(user && (user.user_role_id === 3 || String(user.role_name).toLowerCase() === 'team'));
+  const canEditApplicantDetails = hasEditAccess && !isTeamUser;
   const { toast } = useToast();
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [isUpdatingDuplicate, setIsUpdatingDuplicate] = useState(false);
@@ -431,7 +433,7 @@ export const ApplicantTableRow = ({
   };
 
   const handleDuplicateToggle = async () => {
-    if (!hasEditAccess || isUpdatingDuplicate) return;
+    if (!canEditApplicantDetails || isUpdatingDuplicate) return;
 
     const nextDuplicateState = !isDuplicate;
     setIsUpdatingDuplicate(true);
@@ -528,9 +530,9 @@ export const ApplicantTableRow = ({
               onUpdate={onUpdate}
               onEditStart={() => setEmailError(null)}
               error={emailError}
-              showPencil={hasEditAccess}
+              showPencil={canEditApplicantDetails}
               showActionButtons={false}
-              disabled={!hasEditAccess || isCheckingEmail}
+              disabled={!canEditApplicantDetails || isCheckingEmail}
             />
           </div>
         </TableCell>
@@ -547,9 +549,9 @@ export const ApplicantTableRow = ({
                 applicant.phone_number || applicant.mobile_no || "No phone"
               }
               onUpdate={onUpdate}
-              showPencil={hasEditAccess}
               showActionButtons={false}
-              disabled={!hasEditAccess}
+              showPencil={canEditApplicantDetails}
+              disabled={!canEditApplicantDetails}
             />
           </div>
         </TableCell>
@@ -564,9 +566,9 @@ export const ApplicantTableRow = ({
               field="whatsapp_number"
               displayValue={applicant.whatsapp_number || "No WhatsApp"}
               onUpdate={onUpdate}
-              showPencil={hasEditAccess}
+              showPencil={canEditApplicantDetails}
               showActionButtons={false}
-              disabled={!hasEditAccess}
+              disabled={!canEditApplicantDetails}
             />
           </div>
         </TableCell>
@@ -586,9 +588,9 @@ export const ApplicantTableRow = ({
             ]}
             onUpdate={onUpdate}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            showPencil={canEditApplicantDetails}
+            disabled={!canEditApplicantDetails}
           />
         </TableCell>
       )}
@@ -608,9 +610,9 @@ export const ApplicantTableRow = ({
                 }) 
                 : "N/A"}
               onUpdate={onUpdate}
-              showPencil={hasEditAccess}
+              showPencil={canEditApplicantDetails}
               showActionButtons={true}
-              disabled={!hasEditAccess}
+              disabled={!canEditApplicantDetails}
             />
           </div>
         </TableCell>
@@ -712,9 +714,9 @@ export const ApplicantTableRow = ({
               field="pin_code"
               displayValue={applicant.pin_code || "N/A"}
               onUpdate={onUpdate}
-              showPencil={hasEditAccess}
+              showPencil={canEditApplicantDetails}
               showActionButtons={false}
-              disabled={!hasEditAccess}
+              disabled={!canEditApplicantDetails}
             />
           </div>
         </TableCell>
@@ -733,9 +735,9 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingReferenceData}
             options={castList.map((c) => ({ id: c.id, name: c.cast_name }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={canEditApplicantDetails}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={!canEditApplicantDetails}
           />
         </TableCell>
       )}
@@ -753,9 +755,9 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingReferenceData}
             options={religionList.map((r) => ({ id: r.id, name: r.religion_name }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={canEditApplicantDetails}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={!canEditApplicantDetails}
           />
         </TableCell>
       )}
@@ -773,9 +775,9 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingReferenceData}
             options={qualificationList.map((q) => ({ id: q.id, name: q.qualification_name }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={canEditApplicantDetails}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={!canEditApplicantDetails}
           />
         </TableCell>
       )}
@@ -794,9 +796,9 @@ export const ApplicantTableRow = ({
               isLoadingOptions={isLoadingReferenceData}
               options={currentstatusList.map((s) => ({ id: s.id, name: s.current_status_name }))}
               forceTextDisplay={true}
-              showPencil={hasEditAccess}
+              showPencil={canEditApplicantDetails}
               showActionButtons={false}
-              disabled={!hasEditAccess}
+              disabled={!canEditApplicantDetails}
             />
           ) : (
             <div className="text-muted-foreground text-sm">-</div>
@@ -835,9 +837,9 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingReferenceData}
             options={campusList.map((c) => ({ id: c.id, name: c.campus_name }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={canEditApplicantDetails}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={!canEditApplicantDetails}
             tooltipMessage="Current stage update by student details"
           />
         </TableCell>
@@ -861,9 +863,9 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingReferenceData}
             options={partnerList.map((p) => ({ id: p.id, name: p.partner_name }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={canEditApplicantDetails}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={!canEditApplicantDetails}
           />
         </TableCell>
       )}
@@ -886,9 +888,9 @@ export const ApplicantTableRow = ({
             isLoadingOptions={isLoadingReferenceData}
             options={donorList.map((d) => ({ id: d.id, name: d.donor_name }))}
             forceTextDisplay={true}
-            showPencil={hasEditAccess}
+            showPencil={canEditApplicantDetails}
             showActionButtons={false}
-            disabled={!hasEditAccess}
+            disabled={!canEditApplicantDetails}
           />
         </TableCell>
       )}
@@ -1271,7 +1273,7 @@ export const ApplicantTableRow = ({
               >
                 View Details
               </DropdownMenuItem>
-              {hasEditAccess && (
+              {canEditApplicantDetails && (
                 <DropdownMenuItem
                   onClick={handleDuplicateToggle}
                   disabled={isUpdatingDuplicate}
