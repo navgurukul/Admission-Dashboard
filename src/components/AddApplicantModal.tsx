@@ -1725,7 +1725,7 @@ export function AddApplicantModal({
                       htmlFor="date_of_test"
                       className="text-sm font-medium"
                     >
-                      Date of Testing *
+                      Date of Test *
                     </Label>
                     <Input
                       id="date_of_test"
