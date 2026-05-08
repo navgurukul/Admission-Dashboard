@@ -1848,7 +1848,7 @@ Interviewer: ${interviewerName}`;
     },
     {
       name: "date_of_test",
-      label: "Date of Testing *",
+      label: "Date of Test *",
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
         // Read-only mode (no updateRow passed)
@@ -2809,11 +2809,11 @@ Interviewer: ${interviewerName}`;
                             className="h-6 px-2 text-[10px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm"
                             onClick={() => setShowTemplatesInfo(true)}
                           >
-                            TEMPLATES
+                            Available Offer Letter Templates
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>View available campus templates</p>
+                          <p>View available offer letter templates</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3284,10 +3284,10 @@ Interviewer: ${interviewerName}`;
           <DialogHeader className="pb-4 border-b">
             <DialogTitle className="text-xl font-bold flex items-center gap-2 text-black-700">
               <FileText className="h-5 w-5" />
-              Available School Templates
+              Available Offer Letter Templates
             </DialogTitle>
             <DialogDescription className="text-gray-500 font-medium">
-              Campuses and schools with valid HTML templates ready.
+              Campuses and schools with valid offer letter templates ready.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
