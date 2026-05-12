@@ -217,11 +217,19 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
 
         // console.log("Logged in user:", apiUser);
 
-        // Skip auto-navigation if requested (e.g., for student login page)
         if (!skipAutoNavigation) {
-          if (apiUser.role_name === "ADMIN" || apiUser.role_name === "USER") {
+          const roleIdNum = Number(apiUser.user_role_id);
+          const isTeam = roleIdNum === 3 || apiUser.role_name === "Team" || apiUser.role_name?.toUpperCase() === "TEAM";
+
+          if (apiUser.role_name === "ADMIN" || apiUser.role_name === "USER" || isTeam) {
             localStorage.setItem("userRole", JSON.stringify(apiUser.role_name));
-            navigate("/");
+            
+            if (isTeam) {
+              navigate("/donor");
+            } else {
+              navigate("/");
+            }
+
             toast({
               title: "✅ Welcome!",
               description: `Successfully signed in as ${apiUser.name}`,

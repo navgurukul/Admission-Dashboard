@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X, FileText } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 // import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,7 @@ import {
   updateScheduledInterview,
   getStudentDataByEmail,
   getStudentDataByPhone,
+  getAvailableTemplates,
   type CompleteStudentData,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
@@ -183,6 +184,11 @@ export function ApplicantModal({
 }: ApplicantModalProps) {
   const { toast } = useToast();
   const { hasEditAccess, isAdmin, user } = usePermissions();
+  const isTeamUser = useMemo(() => {
+    const roleName = String(user?.role_name || "").trim().toLowerCase();
+    return Number(user?.user_role_id) === 3 || roleName === "team";
+  }, [user?.role_name, user?.user_role_id]);
+  const canEditApplicantDetails = hasEditAccess && !isTeamUser;
   const [currentApplicant, setCurrentApplicant] = useState(applicant);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTransitionsModal, setShowTransitionsModal] = useState(false);
@@ -214,6 +220,11 @@ export function ApplicantModal({
     oldSlotId?: number;
   } | null>(null);
 
+  const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
+  const [showTemplatesInfo, setShowTemplatesInfo] = useState(false);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+
+
   // Interview details modal states
   const [showInterviewDetailsModal, setShowInterviewDetailsModal] = useState(false);
   const [interviewDetailsRoundType, setInterviewDetailsRoundType] = useState<"LR" | "CFR" | null>(null);
@@ -224,35 +235,8 @@ export function ApplicantModal({
   const [showStudentPreviewDialog, setShowStudentPreviewDialog] = useState(false);
   const [showEmbeddedStudent, setShowEmbeddedStudent] = useState(false);
   const [iframeSrc, setIframeSrc] = useState("");
-  const studentPreviewStorageKeys = useMemo(
-    () => [
-      "studentData",
-      "studentId",
-      "registrationDone",
-      "testStarted",
-      "testCompleted",
-      "allowRetest",
-    ],
-    [],
-  );
+  const studentPreviewStorageKeys = useMemo(() => [] as string[], []);
   const studentPreviewStorageBackupRef = useRef<Record<string, string | null> | null>(null);
-
-  const ensureStudentPreviewStorageBackup = useCallback(() => {
-    if (studentPreviewStorageBackupRef.current) {
-      return;
-    }
-
-    try {
-      const backup: Record<string, string | null> = {};
-      studentPreviewStorageKeys.forEach((key) => {
-        backup[key] = localStorage.getItem(key);
-      });
-      studentPreviewStorageBackupRef.current = backup;
-    } catch (err) {
-      console.warn("Failed to backup student preview localStorage", err);
-    }
-  }, [studentPreviewStorageKeys]);
-
   const isExamSessionCompleted = useCallback((session: any) => {
     const status = String(session?.status || "").toLowerCase();
     return Boolean(
@@ -514,34 +498,30 @@ export function ApplicantModal({
     fetchQuestionSets,
   ]);
 
-  const getStudentPreviewRoute = useCallback((payload: any) => {
-    const profile = payload?.student ?? payload ?? null;
+  const buildStudentPreviewUrl = useCallback((
+    route: string,
+    identifiers: {
+      phone?: string;
+      email?: string;
+      firstName?: string;
+    },
+  ) => {
+    const params = new URLSearchParams({
+      preview: "1",
+    });
 
-    const registrationDone = Boolean(
-      profile && profile.student_id && profile.dob && profile.gender,
-    );
-
-    const examSessions = Array.isArray(payload?.exam_sessions)
-      ? payload.exam_sessions
-      : [];
-    const testStarted = examSessions.length > 0;
-    const testCompleted = examSessions.some((session: any) => isExamSessionCompleted(session));
-    const allowRetest = Boolean(payload?.allow_retest ?? false);
-
-    if (!registrationDone) {
-      return "/students/details/instructions";
+    if (identifiers.phone) {
+      params.set("phone", identifiers.phone);
+    }
+    if (identifiers.email) {
+      params.set("email", identifiers.email);
+    }
+    if (identifiers.firstName) {
+      params.set("firstName", identifiers.firstName);
     }
 
-    if (testStarted && !testCompleted) {
-      return "/students/test/start";
-    }
-
-    if (testCompleted && !allowRetest) {
-      return "/students/final-result";
-    }
-
-    return "/students/details/instructions";
-  }, [isExamSessionCompleted]);
+    return `${route}?${params.toString()}`;
+  }, []);
 
   // Check Google sign-in status
   useEffect(() => {
@@ -633,6 +613,25 @@ export function ApplicantModal({
     };
     loadSchools();
   }, [isOpen, schools.length, fetchSchools]);
+
+  // Fetch available templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      if (isOpen) {
+        setIsLoadingTemplates(true);
+        try {
+          const data = await getAvailableTemplates();
+          setAvailableTemplates(data?.data || data || []);
+        } catch (error) {
+          console.error("Failed to fetch available templates:", error);
+        } finally {
+          setIsLoadingTemplates(false);
+        }
+      }
+    };
+    fetchTemplates();
+  }, [isOpen]);
+
 
   // Fetch available slots when schedule modal opens
   const fetchAvailableSlots = useCallback(async (roundType: "LR" | "CFR") => {
@@ -989,18 +988,32 @@ Interviewer: ${interviewerName}`;
   // Initialize selected state and district from applicant data
   // Wait for states to be loaded before trying to set selectedState
   useEffect(() => {
-    if (applicant?.id && stateList.length > 0) {
-      // Clear schedule data immediately when applicant changes
-      setLiveScheduleData([]);
-      setCurrentApplicant(applicant);
-      if (applicant.state) {
-        const stateCode = getStateCodeFromNameOrCode(applicant.state);
-        if (stateCode) {
-          setSelectedState(stateCode);
-        }
+    if (!applicant?.id) {
+      return;
+    }
+
+    // Clear any view-specific state immediately so the previous applicant
+    setLiveScheduleData([]);
+    setStudentViewData(null);
+    setShowEmbeddedStudent(false);
+    setIframeSrc("");
+
+    setCurrentApplicant(applicant);
+    setStudentViewPhone(
+      String(
+        applicant.phone_number ||
+        applicant.whatsapp_number ||
+        "",
+      ),
+    );
+
+    if (applicant.state && stateList.length > 0) {
+      const stateCode = getStateCodeFromNameOrCode(applicant.state);
+      if (stateCode) {
+        setSelectedState(stateCode);
       }
     }
-  }, [applicant?.id, stateList.length]);
+  }, [applicant, stateList.length]);
 
   // Initialize district after districts are loaded
   useEffect(() => {
@@ -1204,6 +1217,27 @@ Interviewer: ${interviewerName}`;
     }
 
     if (value === "Offer Sent") {
+      // Check if template exists for selected campus and school
+      const selectedCampusId = currentApplicant.campus_id;
+      const selectedCampusName = campus.find(c => c.value === selectedCampusId?.toString())?.label;
+      
+      // Determine school - use the one from the most recent passed round
+      const learningRoundSchoolId = currentApplicant.interview_learner_round?.find((r: any) => 
+        r.learning_round_status?.toLowerCase().includes("pass")
+      )?.school_id;
+      
+      const screeningSchoolId = currentApplicant.exam_sessions?.find((s: any) => 
+        s.status?.toLowerCase().includes("pass")
+      )?.school_id;
+
+      const schoolId = learningRoundSchoolId || screeningSchoolId;
+      const schoolName = schools.find(s => s.value === schoolId?.toString())?.label;
+
+      const campusTemplate = availableTemplates.find(t => 
+        t.campus_name?.toLowerCase() === selectedCampusName?.toLowerCase()
+      );
+
+
       // Prevent sending offer again if already sent
       if (currentOfferStatus === "Offer Sent") {
         toast({
@@ -1459,6 +1493,15 @@ Interviewer: ${interviewerName}`;
     try {
       const normalizedPhone = (studentViewPhone || "").trim();
       const normalizedEmail = (currentApplicant?.email || "").trim();
+      const normalizedFirstName = String(
+        currentApplicant?.first_name ||
+        currentApplicant?.firstName ||
+        currentApplicant?.name?.split(" ")?.[0] ||
+        applicant?.first_name ||
+        applicant?.firstName ||
+        applicant?.name?.split(" ")?.[0] ||
+        "",
+      ).trim();
 
       // Use phone if available, otherwise use email
       const identifier = normalizedPhone || normalizedEmail;
@@ -1468,14 +1511,18 @@ Interviewer: ${interviewerName}`;
         return;
       }
 
-      ensureStudentPreviewStorageBackup();
-
       // Use phone API if phone available, otherwise use email API
       let resp;
       if (normalizedPhone) {
-        resp = await getStudentDataByPhone(normalizedPhone);
+        resp = await getStudentDataByPhone(
+          normalizedPhone,
+          normalizedFirstName || undefined,
+        );
       } else {
-        resp = await getStudentDataByEmail(normalizedEmail);
+        resp = await getStudentDataByEmail(
+          normalizedEmail,
+          normalizedFirstName || undefined,
+        );
       }
 
       const payload = (resp as any)?.data ?? resp ?? null;
@@ -1492,30 +1539,39 @@ Interviewer: ${interviewerName}`;
       };
       setStudentViewData(mergedPayload as any);
 
-      localStorage.setItem("studentData", JSON.stringify(mergedPayload));
-      const sid = profile?.student_id ?? profile?.id ?? profile?.studentId ?? null;
-      if (sid) localStorage.setItem("studentId", String(sid));
+      const previewUrl = buildStudentPreviewUrl("/students/final-result", {
+        phone:
+          normalizedPhone ||
+          profile?.phone_number ||
+          profile?.whatsapp_number ||
+          undefined,
+        email: normalizedEmail || profile?.email || undefined,
+        firstName:
+          normalizedFirstName ||
+          profile?.first_name ||
+          profile?.firstName ||
+          undefined,
+      });
 
-      const route = getStudentPreviewRoute(mergedPayload);
-      const registrationDone = Boolean(profile && profile.student_id && profile.dob && profile.gender);
-      const examSessions = Array.isArray(mergedPayload?.exam_sessions) ? mergedPayload.exam_sessions : [];
-      const testStarted = examSessions.length > 0;
-      const testCompleted = examSessions.some((s: any) => isExamSessionCompleted(s));
-      const allowRetest = Boolean((mergedPayload as any)?.allow_retest ?? false);
-
-      localStorage.setItem("registrationDone", registrationDone ? "true" : "false");
-      localStorage.setItem("testStarted", testStarted ? "true" : "false");
-      localStorage.setItem("testCompleted", testCompleted ? "true" : "false");
-      localStorage.setItem("allowRetest", allowRetest ? "true" : "false");
-
-      setIframeSrc(route);
+      setIframeSrc(previewUrl);
       setShowEmbeddedStudent(true);
       setShowStudentPreviewDialog(true);
     } catch (err) {
       console.error("Failed to open student page:", err);
       toast({ title: "Error", description: "Failed to open student page", variant: "destructive" });
     }
-  }, [studentViewPhone, currentApplicant?.email, toast]);
+  }, [
+    applicant?.firstName,
+    // applicant?.first_name,
+    applicant?.name,
+    currentApplicant?.email,
+    currentApplicant?.firstName,
+    // currentApplicant?.first_name,
+    currentApplicant?.name,
+    studentViewPhone,
+    toast,
+    buildStudentPreviewUrl,
+  ]);
 
   const getLabel = (
     options: { value: string; label: string }[],
@@ -1797,7 +1853,7 @@ Interviewer: ${interviewerName}`;
     },
     {
       name: "date_of_test",
-      label: "Date of Testing *",
+      label: "Date of Test *",
       type: "component" as const,
       component: ({ row, updateRow, disabled }: any) => {
         // Read-only mode (no updateRow passed)
@@ -2201,7 +2257,7 @@ Interviewer: ${interviewerName}`;
                       currentApplicant?.first_name || ""
                     }
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2215,7 +2271,7 @@ Interviewer: ${interviewerName}`;
                       currentApplicant?.middle_name || ""
                     }
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2227,7 +2283,7 @@ Interviewer: ${interviewerName}`;
                     field="last_name"
                     displayValue={currentApplicant?.last_name || ""}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2242,7 +2298,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     onEditStart={() => setEmailError("")}
                     error={emailError}
-                    disabled={!hasEditAccess || isCheckingEmail}
+                    disabled={!canEditApplicantDetails || isCheckingEmail}
                   />
                 </div>
                 <div>
@@ -2254,7 +2310,7 @@ Interviewer: ${interviewerName}`;
                     field="phone_number"
                     displayValue={currentApplicant.phone_number}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2268,7 +2324,7 @@ Interviewer: ${interviewerName}`;
                       currentApplicant.whatsapp_number || ""
                     }
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
 
@@ -2286,7 +2342,7 @@ Interviewer: ${interviewerName}`;
                       { value: "other", label: "Other" },
                     ]}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2301,7 +2357,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={castes}
                     onEditStart={() => ensureFieldDataLoaded('cast_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2321,7 +2377,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={qualifications}
                     onEditStart={() => ensureFieldDataLoaded('qualification_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
 
@@ -2340,7 +2396,7 @@ Interviewer: ${interviewerName}`;
                         displayValue={currentApplicant.graduation_year || "—"}
                         onUpdate={handleUpdate}
                         options={graduationYearOptions}
-                        disabled={!hasEditAccess}
+                        disabled={!canEditApplicantDetails}
                       />
                     </div>
                     <div>
@@ -2354,7 +2410,7 @@ Interviewer: ${interviewerName}`;
                         displayValue={currentApplicant.graduation_mode || "—"}
                         onUpdate={handleUpdate}
                         options={graduationModeOptions}
-                        disabled={!hasEditAccess}
+                        disabled={!canEditApplicantDetails}
                       />
                     </div>
                   </>
@@ -2376,7 +2432,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={currentWorks}
                     onEditStart={() => ensureFieldDataLoaded('current_status_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2391,7 +2447,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleStateChange}
                     options={stateOptions}
                     onEditStart={() => ensureFieldDataLoaded('state')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 {/* <div>
@@ -2417,7 +2473,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleDistrictChange}
                     options={districtOptions}
                     disabled={
-                      !hasEditAccess || !selectedState || isLoadingDistricts
+                      !canEditApplicantDetails || !selectedState || isLoadingDistricts
                     }
                     placeholder={!selectedState ? "Select state first" : "Select district"}
                   />
@@ -2434,7 +2490,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleBlockChange}
                     options={blockOptions}
                     disabled={
-                      !hasEditAccess || !selectedDistrict || isLoadingBlocks
+                      !canEditApplicantDetails || !selectedDistrict || isLoadingBlocks
                     }
                     placeholder={!selectedDistrict ? "Select district first" : "Select block"}
                   />
@@ -2448,7 +2504,7 @@ Interviewer: ${interviewerName}`;
                     field="pin_code"
                     displayValue={currentApplicant.pin_code || ""}
                     onUpdate={handleUpdate}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2463,7 +2519,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={partners}
                     onEditStart={() => ensureFieldDataLoaded('partner_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2478,7 +2534,7 @@ Interviewer: ${interviewerName}`;
                     onUpdate={handleUpdate}
                     options={donors}
                     onEditStart={() => ensureFieldDataLoaded('donor_id')}
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                   />
                 </div>
                 <div>
@@ -2539,11 +2595,12 @@ Interviewer: ${interviewerName}`;
             submitApi={screeningSubmit}
             updateApi={screeningUpdate}
             deleteApi={API_MAP.screening.delete}
-            canDelete={isAdmin}
+            canDelete={isAdmin && !isTeamUser}
             disableDelete={hasLearningRoundData}
             onSave={handleUpdate}
             disableAdd={isScreeningPassed}
-          // disabled={!hasEditAccess}
+            hideActions={isTeamUser}
+            disabled={!canEditApplicantDetails}
           // disabledReason={!hasEditAccess ? "You do not have edit access" : undefined}
           />
 
@@ -2653,11 +2710,12 @@ Interviewer: ${interviewerName}`;
                 submitApi={API_MAP.learning.submit}
                 updateApi={API_MAP.learning.update}
                 deleteApi={API_MAP.learning.delete}
-                canDelete={isAdmin}
+                canDelete={isAdmin && !isTeamUser}
                 disableDelete={hasCulturalRoundData}
                 onSave={handleUpdate}
                 disableAdd={isLearningPassed}
-                disabled={isStageDisabled(currentApplicant, "LR")}
+                hideActions={isTeamUser}
+                disabled={isTeamUser || isStageDisabled(currentApplicant, "LR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "LR")
                     ? "Student need to pass Screening Round"
@@ -2723,11 +2781,12 @@ Interviewer: ${interviewerName}`;
                 submitApi={API_MAP.cultural.submit}
                 updateApi={API_MAP.cultural.update}
                 deleteApi={API_MAP.cultural.delete}
-                canDelete={isAdmin}
+                canDelete={isAdmin && !isTeamUser}
                 disableDelete={hasOfferData}
                 onSave={handleUpdate}
                 disableAdd={isCulturalPassed}
-                disabled={isStageDisabled(currentApplicant, "CFR")}
+                hideActions={isTeamUser}
+                disabled={isTeamUser || isStageDisabled(currentApplicant, "CFR")}
                 disabledReason={
                   isStageDisabled(currentApplicant, "CFR")
                     ? "Student need to pass Learning Round"
@@ -2742,11 +2801,30 @@ Interviewer: ${interviewerName}`;
                 <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Campus <span className="text-red-500">*</span>
-                  </label>
-                  {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.campus_id ? (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Campus <span className="text-red-500">*</span>
+                    </label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-6 px-2 text-[10px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm"
+                            onClick={() => setShowTemplatesInfo(true)}
+                          >
+                            Available Offer Letter Templates
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View available offer letter templates</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+
+                  {isStageDisabled(currentApplicant, "OFFER") ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -2755,12 +2833,7 @@ Interviewer: ${interviewerName}`;
                               applicant={currentApplicant}
                               field="campus_id"
                               value={currentApplicant.campus_id}
-                              displayValue={getLabel(
-                                campus,
-                                currentApplicant.campus_id,
-                                "",
-                                "campus_name"
-                              )}
+                              displayValue=""
                               onUpdate={handleUpdate}
                               options={campus}
                               onEditStart={() => ensureFieldDataLoaded('campus_id')}
@@ -2788,7 +2861,7 @@ Interviewer: ${interviewerName}`;
                         onUpdate={handleUpdate}
                         options={campus}
                         onEditStart={() => ensureFieldDataLoaded('campus_id')}
-                        disabled={!hasEditAccess}
+                        disabled={!canEditApplicantDetails}
                       />
                     </div>
                   )}
@@ -2870,7 +2943,7 @@ Interviewer: ${interviewerName}`;
                           label: "Selected but not joined",
                         },
                       ]}
-                      disabled={!hasEditAccess}
+                      disabled={!canEditApplicantDetails}
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
                       }}
@@ -2929,7 +3002,7 @@ Interviewer: ${interviewerName}`;
                           ?.onboarded_status || ""
                       }
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
-                      disabled={!hasEditAccess}
+                      disabled={!canEditApplicantDetails}
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
@@ -2973,7 +3046,7 @@ Interviewer: ${interviewerName}`;
                       )[0] ||
                       ""
                     }
-                    disabled={!hasEditAccess}
+                    disabled={!canEditApplicantDetails}
                     onChange={async (e) => {
                       const selectedDate = e.target.value;
                       setJoiningDate(selectedDate);
@@ -3035,6 +3108,7 @@ Interviewer: ${interviewerName}`;
                   onUpdate={async (value) => {
                     await handleFinalDecisionUpdate("final_notes", value);
                   }}
+                  disabled={!canEditApplicantDetails}
                 />
               </div>
 
@@ -3087,7 +3161,6 @@ Interviewer: ${interviewerName}`;
           setIframeSrc("");
           setStudentViewData(null);
           setStudentViewPhone("");
-          clearStudentPreviewLocalStorage();
         }
       }}
     >
@@ -3209,8 +3282,75 @@ Interviewer: ${interviewerName}`;
           onClose={() => setShowCommentsModal(false)}
         />
       )} */}
+      {/* Available Templates Info Dialog */}
+      <Dialog open={showTemplatesInfo} onOpenChange={setShowTemplatesInfo}>
+        <DialogContent className="max-w-md border-none shadow-2xl">
+          <DialogHeader className="pb-4 border-b">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-black-700">
+              <FileText className="h-5 w-5" />
+              Available Offer Letter Templates
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 font-medium">
+              Campuses and schools with valid offer letter templates ready.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            {isLoadingTemplates ? (
+              <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                <Loader2 className="h-10 w-10 animate-spin text-pink-500" />
+                <p className="text-sm text-muted-foreground animate-pulse">Fetching latest templates...</p>
+              </div>
+            ) : availableTemplates.length === 0 ? (
+              <div className="text-center py-10 bg-gray-50 rounded-xl border-2 border-dashed">
+                <p className="text-gray-400 font-medium">No templates found in the system.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {availableTemplates.map((item: any, idx: number) => (
+                  <div key={idx} className="group p-4 border rounded-xl bg-white hover:border-pink-300 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-bold text-gray-800 group-hover:text-pink-700 transition-colors">{item.campus_name}</h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-50 text-pink-600 border border-pink-100 uppercase">
+                        {item.available_schools?.length || 0} {item.available_schools?.length === 1 ? 'Template' : 'Templates'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {item.available_schools?.map((school: string) => (
+                        <Badge 
+                          key={school} 
+                          variant="secondary" 
+                          className="bg-gray-100 hover:bg-pink-100 text-gray-700 hover:text-pink-700 border-none px-3 py-1 text-xs font-semibold transition-colors"
+                        >
+                          {school}
+                        </Badge>
+                      ))}
+                    </div>
+                    {item.files?.length > 0 && (
+                      <div className="mt-3 pt-2 border-t border-dashed border-gray-100">
+                        {/* <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                          <Check className="h-2.5 w-2.5 text-green-500" />
+                          HTML Templates Verified
+                        </p> */}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end pt-4 border-t mt-2">
+            <Button 
+              onClick={() => setShowTemplatesInfo(false)}
+              className="bg-pink-600 hover:bg-pink-700 text-white font-bold px-8"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
 
 

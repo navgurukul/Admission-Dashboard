@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Trash2,
@@ -54,6 +54,21 @@ const AdminPage: React.FC = () => {
   const [usernameError, setUsernameError] = useState<string>("");
 
   const { toast } = useToast();
+  const isTeamUser = useMemo(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return false;
+
+      const parsedUser = JSON.parse(storedUser);
+      const roleIdNum = Number(parsedUser?.user_role_id);
+      const roleName = String(parsedUser?.role_name || "").toUpperCase();
+
+      return roleIdNum === 3 || roleName === "TEAM";
+    } catch (error) {
+      console.error("Error parsing user for role checks:", error);
+      return false;
+    }
+  }, []);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{
     open: boolean;
@@ -290,13 +305,13 @@ const AdminPage: React.FC = () => {
       closeAddUserDialog();
     } catch (err: any) {
       console.error("Error saving user:", err);
-      
+
       // Get error message from API response
-      const errorMessage = err?.error || 
-                          err?.response?.data?.error || 
-                          err?.message || 
-                          "Failed to create user.";
-      
+      const errorMessage = err?.error ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to create user.";
+
       // Check if user already exists
       if (errorMessage.toLowerCase().includes('already exists')) {
         setEmailError("User with this email already exists");
@@ -405,16 +420,16 @@ const AdminPage: React.FC = () => {
       closeAddUserDialog();
     } catch (err: any) {
       console.error("Error updating user:", err);
-      
+
       // Extract error message from various possible locations
-      const errorMessage = err?.error || 
-                          err?.response?.data?.error || 
-                          err?.response?.data?.message || 
-                          err?.data?.error ||
-                          err?.data?.message || 
-                          err?.message || 
-                          "Failed to update user. Please try again.";
-      
+      const errorMessage = err?.error ||
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.data?.error ||
+        err?.data?.message ||
+        err?.message ||
+        "Failed to update user. Please try again.";
+
       toast({
         title: "❌ Unable to Update User",
         description: getFriendlyErrorMessage(err),
@@ -529,15 +544,17 @@ const AdminPage: React.FC = () => {
                     ]}
                   />
 
-                  <button
-                    onClick={openAddUserDialog}
-                    data-onboarding="user-add-button"
-                    className="bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="hidden sm:inline">Add User</span>
-                    <span className="sm:hidden">Add</span>
-                  </button>
+                  {!isTeamUser && (
+                    <button
+                      onClick={openAddUserDialog}
+                      data-onboarding="user-add-button"
+                      className="bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors duration-200 shadow-sm hover:shadow-md"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add User</span>
+                      <span className="sm:hidden">Add</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -658,9 +675,11 @@ const AdminPage: React.FC = () => {
                         <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                           Role
                         </th>
-                        <th className="px-6 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Actions
-                        </th>
+                        {!isTeamUser && (
+                          <th className="px-6 py-4 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Actions
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border">
@@ -700,7 +719,7 @@ const AdminPage: React.FC = () => {
                           </td> */}
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                              {user.user_role_id === 1 ? (
+                              {user.user_role_id === 1 || user.user_role_id === 3 ? (
                                 <Shield className="h-3 w-3 mr-1" />
                               ) : (
                                 <UserIcon className="h-3 w-3 mr-1" />
@@ -708,49 +727,51 @@ const AdminPage: React.FC = () => {
                               {getRoleName(user.user_role_id)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger className="focus:outline-none">
-                                <div className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    setAddUserDialog({
-                                      open: true,
-                                      name: user.name,
-                                      email: user.email,
-                                      username: "",
-                                      phone: user.mobile || "",
-                                      selectedRoleId:
-                                        user.user_role_id?.toString() || "",
-                                      editId: user.id,
-                                    })
-                                  }
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit
-                                </DropdownMenuItem>
-                                {user.user_role_id !== 1 && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={() =>
-                                        handleDeleteUser(user.id, user.name)
-                                      }
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
+                          {!isTeamUser && (
+                            <td className="px-6 py-4 text-center">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger className="focus:outline-none">
+                                  <div className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      setAddUserDialog({
+                                        open: true,
+                                        name: user.name,
+                                        email: user.email,
+                                        username: "",
+                                        phone: user.mobile || "",
+                                        selectedRoleId:
+                                          user.user_role_id?.toString() || "",
+                                        editId: user.id,
+                                      })
+                                    }
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  {user.user_role_id !== 1 && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() =>
+                                          handleDeleteUser(user.id, user.name)
+                                        }
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -794,47 +815,49 @@ const AdminPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="focus:outline-none">
-                            <div className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-                              <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                setAddUserDialog({
-                                  open: true,
-                                  name: user.name,
-                                  email: user.email,
-                                  username: "",
-                                  phone: user.mobile || "",
-                                  selectedRoleId:
-                                    user.user_role_id?.toString() || "",
-                                  editId: user.id,
-                                })
-                              }
-                            >
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            {user.user_role_id !== 1 && (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() =>
-                                    handleDeleteUser(user.id, user.name)
-                                  }
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {!isTeamUser && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="focus:outline-none">
+                              <div className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setAddUserDialog({
+                                    open: true,
+                                    name: user.name,
+                                    email: user.email,
+                                    username: "",
+                                    phone: user.mobile || "",
+                                    selectedRoleId:
+                                      user.user_role_id?.toString() || "",
+                                    editId: user.id,
+                                  })
+                                }
+                              >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              {user.user_role_id !== 1 && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() =>
+                                      handleDeleteUser(user.id, user.name)
+                                    }
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -864,11 +887,10 @@ const AdminPage: React.FC = () => {
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                        page === 1
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${page === 1
                           ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
-                      }`}
+                        }`}
                     >
                       Previous
                     </button>
@@ -878,11 +900,10 @@ const AdminPage: React.FC = () => {
                         <button
                           key={i}
                           onClick={() => setPage(i + 1)}
-                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                            page === i + 1
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${page === i + 1
                               ? "bg-primary text-white shadow-sm"
                               : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
-                          }`}
+                            }`}
                         >
                           {i + 1}
                         </button>
@@ -894,11 +915,10 @@ const AdminPage: React.FC = () => {
                         setPage((p) => Math.min(totalPagesCount, p + 1))
                       }
                       disabled={page === totalPagesCount}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                        page === totalPagesCount
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${page === totalPagesCount
                           ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
-                      }`}
+                        }`}
                     >
                       Next
                     </button>
@@ -938,11 +958,10 @@ const AdminPage: React.FC = () => {
                           setAddUserDialog((d) => ({ ...d, name: filteredVal }));
                           setNameError(""); // Clear any previous errors
                         }}
-                        className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
-                          nameError
+                        className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${nameError
                             ? "border-destructive focus:ring-destructive"
                             : "border-border focus:ring-primary focus:border-primary"
-                        }`}
+                          }`}
                         placeholder="Enter full name"
                       />
                       {nameError && (
@@ -991,11 +1010,11 @@ const AdminPage: React.FC = () => {
                         Phone *
                       </label>
                       <input
-                         type="tel"
+                        type="tel"
                         value={addUserDialog.phone}
                         onChange={(e) => {
                           const value = e.target.value;
-                          
+
                           // Only allow numbers and max 10 digits
                           if (/^\d{0,10}$/.test(value)) {
                             setAddUserDialog((d) => ({ ...d, phone: value }));
@@ -1008,11 +1027,10 @@ const AdminPage: React.FC = () => {
                             e.preventDefault();
                           }
                         }}
-                        className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${
-                          phoneError
+                        className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 transition-colors duration-200 ${phoneError
                             ? "border-destructive focus:ring-destructive"
                             : "border-border focus:ring-primary focus:border-primary"
-                        }`}
+                          }`}
                         placeholder="Enter 10-digit phone number"
                         maxLength={10}
                       />

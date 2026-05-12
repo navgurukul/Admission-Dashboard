@@ -9,6 +9,7 @@ import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import {
   getCompleteStudentData,
+  getStudentDataByEmail,
   getStudentDataByPhone,
   getAllStates,
   CompleteStudentData,
@@ -316,12 +317,33 @@ export default function StudentResult() {
 
         // 1. Check if data was passed via navigation state
         let data: any = location.state?.studentData;
+        const searchParams = new URLSearchParams(location.search);
+        const isPreviewMode = searchParams.get("preview") === "1";
+        const previewPhone = (searchParams.get("phone") || "").trim();
+        const previewEmail = (searchParams.get("email") || "").trim();
+        const previewFirstName = (searchParams.get("firstName") || "").trim();
 
-        // 2. If not in state, try to find email and fetch fresh data
+        // 2. If preview params are present, fetch directly from them without storage/session fallbacks
+        if (!data && isPreviewMode) {
+          if (previewPhone) {
+            data = await getStudentDataByPhone(
+              previewPhone,
+              previewFirstName || undefined,
+            );
+          } else if (previewEmail) {
+            data = await getStudentDataByEmail(
+              previewEmail,
+              previewFirstName || undefined,
+            );
+          }
+        }
+
+        // 3. If not in preview mode, try regular logged-in student flow
         if (!data) {
           const googleUser = localStorage.getItem("user");
           let email = "";
           let phone = "";
+          let firstName = "";
           let loginMethod: "email" | "phone" = "phone";
 
           // Detect actual login method - Google login stores google_credential in sessionStorage
@@ -337,6 +359,7 @@ export default function StudentResult() {
               const parsedUser = JSON.parse(googleUser);
               email = parsedUser.email;
               phone = parsedUser.mobile || parsedUser.phone || "";
+              firstName = parsedUser.first_name || parsedUser.firstName || (parsedUser.name ? parsedUser.name.split(' ')[0] : "");
             } catch (e) { }
           }
 
@@ -358,6 +381,12 @@ export default function StudentResult() {
               const payloadEmail = payload?.data?.student?.email ||
                 payload?.student?.email ||
                 payload?.email || "";
+              const payloadFirstName = payload?.data?.student?.first_name ||
+                payload?.data?.student?.firstName ||
+                payload?.student?.first_name ||
+                payload?.student?.firstName ||
+                payload?.first_name ||
+                payload?.firstName || "";
 
               // Use payload values if not found in user localStorage
               if (!phone && payloadPhone) {
@@ -366,6 +395,9 @@ export default function StudentResult() {
               }
               if (!email && payloadEmail) {
                 email = payloadEmail;
+              }
+              if (payloadFirstName) {
+                firstName = payloadFirstName;
               }
 
               // If we found NO email/phone but HAVE cached data, use the cached data as fallback
@@ -380,12 +412,12 @@ export default function StudentResult() {
             // PRIORITY 1: Use the method that was actually used for login
             if (loginMethod === "email" && email) {
               try {
-                data = await getCompleteStudentData(email);
+                data = await getCompleteStudentData(email, firstName);
               } catch (emailError: any) {
                 // Fallback to phone if email fails and phone is available
                 if (phone) {
                   try {
-                    data = await getStudentDataByPhone(phone);
+                    data = await getStudentDataByPhone(phone, firstName);
                   } catch (phoneError: any) {
                     throw emailError; // Throw original email error
                   }
@@ -395,12 +427,12 @@ export default function StudentResult() {
               }
             } else if (loginMethod === "phone" && phone) {
               try {
-                data = await getStudentDataByPhone(phone);
+                data = await getStudentDataByPhone(phone, firstName);
               } catch (phoneError: any) {
                 // Fallback to email if phone fails and email is available
                 if (email) {
                   try {
-                    data = await getCompleteStudentData(email);
+                    data = await getCompleteStudentData(email, firstName);
                   } catch (emailError: any) {
                     throw phoneError; // Throw original phone error
                   }
@@ -411,9 +443,9 @@ export default function StudentResult() {
             } else {
               // Fallback: If no identifier matches login method, try what's available
               if (phone) {
-                data = await getStudentDataByPhone(phone);
+                data = await getStudentDataByPhone(phone, firstName);
               } else if (email) {
-                data = await getCompleteStudentData(email);
+                data = await getCompleteStudentData(email, firstName);
               }
             }
           }

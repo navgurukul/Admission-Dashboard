@@ -197,17 +197,19 @@ export default function StudentLogin() {
       }
 
       // Determine user role and navigate accordingly
-      const userRole = googleUser.role_id;
+      const userRoleNum = Number(googleUser.role_id);
       const roleName = googleUser.role_name;
+      const isTeam = userRoleNum === 3 || roleName === "Team" || roleName?.toUpperCase() === "TEAM";
 
       if (
-        userRole === 1 ||
-        userRole === 2 ||
+        userRoleNum === 1 ||
+        userRoleNum === 2 ||
         roleName === "ADMIN" ||
-        roleName === "USER"
+        roleName === "USER" ||
+        isTeam
       ) {
-        // Admin/User - Navigate to dashboard
-        // console.log("✅ Admin/User detected - navigating to dashboard");
+        // Admin/User/Team - Navigate to dashboard
+        // console.log("✅ Admin/User/Team detected - navigating to dashboard");
         localStorage.setItem("role", roleName || "user");
         localStorage.setItem("userRole", JSON.stringify(roleName));
 
@@ -223,7 +225,11 @@ export default function StudentLogin() {
         sessionStorage.removeItem("google_credential");
 
         setTimeout(() => {
-          navigate("/");
+          if (isTeam) {
+            navigate("/");
+          } else {
+            navigate("/");
+          }
         }, 500);
       } else {
         // Student - fetch student data and route based on progress
@@ -482,7 +488,7 @@ export default function StudentLogin() {
       // First, check if the student already exists by phone
       let existingStudentData = null;
       try {
-        existingStudentData = await getStudentDataByPhone(formData.phone);
+        existingStudentData = await getStudentDataByPhone(formData.phone, formData.name);
       } catch (error) {
         // If 404 or other error, we treat it as a new student
         console.log("Student not found by phone, proceeding with registration");

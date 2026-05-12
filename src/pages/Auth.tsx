@@ -39,11 +39,15 @@ export default function Auth() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (!googleUser || googleUser.role_id === undefined) return;
+    const roleIdNum = Number(googleUser.role_id);
+    const isTeam = roleIdNum === 3 || googleUser.role_name === "Team" || googleUser.role_name?.toUpperCase() === "TEAM";
 
-    if (googleUser.role_id === 1 || googleUser.role_id === 2) {
-      // console.log("FROM AUTH.TSX 17", googleUser.role_id);
-      navigate("/");
+    if (roleIdNum === 1 || roleIdNum === 2 || isTeam) {
+      if (isTeam) {
+        navigate("/donor");
+      } else {
+        navigate("/");
+      }
       return;
     }
   }, [googleUser, isAuthenticated, navigate]);

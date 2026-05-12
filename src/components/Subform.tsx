@@ -48,6 +48,7 @@ interface InlineSubformProps {
   disabled?: boolean;
   disabledReason?: string;
   disableAdd?: boolean;
+  hideActions?: boolean;
   customActions?: React.ReactNode; // Custom action buttons to display alongside Add Row
   canDelete?: boolean; // Permission to delete entries (admin only)
   disableDelete?: boolean; // Disable delete when student has moved to next round
@@ -266,6 +267,7 @@ export function InlineSubform({
   disableAdd,
   customActions,
   canDelete = false, // Default to false (no delete permission)
+  hideActions = false,
   disableDelete = false, // Default to false (deletion not disabled by round progression)
   containerId,
 }: InlineSubformProps) {
@@ -724,8 +726,7 @@ export function InlineSubform({
           {/* Custom action buttons (e.g., Schedule Interview) */}
           {customActions}
           
-          {/* Add Row button */}
-          {disabled || disableAdd ? (
+          {!hideActions && (disabled || disableAdd ? (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -754,7 +755,7 @@ export function InlineSubform({
             <Button size="sm" variant="outline" onClick={addRow}>
               <Plus className="h-4 w-4 mr-1" /> Add Row
             </Button>
-          )}
+          ))}
         </div>
       </div>
 
@@ -776,7 +777,9 @@ export function InlineSubform({
                   {f.label}
                 </th>
               ))}
-              <th className="px-3 py-2 border-b text-right whitespace-nowrap min-w-[100px]">Actions</th>
+              {!hideActions && (
+                <th className="px-3 py-2 border-b text-right whitespace-nowrap min-w-[100px]">Actions</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -833,6 +836,7 @@ export function InlineSubform({
                     </td>
                   );
                 })}
+                {!hideActions && (
                 <td className="px-3 py-2 text-right whitespace-nowrap">
                   <div className="flex items-center justify-end gap-1">
                     {!row.isEditing ? (
@@ -914,6 +918,7 @@ export function InlineSubform({
                     )}
                   </div>
                 </td>
+                )}
               </tr>
             );
             })}
