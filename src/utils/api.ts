@@ -1130,11 +1130,13 @@ export const getStudentById = async (id: string): Promise<Student> => {
 // Get Student By Email
 export const getStudentDataByEmail = async (
   email: string,
+  firstName?: string,
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByEmail/${email}`,
       {
+        params: firstName ? { firstName } : {},
         headers: {
           ...(getAuthHeaders() as Record<string, string>),
         },
@@ -1152,11 +1154,13 @@ export const getStudentDataByEmail = async (
 // Get Student By Phone
 export const getStudentDataByPhone = async (
   phone: string,
+  firstName?: string,
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByPhone/${phone}`,
       {
+        params: firstName ? { firstName } : {},
         headers: {
           ...(getAuthHeaders() as Record<string, string>),
         },
@@ -1188,10 +1192,14 @@ export interface CompleteStudentData {
 
 export const getCompleteStudentData = async (
   email: string,
+  firstName?: string,
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByEmail/${email}`,
+      {
+        params: firstName ? { firstName } : {},
+      }
     );
     return response.data;
   } catch (error: any) {

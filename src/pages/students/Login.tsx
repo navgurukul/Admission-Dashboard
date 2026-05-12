@@ -482,7 +482,7 @@ export default function StudentLogin() {
       // First, check if the student already exists by phone
       let existingStudentData = null;
       try {
-        existingStudentData = await getStudentDataByPhone(formData.phone);
+        existingStudentData = await getStudentDataByPhone(formData.phone, formData.name);
       } catch (error) {
         // If 404 or other error, we treat it as a new student
         console.log("Student not found by phone, proceeding with registration");

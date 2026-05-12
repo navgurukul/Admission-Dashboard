@@ -322,6 +322,7 @@ export default function StudentResult() {
           const googleUser = localStorage.getItem("user");
           let email = "";
           let phone = "";
+          let firstName = "";
           let loginMethod: "email" | "phone" = "phone";
 
           // Detect actual login method - Google login stores google_credential in sessionStorage
@@ -337,6 +338,7 @@ export default function StudentResult() {
               const parsedUser = JSON.parse(googleUser);
               email = parsedUser.email;
               phone = parsedUser.mobile || parsedUser.phone || "";
+              firstName = parsedUser.first_name || parsedUser.firstName || (parsedUser.name ? parsedUser.name.split(' ')[0] : "");
             } catch (e) { }
           }
 
@@ -380,12 +382,12 @@ export default function StudentResult() {
             // PRIORITY 1: Use the method that was actually used for login
             if (loginMethod === "email" && email) {
               try {
-                data = await getCompleteStudentData(email);
+                data = await getCompleteStudentData(email, firstName);
               } catch (emailError: any) {
                 // Fallback to phone if email fails and phone is available
                 if (phone) {
                   try {
-                    data = await getStudentDataByPhone(phone);
+                    data = await getStudentDataByPhone(phone, firstName);
                   } catch (phoneError: any) {
                     throw emailError; // Throw original email error
                   }
@@ -395,12 +397,12 @@ export default function StudentResult() {
               }
             } else if (loginMethod === "phone" && phone) {
               try {
-                data = await getStudentDataByPhone(phone);
+                data = await getStudentDataByPhone(phone, firstName);
               } catch (phoneError: any) {
                 // Fallback to email if phone fails and email is available
                 if (email) {
                   try {
-                    data = await getCompleteStudentData(email);
+                    data = await getCompleteStudentData(email, firstName);
                   } catch (emailError: any) {
                     throw phoneError; // Throw original phone error
                   }
@@ -411,9 +413,9 @@ export default function StudentResult() {
             } else {
               // Fallback: If no identifier matches login method, try what's available
               if (phone) {
-                data = await getStudentDataByPhone(phone);
+                data = await getStudentDataByPhone(phone, firstName);
               } else if (email) {
-                data = await getCompleteStudentData(email);
+                data = await getCompleteStudentData(email, firstName);
               }
             }
           }
