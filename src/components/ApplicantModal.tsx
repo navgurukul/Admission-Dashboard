@@ -235,35 +235,8 @@ export function ApplicantModal({
   const [showStudentPreviewDialog, setShowStudentPreviewDialog] = useState(false);
   const [showEmbeddedStudent, setShowEmbeddedStudent] = useState(false);
   const [iframeSrc, setIframeSrc] = useState("");
-  const studentPreviewStorageKeys = useMemo(
-    () => [
-      "studentData",
-      "studentId",
-      "registrationDone",
-      "testStarted",
-      "testCompleted",
-      "allowRetest",
-    ],
-    [],
-  );
+  const studentPreviewStorageKeys = useMemo(() => [] as string[], []);
   const studentPreviewStorageBackupRef = useRef<Record<string, string | null> | null>(null);
-
-  const ensureStudentPreviewStorageBackup = useCallback(() => {
-    if (studentPreviewStorageBackupRef.current) {
-      return;
-    }
-
-    try {
-      const backup: Record<string, string | null> = {};
-      studentPreviewStorageKeys.forEach((key) => {
-        backup[key] = localStorage.getItem(key);
-      });
-      studentPreviewStorageBackupRef.current = backup;
-    } catch (err) {
-      console.warn("Failed to backup student preview localStorage", err);
-    }
-  }, [studentPreviewStorageKeys]);
-
   const isExamSessionCompleted = useCallback((session: any) => {
     const status = String(session?.status || "").toLowerCase();
     return Boolean(
@@ -525,34 +498,30 @@ export function ApplicantModal({
     fetchQuestionSets,
   ]);
 
-  const getStudentPreviewRoute = useCallback((payload: any) => {
-    const profile = payload?.student ?? payload ?? null;
+  const buildStudentPreviewUrl = useCallback((
+    route: string,
+    identifiers: {
+      phone?: string;
+      email?: string;
+      firstName?: string;
+    },
+  ) => {
+    const params = new URLSearchParams({
+      preview: "1",
+    });
 
-    const registrationDone = Boolean(
-      profile && profile.student_id && profile.dob && profile.gender,
-    );
-
-    const examSessions = Array.isArray(payload?.exam_sessions)
-      ? payload.exam_sessions
-      : [];
-    const testStarted = examSessions.length > 0;
-    const testCompleted = examSessions.some((session: any) => isExamSessionCompleted(session));
-    const allowRetest = Boolean(payload?.allow_retest ?? false);
-
-    if (!registrationDone) {
-      return "/students/details/instructions";
+    if (identifiers.phone) {
+      params.set("phone", identifiers.phone);
+    }
+    if (identifiers.email) {
+      params.set("email", identifiers.email);
+    }
+    if (identifiers.firstName) {
+      params.set("firstName", identifiers.firstName);
     }
 
-    if (testStarted && !testCompleted) {
-      return "/students/test/start";
-    }
-
-    if (testCompleted && !allowRetest) {
-      return "/students/final-result";
-    }
-
-    return "/students/details/instructions";
-  }, [isExamSessionCompleted]);
+    return `${route}?${params.toString()}`;
+  }, []);
 
   // Check Google sign-in status
   useEffect(() => {
@@ -1019,18 +988,32 @@ Interviewer: ${interviewerName}`;
   // Initialize selected state and district from applicant data
   // Wait for states to be loaded before trying to set selectedState
   useEffect(() => {
-    if (applicant?.id && stateList.length > 0) {
-      // Clear schedule data immediately when applicant changes
-      setLiveScheduleData([]);
-      setCurrentApplicant(applicant);
-      if (applicant.state) {
-        const stateCode = getStateCodeFromNameOrCode(applicant.state);
-        if (stateCode) {
-          setSelectedState(stateCode);
-        }
+    if (!applicant?.id) {
+      return;
+    }
+
+    // Clear any view-specific state immediately so the previous applicant
+    setLiveScheduleData([]);
+    setStudentViewData(null);
+    setShowEmbeddedStudent(false);
+    setIframeSrc("");
+
+    setCurrentApplicant(applicant);
+    setStudentViewPhone(
+      String(
+        applicant.phone_number ||
+        applicant.whatsapp_number ||
+        "",
+      ),
+    );
+
+    if (applicant.state && stateList.length > 0) {
+      const stateCode = getStateCodeFromNameOrCode(applicant.state);
+      if (stateCode) {
+        setSelectedState(stateCode);
       }
     }
-  }, [applicant?.id, stateList.length]);
+  }, [applicant, stateList.length]);
 
   // Initialize district after districts are loaded
   useEffect(() => {
@@ -1510,6 +1493,15 @@ Interviewer: ${interviewerName}`;
     try {
       const normalizedPhone = (studentViewPhone || "").trim();
       const normalizedEmail = (currentApplicant?.email || "").trim();
+      const normalizedFirstName = String(
+        currentApplicant?.first_name ||
+        currentApplicant?.firstName ||
+        currentApplicant?.name?.split(" ")?.[0] ||
+        applicant?.first_name ||
+        applicant?.firstName ||
+        applicant?.name?.split(" ")?.[0] ||
+        "",
+      ).trim();
 
       // Use phone if available, otherwise use email
       const identifier = normalizedPhone || normalizedEmail;
@@ -1519,14 +1511,18 @@ Interviewer: ${interviewerName}`;
         return;
       }
 
-      ensureStudentPreviewStorageBackup();
-
       // Use phone API if phone available, otherwise use email API
       let resp;
       if (normalizedPhone) {
-        resp = await getStudentDataByPhone(normalizedPhone);
+        resp = await getStudentDataByPhone(
+          normalizedPhone,
+          normalizedFirstName || undefined,
+        );
       } else {
-        resp = await getStudentDataByEmail(normalizedEmail);
+        resp = await getStudentDataByEmail(
+          normalizedEmail,
+          normalizedFirstName || undefined,
+        );
       }
 
       const payload = (resp as any)?.data ?? resp ?? null;
@@ -1543,30 +1539,39 @@ Interviewer: ${interviewerName}`;
       };
       setStudentViewData(mergedPayload as any);
 
-      localStorage.setItem("studentData", JSON.stringify(mergedPayload));
-      const sid = profile?.student_id ?? profile?.id ?? profile?.studentId ?? null;
-      if (sid) localStorage.setItem("studentId", String(sid));
+      const previewUrl = buildStudentPreviewUrl("/students/final-result", {
+        phone:
+          normalizedPhone ||
+          profile?.phone_number ||
+          profile?.whatsapp_number ||
+          undefined,
+        email: normalizedEmail || profile?.email || undefined,
+        firstName:
+          normalizedFirstName ||
+          profile?.first_name ||
+          profile?.firstName ||
+          undefined,
+      });
 
-      const route = getStudentPreviewRoute(mergedPayload);
-      const registrationDone = Boolean(profile && profile.student_id && profile.dob && profile.gender);
-      const examSessions = Array.isArray(mergedPayload?.exam_sessions) ? mergedPayload.exam_sessions : [];
-      const testStarted = examSessions.length > 0;
-      const testCompleted = examSessions.some((s: any) => isExamSessionCompleted(s));
-      const allowRetest = Boolean((mergedPayload as any)?.allow_retest ?? false);
-
-      localStorage.setItem("registrationDone", registrationDone ? "true" : "false");
-      localStorage.setItem("testStarted", testStarted ? "true" : "false");
-      localStorage.setItem("testCompleted", testCompleted ? "true" : "false");
-      localStorage.setItem("allowRetest", allowRetest ? "true" : "false");
-
-      setIframeSrc(route);
+      setIframeSrc(previewUrl);
       setShowEmbeddedStudent(true);
       setShowStudentPreviewDialog(true);
     } catch (err) {
       console.error("Failed to open student page:", err);
       toast({ title: "Error", description: "Failed to open student page", variant: "destructive" });
     }
-  }, [studentViewPhone, currentApplicant?.email, toast]);
+  }, [
+    applicant?.firstName,
+    // applicant?.first_name,
+    applicant?.name,
+    currentApplicant?.email,
+    currentApplicant?.firstName,
+    // currentApplicant?.first_name,
+    currentApplicant?.name,
+    studentViewPhone,
+    toast,
+    buildStudentPreviewUrl,
+  ]);
 
   const getLabel = (
     options: { value: string; label: string }[],
@@ -3156,7 +3161,6 @@ Interviewer: ${interviewerName}`;
           setIframeSrc("");
           setStudentViewData(null);
           setStudentViewPhone("");
-          clearStudentPreviewLocalStorage();
         }
       }}
     >
