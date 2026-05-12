@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AdmissionsSidebar } from "../components/AdmissionsSidebar";
 import {
   Table,
@@ -56,6 +56,19 @@ const CampusPage: React.FC = () => {
   const [newCampus, setNewCampus] = useState("");
   const [updatedCampusName, setUpdatedCampusName] = useState("");
   const [selectedCampus, setSelectedCampus] = useState<Campus | null>(null);
+  const isTeamUser = useMemo(() => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return false;
+      const parsedUser = JSON.parse(storedUser);
+      const roleIdNum = Number(parsedUser?.user_role_id);
+      const roleName = String(parsedUser?.role_name || "").toUpperCase();
+      return roleIdNum === 3 || roleName === "TEAM";
+    } catch (error) {
+      console.error("Error parsing user for role checks:", error);
+      return false;
+    }
+  }, []);
 
   // Reusable fetch function
   const fetchCampuses = async (showLoader = false, page = currentPage) => {
@@ -269,9 +282,11 @@ const CampusPage: React.FC = () => {
                     }}
                   />
                 </div>
-                <Button onClick={() => setAddDialog(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Campus
-                </Button>
+                {!isTeamUser && (
+                  <Button onClick={() => setAddDialog(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Campus
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -288,13 +303,13 @@ const CampusPage: React.FC = () => {
                       <TableRow>
                         <TableHead>S.No</TableHead>
                         <TableHead>Campus Name</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        {!isTeamUser && <TableHead className="text-right">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {displayCampuses.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={3} className="text-center">
+                          <TableCell colSpan={isTeamUser ? 2 : 3} className="text-center">
                             No campuses found.
                           </TableCell>
                         </TableRow>
@@ -312,31 +327,33 @@ const CampusPage: React.FC = () => {
                                 {campus.campus_name}
                               </Link>
                             </TableCell>
-                            <TableCell className="text-right space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-secondary-purple hover:text-secondary-purple/80 hover:bg-secondary-purple/10"
-                                onClick={() => {
-                                  setSelectedCampus(campus);
-                                  setUpdatedCampusName(campus.campus_name);
-                                  setEditDialog(true);
-                                }}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                                onClick={() => {
-                                  setSelectedCampus(campus);
-                                  setDeleteDialog(true);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
+                            {!isTeamUser && (
+                              <TableCell className="text-right space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-secondary-purple hover:text-secondary-purple/80 hover:bg-secondary-purple/10"
+                                  onClick={() => {
+                                    setSelectedCampus(campus);
+                                    setUpdatedCampusName(campus.campus_name);
+                                    setEditDialog(true);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
+                                  onClick={() => {
+                                    setSelectedCampus(campus);
+                                    setDeleteDialog(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))
                       )}

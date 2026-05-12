@@ -13,16 +13,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { createStudentExamSubmission } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
+import { QuestionFormattedText } from "@/components/questions/QuestionFormattedText";
+import { useLanguage } from "@/routes/LaunguageContext";
+import {
+  formatOptionDisplay,
+  normalizeQuestionOptions,
+  type QuestionOption,
+} from "@/components/questions/questionOptionFormatting";
 
 const STORAGE_KEY = "student_test_progress";
 
 interface Question {
   id: number;
   question: string;
-  options: Array<string | { id?: number; text?: string; label?: string }>;
+  options: QuestionOption[];
   difficulty_level: number;
   answer: number; // store the index of the correct option
 }
+
+const normalizeQuestions = (inputQuestions: Question[] = []) =>
+  inputQuestions.map((question) => ({
+    ...question,
+    options: normalizeQuestionOptions(question.options),
+  }));
 
 const formatTime = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
@@ -43,7 +56,11 @@ const TestPage: React.FC = () => {
   const { questions: stateQuestions, duration: stateDuration } =
     location.state || {};
 
-  const [questions, setQuestions] = useState<Question[]>(stateQuestions || []);
+  const { selectedLanguage } = useLanguage();
+
+  const [questions, setQuestions] = useState<Question[]>(
+    normalizeQuestions(stateQuestions || []),
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({}); // store selected option index
   const [timeLeft, setTimeLeft] = useState<number | null>(
@@ -52,6 +69,10 @@ const TestPage: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const isSubmitting = useRef(false); // Track submission to prevent duplicates
   const hasShownToast = useRef(false); // Track if we've shown the toast
+
+  useEffect(() => {
+    setQuestions(normalizeQuestions(stateQuestions || []));
+  }, [stateQuestions]);
 
   // Show toast notification for refresh
   useEffect(() => {
@@ -338,20 +359,51 @@ const TestPage: React.FC = () => {
         </div>
 
         {/* Question */}
-        <div className="border border-border rounded-xl p-6 mb-6 bg-muted shadow-inner">
-          <p className="text-lg font-medium text-foreground leading-relaxed whitespace-pre-line">
-            {questions[currentIndex].question}
-          </p>
+        <div className="rounded-2xl p-6 mb-6 bg-pink-50 text-slate-900 shadow-sm">
+          <QuestionFormattedText
+            text={(() => {
+              const q = questions[currentIndex] as any;
+              // prefer structured multilingual fields when present
+              if (q?.question_text && typeof q.question_text === "object") {
+                return (
+                  q.question_text[selectedLanguage] || q.question_text.english || ""
+                );
+              }
+              if (q?.[`${selectedLanguage}_text`]) return q[`${selectedLanguage}_text`];
+              if (q?.question) return q.question;
+              return String(q.question_text || "");
+            })()}
+          />
         </div>
 
         {/* Options */}
         <div className="space-y-3">
           {questions[currentIndex].options.map((opt, idx) => {
             const qid = questions[currentIndex].id;
-            const display =
-              typeof opt === "string"
-                ? opt
-                : opt?.text ?? opt?.label ?? JSON.stringify(opt);
+            const q = questions[currentIndex] as any;
+            // get question text for current language (used to detect percent questions)
+            const questionTextForLang = (() => {
+              if (q?.question_text && typeof q.question_text === "object") {
+                return q.question_text[selectedLanguage] || q.question_text.english || "";
+              }
+              if (q?.[`${selectedLanguage}_text`]) return q[`${selectedLanguage}_text`];
+              if (q?.question) return q.question;
+              return String(q.question_text || "");
+            })();
+
+            // pick option value for current language
+            const optionForLang = (() => {
+              if (typeof opt === "string") return opt;
+              if (opt?.text) return opt.text;
+              // legacy: try language-specific options if available on question
+              const optsKey = `${selectedLanguage}_options`;
+              if (q?.[optsKey] && Array.isArray(q[optsKey]) && q[optsKey][idx]) {
+                return q[optsKey][idx];
+              }
+              return opt?.label ?? JSON.stringify(opt);
+            })();
+
+            const display = formatOptionDisplay(questionTextForLang, optionForLang);
             
             // Get the option ID for comparison
             const optionId = typeof opt === 'object' && opt?.id 
@@ -374,7 +426,9 @@ const TestPage: React.FC = () => {
                   onChange={() => handleAnswer(idx)}
                   className="hidden"
                 />
-                <span className="whitespace-pre-line">{display}</span>
+                <span className="whitespace-pre-line text-foreground text-sm">
+                  {display}
+                </span>
               </label>
             );
           })}

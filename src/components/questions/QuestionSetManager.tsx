@@ -46,9 +46,11 @@ import {
   getAllSchools,
   updateQuestion,
 } from "@/utils/api";
+import { QuestionSetDownloadPreview } from "./QuestionSetDownloadPreview";
 
-export function QuestionSetManager({ allQuestions, difficultyLevels }) {
+export function QuestionSetManager({ allQuestions, difficultyLevels, canManage = true }) {
   const DEFAULT_SET_DESCRIPTION = "N/A";
+  type PreviewLanguage = "english" | "hindi" | "marathi";
   const { toast } = useToast();
   const [sets, setSets] = useState([]);
   const [activeSet, setActiveSet] = useState(null);
@@ -75,6 +77,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const [setToDelete, setSetToDelete] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingSet, setViewingSet] = useState<any>(null);
+  const [previewLanguage, setPreviewLanguage] = useState<PreviewLanguage>("english");
   const [editingQuestion, setEditingQuestion] = useState<any>(null);
   const [importPreviewQuestions, setImportPreviewQuestions] = useState<any[]>([]);
   const [importPreviewMeta, setImportPreviewMeta] = useState({
@@ -92,6 +95,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
     failed: 0,
     errors: [] as string[],
   });
+  const [showDownloadPreview, setShowDownloadPreview] = useState(false);
+  const [downloadPreviewSet, setDownloadPreviewSet] = useState<any>(null);
+  const [downloadPreviewLanguage, setDownloadPreviewLanguage] = useState<PreviewLanguage>("english");
 
   const clearImportFileStatusTimeout = () => {
     if (importFileStatusTimeoutRef.current) {
@@ -462,6 +468,32 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         return parsed;
       };
 
+      const normalizeTopicId = (value: any, fallback = "1") => {
+        if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+          return value;
+        }
+
+        if (typeof value === "string") {
+          const trimmed = value.trim();
+          if (!trimmed) return fallback;
+
+          const numericValue = Number(trimmed);
+          if (Number.isInteger(numericValue) && numericValue > 0) {
+            return numericValue;
+          }
+
+          const matchedTopic = Array.isArray(topics)
+            ? topics.find((t: any) => t.topic?.toLowerCase() === trimmed.toLowerCase())
+            : null;
+
+          if (matchedTopic?.id) {
+            return matchedTopic.id;
+          }
+        }
+
+        return fallback;
+      };
+
       const validQuestions: any[] = [];
 
       questions.forEach((q: any, index: number) => {
@@ -469,6 +501,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           ...q,
           id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
           difficulty_level: normalizeDifficultyLevel(q.difficulty_level),
+          topic: normalizeTopicId(q.topic),
           english_options: tryParseOptions(q.english_options),
           hindi_options: tryParseOptions(q.hindi_options),
           marathi_options: tryParseOptions(q.marathi_options),
@@ -647,7 +680,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   const downloadCSVTemplate = () => {
     const template = [
       "difficulty_level,question_type,english_text,hindi_text,marathi_text,english_options,hindi_options,marathi_options,answer_key,topic",
-      '1,MCQ,"Sample english question?","Sample hindi question?","Sample marathi question?","Option 1;Option 2;Option 3;Option 4","विकल्प 1;विकल्प 2;विकल्प 3;विकल्प 4","पर्याय 1;पर्याय 2;पर्याय 3;पर्याय 4","1",Sample Topic',
+      'Easy,MCQ,"3, 8, 13, 18, ___. What will be the next number in the pattern?","3, 8, 13, 18, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 13, 18, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","28; 29; 30; 23","28; 29; 30; 23","28; 29; 30; 23","4","Algebra"',
+      'Medium,MCQ,"3, 8, 15, 24, ___. What will be the next number in the pattern?","3, 8, 15, 24, ___. संख्या क्रम में अगली संख्या क्या होगी?","3, 8, 15, 24, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","35; 32; 34; 33","35; 32; 34; 33","35; 32; 34; 33","1","Number Patterns"',
+      'Hard,MCQ,"8, 4, 16, 12, 32, ___. What will be the next number in the pattern?","8, 4, 16, 12, 32, ___. संख्या क्रम में अगली संख्या क्या होगी?","8, 4, 16, 12, 32, ___. या संख्या मालिकेत पुढची संख्या कोणती येईल?","34; 30; 36; 40","34; 30; 36; 40","34; 30; 36; 40","3","Percentage"',
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
@@ -875,50 +910,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
       return;
     }
 
-    try {
-      // Find the set ID from the selected set name
-      const selectedSet = sets.find((s) => s.name === downloadFormData.selectedSet);
-      if (!selectedSet) {
-        throw new Error("Selected set not found");
-      }
-
-      toast({
-        title: "⏳ Generating PDF...",
-        description: `Please wait while we generate the PDF`,
-        variant: "default",
-        className: "border-blue-500 bg-blue-50 text-blue-900",
-      });
-
-      // Call the API to download PDF
-      const pdfBlob = await downloadQuestionSetPDF(
-        selectedSet.id,
-        downloadFormData.language
-      );
-
-      // Create a download link and trigger download
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${downloadFormData.selectedSet}_${downloadFormData.language}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: "✅ PDF Downloaded",
-        description: `${downloadFormData.selectedSet} in ${downloadFormData.language} has been downloaded`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
+    const selectedSet = sets.find((s) => s.name === downloadFormData.selectedSet);
+    if (selectedSet) {
+      const updatedSet = await loadSetQuestions(selectedSet.id);
+      const normalizedLanguage = (downloadFormData.language || "English").toLowerCase() as PreviewLanguage;
+      setDownloadPreviewLanguage(normalizedLanguage);
+      setDownloadPreviewSet(updatedSet || selectedSet);
+      setShowDownloadPreview(true);
       setIsDownloadModalOpen(false);
-    } catch (err: any) {
-      toast({
-        title: "❌ Download Failed",
-        description: err.message || "Unable to download PDF. Please try again.",
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
-      });
     }
   };
 
@@ -932,6 +931,39 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
 
   const handleEditQuestion = (question: any) => {
     setEditingQuestion(question);
+  };
+
+  const getQuestionTextByLanguage = (question: any) => {
+    if (previewLanguage === "hindi") {
+      return question.hindi_text || question.english_text || question.question_text || question.question || "N/A";
+    }
+
+    if (previewLanguage === "marathi") {
+      return question.marathi_text || question.english_text || question.question_text || question.question || "N/A";
+    }
+
+    return question.english_text || question.question_text || question.question || "N/A";
+  };
+
+  const getOptionText = (option: any) => {
+    if (typeof option === "string") return option;
+    return option?.text || option?.value || "";
+  };
+
+  const getOptionTextByLanguage = (question: any, optionIndex: number) => {
+    const englishOption = question.english_options?.[optionIndex];
+    const hindiOption = question.hindi_options?.[optionIndex];
+    const marathiOption = question.marathi_options?.[optionIndex];
+
+    if (previewLanguage === "hindi") {
+      return getOptionText(hindiOption) || getOptionText(englishOption);
+    }
+
+    if (previewLanguage === "marathi") {
+      return getOptionText(marathiOption) || getOptionText(englishOption);
+    }
+
+    return getOptionText(englishOption);
   };
 
   const handleSaveEditedQuestion = async (questionData: any) => {
@@ -1004,14 +1036,16 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
   return (
     <div className="space-y-4" data-onboarding="questions-sets-panel">
       <div className="flex justify-end items-center gap-3">
-        <Button
-          onClick={openAddModal}
-          variant="outline"
-          data-onboarding="questions-add-set"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Set
-        </Button>
+        {canManage && (
+          <Button
+            onClick={openAddModal}
+            variant="outline"
+            data-onboarding="questions-add-set"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Set
+          </Button>
+        )}
         <Button
           onClick={openDownloadModal}
           variant="outline"
@@ -1073,22 +1107,26 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                   >
                     <Eye className="h-4 w-4 text-blue-500" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEditModal(set)}
-                    title="Edit set"
-                  >
-                    <Edit className="h-4 w-4 text-black-500" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openDeleteConfirm(set)}
-                    title="Delete set"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
+                  {canManage && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditModal(set)}
+                        title="Edit set"
+                      >
+                        <Edit className="h-4 w-4 text-black-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteConfirm(set)}
+                        title="Delete set"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -1111,17 +1149,19 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
             </p> */}
 
               <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    await loadSetQuestions(set.id)
-                    setActiveSet(set)
-                  }}
-                >
-                  <ListChecks className="h-4 w-4 mr-2" />
-                  Pick Questions
-                </Button>
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await loadSetQuestions(set.id)
+                      setActiveSet(set)
+                    }}
+                  >
+                    <ListChecks className="h-4 w-4 mr-2" />
+                    Pick Questions
+                  </Button>
+                )}
 
                 {/* <div className="flex items-center gap-2">
                   <Checkbox
@@ -1492,11 +1532,31 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
         setIsViewModalOpen(open);
         if (!open) {
           setEditingQuestion(null);
+          setPreviewLanguage("english");
         }
       }}>
         <DialogContent className="max-w-4xl h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>{viewingSet?.name || 'Question Set'}</DialogTitle>
+              {!editingQuestion && viewingSet?.questions?.length > 0 && (
+                <div className="flex items-center gap-2 pr-8">
+                  <Select
+                    value={previewLanguage}
+                    onValueChange={(value) => setPreviewLanguage(value as PreviewLanguage)}
+                  >
+                    <SelectTrigger id="preview-language" className="h-9 w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="hindi">Hindi</SelectItem>
+                      <SelectItem value="marathi">Marathi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           </DialogHeader>
 
           {editingQuestion ? (
@@ -1525,32 +1585,24 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">
                     {viewingSet.questions.map((question: any, index: number) => (
-                      <div key={question.id} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">``
+                      <div key={question.id ?? index} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
-                              {index + 1}. <span className="font-semibold">English:</span> {question.english_text || question.question_text || question.question || 'N/A'}
+                              {getQuestionTextByLanguage(question)}
                             </div>
-                            {question.hindi_text && (
-                              <div className="text-sm text-gray-700 mb-1 whitespace-pre-line">
-                                <span className="font-semibold">Hindi:</span> {question.hindi_text}
-                              </div>
-                            )}
-                            {question.marathi_text && (
-                              <div className="text-sm text-gray-700 whitespace-pre-line">
-                                <span className="font-semibold">Marathi:</span> {question.marathi_text}
-                              </div>
-                            )}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditQuestion(question)}
-                            title="Edit question"
-                            className="h-8 w-8"
-                          >
-                            <Edit className="h-4 w-4 text-blue-600" />
-                          </Button>
+                          {canManage && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditQuestion(question)}
+                              title="Edit question"
+                              className="h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap gap-2 mt-3">
@@ -1571,7 +1623,6 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                           <div className="mt-4">
                             <div className="space-y-2">
                               {question.english_options.map((option: any, optIndex: number) => {
-                                const optionText = typeof option === 'string' ? option : option.text || option.value;
                                 const optionId = typeof option === 'string' ? optIndex + 1 : option.id;
                                 const isCorrect = question.answer_key && question.answer_key.includes(optionId);
 
@@ -1583,21 +1634,11 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
                                       </span>
                                       <div className="flex-1">
                                         <div className="text-sm text-gray-900 whitespace-pre-line">
-                                          <span className="font-semibold">English:</span> {optionText}
+                                          {getOptionTextByLanguage(question, optIndex) || "N/A"}
                                           {isCorrect && (
                                             <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
                                           )}
                                         </div>
-                                        {question.hindi_options && question.hindi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
-                                            <span className="font-semibold">Hindi:</span> {typeof question.hindi_options[optIndex] === 'string' ? question.hindi_options[optIndex] : question.hindi_options[optIndex]?.text || question.hindi_options[optIndex]?.value}
-                                          </div>
-                                        )}
-                                        {question.marathi_options && question.marathi_options[optIndex] && (
-                                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-line">
-                                            <span className="font-semibold">Marathi:</span> {typeof question.marathi_options[optIndex] === 'string' ? question.marathi_options[optIndex] : question.marathi_options[optIndex]?.text || question.marathi_options[optIndex]?.value}
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -1625,6 +1666,18 @@ export function QuestionSetManager({ allQuestions, difficultyLevels }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showDownloadPreview && downloadPreviewSet && (
+        <QuestionSetDownloadPreview
+          set={downloadPreviewSet}
+          difficultyLevels={difficultyLevels}
+          initialLanguage={downloadPreviewLanguage}
+          onClose={() => {
+            setShowDownloadPreview(false);
+            setDownloadPreviewSet(null);
+          }}
+        />
+      )}
     </div>
   );
 }

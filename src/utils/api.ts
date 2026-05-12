@@ -3335,3 +3335,20 @@ export const deleteFeedback = async (id: number): Promise<any> => {
 
   return data;
 };
+
+// Get available templates (campuses and schools with HTML templates)
+export const getAvailableTemplates = async (): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/campuses/available-templates`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch available templates");
+  }
+
+  return data;
+};
+
