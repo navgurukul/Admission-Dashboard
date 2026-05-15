@@ -358,6 +358,37 @@ const TestPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Topic Instruction */}
+        {(() => {
+          const q = questions[currentIndex] as any;
+          const topicDetails = q?.topic_details;
+          const instruction = topicDetails ? (topicDetails[`${selectedLanguage}_instruction`] || topicDetails.english_instruction) : null;
+          
+          if (!instruction) return null;
+
+          const style = topicDetails.instruction_style || {};
+          
+          return (
+            <div className="mb-6">
+              {topicDetails.topic && (
+                <div className="font-bold text-sm text-gray-900 mb-1">
+                  {topicDetails.topic}:
+                </div>
+              )}
+              <div 
+                className="text-sm whitespace-pre-line text-slate-700"
+                style={{
+                  color: style.color,
+                  fontWeight: style.isBold ? 'bold' : 'normal',
+                  fontStyle: style.isItalic ? 'italic' : 'normal'
+                }}
+              >
+                {instruction}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Question */}
         <div className="rounded-2xl p-6 mb-6 bg-pink-50 text-slate-900 shadow-sm">
           <QuestionFormattedText

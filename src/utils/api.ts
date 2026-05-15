@@ -1441,6 +1441,14 @@ export interface Question {
 export interface TopicOption {
   id: number;
   topic: string;
+  english_instruction?: string;
+  hindi_instruction?: string;
+  marathi_instruction?: string;
+  instruction_style?: {
+    color?: string;
+    isBold?: boolean;
+    isItalic?: boolean;
+  };
   status: boolean;
   created_at?: string;
   updated_at?: string;
@@ -1598,6 +1606,14 @@ export const getTopics = async (): Promise<TopicOption[]> => {
 
 export interface TopicPayload {
   topic: string;
+  english_instruction?: string;
+  hindi_instruction?: string;
+  marathi_instruction?: string;
+  instruction_style?: {
+    color?: string;
+    isBold?: boolean;
+    isItalic?: boolean;
+  };
   status: boolean;
 }
 

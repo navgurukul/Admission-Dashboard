@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1584,71 +1584,137 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                 )}
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">
-                    {viewingSet.questions.map((question: any, index: number) => (
-                      <div key={question.id ?? index} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
-                              {getQuestionTextByLanguage(question)}
+                    {viewingSet.questions.map((question: any, index: number) => {
+                      const topicDetails = question.topic_details;
+                      const hasInstruction = topicDetails && (
+                        topicDetails.english_instruction || 
+                        topicDetails.hindi_instruction || 
+                        topicDetails.marathi_instruction
+                      );
+                      
+                      const isFirstInTopic = index === 0 || viewingSet.questions[index - 1].topic !== question.topic;
+                      const showInstruction = isFirstInTopic && hasInstruction;
+
+                      return (
+                        <React.Fragment key={question.id || `q-${index}`}>
+                          {showInstruction && (
+                            <div className="mb-6 pl-10">
+                              {topicDetails.topic && (
+                                <div className="font-bold text-sm text-gray-900 mb-1">
+                                  {topicDetails.topic}:
+                                </div>
+                              )}
+                              <div className="space-y-2">
+                                {topicDetails.english_instruction && (
+                                  <div 
+                                    className="text-sm whitespace-pre-line"
+                                    style={{
+                                      color: topicDetails.instruction_style?.color,
+                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
+                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
+                                    }}
+                                  >
+                                    <span className="font-semibold text-xs opacity-70">English:</span> {topicDetails.english_instruction}
+                                  </div>
+                                )}
+                                {topicDetails.hindi_instruction && (
+                                  <div 
+                                    className="text-sm whitespace-pre-line"
+                                    style={{
+                                      color: topicDetails.instruction_style?.color,
+                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
+                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
+                                    }}
+                                  >
+                                    <span className="font-semibold text-xs opacity-70">Hindi:</span> {topicDetails.hindi_instruction}
+                                  </div>
+                                )}
+                                {topicDetails.marathi_instruction && (
+                                  <div 
+                                    className="text-sm whitespace-pre-line"
+                                    style={{
+                                      color: topicDetails.instruction_style?.color,
+                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
+                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
+                                    }}
+                                  >
+                                    <span className="font-semibold text-xs opacity-70">Marathi:</span> {topicDetails.marathi_instruction}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          {canManage && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditQuestion(question)}
-                              title="Edit question"
-                              className="h-8 w-8"
-                            >
-                              <Edit className="h-4 w-4 text-blue-600" />
-                            </Button>
                           )}
-                        </div>
+                          <div className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
+                                  {index + 1}. {getQuestionTextByLanguage(question)}
+                                </div>
+                              </div>
+                              {canManage && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditQuestion(question)}
+                                  title="Edit question"
+                                  className="h-8 w-8"
+                                >
+                                  <Edit className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              )}
+                            </div>
 
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <Badge variant="outline" className="text-xs">
-                            {difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {question.question_type || 'N/A'}
-                          </Badge>
-                          {question.time_limit && (
-                            <Badge variant="outline" className="text-xs">
-                              {question.time_limit}s
-                            </Badge>
-                          )}
-                        </div>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              <Badge variant="outline" className="text-xs">
+                                {difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {question.question_type || 'N/A'}
+                              </Badge>
+                              {question.time_limit && (
+                                <Badge variant="outline" className="text-xs">
+                                  {question.time_limit}s
+                                </Badge>
+                              )}
+                              {topicDetails?.topic && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {topicDetails.topic}
+                                </Badge>
+                              )}
+                            </div>
 
-                        {question.question_type === 'MCQ' && question.english_options && question.english_options.length > 0 && (
-                          <div className="mt-4">
-                            <div className="space-y-2">
-                              {question.english_options.map((option: any, optIndex: number) => {
-                                const optionId = typeof option === 'string' ? optIndex + 1 : option.id;
-                                const isCorrect = question.answer_key && question.answer_key.includes(optionId);
+                            {question.question_type === 'MCQ' && (question.english_options || question.options) && (
+                              <div className="mt-4">
+                                <div className="space-y-2">
+                                  {(question.english_options || question.options || []).map((option: any, optIndex: number) => {
+                                    const optionId = typeof option === 'string' ? optIndex + 1 : (option.id || optIndex + 1);
+                                    const isCorrect = Array.isArray(question.answer_key) && question.answer_key.includes(optionId);
 
-                                return (
-                                  <div key={optIndex} className="p-2 bg-gray-50 rounded">
-                                    <div className="flex items-start gap-2">
-                                      <span className="font-medium text-gray-700 min-w-[24px]">
-                                        {String.fromCharCode(65 + optIndex)}.
-                                      </span>
-                                      <div className="flex-1">
-                                        <div className="text-sm text-gray-900 whitespace-pre-line">
-                                          {getOptionTextByLanguage(question, optIndex) || "N/A"}
-                                          {isCorrect && (
-                                            <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
-                                          )}
+                                    return (
+                                      <div key={optIndex} className="p-2 bg-gray-50 rounded">
+                                        <div className="flex items-start gap-2">
+                                          <span className="font-medium text-gray-700 min-w-[24px]">
+                                            {String.fromCharCode(65 + optIndex)}.
+                                          </span>
+                                          <div className="flex-1">
+                                            <div className="text-sm text-gray-900 whitespace-pre-line">
+                                              {getOptionTextByLanguage(question, optIndex) || "N/A"}
+                                              {isCorrect && (
+                                                <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
+                                              )}
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
