@@ -731,60 +731,106 @@ export function QuestionSetDownloadPreview({ set, difficultyLevels, onClose, ini
 
             {/* Questions List */}
             <div className={`grid ${columns > 1 ? 'grid-cols-2 gap-x-6 gap-y-3' : 'space-y-3'}`}>
-              {set.questions?.map((question: any, idx: number) => (
-                <div key={question.id || idx} className={`break-inside-avoid ${template === 'modern' ? 'modern-question-card' : ''}`}>
-                  <div className="flex items-start gap-2.5 mb-1.5">
-                    <span className={`font-bold leading-tight min-w-[2.5em] ${template === 'modern' ? 'text-pink-600' : ''}`}>
-                      {uiText.questionPrefix}{idx + 1}
-                    </span>
-                    <div className="flex-1">
-                      <div 
-                        key={`question-${question.id || idx}-${language}`}
-                        className="question-text-formatted whitespace-pre-line leading-snug mb-1 outline-none focus:ring-1 focus:ring-pink-200 rounded p-0.5"
-                        contentEditable={true}
-                        suppressContentEditableWarning={true}
-                      >
-                        {getQuestionText(question)}
-                      </div>
-                      
-                      {showMetadata && null}
+              {set.questions?.map((question: any, idx: number) => {
+                const topicDetails = question.topic_details;
+                const langInstruction = language === 'hindi' 
+                  ? topicDetails?.hindi_instruction 
+                  : language === 'marathi' 
+                    ? topicDetails?.marathi_instruction 
+                    : topicDetails?.english_instruction;
+                
+                const isFirstInTopic = idx === 0 || set.questions[idx - 1].topic !== question.topic;
+                const showTopicInstruction = isFirstInTopic && langInstruction;
 
-                      {/* Options */}
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                        {[0, 1, 2, 3].map((optIdx) => {
-                          const optionText = getOptionText(question, optIdx);
-                          if (!optionText) return null;
-                          const correct = isCorrect(question, optIdx);
-                          
-                          return (
+                return (
+                  <React.Fragment key={question.id || idx}>
+                    {showTopicInstruction && (
+                      <div 
+                        className="col-span-full mb-6 break-inside-avoid"
+                        style={{ 
+                          marginTop: idx > 0 ? '1.5rem' : '0.5rem'
+                        }}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {/* Left placeholder to align with question text */}
+                          <div className="min-w-[2.5em] shrink-0">
+                            {/* Empty space matching Q.N prefix width */}
+                          </div>
+                          <div className="flex-1">
+                            {topicDetails.topic && (
+                              <div className="font-bold mb-1 text-[13px] text-slate-900">
+                                {topicDetails.topic}:
+                              </div>
+                            )}
                             <div 
-                              key={`${question.id || idx}-${optIdx}-${language}`} 
-                              className={`flex items-start gap-2 p-0 rounded transition-colors ${
-                                showAnswers && correct ? 'bg-green-50 border-green-200 border' : 'bg-transparent'
-                              }`}
+                              className="text-[13px] whitespace-pre-line leading-relaxed text-slate-800"
+                              style={{
+                                color: topicDetails.instruction_style?.color || 'inherit',
+                                fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
+                                fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
+                              }}
                             >
-                              <div className="shrink-0 font-bold">
-                                {String.fromCharCode(65 + optIdx)}.
-                              </div>
-                              <div 
-                                className={`flex-1 outline-none focus:ring-1 focus:ring-pink-200 rounded p-0.5 ${showAnswers && correct ? 'font-semibold text-green-800' : 'text-slate-800'}`}
-                                contentEditable={true}
-                                suppressContentEditableWarning={true}
-                              >
-                                {optionText}
-                                {showAnswers && correct && <span className="ml-2 text-[10px] uppercase font-bold text-green-600" contentEditable={false}>(Correct)</span>}
-                              </div>
+                              {langInstruction}
                             </div>
-                          );
-                        })}
+                          </div>
+                        </div>
                       </div>
+                    )}
+                    <div className={`break-inside-avoid ${template === 'modern' ? 'modern-question-card' : ''}`}>
+                      <div className="flex items-start gap-2.5 mb-1.5">
+                        <span className={`font-bold leading-tight min-w-[2.5em] ${template === 'modern' ? 'text-pink-600' : ''}`}>
+                          {uiText.questionPrefix}{idx + 1}
+                        </span>
+                        <div className="flex-1">
+                          <div 
+                            key={`question-${question.id || idx}-${language}`}
+                            className="question-text-formatted whitespace-pre-line leading-snug mb-1 outline-none focus:ring-1 focus:ring-pink-200 rounded p-0.5"
+                            contentEditable={true}
+                            suppressContentEditableWarning={true}
+                          >
+                            {getQuestionText(question)}
+                          </div>
+                          
+                          {showMetadata && null}
+
+                          {/* Options */}
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                            {[0, 1, 2, 3].map((optIdx) => {
+                              const optionText = getOptionText(question, optIdx);
+                              if (!optionText) return null;
+                              const correct = isCorrect(question, optIdx);
+                              
+                              return (
+                                <div 
+                                  key={`${question.id || idx}-${optIdx}-${language}`} 
+                                  className={`flex items-start gap-2 p-0 rounded transition-colors ${
+                                    showAnswers && correct ? 'bg-green-50 border-green-200 border' : 'bg-transparent'
+                                  }`}
+                                >
+                                  <div className="shrink-0 font-bold">
+                                    {String.fromCharCode(65 + optIdx)}.
+                                  </div>
+                                  <div 
+                                    className={`flex-1 outline-none focus:ring-1 focus:ring-pink-200 rounded p-0.5 ${showAnswers && correct ? 'font-semibold text-green-800' : 'text-slate-800'}`}
+                                    contentEditable={true}
+                                    suppressContentEditableWarning={true}
+                                  >
+                                    {optionText}
+                                    {showAnswers && correct && <span className="ml-2 text-[10px] uppercase font-bold text-green-600" contentEditable={false}>(Correct)</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      {columns === 1 && idx < (set.questions?.length - 1) && template !== 'modern' && (
+                        <Separator className="mt-2 opacity-30" />
+                      )}
                     </div>
-                  </div>
-                  {columns === 1 && idx < (set.questions?.length - 1) && template !== 'modern' && (
-                    <Separator className="mt-2 opacity-30" />
-                  )}
-                </div>
-              ))}
+                  </React.Fragment>
+                );
+              })}
             </div>
 
           </div>

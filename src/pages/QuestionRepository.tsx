@@ -198,21 +198,14 @@ export default function QuestionRepository() {
     }
   };
 
-  const handleCreateTopic = async (topicName: string) => {
-    const createdTopic = await createTopic({
-      topic: topicName.trim(),
-      status: true,
-    });
-
+  const handleCreateTopic = async (payload: TopicPayload) => {
+    const createdTopic = await createTopic(payload);
     setTopics((prev) => [...prev, createdTopic]);
     return createdTopic;
   };
 
-  const handleUpdateTopic = async (topicId: number, topicName: string) => {
-    const updatedTopic = await updateTopic(topicId, {
-      topic: topicName.trim(),
-      status: true,
-    });
+  const handleUpdateTopic = async (topicId: number, payload: TopicPayload) => {
+    const updatedTopic = await updateTopic(topicId, payload);
 
     setTopics((prev) =>
       prev.map((topic) =>
