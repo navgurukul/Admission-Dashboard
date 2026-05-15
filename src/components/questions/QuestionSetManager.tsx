@@ -1607,39 +1607,21 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                               <div className="space-y-2">
                                 {topicDetails.english_instruction && (
                                   <div 
-                                    className="text-sm whitespace-pre-line"
-                                    style={{
-                                      color: topicDetails.instruction_style?.color,
-                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
-                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
-                                    }}
-                                  >
-                                    <span className="font-semibold text-xs opacity-70">English:</span> {topicDetails.english_instruction}
-                                  </div>
+                                    className="text-sm whitespace-pre-line quill-content"
+                                    dangerouslySetInnerHTML={{ __html: topicDetails.english_instruction }}
+                                  />
                                 )}
                                 {topicDetails.hindi_instruction && (
                                   <div 
-                                    className="text-sm whitespace-pre-line"
-                                    style={{
-                                      color: topicDetails.instruction_style?.color,
-                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
-                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
-                                    }}
-                                  >
-                                    <span className="font-semibold text-xs opacity-70">Hindi:</span> {topicDetails.hindi_instruction}
-                                  </div>
+                                    className="text-sm whitespace-pre-line quill-content"
+                                    dangerouslySetInnerHTML={{ __html: topicDetails.hindi_instruction }}
+                                  />
                                 )}
                                 {topicDetails.marathi_instruction && (
                                   <div 
-                                    className="text-sm whitespace-pre-line"
-                                    style={{
-                                      color: topicDetails.instruction_style?.color,
-                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
-                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
-                                    }}
-                                  >
-                                    <span className="font-semibold text-xs opacity-70">Marathi:</span> {topicDetails.marathi_instruction}
-                                  </div>
+                                    className="text-sm whitespace-pre-line quill-content"
+                                    dangerouslySetInnerHTML={{ __html: topicDetails.marathi_instruction }}
+                                  />
                                 )}
                               </div>
                             </div>
