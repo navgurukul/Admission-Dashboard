@@ -376,15 +376,9 @@ const TestPage: React.FC = () => {
                 </div>
               )}
               <div 
-                className="text-sm whitespace-pre-line text-slate-700"
-                style={{
-                  color: style.color,
-                  fontWeight: style.isBold ? 'bold' : 'normal',
-                  fontStyle: style.isItalic ? 'italic' : 'normal'
-                }}
-              >
-                {instruction}
-              </div>
+                className="text-sm whitespace-pre-line text-slate-700 quill-content"
+                dangerouslySetInnerHTML={{ __html: instruction }}
+              />
             </div>
           );
         })()}
