@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useTests } from "@/utils/TestContext";
 import {
@@ -31,6 +31,21 @@ interface Question {
   answer: number; // store the index of the correct option
 }
 
+type DisplayItem =
+  | {
+      type: "instruction";
+      questionIndex: number;
+      questionNumber: number;
+      topicDetails: any;
+      instruction: string;
+    }
+  | {
+      type: "question";
+      questionIndex: number;
+      questionNumber: number;
+      question: any;
+    };
+
 const normalizeQuestions = (inputQuestions: Question[] = []) =>
   inputQuestions.map((question) => ({
     ...question,
@@ -46,6 +61,65 @@ const formatTime = (seconds: number) => {
     return `${h}h ${m}m ${s}s`;
   }
   return `${m}m ${s}s`;
+};
+
+const getQuestionTextForLanguage = (question: any, selectedLanguage: string) => {
+  const languageKey = selectedLanguage?.toLowerCase?.() || selectedLanguage;
+  if (question?.question_text && typeof question.question_text === "object") {
+    return question.question_text[languageKey] || question.question_text.english || "";
+  }
+  if (question?.[`${languageKey}_text`]) return question[`${languageKey}_text`];
+  if (question?.question) return question.question;
+  return String(question?.question_text || "");
+};
+
+const getTopicInstructionForLanguage = (question: any, selectedLanguage: string) => {
+  const languageKey = selectedLanguage?.toLowerCase?.() || selectedLanguage;
+  const topicDetails = question?.topic_details;
+  if (!topicDetails) return null;
+
+  const preferredInstruction = topicDetails[`${languageKey}_instruction`];
+  const fallbackInstruction =
+    topicDetails.english_instruction ||
+    topicDetails.hindi_instruction ||
+    topicDetails.marathi_instruction ||
+    null;
+
+  const normalizedPreferred = typeof preferredInstruction === "string" ? preferredInstruction.trim() : "";
+  const normalizedFallback = typeof fallbackInstruction === "string" ? fallbackInstruction.trim() : "";
+
+  return normalizedPreferred || normalizedFallback || null;
+};
+
+const getInstructionSignature = (question: any, selectedLanguage: string) => {
+  const topicDetails = question?.topic_details;
+  const instruction = getTopicInstructionForLanguage(question, selectedLanguage);
+
+  if (!instruction) return "";
+
+  return JSON.stringify({
+    topicId: topicDetails?.id ?? question?.topic ?? "",
+    topicName: topicDetails?.topic ?? "",
+    instruction,
+  });
+};
+
+const looksLikeHtml = (value: string) => /<[^>]+>/.test(value);
+
+const decodeHtmlEntities = (value: string) => {
+  if (typeof document === "undefined") return value;
+
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const normalizeInstructionContent = (value: string) => {
+  const decoded = decodeHtmlEntities(value).replace(/\u00a0/g, " ");
+  return decoded
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 };
 
 const TestPage: React.FC = () => {
@@ -69,6 +143,53 @@ const TestPage: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const isSubmitting = useRef(false); // Track submission to prevent duplicates
   const hasShownToast = useRef(false); // Track if we've shown the toast
+
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    const items: DisplayItem[] = [];
+
+    questions.forEach((question: any, questionIndex: number) => {
+      const previousQuestion = questions[questionIndex - 1] as any;
+      const instruction = getTopicInstructionForLanguage(question, selectedLanguage);
+      const currentInstructionSignature = getInstructionSignature(
+        question,
+        selectedLanguage,
+      );
+      const previousInstructionSignature = previousQuestion
+        ? getInstructionSignature(previousQuestion, selectedLanguage)
+        : "";
+      const shouldShowInstruction =
+        Boolean(instruction) &&
+        (questionIndex === 0 ||
+          currentInstructionSignature !== previousInstructionSignature);
+
+      if (shouldShowInstruction) {
+        items.push({
+          type: "instruction",
+          questionIndex,
+          questionNumber: questionIndex + 1,
+          topicDetails: question?.topic_details,
+          instruction,
+        });
+      }
+
+      items.push({
+        type: "question",
+        questionIndex,
+        questionNumber: questionIndex + 1,
+        question,
+      });
+    });
+
+    return items;
+  }, [questions, selectedLanguage]);
+
+  const currentItem = displayItems[currentIndex];
+  const currentQuestion =
+    currentItem?.type === "question"
+      ? currentItem.question
+      : currentItem
+        ? (questions[currentItem.questionIndex] as any)
+        : null;
 
   useEffect(() => {
     setQuestions(normalizeQuestions(stateQuestions || []));
@@ -212,8 +333,10 @@ const TestPage: React.FC = () => {
   }, [answers, currentIndex, timeLeft]);
 
   const handleAnswer = (optionIndex: number) => {
-    const qid = questions[currentIndex].id;
-    const option = questions[currentIndex].options[optionIndex];
+    if (!currentItem || currentItem.type !== "question") return;
+
+    const qid = currentItem.question.id;
+    const option = currentItem.question.options[optionIndex];
     
     // Get the option ID if it exists, otherwise use 1-based index as fallback
     const optionId = typeof option === 'object' && option?.id 
@@ -337,7 +460,7 @@ const TestPage: React.FC = () => {
     }
   };
 
-  if (timeLeft === null || questions.length === 0) {
+  if (timeLeft === null || questions.length === 0 || !currentItem || !currentQuestion) {
     return (
       <div className="text-center mt-10 text-lg font-semibold">
         Loading test...
@@ -351,113 +474,94 @@ const TestPage: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="font-bold text-xl text-primary">
-            Question {currentIndex + 1} / {questions.length}
+            {currentItem.type === "instruction"
+              ? "Topic Instruction"
+              : `Question ${currentItem.questionNumber} / ${questions.length}`}
           </h2>
           <div className="bg-destructive/10 text-destructive font-bold px-4 py-2 rounded-lg shadow-soft">
             ⏳ {formatTime(timeLeft)}
           </div>
         </div>
 
-        {/* Topic Instruction */}
-        {(() => {
-          const q = questions[currentIndex] as any;
-          const topicDetails = q?.topic_details;
-          const instruction = topicDetails ? (topicDetails[`${selectedLanguage}_instruction`] || topicDetails.english_instruction) : null;
-          
-          if (!instruction) return null;
-
-          const style = topicDetails.instruction_style || {};
-          
-          return (
-            <div className="mb-6">
-              {topicDetails.topic && (
-                <div className="font-bold text-sm text-gray-900 mb-1">
-                  {topicDetails.topic}:
-                </div>
-              )}
-              <div 
-                className="text-sm text-slate-700 quill-content"
-                dangerouslySetInnerHTML={{ __html: instruction }}
+        {currentItem.type === "instruction" ? (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-pink-50 p-5 shadow-sm">
+            {currentItem.topicDetails?.topic && (
+              <div className="mb-2 font-bold text-sm text-slate-900">
+                {currentItem.topicDetails.topic}:
+              </div>
+            )}
+            {looksLikeHtml(normalizeInstructionContent(currentItem.instruction)) ? (
+              <div
+                className="quill-content text-sm leading-6 text-slate-700 break-words [&_*]:break-words"
+                dangerouslySetInnerHTML={{ __html: normalizeInstructionContent(currentItem.instruction) }}
+              />
+            ) : (
+              <div className="whitespace-pre-line text-sm leading-6 text-slate-700">
+                {normalizeInstructionContent(currentItem.instruction)}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Question */}
+            <div className="rounded-2xl p-6 mb-6 bg-pink-50 text-slate-900 shadow-sm">
+              <QuestionFormattedText
+                text={getQuestionTextForLanguage(currentQuestion, selectedLanguage)}
               />
             </div>
-          );
-        })()}
 
-        {/* Question */}
-        <div className="rounded-2xl p-6 mb-6 bg-pink-50 text-slate-900 shadow-sm">
-          <QuestionFormattedText
-            text={(() => {
-              const q = questions[currentIndex] as any;
-              // prefer structured multilingual fields when present
-              if (q?.question_text && typeof q.question_text === "object") {
-                return (
-                  q.question_text[selectedLanguage] || q.question_text.english || ""
-                );
-              }
-              if (q?.[`${selectedLanguage}_text`]) return q[`${selectedLanguage}_text`];
-              if (q?.question) return q.question;
-              return String(q.question_text || "");
-            })()}
-          />
-        </div>
-
-        {/* Options */}
-        <div className="space-y-3">
-          {questions[currentIndex].options.map((opt, idx) => {
-            const qid = questions[currentIndex].id;
-            const q = questions[currentIndex] as any;
+            {/* Options */}
+            <div className="space-y-3">
+              {currentQuestion.options.map((opt, idx) => {
+                const qid = currentQuestion.id;
+                const q = currentQuestion as any;
             // get question text for current language (used to detect percent questions)
-            const questionTextForLang = (() => {
-              if (q?.question_text && typeof q.question_text === "object") {
-                return q.question_text[selectedLanguage] || q.question_text.english || "";
-              }
-              if (q?.[`${selectedLanguage}_text`]) return q[`${selectedLanguage}_text`];
-              if (q?.question) return q.question;
-              return String(q.question_text || "");
-            })();
+                const questionTextForLang = getQuestionTextForLanguage(q, selectedLanguage);
 
             // pick option value for current language
-            const optionForLang = (() => {
-              if (typeof opt === "string") return opt;
-              if (opt?.text) return opt.text;
-              // legacy: try language-specific options if available on question
-              const optsKey = `${selectedLanguage}_options`;
-              if (q?.[optsKey] && Array.isArray(q[optsKey]) && q[optsKey][idx]) {
-                return q[optsKey][idx];
-              }
-              return opt?.label ?? JSON.stringify(opt);
-            })();
+                const optionForLang = (() => {
+                  if (typeof opt === "string") return opt;
+                  if (opt?.text) return opt.text;
+                  // legacy: try language-specific options if available on question
+                  const optsKey = `${selectedLanguage}_options`;
+                  if (q?.[optsKey] && Array.isArray(q[optsKey]) && q[optsKey][idx]) {
+                    return q[optsKey][idx];
+                  }
+                  return opt?.label ?? JSON.stringify(opt);
+                })();
 
-            const display = formatOptionDisplay(questionTextForLang, optionForLang);
+                const display = formatOptionDisplay(questionTextForLang, optionForLang);
             
             // Get the option ID for comparison
-            const optionId = typeof opt === 'object' && opt?.id 
-              ? opt.id 
-              : idx + 1;
+                const optionId = typeof opt === 'object' && opt?.id 
+                  ? opt.id 
+                  : idx + 1;
 
-            return (
-              <label
-                key={idx}
-                className={`block border rounded-lg px-4 py-3 cursor-pointer transition ${
-                  answers[qid] === optionId
-                    ? "bg-secondary-purple-light border-secondary-purple text-secondary-purple font-medium shadow-md"
-                    : "hover:bg-muted border-border"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`q-${qid}`}
-                  checked={answers[qid] === optionId}
-                  onChange={() => handleAnswer(idx)}
-                  className="hidden"
-                />
-                <span className="whitespace-pre-line text-foreground text-sm">
-                  {display}
-                </span>
-              </label>
-            );
-          })}
-        </div>
+                return (
+                  <label
+                    key={idx}
+                    className={`block border rounded-lg px-4 py-3 cursor-pointer transition ${
+                      answers[qid] === optionId
+                        ? "bg-secondary-purple-light border-secondary-purple text-secondary-purple font-medium shadow-md"
+                        : "hover:bg-muted border-border"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`q-${qid}`}
+                      checked={answers[qid] === optionId}
+                      onChange={() => handleAnswer(idx)}
+                      className="hidden"
+                    />
+                    <span className="whitespace-pre-line text-foreground text-sm">
+                      {display}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* Navigation */}
         <div className="mt-8 flex justify-between">
@@ -469,7 +573,7 @@ const TestPage: React.FC = () => {
             Previous
           </button>
 
-          {currentIndex === questions.length - 1 ? (
+          {currentIndex === displayItems.length - 1 ? (
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
               <DialogTrigger asChild>
                 <button
@@ -503,7 +607,7 @@ const TestPage: React.FC = () => {
               onClick={() => setCurrentIndex((i) => i + 1)}
               className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium shadow-soft transition"
             >
-              Next
+              {currentItem.type === "instruction" ? "Start Question" : "Next"}
             </button>
           )}
         </div>

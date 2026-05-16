@@ -4,11 +4,10 @@ import { Language } from "@/utils/student.types";
 
 const LanguageSelection: React.FC = () => {
   const navigate = useNavigate();
-  const [language, setLanguage] = useState<Language>("English");
+  const [language, setLanguage] = useState<Language>("english");
 
   const handleContinue = (): void => {
-    // अगर आगे language चाहिए तो localStorage में save कर लो
-    localStorage.setItem("selectedLanguage", language);
+    localStorage.setItem("selectedLanguage", language.toLowerCase());
     navigate("/students/instructions");
   };
 
@@ -35,13 +34,12 @@ const LanguageSelection: React.FC = () => {
           <div className="relative">
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value as Language)}
+              onChange={(e) => setLanguage(e.target.value.toLowerCase() as Language)}
               className="w-full p-3 border border-input rounded-lg appearance-none bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="English">English</option>
-              <option value="Hindi">हिंदी</option>
-              <option value="Marathi">मराठी</option>
-              <option value="Gujarati">ગુજરાતી</option>
+              <option value="english">English</option>
+              <option value="hindi">हिंदी</option>
+              <option value="marathi">मराठी</option>
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg

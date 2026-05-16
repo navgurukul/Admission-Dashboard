@@ -48,11 +48,13 @@ import {
   updateQuestion,
 } from "@/utils/api";
 import { QuestionSetDownloadPreview } from "./QuestionSetDownloadPreview";
+import { useLanguage } from "@/routes/LaunguageContext";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels, canManage = true }) {
   const DEFAULT_SET_DESCRIPTION = "N/A";
   type PreviewLanguage = "english" | "hindi" | "marathi";
   const { toast } = useToast();
+  const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const [sets, setSets] = useState([]);
   const [activeSet, setActiveSet] = useState(null);
   // const [editingId, setEditingId] = useState<number | null>(null);.
@@ -99,6 +101,18 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
   const [showDownloadPreview, setShowDownloadPreview] = useState(false);
   const [downloadPreviewSet, setDownloadPreviewSet] = useState<any>(null);
   const [downloadPreviewLanguage, setDownloadPreviewLanguage] = useState<PreviewLanguage>("english");
+
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("selectedLanguage") as PreviewLanguage | null;
+    const nextLanguage =
+      savedLanguage === "english" || savedLanguage === "hindi" || savedLanguage === "marathi"
+        ? savedLanguage
+        : selectedLanguage;
+
+    if (nextLanguage) {
+      setPreviewLanguage(nextLanguage);
+    }
+  }, [selectedLanguage]);
 
   const clearImportFileStatusTimeout = () => {
     if (importFileStatusTimeoutRef.current) {
@@ -970,6 +984,32 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
     return getOptionText(englishOption);
   };
 
+  const getInstructionByLanguage = (topicDetails: any) => {
+    if (!topicDetails) return "";
+
+    if (previewLanguage === "hindi") {
+      return topicDetails.hindi_instruction || topicDetails.english_instruction || "";
+    }
+
+    if (previewLanguage === "marathi") {
+      return topicDetails.marathi_instruction || topicDetails.english_instruction || "";
+    }
+
+    return topicDetails.english_instruction || "";
+  };
+
+  const getExplanationByLanguage = (question: any) => {
+    if (previewLanguage === "hindi") {
+      return question.hindi_explanation || question.explanation || "";
+    }
+
+    if (previewLanguage === "marathi") {
+      return question.marathi_explanation || question.explanation || "";
+    }
+
+    return question.english_explanation || question.explanation || "";
+  };
+
   const handleSaveEditedQuestion = async (questionData: any) => {
     if (!editingQuestion) return;
 
@@ -1529,7 +1569,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
         setIsViewModalOpen(open);
         if (!open) {
           setEditingQuestion(null);
-          setPreviewLanguage("english");
+          setPreviewLanguage(selectedLanguage as PreviewLanguage);
         }
       }}>
         <DialogContent className="max-w-4xl h-[80vh] overflow-hidden flex flex-col">
@@ -1540,7 +1580,12 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                 <div className="flex items-center gap-2 pr-8">
                   <Select
                     value={previewLanguage}
-                    onValueChange={(value) => setPreviewLanguage(value as PreviewLanguage)}
+                    onValueChange={(value) => {
+                      const nextLanguage = value as PreviewLanguage;
+                      setPreviewLanguage(nextLanguage);
+                      setSelectedLanguage(nextLanguage);
+                      localStorage.setItem("selectedLanguage", nextLanguage);
+                    }}
                   >
                     <SelectTrigger id="preview-language" className="h-9 w-[120px]">
                       <SelectValue />
@@ -1583,11 +1628,9 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                   <div className="space-y-3">
                     {viewingSet.questions.map((question: any, index: number) => {
                       const topicDetails = question.topic_details;
-                      const hasInstruction = topicDetails && (
-                        topicDetails.english_instruction || 
-                        topicDetails.hindi_instruction || 
-                        topicDetails.marathi_instruction
-                      );
+                      const selectedInstruction = getInstructionByLanguage(topicDetails);
+                      const hasInstruction = Boolean(selectedInstruction);
+                      const explanationText = getExplanationByLanguage(question);
                       
                       const isFirstInTopic = index === 0 || viewingSet.questions[index - 1].topic !== question.topic;
                       const showInstruction = isFirstInTopic && hasInstruction;
@@ -1595,31 +1638,22 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                       return (
                         <React.Fragment key={question.id || `q-${index}`}>
                           {showInstruction && (
-                            <div className="mb-6 pl-10">
-                              {topicDetails.topic && (
-                                <div className="font-bold text-sm text-gray-900 mb-1">
-                                  {topicDetails.topic}:
+                            <div className="mb-6">
+                              <div className="rounded-lg border bg-white p-4 overflow-hidden">
+                                <div className="flex items-start gap-3">
+                                  <div className="min-w-[28px] shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    {topicDetails.topic && (
+                                      <div className="mb-1 font-bold text-sm text-gray-900">
+                                        {topicDetails.topic}:
+                                      </div>
+                                    )}
+                                    <div
+                                      className="text-sm quill-content break-words [&_*]:break-words"
+                                      dangerouslySetInnerHTML={{ __html: selectedInstruction }}
+                                    />
+                                  </div>
                                 </div>
-                              )}
-                              <div className="space-y-2">
-                                {topicDetails.english_instruction && (
-                                  <div 
-                                    className="text-sm quill-content"
-                                    dangerouslySetInnerHTML={{ __html: topicDetails.english_instruction }}
-                                  />
-                                )}
-                                {topicDetails.hindi_instruction && (
-                                  <div 
-                                    className="text-sm quill-content"
-                                    dangerouslySetInnerHTML={{ __html: topicDetails.hindi_instruction }}
-                                  />
-                                )}
-                                {topicDetails.marathi_instruction && (
-                                  <div 
-                                    className="text-sm quill-content"
-                                    dangerouslySetInnerHTML={{ __html: topicDetails.marathi_instruction }}
-                                  />
-                                )}
                               </div>
                             </div>
                           )}
@@ -1687,6 +1721,17 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                                       </div>
                                     );
                                   })}
+                                </div>
+                              </div>
+                            )}
+
+                            {explanationText && (
+                              <div className="mt-4 rounded-xl border border-green-200 bg-green-50/60 p-4">
+                                <div className="mb-2 text-sm font-semibold text-green-700">
+                                  Explanation
+                                </div>
+                                <div className="text-sm text-green-800 whitespace-pre-line">
+                                  {explanationText}
                                 </div>
                               </div>
                             )}
