@@ -500,7 +500,10 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
       questions.forEach((q: any, index: number) => {
         const normalizedQuestion = {
           ...q,
-          id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
+          id: (() => {
+            const idVal = q.id || q.question_id;
+            return idVal ? parseInt(idVal, 10) : undefined;
+          })(),
           difficulty_level: normalizeDifficultyLevel(q.difficulty_level),
           topic: normalizeTopicId(q.topic),
           english_options: tryParseOptions(q.english_options),
