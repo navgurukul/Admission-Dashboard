@@ -8,6 +8,12 @@ interface Props {
 const StudentProtectedRoute: React.FC<Props> = ({ children }) => {
   const location = useLocation();
   const path = location.pathname;
+  const searchParams = new URLSearchParams(location.search);
+  const isPreviewMode = searchParams.get("preview") === "1";
+
+  if (isPreviewMode) {
+    return <>{children}</>;
+  }
 
   // Read once – do NOT set defaults here
   const studentId = localStorage.getItem("studentId");
