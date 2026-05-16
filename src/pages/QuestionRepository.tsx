@@ -24,6 +24,7 @@ import {
   getAllSchools,
   getTopics,
   type TopicOption,
+  type TopicPayload,
   updateTopic,
 } from "@/utils/api";
 import { QuestionEditor } from "@/components/questions/QuestionEditor";

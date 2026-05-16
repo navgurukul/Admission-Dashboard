@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { PencilLine, Save, X } from "lucide-react";
 import { QuestionOptionsEditor } from "./QuestionOptionsEditor";
 import { useToast } from "@/hooks/use-toast";
-import { Option, type TopicOption } from "@/utils/api";
+import { Option, type TopicOption, type TopicPayload } from "@/utils/api";
 import { TopicManagementDialog } from "./TopicManagementDialog";
 import { DifficultyLevelManagementDialog } from "./DifficultyLevelManagementDialog";
 
@@ -33,12 +33,12 @@ interface QuestionEditorProps {
   setSelectedQuestion?: (question: any) => void;
   schools: any[];
   topics: TopicOption[];
-  onCreateTopic: (topicName: string) => Promise<TopicOption> | TopicOption;
-  onUpdateTopic: (topicId: number, topicName: string) => Promise<TopicOption | void> | TopicOption | void;
+  onCreateTopic: (payload: TopicPayload) => Promise<TopicOption> | TopicOption;
+  onUpdateTopic: (topicId: number, payload: TopicPayload) => Promise<TopicOption | void> | TopicOption | void;
   onDeleteTopic: (topicId: number) => Promise<{ message?: string } | void> | { message?: string } | void;
-  onCreateDifficultyLevel: (name: string, marks: number) => Promise<any> | any;
-  onUpdateDifficultyLevel: (id: number, name: string, marks: number) => Promise<any> | any;
-  onDeleteDifficultyLevel: (id: number) => Promise<any> | any;
+  onCreateDifficultyLevel?: (name: string, marks: number) => Promise<any> | any;
+  onUpdateDifficultyLevel?: (id: number, name: string, marks: number) => Promise<any> | any;
+  onDeleteDifficultyLevel?: (id: number) => Promise<any> | any;
 }
 
 export function QuestionEditor({
@@ -324,16 +324,18 @@ export function QuestionEditor({
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <Label>Difficulty</Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-auto px-2 py-1 text-xs"
-              onClick={() => setIsDifficultyDialogOpen(true)}
-            >
-              <PencilLine className="mr-1 h-3.5 w-3.5" />
-              Manage Difficulty
-            </Button>
+            {onCreateDifficultyLevel && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 py-1 text-xs"
+                onClick={() => setIsDifficultyDialogOpen(true)}
+              >
+                <PencilLine className="mr-1 h-3.5 w-3.5" />
+                Manage Difficulty
+              </Button>
+            )}
           </div>
           <Select
             value={formData.difficulty_level}

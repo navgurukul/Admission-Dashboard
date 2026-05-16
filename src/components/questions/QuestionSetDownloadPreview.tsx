@@ -763,7 +763,7 @@ export function QuestionSetDownloadPreview({ set, difficultyLevels, onClose, ini
                               </div>
                             )}
                             <div 
-                              className="text-[13px] whitespace-pre-line leading-relaxed text-slate-800 quill-content"
+                              className="text-[13px] leading-relaxed text-slate-800 quill-content"
                               dangerouslySetInnerHTML={{ __html: langInstruction }}
                             />
                           </div>
