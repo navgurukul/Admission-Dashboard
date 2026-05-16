@@ -44,6 +44,9 @@ export function TopicManagementDialog({
   const { toast } = useToast();
   const [QuillEditor, setQuillEditor] = useState<any>(null);
 
+  const [topicsPage, setTopicsPage] = useState(1);
+  const topicsPerPage = 5;
+
   useEffect(() => {
     import('react-quill-new').then((module) => {
       setQuillEditor(() => module.default);
@@ -65,6 +68,30 @@ export function TopicManagementDialog({
       ),
     [topics],
   );
+
+  const totalTopicsPages = Math.max(1, Math.ceil(sortedTopics.length / topicsPerPage));
+  const pagedTopics = useMemo(() => {
+    const start = (topicsPage - 1) * topicsPerPage;
+    return sortedTopics.slice(start, start + topicsPerPage);
+  }, [sortedTopics, topicsPage]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const targetTopicId = selectedTopicId ? Number(selectedTopicId) : editingTopicId ?? null;
+    if (!targetTopicId) {
+      setTopicsPage(1);
+      return;
+    }
+
+    const topicIndex = sortedTopics.findIndex((topic) => topic.id === targetTopicId);
+    if (topicIndex >= 0) {
+      const targetPage = Math.floor(topicIndex / topicsPerPage) + 1;
+      setTopicsPage(targetPage);
+    } else {
+      setTopicsPage(1);
+    }
+  }, [sortedTopics, topicsPerPage, open, selectedTopicId, editingTopicId]);
 
   const resetEditor = () => {
     setTopicName("");
@@ -291,7 +318,7 @@ export function TopicManagementDialog({
             </div>
             <ScrollArea className="flex-1">
               <div className="p-2 space-y-2">
-                {sortedTopics.map((topic) => {
+                {pagedTopics.map((topic) => {
                   const isSelected = selectedTopicId === String(topic.id);
                   const isEditing = editingTopicId === topic.id;
 
@@ -339,6 +366,34 @@ export function TopicManagementDialog({
                 })}
               </div>
             </ScrollArea>
+
+            {sortedTopics.length > topicsPerPage && (
+              <div className="border-t bg-white px-3 py-2 flex items-center justify-end gap-2">
+                {/* <div className="text-[11px] text-muted-foreground font-medium mr-2">
+                  Page {topicsPage} of {totalTopicsPages}
+                </div> */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTopicsPage((page) => Math.max(1, page - 1))}
+                    disabled={topicsPage === 1}
+                    className="h-8 px-3"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTopicsPage((page) => Math.min(totalTopicsPages, page + 1))}
+                    disabled={topicsPage === totalTopicsPages}
+                    className="h-8 px-3"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
