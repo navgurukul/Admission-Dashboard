@@ -39,6 +39,7 @@ import {
   createQuestionSet,
   getTopics,
   type TopicOption,
+  type TopicPayload,
   updateQuestionSet,
   updateTopic,
   setDefaultOnlineQuestionSet,
@@ -499,7 +500,10 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
       questions.forEach((q: any, index: number) => {
         const normalizedQuestion = {
           ...q,
-          id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
+          id: (() => {
+            const idVal = q.id || q.question_id;
+            return idVal ? parseInt(idVal, 10) : undefined;
+          })(),
           difficulty_level: normalizeDifficultyLevel(q.difficulty_level),
           topic: normalizeTopicId(q.topic),
           english_options: tryParseOptions(q.english_options),
@@ -1002,21 +1006,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
     setEditingQuestion(null);
   };
 
-  const handleCreateTopic = async (topicName: string) => {
-    const createdTopic = await createTopic({
-      topic: topicName.trim(),
-      status: true,
-    });
-
+  const handleCreateTopic = async (payload: TopicPayload) => {
+    const createdTopic = await createTopic(payload);
     setTopics((prev) => [...prev, createdTopic]);
     return createdTopic;
   };
 
-  const handleUpdateTopic = async (topicId: number, topicName: string) => {
-    const updatedTopic = await updateTopic(topicId, {
-      topic: topicName.trim(),
-      status: true,
-    });
+  const handleUpdateTopic = async (topicId: number, payload: TopicPayload) => {
+    const updatedTopic = await updateTopic(topicId, payload);
 
     setTopics((prev) =>
       prev.map((topic) =>
@@ -1607,39 +1604,21 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                               <div className="space-y-2">
                                 {topicDetails.english_instruction && (
                                   <div 
-                                    className="text-sm whitespace-pre-line"
-                                    style={{
-                                      color: topicDetails.instruction_style?.color,
-                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
-                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
-                                    }}
-                                  >
-                                    <span className="font-semibold text-xs opacity-70">English:</span> {topicDetails.english_instruction}
-                                  </div>
+                                    className="text-sm quill-content"
+                                    dangerouslySetInnerHTML={{ __html: topicDetails.english_instruction }}
+                                  />
                                 )}
                                 {topicDetails.hindi_instruction && (
                                   <div 
-                                    className="text-sm whitespace-pre-line"
-                                    style={{
-                                      color: topicDetails.instruction_style?.color,
-                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
-                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
-                                    }}
-                                  >
-                                    <span className="font-semibold text-xs opacity-70">Hindi:</span> {topicDetails.hindi_instruction}
-                                  </div>
+                                    className="text-sm quill-content"
+                                    dangerouslySetInnerHTML={{ __html: topicDetails.hindi_instruction }}
+                                  />
                                 )}
                                 {topicDetails.marathi_instruction && (
                                   <div 
-                                    className="text-sm whitespace-pre-line"
-                                    style={{
-                                      color: topicDetails.instruction_style?.color,
-                                      fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
-                                      fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
-                                    }}
-                                  >
-                                    <span className="font-semibold text-xs opacity-70">Marathi:</span> {topicDetails.marathi_instruction}
-                                  </div>
+                                    className="text-sm quill-content"
+                                    dangerouslySetInnerHTML={{ __html: topicDetails.marathi_instruction }}
+                                  />
                                 )}
                               </div>
                             </div>
