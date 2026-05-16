@@ -763,9 +763,15 @@ export function QuestionSetDownloadPreview({ set, difficultyLevels, onClose, ini
                               </div>
                             )}
                             <div 
-                              className="text-[13px] whitespace-pre-line leading-relaxed text-slate-800 quill-content"
-                              dangerouslySetInnerHTML={{ __html: langInstruction }}
-                            />
+                              className="text-[13px] whitespace-pre-line leading-relaxed text-slate-800"
+                              style={{
+                                color: topicDetails.instruction_style?.color || 'inherit',
+                                fontWeight: topicDetails.instruction_style?.isBold ? 'bold' : 'normal',
+                                fontStyle: topicDetails.instruction_style?.isItalic ? 'italic' : 'normal'
+                              }}
+                            >
+                              {langInstruction}
+                            </div>
                           </div>
                         </div>
                       </div>
