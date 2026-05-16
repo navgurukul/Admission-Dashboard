@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,11 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, X, Bold, Italic, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { TopicOption, TopicPayload } from "@/utils/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
+import { Textarea } from "@/components/ui/textarea";
 
 interface TopicManagementDialogProps {
   open: boolean;
@@ -45,7 +44,11 @@ export function TopicManagementDialog({
   const [englishInstruction, setEnglishInstruction] = useState("");
   const [hindiInstruction, setHindiInstruction] = useState("");
   const [marathiInstruction, setMarathiInstruction] = useState("");
-
+  const [instructionStyle, setInstructionStyle] = useState({
+    color: "#4f46e5",
+    isBold: false,
+    isItalic: false,
+  });
 
   const [editingTopicId, setEditingTopicId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,6 +66,11 @@ export function TopicManagementDialog({
     setEnglishInstruction("");
     setHindiInstruction("");
     setMarathiInstruction("");
+    setInstructionStyle({
+      color: "#4f46e5",
+      isBold: false,
+      isItalic: false,
+    });
     setEditingTopicId(null);
   };
 
@@ -72,6 +80,11 @@ export function TopicManagementDialog({
     setEnglishInstruction(topic.english_instruction || "");
     setHindiInstruction(topic.hindi_instruction || "");
     setMarathiInstruction(topic.marathi_instruction || "");
+    setInstructionStyle(topic.instruction_style || {
+      color: "#4f46e5",
+      isBold: false,
+      isItalic: false,
+    });
   };
 
   const handleSave = async () => {
@@ -85,9 +98,10 @@ export function TopicManagementDialog({
 
     const payload: TopicPayload = {
       topic: topicName.trim(),
-      english_instruction: englishInstruction || undefined,
-      hindi_instruction: hindiInstruction || undefined,
-      marathi_instruction: marathiInstruction || undefined,
+      english_instruction: englishInstruction.trim() || undefined,
+      hindi_instruction: hindiInstruction.trim() || undefined,
+      marathi_instruction: marathiInstruction.trim() || undefined,
+      instruction_style: instructionStyle,
       status: true,
     };
 
@@ -182,6 +196,33 @@ export function TopicManagementDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Topic Instructions (Optional)</Label>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={instructionStyle.isBold ? "default" : "outline"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setInstructionStyle(s => ({ ...s, isBold: !s.isBold }))}
+                  >
+                    <Bold className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={instructionStyle.isItalic ? "default" : "outline"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setInstructionStyle(s => ({ ...s, isItalic: !s.isItalic }))}
+                  >
+                    <Italic className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-2 ml-2 border rounded-md px-2 py-1 bg-white">
+                    <Palette className="h-4 w-4 text-muted-foreground" />
+                    <input 
+                      type="color" 
+                      value={instructionStyle.color}
+                      onChange={(e) => setInstructionStyle(s => ({ ...s, color: e.target.value }))}
+                      className="h-6 w-6 border-none cursor-pointer p-0 bg-transparent"
+                    />
+                  </div>
+                </div>
               </div>
 
               <Tabs defaultValue="english" className="w-full">
@@ -190,59 +231,44 @@ export function TopicManagementDialog({
                   <TabsTrigger value="hindi">Hindi</TabsTrigger>
                   <TabsTrigger value="marathi">Marathi</TabsTrigger>
                 </TabsList>
-                <TabsContent value="english" className="mt-2">
-                  <div className="rounded-md border bg-white overflow-hidden">
-                    <ReactQuill
-                      theme="snow"
-                      value={englishInstruction}
-                      onChange={setEnglishInstruction}
-                      placeholder="Enter instructions in English..."
-                      modules={{
-                        toolbar: [
-                          ['bold', 'italic', 'underline'],
-                          [{ 'color': [] }],
-                          ['clean']
-                        ],
-                      }}
-                      className="quill-editor"
-                    />
-                  </div>
+                <TabsContent value="english">
+                  <Textarea
+                    placeholder="Enter instructions in English..."
+                    value={englishInstruction}
+                    onChange={(e) => setEnglishInstruction(e.target.value)}
+                    className="h-32 min-h-[120px]"
+                    style={{ 
+                      color: instructionStyle.color,
+                      fontWeight: instructionStyle.isBold ? 'bold' : 'normal',
+                      fontStyle: instructionStyle.isItalic ? 'italic' : 'normal'
+                    }}
+                  />
                 </TabsContent>
-                <TabsContent value="hindi" className="mt-2">
-                  <div className="rounded-md border bg-white overflow-hidden">
-                    <ReactQuill
-                      theme="snow"
-                      value={hindiInstruction}
-                      onChange={setHindiInstruction}
-                      placeholder="हिंदी में निर्देश दर्ज करें..."
-                      modules={{
-                        toolbar: [
-                          ['bold', 'italic', 'underline'],
-                          [{ 'color': [] }],
-                          ['clean']
-                        ],
-                      }}
-                      className="quill-editor"
-                    />
-                  </div>
+                <TabsContent value="hindi">
+                  <Textarea
+                    placeholder="हिंदी में निर्देश दर्ज करें..."
+                    value={hindiInstruction}
+                    onChange={(e) => setHindiInstruction(e.target.value)}
+                    className="h-32 min-h-[120px]"
+                    style={{ 
+                      color: instructionStyle.color,
+                      fontWeight: instructionStyle.isBold ? 'bold' : 'normal',
+                      fontStyle: instructionStyle.isItalic ? 'italic' : 'normal'
+                    }}
+                  />
                 </TabsContent>
-                <TabsContent value="marathi" className="mt-2">
-                  <div className="rounded-md border bg-white overflow-hidden">
-                    <ReactQuill
-                      theme="snow"
-                      value={marathiInstruction}
-                      onChange={setMarathiInstruction}
-                      placeholder="मराठीत सूचना प्रविष्ट करा..."
-                      modules={{
-                        toolbar: [
-                          ['bold', 'italic', 'underline'],
-                          [{ 'color': [] }],
-                          ['clean']
-                        ],
-                      }}
-                      className="quill-editor"
-                    />
-                  </div>
+                <TabsContent value="marathi">
+                  <Textarea
+                    placeholder="मराठीत सूचना प्रविष्ट करा..."
+                    value={marathiInstruction}
+                    onChange={(e) => setMarathiInstruction(e.target.value)}
+                    className="h-32 min-h-[120px]"
+                    style={{ 
+                      color: instructionStyle.color,
+                      fontWeight: instructionStyle.isBold ? 'bold' : 'normal',
+                      fontStyle: instructionStyle.isItalic ? 'italic' : 'normal'
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
               <p className="text-[10px] text-muted-foreground italic">
