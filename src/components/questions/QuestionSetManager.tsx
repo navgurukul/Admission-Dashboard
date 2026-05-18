@@ -1626,119 +1626,92 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                 )}
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">
-                    {viewingSet.questions.map((question: any, index: number) => {
-                      const topicDetails = question.topic_details;
-                      const selectedInstruction = getInstructionByLanguage(topicDetails);
-                      const hasInstruction = Boolean(selectedInstruction);
-                      const explanationText = getExplanationByLanguage(question);
-                      
-                      const isFirstInTopic = index === 0 || viewingSet.questions[index - 1].topic !== question.topic;
-                      const showInstruction = isFirstInTopic && hasInstruction;
+                    {(() => {
+                      // group consecutive questions by topic
+                      const groups: Array<{ topic: any; topicDetails: any; questions: any[] }> = [];
+                      viewingSet.questions.forEach((q: any) => {
+                        const topicId = q.topic ?? "__no_topic__";
+                        const last = groups[groups.length - 1];
+                        if (!last || last.topic !== topicId) {
+                          groups.push({ topic: topicId, topicDetails: q.topic_details, questions: [q] });
+                        } else {
+                          last.questions.push(q);
+                        }
+                      });
 
-                      return (
-                        <React.Fragment key={question.id || `q-${index}`}>
-                          {showInstruction && (
-                            <div className="mb-6">
-                              <div className="rounded-lg border bg-white p-4 overflow-hidden">
-                                <div className="flex items-start gap-3">
-                                  <div className="min-w-[28px] shrink-0" />
-                                  <div className="min-w-0 flex-1">
-                                    {topicDetails.topic && (
-                                      <div className="mb-1 font-bold text-sm text-gray-900">
-                                        {topicDetails.topic}:
-                                      </div>
-                                    )}
-                                    <div
-                                      className="text-sm quill-content break-words [&_*]:break-words"
-                                      dangerouslySetInnerHTML={{ __html: selectedInstruction }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                      let globalIndex = 0;
+
+                      return groups.map((group, gIndex) => (
+                        <div key={`group-${gIndex}`} className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow p-6">
+                          {group.topicDetails?.topic && (
+                            <div className="mb-5 text-lg font-bold text-gray-900 border-b border-gray-200 pb-3">{group.topicDetails.topic}</div>
                           )}
-                          <div className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
-                                  {index + 1}. {getQuestionTextByLanguage(question)}
-                                </div>
-                              </div>
-                              {canManage && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditQuestion(question)}
-                                  title="Edit question"
-                                  className="h-8 w-8"
-                                >
-                                  <Edit className="h-4 w-4 text-blue-600" />
-                                </Button>
-                              )}
-                            </div>
 
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              <Badge variant="outline" className="text-xs">
-                                {difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                {question.question_type || 'N/A'}
-                              </Badge>
-                              {question.time_limit && (
-                                <Badge variant="outline" className="text-xs">
-                                  {question.time_limit}s
-                                </Badge>
-                              )}
-                              {topicDetails?.topic && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {topicDetails.topic}
-                                </Badge>
-                              )}
-                            </div>
+                          {group.topicDetails && getInstructionByLanguage(group.topicDetails) && (
+                            <div className="mb-6 text-sm text-gray-700 leading-relaxed quill-content break-words [&_*]:break-words bg-blue-50/50 p-4 rounded-lg border border-blue-100" dangerouslySetInnerHTML={{ __html: getInstructionByLanguage(group.topicDetails) }} />
+                          )}
 
-                            {question.question_type === 'MCQ' && (question.english_options || question.options) && (
-                              <div className="mt-4">
-                                <div className="space-y-2">
-                                  {(question.english_options || question.options || []).map((option: any, optIndex: number) => {
-                                    const optionId = typeof option === 'string' ? optIndex + 1 : (option.id || optIndex + 1);
-                                    const isCorrect = Array.isArray(question.answer_key) && question.answer_key.includes(optionId);
+                          <div className="space-y-5">
+                            {group.questions.map((question: any, qIdx: number) => {
+                              const index = ++globalIndex;
+                              const explanationText = getExplanationByLanguage(question);
 
-                                    return (
-                                      <div key={optIndex} className="p-2 bg-gray-50 rounded">
-                                        <div className="flex items-start gap-2">
-                                          <span className="font-medium text-gray-700 min-w-[24px]">
-                                            {String.fromCharCode(65 + optIndex)}.
-                                          </span>
-                                          <div className="flex-1">
-                                            <div className="text-sm text-gray-900 whitespace-pre-line">
-                                              {getOptionTextByLanguage(question, optIndex) || "N/A"}
-                                              {isCorrect && (
-                                                <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
+                              return (
+                                <div key={question.id || `q-${gIndex}-${qIdx}`} className="p-5 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 transition-all">
+                                  <div className="flex items-start justify-between mb-4">
+                                    <div className="flex-1">
+                                      <div className="text-base font-semibold text-gray-900 mb-3 whitespace-pre-line leading-relaxed">
+                                        {index}. {getQuestionTextByLanguage(question)}
                                       </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
+                                    </div>
+                                    {canManage && (
+                                      <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(question)} title="Edit question" className="h-8 w-8">
+                                        <Edit className="h-4 w-4 text-blue-600" />
+                                      </Button>
+                                    )}
+                                  </div>
 
-                            {explanationText && (
-                              <div className="mt-4 rounded-xl border border-green-200 bg-green-50/60 p-4">
-                                <div className="mb-2 text-sm font-semibold text-green-700">
-                                  Explanation
+                                  <div className="flex flex-wrap gap-2.5 mt-4 mb-4">
+                                    <Badge variant="outline" className="text-xs px-3 py-1.5 bg-white border-gray-300 text-gray-700">{difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}</Badge>
+                                    <Badge variant="outline" className="text-xs px-3 py-1.5 bg-white border-gray-300 text-gray-700">{question.question_type || 'N/A'}</Badge>
+                                    {question.time_limit && (<Badge variant="outline" className="text-xs px-3 py-1.5 bg-white border-gray-300 text-gray-700">{question.time_limit}s</Badge>)}
+                                    {group.topicDetails?.topic && (<Badge variant="secondary" className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700">{group.topicDetails.topic}</Badge>)}
+                                  </div>
+
+                                  {question.question_type === 'MCQ' && (question.english_options || question.options) && (
+                                    <div className="mt-5 pt-4 border-t border-gray-200">
+                                      <div className="space-y-3">
+                                        {(question.english_options || question.options || []).map((option: any, optIndex: number) => {
+                                          const optionId = typeof option === 'string' ? optIndex + 1 : (option.id || optIndex + 1);
+                                          const isCorrect = Array.isArray(question.answer_key) && question.answer_key.includes(optionId);
+                                          return (
+                                            <div key={optIndex} className="p-3.5 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer">
+                                              <div className="flex items-start gap-3">
+                                                <span className="font-semibold text-gray-800 min-w-[28px] pt-0.5">{String.fromCharCode(65 + optIndex)}.</span>
+                                                <div className="flex-1">
+                                                  <div className="text-sm text-gray-900 whitespace-pre-line leading-relaxed">{getOptionTextByLanguage(question, optIndex) || "N/A"}{isCorrect && (<span className="ml-2 text-green-600 font-semibold">✓ Correct</span>)}</div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {explanationText && (
+                                    <div className="mt-5 pt-4 border-t border-gray-200 bg-gradient-to-br from-green-50 to-green-50/50 p-4 rounded-lg border border-green-200">
+                                      <div className="mb-2.5 text-sm font-semibold text-green-700 uppercase tracking-wide">💡 Explanation</div>
+                                      <div className="text-sm text-green-900 whitespace-pre-line leading-relaxed">{explanationText}</div>
+                                    </div>
+                                  )}
                                 </div>
-                                <div className="text-sm text-green-800 whitespace-pre-line">
-                                  {explanationText}
-                                </div>
-                              </div>
-                            )}
+                              );
+                            })}
                           </div>
-                        </React.Fragment>
-                      );
-                    })}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
