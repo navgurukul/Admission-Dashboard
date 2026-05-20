@@ -67,8 +67,11 @@ const Schedule = () => {
   const navigate = useNavigate();
 
   const currentUser = getCurrentUser();
-  const roleId = currentUser?.user_role_id || 2;
-  const isAdmin = roleId === 1;
+  const roleId = Number(currentUser?.user_role_id ?? 2); // 1: Admin, 2: User, 3: Team
+  const roleName = String(currentUser?.role_name || "").trim().toLowerCase();
+  const isAdmin = roleId === 1 || roleId === 3;
+  const hasEditAccess = roleId === 1;
+  const canAccessInterviewTools = roleId === 2 || roleName === "user";
 
   // Add state for admin scheduling
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
