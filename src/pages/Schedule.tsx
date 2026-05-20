@@ -67,8 +67,10 @@ const Schedule = () => {
   const navigate = useNavigate();
 
   const currentUser = getCurrentUser();
-  const roleId = currentUser?.user_role_id || 2;
-  const isAdmin = roleId === 1;
+  const roleId = Number(currentUser?.user_role_id ?? 2);
+  const roleName = String(currentUser?.role_name || "").trim().toLowerCase();
+  const isAdmin = roleId === 1 || roleId === 3;
+  const canAccessInterviewTools = roleId === 2 || roleName === "user";
 
   // Add state for admin scheduling
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -560,22 +562,24 @@ const Schedule = () => {
           {isAdmin && (
             <Tabs value="my-interviews" className="w-full mb-4">
               <TabsList className={cn("grid w-full", isAdmin ? "grid-cols-3 max-w-lg" : "grid-cols-1 max-w-xs")}>
-                <>
-                  <TabsTrigger
-                    value="interviews"
-                    onClick={() => navigate("/admin-view")}
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    Scheduled Interviews
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="slots"
-                    onClick={() => navigate("/admin-view")}
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    Created Slots
-                  </TabsTrigger>
-                </>
+                {isAdmin && (
+                  <>
+                    <TabsTrigger
+                      value="interviews"
+                      onClick={() => navigate("/admin-view")}
+                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      Scheduled Interviews
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="slots"
+                      onClick={() => navigate("/admin-view")}
+                      className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      Created Slots
+                    </TabsTrigger>
+                  </>
+                )}
                 <TabsTrigger
                   value="my-interviews"
                   onClick={() => navigate("/admin-view")}
