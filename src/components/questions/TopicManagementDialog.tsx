@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { TopicOption } from "@/utils/api";
+import type { TopicOption, TopicPayload } from "@/utils/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Removed direct ReactQuill import to avoid Rollup build errors
+import 'react-quill-new/dist/quill.snow.css';
+import { Textarea } from "@/components/ui/textarea";
 
 interface TopicManagementDialogProps {
   open: boolean;
@@ -22,8 +26,8 @@ interface TopicManagementDialogProps {
   topics: TopicOption[];
   selectedTopicId?: string;
   onSelectedTopicChange?: (value: string) => void;
-  onCreateTopic: (topicName: string) => Promise<TopicOption> | TopicOption;
-  onUpdateTopic: (topicId: number, topicName: string) => Promise<TopicOption | void> | TopicOption | void;
+  onCreateTopic: (payload: TopicPayload) => Promise<TopicOption> | TopicOption;
+  onUpdateTopic: (topicId: number, payload: TopicPayload) => Promise<TopicOption | void> | TopicOption | void;
   onDeleteTopic: (topicId: number) => Promise<{ message?: string } | void> | { message?: string } | void;
 }
 
@@ -38,9 +42,23 @@ export function TopicManagementDialog({
   onDeleteTopic,
 }: TopicManagementDialogProps) {
   const { toast } = useToast();
-  const [newTopicName, setNewTopicName] = useState("");
+  const [QuillEditor, setQuillEditor] = useState<any>(null);
+
+  const [topicsPage, setTopicsPage] = useState(1);
+  const topicsPerPage = 5;
+
+  useEffect(() => {
+    import('react-quill-new').then((module) => {
+      setQuillEditor(() => module.default);
+    });
+  }, []);
+
+  const [topicName, setTopicName] = useState("");
+  const [englishInstruction, setEnglishInstruction] = useState("");
+  const [hindiInstruction, setHindiInstruction] = useState("");
+  const [marathiInstruction, setMarathiInstruction] = useState("");
+
   const [editingTopicId, setEditingTopicId] = useState<number | null>(null);
-  const [editingTopicName, setEditingTopicName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sortedTopics = useMemo(
@@ -51,57 +69,86 @@ export function TopicManagementDialog({
     [topics],
   );
 
-  const resetEditor = () => {
-    setNewTopicName("");
-    setEditingTopicId(null);
-    setEditingTopicName("");
-  };
+  const totalTopicsPages = Math.max(1, Math.ceil(sortedTopics.length / topicsPerPage));
+  const pagedTopics = useMemo(() => {
+    const start = (topicsPage - 1) * topicsPerPage;
+    return sortedTopics.slice(start, start + topicsPerPage);
+  }, [sortedTopics, topicsPage]);
 
-  const handleCreate = async () => {
-    const topicName = newTopicName.trim();
+  useEffect(() => {
+    if (!open) return;
 
-    setIsSubmitting(true);
-    try {
-      const createdTopic = await onCreateTopic(topicName);
-      setNewTopicName("");
-      onSelectedTopicChange?.(String(createdTopic.id));
-      toast({
-        title: "Topic created",
-        description: createdTopic.message,
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
-    } catch (error: any) {
-      toast({
-        title: error?.message,
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900",
-      });
-    } finally {
-      setIsSubmitting(false);
+    const targetTopicId = selectedTopicId ? Number(selectedTopicId) : editingTopicId ?? null;
+    if (!targetTopicId) {
+      setTopicsPage(1);
+      return;
     }
+
+    const topicIndex = sortedTopics.findIndex((topic) => topic.id === targetTopicId);
+    if (topicIndex >= 0) {
+      const targetPage = Math.floor(topicIndex / topicsPerPage) + 1;
+      setTopicsPage(targetPage);
+    } else {
+      setTopicsPage(1);
+    }
+  }, [sortedTopics, topicsPerPage, open, selectedTopicId, editingTopicId]);
+
+  const resetEditor = () => {
+    setTopicName("");
+    setEnglishInstruction("");
+    setHindiInstruction("");
+    setMarathiInstruction("");
+    setEditingTopicId(null);
   };
 
-  const handleUpdate = async () => {
-    if (editingTopicId === null) return;
+  const startEditing = (topic: TopicOption) => {
+    setEditingTopicId(topic.id);
+    setTopicName(topic.topic);
+    setEnglishInstruction(topic.english_instruction || "");
+    setHindiInstruction(topic.hindi_instruction || "");
+    setMarathiInstruction(topic.marathi_instruction || "");
+  };
 
-    const topicName = editingTopicName.trim();
+  const handleSave = async () => {
+    if (!topicName.trim()) {
+      toast({
+        title: "Topic name required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const payload: TopicPayload = {
+      topic: topicName.trim(),
+      status: true,
+    };
+
+    if (englishInstruction) payload.english_instruction = englishInstruction;
+    if (hindiInstruction) payload.hindi_instruction = hindiInstruction;
+    if (marathiInstruction) payload.marathi_instruction = marathiInstruction;
 
     setIsSubmitting(true);
     try {
-      const updatedTopic = await onUpdateTopic(editingTopicId, topicName);
-      const Message =
-        updatedTopic && typeof updatedTopic === "object" && "message" in updatedTopic
-          ? updatedTopic.message
-          : undefined;
+      if (editingTopicId) {
+        const result = await onUpdateTopic(editingTopicId, payload);
+        toast({
+          title: "Topic updated",
+          description: (result as any)?.message,
+          className: "border-green-500 bg-green-50 text-green-900",
+        });
+      } else {
+        const created = await onCreateTopic(payload);
+        onSelectedTopicChange?.(String(created.id));
+        toast({
+          title: "Topic created",
+          description: created.message,
+          className: "border-green-500 bg-green-50 text-green-900",
+        });
+      }
       resetEditor();
-      toast({
-        title: "Topic updated",
-        description: Message,
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
     } catch (error: any) {
       toast({
-        title: error?.message,
+        title: error?.message || "Operation failed",
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
       });
@@ -111,13 +158,11 @@ export function TopicManagementDialog({
   };
 
   const handleDelete = async (topicId: number) => {
+    if (!confirm("Are you sure you want to delete this topic?")) return;
+    
     setIsSubmitting(true);
     try {
       const result = await onDeleteTopic(topicId);
-      const Message =
-        result && typeof result === "object" && "message" in result
-          ? result.message
-          : undefined;
       if (selectedTopicId === String(topicId)) {
         onSelectedTopicChange?.("");
       }
@@ -126,7 +171,7 @@ export function TopicManagementDialog({
       }
       toast({
         title: "Topic deleted",
-        description: Message,
+        description: (result as any)?.message,
         className: "border-green-500 bg-green-50 text-green-900",
       });
     } catch (error: any) {
@@ -140,153 +185,219 @@ export function TopicManagementDialog({
     }
   };
 
-  const startEditing = (topic: TopicOption) => {
-    setEditingTopicId(topic.id);
-    setEditingTopicName(topic.topic);
-  };
-
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          resetEditor();
-        }
+        if (!nextOpen) resetEditor();
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Topic Management</DialogTitle>
+          <DialogTitle>{editingTopicId !== null ? "Edit Topic" : "Topic Management"}</DialogTitle>
           <DialogDescription>
-            Create, update, or delete topics.
+            Manage topics and their specific instructions for students.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <div className="space-y-3 rounded-lg border p-4">
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px] flex-1 overflow-hidden">
+          {/* Form Side */}
+          <div className="space-y-4 overflow-y-auto pr-2">
             <div className="space-y-2">
-              <Label htmlFor="new-topic-name">Create Topic</Label>
+              <Label htmlFor="topic-name">Topic Name</Label>
               <Input
-                id="new-topic-name"
-                value={newTopicName}
-                onChange={(e) => setNewTopicName(e.target.value)}
-                placeholder="Enter topic name"
+                id="topic-name"
+                value={topicName}
+                onChange={(e) => setTopicName(e.target.value)}
+                placeholder="e.g. Mathematical Patterns"
                 disabled={isSubmitting}
               />
             </div>
-            <Button
-              type="button"
-              className="w-full"
-              onClick={handleCreate}
-              disabled={isSubmitting}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Topic
-            </Button>
 
-          </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Topic Instructions (Optional)</Label>
+              </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Available Topics</Label>
-              <Badge variant="outline">{sortedTopics.length} topics</Badge>
+              <Tabs defaultValue="english" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="english">English</TabsTrigger>
+                  <TabsTrigger value="hindi">Hindi</TabsTrigger>
+                  <TabsTrigger value="marathi">Marathi</TabsTrigger>
+                </TabsList>
+                <TabsContent value="english" className="mt-2">
+                  <div className="rounded-md border bg-white overflow-hidden min-h-[120px]">
+                    {QuillEditor ? (
+                      <QuillEditor
+                        theme="snow"
+                        value={englishInstruction}
+                        onChange={setEnglishInstruction}
+                        placeholder="Enter instructions in English..."
+                        modules={{
+                          toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'color': [] }],
+                            ['clean']
+                          ],
+                        }}
+                        className="quill-editor"
+                      />
+                    ) : (
+                      <div className="p-4 text-muted-foreground text-sm">Loading editor...</div>
+                    )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="hindi" className="mt-2">
+                  <div className="rounded-md border bg-white overflow-hidden min-h-[120px]">
+                    {QuillEditor ? (
+                      <QuillEditor
+                        theme="snow"
+                        value={hindiInstruction}
+                        onChange={setHindiInstruction}
+                        placeholder="हिंदी में निर्देश दर्ज करें..."
+                        modules={{
+                          toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'color': [] }],
+                            ['clean']
+                          ],
+                        }}
+                        className="quill-editor"
+                      />
+                    ) : (
+                      <div className="p-4 text-muted-foreground text-sm">Loading editor...</div>
+                    )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="marathi" className="mt-2">
+                  <div className="rounded-md border bg-white overflow-hidden min-h-[120px]">
+                    {QuillEditor ? (
+                      <QuillEditor
+                        theme="snow"
+                        value={marathiInstruction}
+                        onChange={setMarathiInstruction}
+                        placeholder="मराठीत सूचना प्रविष्ट करा..."
+                        modules={{
+                          toolbar: [
+                            ['bold', 'italic', 'underline'],
+                            [{ 'color': [] }],
+                            ['clean']
+                          ],
+                        }}
+                        className="quill-editor"
+                      />
+                    ) : (
+                      <div className="p-4 text-muted-foreground text-sm">Loading editor...</div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+              <p className="text-[10px] text-muted-foreground italic">
+                These instructions will appear right before the first question of this topic in the test.
+              </p>
             </div>
 
-            <ScrollArea className="h-[320px] rounded-lg border">
-              <div className="space-y-3 p-4">
-                {sortedTopics.length === 0 ? (
-                  <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-                    No topics available yet.
-                  </div>
-                ) : (
-                  sortedTopics.map((topic) => {
-                    const isEditing = editingTopicId === topic.id;
-                    const isSelected = selectedTopicId === String(topic.id);
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleSave} disabled={isSubmitting}>
+                {editingTopicId !== null ? "Update Topic" : "Add Topic"}
+              </Button>
+              {editingTopicId && (
+                <Button variant="outline" onClick={resetEditor} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </div>
 
-                    return (
-                      <div
-                        key={topic.id}
-                        className="rounded-lg border p-3 transition-colors hover:bg-muted/30"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1 space-y-2">
-                            {isEditing ? (
-                              <Input
-                                value={editingTopicName}
-                                onChange={(e) =>
-                                  setEditingTopicName(e.target.value)
-                                }
-                                disabled={isSubmitting}
-                              />
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium">{topic.topic}</p>
-                                {isSelected && (
-                                  <Badge variant="secondary">Selected</Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
+          {/* List Side */}
+          <div className="flex flex-col border rounded-lg bg-muted/30 overflow-hidden">
+            <div className="p-3 border-b bg-white flex items-center justify-between">
+              <Label className="font-semibold text-xs uppercase tracking-wider">Existing Topics</Label>
+              <Badge variant="secondary" className="text-[10px]">{sortedTopics.length}</Badge>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-2">
+                {pagedTopics.map((topic) => {
+                  const isSelected = selectedTopicId === String(topic.id);
+                  const isEditing = editingTopicId === topic.id;
 
-                          <div className="flex items-center gap-1">
-                            {isEditing ? (
-                              <>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={handleUpdate}
-                                  disabled={isSubmitting}
-                                >
-                                  Save
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={resetEditor}
-                                  disabled={isSubmitting}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => startEditing(topic)}
-                                  disabled={isSubmitting}
-                                  title="Rename topic"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="text-red-600 hover:text-red-700"
-                                  onClick={() => handleDelete(topic.id)}
-                                  disabled={isSubmitting}
-                                  title="Delete topic"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
+                  return (
+                    <div
+                      key={topic.id}
+                      className={`group p-2 rounded-md border transition-all ${
+                        isEditing ? "border-primary bg-primary/5 ring-1 ring-primary" : "bg-white hover:border-primary/50"
+                      } ${isSelected ? "bg-primary/5" : ""}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm font-medium truncate ${isSelected ? "text-primary" : ""}`}>
+                            {topic.topic}
+                          </p>
+                          {(topic.english_instruction || topic.hindi_instruction || topic.marathi_instruction) && (
+                            <Badge variant="outline" className="h-4 px-1 text-[8px] border-blue-200 bg-blue-50 text-blue-700">
+                              Has Instructions
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => startEditing(topic)}
+                            disabled={isSubmitting}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => handleDelete(topic.id)}
+                            disabled={isSubmitting}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </div>
-                    );
-                  })
-                )}
+                    </div>
+                  );
+                })}
               </div>
             </ScrollArea>
+
+            {sortedTopics.length > topicsPerPage && (
+              <div className="border-t bg-white px-3 py-2 flex items-center justify-end gap-2">
+                {/* <div className="text-[11px] text-muted-foreground font-medium mr-2">
+                  Page {topicsPage} of {totalTopicsPages}
+                </div> */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTopicsPage((page) => Math.max(1, page - 1))}
+                    disabled={topicsPage === 1}
+                    className="h-8 px-3"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTopicsPage((page) => Math.min(totalTopicsPages, page + 1))}
+                    disabled={topicsPage === totalTopicsPages}
+                    className="h-8 px-3"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-4 border-t pt-4">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>

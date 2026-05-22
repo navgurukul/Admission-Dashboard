@@ -1441,6 +1441,9 @@ export interface Question {
 export interface TopicOption {
   id: number;
   topic: string;
+  english_instruction?: string;
+  hindi_instruction?: string;
+  marathi_instruction?: string;
   status: boolean;
   created_at?: string;
   updated_at?: string;
@@ -1580,11 +1583,34 @@ export const getQuestionsPaginated = async (filters?: {
   };
 };
 
+const extractTopicsArray = (data: any): TopicOption[] => {
+  const topics = data?.data?.data ?? data?.data ?? data ?? [];
+  return Array.isArray(topics) ? topics : [];
+};
+
+const extractTopicsMeta = (data: any) => {
+  const meta = data?.data ?? data ?? {};
+  const page = Number(meta?.page ?? 1);
+  const totalPages = Number(meta?.totalPages ?? meta?.total_pages ?? 1);
+  const total = Number(meta?.total ?? meta?.count ?? 0);
+  const pageSize = Number(meta?.pageSize ?? meta?.page_size ?? 10);
+  return { page, totalPages, total, pageSize };
+};
+
 export const getTopics = async (): Promise<TopicOption[]> => {
-  const response = await fetch(`${BASE_URL}/topics`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
+  const pageSize = 100;
+  let page = 1;
+  const allTopics: TopicOption[] = [];
+
+  while (true) {
+    const url = new URL(`${BASE_URL}/topics`);
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("pageSize", String(pageSize));
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
 
   const data = await response.json();
 
@@ -1592,12 +1618,21 @@ export const getTopics = async (): Promise<TopicOption[]> => {
     throw new Error(getTopicErrorMessage(data));
   }
 
-  const topics = data?.data?.data || data?.data || [];
-  return Array.isArray(topics) ? topics : [];
+    allTopics.push(...extractTopicsArray(data));
+
+    const meta = extractTopicsMeta(data);
+    if (page >= meta.totalPages) break;
+    page += 1;
+  }
+
+  return allTopics;
 };
 
 export interface TopicPayload {
   topic: string;
+  english_instruction?: string;
+  hindi_instruction?: string;
+  marathi_instruction?: string;
   status: boolean;
 }
 
@@ -1804,10 +1839,26 @@ export const getRandomQuestions = async (
     const questions =
       response.data?.data?.map((q: any) => ({
         id: q.id,
-        question: q[`${language}_text`],
-        options: q[`${language}_options`],
+        question:
+          q[`${language}_text`] ||
+          q.question ||
+          (q.question_text && (q.question_text[language] || q.question_text.english)) ||
+          "",
+        options: q[`${language}_options`] || q.options || [],
+        question_text: q.question_text || {
+          english: q.english_text,
+          hindi: q.hindi_text,
+          marathi: q.marathi_text,
+        },
+        english_text: q.english_text,
+        hindi_text: q.hindi_text,
+        marathi_text: q.marathi_text,
+        english_options: q.english_options,
+        hindi_options: q.hindi_options,
+        marathi_options: q.marathi_options,
         difficulty_level: q.difficulty_level,
-        answer: q.answer_key[0], // assuming first index in answer_key array is correct
+        answer: Array.isArray(q.answer_key) ? q.answer_key[0] : q.answer_key,
+        topic_details: q.topic_details || null,
       })) || [];
 
     // console.log("questions1",questions)

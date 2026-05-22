@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +39,7 @@ import {
   createQuestionSet,
   getTopics,
   type TopicOption,
+  type TopicPayload,
   updateQuestionSet,
   updateTopic,
   setDefaultOnlineQuestionSet,
@@ -47,11 +48,13 @@ import {
   updateQuestion,
 } from "@/utils/api";
 import { QuestionSetDownloadPreview } from "./QuestionSetDownloadPreview";
+import { useLanguage } from "@/routes/LaunguageContext";
 
 export function QuestionSetManager({ allQuestions, difficultyLevels, canManage = true }) {
   const DEFAULT_SET_DESCRIPTION = "N/A";
   type PreviewLanguage = "english" | "hindi" | "marathi";
   const { toast } = useToast();
+  const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const [sets, setSets] = useState([]);
   const [activeSet, setActiveSet] = useState(null);
   // const [editingId, setEditingId] = useState<number | null>(null);.
@@ -98,6 +101,18 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
   const [showDownloadPreview, setShowDownloadPreview] = useState(false);
   const [downloadPreviewSet, setDownloadPreviewSet] = useState<any>(null);
   const [downloadPreviewLanguage, setDownloadPreviewLanguage] = useState<PreviewLanguage>("english");
+
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("selectedLanguage") as PreviewLanguage | null;
+    const nextLanguage =
+      savedLanguage === "english" || savedLanguage === "hindi" || savedLanguage === "marathi"
+        ? savedLanguage
+        : selectedLanguage;
+
+    if (nextLanguage) {
+      setPreviewLanguage(nextLanguage);
+    }
+  }, [selectedLanguage]);
 
   const clearImportFileStatusTimeout = () => {
     if (importFileStatusTimeoutRef.current) {
@@ -499,7 +514,10 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
       questions.forEach((q: any, index: number) => {
         const normalizedQuestion = {
           ...q,
-          id: q.id ? parseInt(q.id, 10) : (q.question_id ? parseInt(q.question_id, 10) : undefined),
+          id: (() => {
+            const idVal = q.id || q.question_id;
+            return idVal ? parseInt(idVal, 10) : undefined;
+          })(),
           difficulty_level: normalizeDifficultyLevel(q.difficulty_level),
           topic: normalizeTopicId(q.topic),
           english_options: tryParseOptions(q.english_options),
@@ -966,6 +984,32 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
     return getOptionText(englishOption);
   };
 
+  const getInstructionByLanguage = (topicDetails: any) => {
+    if (!topicDetails) return "";
+
+    if (previewLanguage === "hindi") {
+      return topicDetails.hindi_instruction || topicDetails.english_instruction || "";
+    }
+
+    if (previewLanguage === "marathi") {
+      return topicDetails.marathi_instruction || topicDetails.english_instruction || "";
+    }
+
+    return topicDetails.english_instruction || "";
+  };
+
+  const getExplanationByLanguage = (question: any) => {
+    if (previewLanguage === "hindi") {
+      return question.hindi_explanation || question.explanation || "";
+    }
+
+    if (previewLanguage === "marathi") {
+      return question.marathi_explanation || question.explanation || "";
+    }
+
+    return question.english_explanation || question.explanation || "";
+  };
+
   const handleSaveEditedQuestion = async (questionData: any) => {
     if (!editingQuestion) return;
 
@@ -1002,21 +1046,14 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
     setEditingQuestion(null);
   };
 
-  const handleCreateTopic = async (topicName: string) => {
-    const createdTopic = await createTopic({
-      topic: topicName.trim(),
-      status: true,
-    });
-
+  const handleCreateTopic = async (payload: TopicPayload) => {
+    const createdTopic = await createTopic(payload);
     setTopics((prev) => [...prev, createdTopic]);
     return createdTopic;
   };
 
-  const handleUpdateTopic = async (topicId: number, topicName: string) => {
-    const updatedTopic = await updateTopic(topicId, {
-      topic: topicName.trim(),
-      status: true,
-    });
+  const handleUpdateTopic = async (topicId: number, payload: TopicPayload) => {
+    const updatedTopic = await updateTopic(topicId, payload);
 
     setTopics((prev) =>
       prev.map((topic) =>
@@ -1532,7 +1569,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
         setIsViewModalOpen(open);
         if (!open) {
           setEditingQuestion(null);
-          setPreviewLanguage("english");
+          setPreviewLanguage(selectedLanguage as PreviewLanguage);
         }
       }}>
         <DialogContent className="max-w-4xl h-[80vh] overflow-hidden flex flex-col">
@@ -1543,7 +1580,12 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                 <div className="flex items-center gap-2 pr-8">
                   <Select
                     value={previewLanguage}
-                    onValueChange={(value) => setPreviewLanguage(value as PreviewLanguage)}
+                    onValueChange={(value) => {
+                      const nextLanguage = value as PreviewLanguage;
+                      setPreviewLanguage(nextLanguage);
+                      setSelectedLanguage(nextLanguage);
+                      localStorage.setItem("selectedLanguage", nextLanguage);
+                    }}
                   >
                     <SelectTrigger id="preview-language" className="h-9 w-[120px]">
                       <SelectValue />
@@ -1584,71 +1626,92 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                 )}
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">
-                    {viewingSet.questions.map((question: any, index: number) => (
-                      <div key={question.id ?? index} className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900 mb-2 whitespace-pre-line">
-                              {getQuestionTextByLanguage(question)}
-                            </div>
-                          </div>
-                          {canManage && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditQuestion(question)}
-                              title="Edit question"
-                              className="h-8 w-8"
-                            >
-                              <Edit className="h-4 w-4 text-blue-600" />
-                            </Button>
+                    {(() => {
+                      // group consecutive questions by topic
+                      const groups: Array<{ topic: any; topicDetails: any; questions: any[] }> = [];
+                      viewingSet.questions.forEach((q: any) => {
+                        const topicId = q.topic ?? "__no_topic__";
+                        const last = groups[groups.length - 1];
+                        if (!last || last.topic !== topicId) {
+                          groups.push({ topic: topicId, topicDetails: q.topic_details, questions: [q] });
+                        } else {
+                          last.questions.push(q);
+                        }
+                      });
+
+                      let globalIndex = 0;
+
+                      return groups.map((group, gIndex) => (
+                        <div key={`group-${gIndex}`} className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow p-6">
+                          {group.topicDetails?.topic && (
+                            <div className="mb-5 text-lg font-bold text-gray-900 border-b border-gray-200 pb-3">{group.topicDetails.topic}</div>
                           )}
-                        </div>
 
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <Badge variant="outline" className="text-xs">
-                            {difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {question.question_type || 'N/A'}
-                          </Badge>
-                          {question.time_limit && (
-                            <Badge variant="outline" className="text-xs">
-                              {question.time_limit}s
-                            </Badge>
+                          {group.topicDetails && getInstructionByLanguage(group.topicDetails) && (
+                            <div className="mb-6 text-sm text-gray-700 leading-relaxed quill-content break-words [&_*]:break-words bg-blue-50/50 p-4 rounded-lg border border-blue-100" dangerouslySetInnerHTML={{ __html: getInstructionByLanguage(group.topicDetails) }} />
                           )}
-                        </div>
 
-                        {question.question_type === 'MCQ' && question.english_options && question.english_options.length > 0 && (
-                          <div className="mt-4">
-                            <div className="space-y-2">
-                              {question.english_options.map((option: any, optIndex: number) => {
-                                const optionId = typeof option === 'string' ? optIndex + 1 : option.id;
-                                const isCorrect = question.answer_key && question.answer_key.includes(optionId);
+                          <div className="space-y-5">
+                            {group.questions.map((question: any, qIdx: number) => {
+                              const index = ++globalIndex;
+                              const explanationText = getExplanationByLanguage(question);
 
-                                return (
-                                  <div key={optIndex} className="p-2 bg-gray-50 rounded">
-                                    <div className="flex items-start gap-2">
-                                      <span className="font-medium text-gray-700 min-w-[24px]">
-                                        {String.fromCharCode(65 + optIndex)}.
-                                      </span>
-                                      <div className="flex-1">
-                                        <div className="text-sm text-gray-900 whitespace-pre-line">
-                                          {getOptionTextByLanguage(question, optIndex) || "N/A"}
-                                          {isCorrect && (
-                                            <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
-                                          )}
-                                        </div>
+                              return (
+                                <div key={question.id || `q-${gIndex}-${qIdx}`} className="p-5 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 transition-all">
+                                  <div className="flex items-start justify-between mb-4">
+                                    <div className="flex-1">
+                                      <div className="text-base font-semibold text-gray-900 mb-3 whitespace-pre-line leading-relaxed">
+                                        {index}. {getQuestionTextByLanguage(question)}
                                       </div>
                                     </div>
+                                    {canManage && (
+                                      <Button variant="ghost" size="icon" onClick={() => handleEditQuestion(question)} title="Edit question" className="h-8 w-8">
+                                        <Edit className="h-4 w-4 text-blue-600" />
+                                      </Button>
+                                    )}
                                   </div>
-                                );
-                              })}
-                            </div>
+
+                                  <div className="flex flex-wrap gap-2.5 mt-4 mb-4">
+                                    <Badge variant="outline" className="text-xs px-3 py-1.5 bg-white border-gray-300 text-gray-700">{difficultyLevels?.find((d: any) => d.id === question.difficulty_level)?.name || question.difficulty_level || 'N/A'}</Badge>
+                                    <Badge variant="outline" className="text-xs px-3 py-1.5 bg-white border-gray-300 text-gray-700">{question.question_type || 'N/A'}</Badge>
+                                    {question.time_limit && (<Badge variant="outline" className="text-xs px-3 py-1.5 bg-white border-gray-300 text-gray-700">{question.time_limit}s</Badge>)}
+                                    {group.topicDetails?.topic && (<Badge variant="secondary" className="text-xs px-3 py-1.5 bg-blue-100 text-blue-700">{group.topicDetails.topic}</Badge>)}
+                                  </div>
+
+                                  {question.question_type === 'MCQ' && (question.english_options || question.options) && (
+                                    <div className="mt-5 pt-4 border-t border-gray-200">
+                                      <div className="space-y-3">
+                                        {(question.english_options || question.options || []).map((option: any, optIndex: number) => {
+                                          const optionId = typeof option === 'string' ? optIndex + 1 : (option.id || optIndex + 1);
+                                          const isCorrect = Array.isArray(question.answer_key) && question.answer_key.includes(optionId);
+                                          return (
+                                            <div key={optIndex} className="p-3.5 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer">
+                                              <div className="flex items-start gap-3">
+                                                <span className="font-semibold text-gray-800 min-w-[28px] pt-0.5">{String.fromCharCode(65 + optIndex)}.</span>
+                                                <div className="flex-1">
+                                                  <div className="text-sm text-gray-900 whitespace-pre-line leading-relaxed">{getOptionTextByLanguage(question, optIndex) || "N/A"}{isCorrect && (<span className="ml-2 text-green-600 font-semibold">✓ Correct</span>)}</div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {explanationText && (
+                                    <div className="mt-5 pt-4 border-t border-gray-200 bg-gradient-to-br from-green-50 to-green-50/50 p-4 rounded-lg border border-green-200">
+                                      <div className="mb-2.5 text-sm font-semibold text-green-700 uppercase tracking-wide">💡 Explanation</div>
+                                      <div className="text-sm text-green-900 whitespace-pre-line leading-relaxed">{explanationText}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
