@@ -68,6 +68,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
     school_ids: [] as string[],
     importJsonText: "",
     questions: [] as any[],
+    randomConfig: [] as { topicId: number; easy: number; medium: number; hard: number }[],
   });
   const [schools, setSchools] = useState<any[]>([]);
   const [topics, setTopics] = useState<TopicOption[]>([]);
@@ -167,6 +168,49 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
     setImportFileStatusMessage("");
   };
 
+  const addRandomConfigRow = () => {
+    setFormData(prev => ({
+      ...prev,
+      randomConfig: [...(prev.randomConfig || []), { topicId: topics[0]?.id || 0, easy: 0, medium: 0, hard: 0 }]
+    }));
+  };
+
+  const updateRandomConfigRow = (index: number, field: string, value: number) => {
+    setFormData(prev => {
+      const newConfig = [...(prev.randomConfig || [])];
+      newConfig[index] = { ...newConfig[index], [field]: value };
+      return { ...prev, randomConfig: newConfig };
+    });
+  };
+
+  const removeRandomConfigRow = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      randomConfig: (prev.randomConfig || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const useLastRandomConfig = () => {
+    // Find the most recently created set (sets is ordered by desc id) that has a non-null random_config
+    const lastConfigSet = sets.find((s: any) => s.random_config && s.random_config.length > 0);
+    if (!lastConfigSet) {
+      toast({
+        title: "No Previous Configuration",
+        description: "No previous random set configuration found in the database.",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+    setFormData(prev => ({ ...prev, randomConfig: lastConfigSet.random_config }));
+    toast({
+      title: "Configuration Loaded",
+      description: `Loaded configuration from "${lastConfigSet.name}".`,
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
+      duration: 2000,
+    });
+  };
 
   const fetchSets = async (loadQuestions = true) => {
     const setsFromApi = await getAllQuestionSets();
@@ -186,6 +230,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
               active: s.status,
               is_default_online_set: s.is_default_online_set,
               school_ids: s.school_ids,
+              random_config: s.random_config,
               created_at: s.created_at,
               updated_at: s.updated_at,
             };
@@ -199,6 +244,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
               active: s.status,
               is_default_online_set: s.is_default_online_set,
               school_ids: s.school_ids,
+              random_config: s.random_config,
               created_at: s.created_at,
               updated_at: s.updated_at,
             };
@@ -214,6 +260,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
         active: s.status,
         is_default_online_set: s.is_default_online_set,
         school_ids: s.school_ids,
+        random_config: s.random_config,
         created_at: s.created_at,
         updated_at: s.updated_at,
       }));
@@ -342,7 +389,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
 
   const openAddModal = () => {
     setEditingSet(null);
-    setFormData({ name: "", description: "", nameType: "custom", isRandom: false, school_ids: [], importJsonText: "", questions: [] });
+    setFormData({ name: "", description: "", nameType: "custom", isRandom: false, school_ids: [], importJsonText: "", questions: [], randomConfig: [] });
     resetImportPreviewState();
     clearImportStatusMessage();
     setIsModalOpen(true);
@@ -788,6 +835,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
       school_ids: set.school_ids ? set.school_ids.map(String) : [],
       importJsonText: "",
       questions: [],
+      randomConfig: [],
     });
     resetImportPreviewState();
     clearImportStatusMessage();
@@ -824,6 +872,7 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
         description: finalDescription,
         isRandom: formData.nameType === "random",
         school_ids: formData.school_ids.map(Number),
+        randomConfig: formData.nameType === "random" ? formData.randomConfig : undefined,
         success: true,
       };
 
@@ -1351,6 +1400,86 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
               />
             </div>
 
+            {/* Random Config Section */}
+            {!editingSet && formData.nameType === "random" && (
+              <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Random Question Configuration</Label>
+                  <div className="flex gap-2">
+                    {sets.some((s: any) => s.random_config && s.random_config.length > 0) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={useLastRandomConfig}
+                        className="h-8 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                      >
+                        ↩ Use Last Configuration
+                      </Button>
+                    )}
+                    <Button type="button" variant="outline" size="sm" onClick={addRandomConfigRow}>
+                      <Plus className="mr-1 h-3 w-3" /> Add Topic
+                    </Button>
+                  </div>
+                </div>
+                {(!formData.randomConfig || formData.randomConfig.length === 0) && (
+                  <p className="text-xs text-muted-foreground">Click "Add Topic" to configure questions.</p>
+                )}
+                {formData.randomConfig?.map((config, index) => (
+                  <div key={index} className="flex items-end gap-2 p-3 border rounded-md bg-slate-50">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Topic</Label>
+                      <Select
+                        value={String(config.topicId)}
+                        onValueChange={(val) => updateRandomConfigRow(index, 'topicId', Number(val))}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Select Topic" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {topics.map(t => (
+                            <SelectItem key={t.id} value={String(t.id)}>{t.topic}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-20 space-y-1">
+                      <Label className="text-xs">Easy</Label>
+                      <Input 
+                        type="number" min="0" className="h-8 text-xs" 
+                        value={config.easy} 
+                        onChange={(e) => updateRandomConfigRow(index, 'easy', parseInt(e.target.value) || 0)} 
+                      />
+                    </div>
+                    <div className="w-20 space-y-1">
+                      <Label className="text-xs">Medium</Label>
+                      <Input 
+                        type="number" min="0" className="h-8 text-xs" 
+                        value={config.medium} 
+                        onChange={(e) => updateRandomConfigRow(index, 'medium', parseInt(e.target.value) || 0)} 
+                      />
+                    </div>
+                    <div className="w-20 space-y-1">
+                      <Label className="text-xs">Hard</Label>
+                      <Input 
+                        type="number" min="0" className="h-8 text-xs" 
+                        value={config.hard} 
+                        onChange={(e) => updateRandomConfigRow(index, 'hard', parseInt(e.target.value) || 0)} 
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => removeRandomConfigRow(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {formData.randomConfig?.length > 0 && (
+                  <div className="flex justify-end text-sm font-semibold">
+                    Total Questions: {formData.randomConfig.reduce((acc, curr) => acc + curr.easy + curr.medium + curr.hard, 0)}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Import Section */}
             {!editingSet && formData.nameType === "custom" && (
               <div className="space-y-2 border-t pt-4">
@@ -1623,6 +1752,26 @@ export function QuestionSetManager({ allQuestions, difficultyLevels, canManage =
                   <p className="text-sm text-gray-600 italic">
                     {viewingSet.description}
                   </p>
+                )}
+                {viewingSet.random_config && viewingSet.random_config.length > 0 && (
+                  <div className="rounded-lg border bg-blue-50/50 p-4 mb-4">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-2">Random Set Configuration</h4>
+                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                      {viewingSet.random_config.map((config: any, i: number) => {
+                        const t = topics.find(t => t.id === config.topicId);
+                        return (
+                          <div key={i} className="text-xs bg-white p-2 rounded border shadow-sm">
+                            <div className="font-semibold mb-1">{t?.topic || 'Unknown Topic'}</div>
+                            <div className="text-muted-foreground flex justify-between">
+                              <span>Easy: {config.easy}</span>
+                              <span>Med: {config.medium}</span>
+                              <span>Hard: {config.hard}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
                 {viewingSet.questions && viewingSet.questions.length > 0 ? (
                   <div className="space-y-3">

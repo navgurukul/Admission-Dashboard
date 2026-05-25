@@ -1761,6 +1761,7 @@ interface QuestionSet {
   partnerId?: number;
   partner_name?: string;
   school_ids?: number[];
+  random_config?: { topicId: number; easy: number; medium: number; hard: number }[] | null;
 }
 
 // Get all question sets ...
@@ -1913,6 +1914,7 @@ export const createQuestionSet = async (data: {
   partner_name?: string;
   school_ids?: number[];
   success?: boolean;
+  randomConfig?: { topicId: number; easy: number; medium: number; hard: number }[];
 }): Promise<QuestionSetMutationResponse> => {
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "POST",
