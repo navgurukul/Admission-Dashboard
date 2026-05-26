@@ -14,6 +14,7 @@ import {
   GraduationCap,
   BookOpen,
   Landmark,
+  FileText,
 } from "lucide-react";
 import AdminPage from "@/pages/Admin";
 import AdminView from "@/pages/AdminView";
@@ -25,6 +26,7 @@ import CampusPage from "@/pages/Campus";
 import SchoolPage from "@/pages/School";
 import Interviews from "@/pages/Interviews";
 // import OfferLetters from "@/pages/OfferLetters";
+import OfferLetterTemplates from "@/pages/OfferLetterTemplates";
 import QuestionRepository from "@/pages/QuestionRepository";
 
 export interface NavigationItem {
@@ -88,5 +90,12 @@ export const navigation: NavigationItem[] = [
     icon: BookOpen,
     component: QuestionRepository,
     allowedRoles: [1, 3],
+  },
+  {
+    name: "Offer Letter Templates",
+    href: "/offer-letter-templates",
+    icon: FileText,
+    component: OfferLetterTemplates,
+    allowedRoles: [1],
   },
 ];
