@@ -4,9 +4,10 @@ import { OfferTemplateEditor } from "@/components/offer-letters/OfferTemplateEdi
 import { OfferTemplateList } from "@/components/offer-letters/OfferTemplateList";
 import { OfferHistoryPanel } from "@/components/offer-letters/OfferHistoryPanel";
 import { PlaceholderManagement } from "@/components/offer-letters/PlaceholderManagement";
+import { TemplateEditor } from "@/components/offer-letters/TemplateEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, History, Settings } from "lucide-react";
+import { Plus, FileText, History, Settings, Edit3 } from "lucide-react";
 
 const OfferLetters = () => {
   const [activeTab, setActiveTab] = useState("templates");
@@ -29,10 +30,14 @@ const OfferLetters = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Templates
+            </TabsTrigger>
+            <TabsTrigger value="edit" className="flex items-center gap-2">
+              <Edit3 className="h-4 w-4" />
+              Edit Templates
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
@@ -66,6 +71,16 @@ const OfferLetters = () => {
                 }}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="edit" className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Edit HTML Templates</h2>
+              <p className="text-muted-foreground mb-6">
+                Select a campus and template to edit placeholders and HTML content
+              </p>
+              <TemplateEditor />
+            </div>
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">

@@ -370,29 +370,32 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="border-b bg-muted/50 p-2 flex gap-1 flex-wrap">
+    <div className="border rounded-2xl overflow-hidden bg-background shadow-sm">
+      <div className="hidden sticky top-0 z-10 border-b bg-background/95 p-3 gap-1 flex-wrap backdrop-blur md:flex">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("bold")}
           type="button"
+          className="rounded-full"
         >
           <Bold className="h-4 w-4" />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("italic")}
           type="button"
+          className="rounded-full"
         >
           <Italic className="h-4 w-4" />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("underline")}
           type="button"
+          className="rounded-full"
         >
           <Underline className="h-4 w-4" />
         </Button>
@@ -400,26 +403,29 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         <div className="w-px bg-border mx-1" />
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("justifyLeft")}
           type="button"
+          className="rounded-full"
         >
           <AlignLeft className="h-4 w-4" />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("justifyCenter")}
           type="button"
+          className="rounded-full"
         >
           <AlignCenter className="h-4 w-4" />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("justifyRight")}
           type="button"
+          className="rounded-full"
         >
           <AlignRight className="h-4 w-4" />
         </Button>
@@ -427,18 +433,20 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         <div className="w-px bg-border mx-1" />
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("insertUnorderedList")}
           type="button"
+          className="rounded-full"
         >
           <List className="h-4 w-4" />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => execCommand("insertOrderedList")}
           type="button"
+          className="rounded-full"
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
@@ -446,29 +454,31 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         <div className="w-px bg-border mx-1" />
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
           type="button"
+          className="rounded-full"
         >
           <Upload className="h-4 w-4" />
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={() => {
             const url = prompt("Enter link URL:");
             if (url) execCommand("createLink", url);
           }}
           type="button"
+          className="rounded-full"
         >
           <Link className="h-4 w-4" />
         </Button>
       </div>
 
       {selectedImage && (
-        <div className="border-b bg-blue-50 p-3">
-          <div className="text-sm font-medium text-blue-900 mb-3">
+        <div className="hidden border-b bg-blue-50/80 p-3 md:block">
+          <div className="text-sm font-semibold text-blue-900 mb-3">
             Image Controls - Click to Apply
           </div>
           <div className="flex gap-3 flex-wrap">
@@ -541,7 +551,7 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
       <div
         ref={editorRef}
         contentEditable
-        className="min-h-[400px] p-4 focus:outline-none prose max-w-none"
+        className="w-full min-h-[400px] p-4 focus:outline-none prose max-w-none overflow-auto"
         onInput={handleInput}
         onPaste={handlePaste}
         onClick={handleClick}
