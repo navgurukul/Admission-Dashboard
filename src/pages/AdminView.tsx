@@ -44,9 +44,11 @@ export default function AdminView() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = getCurrentUser();
-  const roleId = currentUser?.user_role_id || 2; // 1: Admin, 2: Interviewer, 3: Team
+  const roleId = Number(currentUser?.user_role_id ?? 2); // 1: Admin, 2: User, 3: Team
+  const roleName = String(currentUser?.role_name || "").trim().toLowerCase();
   const isAdmin = roleId === 1 || roleId === 3;
   const hasEditAccess = roleId === 1;
+  const canAccessInterviewTools = roleId === 2 || roleName === "user";
 
   // Check URL parameter for active tab
   const searchParams = new URLSearchParams(location.search);
@@ -1106,7 +1108,7 @@ export default function AdminView() {
                           Clear Filter
                         </Button>
                       )}
-                      {hasEditAccess && (
+                      {(hasEditAccess || canAccessInterviewTools) && (
                         <Button
                           className="bg-primary hover:bg-primary/90 text-white"
                           onClick={() => navigate("/schedule")}
