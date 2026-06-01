@@ -169,7 +169,7 @@ export default function StudentResult() {
           marks: "Marks",
           retest: "Retest",
           bookSlot: "Book Slot",
-          reschedule: "View Schchedule",
+          reschedule: "View Schedule",
           viewDetails: "View Details",
           email2: "Email:",
           helpline: "Helpline:",
@@ -581,17 +581,14 @@ export default function StudentResult() {
 
               // Determine scheduled time from API schedule
               let scheduledTime = "";
-              let slotStatus: BookingStatus = "Completed";
+              let slotStatus: BookingStatus = null;
 
               if (matchingSchedule) {
                 scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
-                slotStatus =
-                  lrAttemptStatus === "Pending"
-                    ? normalizeBooking(
+                slotStatus = normalizeBooking(
                       matchingSchedule.slot_details?.status ||
                       matchingSchedule.status,
-                    )
-                    : "Completed";
+                    );
               } else {
                 scheduledTime = lr.scheduled_time || lr.scheduled_at || "";
               }
@@ -614,16 +611,12 @@ export default function StudentResult() {
                 action:
                   lrAttemptStatus === "Pass" || lrAttemptStatus === "Fail"
                     ? "Completed"
-                    : hasTimePassed
-                      ? "Completed"
-                      : "slot-book",
+                    : "slot-book",
                 slotBooking: {
                   status:
                     lrAttemptStatus === "Pass" || lrAttemptStatus === "Fail"
                       ? "Completed"
-                      : hasTimePassed
-                        ? "Completed"
-                        : slotStatus,
+                      : slotStatus,
                   scheduledTime: scheduledTime,
                 },
               });
@@ -658,14 +651,10 @@ export default function StudentResult() {
 
               if (bookedSlotInfo) {
                 scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
-                const scheduledDateTime = new Date(scheduledTime);
-                const hasTimePassed = scheduledDateTime < new Date();
-                slotStatus = hasTimePassed
-                  ? "Completed"
-                  : normalizeBooking(
-                    bookedSlotInfo.slot_details?.status ||
-                    bookedSlotInfo.status,
-                  );
+                slotStatus = normalizeBooking(
+                  bookedSlotInfo.slot_details?.status ||
+                  bookedSlotInfo.status,
+                );
               }
 
               const hasTimePassed = scheduledTime
@@ -677,7 +666,7 @@ export default function StudentResult() {
                 name: "Learning Round",
                 status: "Pending",
                 score: null,
-                action: hasTimePassed ? "Completed" : "slot-book",
+                action: "slot-book",
                 slotBooking: {
                   status: slotStatus,
                   scheduledTime: scheduledTime,
@@ -711,17 +700,14 @@ export default function StudentResult() {
 
               // Determine scheduled time from API schedule
               let scheduledTime = "";
-              let slotStatus: BookingStatus = "Completed";
+              let slotStatus: BookingStatus = null;
 
               if (matchingSchedule) {
                 scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
-                slotStatus =
-                  cfrAttemptStatus === "Pending"
-                    ? normalizeBooking(
+                slotStatus = normalizeBooking(
                       matchingSchedule.slot_details?.status ||
                       matchingSchedule.status,
-                    )
-                    : "Completed";
+                    );
               } else {
                 scheduledTime = cfr.scheduled_time || cfr.scheduled_at || "";
               }
@@ -744,16 +730,12 @@ export default function StudentResult() {
                 action:
                   cfrAttemptStatus === "Pass" || cfrAttemptStatus === "Fail"
                     ? "Completed"
-                    : hasTimePassed
-                      ? "Completed"
-                      : "slot-book",
+                    : "slot-book",
                 slotBooking: {
                   status:
                     cfrAttemptStatus === "Pass" || cfrAttemptStatus === "Fail"
                       ? "Completed"
-                      : hasTimePassed
-                        ? "Completed"
-                        : slotStatus,
+                      : slotStatus,
                   scheduledTime: scheduledTime,
                 },
               });
@@ -789,14 +771,10 @@ export default function StudentResult() {
 
               if (bookedSlotInfo) {
                 scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
-                const scheduledDateTime = new Date(scheduledTime);
-                const hasTimePassed = scheduledDateTime < new Date();
-                slotStatus = hasTimePassed
-                  ? "Completed"
-                  : normalizeBooking(
-                    bookedSlotInfo.slot_details?.status ||
-                    bookedSlotInfo.status,
-                  );
+                slotStatus = normalizeBooking(
+                  bookedSlotInfo.slot_details?.status ||
+                  bookedSlotInfo.status,
+                );
               }
 
               const hasTimePassed = scheduledTime
@@ -808,7 +786,7 @@ export default function StudentResult() {
                 name: "Cultural Fit Round",
                 status: "Pending",
                 score: null,
-                action: hasTimePassed ? "Completed" : "slot-book",
+                action: "slot-book",
                 slotBooking: {
                   status: slotStatus,
                   scheduledTime: scheduledTime,
@@ -827,14 +805,10 @@ export default function StudentResult() {
 
               if (bookedSlotInfo) {
                 scheduledTime = `${bookedSlotInfo.date}T${bookedSlotInfo.start_time}`;
-                const scheduledDateTime = new Date(scheduledTime);
-                const hasTimePassed = scheduledDateTime < new Date();
-                slotStatus = hasTimePassed
-                  ? "Completed"
-                  : normalizeBooking(
-                    bookedSlotInfo.slot_details?.status ||
-                    bookedSlotInfo.status,
-                  );
+                slotStatus = normalizeBooking(
+                  bookedSlotInfo.slot_details?.status ||
+                  bookedSlotInfo.status,
+                );
               }
 
               const hasTimePassed = scheduledTime
@@ -846,7 +820,7 @@ export default function StudentResult() {
                 name: `Learning Round (Attempt ${nextAttemptNumber})`,
                 status: "Pending",
                 score: null,
-                action: hasTimePassed ? "Completed" : "slot-book",
+                action: "slot-book",
                 slotBooking: {
                   status: slotStatus,
                   scheduledTime: scheduledTime,
@@ -885,7 +859,7 @@ export default function StudentResult() {
                 name: `Cultural Fit Round(Attempt ${nextAttemptNumber})`,
                 status: "Pending",
                 score: null,
-                action: hasTimePassed ? "Completed" : "slot-book",
+                action: "slot-book",
                 slotBooking: {
                   status: slotStatus,
                   scheduledTime: scheduledTime,
@@ -1310,15 +1284,6 @@ export default function StudentResult() {
                                       >
                                         {isSlotBooked ? content.reschedule : content.bookSlot}
                                       </Button>
-                                    ) : hasTimePassed && !isSlotCompleted ? (
-                                      /* If time passed but not completed, disable (awaiting result) */
-                                      <Button
-                                        disabled
-                                        className="bg-secondary/50 text-muted-foreground cursor-not-allowed w-full sm:w-auto whitespace-normal h-auto py-3 md:py-2 px-4 shadow-none font-medium border-dashed"
-                                        variant="outline"
-                                      >
-                                        {content.interviewCompleted}
-                                      </Button>
                                     ) : isSlotBooked && !isSlotCancelled ? (
                                       /* If slot is booked and time not passed, show Reschedule */
                                       <Button
@@ -1329,6 +1294,15 @@ export default function StudentResult() {
                                         className="w-full sm:w-auto border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-semibold h-11 md:h-9 active:scale-[0.98] transition-all"
                                       >
                                         {content.reschedule}
+                                      </Button>
+                                    ) : hasTimePassed && !isSlotCompleted ? (
+                                      /* If time passed but not completed, disable (awaiting result) */
+                                      <Button
+                                        disabled
+                                        className="bg-secondary/50 text-muted-foreground cursor-not-allowed w-full sm:w-auto whitespace-normal h-auto py-3 md:py-2 px-4 shadow-none font-medium border-dashed"
+                                        variant="outline"
+                                      >
+                                        {content.interviewCompleted}
                                       </Button>
                                     ) : (
                                       /* Default: Show Book Slot */
