@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Upload, FileText, Loader } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentUploadModalProps {
   isOpen: boolean;
@@ -56,38 +55,8 @@ export const DocumentUploadModal = ({
 
       const options = {
         convertImage: async (image: any) => {
-          try {
-            // console.log("Processing embedded image...");
-            const imageBuffer = await image.read();
-            const blob = new Blob([imageBuffer], {
-              type: image.contentType || "image/png",
-            });
-
-            const fileExtension = image.contentType
-              ? image.contentType.split("/")[1]
-              : "png";
-            const fileName = `template-image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExtension}`;
-            const filePath = `template-images/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-              .from("offer-pdfs")
-              .upload(filePath, blob);
-
-            if (uploadError) {
-              console.error("Image upload error:", uploadError);
-              return { src: "" };
-            }
-
-            const { data } = supabase.storage
-              .from("offer-pdfs")
-              .getPublicUrl(filePath);
-
-            // console.log("Image uploaded successfully:", data.publicUrl);
-            return { src: data.publicUrl };
-          } catch (error) {
-            console.error("Error processing embedded image:", error);
-            return { src: "" };
-          }
+          // Skip embedded images - they'll be replaced with placeholder text
+          return { src: "" };
         },
         styleMap: [
           "p[style-name='Heading 1'] => h1:fresh",
@@ -174,25 +143,7 @@ export const DocumentUploadModal = ({
 
     setIsUploading(true);
     try {
-      // console.log("Starting file upload for:", file.name);
-
-      // Upload original file to Supabase storage for backup
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `template-docs/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("offer-pdfs")
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error("File backup upload error:", uploadError);
-      }
-
-      // console.log("Converting document to HTML...");
       const htmlContent = await convertDocxToHtml(file);
-
-      // console.log("Document converted successfully");
       onDocumentUploaded(htmlContent);
 
       toast({

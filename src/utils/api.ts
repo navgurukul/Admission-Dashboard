@@ -2232,7 +2232,7 @@ export const getCampuses = async (page: number = 1, limit: number = 10) => {
 export const getCampusesApi = async (): Promise<
   { id: number; campus_name: string }[]
 > => {
-  const data = await getCampuses(1, 1000);
+  const data = await getCampuses(1, 100);
 
   let campusesData: any[] = [];
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
