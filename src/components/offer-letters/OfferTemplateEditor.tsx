@@ -374,6 +374,7 @@ export const OfferTemplateEditor = ({
                   onChange={(content) =>
                     setFormData((prev) => ({ ...prev, html_content: content }))
                   }
+                  campusName={undefined}
                 />
               </CardContent>
             </Card>

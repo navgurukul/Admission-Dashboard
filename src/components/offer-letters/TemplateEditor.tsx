@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTemplates } from "@/hooks/useTemplates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,11 +36,15 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/offer-letters/RichTextEditor";
+import { CampusS3LogoSection } from "@/components/offer-letters/CampusS3LogoSection";
 import {
   extractPlaceholders,
+  getOfferLetterTemplateImages,
+  type OfferLetterTemplateImage,
   type CampusSummary,
   type TemplateListItem,
 } from "@/services/templateService";
+import { prepareTemplateHtmlForPdf, rewriteTemplateHtmlImageUrls } from "@/utils/templateImageUrls";
 
 type EditorMode = "existing" | "new";
 type FileTypeFilter = "all" | "admission" | "email" | "other";
@@ -95,6 +99,9 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
   const [placeholderTo, setPlaceholderTo] = useState("");
   const [placeholderToRemove, setPlaceholderToRemove] = useState("");
   const [placeholderReplacement, setPlaceholderReplacement] = useState("");
+  const [campusImages, setCampusImages] = useState<OfferLetterTemplateImage[]>([]);
+  const [campusImagesLoading, setCampusImagesLoading] = useState(false);
+  const [campusImagesError, setCampusImagesError] = useState("");
 
   const templatesQuery = getTemplatesQuery(
     {
@@ -112,11 +119,37 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
   );
 
   useEffect(() => {
-    if (contentQuery.data && contentQuery.data.file_name === selectedFile && !isDirty) {
-      setHtmlContent(contentQuery.data.content || "");
+    if (!contentQuery.data || contentQuery.data.file_name !== selectedFile || isDirty) return;
+
+    const loadContent = async () => {
+      let content = contentQuery.data.content || "";
+      let images: OfferLetterTemplateImage[] = [];
+
+      if (selectedCampus) {
+        try {
+          images = await getOfferLetterTemplateImages(selectedCampus);
+          setCampusImages(images);
+        } catch {
+          // Template still loads; S3 list is optional
+        }
+      }
+
+      const { html, s3Replaced, absoluteReplaced } = prepareTemplateHtmlForPdf(content, images);
+      if (s3Replaced > 0 || absoluteReplaced > 0) {
+        content = html;
+        setIsDirty(true);
+        toast({
+          title: "Logo URLs adjusted for PDF",
+          description: "Save the template so PDF generation can load the logo.",
+        });
+      }
+
+      setHtmlContent(content);
       setFileNameInput(contentQuery.data.file_name || selectedFile);
-    }
-  }, [contentQuery.data, isDirty, selectedFile]);
+    };
+
+    void loadContent();
+  }, [contentQuery.data, isDirty, selectedFile, selectedCampus, toast]);
 
   useEffect(() => {
     if (!selectedCampus) {
@@ -128,12 +161,35 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     }
   }, [selectedCampus]);
 
+  const loadCampusImages = useCallback(async (campusName: string) => {
+    if (!campusName) {
+      setCampusImages([]);
+      setCampusImagesError("");
+      return;
+    }
+
+    setCampusImagesLoading(true);
+    setCampusImagesError("");
+
+    try {
+      const images = await getOfferLetterTemplateImages(campusName);
+      setCampusImages(images);
+    } catch (error) {
+      setCampusImages([]);
+      setCampusImagesError(error instanceof Error ? error.message : "Unable to load template images");
+    } finally {
+      setCampusImagesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadCampusImages(selectedCampus);
+  }, [selectedCampus, loadCampusImages]);
+
   useEffect(() => {
     onEditorModeChange?.(activeTab === "editor");
   }, [activeTab, onEditorModeChange]);
 
-  const campusOptions = campusesQuery.data || [];
-  const selectedCampusInfo = campusOptions.find((campus) => campus.campus_name === selectedCampus);
   const templates = templatesQuery.data || [];
   const currentTemplate = templates.find((template) => template.file_name === selectedFile);
   const currentPlaceholders = useMemo(() => {
@@ -142,6 +198,56 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     }
     return extractPlaceholders(htmlContent);
   }, [contentQuery.data?.placeholders, htmlContent]);
+
+  /** Optional: rewrite img src from /images/... to S3 URLs already uploaded for this campus. */
+  const replaceLocalImageUrlsWithS3 = () => {
+    const { html, replacedCount } = rewriteTemplateHtmlImageUrls(htmlContent, campusImages);
+    if (replacedCount === 0) {
+      toast({
+        title: "Nothing to replace",
+        description: campusImages.length
+          ? "No local image paths matched, or HTML already uses S3 URLs."
+          : "Upload ng.png first: POST /api/offer-letter-template-images/upload (image_type: logo).",
+        variant: "destructive",
+      });
+      return;
+    }
+    setHtmlContent(html);
+    setIsDirty(true);
+    toast({
+      title: "HTML updated",
+      description: `${replacedCount} img src set to S3 URL(s). Save template to persist.`,
+    });
+  };
+
+  const insertCampusImage = (image: OfferLetterTemplateImage) => {
+    if (!image.s3_url) {
+      toast({ title: "Missing image URL", variant: "destructive" });
+      return;
+    }
+
+    const { html, replacedCount } = rewriteTemplateHtmlImageUrls(htmlContent, [image]);
+    if (replacedCount > 0) {
+      setHtmlContent(html);
+    } else {
+      const maxWidth = image.image_type === "logo" ? "240px" : "100%";
+      const imageMarkup = `
+      <div style="text-align: center; margin: 16px 0; clear: both;">
+        <img src="${image.s3_url}"
+             alt="${image.image_name || image.image_type}"
+             style="max-width: ${maxWidth}; width: 100%; height: auto; display: block; margin: 0 auto;" />
+      </div>
+    `;
+      setHtmlContent((current) => `${current.trimEnd()}\n${imageMarkup.trim()}`);
+    }
+    setIsDirty(true);
+    setActiveTab("editor");
+  };
+
+  const copyImageUrl = async (imageUrl: string) => {
+    await navigator.clipboard.writeText(imageUrl);
+    toast({ title: "Copied", description: "Image URL copied to clipboard" });
+  };
 
   const resetEditor = () => {
     setSelectedFile("");
@@ -161,13 +267,17 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     setActiveTab("editor");
   };
 
-  const onCampusChange = (campusName: string) => {
+  const selectCampus = (campusName: string) => {
     setSelectedCampus(campusName);
     setSelectedFile("");
     setMode("existing");
     setFileNameInput("");
     setHtmlContent("");
     setIsDirty(false);
+  };
+
+  const openCampusTemplates = () => {
+    if (!selectedCampus) return;
     setActiveTab("files");
   };
 
@@ -197,11 +307,21 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     }
 
     try {
+      let contentToSave = htmlContent;
+      const { html: pdfReady, s3Replaced, absoluteReplaced } = prepareTemplateHtmlForPdf(
+        htmlContent,
+        campusImages,
+      );
+      if (s3Replaced > 0 || absoluteReplaced > 0) {
+        contentToSave = pdfReady;
+        setHtmlContent(pdfReady);
+      }
+
       if (mode === "new") {
         await createTemplateMutation.mutateAsync({
           campus_name: selectedCampus,
           file_name: fileNameInput.trim(),
-          content: htmlContent,
+          content: contentToSave,
         });
         setSelectedFile(fileNameInput.trim());
         setMode("existing");
@@ -209,12 +329,16 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
         await updateTemplateMutation.mutateAsync({
           campus_name: selectedCampus,
           file_name: selectedFile || fileNameInput.trim(),
-          content: htmlContent,
+          content: contentToSave,
         });
       }
 
       setIsDirty(false);
-      toast({ title: "Template saved", description: "HTML template updated successfully" });
+      const logoNote =
+        s3Replaced + absoluteReplaced > 0
+          ? ` Logo URLs updated for PDF (${s3Replaced ? "S3" : ""}${s3Replaced && absoluteReplaced ? ", " : ""}${absoluteReplaced ? "backend" : ""}).`
+          : "";
+      toast({ title: "Template saved", description: `HTML template updated successfully.${logoNote}` });
     } catch (error: any) {
       toast({
         title: "Save failed",
@@ -341,6 +465,11 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     setDeleteDialogOpen(true);
   };
 
+  const previewHtml = useMemo(
+    () => prepareTemplateHtmlForPdf(htmlContent, campusImages).html,
+    [htmlContent, campusImages],
+  );
+
   const error = campusesQuery.error || templatesQuery.error || contentQuery.error;
   const isEditorView = activeTab === "editor";
 
@@ -405,6 +534,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                     setHtmlContent(content);
                     setIsDirty(true);
                   }}
+                  campusName={selectedCampus}
                 />
               </div>
             </div>
@@ -417,6 +547,74 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                 </Badge>
               ))}
             </div>
+
+            {selectedCampus ? (
+              <div className="rounded-2xl border bg-background p-4 shadow-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="font-semibold">Campus S3 assets</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Upload/list API only — not linked to PDF until you replace img src and save HTML.
+                      Local <code className="text-xs">/images/ng.png</code> is still fine for current PDF/email.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => void loadCampusImages(selectedCampus)} disabled={campusImagesLoading}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Refresh
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={replaceLocalImageUrlsWithS3} disabled={!campusImages.length}>
+                      Replace local img → S3 URL
+                    </Button>
+                  </div>
+                </div>
+
+                {campusImagesError ? (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{campusImagesError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {campusImagesLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading images...
+                    </div>
+                  ) : campusImages.length ? (
+                    campusImages.map((image) => (
+                      <div key={image.id} className="rounded-xl border bg-muted/20 p-3">
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={image.s3_url}
+                            alt={image.image_name || image.image_type}
+                            className="h-14 w-14 rounded-md border bg-background object-contain"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{image.image_name || image.image_type}</p>
+                            <p className="text-xs text-muted-foreground truncate">{image.image_type}</p>
+                            <p className="mt-1 text-[11px] text-muted-foreground break-all">{image.s3_key}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => insertCampusImage(image)}>
+                            <Plus className="mr-2 h-4 w-4" /> Use in template
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => void copyImageUrl(image.s3_url)}>
+                            <Copy className="mr-2 h-4 w-4" /> Copy URL
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No campus images found yet. Upload ng.png to the offer-letter-template-images API and click refresh.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             {currentTemplate ? (
               <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
@@ -436,39 +634,22 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
           <TabsContent value="campuses" className="space-y-4">
             <Card className="border-border/60 shadow-sm">
               <CardHeader>
-                <CardTitle>Campus List</CardTitle>
+                <CardTitle>Campus &amp; S3 logos</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Dropdown from <code className="text-xs">GET /api/v1/campuses/getCampuses</code>.
+                  Logos from <code className="text-xs">GET /api/offer-letter-template-images</code> (same campus name).
+                </p>
               </CardHeader>
-              <CardContent>
-                {campusesQuery.isLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading campuses...
-                  </div>
-                ) : campusesQuery.data?.length ? (
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {campusOptions.map((campus) => (
-                      <button
-                        key={campus.campus_name}
-                        type="button"
-                        onClick={() => onCampusChange(campus.campus_name)}
-                        className={`rounded-xl border p-4 text-left transition hover:border-primary hover:bg-muted/40 ${campus.campus_name === selectedCampus ? "border-primary bg-primary/5 shadow-sm" : ""}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-medium">{campus.campus_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {campus.total_templates} templates
-                            </p>
-                          </div>
-                          <Badge variant="secondary">
-                            {campus.templates_with_placeholders} with placeholders
-                          </Badge>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No campuses found.</p>
-                )}
+              <CardContent className="space-y-4">
+                <CampusS3LogoSection
+                  selectedCampus={selectedCampus}
+                  onCampusSelect={selectCampus}
+                  onImagesChange={setCampusImages}
+                />
+                <Button onClick={openCampusTemplates} disabled={!selectedCampus} className="w-full sm:w-auto">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Open HTML templates
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -553,7 +734,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
             <DialogDescription>Rendered HTML for the current editor content.</DialogDescription>
           </DialogHeader>
           <div className="rounded-md border bg-white p-4">
-            <div dangerouslySetInnerHTML={{ __html: htmlContent }} className="prose max-w-none" />
+            <div dangerouslySetInnerHTML={{ __html: previewHtml }} className="prose max-w-none" />
           </div>
         </DialogContent>
       </Dialog>

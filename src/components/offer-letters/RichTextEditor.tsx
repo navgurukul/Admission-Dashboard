@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Bold,
@@ -13,20 +12,151 @@ import {
   ListOrdered,
   Upload,
   Link,
+  Image as ImageIcon,
+  RefreshCw,
 } from "lucide-react";
+import {
+  getOfferLetterTemplateImages,
+  uploadOfferLetterTemplateImage,
+  type OfferLetterTemplateImage,
+} from "@/services/templateService";
+import { EditorImageToolbar } from "@/components/offer-letters/EditorImageToolbar";
+import { findS3ImageForLegacyUrl } from "@/utils/templateImageUrls";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
+  campusName?: string;
 }
 
-export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
+export const RichTextEditor = ({ content, onChange, campusName }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(
     null,
   );
+  const [campusImages, setCampusImages] = useState<OfferLetterTemplateImage[]>([]);
+  const [campusImagesLoading, setCampusImagesLoading] = useState(false);
+  const [campusImagesError, setCampusImagesError] = useState("");
+  const [showCampusImageBrowser, setShowCampusImageBrowser] = useState(false);
   const { toast } = useToast();
+
+  const loadCampusImages = useCallback(async () => {
+    if (!campusName) return;
+
+    setCampusImagesLoading(true);
+    setCampusImagesError("");
+
+    try {
+      const images = await getOfferLetterTemplateImages(campusName);
+      setCampusImages(images);
+      return images;
+    } catch (error) {
+      setCampusImagesError(error instanceof Error ? error.message : "Failed to load images");
+      return [];
+    } finally {
+      setCampusImagesLoading(false);
+    }
+  }, [campusName]);
+
+  useEffect(() => {
+    if (campusName) void loadCampusImages();
+  }, [campusName, loadCampusImages]);
+
+  const applySrcToSelectedImage = (s3Url: string, alt?: string) => {
+    if (!selectedImage || !s3Url) return;
+    selectedImage.src = s3Url;
+    if (alt) selectedImage.alt = alt;
+    handleInput();
+  };
+
+  const replaceSelectedImageWithS3 = async () => {
+    const images = campusImages.length ? campusImages : await loadCampusImages();
+    if (!selectedImage || !images?.length) {
+      toast({
+        title: "No S3 images",
+        description: "Upload ng.png logo for this campus first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const match = findS3ImageForLegacyUrl(selectedImage.src, images);
+    if (!match?.s3_url) {
+      toast({
+        title: "No matching S3 file",
+        description: "Upload a logo (e.g. ng.png) for this campus, then try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    applySrcToSelectedImage(match.s3_url, match.image_name || match.image_type);
+    toast({
+      title: "Logo updated",
+      description: "Image now uses S3. Save the template to persist.",
+    });
+  };
+
+  const removeSelectedImage = () => {
+    if (!selectedImage) return;
+    const target = selectedImage.parentElement?.tagName === "DIV" ? selectedImage.parentElement : selectedImage;
+    target?.remove();
+    setSelectedImage(null);
+    handleInput();
+    toast({ title: "Image removed" });
+  };
+
+  const insertS3Image = (image: OfferLetterTemplateImage) => {
+    if (!image.s3_url) {
+      toast({ title: "Missing image URL", variant: "destructive" });
+      return;
+    }
+
+    if (selectedImage) {
+      applySrcToSelectedImage(image.s3_url, image.image_name || image.image_type);
+      setShowCampusImageBrowser(false);
+      toast({
+        title: "Image replaced",
+        description: `${image.image_name || image.image_type} now uses S3 URL`,
+      });
+      return;
+    }
+
+    const maxWidth = image.image_type === "logo" ? "240px" : "100%";
+    const imageWrapper = `
+      <div style="text-align: center; margin: 15px 0; clear: both;">
+        <img src="${image.s3_url}"
+             alt="${image.image_name || image.image_type}"
+             style="max-width: ${maxWidth}; width: 100%; height: auto; display: block; margin: 0 auto; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" />
+      </div>
+    `;
+
+    if (editorRef.current) {
+      editorRef.current.focus();
+      if (document.getSelection()?.rangeCount) {
+        const range = document.getSelection()?.getRangeAt(0);
+        if (range && editorRef.current?.contains(range.commonAncestorContainer)) {
+          range.deleteContents();
+          const div = document.createElement("div");
+          div.innerHTML = imageWrapper;
+          range.insertNode(div);
+        } else {
+          editorRef.current.innerHTML += imageWrapper;
+        }
+      } else {
+        editorRef.current.innerHTML += imageWrapper;
+      }
+    }
+
+    handleInput();
+    setShowCampusImageBrowser(false);
+    toast({
+      title: "Image inserted",
+      description: `${image.image_name || image.image_type} added to template`,
+    });
+  };
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== content) {
@@ -96,8 +226,8 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
     // console.log("Image selected:", img.src);
 
     toast({
-      title: "Image Selected",
-      description: "Use the controls below to adjust the image.",
+      title: "Image selected",
+      description: "Use the toolbar below to replace with S3 or remove.",
     });
   };
 
@@ -248,9 +378,15 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
 
   const handleImageUpload = async (file: File) => {
     try {
-      // console.log("Starting image upload:", file.name || "clipboard-image");
+      if (!campusName) {
+        toast({
+          title: "Campus not selected",
+          description: "Please select a campus to upload images",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // Validate file type
       if (!file.type.startsWith("image/")) {
         toast({
           title: "Invalid File",
@@ -260,87 +396,54 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         return;
       }
 
-      // Show uploading toast
       toast({
-        title: "Uploading Image",
-        description: "Please wait while your image is being uploaded...",
+        title: "Uploading",
+        description: "Uploading to S3...",
       });
 
-      const fileExt =
-        file.name?.split(".").pop() || file.type.split("/")[1] || "png";
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `template-images/${fileName}`;
+      const uploaded = await uploadOfferLetterTemplateImage(campusName, file, {
+        image_type: selectedImage ? "logo" : "template",
+      });
+      const s3Url = uploaded.s3_url;
+      if (!s3Url) throw new Error("No S3 URL in response");
 
-      // console.log("Uploading to path:", filePath);
+      await loadCampusImages();
 
-      const { error: uploadError } = await supabase.storage
-        .from("offer-pdfs")
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error("Image upload error:", uploadError);
-        throw uploadError;
-      }
-
-      const { data } = supabase.storage
-        .from("offer-pdfs")
-        .getPublicUrl(filePath);
-
-      if (data?.publicUrl) {
-        // console.log("Image uploaded successfully:", data.publicUrl);
-
-        // Focus the editor first
-        if (editorRef.current) {
-          editorRef.current.focus();
-        }
-
-        // Create image HTML with proper styling and wrapper
-        const imageWrapper = `
-          <div style="text-align: center; margin: 15px 0; clear: both;">
-            <img src="${data.publicUrl}" 
-                 style="max-width: 100%; height: auto; display: block; margin: 0 auto; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" 
-                 alt="Uploaded image" />
-          </div>
-        `;
-
-        // Insert image at cursor position or end of content
-        if (document.getSelection()?.rangeCount) {
-          const range = document.getSelection()?.getRangeAt(0);
-          if (
-            range &&
-            editorRef.current?.contains(range.commonAncestorContainer)
-          ) {
-            range.deleteContents();
-            const div = document.createElement("div");
-            div.innerHTML = imageWrapper;
-            range.insertNode(div);
-          } else {
-            // Fallback to append
-            if (editorRef.current) {
-              editorRef.current.innerHTML += imageWrapper;
-            }
-          }
-        } else {
-          // Append to end if no cursor position
-          if (editorRef.current) {
-            editorRef.current.innerHTML += imageWrapper;
-          }
-        }
-
-        // Trigger content update and attach handlers
-        handleInput();
-
+      if (selectedImage) {
+        applySrcToSelectedImage(s3Url, uploaded.image_name || file.name);
         toast({
-          title: "Image Uploaded Successfully",
-          description:
-            "Click on the image to select and modify its alignment or size.",
+          title: "Logo replaced",
+          description: "Selected image now uses S3. Save the template.",
         });
+        return;
       }
+
+      if (editorRef.current) editorRef.current.focus();
+
+      const imageWrapper = `
+        <div style="text-align: center; margin: 15px 0; clear: both;">
+          <img src="${s3Url}"
+               style="max-width: 100%; height: auto; display: block; margin: 0 auto; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;"
+               crossorigin="anonymous"
+               alt="${uploaded.image_name || "Uploaded image"}" />
+        </div>
+      `;
+
+      if (editorRef.current) {
+        editorRef.current.innerHTML += imageWrapper;
+      }
+
+      handleInput();
+
+      toast({
+        title: "Uploaded to S3",
+        description: "Image added to template.",
+      });
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
         title: "Upload Error",
-        description: "Failed to upload image. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
       });
     }
@@ -456,9 +559,33 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         <Button
           variant="outline"
           size="sm"
+          onClick={() => {
+            if (campusName) {
+              void loadCampusImages();
+              setShowCampusImageBrowser(true);
+            } else {
+              toast({
+                title: "Campus not selected",
+                description: "Please select a campus to browse campus images",
+                variant: "destructive",
+              });
+            }
+          }}
+          type="button"
+          className="rounded-full"
+          title="Browse campus S3 images"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => fileInputRef.current?.click()}
           type="button"
           className="rounded-full"
+          disabled={!campusName}
+          title={campusName ? "Upload image to S3" : "Select a campus first"}
         >
           <Upload className="h-4 w-4" />
         </Button>
@@ -476,77 +603,48 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         </Button>
       </div>
 
-      {selectedImage && (
-        <div className="hidden border-b bg-blue-50/80 p-3 md:block">
-          <div className="text-sm font-semibold text-blue-900 mb-3">
-            Image Controls - Click to Apply
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => alignImage("left")}
-                type="button"
-                className="text-xs px-3 bg-white hover:bg-blue-100"
-              >
+      {selectedImage ? (
+        <>
+          <EditorImageToolbar
+            imageSrc={selectedImage.src}
+            imageAlt={selectedImage.alt}
+            onReplaceWithS3={() => void replaceSelectedImageWithS3()}
+            onBrowseS3={() => {
+              void loadCampusImages();
+              setShowCampusImageBrowser(true);
+            }}
+            onUpload={() => fileInputRef.current?.click()}
+            onRemove={removeSelectedImage}
+            onCopyUrl={() => {
+              void navigator.clipboard.writeText(selectedImage.src);
+              toast({ title: "Copied", description: "Image URL copied" });
+            }}
+          />
+          <div className="border-b bg-blue-50/50 p-2 md:p-3">
+            <p className="text-xs font-medium text-blue-900 mb-2">Layout</p>
+            <div className="flex flex-wrap gap-1">
+              <Button size="sm" variant="outline" type="button" className="text-xs h-7" onClick={() => alignImage("left")}>
                 ← Left
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => alignImage("center")}
-                type="button"
-                className="text-xs px-3 bg-white hover:bg-blue-100"
-              >
-                ⬄ Center
+              <Button size="sm" variant="outline" type="button" className="text-xs h-7" onClick={() => alignImage("center")}>
+                Center
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => alignImage("right")}
-                type="button"
-                className="text-xs px-3 bg-white hover:bg-blue-100"
-              >
+              <Button size="sm" variant="outline" type="button" className="text-xs h-7" onClick={() => alignImage("right")}>
                 Right →
               </Button>
-            </div>
-            <div className="w-px bg-border mx-1" />
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => resizeImage("small")}
-                type="button"
-                className="text-xs px-3 bg-white hover:bg-blue-100"
-              >
+              <Button size="sm" variant="outline" type="button" className="text-xs h-7" onClick={() => resizeImage("small")}>
                 Small
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => resizeImage("medium")}
-                type="button"
-                className="text-xs px-3 bg-white hover:bg-blue-100"
-              >
+              <Button size="sm" variant="outline" type="button" className="text-xs h-7" onClick={() => resizeImage("medium")}>
                 Medium
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => resizeImage("large")}
-                type="button"
-                className="text-xs px-3 bg-white hover:bg-blue-100"
-              >
+              <Button size="sm" variant="outline" type="button" className="text-xs h-7" onClick={() => resizeImage("large")}>
                 Large
               </Button>
             </div>
           </div>
-          <div className="text-xs text-blue-600 mt-2">
-            Selected image: {selectedImage.alt || "Unnamed image"}
-          </div>
-        </div>
-      )}
+        </>
+      ) : null}
 
       <div
         ref={editorRef}
@@ -568,6 +666,94 @@ export const RichTextEditor = ({ content, onChange }: RichTextEditorProps) => {
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {showCampusImageBrowser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-background rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
+              <h3 className="font-semibold">Campus S3 Images</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCampusImageBrowser(false)}
+              >
+                ✕
+              </Button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {campusImagesError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{campusImagesError}</AlertDescription>
+                </Alert>
+              )}
+
+              {campusImagesLoading ? (
+                <div className="text-center text-sm text-muted-foreground py-4">
+                  Loading images...
+                </div>
+              ) : campusImages.length ? (
+                <div className="grid gap-3">
+                  {campusImages.map((image) => (
+                    <div key={image.id} className="border rounded-lg p-3 hover:bg-muted/50 transition">
+                      <div className="flex gap-3 items-start">
+                        <img
+                          src={image.s3_url}
+                          alt={image.image_name || image.image_type}
+                          className="h-12 w-12 rounded border bg-muted object-contain"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {image.image_name || image.image_type}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {image.image_type}
+                          </p>
+                          <Button
+                            size="sm"
+                            className="mt-2 w-full"
+                            onClick={() => insertS3Image(image)}
+                          >
+                            {selectedImage ? "Replace selected" : "Insert"}
+                          </Button>
+                          <p className="mt-1 text-[10px] text-muted-foreground break-all font-mono line-clamp-2">
+                            {image.s3_url}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  No images found for this campus. Upload images using the API first.
+                </div>
+              )}
+
+              <div className="border-t pt-3 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => void loadCampusImages()}
+                  disabled={campusImagesLoading}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setShowCampusImageBrowser(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

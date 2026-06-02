@@ -1,27 +1,39 @@
 import axios from "axios";
+import { getAuthToken, getCampusesApi } from "@/utils/api";
+import {
+  getOfferLetterTemplateImagesApiBaseUrl,
+  getTemplatesApiBaseUrl,
+} from "@/utils/apiBase";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "";
-const TEMPLATES_BASE_URL = `${API_BASE_URL.replace(/\/$/, "")}/templates`;
+const TEMPLATES_BASE_URL = getTemplatesApiBaseUrl();
+const TEMPLATE_IMAGES_BASE_URL = getOfferLetterTemplateImagesApiBaseUrl();
 
-const getAuthToken = () => localStorage.getItem("auth_token") || "";
+const getAuthTokenForRequest = () => getAuthToken() || localStorage.getItem("authToken") || "";
 
 const apiClient = axios.create({
   baseURL: TEMPLATES_BASE_URL,
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = getAuthToken();
+const templateImagesClient = axios.create({
+  baseURL: TEMPLATE_IMAGES_BASE_URL,
+});
+
+const attachAuthHeader = (config: Parameters<Parameters<typeof apiClient.interceptors.request.use>[0]>[0]) => {
+  const token = getAuthTokenForRequest();
   if (token) {
-    const headers = config.headers as Record<string, any> | undefined;
+    const bearer = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+    const headers = config.headers as Record<string, string> | undefined;
     if (headers) {
-      headers.Authorization = `Bearer ${token}`;
+      headers.Authorization = bearer;
     } else {
-      config.headers = { Authorization: `Bearer ${token}` } as any;
+      config.headers = { Authorization: bearer } as typeof config.headers;
     }
   }
   return config;
-});
+};
+
+apiClient.interceptors.request.use(attachAuthHeader);
+templateImagesClient.interceptors.request.use(attachAuthHeader);
 
 type ApiErrorPayload = {
   message?: string;
@@ -56,8 +68,9 @@ const encodeCampusName = (campusName: string) => encodeURIComponent(campusName);
 
 export interface CampusSummary {
   campus_name: string;
-  total_templates: number;
-  templates_with_placeholders: number;
+  id?: number;
+  total_templates?: number;
+  templates_with_placeholders?: number;
 }
 
 export interface TemplateListItem {
@@ -107,22 +120,26 @@ export interface CreatePlaceholderPayload {
   key: string;
 }
 
+export interface OfferLetterTemplateImage {
+  id: number;
+  campus_name: string;
+  image_name: string;
+  image_type: string;
+  s3_url: string;
+  s3_key: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Campuses from RDS: GET /api/v1/campuses/getCampuses?page=1&pageSize=100 */
 export const getCampuses = async (): Promise<CampusSummary[]> => {
   try {
-    const response = await apiClient.get("/campuses");
-    const items = unwrapData<CampusSummary[] | { items?: CampusSummary[] }>(response);
-    if (Array.isArray(items)) {
-      return items.map((campus: any) => ({
-        campus_name: campus?.campus_name ?? campus?.name ?? "",
-        total_templates: Number(campus?.total_templates ?? campus?.template_count ?? 0),
-        templates_with_placeholders: Number(campus?.templates_with_placeholders ?? 0),
-      }));
-    }
-
-    return (items?.items ?? []).map((campus: any) => ({
-      campus_name: campus?.campus_name ?? campus?.name ?? "",
-      total_templates: Number(campus?.total_templates ?? campus?.template_count ?? 0),
-      templates_with_placeholders: Number(campus?.templates_with_placeholders ?? 0),
+    const list = await getCampusesApi();
+    return list.map((campus) => ({
+      id: campus.id,
+      campus_name: campus.campus_name,
+      total_templates: 0,
+      templates_with_placeholders: 0,
     }));
   } catch (error) {
     throw normalizeError(error);
@@ -158,6 +175,79 @@ export const getTemplates = async (params?: TemplateListParams): Promise<Templat
 
 export const getTemplatesGlobal = async (params?: Omit<TemplateListParams, "campus">): Promise<TemplateListItem[]> =>
   getTemplates(params);
+
+const normalizeOfferLetterTemplateImage = (item: any, fallbackCampus = ""): OfferLetterTemplateImage => ({
+  id: Number(item?.id ?? 0),
+  campus_name: item?.campus_name ?? item?.campusName ?? fallbackCampus,
+  image_name: item?.image_name ?? item?.imageName ?? "",
+  image_type: item?.image_type ?? item?.imageType ?? "logo",
+  s3_url: item?.s3_url ?? item?.s3Url ?? "",
+  s3_key: item?.s3_key ?? item?.s3Key ?? "",
+  created_at: item?.created_at ?? item?.createdAt,
+  updated_at: item?.updated_at ?? item?.updatedAt,
+});
+
+export const getOfferLetterTemplateImages = async (campusName: string): Promise<OfferLetterTemplateImage[]> => {
+  try {
+    const response = await templateImagesClient.get("/", {
+      params: { campus_name: campusName },
+    });
+
+    const body = response.data as { success?: boolean; data?: OfferLetterTemplateImage[] } | OfferLetterTemplateImage[];
+    const items = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.data)
+        ? body.data
+        : unwrapData<OfferLetterTemplateImage[]>(response) || [];
+
+    return items.map((item) => normalizeOfferLetterTemplateImage(item, campusName));
+  } catch (error) {
+    throw normalizeError(error);
+  }
+};
+
+export const uploadOfferLetterTemplateImage = async (
+  campusName: string,
+  file: File,
+  options?: { image_name?: string; image_type?: string },
+): Promise<OfferLetterTemplateImage> => {
+  try {
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("campus_name", campusName);
+    formData.append("image_name", options?.image_name ?? file.name.replace(/\.[^/.]+$/, ""));
+    formData.append("image_type", options?.image_type ?? (isPdf ? "pdf" : "logo"));
+
+    const response = await templateImagesClient.post("/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return normalizeOfferLetterTemplateImage(unwrapData<OfferLetterTemplateImage>(response), campusName);
+  } catch (error) {
+    throw normalizeError(error);
+  }
+};
+
+export const updateOfferLetterTemplateImage = async (
+  id: number,
+  payload: { image_name?: string; image_type?: string },
+): Promise<OfferLetterTemplateImage> => {
+  try {
+    const response = await templateImagesClient.patch(`/${id}`, payload);
+    return normalizeOfferLetterTemplateImage(unwrapData<OfferLetterTemplateImage>(response));
+  } catch (error) {
+    throw normalizeError(error);
+  }
+};
+
+export const deleteOfferLetterTemplateImage = async (id: number): Promise<void> => {
+  try {
+    await templateImagesClient.delete(`/${id}`);
+  } catch (error) {
+    throw normalizeError(error);
+  }
+};
 
 export const getPlaceholders = async (campus?: string): Promise<PlaceholderInfo[]> => {
   try {
