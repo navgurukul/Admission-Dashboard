@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -9,15 +10,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Copy, Loader2, RefreshCw, Trash2, Upload } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertCircle, Copy, Loader2, Pencil, RefreshCw, Trash2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getCampusesApi } from "@/utils/api";
 import {
-  deleteOfferLetterTemplateImage,
-  getOfferLetterTemplateImages,
-  uploadOfferLetterTemplateImage,
+  deleteOfferLetterTemplateImageNew as deleteOfferLetterTemplateImage,
+  getOfferLetterTemplateImagesNew as getOfferLetterTemplateImages,
+  uploadOfferLetterTemplateImageNew as uploadOfferLetterTemplateImage,
+  updateOfferLetterTemplateImageNew as updateOfferLetterTemplateImage,
   type OfferLetterTemplateImage,
-} from "@/services/templateService";
+} from "@/utils/api";
 
 interface CampusS3LogoSectionProps {
   selectedCampus: string;
@@ -39,6 +48,13 @@ export const CampusS3LogoSection = ({
   const [imagesLoading, setImagesLoading] = useState(false);
   const [imagesError, setImagesError] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingImage, setEditingImage] = useState<OfferLetterTemplateImage | null>(null);
+  const [editImageName, setEditImageName] = useState("");
+  const [editImageType, setEditImageType] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   const loadCampuses = useCallback(async () => {
     setCampusesLoading(true);
@@ -123,10 +139,40 @@ export const CampusS3LogoSection = ({
     }
   };
 
+  // Open edit dialog with pre-filled values
+  const openEditDialog = (image: OfferLetterTemplateImage) => {
+    setEditingImage(image);
+    setEditImageName(image.image_name || "");
+    setEditImageType(image.image_type || "logo");
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingImage?.id) return;
+    setUpdating(true);
+    try {
+      await updateOfferLetterTemplateImage(editingImage.id, {
+        image_name: editImageName.trim(),
+        image_type: editImageType.trim(),
+      });
+      await loadImages();
+      toast({ title: "Updated", description: `${editImageName} updated successfully` });
+      setEditDialogOpen(false);
+      setEditingImage(null);
+    } catch (err) {
+      toast({
+        title: "Update failed",
+        description: err instanceof Error ? err.message : "Could not update",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Campus</Label>
         {campusesLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading campuses…
@@ -150,9 +196,6 @@ export const CampusS3LogoSection = ({
             </SelectContent>
           </Select>
         )}
-        <p className="text-xs text-muted-foreground">
-          GET /api/v1/campuses/getCampuses · Upload/GET S3 use the same <strong>campus_name</strong> (case-sensitive).
-        </p>
       </div>
 
       {selectedCampus ? (
@@ -202,7 +245,7 @@ export const CampusS3LogoSection = ({
             </Alert>
           ) : (
             <>
-              {campusLogo?.s3_url ? (
+              {/* {campusLogo?.s3_url ? (
                 <div className="rounded-xl border bg-muted/30 p-4 text-center">
                   <p className="text-xs font-medium text-muted-foreground mb-2">Header preview (logo)</p>
                   <img
@@ -214,7 +257,7 @@ export const CampusS3LogoSection = ({
                   <p className="mt-2 text-xs text-muted-foreground">{campusLogo.image_name}</p>
                   <p className="mt-1 text-[10px] font-mono break-all text-muted-foreground">{campusLogo.s3_url}</p>
                 </div>
-              ) : null}
+              ) : null} */}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {images.map((image) => (
@@ -242,6 +285,14 @@ export const CampusS3LogoSection = ({
                           URL
                         </Button>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => openEditDialog(image)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs text-destructive"
@@ -257,9 +308,50 @@ export const CampusS3LogoSection = ({
             </>
           )}
         </>
-      ) : (
-        <p className="text-sm text-muted-foreground">Select a campus to load S3 logos.</p>
-      )}
+      ) : null}
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Image</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-image-name">Image Name</Label>
+              <Input
+                id="edit-image-name"
+                value={editImageName}
+                onChange={(e) => setEditImageName(e.target.value)}
+                placeholder="e.g. image1.png"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-image-type">Image Type</Label>
+              <Select value={editImageType} onValueChange={setEditImageType}>
+                <SelectTrigger id="edit-image-type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="logo">logo</SelectItem>
+                  <SelectItem value="asset">asset</SelectItem>
+                  <SelectItem value="pdf">pdf</SelectItem>
+                  <SelectItem value="other">other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={updating}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleUpdate()} disabled={updating || !editImageName.trim()}>
+              {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
