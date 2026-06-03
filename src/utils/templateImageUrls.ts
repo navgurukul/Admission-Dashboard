@@ -86,7 +86,6 @@ export const prepareTemplateHtmlForPdf = (
     const absolute = toAbsoluteBackendImageUrl(src);
     if (absolute && absolute !== src) {
       img.setAttribute("src", absolute);
-      img.setAttribute("crossorigin", "anonymous");
       absoluteReplaced += 1;
     }
   });
@@ -147,7 +146,6 @@ export const rewriteTemplateHtmlImageUrls = (
     const match = findS3ImageForLegacyUrl(src, campusImages);
     if (match?.s3_url) {
       img.setAttribute("src", match.s3_url);
-      img.setAttribute("crossorigin", "anonymous");
       if (!img.getAttribute("alt") && match.image_name) {
         img.setAttribute("alt", match.image_name);
       }

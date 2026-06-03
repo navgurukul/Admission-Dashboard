@@ -37,26 +37,26 @@ export const EditorImageToolbar = ({
         <Alert className="border-amber-300 bg-amber-100/80 py-2">
           <AlertDescription className="text-xs text-amber-950">
             Local path ({imageSrc}) — OK for today&apos;s PDF if the server has{" "}
-            <code>images/ng.png</code>. To store S3 in this HTML: upload logo for the campus first,
-            then &quot;Use S3 URL&quot; and Save template.
+            <code>images/ng.png</code>. To store image in this HTML: upload logo for the campus first,
+            then &quot;Select Asset URL&quot; and Save template.
           </AlertDescription>
         </Alert>
       ) : null}
 
-      <div className="space-y-1">
+      {/* <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Current src</Label>
         <p className="rounded border bg-white/80 p-2 text-[11px] font-mono break-all">{imageSrc}</p>
-      </div>
+      </div> */}
 
       <div className="flex flex-wrap gap-2">
         {isLegacy ? (
           <Button size="sm" type="button" onClick={onReplaceWithS3}>
             <Wand2 className="mr-2 h-4 w-4" />
-            Use S3 URL
+            Select Asset URL
           </Button>
         ) : null}
         <Button size="sm" variant="outline" type="button" onClick={onBrowseS3}>
-          Replace from S3
+          Replace Asset
         </Button>
         <Button size="sm" variant="outline" type="button" onClick={onUpload}>
           Upload &amp; replace

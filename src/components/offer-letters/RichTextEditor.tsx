@@ -473,7 +473,6 @@ export const RichTextEditor = ({ content, onChange, campusName, initialCampusIma
         <div style="text-align: center; margin: 15px 0; clear: both;">
           <img src="${s3Url}"
                style="max-width: 100%; height: auto; display: block; margin: 0 auto; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;"
-               crossorigin="anonymous"
                alt="${uploaded.image_name || "Uploaded image"}" />
         </div>
       `;
