@@ -95,6 +95,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
   const [fileNameInput, setFileNameInput] = useState("");
   const [htmlContent, setHtmlContent] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedFileForDelete, setSelectedFileForDelete] = useState<TemplateListItem | null>(null);
@@ -143,7 +144,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     };
 
     void loadContent();
-  }, [contentQuery.data, isDirty, selectedFile, campusImages, toast]);
+  }, [contentQuery.data, isDirty, selectedFile, campusImages, toast, editorKey]);
 
   useEffect(() => {
     if (!selectedCampus) {
@@ -249,6 +250,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     setFileNameInput("");
     setHtmlContent(EMPTY_HTML);
     setIsDirty(false);
+    setEditorKey((k) => k + 1);
     setActiveTab("editor");
   };
 
@@ -258,6 +260,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     setFileNameInput(template.file_name);
     setHtmlContent("");
     setIsDirty(false);
+    setEditorKey((k) => k + 1);
     setActiveTab("editor");
   };
 
@@ -523,7 +526,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
               </div>
               <div className="rounded-2xl border bg-background flex-1 min-h-[70vh] shadow-sm overflow-hidden">
                 <RichTextEditor
-                  key={selectedFile || "new"}
+                  key={`${selectedFile || "new"}-${editorKey}`}
                   content={htmlContent}
                   onChange={(content) => {
                     setHtmlContent(content);

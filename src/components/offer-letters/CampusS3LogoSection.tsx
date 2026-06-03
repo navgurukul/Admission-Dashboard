@@ -245,7 +245,7 @@ export const CampusS3LogoSection = ({
             </Alert>
           ) : (
             <>
-              {campusLogo?.s3_url ? (
+              {/* {campusLogo?.s3_url ? (
                 <div className="rounded-xl border bg-muted/30 p-4 text-center">
                   <p className="text-xs font-medium text-muted-foreground mb-2">Header preview (logo)</p>
                   <img
@@ -257,7 +257,7 @@ export const CampusS3LogoSection = ({
                   <p className="mt-2 text-xs text-muted-foreground">{campusLogo.image_name}</p>
                   <p className="mt-1 text-[10px] font-mono break-all text-muted-foreground">{campusLogo.s3_url}</p>
                 </div>
-              ) : null}
+              ) : null} */}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {images.map((image) => (
@@ -308,9 +308,7 @@ export const CampusS3LogoSection = ({
             </>
           )}
         </>
-      ) : (
-        <p className="text-sm text-muted-foreground">Select a campus to load S3 logos.</p>
-      )}
+      ) : null}
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
