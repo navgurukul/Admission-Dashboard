@@ -15,11 +15,16 @@ import {
   Image as ImageIcon,
   RefreshCw,
 } from "lucide-react";
+// import {
+//   getOfferLetterTemplateImages,
+//   uploadOfferLetterTemplateImage,
+//   type OfferLetterTemplateImage,
+// } from "@/services/templateService";
 import {
-  getOfferLetterTemplateImages,
-  uploadOfferLetterTemplateImage,
+  getOfferLetterTemplateImagesNew as getOfferLetterTemplateImages,
+  uploadOfferLetterTemplateImageNew as uploadOfferLetterTemplateImage,
   type OfferLetterTemplateImage,
-} from "@/services/templateService";
+} from "@/utils/api";
 import { EditorImageToolbar } from "@/components/offer-letters/EditorImageToolbar";
 import { findS3ImageForLegacyUrl } from "@/utils/templateImageUrls";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -28,15 +33,42 @@ interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   campusName?: string;
+  initialCampusImages?: OfferLetterTemplateImage[];
 }
 
-export const RichTextEditor = ({ content, onChange, campusName }: RichTextEditorProps) => {
+
+const extractBodyContent = (html: string): { bodyContent: string; headContent: string; hasFullDocument: boolean } => {
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (!bodyMatch) {
+    // Not a full HTML document, return as-is but strip any stray <style> tags
+    const stripped = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    return { bodyContent: stripped, headContent: '', hasFullDocument: false };
+  }
+
+  // Extract head content (including <style> tags)
+  const headMatch = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  const headContent = headMatch ? headMatch[0] : '';
+  return { bodyContent: bodyMatch[1], headContent, hasFullDocument: true };
+};
+
+/**
+ * Reconstruct a full HTML document from body content + stored head.
+ */
+const reconstructFullHtml = (bodyContent: string, headContent: string, wasFullDocument: boolean): string => {
+  if (!wasFullDocument) return bodyContent;
+  return `<!DOCTYPE html>\n<html lang="en">\n  ${headContent}\n  <body>\n    ${bodyContent}\n  </body>\n</html>`;
+};
+
+export const RichTextEditor = ({ content, onChange, campusName, initialCampusImages }: RichTextEditorProps) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const headContentRef = useRef<string>('');
+  const wasFullDocumentRef = useRef<boolean>(false);
+  const lastSetContentRef = useRef<string>('');
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(
     null,
   );
-  const [campusImages, setCampusImages] = useState<OfferLetterTemplateImage[]>([]);
+  const [campusImages, setCampusImages] = useState<OfferLetterTemplateImage[]>(initialCampusImages ?? []);
   const [campusImagesLoading, setCampusImagesLoading] = useState(false);
   const [campusImagesError, setCampusImagesError] = useState("");
   const [showCampusImageBrowser, setShowCampusImageBrowser] = useState(false);
@@ -61,8 +93,9 @@ export const RichTextEditor = ({ content, onChange, campusName }: RichTextEditor
   }, [campusName]);
 
   useEffect(() => {
-    if (campusName) void loadCampusImages();
-  }, [campusName, loadCampusImages]);
+    // Only fetch campus images if parent hasn't already provided them
+    if (campusName && !initialCampusImages?.length) void loadCampusImages();
+  }, [campusName, loadCampusImages, initialCampusImages]);
 
   const applySrcToSelectedImage = (s3Url: string, alt?: string) => {
     if (!selectedImage || !s3Url) return;
@@ -159,8 +192,16 @@ export const RichTextEditor = ({ content, onChange, campusName }: RichTextEditor
   };
 
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== content) {
-      editorRef.current.innerHTML = content;
+    if (!editorRef.current) return;
+    // Extract body-only content to prevent template CSS from leaking into editor
+    const { bodyContent, headContent, hasFullDocument } = extractBodyContent(content);
+    headContentRef.current = headContent;
+    wasFullDocumentRef.current = hasFullDocument;
+
+    // Only update DOM if the body content actually changed (prevents blinking)
+    if (lastSetContentRef.current !== bodyContent) {
+      lastSetContentRef.current = bodyContent;
+      editorRef.current.innerHTML = bodyContent;
       setTimeout(() => {
         attachImageHandlers();
       }, 100);
@@ -344,7 +385,15 @@ export const RichTextEditor = ({ content, onChange, campusName }: RichTextEditor
 
   const handleInput = () => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      // Reconstruct full HTML (with head/style) before calling onChange
+      const fullHtml = reconstructFullHtml(
+        editorRef.current.innerHTML,
+        headContentRef.current,
+        wasFullDocumentRef.current,
+      );
+      // Update last known body so useEffect doesn't re-set innerHTML on next render
+      lastSetContentRef.current = editorRef.current.innerHTML;
+      onChange(fullHtml);
       // Re-attach handlers after content change
       setTimeout(() => {
         attachImageHandlers();

@@ -1,30 +1,34 @@
 import axios from "axios";
-import { getAuthToken, getCampusesApi } from "@/utils/api";
 import {
-  getOfferLetterTemplateImagesApiBaseUrl,
-  getTemplatesApiBaseUrl,
-} from "@/utils/apiBase";
+  getAuthToken,
+  getCampusesApi,
+  // Re-export offer-letter-template-image functions from api.ts (single source of truth)
+  getOfferLetterTemplateImagesNew as getOfferLetterTemplateImages,
+  uploadOfferLetterTemplateImageNew as uploadOfferLetterTemplateImage,
+  updateOfferLetterTemplateImageNew as updateOfferLetterTemplateImage,
+  deleteOfferLetterTemplateImageNew as deleteOfferLetterTemplateImage,
+  type OfferLetterTemplateImage,
+} from "@/utils/api";
+import { getTemplatesApiBaseUrl } from "@/utils/apiBase";
+
+// Re-export so existing consumers of templateService don't break
+export { getOfferLetterTemplateImages, uploadOfferLetterTemplateImage, updateOfferLetterTemplateImage, deleteOfferLetterTemplateImage };
+export type { OfferLetterTemplateImage };
 
 const TEMPLATES_BASE_URL = getTemplatesApiBaseUrl();
-const TEMPLATE_IMAGES_BASE_URL = getOfferLetterTemplateImagesApiBaseUrl();
-
-const getAuthTokenForRequest = () => getAuthToken() || localStorage.getItem("authToken") || "";
 
 const apiClient = axios.create({
   baseURL: TEMPLATES_BASE_URL,
 });
 
-const templateImagesClient = axios.create({
-  baseURL: TEMPLATE_IMAGES_BASE_URL,
-});
-
+// Attach auth header to every axios request — token comes from api.ts getAuthToken()
 const attachAuthHeader = (config: Parameters<Parameters<typeof apiClient.interceptors.request.use>[0]>[0]) => {
-  const token = getAuthTokenForRequest();
+  const token = getAuthToken();
   if (token) {
-    const bearer = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-    const headers = config.headers as Record<string, string> | undefined;
-    if (headers) {
-      headers.Authorization = bearer;
+    const bearer = `Bearer ${token}`;
+    const h = config.headers as Record<string, string> | undefined;
+    if (h) {
+      h.Authorization = bearer;
     } else {
       config.headers = { Authorization: bearer } as typeof config.headers;
     }
@@ -33,7 +37,6 @@ const attachAuthHeader = (config: Parameters<Parameters<typeof apiClient.interce
 };
 
 apiClient.interceptors.request.use(attachAuthHeader);
-templateImagesClient.interceptors.request.use(attachAuthHeader);
 
 type ApiErrorPayload = {
   message?: string;
@@ -120,17 +123,6 @@ export interface CreatePlaceholderPayload {
   key: string;
 }
 
-export interface OfferLetterTemplateImage {
-  id: number;
-  campus_name: string;
-  image_name: string;
-  image_type: string;
-  s3_url: string;
-  s3_key: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
 /** Campuses from RDS: GET /api/v1/campuses/getCampuses?page=1&pageSize=100 */
 export const getCampuses = async (): Promise<CampusSummary[]> => {
   try {
@@ -175,79 +167,6 @@ export const getTemplates = async (params?: TemplateListParams): Promise<Templat
 
 export const getTemplatesGlobal = async (params?: Omit<TemplateListParams, "campus">): Promise<TemplateListItem[]> =>
   getTemplates(params);
-
-const normalizeOfferLetterTemplateImage = (item: any, fallbackCampus = ""): OfferLetterTemplateImage => ({
-  id: Number(item?.id ?? 0),
-  campus_name: item?.campus_name ?? item?.campusName ?? fallbackCampus,
-  image_name: item?.image_name ?? item?.imageName ?? "",
-  image_type: item?.image_type ?? item?.imageType ?? "logo",
-  s3_url: item?.s3_url ?? item?.s3Url ?? "",
-  s3_key: item?.s3_key ?? item?.s3Key ?? "",
-  created_at: item?.created_at ?? item?.createdAt,
-  updated_at: item?.updated_at ?? item?.updatedAt,
-});
-
-export const getOfferLetterTemplateImages = async (campusName: string): Promise<OfferLetterTemplateImage[]> => {
-  try {
-    const response = await templateImagesClient.get("/", {
-      params: { campus_name: campusName },
-    });
-
-    const body = response.data as { success?: boolean; data?: OfferLetterTemplateImage[] } | OfferLetterTemplateImage[];
-    const items = Array.isArray(body)
-      ? body
-      : Array.isArray(body?.data)
-        ? body.data
-        : unwrapData<OfferLetterTemplateImage[]>(response) || [];
-
-    return items.map((item) => normalizeOfferLetterTemplateImage(item, campusName));
-  } catch (error) {
-    throw normalizeError(error);
-  }
-};
-
-export const uploadOfferLetterTemplateImage = async (
-  campusName: string,
-  file: File,
-  options?: { image_name?: string; image_type?: string },
-): Promise<OfferLetterTemplateImage> => {
-  try {
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("campus_name", campusName);
-    formData.append("image_name", options?.image_name ?? file.name.replace(/\.[^/.]+$/, ""));
-    formData.append("image_type", options?.image_type ?? (isPdf ? "pdf" : "logo"));
-
-    const response = await templateImagesClient.post("/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    return normalizeOfferLetterTemplateImage(unwrapData<OfferLetterTemplateImage>(response), campusName);
-  } catch (error) {
-    throw normalizeError(error);
-  }
-};
-
-export const updateOfferLetterTemplateImage = async (
-  id: number,
-  payload: { image_name?: string; image_type?: string },
-): Promise<OfferLetterTemplateImage> => {
-  try {
-    const response = await templateImagesClient.patch(`/${id}`, payload);
-    return normalizeOfferLetterTemplateImage(unwrapData<OfferLetterTemplateImage>(response));
-  } catch (error) {
-    throw normalizeError(error);
-  }
-};
-
-export const deleteOfferLetterTemplateImage = async (id: number): Promise<void> => {
-  try {
-    await templateImagesClient.delete(`/${id}`);
-  } catch (error) {
-    throw normalizeError(error);
-  }
-};
 
 export const getPlaceholders = async (campus?: string): Promise<PlaceholderInfo[]> => {
   try {

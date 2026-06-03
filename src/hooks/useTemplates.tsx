@@ -57,7 +57,7 @@ export const useTemplates = () => {
       queryKey: ["templates", "content", campusName, fileName],
       queryFn: () => getTemplateContent(campusName, fileName),
       enabled: enabled && !!campusName && !!fileName,
-      staleTime: 5 * 60 * 1000,
+      staleTime: 0, // Always fetch fresh content when a file is opened
     });
 
   const invalidateTemplates = async (campusName?: string, fileName?: string) => {

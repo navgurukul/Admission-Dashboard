@@ -39,11 +39,15 @@ import { RichTextEditor } from "@/components/offer-letters/RichTextEditor";
 import { CampusS3LogoSection } from "@/components/offer-letters/CampusS3LogoSection";
 import {
   extractPlaceholders,
-  getOfferLetterTemplateImages,
-  type OfferLetterTemplateImage,
+  // getOfferLetterTemplateImages,
+  // type OfferLetterTemplateImage,
   type CampusSummary,
   type TemplateListItem,
 } from "@/services/templateService";
+import {
+  getOfferLetterTemplateImagesNew as getOfferLetterTemplateImages,
+  type OfferLetterTemplateImage,
+} from "@/utils/api";
 import { prepareTemplateHtmlForPdf, rewriteTemplateHtmlImageUrls } from "@/utils/templateImageUrls";
 
 type EditorMode = "existing" | "new";
@@ -123,18 +127,8 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
 
     const loadContent = async () => {
       let content = contentQuery.data.content || "";
-      let images: OfferLetterTemplateImage[] = [];
 
-      if (selectedCampus) {
-        try {
-          images = await getOfferLetterTemplateImages(selectedCampus);
-          setCampusImages(images);
-        } catch {
-          // Template still loads; S3 list is optional
-        }
-      }
-
-      const { html, s3Replaced, absoluteReplaced } = prepareTemplateHtmlForPdf(content, images);
+      const { html, s3Replaced, absoluteReplaced } = prepareTemplateHtmlForPdf(content, campusImages);
       if (s3Replaced > 0 || absoluteReplaced > 0) {
         content = html;
         setIsDirty(true);
@@ -149,7 +143,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     };
 
     void loadContent();
-  }, [contentQuery.data, isDirty, selectedFile, selectedCampus, toast]);
+  }, [contentQuery.data, isDirty, selectedFile, campusImages, toast]);
 
   useEffect(() => {
     if (!selectedCampus) {
@@ -529,12 +523,14 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
               </div>
               <div className="rounded-2xl border bg-background flex-1 min-h-[70vh] shadow-sm overflow-hidden">
                 <RichTextEditor
+                  key={selectedFile || "new"}
                   content={htmlContent}
                   onChange={(content) => {
                     setHtmlContent(content);
                     setIsDirty(true);
                   }}
                   campusName={selectedCampus}
+                  initialCampusImages={campusImages}
                 />
               </div>
             </div>
@@ -553,10 +549,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="font-semibold">Campus S3 assets</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Upload/list API only — not linked to PDF until you replace img src and save HTML.
-                      Local <code className="text-xs">/images/ng.png</code> is still fine for current PDF/email.
-                    </p>
+                    
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => void loadCampusImages(selectedCampus)} disabled={campusImagesLoading}>
@@ -625,20 +618,17 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
         </Card>
       ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="campuses">Campuses</TabsTrigger>
             <TabsTrigger value="files" disabled={!selectedCampus}>Files</TabsTrigger>
-            <TabsTrigger value="editor" disabled={!selectedCampus}>Editor</TabsTrigger>
+            {/* <TabsTrigger value="editor" disabled={!selectedCampus}>Editor</TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="campuses" className="space-y-4">
             <Card className="border-border/60 shadow-sm">
               <CardHeader>
                 <CardTitle>Campus &amp; S3 logos</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Dropdown from <code className="text-xs">GET /api/v1/campuses/getCampuses</code>.
-                  Logos from <code className="text-xs">GET /api/offer-letter-template-images</code> (same campus name).
-                </p>
+                
               </CardHeader>
               <CardContent className="space-y-4">
                 <CampusS3LogoSection
@@ -673,9 +663,9 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant={hasPlaceholdersOnly ? "default" : "outline"} onClick={() => setHasPlaceholdersOnly((value) => !value)}>
+                  {/* <Button variant={hasPlaceholdersOnly ? "default" : "outline"} onClick={() => setHasPlaceholdersOnly((value) => !value)}>
                     {hasPlaceholdersOnly ? "Showing with placeholders" : "Has placeholders"}
-                  </Button>
+                  </Button> */}
                   <Button onClick={resetEditor} disabled={!selectedCampus}>
                     <Plus className="mr-2 h-4 w-4" /> New Template
                   </Button>
