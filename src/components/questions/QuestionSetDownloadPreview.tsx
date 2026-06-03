@@ -47,8 +47,8 @@ export function QuestionSetDownloadPreview({ set, difficultyLevels, onClose, ini
   
   // Header and Spacing states
   const [headerTitle, setHeaderTitle] = useState('Navgurukul - Screening Test');
-  const [headerSubtitle, setHeaderSubtitle] = useState('pan-india-bca-SOF');
-  const [headerSubSubtitle, setHeaderSubSubtitle] = useState('SOP - A');
+  const [headerSubtitle, setHeaderSubtitle] = useState(set?.name);
+  const [headerSubSubtitle, setHeaderSubSubtitle] = useState('');
   const [maxMarks, setMaxMarks] = useState(set.questions?.length * 2 || 0);
   const [headerGap, setHeaderGap] = useState(6);
   const [instructionGap, setInstructionGap] = useState(5);
