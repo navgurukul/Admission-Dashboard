@@ -551,7 +551,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
               <div className="rounded-2xl border bg-background p-4 shadow-sm">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h3 className="font-semibold">Campus S3 assets</h3>
+                    <h3 className="font-semibold">Campus Visual Assets</h3>
                     
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -560,7 +560,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                       Refresh
                     </Button>
                     <Button variant="secondary" size="sm" onClick={replaceLocalImageUrlsWithS3} disabled={!campusImages.length}>
-                      Replace local img → S3 URL
+                      Replace local img → Campus Asset
                     </Button>
                   </div>
                 </div>
@@ -630,7 +630,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
           <TabsContent value="campuses" className="space-y-4">
             <Card className="border-border/60 shadow-sm">
               <CardHeader>
-                <CardTitle>Campus &amp; S3 logos</CardTitle>
+                <CardTitle>Campus &amp; Visual Assets</CardTitle>
                 
               </CardHeader>
               <CardContent className="space-y-4">

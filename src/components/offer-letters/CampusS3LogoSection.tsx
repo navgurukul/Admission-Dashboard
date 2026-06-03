@@ -201,7 +201,7 @@ export const CampusS3LogoSection = ({
       {selectedCampus ? (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-semibold">S3 logos — {selectedCampus}</h3>
+            <h3 className="font-semibold">Campus Visual Assets — {selectedCampus}</h3>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => void loadImages()} disabled={imagesLoading}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${imagesLoading ? "animate-spin" : ""}`} />
@@ -234,7 +234,7 @@ export const CampusS3LogoSection = ({
 
           {imagesLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading S3 images…
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading images…
             </div>
           ) : images.length === 0 ? (
             <Alert>
@@ -266,7 +266,6 @@ export const CampusS3LogoSection = ({
                       src={image.s3_url}
                       alt={image.image_name}
                       className="h-14 w-14 rounded border object-contain bg-background shrink-0"
-                      crossOrigin="anonymous"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate">{image.image_name}</p>
