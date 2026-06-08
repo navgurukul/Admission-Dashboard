@@ -30,6 +30,7 @@ import {
   FileText,
   Loader2,
   Plus,
+  Pencil,
   RefreshCw,
   Save,
   Trash2,
@@ -107,6 +108,17 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
   const [campusImages, setCampusImages] = useState<OfferLetterTemplateImage[]>([]);
   const [campusImagesLoading, setCampusImagesLoading] = useState(false);
   const [campusImagesError, setCampusImagesError] = useState("");
+
+  // Copy template state
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+  const [templateToCopy, setTemplateToCopy] = useState<TemplateListItem | null>(null);
+  const [copyFileName, setCopyFileName] = useState("");
+  const [isCopying, setIsCopying] = useState(false);
+
+  // Rename template state (editor view)
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameFileName, setRenameFileName] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
 
   const templatesQuery = getTemplatesQuery(
     {
@@ -462,7 +474,116 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     setDeleteDialogOpen(true);
   };
 
-  const previewHtml = useMemo(
+  const openCopyDialog = (template: TemplateListItem) => {
+    setTemplateToCopy(template);
+    const ext = template.file_name.includes(".") ? `.${template.file_name.split(".").pop()}` : ".html";
+    const base = template.file_name.replace(/\.[^.]+$/, "");
+    setCopyFileName(`${base}_copy${ext}`);
+    setCopyDialogOpen(true);
+  };
+
+  const handleCopyTemplate = async () => {
+    if (!selectedCampus || !templateToCopy) return;
+
+    if (!copyFileName.trim()) {
+      toast({ title: "File name is required", variant: "destructive" });
+      return;
+    }
+
+    if (!TEMPLATE_NAME_REGEX.test(copyFileName.trim())) {
+      toast({
+        title: "Invalid file name",
+        description: "Only .html or .htm files are allowed",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      const { getTemplateContent } = await import("@/services/templateService");
+      const sourceContent = await getTemplateContent(selectedCampus, templateToCopy.file_name);
+
+      await createTemplateMutation.mutateAsync({
+        campus_name: selectedCampus,
+        file_name: copyFileName.trim(),
+        content: sourceContent.content,
+      });
+
+      toast({
+        title: "Template copied",
+        description: `${copyFileName.trim()} created for ${selectedCampus}`,
+      });
+      setCopyDialogOpen(false);
+      setTemplateToCopy(null);
+      setCopyFileName("");
+    } catch (error: any) {
+      toast({
+        title: "Copy failed",
+        description: error?.message || error?.response?.data?.message || error?.response?.data?.error || "Unable to copy template",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
+  const openRenameDialog = () => {
+    setRenameFileName(selectedFile);
+    setRenameDialogOpen(true);
+  };
+
+  const handleRenameTemplate = async () => {
+    if (!selectedCampus || !selectedFile || !renameFileName.trim()) return;
+
+    if (renameFileName.trim() === selectedFile) {
+      toast({ title: "New name is same as current name", variant: "destructive" });
+      return;
+    }
+
+    if (!TEMPLATE_NAME_REGEX.test(renameFileName.trim())) {
+      toast({
+        title: "Invalid file name",
+        description: "Only .html or .htm files are allowed",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRenaming(true);
+    try {
+      // 1. Create new file with same content
+      await createTemplateMutation.mutateAsync({
+        campus_name: selectedCampus,
+        file_name: renameFileName.trim(),
+        content: htmlContent,
+      });
+
+      // 2. Delete the old file
+      await deleteTemplateMutation.mutateAsync({
+        campusName: selectedCampus,
+        fileName: selectedFile,
+      });
+
+      toast({
+        title: "Template renamed",
+        description: `Renamed to ${renameFileName.trim()}`,
+      });
+
+      setSelectedFile(renameFileName.trim());
+      setFileNameInput(renameFileName.trim());
+      setIsDirty(false);
+      setRenameDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Rename failed",
+        description: error?.message || error?.response?.data?.message || error?.response?.data?.error || "Unable to rename template",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRenaming(false);
+    }
+  };  const previewHtml = useMemo(
     () => prepareTemplateHtmlForPdf(htmlContent, campusImages).html,
     [htmlContent, campusImages],
   );
@@ -490,6 +611,11 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
               <Button variant="outline" onClick={() => setShowPreview(true)} disabled={!htmlContent.trim()}>
                 <Eye className="mr-2 h-4 w-4" /> Preview
               </Button>
+              {mode === "existing" && selectedFile ? (
+                <Button variant="outline" onClick={openRenameDialog}>
+                  <Pencil className="mr-2 h-4 w-4" /> Rename
+                </Button>
+              ) : null}
               <Button variant="outline" onClick={() => templatesQuery.refetch()} disabled={!selectedCampus}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Refresh
               </Button>
@@ -669,9 +795,7 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                   {/* <Button variant={hasPlaceholdersOnly ? "default" : "outline"} onClick={() => setHasPlaceholdersOnly((value) => !value)}>
                     {hasPlaceholdersOnly ? "Showing with placeholders" : "Has placeholders"}
                   </Button> */}
-                  <Button onClick={resetEditor} disabled={!selectedCampus}>
-                    <Plus className="mr-2 h-4 w-4" /> New Template
-                  </Button>
+
                 </div>
               </CardHeader>
               <CardContent>
@@ -699,6 +823,9 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                           <div className="flex gap-2">
                             <Button variant="ghost" size="icon" onClick={() => openFile(template)}>
                               <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Create New from This Template" onClick={() => openCopyDialog(template)}>
+                              <Copy className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(template)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
@@ -746,6 +873,71 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
             </Button>
             <Button variant="destructive" onClick={handleDeleteTemplate} disabled={!selectedFileForDelete}>
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy Template Dialog */}
+      <Dialog open={copyDialogOpen} onOpenChange={(open) => { setCopyDialogOpen(open); if (!open) { setTemplateToCopy(null); setCopyFileName(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Copy Template</DialogTitle>
+            <DialogDescription>
+              Copying <strong>{templateToCopy?.file_name}</strong> for campus <strong>{selectedCampus}</strong>. Enter a new file name for the copy.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="copy-file-name">New file name</Label>
+            <Input
+              id="copy-file-name"
+              value={copyFileName}
+              onChange={(e) => setCopyFileName(e.target.value)}
+              placeholder="new_template.html"
+              onKeyDown={(e) => { if (e.key === "Enter") void handleCopyTemplate(); }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCopyDialogOpen(false)} disabled={isCopying}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleCopyTemplate()} disabled={isCopying || !copyFileName.trim()}>
+              {isCopying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
+              Create Copy
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Template Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={(open) => { setRenameDialogOpen(open); if (!open) setRenameFileName(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Template</DialogTitle>
+            <DialogDescription>
+              Current name: <strong>{selectedFile}</strong> — Campus: <strong>{selectedCampus}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label htmlFor="rename-file-name">New file name</Label>
+            <Input
+              id="rename-file-name"
+              value={renameFileName}
+              onChange={(e) => setRenameFileName(e.target.value)}
+              placeholder="new_name.html"
+              onKeyDown={(e) => { if (e.key === "Enter") void handleRenameTemplate(); }}
+            />
+            <p className="text-xs text-muted-foreground">
+              This will create a new file with the new name and delete the old one.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)} disabled={isRenaming}>
+              Cancel
+            </Button>
+            <Button onClick={() => void handleRenameTemplate()} disabled={isRenaming || !renameFileName.trim() || renameFileName.trim() === selectedFile}>
+              {isRenaming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Pencil className="mr-2 h-4 w-4" />}
+              Rename
             </Button>
           </DialogFooter>
         </DialogContent>
