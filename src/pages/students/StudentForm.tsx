@@ -2238,22 +2238,35 @@ const StudentForm: React.FC = () => {
                   <div
                     key={school.id}
                     data-onboarding="student-form-school-card"
-                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white hover:border-primary/50 hover:shadow-xl ${isSelected ? "border-primary shadow-lg ring-1 ring-primary/20" :
-                      isEligible && hasQualification ? "border-green-200" : "border-gray-100"
-                      } ${!isEligible && hasQualification ? "opacity-75" : ""
+                    onClick={() => {
+                      if (!isEligible && hasQualification) return; // Disable click if not eligible
+                      setSelectedSchoolInfo(school); // Open detail modal on any card click
+                    }}
+                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white ${!isEligible && hasQualification
+                        ? "border-gray-200 cursor-not-allowed"
+                        : isSelected
+                          ? "border-primary shadow-lg ring-1 ring-primary/20 hover:border-primary/50 hover:shadow-xl cursor-pointer"
+                          : hasQualification
+                            ? "border-green-200 hover:border-primary/50 hover:shadow-xl cursor-pointer"
+                            : "border-gray-100 hover:border-primary/50 hover:shadow-xl cursor-pointer"
                       }`}
                   >
-                    {/* Interactive Overlay for Selection */}
-                    <div
-                      className={`absolute inset-0 z-0 ${!isEligible && hasQualification ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                      onClick={() => {
-                        if (!isEligible && hasQualification) return; // Disable click if not eligible
-                        const matchedSchool = schools.find(s => s.school_name.includes(school.id));
-                        if (matchedSchool) {
-                          handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
-                        }
-                      }}
-                    />
+                    {/* Not Eligible Gray Overlay */}
+                    {!isEligible && hasQualification && (
+                      <div className="absolute inset-0 z-20 bg-gray-100/80 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-not-allowed">
+                        <div className="bg-gray-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                          Not Eligible
+                        </div>
+                        <p className="text-xs text-gray-500 text-center px-6">
+                          {school.id === 'BCA' && formData.gender === 'male'
+                            ? 'This program is for female students only'
+                            : 'Your qualification does not meet the requirements'}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Top Decoration */}
                     <div className={`h-2 w-full bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-400 to-blue-600' :
@@ -2289,9 +2302,11 @@ const StudentForm: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (!isEligible && hasQualification) return;
                             setSelectedSchoolInfo(school);
                           }}
-                          className="text-primary text-sm font-bold flex items-center gap-1.5 hover:underline decoration-2 underline-offset-4"
+                          disabled={!isEligible && !!hasQualification}
+                          className={`text-sm font-bold flex items-center gap-1.5 decoration-2 underline-offset-4 ${!isEligible && hasQualification ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:underline'}`}
                         >
                           {content.checkDetails}
                           <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
