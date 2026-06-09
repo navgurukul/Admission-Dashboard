@@ -41,7 +41,7 @@ import { Progress } from "@/components/ui/progress";
 
 const LIFECYCLE_STATUSES = [
     "Culture fit round Pass",
-    "Offer Letter Sent",
+    "Admission Letter Sent",
     "Pending Travel Plans",
     "Finalized Travel Plans",
     "Joined",
@@ -60,7 +60,7 @@ const LIFECYCLE_STATUSES = [
 
 const COLORS = [
     "#92D050", // Culture fit round Pass
-    "#C6E0B4", // Offer Letter Sent
+    "#C6E0B4", // Admission Letter Sent
     "#FFD966", // Pending Travel Plans
     "#D18E4E", // Finalized Travel Plans
     "#C00000", // Joined
@@ -187,7 +187,7 @@ const PartnerStudents = () => {
             { id: 'lr_comments', label: 'LR Comments', visible: false },
             { id: 'cfr_status', label: 'CFR Status', visible: false },
             { id: 'cfr_comments', label: 'CFR Comments', visible: false },
-            { id: 'offer_letter_status', label: 'Offer Letter Status', visible: false },
+            { id: 'offer_letter_status', label: 'Admission Letter Status', visible: false },
             { id: 'onboarded_status', label: 'Onboarded Status', visible: false },
             { id: 'joining_date', label: 'Joining Date', visible: false },
             { id: 'campus', label: 'Campus', visible: false },
@@ -249,7 +249,7 @@ const PartnerStudents = () => {
             { id: 'lr_comments', label: 'LR Comments', visible: false },
             { id: 'cfr_status', label: 'CFR Status', visible: false },
             { id: 'cfr_comments', label: 'CFR Comments', visible: false },
-            { id: 'offer_letter_status', label: 'Offer Letter Status', visible: false },
+            { id: 'offer_letter_status', label: 'Admission Letter Status', visible: false },
             { id: 'onboarded_status', label: 'Onboarded Status', visible: false },
             { id: 'joining_date', label: 'Joining Date', visible: false },
             { id: 'campus', label: 'Campus', visible: false },
@@ -556,7 +556,7 @@ const PartnerStudents = () => {
         if (offerStatus === "Offer Accepted") return "Joined";
 
         // Offer statuses
-        if (offerStatus === "Offer Sent") return "Offer Letter Sent";
+        if (offerStatus === "Offer Sent") return "Admission Letter Sent";
         if (offerStatus === "Offer Declined") return "Became Disinterested";
         if (offerStatus === "Deferred Joining") return "Deferred Joining";
 
@@ -896,7 +896,7 @@ const PartnerStudents = () => {
                                             {isColumnVisible('lr_comments') && <TableHead className="font-bold min-w-[150px]">LR Comments</TableHead>}
                                             {isColumnVisible('cfr_status') && <TableHead className="font-bold min-w-[100px]">CFR Status</TableHead>}
                                             {isColumnVisible('cfr_comments') && <TableHead className="font-bold min-w-[150px]">CFR Comments</TableHead>}
-                                            {isColumnVisible('offer_letter_status') && <TableHead className="font-bold min-w-[120px]">Offer Letter Status</TableHead>}
+                                            {isColumnVisible('offer_letter_status') && <TableHead className="font-bold min-w-[120px]">Admission Letter Status</TableHead>}
                                             {isColumnVisible('onboarded_status') && <TableHead className="font-bold min-w-[120px]">Onboarded Status</TableHead>}
                                             {isColumnVisible('final_notes') && <TableHead className="font-bold min-w-[150px]">Final Notes</TableHead>}
                                             {isColumnVisible('joining_date') && <TableHead className="font-bold min-w-[100px]">Joining Date</TableHead>}

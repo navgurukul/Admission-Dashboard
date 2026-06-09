@@ -764,7 +764,7 @@ export function BulkUpdateModal({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Offer Letter Status</Label>
+                <Label>Admission Letter Status</Label>
                 <Select
                   value={updateData.offerLetterStatus}
                   onValueChange={(val) =>
@@ -779,12 +779,12 @@ export function BulkUpdateModal({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="no_change">No change</SelectItem>
-                    <SelectItem value="Offer Pending">Offer Pending</SelectItem>
+                    <SelectItem value="Offer Pending">Admission Letter Pending</SelectItem>
                     <SelectItem value="Offer Accepted">
-                      Offer Accepted
+                      Admission Letter Accepted
                     </SelectItem>
                     <SelectItem value="Offer Declined">
-                      Offer Declined
+                      Admission Letter Declined
                     </SelectItem>
                     <SelectItem value="Waitlisted">Waitlisted</SelectItem>
                   </SelectContent>

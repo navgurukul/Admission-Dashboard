@@ -138,9 +138,9 @@ const FinalDecisions = () => {
   const getStatusDisplay = (status: string | null): string => {
     switch (status) {
       case "offer_pending":
-        return "Offer Letter Pending";
+        return "Admission Letter Pending";
       case "offer_sent":
-        return "Offer Letter Sent";
+        return "Admission Letter Sent";
       case "offer_rejected":
         return "Offer Rejected";
       case "offer_accepted":
@@ -258,7 +258,7 @@ const FinalDecisions = () => {
                   Final Decision Pipeline
                 </h2>
                 <Button className="bg-gradient-primary hover:bg-primary/90 text-white">
-                  Send Offer Letters
+                  Send Admission Letters
                 </Button>
               </div>
 

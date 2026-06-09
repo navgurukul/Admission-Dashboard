@@ -154,9 +154,10 @@ export function AdmissionsSidebar() {
               <NavLink
                 key={item.href}
                 to={item.href}
+                title={item.name}
                 className={() =>
                   cn(
-                    "block p-2 rounded",
+                    "flex items-center gap-2 p-2 rounded overflow-hidden",
                     isInterviewActive(item.href)
                       ? "bg-gray-600 text-white"
                       : "text-gray-300 hover:bg-gray-700",
@@ -170,8 +171,8 @@ export function AdmissionsSidebar() {
                   setIsOpen(false);
                 }}
               >
-                <item.icon className="inline mr-2" />
-                {item.name}
+                <item.icon className="shrink-0 w-4 h-4" />
+                <span className="truncate text-sm">{item.name}</span>
               </NavLink>
             ))}
         </nav>

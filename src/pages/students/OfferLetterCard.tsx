@@ -18,7 +18,7 @@ export function OfferLetterCard({ student }) {
           </p>
 
           <p className="text-sm font-semibold text-primary mt-2">
-            Your offer letter has been sent to your registered email. Please
+            Your Admission letter has been sent to your registered email. Please
             check your inbox for next steps.
           </p>
         </div>
