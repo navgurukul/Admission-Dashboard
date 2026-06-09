@@ -12,6 +12,7 @@ import Screening from "./pages/Screening";
 import InterviewRounds from "./pages/InterviewRounds";
 import FinalDecisions from "./pages/FinalDecisions";
 import OfferLetters from "./pages/OfferLetters";
+import OfferLetterTemplates from "./pages/OfferLetterTemplates";
 import QuestionRepository from "./pages/QuestionRepository";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -184,6 +185,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <OfferLetters />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/offer-letter-templates"
+                element={
+                  <ProtectedRoute>
+                    <OfferLetterTemplates />
                   </ProtectedRoute>
                 }
               />

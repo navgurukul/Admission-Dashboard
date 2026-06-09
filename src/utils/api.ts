@@ -2,11 +2,12 @@ import { Student } from "./student.types";
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL_v = BASE_URL.replace(/\/v1$/, "");
 
-// Get auth token from sessionStorage ONLY
+// Get auth token from sessionStorage with localStorage fallback
 export const getAuthToken = (): string | null => {
-  const token = sessionStorage.getItem("authToken"); // ✅ Only token in sessionStorage
-  return token;
+  const token = sessionStorage.getItem("authToken") || localStorage.getItem("authToken");
+  return token || null;
 };
 
 export const getAuthHeaders = (withJson: boolean = true): HeadersInit => {
@@ -798,6 +799,91 @@ export const logoutUser = () => {
 };
 
 // Check if user is authenticated
+
+export interface OfferLetterTemplateImage {
+  id: number;
+  campus_name: string;
+  image_name: string;
+  image_type: string;
+  s3_url: string;
+  s3_key: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const getOfferLetterTemplateImagesNew = async (campusName: string): Promise<OfferLetterTemplateImage[]> => {
+  const response = await fetch(`${BASE_URL_v}/offer-letter-template-images?campus_name=${encodeURIComponent(campusName)}`, {
+    method: "GET",
+    headers: getAuthHeaders(false), // No body → no Content-Type needed
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch template images");
+  }
+  return data.data || data;
+};
+
+export const uploadOfferLetterTemplateImageNew = async (
+  campusName: string,
+  file: File,
+  options?: { image_name?: string; image_type?: string }
+): Promise<OfferLetterTemplateImage> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("campus_name", campusName);
+  
+  if (options?.image_name) formData.append("image_name", options.image_name);
+  if (options?.image_type) formData.append("image_type", options.image_type);
+
+  // get headers without Content-Type since fetch will set it automatically with boundary for FormData
+  const headers = getAuthHeaders(false);
+
+  const response = await fetch(`${BASE_URL_v}/offer-letter-template-images/upload`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to upload template image");
+  }
+  return data.data || data;
+};
+
+export const updateOfferLetterTemplateImageNew = async (
+  id: number,
+  payload: { image_name?: string; image_type?: string }
+): Promise<OfferLetterTemplateImage> => {
+  const token = getAuthToken();
+  const response = await fetch(`${BASE_URL_v}/offer-letter-template-images/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update template image");
+  }
+  return data.data || data;
+};
+
+export const deleteOfferLetterTemplateImageNew = async (id: number): Promise<void> => {
+  const response = await fetch(`${BASE_URL_v}/offer-letter-template-images/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(false), // No body → no Content-Type needed
+  });
+  
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.message || "Failed to delete template image");
+  }
+};
+
 export const isAuthenticated = (): boolean => {
   const token = getAuthToken();
   const user = localStorage.getItem("user");
@@ -1761,6 +1847,7 @@ interface QuestionSet {
   partnerId?: number;
   partner_name?: string;
   school_ids?: number[];
+  random_config?: { topicId: number; easy: number; medium: number; hard: number }[] | null;
 }
 
 // Get all question sets ...
@@ -1913,6 +2000,7 @@ export const createQuestionSet = async (data: {
   partner_name?: string;
   school_ids?: number[];
   success?: boolean;
+  randomConfig?: { topicId: number; easy: number; medium: number; hard: number }[];
 }): Promise<QuestionSetMutationResponse> => {
   const response = await fetch(`${BASE_URL}/questions/question-sets`, {
     method: "POST",
@@ -2230,7 +2318,7 @@ export const getCampuses = async (page: number = 1, limit: number = 10) => {
 export const getCampusesApi = async (): Promise<
   { id: number; campus_name: string }[]
 > => {
-  const data = await getCampuses(1, 1000);
+  const data = await getCampuses(1, 100);
 
   let campusesData: any[] = [];
   if (data && data.data && data.data.data && Array.isArray(data.data.data)) {
