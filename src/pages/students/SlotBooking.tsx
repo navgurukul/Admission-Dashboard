@@ -7,6 +7,7 @@ import {
   XCircle,
   Loader2,
   Video,
+  Lock,
 } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useTests } from "../../utils/TestContext";
@@ -102,6 +103,7 @@ const languageContent = {
     processing: "Processing...",
     cancelSlot: "Cancel Slot",
     viewResults: "View Results",
+    interviewStartedNotice: "Your interview has already started. Modifications are no longer available.",
     cancelInterviewSlot: "Cancel Interview Slot",
     cancelConfirmation: "Are you sure you want to cancel your scheduled interview? This action cannot be undone.",
     reasonForCancellation: "Reason for Cancellation",
@@ -155,6 +157,7 @@ const languageContent = {
     processing: "प्रोसेसिंग...",
     cancelSlot: "स्लॉट रद्द करें",
     viewResults: "परिणाम देखें",
+    interviewStartedNotice: "आपका इंटरव्यू शुरू हो चुका है। अब बदलाव संभव नहीं है।",
     cancelInterviewSlot: "इंटरव्यू स्लॉट रद्द करें",
     cancelConfirmation: "क्या आप वाकई अपना निर्धारित इंटरव्यू रद्द करना चाहते हैं? इस कार्यवाही को पूर्ववत नहीं किया जा सकता।",
     reasonForCancellation: "रद्द करने का कारण",
@@ -208,6 +211,7 @@ const languageContent = {
     processing: "प्रक्रिया होत आहे...",
     cancelSlot: "स्लॉट रद्द करा",
     viewResults: "परिणाम पहा",
+    interviewStartedNotice: "तुमची मुलाखत आधीच सुरू झाली आहे. आता बदल करणे शक्य नाही.",
     cancelInterviewSlot: "मुलाखत स्लॉट रद्द करा",
     cancelConfirmation: "तुम्हाला खात्री आहे की तुम्ही तुमची निर्धारित मुलाखत रद्द करू इच्छिता? ही क्रिया पूर्ववत केली जाऊ शकत नाही.",
     reasonForCancellation: "रद्द करण्याचे कारण",
@@ -368,6 +372,17 @@ const SlotBooking: React.FC = () => {
       ];
 
   const navigate = useNavigate();
+
+  // ---------- Interview started guard ----------
+  // True once the scheduled interview's start datetime is in the past.
+  // When true, Reschedule and Cancel are disabled.
+  const isInterviewStarted = (() => {
+    if (!slot || slot.is_cancelled) return false;
+    if (!slot.on_date || !slot.start_time) return false;
+    // Combine date + start_time into a comparable datetime
+    const interviewStart = new Date(`${slot.on_date}T${slot.start_time}`);
+    return new Date() >= interviewStart;
+  })();
 
   // ---------- Utilities ----------
   const formatDate = (date: Date): string => date.toISOString().split("T")[0];
@@ -603,6 +618,11 @@ const SlotBooking: React.FC = () => {
   const handleDeleteSlot = async () => {
     if (!test) return;
 
+    if (isInterviewStarted) {
+      showNotificationMessage(content.interviewStartedNotice, "error");
+      return;
+    }
+
     if (!slot.scheduled_interview_id) {
       showNotificationMessage(
         "Cannot cancel: Interview ID not found. Please contact support.",
@@ -625,6 +645,11 @@ const SlotBooking: React.FC = () => {
         "Cannot cancel: Interview ID not found. Please contact support.",
         "error",
       );
+      return;
+    }
+
+    if (isInterviewStarted) {
+      showNotificationMessage(content.interviewStartedNotice, "error");
       return;
     }
 
@@ -1371,16 +1396,30 @@ const SlotBooking: React.FC = () => {
                 </div>
               )}
 
+              {/* Interview started — lock notice */}
+              {isInterviewStarted && (
+                <div className="mb-4 flex items-start gap-3 rounded-lg border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-500 px-4 py-3 text-amber-800 dark:text-amber-300">
+                  <Lock className="mt-0.5 h-5 w-5 shrink-0" />
+                  <p className="text-sm font-medium">{content.interviewStartedNotice}</p>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-4" data-onboarding="student-slot-details-actions">
                 <button
                   onClick={handleDeleteSlot}
-                  disabled={isBookingInProgress || isCancelling}
-                  className="flex-1 py-3 px-6 bg-primary-light hover:bg-primary/20 text-primary font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed border-2 border-primary hover:scale-105"
+                  disabled={isBookingInProgress || isCancelling || isInterviewStarted}
+                  title={isInterviewStarted ? content.interviewStartedNotice : undefined}
+                  className="flex-1 py-3 px-6 bg-primary-light hover:bg-primary/20 text-primary font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed border-2 border-primary hover:scale-105 disabled:hover:scale-100"
                 >
                   {isBookingInProgress ? (
                     <span className="flex items-center justify-center">
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       {content.processing}
+                    </span>
+                  ) : isInterviewStarted ? (
+                    <span className="flex items-center justify-center">
+                      <Lock className="w-4 h-4 mr-2" />
+                      {content.rescheduleSlot}
                     </span>
                   ) : (
                     content.rescheduleSlot
@@ -1389,11 +1428,16 @@ const SlotBooking: React.FC = () => {
 
                 <button
                   onClick={() => setShowCancelModal(true)}
-                  disabled={isBookingInProgress || isCancelling}
-                  className="flex-1 py-3 px-6 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed border-2 border-destructive hover:scale-105"
+                  disabled={isBookingInProgress || isCancelling || isInterviewStarted}
+                  title={isInterviewStarted ? content.interviewStartedNotice : undefined}
+                  className="flex-1 py-3 px-6 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed border-2 border-destructive hover:scale-105 disabled:hover:scale-100"
                 >
                   <span className="flex items-center justify-center">
-                    <XCircle className="w-4 h-4 mr-2" />
+                    {isInterviewStarted ? (
+                      <Lock className="w-4 h-4 mr-2" />
+                    ) : (
+                      <XCircle className="w-4 h-4 mr-2" />
+                    )}
                     {content.cancelSlot}
                   </span>
                 </button>

@@ -191,6 +191,8 @@ const TestPage: React.FC = () => {
         ? (questions[currentItem.questionIndex] as any)
         : null;
 
+  // Timer is paused while the student is on an instruction/concept screen.
+  const timerPaused = currentItem?.type === "instruction";
   useEffect(() => {
     setQuestions(normalizeQuestions(stateQuestions || []));
   }, [stateQuestions]);
@@ -303,6 +305,7 @@ const TestPage: React.FC = () => {
   // Timer countdown
   useEffect(() => {
     if (timeLeft === null) return;
+    if (timerPaused) return; // hold the clock on concept/instruction pages
     if (timeLeft <= 0) {
       // Auto-submit when timer reaches 0 (only once)
       if (!isSubmitting.current) {
@@ -317,7 +320,7 @@ const TestPage: React.FC = () => {
       1000,
     );
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [timeLeft, timerPaused]);
 
   // Save progress
   useEffect(() => {
@@ -478,8 +481,8 @@ const TestPage: React.FC = () => {
               ? "Topic Instruction"
               : `Question ${currentItem.questionNumber} / ${questions.length}`}
           </h2>
-          <div className="bg-destructive/10 text-destructive font-bold px-4 py-2 rounded-lg shadow-soft">
-            ⏳ {formatTime(timeLeft)}
+          <div className={`font-bold px-4 py-2 rounded-lg shadow-soft ${timerPaused ? "bg-muted text-muted-foreground" : "bg-destructive/10 text-destructive"}`}>
+            {timerPaused ? "⏸ " : "⏳ "}{formatTime(timeLeft)}
           </div>
         </div>
 
