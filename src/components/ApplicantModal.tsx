@@ -1216,6 +1216,12 @@ Interviewer: ${interviewerName}`;
       return; // Don't proceed with the update
     }
 
+    if (value === "manually_sent") {
+      // Manually Sent (e.g., via WhatsApp) - no email check needed, proceed directly
+      await handleFinalDecisionUpdate("offer_letter_status", value);
+      return;
+    }
+
     if (value === "Offer Sent") {
       // Check if template exists for selected campus and school
       const selectedCampusId = currentApplicant.campus_id;
@@ -2895,6 +2901,10 @@ Interviewer: ${interviewerName}`;
                                 },
                                 { value: "Offer Sent", label: "Admission Letter Sent" },
                                 {
+                                  value: "manually_sent",
+                                  label: "Manually Sent (e.g., via WhatsApp)",
+                                },
+                                {
                                   value: "Offer Accepted",
                                   label: "Admission Letter Accepted",
                                 },
@@ -2935,6 +2945,7 @@ Interviewer: ${interviewerName}`;
                       options={[
                         { value: "Offer Pending", label: "Admission Letter Pending" },
                         { value: "Offer Sent", label: "Admission Letter Sent" },
+                        { value: "manually_sent", label: "Manually Sent (e.g., via WhatsApp)" },
                         { value: "Offer Accepted", label: "Admission Letter Accepted" },
                         { value: "Offer Declined", label: "Admission Letter Declined" },
                         { value: "Waitlisted", label: "Waitlisted" },
