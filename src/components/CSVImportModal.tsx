@@ -593,7 +593,7 @@ const CSVImportModal = ({
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               • <strong>Full Student Data:</strong> Create new students with complete information<br/>
-              • <strong>Sessions Update:</strong> Update existing students' stages and offer letter updates based on their email addresses.
+              • <strong>Sessions Update:</strong> Update existing students' stages and Admission letter updates based on their email addresses.
             </p>
           </div>
 

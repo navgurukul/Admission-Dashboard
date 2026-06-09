@@ -49,17 +49,17 @@ export function BulkOfferResultsModal({
             {isAllSuccess ? (
               <>
                 <CheckCircle2 className="w-6 h-6 text-green-500" />
-                All Offer Letters Sent Successfully
+                All Admission Letters Sent Successfully
               </>
             ) : hasFailures ? (
               <>
                 <AlertCircle className="w-6 h-6 text-amber-500" />
-                Offer Letter Status
+                Admission Letter Status
               </>
             ) : (
               <>
                 <XCircle className="w-6 h-6 text-red-500" />
-                Failed to Send Offer Letters
+                Failed to Send Admission Letters
               </>
             )}
           </DialogTitle>

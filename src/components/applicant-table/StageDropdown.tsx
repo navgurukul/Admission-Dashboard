@@ -29,6 +29,14 @@ export const STAGE_STATUS_MAP: Record<string, string[]> = {
   "onboarded": ["Onboarded"],
 };
 
+// Display labels for status values shown in UI
+export const STATUS_DISPLAY_LABELS: Record<string, string> = {
+  "Offer Pending": "Admission Letter Pending",
+  "Offer Sent": "Admission Letter Sent",
+  "Offer Accepted": "Admission Letter Accepted",
+  "Offer Declined": "Admission Letter Declined",
+};
+
 export const STAGE_DEFAULT_STATUS: Record<string, string> = {
   "": "",
   "sourcing": "Enrollment Key Generated",
@@ -117,7 +125,7 @@ export default function StageDropdown({
             <option value="">{disabled ? "—" : "Select Status"}</option>
             {statusOptions.map((opt) => (
               <option key={opt} value={opt}>
-                {opt}
+                {STATUS_DISPLAY_LABELS[opt] || opt}
               </option>
             ))}
           </select>

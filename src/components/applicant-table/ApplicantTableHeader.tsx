@@ -187,7 +187,7 @@ export const ApplicantTableHeader = ({
         {/* Final Decision Fields */}
         {isColumnVisible('offer_letter_status') && (
           <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
-            Offer Letter Status
+            Admission Letter Status
           </TableHead>
         )}
         {isColumnVisible('onboarded_status') && (
