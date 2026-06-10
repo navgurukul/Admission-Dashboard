@@ -72,6 +72,8 @@ export default function AdminView() {
   const { debouncedValue: debouncedInterviewSearch, isPending: isInterviewSearching } = useDebounce(interviewSearchTerm, 800);
   const [interviewStartDate, setInterviewStartDate] = useState("");
   const [interviewEndDate, setInterviewEndDate] = useState("");
+  const [interviewStartTime, setInterviewStartTime] = useState("");
+  const [interviewEndTime, setInterviewEndTime] = useState("");
   const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
   const [interviewStatusFilter, setInterviewStatusFilter] = useState("");
   const [isInterviewFilterModalOpen, setIsInterviewFilterModalOpen] = useState(false);
@@ -81,6 +83,8 @@ export default function AdminView() {
   const { debouncedValue: debouncedSlotSearch, isPending: isSlotSearching } = useDebounce(slotSearchTerm, 800);
   const [slotDateFilter, setSlotDateFilter] = useState("");
   const [slotTypeFilter, setSlotTypeFilter] = useState("");
+  const [slotStartTime, setSlotStartTime] = useState("");
+  const [slotEndTime, setSlotEndTime] = useState("");
   const [isSlotFilterModalOpen, setIsSlotFilterModalOpen] = useState(false);
 
   // Filter states for my interviews
@@ -117,21 +121,15 @@ export default function AdminView() {
   useEffect(() => {
     if (activeTab !== "interviews") return;
 
-    // Only fetch if both dates are selected or both are empty (prevent API call during date selection)
-    const bothDatesSelected = interviewStartDate && interviewEndDate;
-    const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
-
-    if (bothDatesSelected || bothDatesEmpty) {
-      fetchInterviews();
-    }
-  }, [activeTab, interviewCurrentPage, interviewStartDate, interviewEndDate, debouncedInterviewSearch, interviewSlotTypeFilter, interviewStatusFilter, itemsPerPage]);
+    fetchInterviews();
+  }, [activeTab, interviewCurrentPage, interviewStartDate, interviewEndDate, interviewStartTime, interviewEndTime, debouncedInterviewSearch, interviewSlotTypeFilter, interviewStatusFilter, itemsPerPage]);
 
   // Only fetch slots when slots tab is active
   useEffect(() => {
     if (activeTab !== "slots") return;
 
     fetchSlots();
-  }, [activeTab, slotCurrentPage, slotDateFilter, debouncedSlotSearch, slotTypeFilter, itemsPerPage]);
+  }, [activeTab, slotCurrentPage, slotDateFilter, slotStartTime, slotEndTime, debouncedSlotSearch, slotTypeFilter, itemsPerPage]);
 
   // Optimized fetch: Only fetch my interviews when my-interviews tab is active
   useEffect(() => {
@@ -142,21 +140,17 @@ export default function AdminView() {
 
   // Reset to page 1 when search or filters change for interviews
   useEffect(() => {
-    // Only reset if both dates are selected or both are empty (prevent reset during date selection)
-    const bothDatesSelected = interviewStartDate && interviewEndDate;
-    const bothDatesEmpty = !interviewStartDate && !interviewEndDate;
-
-    if (activeTab === "interviews" && interviewCurrentPage !== 1 && (bothDatesSelected || bothDatesEmpty)) {
+    if (activeTab === "interviews" && interviewCurrentPage !== 1) {
       setInterviewCurrentPage(1);
     }
-  }, [debouncedInterviewSearch, interviewStartDate, interviewEndDate, interviewSlotTypeFilter, interviewStatusFilter]);
+  }, [debouncedInterviewSearch, interviewStartDate, interviewEndDate, interviewStartTime, interviewEndTime, interviewSlotTypeFilter, interviewStatusFilter]);
 
   // Reset to page 1 when search or filters change for slots
   useEffect(() => {
     if (activeTab === "slots" && slotCurrentPage !== 1) {
       setSlotCurrentPage(1);
     }
-  }, [debouncedSlotSearch, slotDateFilter, slotTypeFilter]);
+  }, [debouncedSlotSearch, slotDateFilter, slotStartTime, slotEndTime, slotTypeFilter]);
 
   const fetchInterviews = async () => {
     try {
@@ -164,15 +158,23 @@ export default function AdminView() {
 
       // Trim the search query and only pass it if it's not empty
       const trimmedSearch = debouncedInterviewSearch?.trim() || "";
-      // Only apply date filter if both dates are selected or both are empty
-      const shouldApplyDateFilter = (interviewStartDate && interviewEndDate) || (!interviewStartDate && !interviewEndDate);
+      const hasTimeFilter = interviewStartTime || interviewEndTime;
+      // When both dates selected → date range mode: ?startDate=...&endDate=...
+      // When only one date (with or without time filter) → single date mode: ?date=...
+      const shouldApplyDateRange = interviewStartDate && interviewEndDate;
+      const onlySingleDate = interviewStartDate && !interviewEndDate;
 
       const response = await getAllInterviewSchedules({
         page: interviewCurrentPage,
         pageSize: itemsPerPage,
         slot_type: interviewSlotTypeFilter && interviewSlotTypeFilter !== 'all' ? interviewSlotTypeFilter : undefined,
-        startDate: shouldApplyDateFilter && interviewStartDate ? interviewStartDate : undefined,
-        endDate: shouldApplyDateFilter && interviewEndDate ? interviewEndDate : undefined,
+        // Single date mode (from date only, with or without time filter)
+        date: onlySingleDate ? interviewStartDate : undefined,
+        // Date range mode (both dates selected)
+        startDate: shouldApplyDateRange ? interviewStartDate : undefined,
+        endDate: shouldApplyDateRange ? interviewEndDate : undefined,
+        startTime: interviewStartTime || undefined,
+        endTime: interviewEndTime || undefined,
         search: trimmedSearch || undefined,
         status: interviewStatusFilter && interviewStatusFilter !== 'all' ? interviewStatusFilter : undefined,
       });
@@ -200,26 +202,54 @@ export default function AdminView() {
     try {
       setSlotsLoading(true);
 
-      // Trim the search query and only pass it if it's not empty
       const trimmedSearch = debouncedSlotSearch?.trim() || "";
+      const hasTimeFilter = slotStartTime || slotEndTime;
 
+      // When time filter is active, fetch all slots for the date so client-side
+      // filtering works correctly across all pages (backend doesn't support time params)
       const response = await getAllSlots({
-        page: slotCurrentPage,
-        pageSize: itemsPerPage,
+        page: hasTimeFilter ? 1 : slotCurrentPage,
+        pageSize: hasTimeFilter ? 1000 : itemsPerPage,
         slot_type: slotTypeFilter && slotTypeFilter !== 'all' ? slotTypeFilter : undefined,
         date: slotDateFilter || undefined,
         search: trimmedSearch || undefined,
       });
 
-      if (response.success && response.data) {
-        setSlots(response.data || []);
+      const fetchedSlots = response.success && response.data ? response.data : [];
+
+      if (!hasTimeFilter) {
+        setSlots(fetchedSlots);
         setSlotTotalPages(response.totalPages || 1);
         setSlotTotalCount(response.total || 0);
-      } else {
-        setSlots([]);
-        setSlotTotalPages(1);
-        setSlotTotalCount(0);
+        return;
       }
+
+      // Client-side time filtering
+      const toMinutes = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      };
+      const allFiltered = fetchedSlots.filter((slot: any) => {
+        const slotStart = toMinutes(slot.start_time);
+        const slotEnd = toMinutes(slot.end_time);
+        if (slotStartTime && slotEndTime) {
+          return slotStart >= toMinutes(slotStartTime) && slotEnd <= toMinutes(slotEndTime);
+        }
+        if (slotStartTime) return slotStart >= toMinutes(slotStartTime);
+        if (slotEndTime) return slotEnd <= toMinutes(slotEndTime);
+        return true;
+      });
+
+      // Manual pagination on the filtered result
+      const totalFiltered = allFiltered.length;
+      const totalPagesFiltered = Math.max(1, Math.ceil(totalFiltered / itemsPerPage));
+      const safePage = Math.min(slotCurrentPage, totalPagesFiltered);
+      const start = (safePage - 1) * itemsPerPage;
+      const pageSlots = allFiltered.slice(start, start + itemsPerPage);
+
+      setSlots(pageSlots);
+      setSlotTotalPages(totalPagesFiltered);
+      setSlotTotalCount(totalFiltered);
     } catch (error) {
       console.error("Error fetching slots:", error);
       setSlots([]);
@@ -433,11 +463,13 @@ export default function AdminView() {
 
   const hasInterviewFilters =
     Boolean(interviewStartDate || interviewEndDate) ||
+    Boolean(interviewStartTime || interviewEndTime) ||
     (Boolean(interviewSlotTypeFilter) && interviewSlotTypeFilter !== "all") ||
     (Boolean(interviewStatusFilter) && interviewStatusFilter !== "all");
 
   const hasSlotFilters =
     Boolean(slotDateFilter) ||
+    Boolean(slotStartTime || slotEndTime) ||
     (Boolean(slotTypeFilter) && slotTypeFilter !== "all");
 
   const createdSlotsGuideSteps =
@@ -675,12 +707,30 @@ export default function AdminView() {
                             onClick={() => {
                               setInterviewStartDate("");
                               setInterviewEndDate("");
+                              setInterviewStartTime("");
+                              setInterviewEndTime("");
                             }}
                           >
                             <span>
                               Date: {interviewStartDate && new Date(interviewStartDate).toLocaleDateString('en-GB')} 
                               {interviewStartDate && interviewEndDate && ' → '}
                               {interviewEndDate && new Date(interviewEndDate).toLocaleDateString('en-GB')}
+                            </span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
+                        {(interviewStartTime || interviewEndTime) && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => {
+                              setInterviewStartTime("");
+                              setInterviewEndTime("");
+                            }}
+                          >
+                            <span>
+                              Time: {interviewStartTime || "--"} → {interviewEndTime || "--"}
                             </span>
                             <X className="w-3 h-3" />
                           </Button>
@@ -692,6 +742,8 @@ export default function AdminView() {
                           onClick={() => {
                             setInterviewStartDate("");
                             setInterviewEndDate("");
+                            setInterviewStartTime("");
+                            setInterviewEndTime("");
                             setInterviewSlotTypeFilter("");
                             setInterviewStatusFilter("");
                           }}
@@ -924,9 +976,26 @@ export default function AdminView() {
                             size="sm"
                             variant="secondary"
                             className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
-                            onClick={() => setSlotDateFilter("")}
+                            onClick={() => {
+                              setSlotDateFilter("");
+                              setSlotStartTime("");
+                              setSlotEndTime("");
+                            }}
                           >
                             <span>Date: {new Date(slotDateFilter).toLocaleDateString('en-GB')}</span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
+                        {(slotStartTime || slotEndTime) && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => { setSlotStartTime(""); setSlotEndTime(""); }}
+                          >
+                            <span>
+                              Time: {slotStartTime && slotStartTime}{slotStartTime && slotEndTime && ' → '}{slotEndTime && slotEndTime}
+                            </span>
                             <X className="w-3 h-3" />
                           </Button>
                         )}
@@ -937,6 +1006,8 @@ export default function AdminView() {
                           onClick={() => {
                             setSlotDateFilter("");
                             setSlotTypeFilter("");
+                            setSlotStartTime("");
+                            setSlotEndTime("");
                           }}
                         >
                           <X className="w-3 h-3" />
@@ -1269,12 +1340,16 @@ export default function AdminView() {
           status: interviewStatusFilter,
           startDate: interviewStartDate,
           endDate: interviewEndDate,
+          startTime: interviewStartTime,
+          endTime: interviewEndTime,
         }}
         onApplyFilters={(filters) => {
           setInterviewSlotTypeFilter(filters.slotType);
           setInterviewStatusFilter(filters.status);
           setInterviewStartDate(filters.startDate);
           setInterviewEndDate(filters.endDate);
+          setInterviewStartTime(filters.startTime);
+          setInterviewEndTime(filters.endTime);
         }}
       />
       <CreatedSlotsFilterModal
@@ -1283,10 +1358,14 @@ export default function AdminView() {
         currentFilters={{
           slotType: slotTypeFilter,
           date: slotDateFilter,
+          startTime: slotStartTime,
+          endTime: slotEndTime,
         }}
         onApplyFilters={(filters) => {
           setSlotTypeFilter(filters.slotType);
           setSlotDateFilter(filters.date);
+          setSlotStartTime(filters.startTime);
+          setSlotEndTime(filters.endTime);
         }}
       />
     </div >
