@@ -88,6 +88,9 @@ const Schedule = () => {
   const [allSlots, setAllSlots] = useState<SlotData[]>([]); // Store all slots
   const [selectedDate, setSelectedDate] = useState<string>(""); // Empty means show all
   const [selectedStatus, setSelectedStatus] = useState<string>(""); // New state for status filter
+  const [selectedSlotType, setSelectedSlotType] = useState<string>("");
+  const [selectedStartTime, setSelectedStartTime] = useState<string>("");
+  const [selectedEndTime, setSelectedEndTime] = useState<string>("");
   const [isAvailableSlotsFilterModalOpen, setIsAvailableSlotsFilterModalOpen] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,7 +127,7 @@ const Schedule = () => {
 
   useEffect(() => {
     fetchAllAvailableSlots(currentPage);
-  }, [currentPage, selectedDate, selectedStatus, debouncedSearchTerm, pageSize]);
+  }, [currentPage, selectedDate, selectedStatus, selectedSlotType, selectedStartTime, selectedEndTime, debouncedSearchTerm, pageSize]);
 
   // Reset to page 1 when pageSize changes
   useEffect(() => {
@@ -138,11 +141,15 @@ const Schedule = () => {
     try {
       setLoadingSlots(true);
 
-      // 1. Fetch paginated slots for the table
+      const hasTimeFilter = selectedStartTime || selectedEndTime;
+
+      // When time filter is active, fetch all slots for the date so client-side
+      // filtering works correctly across all pages (backend doesn't support time params)
       const response = await getAllSlots({
-        page,
-        pageSize,
+        page: hasTimeFilter ? 1 : page,
+        pageSize: hasTimeFilter ? 1000 : pageSize,
         date: selectedDate || undefined,
+        slot_type: selectedSlotType || undefined,
         status: selectedStatus || undefined,
         search: debouncedSearchTerm || undefined
       });
@@ -152,10 +159,40 @@ const Schedule = () => {
         ? response.data
         : (response as any)?.data?.data || (response as any)?.data || [];
 
-      // Show all slots without filtering
-      setAvailableSlots(fetchedSlots);
-      setAllSlots(fetchedSlots);
-      setTotalPages(response?.totalPages || 1);
+      if (!hasTimeFilter) {
+        setAvailableSlots(fetchedSlots);
+        setAllSlots(fetchedSlots);
+        setTotalPages(response?.totalPages || 1);
+        setSelectedSlotIds([]);
+        return;
+      }
+
+      // Client-side time filtering
+      const toMinutes = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      };
+      const allFiltered = fetchedSlots.filter((slot: any) => {
+        const slotStart = toMinutes(slot.start_time);
+        const slotEnd = toMinutes(slot.end_time);
+        if (selectedStartTime && selectedEndTime) {
+          return slotStart >= toMinutes(selectedStartTime) && slotEnd <= toMinutes(selectedEndTime);
+        }
+        if (selectedStartTime) return slotStart >= toMinutes(selectedStartTime);
+        if (selectedEndTime) return slotEnd <= toMinutes(selectedEndTime);
+        return true;
+      });
+
+      // Manual pagination on the filtered result
+      const totalFiltered = allFiltered.length;
+      const totalPagesFiltered = Math.max(1, Math.ceil(totalFiltered / pageSize));
+      const safePage = Math.min(page, totalPagesFiltered);
+      const start = (safePage - 1) * pageSize;
+      const pageSlots = allFiltered.slice(start, start + pageSize);
+
+      setAvailableSlots(pageSlots);
+      setAllSlots(allFiltered);
+      setTotalPages(totalPagesFiltered);
       setSelectedSlotIds([]);
 
     } catch (error) {
@@ -451,7 +488,7 @@ const Schedule = () => {
     {} as Record<string, SlotData[]>,
   );
 
-  const hasAvailableSlotFilters = Boolean(selectedDate || selectedStatus);
+  const hasAvailableSlotFilters = Boolean(selectedDate || selectedStatus || selectedSlotType || selectedStartTime || selectedEndTime);
 
   return (
     <div className="min-h-screen bg-background">
@@ -723,6 +760,20 @@ const Schedule = () => {
               </div>
               {hasAvailableSlotFilters && (
                 <div className="flex flex-wrap gap-2 mt-3">
+                  {selectedSlotType && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                      onClick={() => {
+                        setSelectedSlotType("");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <span>Slot Type: {selectedSlotType === "LR" ? "LR (Learning Round)" : "CFR (Culture Fit)"}</span>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
                   {selectedDate && (
                     <Button
                       size="sm"
@@ -730,6 +781,8 @@ const Schedule = () => {
                       className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
                       onClick={() => {
                         setSelectedDate("");
+                        setSelectedStartTime("");
+                        setSelectedEndTime("");
                         setCurrentPage(1);
                       }}
                     >
@@ -751,6 +804,23 @@ const Schedule = () => {
                       <X className="w-3 h-3" />
                     </Button>
                   )}
+                  {(selectedStartTime || selectedEndTime) && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                      onClick={() => {
+                        setSelectedStartTime("");
+                        setSelectedEndTime("");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <span>
+                        Time: {selectedStartTime && selectedStartTime}{selectedStartTime && selectedEndTime && ' → '}{selectedEndTime && selectedEndTime}
+                      </span>
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
@@ -758,6 +828,9 @@ const Schedule = () => {
                     onClick={() => {
                       setSelectedDate("");
                       setSelectedStatus("");
+                      setSelectedSlotType("");
+                      setSelectedStartTime("");
+                      setSelectedEndTime("");
                       setCurrentPage(1);
                     }}
                   >
@@ -1096,10 +1169,16 @@ const Schedule = () => {
         currentFilters={{
           date: selectedDate,
           status: selectedStatus,
+          slotType: selectedSlotType,
+          startTime: selectedStartTime,
+          endTime: selectedEndTime,
         }}
         onApplyFilters={(filters) => {
           setSelectedDate(filters.date);
           setSelectedStatus(filters.status);
+          setSelectedSlotType(filters.slotType);
+          setSelectedStartTime(filters.startTime);
+          setSelectedEndTime(filters.endTime);
           setCurrentPage(1);
         }}
       />

@@ -22,6 +22,8 @@ interface ScheduledInterviewFilterState {
   status: string;
   startDate: string;
   endDate: string;
+  startTime: string;
+  endTime: string;
 }
 
 interface ScheduledInterviewFilterModalProps {
@@ -56,6 +58,8 @@ export function ScheduledInterviewFilterModal({
       status: "",
       startDate: "",
       endDate: "",
+      startTime: "",
+      endTime: "",
     });
   };
 
@@ -132,7 +136,12 @@ export function ScheduledInterviewFilterModal({
                 type="date"
                 value={filters.startDate}
                 onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, startDate: e.target.value }))
+                  setFilters((prev) => ({
+                    ...prev,
+                    startDate: e.target.value,
+                    // Clear time filters if from date is cleared
+                    ...(!e.target.value && { startTime: "", endTime: "" }),
+                  }))
                 }
               />
             </div>
@@ -150,15 +159,51 @@ export function ScheduledInterviewFilterModal({
               />
             </div>
           </div>
+
+          {filters.startDate && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-time-filter" className="text-sm font-medium">
+                  Start Time
+                </Label>
+                <Input
+                  id="start-time-filter"
+                  type="time"
+                  value={filters.startTime}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, startTime: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-time-filter" className="text-sm font-medium">
+                  End Time
+                </Label>
+                <Input
+                  id="end-time-filter"
+                  type="time"
+                  value={filters.endTime}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, endTime: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
+        <DialogFooter className="flex items-center justify-between sm:justify-between">
+          <Button variant="ghost" onClick={handleClearAll} className="text-muted-foreground">
+            Clear All
           </Button>
-          <Button onClick={handleApply}>
-            Apply Filters
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleApply}>
+              Apply Filters
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
