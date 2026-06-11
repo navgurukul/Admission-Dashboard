@@ -21,11 +21,11 @@ const OfferLetterTemplates = () => {
                   <div className="space-y-2">
                     <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm">
                       <Sparkles className="h-3.5 w-3.5" />
-                      Offer Letter Studio
+                      Admission Letter Studio
                     </div>
                     <div>
                       <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-                        Offer Letter Templates
+                        Admission Letter Templates
                       </h1>
                       <p className="mt-2 max-w-2xl text-sm md:text-base text-white/80">
                         Create polished campus-wise HTML templates and placeholders with a cleaner, faster editor.

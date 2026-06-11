@@ -58,14 +58,14 @@ const STAGE_STATUS_OPTIONS = {
     { value: "rescheduled", label: "Rescheduled" },
     { value: "lr_qualified", label: "LR Qualified" },
     { value: "lr_failed", label: "LR Failed" },
-    { value: "offer_pending", label: "Offer Pending" },
+    { value: "offer_pending", label: "Admission Letter Pending" },
     { value: "cfr_failed", label: "CFR Failed" },
   ],
   decision: [
-    { value: "offer_pending", label: "Offer Pending" },
-    { value: "offer_sent", label: "Offer Sent" },
-    { value: "offer_rejected", label: "Offer Rejected" },
-    { value: "offer_accepted", label: "Offer Accepted" },
+    { value: "offer_pending", label: "Admission Letter Pending" },
+    { value: "offer_sent", label: "Admission Letter Sent" },
+    { value: "offer_rejected", label: "Admission Rejected" },
+    { value: "offer_accepted", label: "Admission Letter Accepted" },
   ],
 };
 

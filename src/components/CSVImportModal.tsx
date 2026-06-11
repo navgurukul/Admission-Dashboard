@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,13 +11,28 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Download } from "lucide-react";
+import { Download, FileSpreadsheet, Eye } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import { bulkUploadStudents } from "@/utils/api";
 import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface CSVImportModalProps {
   isOpen: boolean;
@@ -187,6 +202,13 @@ const CSVImportModal = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
+  const [csvPreviewData, setCsvPreviewData] = useState<{ headers: string[]; rows: string[][] } | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewPage, setPreviewPage] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const ROWS_PER_PAGE = 20;
+
   useEffect(() => {
     if (isOpen) {
       setCsvFile(null);
@@ -198,8 +220,24 @@ const CSVImportModal = ({
       setRowErrors([]);
       setUploadProgress(0);
       setIsProcessing(false);
+      setCsvPreviewData(null);
+      setIsPreviewOpen(false);
+      setPreviewPage(0);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   }, [isOpen]);
+
+  const getColLetter = (index: number): string => {
+    let temp = index;
+    let letter = "";
+    while (temp >= 0) {
+      letter = String.fromCharCode((temp % 26) + 65) + letter;
+      temp = Math.floor(temp / 26) - 1;
+    }
+    return letter;
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
@@ -209,10 +247,39 @@ const CSVImportModal = ({
     setFailedCount(0);
     setRowErrors([]);
     setUploadProgress(0);
+    setCsvPreviewData(null);
+    setIsPreviewOpen(false);
 
     const file = event.target.files && event.target.files[0];
-    if (file && file.type === "text/csv") {
+    if (file && (file.type === "text/csv" || file.name.endsWith(".csv"))) {
       setCsvFile(file);
+      
+      Papa.parse(file, {
+        header: false,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const data = results.data as string[][];
+          if (data && data.length > 0) {
+            // Filter out empty rows
+            const filteredData = data.filter(row => row.some(cell => cell && cell.trim() !== ""));
+            if (filteredData.length > 0) {
+              const headers = filteredData[0];
+              const rows = filteredData.slice(1);
+              setCsvPreviewData({ headers, rows });
+              setPreviewPage(0);
+              setIsPreviewOpen(true);
+            } else {
+              setError("The CSV file is empty.");
+            }
+          } else {
+            setError("No data found in the CSV file.");
+          }
+        },
+        error: (err) => {
+          console.error("Error parsing CSV for preview:", err);
+          setError("Failed to parse the CSV file for preview.");
+        }
+      });
     } else {
       setCsvFile(null);
       setError("Please select a valid CSV file.");
@@ -593,7 +660,7 @@ const CSVImportModal = ({
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               • <strong>Full Student Data:</strong> Create new students with complete information<br/>
-              • <strong>Sessions Update:</strong> Update existing students' stages and offer letter updates based on their email addresses.
+              • <strong>Sessions Update:</strong> Update existing students' stages and Admission letter updates based on their email addresses.
             </p>
           </div>
 
@@ -612,13 +679,28 @@ const CSVImportModal = ({
             <Label htmlFor="file" className="text-right">
               CSV File
             </Label>
-            <Input
-              type="file"
-              id="file"
-              className="col-span-3"
-              accept=".csv"
-              onChange={handleFileChange}
-            />
+            <div className="col-span-3 flex items-center gap-2">
+              <Input
+                type="file"
+                id="file"
+                ref={fileInputRef}
+                className="flex-1"
+                accept=".csv"
+                onChange={handleFileChange}
+              />
+              {csvFile && csvPreviewData && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 border-blue-200 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  onClick={() => setIsPreviewOpen(true)}
+                  title="Show Preview"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {error && (
@@ -706,6 +788,171 @@ const CSVImportModal = ({
           {isProcessing ? "Importing..." : "Import"}
         </Button>
         </div>
+
+        <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <SheetContent side="bottom" className="h-[85vh] max-h-[85vh] flex flex-col p-0 z-[100] overflow-hidden gap-0">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b p-4 sm:p-6 bg-muted/10 shrink-0 gap-4">
+              <div className="space-y-1">
+                <SheetHeader className="text-left">
+                  <SheetTitle className="flex items-center gap-2 text-xl font-bold">
+                    <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+                    CSV File Preview
+                  </SheetTitle>
+                  <SheetDescription className="text-xs sm:text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-medium text-foreground max-w-[200px] truncate" title={csvFile?.name}>
+                      {csvFile?.name}
+                    </span>
+                    <span className="text-muted-foreground/50">|</span>
+                    <span>{(csvFile ? csvFile.size / 1024 : 0).toFixed(1)} KB</span>
+                    <span className="text-muted-foreground/50">|</span>
+                    <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+                      {csvPreviewData?.rows.length} Rows
+                    </span>
+                    <span className="text-muted-foreground/50">|</span>
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+                      {csvPreviewData?.headers.length} Columns
+                    </span>
+                  </SheetDescription>
+                </SheetHeader>
+              </div>
+              
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = "";
+                    }
+                    fileInputRef.current?.click();
+                  }}
+                  className="text-xs flex items-center gap-1.5"
+                >
+                  Change File
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="text-xs"
+                >
+                  Close Preview
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setIsPreviewOpen(false);
+                    handleParse();
+                  }}
+                  disabled={isProcessing}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs flex items-center gap-1.5 shadow-sm"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="animate-spin h-3.5 w-3.5" />
+                  ) : (
+                    <CheckCircle className="h-3.5 w-3.5" />
+                  )}
+                  Import This File
+                </Button>
+              </div>
+            </div>
+
+            {/* Grid Preview Area */}
+            <div className="flex-1 overflow-hidden p-4 sm:p-6 bg-slate-50/50 flex flex-col min-h-0 gap-3">
+
+              {/* Pagination Controls */}
+              {csvPreviewData && (
+                <div className="flex items-center justify-between shrink-0 px-1">
+                  <p className="text-xs text-muted-foreground">
+                    Showing rows{" "}
+                    <span className="font-semibold text-foreground">
+                      {previewPage * ROWS_PER_PAGE + 1}
+                    </span>{" "}–{" "}
+                    <span className="font-semibold text-foreground">
+                      {Math.min((previewPage + 1) * ROWS_PER_PAGE, csvPreviewData.rows.length)}
+                    </span>{" "}of{" "}
+                    <span className="font-semibold text-foreground">
+                      {csvPreviewData.rows.length}
+                    </span>{" "}total rows
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7 px-3"
+                      disabled={previewPage === 0}
+                      onClick={() => setPreviewPage(p => Math.max(0, p - 1))}
+                    >
+                      ← Previous
+                    </Button>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Page {previewPage + 1} / {Math.ceil(csvPreviewData.rows.length / ROWS_PER_PAGE)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7 px-3"
+                      disabled={(previewPage + 1) * ROWS_PER_PAGE >= csvPreviewData.rows.length}
+                      onClick={() => setPreviewPage(p => p + 1)}
+                    >
+                      Next →
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex-1 overflow-auto border rounded-xl shadow-md bg-background relative min-h-0">
+                {csvPreviewData && (
+                  <Table className="border-collapse min-w-full">
+                    <TableHeader className="sticky top-0 bg-muted/90 backdrop-blur-md z-20">
+                      <TableRow className="hover:bg-transparent">
+                        {/* Top-Left Corner Index Cell */}
+                        <TableHead className="border border-border p-2 bg-muted font-mono text-[10px] text-muted-foreground text-center sticky left-0 top-0 z-30 w-12 min-w-[48px] shadow-[right_1px_0_0_0_rgba(0,0,0,0.1),bottom_1px_0_0_0_rgba(0,0,0,0.1)]">
+                          #
+                        </TableHead>
+                        {csvPreviewData.headers.map((header, idx) => (
+                          <TableHead key={idx} className="border border-border p-2 bg-muted text-xs font-semibold text-left whitespace-nowrap min-w-[150px] shadow-[bottom_1px_0_0_0_rgba(0,0,0,0.1)]">
+                            <div className="text-[9px] text-muted-foreground/75 font-mono uppercase tracking-wider mb-0.5">
+                              {getColLetter(idx)}
+                            </div>
+                            <div className="font-semibold text-foreground truncate" title={header}>
+                              {header}
+                            </div>
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {csvPreviewData.rows
+                        .slice(previewPage * ROWS_PER_PAGE, (previewPage + 1) * ROWS_PER_PAGE)
+                        .map((row, rowIdx) => {
+                          const absoluteRowIdx = previewPage * ROWS_PER_PAGE + rowIdx;
+                          return (
+                            <TableRow key={absoluteRowIdx} className="hover:bg-muted/30 even:bg-muted/10 transition-colors">
+                              {/* Sticky Row Index Cell */}
+                              <TableCell className="border border-border p-2 bg-muted/80 backdrop-blur-sm font-mono text-xs text-muted-foreground text-center sticky left-0 z-10 w-12 min-w-[48px] shadow-[right_1px_0_0_0_rgba(0,0,0,0.1)] font-medium">
+                                {absoluteRowIdx + 1}
+                              </TableCell>
+                              {csvPreviewData.headers.map((_, colIdx) => {
+                                const cellValue = row[colIdx] !== undefined ? row[colIdx] : "";
+                                return (
+                                  <TableCell key={colIdx} className="border border-border p-2 text-xs truncate max-w-[200px]" title={cellValue}>
+                                    {cellValue}
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          );
+                        })
+                      }
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
       </DialogContent>
     </Dialog>
   );

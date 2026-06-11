@@ -92,7 +92,7 @@ export const navigation: NavigationItem[] = [
     allowedRoles: [1, 3],
   },
   {
-    name: "Offer Letter Templates",
+    name: "Admission Letter Templates",
     href: "/offer-letter-templates",
     icon: FileText,
     component: OfferLetterTemplates,

@@ -3039,9 +3039,11 @@ export const getAllInterviewSchedules = async (params: {
   page?: number;
   pageSize?: number;
   slot_type?: 'LR' | 'CFR' | string;
-  // date?: string;
-  startDate?: string;
-  endDate?: string;
+  date?: string;       // single date for time-range filter: ?date=YYYY-MM-DD&startTime=...&endTime=...
+  startDate?: string;  // start of date range filter
+  endDate?: string;    // end of date range filter
+  startTime?: string;
+  endTime?: string;
   search?: string;
   status?: string;
 }): Promise<InterviewScheduleResponse> => {
@@ -3050,9 +3052,11 @@ export const getAllInterviewSchedules = async (params: {
   if (params.page) queryParams.append('page', params.page.toString());
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
-  // if (params.date) queryParams.append('date', params.date);
-   if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.date) queryParams.append('date', params.date);
+  if (params.startDate) queryParams.append('startDate', params.startDate);
   if (params.endDate) queryParams.append('endDate', params.endDate);
+  if (params.startTime) queryParams.append('startTime', params.startTime);
+  if (params.endTime) queryParams.append('endTime', params.endTime);
   if (params.search) queryParams.append('search', params.search);
   if (params.status) queryParams.append('status', params.status);
 
@@ -3089,6 +3093,8 @@ export const getAllSlots = async (params: {
   pageSize?: number;
   slot_type?: 'LR' | 'CFR' | string;
   date?: string;
+  startTime?: string;
+  endTime?: string;
   status?: string;
   search?: string;
 }): Promise<SlotsResponse> => {
@@ -3098,6 +3104,8 @@ export const getAllSlots = async (params: {
   if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
   if (params.slot_type) queryParams.append('slot_type', params.slot_type);
   if (params.date) queryParams.append('date', params.date);
+  if (params.startTime) queryParams.append('startTime', params.startTime);
+  if (params.endTime) queryParams.append('endTime', params.endTime);
   if (params.status) queryParams.append('status', params.status);
   if (params.search) queryParams.append('search', params.search);
 

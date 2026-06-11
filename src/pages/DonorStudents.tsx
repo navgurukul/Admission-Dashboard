@@ -83,7 +83,7 @@ const DonorStudents = () => {
             { id: 'lr_comments', label: 'LR Comments', visible: false },
             { id: 'cfr_status', label: 'CFR Status', visible: false },
             { id: 'cfr_comments', label: 'CFR Comments', visible: false },
-            { id: 'offer_letter_status', label: 'Offer Letter Status', visible: false },
+            { id: 'offer_letter_status', label: 'Admission Letter Status', visible: false },
             { id: 'onboarded_status', label: 'Onboarded Status', visible: false },
             { id: 'joining_date', label: 'Joining Date', visible: false },
             { id: 'campus', label: 'Campus', visible: false },
@@ -505,7 +505,7 @@ const DonorStudents = () => {
                                             {isColumnVisible('lr_comments') && <TableHead className="font-bold min-w-[150px]">LR Comments</TableHead>}
                                             {isColumnVisible('cfr_status') && <TableHead className="font-bold min-w-[100px]">CFR Status</TableHead>}
                                             {isColumnVisible('cfr_comments') && <TableHead className="font-bold min-w-[150px]">CFR Comments</TableHead>}
-                                            {isColumnVisible('offer_letter_status') && <TableHead className="font-bold min-w-[120px]">Offer Letter Status</TableHead>}
+                                            {isColumnVisible('offer_letter_status') && <TableHead className="font-bold min-w-[120px]">Admission Letter Status</TableHead>}
                                             {isColumnVisible('onboarded_status') && <TableHead className="font-bold min-w-[120px]">Onboarded Status</TableHead>}
                                             {isColumnVisible('final_notes') && <TableHead className="font-bold min-w-[150px]">Final Notes</TableHead>}
                                             {isColumnVisible('joining_date') && <TableHead className="font-bold min-w-[100px]">Joining Date</TableHead>}

@@ -316,7 +316,7 @@ export const OfferTemplateEditor = ({
                       Complete Package Template
                     </h4>
                     <p className="text-sm text-blue-700">
-                      This template will send the offer letter, consent form,
+                      This template will send the Admission letter, consent form,
                       and checklist together in a single email. Structure your
                       content with clear sections for each document type.
                     </p>
@@ -324,7 +324,7 @@ export const OfferTemplateEditor = ({
                       <strong>Suggested Structure:</strong>
                       <ul className="mt-2 space-y-1 text-blue-600">
                         <li>
-                          • <strong>Section 1:</strong> Offer Letter with
+                          • <strong>Section 1:</strong> Admission Letter with
                           admission details
                         </li>
                         <li>

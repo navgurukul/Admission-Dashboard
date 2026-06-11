@@ -1197,7 +1197,7 @@ Interviewer: ${interviewerName}`;
     if (!currentApplicant.campus_id) {
       toast({
         title: "⚠️ Campus Required",
-        description: "Please select a campus before proceeding with the offer letter status.",
+        description: "Please select a campus before proceeding with the admission letter status.",
         variant: "destructive",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
@@ -1214,6 +1214,12 @@ Interviewer: ${interviewerName}`;
         duration: 6000,
       });
       return; // Don't proceed with the update
+    }
+
+    if (value === "manually_sent") {
+      // Manually Sent (e.g., via WhatsApp) - no email check needed, proceed directly
+      await handleFinalDecisionUpdate("offer_letter_status", value);
+      return;
     }
 
     if (value === "Offer Sent") {
@@ -1266,8 +1272,8 @@ Interviewer: ${interviewerName}`;
             }));
           } else {
             toast({
-              title: "Unable to Send Offer Letter",
-              description: "This student does not have an email address. Please add an email address before sending the offer letter.",
+              title: "Unable to Send Admission Letter",
+              description: "This student does not have an email address. Please add an email address before sending the admission letter.",
               variant: "destructive",
               className: "border-red-500 bg-red-50 text-red-900",
             });
@@ -1276,8 +1282,8 @@ Interviewer: ${interviewerName}`;
         } catch (error) {
           console.error("Failed to verify student email before showing offer confirmation", error);
           toast({
-            title: "Unable to Send Offer Letter",
-            description: "This student does not have an email address. Please add an email address before sending the offer letter.",
+            title: "Unable to Send Admission Letter",
+            description: "This student does not have an email address. Please add an email address before sending the admission letter.",
             variant: "destructive",
             className: "border-red-500 bg-red-50 text-red-900",
           });
@@ -2814,11 +2820,11 @@ Interviewer: ${interviewerName}`;
                             className="h-6 px-2 text-[10px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm"
                             onClick={() => setShowTemplatesInfo(true)}
                           >
-                            Available Offer Letter Templates
+                            Available Admission Letter Templates
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>View available offer letter templates</p>
+                          <p>View available admission letter templates</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -2868,7 +2874,7 @@ Interviewer: ${interviewerName}`;
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Offer Letter Status
+                    Admission Letter Status
                   </label>
                   {isStageDisabled(currentApplicant, "OFFER") &&
                     !currentApplicant.final_decisions?.[0]
@@ -2891,16 +2897,20 @@ Interviewer: ${interviewerName}`;
                               options={[
                                 {
                                   value: "Offer Pending",
-                                  label: "Offer Pending",
+                                  label: "Admission Letter Pending",
                                 },
-                                { value: "Offer Sent", label: "Offer Sent" },
+                                { value: "Offer Sent", label: "Admission Letter Sent" },
+                                {
+                                  value: "manually_sent",
+                                  label: "Manually Sent (e.g., via WhatsApp)",
+                                },
                                 {
                                   value: "Offer Accepted",
-                                  label: "Offer Accepted",
+                                  label: "Admission Letter Accepted",
                                 },
                                 {
                                   value: "Offer Declined",
-                                  label: "Offer Declined",
+                                  label: "Admission Letter Declined",
                                 },
                                 { value: "Waitlisted", label: "Waitlisted" },
                                 {
@@ -2933,10 +2943,11 @@ Interviewer: ${interviewerName}`;
                           ?.offer_letter_status || ""
                       }
                       options={[
-                        { value: "Offer Pending", label: "Offer Pending" },
-                        { value: "Offer Sent", label: "Offer Sent" },
-                        { value: "Offer Accepted", label: "Offer Accepted" },
-                        { value: "Offer Declined", label: "Offer Declined" },
+                        { value: "Offer Pending", label: "Admission Letter Pending" },
+                        { value: "Offer Sent", label: "Admission Letter Sent" },
+                        { value: "manually_sent", label: "Manually Sent (e.g., via WhatsApp)" },
+                        { value: "Offer Accepted", label: "Admission Letter Accepted" },
+                        { value: "Offer Declined", label: "Admission Letter Declined" },
                         { value: "Waitlisted", label: "Waitlisted" },
                         {
                           value: "Selected but not joined",
@@ -3114,7 +3125,7 @@ Interviewer: ${interviewerName}`;
 
               {/* Audit Information - Below Final Note */}
               <div className="space-y-3 pt-4">
-                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Offer Letter</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Admission Letter</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
@@ -3223,9 +3234,9 @@ Interviewer: ${interviewerName}`;
       <AlertDialog open={showOfferSentConfirmation} onOpenChange={setShowOfferSentConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Offer Sent</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Admission Letter Sent</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to mark this offer as "Offer Sent"? This action will update the applicant's offer letter status.
+              Are you sure you want to mark this Admission Letter as "Admission Letter Sent"? This action will update the applicant's admission letter status.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -3288,10 +3299,10 @@ Interviewer: ${interviewerName}`;
           <DialogHeader className="pb-4 border-b">
             <DialogTitle className="text-xl font-bold flex items-center gap-2 text-black-700">
               <FileText className="h-5 w-5" />
-              Available Offer Letter Templates
+              Available Admission Letter Templates
             </DialogTitle>
             <DialogDescription className="text-gray-500 font-medium">
-              Campuses and schools with valid offer letter templates ready.
+              Campuses and schools with valid admission letter templates ready.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">

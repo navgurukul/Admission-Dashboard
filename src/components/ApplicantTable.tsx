@@ -149,7 +149,7 @@ const ApplicantTable = () => {
       { id: 'cfr_audit', label: 'CFR Audit', visible: false },
 
       // Final Decision Fields
-      { id: 'offer_letter_status', label: 'Offer Letter Status', visible: false },
+      { id: 'offer_letter_status', label: 'Admission Letter Status', visible: false },
       { id: 'onboarded_status', label: 'Onboarded Status', visible: false },
       { id: 'final_notes', label: 'Final Notes', visible: false },
       { id: 'joining_date', label: 'Joining Date', visible: false },
@@ -896,7 +896,7 @@ const ApplicantTable = () => {
     if (!selectedRows.length) {
       toast({
         title: "⚠️ No Selection",
-        description: "Please select applicants to send offer letters to",
+        description: "Please select applicants to send admission letters to",
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
@@ -934,7 +934,7 @@ const ApplicantTable = () => {
 
       toast({
         title: "⚠️ Students Not Eligible",
-        description: `${ineligibleStudents.length} of ${selectedStudents.length} selected students cannot receive offer letters:\n\n${ineligibleList}${
+        description: `${ineligibleStudents.length} of ${selectedStudents.length} selected students cannot receive admission letters:\n\n${ineligibleList}${
           moreCount > 0 ? `\n...and ${moreCount} more` : ""
         }\n\nPlease ensure all rounds are passed and campus is assigned.`,
         variant: "destructive",
@@ -1027,7 +1027,7 @@ const ApplicantTable = () => {
       console.error("Error sending bulk offer letters:", error);
 
       // Parse error message for better UX
-      let errorMessage = "Failed to send offer letters. Please try again.";
+      let errorMessage = "Failed to send admission letters. Please try again.";
 
       if (error?.message) {
         errorMessage = error.message;
@@ -1045,7 +1045,7 @@ const ApplicantTable = () => {
       }
 
       toast({
-        title: "❌ Unable to Send Offer Letters",
+        title: "❌ Unable to Send Admission Letters",
         description: getFriendlyErrorMessage(error),
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
@@ -2221,13 +2221,13 @@ const ApplicantTable = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Offer Letter Confirmation Dialog */}
+      {/* Admission Letter Confirmation Dialog */}
       <AlertDialog open={showBulkOfferConfirmation} onOpenChange={setShowBulkOfferConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Send Offer Letters</AlertDialogTitle>
+            <AlertDialogTitle>Send Admission Letters</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to send offer letters to {selectedRows.length} selected applicant
+              Are you sure you want to send admission letters to {selectedRows.length} selected applicant
               {selectedRows.length > 1 ? "s" : ""}? All selected students have campus assigned.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -2240,7 +2240,7 @@ const ApplicantTable = () => {
                 await handleSendBulkOfferLetters();
               }}
             >
-              Send Offer Letters
+              Send Admission Letters
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
