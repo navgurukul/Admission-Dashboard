@@ -2011,7 +2011,7 @@ const ApplicantTable = () => {
               />
             )}
             <TableActions
-              onCSVImport={hasEditAccess ? () => { ensureReferenceDataLoaded(); setShowCSVImport(true); } : undefined}
+              onCSVImport={hasEditAccess && !isTeamUser ? () => { ensureReferenceDataLoaded(); setShowCSVImport(true); } : undefined}
               onExportCSV={exportToCSV}
               onShowFilters={() => { setShowAdvancedFilters(true); }}
               onAddApplicant={canEditApplicantDetails ? () => { ensureReferenceDataLoaded(); setShowAddModal(true); } : undefined}
