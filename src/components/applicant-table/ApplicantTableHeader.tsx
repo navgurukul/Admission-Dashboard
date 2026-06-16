@@ -207,12 +207,12 @@ export const ApplicantTableHeader = ({
         )}
         {isColumnVisible('offer_sent_by') && (
           <TableHead className="font-bold min-w-[120px] max-w-[150px] px-3">
-            Offer Sent By
+            Admission Sent By
           </TableHead>
         )}
         {isColumnVisible('offer_audit') && (
           <TableHead className="font-bold min-w-[150px] max-w-[200px] px-3">
-            Offer Audit
+            Admission Audit
           </TableHead>
         )}
 
