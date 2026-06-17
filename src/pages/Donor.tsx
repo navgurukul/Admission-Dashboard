@@ -20,7 +20,8 @@ import { Button } from "@/components/ui/button";
 import {
   Users,
   Handshake,
-  Search,
+  Filter,
+  X,
   Plus,
   MoreVertical,
   Pencil,
@@ -49,8 +50,9 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 const DonorPage = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const { debouncedValue: debouncedSearchQuery, isPending: isSearching } = useDebounce(searchQuery, 800);
+  const [filterDialog, setFilterDialog] = useState(false);
+  const [filters, setFilters] = useState({ name: "", email: "" });
+  const [tempFilters, setTempFilters] = useState({ name: "", email: "" });
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalDonors, setTotalDonors] = useState(0);
@@ -89,15 +91,12 @@ const DonorPage = () => {
 
   useEffect(() => {
     loadDonors();
-  }, [page, rowsPerPage, debouncedSearchQuery]);
+  }, [page, rowsPerPage, filters]);
 
   const loadDonors = async () => {
     setLoading(true);
     try {
-      // Trim the search query and only pass it if it's not empty
-      const trimmedSearch = debouncedSearchQuery?.trim() || "";
-      
-      const response = await getDonors(page, rowsPerPage, trimmedSearch);
+      const response = await getDonors(page, rowsPerPage, filters.name.trim(), filters.email.trim());
 
       const donorsContainer = response?.data?.donors ?? response?.data;
       const donorList = donorsContainer?.data || [];
@@ -234,15 +233,15 @@ const DonorPage = () => {
     }
   };
 
-  // NOTE: Search is handled server-side via `getDonors(..., donor_name)` so we keep
-  // the list as-is to avoid showing misleading counts/pagination.
-
+  // Sync tempFilters when dialog opens
   useEffect(() => {
-    // Reset to page 1 when search query changes (so results start from first page)
-    if (page !== 1 && debouncedSearchQuery?.trim() !== searchQuery?.trim()) {
-      setPage(1);
-    }
-  }, [debouncedSearchQuery]);
+    if (filterDialog) setTempFilters(filters);
+  }, [filterDialog]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (page !== 1) setPage(1);
+  }, [filters]);
 
   useEffect(() => {
     // Reset to page 1 when rows per page changes
@@ -303,11 +302,15 @@ const DonorPage = () => {
                   <CardTitle>All Donors</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     {donors.length} {donors.length === 1 ? 'donor' : 'donors'} 
-                    {debouncedSearchQuery ? ' (Search)' : ' total'}
+                    {(filters.name || filters.email) ? ' (Filtered)' : ' total'}
                   </p>
                 </div>
-                {!isTeamUser && (
-                  <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                  <Button variant="outline" onClick={() => setFilterDialog(true)} size="sm" className="text-xs sm:text-sm">
+                    <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span>Filters</span>
+                  </Button>
+                  {!isTeamUser && (
                     <Button onClick={() => {
                       setFormData({
                         donor_name: "",
@@ -319,27 +322,52 @@ const DonorPage = () => {
                         donor_country: ""
                       });
                       setAddDialogOpen(true);
-                    }}>
+                    }} size="sm">
                       <Plus className="mr-2 h-4 w-4" /> Add Donor
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              {/* Search Bar & Active Filters */}
-              <div className="mb-4 space-y-3">
-                <div className="relative w-full">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search donors by name..."
-                    className="pl-9"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+              {/* Active Filter Chips */}
+              {(filters.name || filters.email) && (
+                <div className="mb-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {filters.name && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full py-1.5 px-3 flex items-center gap-2 border border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-100 hover:text-gray-700 h-auto whitespace-nowrap"
+                        onClick={() => setFilters(prev => ({ ...prev, name: "" }))}
+                      >
+                        <span className="text-xs">Name: {filters.name}</span>
+                        <X className="w-3 h-3 flex-shrink-0" />
+                      </Button>
+                    )}
+                    {filters.email && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full py-1.5 px-3 flex items-center gap-2 border border-gray-200 bg-gray-100 text-gray-700 hover:bg-gray-100 hover:text-gray-700 h-auto whitespace-nowrap"
+                        onClick={() => setFilters(prev => ({ ...prev, email: "" }))}
+                      >
+                        <span className="text-xs">Email: {filters.email}</span>
+                        <X className="w-3 h-3 flex-shrink-0" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFilters({ name: "", email: "" })}
+                      className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-50 hover:text-pink-800"
+                    >
+                      <X className="w-3 h-3" />
+                      Clear Filters
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -354,20 +382,20 @@ const DonorPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading || isSearching ? (
+                  {loading ? (
                     <TableRow>
                       <TableCell colSpan={isTeamUser ? 7 : 8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                          {isSearching ? "Searching..." : "Loading..."}
+                          Loading...
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : donors.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={isTeamUser ? 7 : 8} className="h-24 text-center text-muted-foreground">
-                        {debouncedSearchQuery 
-                          ? "No donors match your search." 
+                        {(filters.name || filters.email)
+                          ? "No donors match your filters."
                           : "No donors found."}
                       </TableCell>
                     </TableRow>
@@ -659,6 +687,37 @@ const DonorPage = () => {
           </form>
         </DialogContent>
       </Dialog >
+
+      {/* Filter Dialog */}
+      <Dialog open={filterDialog} onOpenChange={setFilterDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Filter Donors</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Name</Label>
+              <Input
+                value={tempFilters.name}
+                onChange={(e) => setTempFilters(f => ({ ...f, name: e.target.value }))}
+                placeholder="Filter by donor name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Email</Label>
+              <Input
+                value={tempFilters.email}
+                onChange={(e) => setTempFilters(f => ({ ...f, email: e.target.value }))}
+                placeholder="Filter by email"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFilterDialog(false)}>Cancel</Button>
+            <Button onClick={() => { setFilters(tempFilters); setFilterDialog(false); }}>Apply Filters</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
