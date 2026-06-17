@@ -22,6 +22,7 @@ import {
   Handshake,
   Filter,
   X,
+  Search,
   Plus,
   MoreVertical,
   Pencil,
@@ -50,6 +51,8 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 const DonorPage = () => {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { debouncedValue: debouncedSearchQuery, isPending: isSearching } = useDebounce(searchQuery, 800);
   const [filterDialog, setFilterDialog] = useState(false);
   const [filters, setFilters] = useState({ name: "", email: "" });
   const [tempFilters, setTempFilters] = useState({ name: "", email: "" });
@@ -91,12 +94,12 @@ const DonorPage = () => {
 
   useEffect(() => {
     loadDonors();
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, filters, debouncedSearchQuery]);
 
   const loadDonors = async () => {
     setLoading(true);
     try {
-      const response = await getDonors(page, rowsPerPage, filters.name.trim(), filters.email.trim());
+      const response = await getDonors(page, rowsPerPage, debouncedSearchQuery.trim() || filters.name.trim(), filters.email.trim());
 
       const donorsContainer = response?.data?.donors ?? response?.data;
       const donorList = donorsContainer?.data || [];
@@ -243,6 +246,11 @@ const DonorPage = () => {
     if (page !== 1) setPage(1);
   }, [filters]);
 
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    if (page !== 1) setPage(1);
+  }, [debouncedSearchQuery]);
+
   useEffect(() => {
     // Reset to page 1 when rows per page changes
     if (page !== 1) setPage(1);
@@ -330,6 +338,20 @@ const DonorPage = () => {
               </div>
             </CardHeader>
             <CardContent>
+              {/* Search Bar */}
+              <div className="mb-4">
+                <div className="relative w-full">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search donors by name..."
+                    className="pl-9"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
               {/* Active Filter Chips */}
               {(filters.name || filters.email) && (
                 <div className="mb-4">
@@ -382,20 +404,20 @@ const DonorPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {loading || isSearching ? (
                     <TableRow>
                       <TableCell colSpan={isTeamUser ? 7 : 8} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                          Loading...
+                          {isSearching ? "Searching..." : "Loading..."}
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : donors.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={isTeamUser ? 7 : 8} className="h-24 text-center text-muted-foreground">
-                        {(filters.name || filters.email)
-                          ? "No donors match your filters."
+                        {(filters.name || filters.email || searchQuery)
+                          ? "No donors match your search."
                           : "No donors found."}
                       </TableCell>
                     </TableRow>
