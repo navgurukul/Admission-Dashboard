@@ -144,6 +144,50 @@ const TestPage: React.FC = () => {
   const isSubmitting = useRef(false); // Track submission to prevent duplicates
   const hasShownToast = useRef(false); // Track if we've shown the toast
 
+  // ── Copy / Screenshot prevention ──────────────────────────────────────────
+  useEffect(() => {
+    // Block copy, cut, and select-all keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        (key === "c" || key === "x" || key === "a" || key === "u")
+      ) {
+        e.preventDefault();
+      }
+      // Block PrintScreen
+      if (key === "printscreen") {
+        e.preventDefault();
+      }
+    };
+
+    // Block right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    // Block copy / cut events
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
+    const handleCut = (e: ClipboardEvent) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("copy", handleCopy);
+    document.addEventListener("cut", handleCut);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("copy", handleCopy);
+      document.removeEventListener("cut", handleCut);
+    };
+  }, []);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const displayItems = useMemo<DisplayItem[]>(() => {
     const items: DisplayItem[] = [];
 
@@ -472,7 +516,12 @@ const TestPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
+    <div
+      className="min-h-screen student-bg-gradient flex items-center justify-center p-4 select-none"
+      onCopy={(e) => e.preventDefault()}
+      onCut={(e) => e.preventDefault()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
       <div className="bg-card rounded-2xl shadow-large p-8 w-full max-w-3xl flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">

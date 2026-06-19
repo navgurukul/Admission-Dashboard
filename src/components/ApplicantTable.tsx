@@ -95,7 +95,7 @@ const ApplicantTable = () => {
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<ColumnConfig[]>(() => {
     // Try to load from localStorage with versioning
-    const saved = localStorage.getItem('applicantTableColumns_v3');
+    const saved = localStorage.getItem('applicantTableColumns_v4');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -153,8 +153,8 @@ const ApplicantTable = () => {
       { id: 'onboarded_status', label: 'Onboarded Status', visible: false },
       { id: 'final_notes', label: 'Final Notes', visible: false },
       { id: 'joining_date', label: 'Joining Date', visible: false },
-      { id: 'offer_sent_by', label: 'Offer Sent By', visible: false },
-      { id: 'offer_audit', label: 'Offer Audit', visible: false },
+      { id: 'offer_sent_by', label: 'Admission Sent By', visible: false },
+      { id: 'offer_audit', label: 'Admission Audit', visible: false },
 
       // Stage & School
       { id: 'stage', label: 'Stage', visible: true },
@@ -173,7 +173,7 @@ const ApplicantTable = () => {
 
   // Clean up old localStorage keys on mount
   useEffect(() => {
-    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2'];
+    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2', 'applicantTableColumns_v3'];
     oldKeys.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
@@ -702,7 +702,7 @@ const ApplicantTable = () => {
           : col
       );
       // Save to localStorage with versioning
-      localStorage.setItem('applicantTableColumns_v3', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v4', JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -731,7 +731,7 @@ const ApplicantTable = () => {
           : { ...col, visible: false }; // All other columns hidden by default
       });
       // Save to localStorage
-      localStorage.setItem('applicantTableColumns_v3', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v4', JSON.stringify(updated));
       return updated;
     });
 

@@ -164,7 +164,7 @@ const referenceGuide: GuideItem[] = [
       "ExamStatus: Screening Test Pass, Screening Test Fail",
       "LearningRoundStatus: Learning Round Pass, Learning Round Fail",
       "CulturalFitStatus: Culture Fit Round Pass, Culture Fit Round Fail",
-      "OfferLetterStatus: Offer Sent, Offer Accepted, Offer Declined, Selected but not joined",
+      "OfferLetterStatus: Admission Letter Sent,Admission Letter Pending , Admission Letter Accepted, Admission Letter Declined, Selected but not joined",
       "OnboardedStatus: Onboarded",
     ],
   },
@@ -197,7 +197,7 @@ const CSVImportModal = ({
   const [successCount, setSuccessCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
-  const [rowErrors, setRowErrors] = useState<Array<{ row: number; identifier: string; error: string }>>([]);
+  const [rowErrors, setRowErrors] = useState<Array<{ row?: number | string; identifier: string; error: string }>>([]);
   const [showResults, setShowResults] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
@@ -306,19 +306,28 @@ const CSVImportModal = ({
       
       console.log("Upload result:", result);
 
-      setSuccessCount(result.inserted_count || result.updated_count || 0);
+      setSuccessCount((result.inserted_count || 0) + (result.updated_count || 0));
       setSkippedCount(result.skipped_count || 0);
       setFailedCount(result.failed_count || 0);
-      setRowErrors(result.errors || []);
+
+      const apiErrors = result.errors || [];
+      const skippedEmails = result.skipped_emails || [];
+      const skippedToErrors = skippedEmails.map((email: string) => ({
+        row: "-",
+        identifier: email,
+        error: "Skipped (Duplicate or no changes detected)"
+      }));
+      setRowErrors([...apiErrors, ...skippedToErrors]);
+
       setShowResults(true);
       setIsProcessing(false);
 
       const totalSuccess = (result.inserted_count || 0) + (result.updated_count || 0);
       
-      if (result.failed_count > 0) {
+      if (result.failed_count > 0 || result.skipped_count > 0) {
         toast({
-          title: "⚠️ Partial Import",
-          description: `Processed ${result.total_processed} rows: ${totalSuccess} success, ${result.failed_count} failed.`,
+          title: "⚠️ Partial Import / Skipped",
+          description: `Processed ${result.total_processed} rows: ${totalSuccess} success, ${result.skipped_count} skipped, ${result.failed_count} failed.`,
           variant: "destructive",
         });
       } else {
@@ -413,7 +422,7 @@ const CSVImportModal = ({
         "Culture Fit Round Pass",
         "Strong values alignment and team player",
         "interviewer2@example.com",
-        "Offer Sent",
+        "Admission letter Sent",
         "Onboarded",
         "Selected for January 2025 batch",
         "2025-01-15",
@@ -513,7 +522,7 @@ const CSVImportModal = ({
       "78.5",
       "85",
       "General",
-      "Hindu",
+      // "Hindu",
       "SOB",
       "Kishanganj",
       "Called on 01-Dec-2025",
@@ -529,7 +538,7 @@ const CSVImportModal = ({
       "Culture Fit Round Pass",
       "Strong values alignment and team player",
       "interviewer2@example.com",
-      "Offer Sent",
+      "Admission letter Sent",
       "Onboarded",
       "Selected for January 2025 batch",
       "2025-01-15",
@@ -736,20 +745,20 @@ const CSVImportModal = ({
                 </div>
               </div>
 
-              {failedCount > 0 ? (
+              {(failedCount > 0 || skippedCount > 0) ? (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
-                    Specific Error Details:
+                    Errors & Skipped Records
                   </p>
                   <ScrollArea className="h-40 rounded-md border bg-muted/30 p-2">
                     <div className="space-y-2">
                       {rowErrors.map((err, idx) => (
                         <div key={idx} className="border-b last:border-0 pb-2 last:pb-0">
                           <p className="text-xs font-semibold text-foreground">
-                            Row {err.row}: {err.identifier}
+                            {err.row && err.row !== "-" ? `Row ${err.row}: ` : ""}{err.identifier}
                           </p>
-                          <p className="text-xs text-muted-foreground italic">
+                          <p className={`text-xs italic ${err.error.includes("Skipped") ? "text-yellow-600" : "text-muted-foreground"}`}>
                             {err.error}
                           </p>
                         </div>

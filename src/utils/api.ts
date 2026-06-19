@@ -3284,13 +3284,17 @@ export const createDonor = async (payload: Partial<Donor>) => {
   return data;
 };
 
-export const getDonors = async (page: number = 1, limit: number = 10, donorName?: string) => {
+export const getDonors = async (page: number = 1, limit: number = 10, donorName?: string, donorEmail?: string) => {
   // Build query parameters
   let queryParams = `page=${page}&pageSize=${limit}`;
 
   // Only add donor_name if it's provided and not empty
   if (donorName && donorName.trim()) {
     queryParams += `&donor_name=${encodeURIComponent(donorName.trim())}`;
+  }
+
+  if (donorEmail && donorEmail.trim()) {
+    queryParams += `&donor_email=${donorEmail.trim()}`;
   }
 
   const response = await fetch(`${BASE_URL}/donors/getDonors?${queryParams}`, {
