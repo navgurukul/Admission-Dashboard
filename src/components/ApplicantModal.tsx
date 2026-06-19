@@ -1205,10 +1205,10 @@ Interviewer: ${interviewerName}`;
     }
 
     // Prevent changing back to "Offer Pending" if already sent or beyond
-    if (value === "Offer Pending" && currentOfferStatus && currentOfferStatus !== "Offer Pending") {
+    if (value === "Admission Letter Pending" && currentOfferStatus && currentOfferStatus !== "Admission Letter Pending") {
       toast({
         title: "❌ Action Not Allowed",
-        description: `Cannot change status back to "Offer Pending" from "${currentOfferStatus}". Once an offer has progressed beyond pending status, it cannot be reverted to pending.`,
+        description: `Cannot change status back to "Admission Letter Pending" from "${currentOfferStatus}". Once an Admission Letter has progressed beyond pending status, it cannot be reverted to pending.`,
         variant: "destructive",
         className: "border-red-500 bg-red-50 text-red-900",
         duration: 6000,
@@ -1222,7 +1222,7 @@ Interviewer: ${interviewerName}`;
       return;
     }
 
-    if (value === "Offer Sent") {
+    if (value === "Admission Letter Sent") {
       // Check if template exists for selected campus and school
       const selectedCampusId = currentApplicant.campus_id;
       const selectedCampusName = campus.find(c => c.value === selectedCampusId?.toString())?.label;
@@ -1245,10 +1245,10 @@ Interviewer: ${interviewerName}`;
 
 
       // Prevent sending offer again if already sent
-      if (currentOfferStatus === "Offer Sent") {
+      if (currentOfferStatus === "Admission Letter Sent") {
         toast({
           title: "ℹ️ Already Sent",
-          description: "Offer letter has already been sent to this student. No need to send again.",
+          description: "Admission Letter has already been sent to this student. No need to send again.",
           variant: "default",
           className: "border-blue-500 bg-blue-50 text-blue-900",
           duration: 4000,
@@ -2202,7 +2202,7 @@ Interviewer: ${interviewerName}`;
                   },
                   {
                     question: "When do I update final status?",
-                    answer: "After rounds are complete, use Offer & Final Status to save the applicant outcome.",
+                    answer: "After rounds are complete, use Admission Letter & Final Status to save the applicant outcome.",
                   },
                 ]}
                 showInlineButtons={false}
@@ -2804,7 +2804,7 @@ Interviewer: ${interviewerName}`;
             {/* Offer and Final Status */}
             <div className="space-y-4" data-onboarding="applicant-details-offer">
               <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
-                <h3 className="text-base sm:text-lg font-semibold">Offer & Final Status</h3>
+                <h3 className="text-base sm:text-lg font-semibold">Admission Letter & Final Status</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -2896,20 +2896,20 @@ Interviewer: ${interviewerName}`;
                               }
                               options={[
                                 {
-                                  value: "Offer Pending",
+                                  value: "Admission Letter Pending",
                                   label: "Admission Letter Pending",
                                 },
-                                { value: "Offer Sent", label: "Admission Letter Sent" },
+                                { value: "Admission Letter Sent", label: "Admission Letter Sent" },
                                 {
                                   value: "manually_sent",
                                   label: "Manually Sent (e.g., via WhatsApp)",
                                 },
                                 {
-                                  value: "Offer Accepted",
+                                  value: "Admission Letter Accepted",
                                   label: "Admission Letter Accepted",
                                 },
                                 {
-                                  value: "Offer Declined",
+                                  value: "Admission Letter Declined",
                                   label: "Admission Letter Declined",
                                 },
                                 { value: "Waitlisted", label: "Waitlisted" },
@@ -2943,11 +2943,11 @@ Interviewer: ${interviewerName}`;
                           ?.offer_letter_status || ""
                       }
                       options={[
-                        { value: "Offer Pending", label: "Admission Letter Pending" },
-                        { value: "Offer Sent", label: "Admission Letter Sent" },
+                        { value: "Admission Letter Pending", label: "Admission Letter Pending" },
+                        { value: "Admission Letter Sent", label: "Admission Letter Sent" },
                         { value: "manually_sent", label: "Manually Sent (e.g., via WhatsApp)" },
-                        { value: "Offer Accepted", label: "Admission Letter Accepted" },
-                        { value: "Offer Declined", label: "Admission Letter Declined" },
+                        { value: "Admission Letter Accepted", label: "Admission Letter Accepted" },
+                        { value: "Admission Letter Declined", label: "Admission Letter Declined" },
                         { value: "Waitlisted", label: "Waitlisted" },
                         {
                           value: "Selected but not joined",
@@ -2960,6 +2960,16 @@ Interviewer: ${interviewerName}`;
                       }}
                     />
                   )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Admission Letter Sent By
+                  </label>
+                  <div className="mt-1">
+                    <span className="text-sm text-black-900 px-3 py-2 bg-gray-50 block w-full">
+                      {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by || "—"}
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">

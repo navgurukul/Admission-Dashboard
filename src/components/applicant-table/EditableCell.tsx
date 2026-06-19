@@ -384,13 +384,18 @@ export function EditableCell({
         payload[field] = newValue;
       }
 
-      await updateStudent(applicant.id, payload);
-      toast({
-        title: "✅ Updated Successfully",
-        description: `${getFieldLabel(field)} has been updated`,
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
+      // offer_letter_status is fully handled by onUpdate callback (handleOfferLetterStatusChange)
+      // which calls submitFinalDecision + updateStudentStatus. No need to call updateStudents/:id here.
+      if (!(field === "offer_letter_status")) {
+        await updateStudent(applicant.id, payload);
+        toast({
+          title: "✅ Updated Successfully",
+          description: `${getFieldLabel(field)} has been updated`,
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900",
+        });
+      }
+
       setCellValue(payload[field]);
       
       // Exit edit mode for forceTextDisplay fields after successful update
