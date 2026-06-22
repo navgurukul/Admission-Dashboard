@@ -443,9 +443,9 @@ export function AddApplicantModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.image_url) {
-      newErrors.image_url = "Profile image is required";
-    }
+    // if (!formData.image_url) {
+    //   newErrors.image_url = "Profile image is required";
+    // }
 
     if (!formData.first_name.trim()) {
       newErrors.first_name = "First name is required";
@@ -457,9 +457,10 @@ export function AddApplicantModal({
       newErrors.phone_number = "Mobile number must be 10 digits";
     }
 
-    if (!formData.whatsapp_number.trim()) {
-      newErrors.whatsapp_number = "WhatsApp number is required";
-    } else if (!/^\d{10}$/.test(formData.whatsapp_number)) {
+    // if (!formData.whatsapp_number.trim()) {
+    //   newErrors.whatsapp_number = "WhatsApp number is required";
+    // } else 
+    if (formData.whatsapp_number.trim() && !/^\d{10}$/.test(formData.whatsapp_number)) {
       newErrors.whatsapp_number = "WhatsApp number must be 10 digits";
     }
 
@@ -560,7 +561,7 @@ export function AddApplicantModal({
     if (Object.keys(formErrors).length > 0) {
       //  field names mapping
       const fieldNameMap: Record<string, string> = {
-        image_url: "Profile Image",
+        // image_url: "Profile Image",
         first_name: "First Name",
         last_name: "Last Name",
         phone_number: "Phone Number",
@@ -792,10 +793,10 @@ export function AddApplicantModal({
     switch (tabValue) {
       case "basic":
         return (
-          formData.image_url &&
+          // formData.image_url &&
           formData.first_name &&
           formData.phone_number &&
-          formData.whatsapp_number &&
+          // formData.whatsapp_number &&
           formData.gender &&
           formData.dob &&
           formData.email &&
@@ -1057,7 +1058,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp" className="text-sm font-medium">
-                      WhatsApp Number *
+                      WhatsApp Number {/* * */}
                     </Label>
                     <Input
                       id="whatsapp"
