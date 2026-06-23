@@ -1151,6 +1151,7 @@ export interface StudentStats {
   totalStudents: number;
   offerLetterSent: number;
   onboarded: number;
+  manuallySent: number;
 }
 
 export const getStudentsStats = async (): Promise<StudentStats> => {

@@ -1908,7 +1908,7 @@ const ApplicantTable = () => {
                 ? `${currentTotalCount} applicants found (search)`
                 : hasActiveFilters
                   ? `${currentTotalCount} applicants found (filtered)`
-                  : `${totalStudents} total applicants`}
+                  : `${totalStudents} total applicants with duplicates`}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 mt-2 md:mt-0" data-onboarding="dashboard-actions">
