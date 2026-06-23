@@ -12,6 +12,7 @@ import {
   getStudentDataByEmail,
   getStudentDataByPhone,
   getAllStates,
+  getAllSchools,
   CompleteStudentData,
 } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,7 @@ interface Student {
   whatsappNumber: string;
   district: string;
   state: string;
+  schoolId?: string | number;
 }
 
 interface StateOption {
@@ -55,6 +57,7 @@ type TestRow = {
 export default function StudentResult() {
   const [student, setStudent] = useState<Student | null>(null);
   const [states, setStates] = useState<StateOption[]>([]);
+  const [schools, setSchools] = useState<any[]>([]);
   const [completeData, setCompleteData] = useState<CompleteStudentData | null>(
     null,
   );
@@ -107,6 +110,7 @@ export default function StudentResult() {
           viewDetails: "विवरण देखें",
           email2: "ईमेल:",
           helpline: "हेल्पलाइन:",
+          chosenSchool: "चुना हुआ स्कूल:",
           issuesText: "परिणाम या स्लॉट बुकिंग से संबंधित किसी भी समस्या के लिए, प्रवेश सहायता से संपर्क करें।",
           scheduled: "शेड्यूल",
           pass: "उत्तीर्ण",
@@ -140,6 +144,7 @@ export default function StudentResult() {
           viewDetails: "तपशील पहा",
           email2: "ईमेल:",
           helpline: "हेल्पलाइन:",
+          chosenSchool: "निवडलेली शाळा:",
           issuesText: "निकाल किंवा स्लॉट बुकिंगशी संबंधित कोणत्याही समस्यांसाठी, प्रवेश सहाय्यकडे संपर्क साधा.",
           scheduled: "शेड्यूल",
           pass: "उत्तीर्ण",
@@ -173,6 +178,7 @@ export default function StudentResult() {
           viewDetails: "View Details",
           email2: "Email:",
           helpline: "Helpline:",
+          chosenSchool: "Selected School:",
           issuesText: "For any issues related to results or slot booking, contact admissions support.",
           scheduled: "Scheduled",
           pass: "Pass",
@@ -203,6 +209,13 @@ export default function StudentResult() {
 
     return matchedState?.state_name || stateValue;
   }, [states, student?.state]);
+
+  const displaySchool = useMemo(() => {
+    if (!student?.schoolId) return "-";
+    const schoolId = String(student.schoolId);
+    const matchedSchool = schools.find((s) => String(s.id) === schoolId);
+    return matchedSchool?.school_name || schoolId;
+  }, [schools, student?.schoolId]);
 
   const guideText = (() => {
     switch (selectedLanguage) {
@@ -266,17 +279,21 @@ export default function StudentResult() {
 
 
   useEffect(() => {
-    const fetchStates = async () => {
+    const fetchDropdownData = async () => {
       try {
-        const response = await getAllStates();
-        const statesData = response?.data || response || [];
+        const [statesResponse, schoolsResponse] = await Promise.all([
+          getAllStates(),
+          getAllSchools()
+        ]);
+        const statesData = statesResponse?.data || statesResponse || [];
         setStates(Array.isArray(statesData) ? statesData : []);
+        setSchools(Array.isArray(schoolsResponse) ? schoolsResponse : []);
       } catch (error) {
-        console.error("Error fetching states:", error);
+        console.error("Error fetching dropdown data:", error);
       }
     };
 
-    fetchStates();
+    fetchDropdownData();
   }, []);
 
   useEffect(() => {
@@ -471,6 +488,7 @@ export default function StudentResult() {
                 profile.mobile || "",
               district: profile.district || "",
               state: profile.state || "",
+              schoolId: profile.initial_school_id || profile.schoolId || profile.school_id || "",
             };
             setStudent(studentInfo);
 
@@ -1018,6 +1036,16 @@ export default function StudentResult() {
                 <div className="flex flex-col overflow-hidden">
                   <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.state}</span>
                   <span className="font-semibold sm:font-medium text-foreground truncate">{displayState}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
+                <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2.5 rounded-full text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                  <FileText className="w-5 h-5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="flex flex-col overflow-hidden min-w-0">
+                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.chosenSchool}</span>
+                  <span className="font-semibold sm:font-medium text-foreground truncate block w-full" title={displaySchool}>{displaySchool}</span>
                 </div>
               </div>
             </CardContent>
