@@ -993,7 +993,7 @@ const CSVImportModal = ({
         
         {rowErrors.length > 0 && (
           <ScrollArea className="flex-1 p-0">
-            <Table>
+            <Table className="min-w-full table-fixed">
               <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                 <TableRow>
                   <TableHead className="w-[80px]">Row</TableHead>
@@ -1010,7 +1010,7 @@ const CSVImportModal = ({
                     <TableCell className="font-medium text-xs break-all">
                       {err.identifier}
                     </TableCell>
-                    <TableCell className={`text-xs ${err.error.includes("Skipped") ? "text-yellow-600 font-medium" : "text-destructive"}`}>
+                    <TableCell className={`text-xs whitespace-normal break-words ${err.error.includes("Skipped") ? "text-yellow-600 font-medium" : "text-destructive"}`}>
                       {err.error}
                     </TableCell>
                   </TableRow>
