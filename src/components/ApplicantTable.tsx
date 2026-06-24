@@ -1130,6 +1130,14 @@ const ApplicantTable = () => {
       }
     }
 
+    // Initial School ID
+    if (filterState.initial_school?.length) {
+      const initialSchools = filterState.initial_school.filter((s: any) => s !== "all");
+      if (initialSchools.length > 0) {
+        apiParams.initial_school_id = initialSchools;
+      }
+    }
+
     // Current Status ID
     if (
       filterState.currentStatus?.length &&
@@ -1444,6 +1452,20 @@ const ApplicantTable = () => {
       });
     }
 
+    // Initial School
+    if ((filters as any).initial_school?.length) {
+      const initialSchools = (filters as any).initial_school.filter((s: any) => s !== "all");
+      initialSchools.forEach((s: any) => {
+        const sch = schoolList.find((sc) => Number(sc.id) === Number(s));
+        const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
+        tags.push({
+          key: `initial_school-${s}`,
+          label: `Student Selected Course: ${schoolLabel}`,
+          onRemove: () => handleClearSingleFilter("initial_school", s),
+        });
+      });
+    }
+
     // State / District / Gender
     if ((filters as any).state && (filters as any).state !== "all") {
       tags.push({
@@ -1521,6 +1543,7 @@ const ApplicantTable = () => {
       (newFilters.stage_status && newFilters.stage_status !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length > 0) ||
+      (newFilters.initial_school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.partnerFilter?.length > 0) ||
@@ -1582,6 +1605,7 @@ const ApplicantTable = () => {
       district: [],
       market: [],
       school: [],
+      initial_school: [],
       religion: [],
       qualification: [],
       currentStatus: [],
@@ -1639,6 +1663,7 @@ const ApplicantTable = () => {
       (newFilters.stage_status && newFilters.stage_status !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.initial_school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
@@ -1674,7 +1699,7 @@ const ApplicantTable = () => {
       if (Array.isArray(currentVal)) {
         newFilters[filterKey] = currentVal.filter((v: any) => String(v) !== String(valueToRemove));
         if (newFilters[filterKey].length === 0) {
-            if (['partnerFilter', 'donor', 'school', 'partner', 'currentStatus', 'qualification', 'district', 'religion', 'exam_centre'].includes(filterKey)) {
+            if (['partnerFilter', 'donor', 'school', 'initial_school', 'partner', 'currentStatus', 'qualification', 'district', 'religion', 'exam_centre'].includes(filterKey)) {
             newFilters[filterKey] = [];
           } else {
             newFilters[filterKey] = "all";
@@ -1705,6 +1730,9 @@ const ApplicantTable = () => {
           break;
         case "school":
           newFilters.school = [];
+          break;
+        case "initial_school":
+          newFilters.initial_school = [];
           break;
         case "religion":
           newFilters.religion = [];
@@ -1745,6 +1773,7 @@ const ApplicantTable = () => {
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length > 0) ||
+      (newFilters.initial_school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.partnerFilter?.length > 0) ||
