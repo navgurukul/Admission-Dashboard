@@ -15,6 +15,7 @@ interface FilterState {
   market: any[];
   exam_centre: string[];
   school: any[];
+  initial_school: any[];
   religion: any[];
   qualification: any[];
   currentStatus: any[];
@@ -46,6 +47,7 @@ export const useApplicantFilters = (
     market: [],
     exam_centre: [],
     school: [],
+    initial_school: [],
     religion: [],
     qualification: [],
     currentStatus: [],
