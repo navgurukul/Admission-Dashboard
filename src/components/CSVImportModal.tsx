@@ -195,6 +195,8 @@ const CSVImportModal = ({
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
+  const [insertedCount, setInsertedCount] = useState(0);
+  const [updatedCount, setUpdatedCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
   const [rowErrors, setRowErrors] = useState<Array<{ row?: number | string; identifier: string; error: string }>>([]);
@@ -205,6 +207,7 @@ const CSVImportModal = ({
   const [csvPreviewData, setCsvPreviewData] = useState<{ headers: string[]; rows: string[][] } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ROWS_PER_PAGE = 20;
@@ -215,6 +218,8 @@ const CSVImportModal = ({
       setError(null);
       setShowResults(false);
       setSuccessCount(0);
+      setInsertedCount(0);
+      setUpdatedCount(0);
       setSkippedCount(0);
       setFailedCount(0);
       setRowErrors([]);
@@ -223,6 +228,7 @@ const CSVImportModal = ({
       setCsvPreviewData(null);
       setIsPreviewOpen(false);
       setPreviewPage(0);
+      setShowErrorModal(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -307,6 +313,8 @@ const CSVImportModal = ({
       console.log("Upload result:", result);
 
       setSuccessCount((result.inserted_count || 0) + (result.updated_count || 0));
+      setInsertedCount(result.inserted_count || 0);
+      setUpdatedCount(result.updated_count || 0);
       setSkippedCount(result.skipped_count || 0);
       setFailedCount(result.failed_count || 0);
 
@@ -337,13 +345,11 @@ const CSVImportModal = ({
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
-        
-        // Only auto-close and refresh if there are NO errors to show
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 1500);
+        onSuccess();
       }
+      
+      // Always show the results modal to display counts
+      setShowErrorModal(true);
     } catch (error: any) {
       console.error("Upload failed:", error);
       setError(error.message || "Something went wrong while uploading your CSV file. Please check it and try again.");
@@ -587,13 +593,15 @@ const CSVImportModal = ({
   );
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[calc(100vw-2rem)] max-w-[700px] max-h-[90vh] overflow-hidden p-0 sm:rounded-lg">
         <div className="flex max-h-[90vh] flex-col overflow-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Import Applicants from CSV</DialogTitle>
           <DialogDescription>
-            Choose a template and upload your CSV file. Use "Full Student Data" to create new students or "Sessions Update" to update screening exam/interview rounds for existing students.
+            Choose a template and upload your CSV file. Use "Full Student Data" to create new students with complete information.
+            {/* or "Sessions Update" to update screening exam/interview rounds for existing students. */}
           </DialogDescription>
         </DialogHeader>
 
@@ -647,17 +655,17 @@ const CSVImportModal = ({
           {/* Download Template Buttons */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Download Template:</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="flex justify-center py-2">
               <Button
                 onClick={() => downloadTemplate('full')}
                 variant="outline"
-                className="flex items-center gap-2 text-xs sm:text-sm"
+                className="flex items-center gap-2 text-xs sm:text-sm px-8"
                 type="button"
               >
                 <Download className="h-4 w-4" />
-                Full Student Data
+                Download "Full Student Data" Template
               </Button>
-              <Button
+              {/* <Button
                 onClick={() => downloadTemplate('update')}
                 variant="outline"
                 className="flex items-center gap-2 text-xs sm:text-sm"
@@ -665,11 +673,12 @@ const CSVImportModal = ({
               >
                 <Download className="h-4 w-4" />
                 Sessions Update
-              </Button>
+              </Button> */}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              • <strong>Full Student Data:</strong> Create new students with complete information<br/>
-              • <strong>Sessions Update:</strong> Update existing students' stages and Admission letter updates based on their email addresses.
+              • <strong>Full Student Data:</strong> Create new students with complete information
+              {/* <br/>
+              • <strong>Sessions Update:</strong> Update existing students' stages and Admission letter updates based on their email addresses. */}
             </p>
           </div>
 
@@ -727,63 +736,39 @@ const CSVImportModal = ({
               <Progress value={uploadProgress} />
             </div>
           )}
-
           {showResults && (
-            <div className="space-y-3 rounded-lg border bg-background p-4 shadow-sm">
-              <div className="flex items-center justify-between border-b pb-2">
-                <p className="text-sm font-semibold">Import Summary</p>
-                <div className="flex gap-2">
-                   <span className="flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800">
-                    {successCount} Success
-                  </span>
-                  <span className="flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
-                    {skippedCount} Skipped
-                  </span>
-                  <span className="flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-800">
-                    {failedCount} Failed
-                  </span>
-                </div>
+            <div className="space-y-3 rounded-lg border bg-blue-50/50 p-6 shadow-sm flex flex-col items-center justify-center">
+              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-2">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-base font-semibold text-foreground">Import Process Completed</p>
+                <p className="text-sm text-muted-foreground">Your CSV file has been processed.</p>
               </div>
 
-              {(failedCount > 0 || skippedCount > 0) ? (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-destructive flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    Errors & Skipped Records
-                  </p>
-                  <ScrollArea className="h-40 rounded-md border bg-muted/30 p-2">
-                    <div className="space-y-2">
-                      {rowErrors.map((err, idx) => (
-                        <div key={idx} className="border-b last:border-0 pb-2 last:pb-0">
-                          <p className="text-xs font-semibold text-foreground">
-                            {err.row && err.row !== "-" ? `Row ${err.row}: ` : ""}{err.identifier}
-                          </p>
-                          <p className={`text-xs italic ${err.error.includes("Skipped") ? "text-yellow-600" : "text-muted-foreground"}`}>
-                            {err.error}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              ) : (
-                <div className="flex items-center text-sm text-green-600 font-medium">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  All rows processed successfully!
-                </div>
-              )}
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full mt-2" 
-                onClick={() => {
-                  onSuccess();
-                  onClose();
-                }}
-              >
-                Close and Refresh List
-              </Button>
+              <div className="flex gap-3 mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowErrorModal(true)}
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Errors & Skipped 
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    if (successCount > 0) onSuccess();
+                    onClose();
+                  }}
+                  className="border-gray-200"
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -964,6 +949,87 @@ const CSVImportModal = ({
         </Sheet>
       </DialogContent>
     </Dialog>
+
+    {/* Error Details Modal */}
+    <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
+      <DialogContent className="sm:max-w-[750px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b shrink-0 bg-slate-50/50">
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            {failedCount > 0 ? (
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            ) : skippedCount > 0 ? (
+              <AlertCircle className="h-6 w-6 text-yellow-600" />
+            ) : (
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            )}
+            Import Results Summary
+          </DialogTitle>
+          
+          <div className="mt-4 flex flex-wrap gap-3 text-sm">
+            <div className="flex items-center gap-1.5 font-medium px-3 py-1.5 rounded-md bg-green-50 text-green-700 border border-green-200">
+              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+              Inserted: {insertedCount}
+            </div>
+            <div className="flex items-center gap-1.5 font-medium px-3 py-1.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+              <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+              Updated: {updatedCount}
+            </div>
+            <div className="flex items-center gap-1.5 font-medium px-3 py-1.5 rounded-md bg-yellow-50 text-yellow-700 border border-yellow-200">
+              <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
+              Skipped: {skippedCount}
+            </div>
+            <div className="flex items-center gap-1.5 font-medium px-3 py-1.5 rounded-md bg-red-50 text-red-700 border border-red-200">
+              <span className="h-2 w-2 rounded-full bg-red-500"></span>
+              Failed: {failedCount}
+            </div>
+          </div>
+          
+          <DialogDescription className="mt-4 text-sm text-muted-foreground">
+            {rowErrors.length > 0 
+              ? `Review the ${rowErrors.length} records below that encountered issues or were skipped.`
+              : `All rows processed successfully.`}
+          </DialogDescription>
+        </DialogHeader>
+        
+        {rowErrors.length > 0 && (
+          <ScrollArea className="flex-1 p-0">
+            <Table className="min-w-full table-fixed">
+              <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
+                <TableRow>
+                  <TableHead className="w-[80px]">Row</TableHead>
+                  <TableHead className="w-[250px]">Identifier</TableHead>
+                  <TableHead>Message</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rowErrors.map((err, idx) => (
+                  <TableRow key={idx} className="hover:bg-muted/50">
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {err.row && err.row !== "-" ? err.row : "N/A"}
+                    </TableCell>
+                    <TableCell className="font-medium text-xs break-all">
+                      {err.identifier}
+                    </TableCell>
+                    <TableCell className={`text-xs whitespace-normal break-words ${err.error.includes("Skipped") ? "text-yellow-600 font-medium" : "text-destructive"}`}>
+                      {err.error}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        )}
+        
+        <div className="flex justify-end p-4 border-t bg-background shrink-0">
+          <Button onClick={() => {
+            setShowErrorModal(false);
+            if (successCount > 0) onSuccess();
+            if (failedCount === 0 && skippedCount === 0) onClose();
+          }}>Close</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 

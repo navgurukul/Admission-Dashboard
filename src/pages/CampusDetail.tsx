@@ -31,6 +31,7 @@ interface FilterState {
   partner: string[];
   district: string[];
   school: string[];
+  initial_school: string[];
   religion: string[];
   qualification: string[];
   currentStatus: string[];
@@ -79,6 +80,7 @@ const CampusDetail = () => {
     partner: [],
     district: [],
     school: [],
+    initial_school: [],
     religion: [],
     qualification: [],
     currentStatus: [],
@@ -164,6 +166,10 @@ const CampusDetail = () => {
     if (f.partnerFilter?.length && f.partnerFilter[0] !== "all") apiParams.partner_id = f.partnerFilter[0];
     if (f.donor?.length && f.donor[0] !== "all") apiParams.donor_id = f.donor[0];
     if (f.school?.length && f.school[0] !== "all") apiParams.school_id = f.school[0];
+    if (f.initial_school?.length) {
+      const initialSchools = f.initial_school.filter((s: any) => s !== "all");
+      if (initialSchools.length > 0) apiParams.initial_school_id = initialSchools;
+    }
     if (f.currentStatus?.length && f.currentStatus[0] !== "all") apiParams.current_status_id = f.currentStatus[0];
     if (f.state && f.state !== "all") apiParams.state = resolveStateFilterValue(f.state, statesOverride);
     if (f.district?.length && f.district[0] !== "all") apiParams.district = f.district[0];
@@ -486,6 +492,20 @@ const CampusDetail = () => {
       });
     }
 
+    // Initial School
+    if ((filters as any).initial_school?.length) {
+      const initialSchools = (filters as any).initial_school.filter((s: any) => s !== "all");
+      initialSchools.forEach((s: any) => {
+        const sch = schoolList.find((sc) => Number(sc.id) === Number(s));
+        const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
+        tags.push({
+          key: `initial_school-${s}`,
+          label: `Student Selected Course: ${schoolLabel}`,
+          onRemove: () => handleClearSingleFilter("initial_school", s),
+        });
+      });
+    }
+
     // Current Status
     if ((filters as any).currentStatus?.length) {
       const curr = (filters as any).currentStatus.filter((c: any) => c !== "all");
@@ -615,6 +635,7 @@ const CampusDetail = () => {
       partner: [],
       district: [],
       school: [],
+      initial_school: [],
       religion: [],
       qualification: [],
       currentStatus: [],
@@ -667,8 +688,17 @@ const CampusDetail = () => {
   };
 
   // Clear individual filter and re-apply
-  const handleClearSingleFilter = async (filterKey: string) => {
+  const handleClearSingleFilter = async (filterKey: string, valueToRemove?: any) => {
     const newFilters = { ...filters } as any;
+
+    if (valueToRemove !== undefined && Array.isArray(newFilters[filterKey])) {
+      newFilters[filterKey] = newFilters[filterKey].filter((v: any) => String(v) !== String(valueToRemove));
+      if (newFilters[filterKey].length === 0) {
+        newFilters[filterKey] = [];
+      }
+      await reapplyFilters(newFilters);
+      return;
+    }
 
     switch (filterKey) {
       case "stage":
@@ -688,6 +718,9 @@ const CampusDetail = () => {
         break;
       case "school":
         newFilters.school = [];
+        break;
+      case "initial_school":
+        newFilters.initial_school = [];
         break;
       case "religion":
         newFilters.religion = [];
@@ -744,6 +777,7 @@ const CampusDetail = () => {
       (newFilters.stage_status && newFilters.stage_status !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.initial_school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partnerFilter?.length && newFilters.partnerFilter[0] !== "all") ||
       (newFilters.donor?.length && newFilters.donor[0] !== "all") ||

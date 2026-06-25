@@ -7,6 +7,7 @@ import { getStudentsStats } from "@/utils/api";
 interface DashboardMetrics {
   totalApplicants: number;
   activeApplications: number;
+  manuallySent: number;
   interviewsScheduled: number;
   successfullyOnboarded: number;
 }
@@ -16,6 +17,7 @@ export function DashboardStats() {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     totalApplicants: 0,
     activeApplications: 0,
+    manuallySent: 0,
     interviewsScheduled: 0,
     successfullyOnboarded: 0,
   });
@@ -37,6 +39,7 @@ export function DashboardStats() {
       setMetrics({
         totalApplicants: statsData.totalStudents || 0,
         activeApplications: statsData.offerLetterSent || 0,
+        manuallySent: statsData.manuallySent || 0,
         interviewsScheduled: 0,
         successfullyOnboarded: statsData.onboarded || 0,
       });
@@ -55,38 +58,29 @@ export function DashboardStats() {
     {
       title: "Total Applicants",
       value: loading ? "..." : metrics.totalApplicants.toLocaleString(),
-      // change: "+12%",
-      // changeType: "increase" as const,
       icon: Users,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      extra: null,
     },
     {
       title: "Admission Letter Sent",
       value: loading ? "..." : metrics.activeApplications.toLocaleString(),
-      // change: "+8%",
-      // changeType: "increase" as const,
       icon: Clock,
       color: "text-secondary-purple",
       bgColor: "bg-secondary-purple/10",
+      extra: {
+        label: "Manually Sent",
+        value: loading ? "..." : metrics.manuallySent.toLocaleString(),
+      },
     },
-    // {
-    //   title: "Interviews Scheduled",
-    //   value: loading ? "..." : metrics.interviewsScheduled.toLocaleString(),
-    //   // change: "+24%",
-    //   // changeType: "increase" as const,
-    //   icon: TrendingUp,
-    //   color: "text-status-prospect",
-    //   bgColor: "bg-status-prospect/10",
-    // },
     {
       title: "Successfully Onboarded",
       value: loading ? "..." : metrics.successfullyOnboarded.toLocaleString(),
-      // change: "+16%",
-      // changeType: "increase" as const,
       icon: CheckCircle,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      extra: null,
     },
   ];
 
@@ -103,20 +97,6 @@ export function DashboardStats() {
                 {stat.title}
               </p>
               <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-              {/* <div className="flex items-center mt-2">
-                <span
-                  className={`text-xs font-medium ${
-                    stat.changeType === "increase"
-                      ? "text-status-active"
-                      : "text-status-fail"
-                  }`}
-                >
-                  {stat.change}
-                </span>
-                <span className="text-xs text-muted-foreground ml-1">
-                  from last month
-                </span>
-              </div> */}
             </div>
             <div
               className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}
@@ -124,6 +104,16 @@ export function DashboardStats() {
               <stat.icon className={`w-6 h-6 ${stat.color}`} />
             </div>
           </div>
+          {stat.extra && (
+            <div className="mt-1 pt-1 border-t border-border flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground">
+                {stat.extra.label}
+              </p>
+              <p className="text-sm font-semibold text-foreground">
+                {stat.extra.value}
+              </p>
+            </div>
+          )}
         </div>
       ))}
     </div>

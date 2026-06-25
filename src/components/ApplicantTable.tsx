@@ -95,7 +95,7 @@ const ApplicantTable = () => {
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<ColumnConfig[]>(() => {
     // Try to load from localStorage with versioning
-    const saved = localStorage.getItem('applicantTableColumns_v4');
+    const saved = localStorage.getItem('applicantTableColumns_v5');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -160,6 +160,7 @@ const ApplicantTable = () => {
       { id: 'stage', label: 'Stage', visible: true },
       { id: 'campus', label: 'Campus', visible: false },
       { id: 'school', label: 'School', visible: true },
+      { id: 'initial_school', label: 'Student Selected Course', visible: false },
 
       // Communication & Timestamps
       { id: 'notes', label: 'Communication Notes', visible: false },
@@ -173,7 +174,7 @@ const ApplicantTable = () => {
 
   // Clean up old localStorage keys on mount
   useEffect(() => {
-    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2', 'applicantTableColumns_v3'];
+    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2', 'applicantTableColumns_v3', 'applicantTableColumns_v5'];
     oldKeys.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
@@ -702,7 +703,7 @@ const ApplicantTable = () => {
           : col
       );
       // Save to localStorage with versioning
-      localStorage.setItem('applicantTableColumns_v4', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v5', JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -731,7 +732,7 @@ const ApplicantTable = () => {
           : { ...col, visible: false }; // All other columns hidden by default
       });
       // Save to localStorage
-      localStorage.setItem('applicantTableColumns_v4', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v5', JSON.stringify(updated));
       return updated;
     });
 
@@ -747,6 +748,13 @@ const ApplicantTable = () => {
     const column = visibleColumns.find(col => col.id === columnId);
     return column?.visible ?? true;
   }, [visibleColumns]); // Update when column visibility changes
+
+  // Load schoolList when initial_school column is visible (needed to resolve names without filters)
+  useEffect(() => {
+    if (isColumnVisible('initial_school') && schoolList.length === 0) {
+      fetchSchools();
+    }
+  }, [isColumnVisible, schoolList.length, fetchSchools]);
 
   // Calculate total visible columns for dynamic colspan
   const visibleColumnCount = useMemo(() => {
@@ -1130,6 +1138,14 @@ const ApplicantTable = () => {
       }
     }
 
+    // Initial School ID
+    if (filterState.initial_school?.length) {
+      const initialSchools = filterState.initial_school.filter((s: any) => s !== "all");
+      if (initialSchools.length > 0) {
+        apiParams.initial_school_id = initialSchools;
+      }
+    }
+
     // Current Status ID
     if (
       filterState.currentStatus?.length &&
@@ -1444,6 +1460,20 @@ const ApplicantTable = () => {
       });
     }
 
+    // Initial School
+    if ((filters as any).initial_school?.length) {
+      const initialSchools = (filters as any).initial_school.filter((s: any) => s !== "all");
+      initialSchools.forEach((s: any) => {
+        const sch = schoolList.find((sc) => Number(sc.id) === Number(s));
+        const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
+        tags.push({
+          key: `initial_school-${s}`,
+          label: `Student Selected Course: ${schoolLabel}`,
+          onRemove: () => handleClearSingleFilter("initial_school", s),
+        });
+      });
+    }
+
     // State / District / Gender
     if ((filters as any).state && (filters as any).state !== "all") {
       tags.push({
@@ -1521,6 +1551,7 @@ const ApplicantTable = () => {
       (newFilters.stage_status && newFilters.stage_status !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length > 0) ||
+      (newFilters.initial_school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.partnerFilter?.length > 0) ||
@@ -1582,6 +1613,7 @@ const ApplicantTable = () => {
       district: [],
       market: [],
       school: [],
+      initial_school: [],
       religion: [],
       qualification: [],
       currentStatus: [],
@@ -1639,6 +1671,7 @@ const ApplicantTable = () => {
       (newFilters.stage_status && newFilters.stage_status !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length && newFilters.school[0] !== "all") ||
+      (newFilters.initial_school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.state && newFilters.state !== "all") ||
@@ -1674,7 +1707,7 @@ const ApplicantTable = () => {
       if (Array.isArray(currentVal)) {
         newFilters[filterKey] = currentVal.filter((v: any) => String(v) !== String(valueToRemove));
         if (newFilters[filterKey].length === 0) {
-            if (['partnerFilter', 'donor', 'school', 'partner', 'currentStatus', 'qualification', 'district', 'religion', 'exam_centre'].includes(filterKey)) {
+            if (['partnerFilter', 'donor', 'school', 'initial_school', 'partner', 'currentStatus', 'qualification', 'district', 'religion', 'exam_centre'].includes(filterKey)) {
             newFilters[filterKey] = [];
           } else {
             newFilters[filterKey] = "all";
@@ -1705,6 +1738,9 @@ const ApplicantTable = () => {
           break;
         case "school":
           newFilters.school = [];
+          break;
+        case "initial_school":
+          newFilters.initial_school = [];
           break;
         case "religion":
           newFilters.religion = [];
@@ -1745,6 +1781,7 @@ const ApplicantTable = () => {
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.qualification?.length && newFilters.qualification[0] !== "all") ||
       (newFilters.school?.length > 0) ||
+      (newFilters.initial_school?.length > 0) ||
       (newFilters.currentStatus?.length && newFilters.currentStatus[0] !== "all") ||
       (newFilters.partner?.length && newFilters.partner[0] !== "all") ||
       (newFilters.partnerFilter?.length > 0) ||
@@ -1908,7 +1945,7 @@ const ApplicantTable = () => {
                 ? `${currentTotalCount} applicants found (search)`
                 : hasActiveFilters
                   ? `${currentTotalCount} applicants found (filtered)`
-                  : `${totalStudents} total applicants`}
+                  : `${totalStudents} total applicants with duplicates`}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 mt-2 md:mt-0" data-onboarding="dashboard-actions">

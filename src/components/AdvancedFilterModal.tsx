@@ -67,6 +67,7 @@ interface FilterState {
   partner: string[];
   district: string[];
   school: string[];
+  initial_school: string[];
   religion: string[];
   qualification: string[];
   currentStatus: string[];
@@ -273,6 +274,7 @@ export function AdvancedFilterModal({
         const fieldsToLoad = ['state', 'stage'];
         if (currentFilters.partner?.length) fieldsToLoad.push('campus');
         if (currentFilters.school?.length) fieldsToLoad.push('school');
+        if (currentFilters.initial_school?.length) fieldsToLoad.push('school');
         if (currentFilters.qualification?.length) fieldsToLoad.push('qualification');
         if (currentFilters.currentStatus?.length) fieldsToLoad.push('current_status');
         if (currentFilters.religion?.length) fieldsToLoad.push('religion');
@@ -346,6 +348,7 @@ export function AdvancedFilterModal({
       partner: [],
       district: [],
       school: [],
+      initial_school: [],
       religion: [],
       qualification: [],
       currentStatus: [],
@@ -418,6 +421,7 @@ export function AdvancedFilterModal({
       filters.partner?.length > 0 ||
       filters.district?.length > 0 ||
       filters.school?.length > 0 ||
+      filters.initial_school?.length > 0 ||
       filters.religion?.length > 0 ||
       filters.qualification?.length > 0 ||
       filters.currentStatus?.length > 0 ||
@@ -560,6 +564,8 @@ export function AdvancedFilterModal({
           return { ...newFilters, partner: [] };
         case "school":
           return { ...newFilters, school: [] };
+        case "initial_school":
+          return { ...newFilters, initial_school: [] };
         case "religion":
           return { ...newFilters, religion: [] };
         case "qualification":
@@ -642,6 +648,19 @@ export function AdvancedFilterModal({
         key: `school-${s}`,
         label: `School: ${schoolLabel}`,
         onRemove: () => clearSingleFilter("school", s)
+      });
+    });
+  }
+
+  // Initial School - find and display actual name
+  if (filters.initial_school?.length) {
+    filters.initial_school.forEach(s => {
+      const school = schoolList.find((sc: any) => String(sc.id) === String(s));
+      const schoolLabel = school?.school_name || school?.name || s;
+      activeFilters.push({
+        key: `initial_school-${s}`,
+        label: `Student Selected Course: ${schoolLabel}`,
+        onRemove: () => clearSingleFilter("initial_school", s)
       });
     });
   }
@@ -1278,8 +1297,7 @@ export function AdvancedFilterModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-            {/* School */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
             <div>
               <h3 className="font-semibold text-sm mb-2">Qualifying School</h3>
               <MultiSelectCombobox
@@ -1307,6 +1325,33 @@ export function AdvancedFilterModal({
               <p className="text-xs text-muted-foreground mt-1">
                 {/* {schoolList.length} schools available */}
               </p>
+            </div>
+
+            {/* Initial School */}
+            <div>
+              <h3 className="font-semibold text-sm mb-2">Student Selected Course</h3>
+              <MultiSelectCombobox
+                options={[
+                  ...schoolList.map((school) => ({
+                    value: String(getValue(school)),
+                    label: getDisplayName(school, "school_name", "School"),
+                  })),
+                ]}
+                value={filters.initial_school || []}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    initial_school: value,
+                  }))
+                }
+                onOpen={() => loadFieldData('school')}
+                placeholder={
+                  isLoading.general ? "Loading..." : "Select student selected course"
+                }
+                searchPlaceholder="Search school..."
+                emptyText="No school found."
+                disabled={isLoading.general}
+              />
             </div>
 
             {/* Qualification */}

@@ -934,6 +934,17 @@ export const ApplicantTableRow = ({
         </TableCell>
       )}
 
+      {/* Student Selected Course */}
+      {isColumnVisible('initial_school') && (
+        <TableCell className="min-w-[140px] max-w-[180px] px-2">
+          <div className="truncate text-sm">
+            {schoolList.find((s: any) => Number(s.id) === Number(applicant.initial_school_id))?.school_name
+              || applicant.initial_school_name
+              || "N/A"}
+          </div>
+        </TableCell>
+      )}
+
       {/* Screening Round Fields */}
       {isColumnVisible('screening_status') && (
         <TableCell className="min-w-[120px] max-w-[150px] px-2">
