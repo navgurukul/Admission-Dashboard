@@ -95,7 +95,7 @@ const ApplicantTable = () => {
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<ColumnConfig[]>(() => {
     // Try to load from localStorage with versioning
-    const saved = localStorage.getItem('applicantTableColumns_v4');
+    const saved = localStorage.getItem('applicantTableColumns_v5');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -160,6 +160,7 @@ const ApplicantTable = () => {
       { id: 'stage', label: 'Stage', visible: true },
       { id: 'campus', label: 'Campus', visible: false },
       { id: 'school', label: 'School', visible: true },
+      { id: 'initial_school', label: 'Student Selected Course', visible: false },
 
       // Communication & Timestamps
       { id: 'notes', label: 'Communication Notes', visible: false },
@@ -173,7 +174,7 @@ const ApplicantTable = () => {
 
   // Clean up old localStorage keys on mount
   useEffect(() => {
-    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2', 'applicantTableColumns_v3'];
+    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2', 'applicantTableColumns_v3', 'applicantTableColumns_v5'];
     oldKeys.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
@@ -702,7 +703,7 @@ const ApplicantTable = () => {
           : col
       );
       // Save to localStorage with versioning
-      localStorage.setItem('applicantTableColumns_v4', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v5', JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -731,7 +732,7 @@ const ApplicantTable = () => {
           : { ...col, visible: false }; // All other columns hidden by default
       });
       // Save to localStorage
-      localStorage.setItem('applicantTableColumns_v4', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v5', JSON.stringify(updated));
       return updated;
     });
 
@@ -747,6 +748,13 @@ const ApplicantTable = () => {
     const column = visibleColumns.find(col => col.id === columnId);
     return column?.visible ?? true;
   }, [visibleColumns]); // Update when column visibility changes
+
+  // Load schoolList when initial_school column is visible (needed to resolve names without filters)
+  useEffect(() => {
+    if (isColumnVisible('initial_school') && schoolList.length === 0) {
+      fetchSchools();
+    }
+  }, [isColumnVisible, schoolList.length, fetchSchools]);
 
   // Calculate total visible columns for dynamic colspan
   const visibleColumnCount = useMemo(() => {
