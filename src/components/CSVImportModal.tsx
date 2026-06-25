@@ -164,7 +164,7 @@ const referenceGuide: GuideItem[] = [
       "ExamStatus: Screening Test Pass, Screening Test Fail",
       "LearningRoundStatus: Learning Round Pass, Learning Round Fail",
       "CulturalFitStatus: Culture Fit Round Pass, Culture Fit Round Fail",
-      "OfferLetterStatus: Admission Letter Sent,Admission Letter Pending , Admission Letter Accepted, Admission Letter Declined, Selected but not joined",
+      "AdmissionLetterStatus: Admission Letter Sent,Admission Letter Pending , Admission Letter Accepted, Admission Letter Declined, Selected but not joined",
       "OnboardedStatus: Onboarded",
     ],
   },
@@ -406,11 +406,11 @@ const CSVImportModal = ({
         "CulturalFitStatus",
         "CulturalFitComments",
         "CulturalFitLastUpdatedByEmail",
-        "OfferLetterStatus",
+        "AdmissionLetterStatus",
         "OnboardedStatus",
         "FinalNotes",
         "JoiningDate",
-        "OfferLetterSentByEmail",
+        "AdmissionLetterSentByEmail",
         "FinalStatusUpdatedByEmail",
       ];
 
@@ -498,11 +498,11 @@ const CSVImportModal = ({
       "CulturalFitStatus",
       "CulturalFitComments",
       "CulturalFitLastUpdatedByEmail",
-      "OfferLetterStatus",
+      "AdmissionLetterStatus",
       "OnboardedStatus",
       "FinalNotes",
       "JoiningDate",
-      "OfferLetterSentByEmail",
+      "AdmissionLetterSentByEmail",
       "FinalStatusUpdatedByEmail",
     ];
 
@@ -544,7 +544,7 @@ const CSVImportModal = ({
       "Culture Fit Round Pass",
       "Strong values alignment and team player",
       "interviewer2@example.com",
-      "Admission letter Sent",
+      "Admission Letter Sent",
       "Onboarded",
       "Selected for January 2025 batch",
       "2025-01-15",
@@ -663,7 +663,7 @@ const CSVImportModal = ({
                 type="button"
               >
                 <Download className="h-4 w-4" />
-                Download "Full Student Data" Template
+                Download Import Template
               </Button>
               {/* <Button
                 onClick={() => downloadTemplate('update')}
@@ -676,7 +676,7 @@ const CSVImportModal = ({
               </Button> */}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              • <strong>Full Student Data:</strong> Create new students with complete information
+              • <strong>Student Import Template:</strong> Use this template to import student records with all required information.
               {/* <br/>
               • <strong>Sessions Update:</strong> Update existing students' stages and Admission letter updates based on their email addresses. */}
             </p>
@@ -773,14 +773,16 @@ const CSVImportModal = ({
           )}
         </div>
 
-        <Button
-          onClick={handleParse}
-          disabled={!csvFile || isProcessing}
-          className="mt-2 w-full flex items-center gap-2 sm:w-auto"
-        >
-          {isProcessing && <Loader2 className="animate-spin h-4 w-4" />}
-          {isProcessing ? "Importing..." : "Import"}
-        </Button>
+        {!showResults && (
+          <Button
+            onClick={handleParse}
+            disabled={!csvFile || isProcessing}
+            className="mt-2 w-full flex items-center gap-2 sm:w-auto"
+          >
+            {isProcessing && <Loader2 className="animate-spin h-4 w-4" />}
+            {isProcessing ? "Importing..." : "Import"}
+          </Button>
+        )}
         </div>
 
         <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
