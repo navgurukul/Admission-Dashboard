@@ -1149,6 +1149,7 @@ export const deleteReligion = async (id: string): Promise<void> => {
 
 export interface StudentStats {
   totalStudents: number;
+  admissionLetterSent?: number;
   offerLetterSent: number;
   onboarded: number;
   manuallySent: number;
