@@ -35,23 +35,14 @@ import { CalendarIcon, Filter, X, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  getFilterStudent,
   getExamCentres,
   getStatusesByStageId,
 } from "@/utils/api";
 import { cn } from "@/lib/utils";
-import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
-// import { STAGE_STATUS_MAP } from "./applicant-table/StageDropdown";
 import {
   getStatesList,
   getDistrictsList,
-  getCampusesList,
-  getSchoolsList,
-  getReligionsList,
-  getQualificationsList,
-  getStatusesList,
-  getPartnersFromStudents,
   getDistrictsFromStudents,
   getStatesFromStudents,
   State,
@@ -61,7 +52,7 @@ import {
 interface FilterState {
   stage: string;
   stage_id?: number;
-  stage_status: string | string[]; // Support both single and multiple
+  stage_status: string | string[];
   examMode: string;
   interviewMode: string;
   partner: string[];
@@ -89,7 +80,7 @@ interface AdvancedFilterModalProps {
   onApplyFilters: (filters: FilterState, stageStatuses?: any[]) => void;
   currentFilters: FilterState;
   students: any[];
-  hideCampusFilter?: boolean; // Optional prop to hide campus field
+  hideCampusFilter?: boolean;
 }
 
 export function AdvancedFilterModal({
@@ -102,7 +93,6 @@ export function AdvancedFilterModal({
 }: AdvancedFilterModalProps) {
   const [filters, setFilters] = useState<FilterState>(currentFilters);
 
-  // ✅ DRY: Use on-demand reference data hook
   const {
     campusList,
     schoolList,
@@ -112,7 +102,6 @@ export function AdvancedFilterModal({
     qualificationList,
     partnerList,
     donorList,
-    stateList: apiStateList,
     loadFieldData,
     loadMultipleFields,
   } = useOnDemandReferenceData();
@@ -128,13 +117,14 @@ export function AdvancedFilterModal({
   const [examCentres, setExamCentres] = useState<string[]>([]);
   const [isLoadingExamCentres, setIsLoadingExamCentres] = useState(false);
   const isExamCentresLoaded = useRef(false);
+  const isInitialLoadDone = useRef(false);
+  const prevIsOpen = useRef(isOpen);
 
   const { toast } = useToast();
 
   const fetchExamCentres = useCallback(async () => {
     if (isExamCentresLoaded.current || isLoadingExamCentres) return;
     setIsLoadingExamCentres(true);
-
     try {
       const centres = await getExamCentres();
       setExamCentres(centres);
@@ -152,14 +142,6 @@ export function AdvancedFilterModal({
     }
   }, [isLoadingExamCentres, toast]);
 
-  // Use ref to track if initial load is done
-  const isInitialLoadDone = useRef(false);
-  const prevIsOpen = useRef(isOpen);
-  const districtsCache = useRef<Record<string, District[]>>({});
-
-  // ✅ NEW: Track which fields have loaded data (on-demand loading)
-  const loadedFields = useRef<Set<string>>(new Set());
-
   useEffect(() => {
     const fetchStageStatuses = async () => {
       if (!filters.stage_id || filters.stage === "all") {
@@ -167,14 +149,10 @@ export function AdvancedFilterModal({
         setFilters((prev) => ({ ...prev, stage_status: "all" }));
         return;
       }
-
       try {
         setIsLoading((prev) => ({ ...prev, general: true }));
         const response = await getStatusesByStageId(filters.stage_id);
-
-        // Extract data array from response
         const statusesData = response?.data || response || [];
-
         setStageStatuses(statusesData);
       } catch (error) {
         console.error("Error fetching stage statuses:", error);
@@ -189,52 +167,35 @@ export function AdvancedFilterModal({
         setIsLoading((prev) => ({ ...prev, general: false }));
       }
     };
-
     fetchStageStatuses();
-  }, [filters.stage_id, filters.stage, toast]); // Run when stage changes
+  }, [filters.stage_id, filters.stage, toast]);
 
-  // State change handler - wrapped in useCallback to prevent recreating on every render
   const handleStateChange = useCallback(
     async (selectedState: string, updateFilters = true) => {
-      // console.log(" State Selected:", selectedState);
-
       if (updateFilters) {
         setFilters((prev) => ({
           ...prev,
           state: selectedState === "all" ? undefined : selectedState,
-          district: [], // Reset district when state changes
+          district: [],
         }));
       }
-
       if (selectedState === "all") {
         setAvailableDistricts([]);
         return;
       }
-
       setIsLoading((prev) => ({ ...prev, districts: true }));
-
       try {
-        // Find state code from available states
         const stateObj = availableStates.find((s) => s.name === selectedState);
         const stateCode = stateObj?.state_code || stateObj?.id;
-
         let districts: District[] = [];
-
         if (stateCode && stateCode !== selectedState) {
-          // Get districts from API using state code
           districts = await getDistrictsList(stateCode);
         } else {
-          // Fallback: filter districts from students data
           const studentDistricts = getDistrictsFromStudents(students);
-          districts = studentDistricts.map((district) => ({
-            id: district,
-            name: district,
-          }));
+          districts = studentDistricts.map((district) => ({ id: district, name: district }));
         }
-
         setAvailableDistricts(districts);
       } catch (error) {
-        // console.error("Error loading districts:", error);
         setAvailableDistricts([]);
       } finally {
         setIsLoading((prev) => ({ ...prev, districts: false }));
@@ -243,83 +204,48 @@ export function AdvancedFilterModal({
     [availableStates, students],
   );
 
-  // ✅ DRY: Load all filter data when modal opens
-  // This ensures all dropdowns have data available
-  // ✅ DRY: Minimal initial load - only load state and stage data
-  // Stage is loaded initially because Select doesn't support onOpen
-  // All other data loads on-demand when user opens specific dropdowns
   useEffect(() => {
     const loadInitialFilterData = async () => {
-      // Only load when modal opens (not on every prop change)
       if (!isOpen) {
         isInitialLoadDone.current = false;
         return;
       }
-
-      // Prevent re-running if modal is already open
-      if (prevIsOpen.current === isOpen && isInitialLoadDone.current) {
-        return;
-      }
-
+      if (prevIsOpen.current === isOpen && isInitialLoadDone.current) return;
       prevIsOpen.current = isOpen;
-
       setIsLoading((prev) => ({ ...prev, general: true }));
       setFilters(currentFilters);
-
       try {
-        // Extract data from students
         const statesFromStudents = getStatesFromStudents(students);
-
-        // ✅ Load data for active filters initially so labels show correctly
-        const fieldsToLoad = ['state', 'stage'];
-        if (currentFilters.partner?.length) fieldsToLoad.push('campus');
-        if (currentFilters.school?.length) fieldsToLoad.push('school');
-        if (currentFilters.initial_school?.length) fieldsToLoad.push('school');
-        if (currentFilters.qualification?.length) fieldsToLoad.push('qualification');
-        if (currentFilters.currentStatus?.length) fieldsToLoad.push('current_status');
-        if (currentFilters.religion?.length) fieldsToLoad.push('religion');
-        if (currentFilters.donor?.length) fieldsToLoad.push('donor');
-        if (currentFilters.partnerFilter?.length) fieldsToLoad.push('partnerFilter');
-
-        console.log(`🔄 Loading initial data for fields: ${fieldsToLoad.join(', ')}...`);
+        const fieldsToLoad = ["state", "stage"];
+        if (currentFilters.partner?.length) fieldsToLoad.push("campus");
+        if (currentFilters.school?.length) fieldsToLoad.push("school");
+        if (currentFilters.initial_school?.length) fieldsToLoad.push("school");
+        if (currentFilters.qualification?.length) fieldsToLoad.push("qualification");
+        if (currentFilters.currentStatus?.length) fieldsToLoad.push("current_status");
+        if (currentFilters.religion?.length) fieldsToLoad.push("religion");
+        if (currentFilters.donor?.length) fieldsToLoad.push("donor");
+        if (currentFilters.partnerFilter?.length) fieldsToLoad.push("partnerFilter");
         await loadMultipleFields(fieldsToLoad);
-        console.log('✅ Initial data loaded');
-
-        if (currentFilters.exam_centre?.length) {
-          await fetchExamCentres();
-        }
-
-        // Fetch states directly since apiStateList won't be updated synchronously here
+        if (currentFilters.exam_centre?.length) await fetchExamCentres();
         const apiStatesData = await getStatesList();
-
-        // Combine API states with states from students
-        const allStates = [...apiStatesData.map(s => ({
+        const allStates = [...apiStatesData.map((s: any) => ({
           id: s.state_code || s.id,
           name: s.name,
-          state_code: s.state_code || s.id
+          state_code: s.state_code || s.id,
         }))];
-
         statesFromStudents.forEach((stateName) => {
           const isStateCode = /^[A-Z]{2,3}$/.test(stateName);
-
-          // Check if state already exists by name or code
           const existsInApi = allStates.find(
             (s) => s.name === stateName || s.state_code === stateName || s.id === stateName
           );
-
-          // Only add if it's not a state code and doesn't exist in API states
           if (!isStateCode && !existsInApi) {
             allStates.push({ id: stateName, name: stateName, state_code: stateName });
           }
         });
-
         setAvailableStates(allStates);
-
-        // Load districts for current state if selected
         if (currentFilters.state && currentFilters.state !== "all") {
           await handleStateChange(currentFilters.state, false);
         }
-
         isInitialLoadDone.current = true;
       } catch (error) {
         console.error("Error loading initial filter data:", error);
@@ -333,10 +259,8 @@ export function AdvancedFilterModal({
         setIsLoading((prev) => ({ ...prev, general: false }));
       }
     };
-
     loadInitialFilterData();
-
-  }, [isOpen]); // Only depend on isOpen to prevent infinite loops
+  }, [isOpen]);
 
   const resetFilters = () => {
     setFilters({
@@ -362,1243 +286,722 @@ export function AdvancedFilterModal({
   };
 
   const handleApplyFilters = () => {
-
-    // Validate date range - if start is selected, end must be selected
     if (filters.dateRange.from && !filters.dateRange.to) {
-      toast({
-        title: "⚠️ Incomplete Date Range",
-        description: "Please select an end date to complete the date range.",
-        variant: "destructive",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
+      toast({ title: "⚠️ Incomplete Date Range", description: "Please select an end date.", variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
     }
-
-    // Validate date range - if end is selected, start must be selected
     if (filters.dateRange.to && !filters.dateRange.from) {
-      toast({
-        title: "⚠️ Incomplete Date Range",
-        description: "Please select a start date before selecting an end date.",
-        variant: "destructive",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
+      toast({ title: "⚠️ Incomplete Date Range", description: "Please select a start date.", variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
     }
-
-    // Validate that end date is greater than or equal to start date (allow same day)
-    if (filters.dateRange.from && filters.dateRange.to) {
-      if (filters.dateRange.from > filters.dateRange.to) {
-        toast({
-          title: "⚠️ Invalid Date Range",
-          description: "End date cannot be before start date.",
-          variant: "destructive",
-          className: "border-orange-500 bg-orange-50 text-orange-900",
-        });
-        return;
-      }
+    if (filters.dateRange.from && filters.dateRange.to && filters.dateRange.from > filters.dateRange.to) {
+      toast({ title: "⚠️ Invalid Date Range", description: "End date cannot be before start date.", variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      return;
     }
-
-    // Validate stage status - mandatory for stages that have statuses available
     if (filters.stage && filters.stage !== "all" && stageStatuses.length > 0) {
       const hasStageStatus = Array.isArray(filters.stage_status)
         ? filters.stage_status.length > 0
         : filters.stage_status && filters.stage_status !== "all";
-
       if (!hasStageStatus) {
-        toast({
-          title: "⚠️ Stage Status Required",
-          description: `Please select at least one stage status for ${filters.stage} stage.`,
-          variant: "destructive",
-          className: "border-orange-500 bg-orange-50 text-orange-900",
-        });
+        toast({ title: "⚠️ Stage Status Required", description: `Please select at least one stage status for ${filters.stage} stage.`, variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
         return;
       }
     }
-
-    // Check if at least one filter is selected (not default values)
     const hasValidFilters =
       (filters.stage && filters.stage !== "all") ||
-      filters.partner?.length > 0 ||
-      filters.district?.length > 0 ||
-      filters.school?.length > 0 ||
-      filters.initial_school?.length > 0 ||
-      filters.religion?.length > 0 ||
-      filters.qualification?.length > 0 ||
-      filters.currentStatus?.length > 0 ||
-      filters.donor?.length > 0 ||
-      filters.partnerFilter?.length > 0 ||
-      filters.exam_centre?.length > 0 ||
-      filters.state ||
-      filters.gender ||
-      filters.dateRange.from ||
-      filters.dateRange.to;
-
+      filters.partner?.length > 0 || filters.district?.length > 0 ||
+      filters.school?.length > 0 || filters.initial_school?.length > 0 ||
+      filters.religion?.length > 0 || filters.qualification?.length > 0 ||
+      filters.currentStatus?.length > 0 || filters.donor?.length > 0 ||
+      filters.partnerFilter?.length > 0 || filters.exam_centre?.length > 0 ||
+      filters.state || filters.gender || filters.dateRange.from || filters.dateRange.to;
     if (!hasValidFilters) {
-      toast({
-        title: "⚠️ No Filters Selected",
-        description: "Please select at least one filter before applying.",
-        variant: "destructive",
-        className: "border-orange-500 bg-orange-50 text-orange-900",
-      });
+      toast({ title: "⚠️ No Filters Selected", description: "Please select at least one filter.", variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
     }
-
-    // Create processed filters object without the old 'status' field
-    const processedFilters: any = {
-      ...filters,
-    };
-
-    // Remove the old 'status' field if it exists
+    const processedFilters: any = { ...filters };
     delete processedFilters.status;
-
-    // console.log("Current Filters:", processedFilters);
     onApplyFilters(processedFilters, stageStatuses);
     onClose();
-    toast({
-      title: "✅ Filters Applied",
-      description: "Your filters have been successfully applied.",
-      variant: "default",
-      className: "border-green-500 bg-green-50 text-green-900",
-    });
+    toast({ title: "✅ Filters Applied", description: "Your filters have been successfully applied.", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
   };
 
-
-  // Helper function to get display name
-  const getDisplayName = (
-    item: any,
-    nameKey: string = "name",
-    fallbackPrefix: string = "Item",
-  ) => {
+  const getDisplayName = (item: any, nameKey: string = "name", fallbackPrefix: string = "Item") => {
     if (!item) return `${fallbackPrefix}`;
     if (typeof item === "string") return item;
-
-    const possibleKeys = [
-      nameKey,
-      "name",
-      "title",
-      "label",
-      "school_name",
-      "religion_name",
-      "current_status_name",
-      "qualification_name",
-      "campus_name",
-      "district_name",
-      "partner_name",
-      "donor_name",
-    ];
-
+    const possibleKeys = [nameKey, "name", "title", "label", "school_name", "religion_name", "current_status_name", "qualification_name", "campus_name", "district_name", "partner_name", "donor_name"];
     for (const key of possibleKeys) {
-      if (item[key] && typeof item[key] === "string") {
-        return item[key];
-      }
+      if (item[key] && typeof item[key] === "string") return item[key];
     }
-
     return item.id ? `${fallbackPrefix} ${item.id}` : `${fallbackPrefix}`;
   };
 
-  // Helper function to get value
   const getValue = (item: any, valueKey: string = "id") => {
     if (!item) return "";
     if (typeof item === "string") return item;
-
     if (item[valueKey]) return String(item[valueKey]);
     if (item.stage_id) return String(item.stage_id);
     if (item.id) return String(item.id);
     if (item.value) return String(item.value);
-
     return String(item);
   };
 
-  // --- ADDED: helpers to build active filters and clear individual filter ---
-  // Helper to remove individual stage status
   const removeSingleStageStatus = (statusToRemove: string) => {
     setFilters((prev) => {
       const currentStatuses = Array.isArray(prev.stage_status)
         ? prev.stage_status
-        : prev.stage_status && prev.stage_status !== "all"
-          ? [prev.stage_status]
-          : [];
-
+        : prev.stage_status && prev.stage_status !== "all" ? [prev.stage_status] : [];
       const newStatuses = currentStatuses.filter((s) => s !== statusToRemove);
-
-      // If removing the last status and stage has statuses available, also clear the stage
       if (newStatuses.length === 0 && stageStatuses.length > 0) {
-        return {
-          ...prev,
-          stage: "all",
-          stage_id: undefined,
-          stage_status: "all",
-        };
+        return { ...prev, stage: "all", stage_id: undefined, stage_status: "all" };
       }
-
-      return {
-        ...prev,
-        stage_status: newStatuses.length > 0 ? newStatuses : "all",
-      };
+      return { ...prev, stage_status: newStatuses.length > 0 ? newStatuses : "all" };
     });
   };
 
   const clearSingleFilter = (key: string, valueToRemove?: any) => {
     setFilters((prev) => {
       const newFilters = { ...prev } as any;
-
       if (valueToRemove !== undefined && Array.isArray(newFilters[key])) {
         newFilters[key] = newFilters[key].filter((v: any) => String(v) !== String(valueToRemove));
         return newFilters;
       }
-
       switch (key) {
-        case "stage":
-          return { ...newFilters, stage: "all", stage_id: undefined, stage_status: "all" };
-        case "stage_status":
-          return { ...newFilters, stage_status: "all" };
-        case "exam_centre":
-          return { ...newFilters, exam_centre: [] };
-        case "state":
-          setAvailableDistricts([]);
-          return { ...newFilters, state: undefined, district: [] };
-        case "district":
-          return { ...newFilters, district: [] };
-        case "partner":
-        case "campus":
-          return { ...newFilters, partner: [] };
-        case "school":
-          return { ...newFilters, school: [] };
-        case "initial_school":
-          return { ...newFilters, initial_school: [] };
-        case "religion":
-          return { ...newFilters, religion: [] };
-        case "qualification":
-          return { ...newFilters, qualification: [] };
-        case "currentStatus":
-          return { ...newFilters, currentStatus: [] };
-        case "donor":
-          return { ...newFilters, donor: [] };
-        case "partnerFilter":
-          return { ...newFilters, partnerFilter: [] };
-        case "dateRange":
-        case "daterange":
-          return { ...newFilters, dateRange: { type: prev.dateRange.type } };
-        default:
-          return prev;
+        case "stage": return { ...newFilters, stage: "all", stage_id: undefined, stage_status: "all" };
+        case "stage_status": return { ...newFilters, stage_status: "all" };
+        case "exam_centre": return { ...newFilters, exam_centre: [] };
+        case "state": setAvailableDistricts([]); return { ...newFilters, state: undefined, district: [] };
+        case "district": return { ...newFilters, district: [] };
+        case "partner": case "campus": return { ...newFilters, partner: [] };
+        case "school": return { ...newFilters, school: [] };
+        case "initial_school": return { ...newFilters, initial_school: [] };
+        case "religion": return { ...newFilters, religion: [] };
+        case "qualification": return { ...newFilters, qualification: [] };
+        case "currentStatus": return { ...newFilters, currentStatus: [] };
+        case "donor": return { ...newFilters, donor: [] };
+        case "partnerFilter": return { ...newFilters, partnerFilter: [] };
+        case "dateRange": case "daterange": return { ...newFilters, dateRange: { type: prev.dateRange.type } };
+        default: return prev;
       }
     });
   };
 
+  // Build active filter chips
   const activeFilters: { key: string; label: string; onRemove?: () => void }[] = [];
 
-  // Stage chip (only if stage is selected)
-  const hasStage = filters.stage && filters.stage !== "all";
-  if (hasStage) {
-    activeFilters.push({
-      key: "stage",
-      label: `Stage: ${filters.stage}`,
-      onRemove: () => clearSingleFilter("stage")
-    });
+  if (filters.stage && filters.stage !== "all") {
+    activeFilters.push({ key: "stage", label: `Stage: ${filters.stage}`, onRemove: () => clearSingleFilter("stage") });
   }
 
-  // Individual stage status chips
   const stageStatusArray = Array.isArray(filters.stage_status)
     ? filters.stage_status
-    : filters.stage_status && filters.stage_status !== "all"
-      ? [filters.stage_status]
-      : [];
-
+    : filters.stage_status && filters.stage_status !== "all" ? [filters.stage_status] : [];
   stageStatusArray.forEach((statusId) => {
     const statusObj = stageStatuses.find((s: any) => String(s.id) === String(statusId));
     const statusLabel = statusObj?.status_name || statusObj?.name || statusId;
-    activeFilters.push({
-      key: `stage_status-${statusId}`,
-      label: `Status: ${statusLabel}`,
-      onRemove: () => removeSingleStageStatus(statusId)
-    });
+    activeFilters.push({ key: `stage_status-${statusId}`, label: `Status: ${statusLabel}`, onRemove: () => removeSingleStageStatus(statusId) });
   });
 
   if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}`, onRemove: () => clearSingleFilter("state") });
+  if (filters.gender) activeFilters.push({ key: "gender", label: `Gender: ${filters.gender}`, onRemove: () => setFilters((prev) => ({ ...prev, gender: undefined })) });
 
-  if (filters.district?.length) {
-    filters.district.forEach(d => {
-      activeFilters.push({
-        key: `district-${d}`,
-        label: `District: ${d}`,
-        onRemove: () => clearSingleFilter("district", d)
-      });
-    });
-  }
-
-  // Campus - find and display actual name
-  if (filters.partner?.length) {
-    filters.partner.forEach(p => {
-      const campus = campusList.find((c: any) => String(c.id) === String(p));
-      const campusLabel = campus?.campus_name || campus?.name || p;
-      activeFilters.push({
-        key: `partner-${p}`,
-        label: `Campus: ${campusLabel}`,
-        onRemove: () => clearSingleFilter("partner", p)
-      });
-    });
-  }
-
-  // School - find and display actual name
-  if (filters.school?.length) {
-    filters.school.forEach(s => {
-      const school = schoolList.find((sc: any) => String(sc.id) === String(s));
-      const schoolLabel = school?.school_name || school?.name || s;
-      activeFilters.push({
-        key: `school-${s}`,
-        label: `School: ${schoolLabel}`,
-        onRemove: () => clearSingleFilter("school", s)
-      });
-    });
-  }
-
-  // Initial School - find and display actual name
-  if (filters.initial_school?.length) {
-    filters.initial_school.forEach(s => {
-      const school = schoolList.find((sc: any) => String(sc.id) === String(s));
-      const schoolLabel = school?.school_name || school?.name || s;
-      activeFilters.push({
-        key: `initial_school-${s}`,
-        label: `Student Selected Course: ${schoolLabel}`,
-        onRemove: () => clearSingleFilter("initial_school", s)
-      });
-    });
-  }
-
-  // Qualification - find and display actual name
-  if (filters.qualification?.length) {
-    filters.qualification.forEach(q => {
-      const qualification = qualificationList.find((ql: any) => String(ql.id) === String(q));
-      const qualLabel = qualification?.qualification_name || qualification?.name || q;
-      activeFilters.push({
-        key: `qualification-${q}`,
-        label: `Qualification: ${qualLabel}`,
-        onRemove: () => clearSingleFilter("qualification", q)
-      });
-    });
-  }
-
-  // Current Status - find and display actual name
-  if (filters.currentStatus?.length) {
-    filters.currentStatus.forEach(csId => {
-      const status = currentstatusList.find((s: any) => String(s.id) === String(csId));
-      const statusLabel = status?.current_status_name || status?.name || csId;
-      activeFilters.push({
-        key: `currentStatus-${csId}`,
-        label: `Status: ${statusLabel}`,
-        onRemove: () => clearSingleFilter("currentStatus", csId)
-      });
-    });
-  }
-
-  // Religion - find and display actual name
-  if (filters.religion?.length) {
-    filters.religion.forEach(r => {
-      const religion = religionList.find((re: any) => String(re.id) === String(r));
-      const religionLabel = religion?.religion_name || religion?.name || r;
-      activeFilters.push({
-        key: `religion-${r}`,
-        label: `Religion: ${religionLabel}`,
-        onRemove: () => clearSingleFilter("religion", r)
-      });
-    });
-  }
-
-  // Donor - find and display actual name
-  if (filters.donor?.length) {
-    filters.donor.forEach(d => {
-      const donor = donorList.find((dn: any) => String(dn.id) === String(d));
-      const donorLabel = donor?.donor_name || donor?.name || d;
-      activeFilters.push({
-        key: `donor-${d}`,
-        label: `Donor: ${donorLabel}`,
-        onRemove: () => clearSingleFilter("donor", d)
-      });
-    });
-  }
-
-  // Partner (organization) - find and display actual name
-  if (filters.partnerFilter?.length) {
-    filters.partnerFilter.forEach(pf => {
-      const partner = partnerList.find((p: any) => String(p.id) === String(pf));
-      const partnerLabel = partner?.partner_name || partner?.name || pf;
-      activeFilters.push({
-        key: `partnerFilter-${pf}`,
-        label: `Partner: ${partnerLabel}`,
-        onRemove: () => clearSingleFilter("partnerFilter", pf)
-      });
-    });
-  }
-
-  if (filters.exam_centre?.length) {
-    filters.exam_centre.forEach(ec => {
-      activeFilters.push({
-        key: `exam_centre-${ec}`,
-        label: `Exam Centre: ${ec}`,
-        onRemove: () => clearSingleFilter("exam_centre", ec),
-      });
-    });
-  }
+  filters.district?.forEach(d => activeFilters.push({ key: `district-${d}`, label: `District: ${d}`, onRemove: () => clearSingleFilter("district", d) }));
+  filters.partner?.forEach(p => {
+    const campus = campusList.find((c: any) => String(c.id) === String(p));
+    activeFilters.push({ key: `partner-${p}`, label: `Campus: ${campus?.campus_name || campus?.name || p}`, onRemove: () => clearSingleFilter("partner", p) });
+  });
+  filters.school?.forEach(s => {
+    const school = schoolList.find((sc: any) => String(sc.id) === String(s));
+    activeFilters.push({ key: `school-${s}`, label: `School: ${school?.school_name || school?.name || s}`, onRemove: () => clearSingleFilter("school", s) });
+  });
+  filters.initial_school?.forEach(s => {
+    const school = schoolList.find((sc: any) => String(sc.id) === String(s));
+    activeFilters.push({ key: `initial_school-${s}`, label: `Course: ${school?.school_name || school?.name || s}`, onRemove: () => clearSingleFilter("initial_school", s) });
+  });
+  filters.qualification?.forEach(q => {
+    const qual = qualificationList.find((ql: any) => String(ql.id) === String(q));
+    activeFilters.push({ key: `qualification-${q}`, label: `Qualification: ${qual?.qualification_name || qual?.name || q}`, onRemove: () => clearSingleFilter("qualification", q) });
+  });
+  filters.currentStatus?.forEach(csId => {
+    const status = currentstatusList.find((s: any) => String(s.id) === String(csId));
+    activeFilters.push({ key: `currentStatus-${csId}`, label: `Status: ${status?.current_status_name || status?.name || csId}`, onRemove: () => clearSingleFilter("currentStatus", csId) });
+  });
+  filters.religion?.forEach(r => {
+    const religion = religionList.find((re: any) => String(re.id) === String(r));
+    activeFilters.push({ key: `religion-${r}`, label: `Religion: ${religion?.religion_name || religion?.name || r}`, onRemove: () => clearSingleFilter("religion", r) });
+  });
+  filters.donor?.forEach(d => {
+    const donor = donorList.find((dn: any) => String(dn.id) === String(d));
+    activeFilters.push({ key: `donor-${d}`, label: `Donor: ${donor?.donor_name || donor?.name || d}`, onRemove: () => clearSingleFilter("donor", d) });
+  });
+  filters.partnerFilter?.forEach(pf => {
+    const partner = partnerList.find((p: any) => String(p.id) === String(pf));
+    activeFilters.push({ key: `partnerFilter-${pf}`, label: `Partner: ${partner?.partner_name || partner?.name || pf}`, onRemove: () => clearSingleFilter("partnerFilter", pf) });
+  });
+  filters.exam_centre?.forEach(ec => activeFilters.push({ key: `exam_centre-${ec}`, label: `Exam Centre: ${ec}`, onRemove: () => clearSingleFilter("exam_centre", ec) }));
 
   if (filters.dateRange.from || filters.dateRange.to) {
     const from = filters.dateRange.from ? format(filters.dateRange.from, "dd/MM/yyyy") : "";
     const to = filters.dateRange.to ? format(filters.dateRange.to, "dd/MM/yyyy") : "";
-
-    // Make date type more readable
-    const dateTypeLabel = filters.dateRange.type === "applicant"
-      ? "Created"
-      : filters.dateRange.type === "lastUpdate"
-        ? "Updated"
-        : "Interview";
-
-    activeFilters.push({
-      key: "dateRange",
-      label: `${dateTypeLabel}: ${from}${from && to ? " → " : ""}${to}`,
-    });
+    const dateTypeLabel = filters.dateRange.type === "applicant" ? "Created" : filters.dateRange.type === "lastUpdate" ? "Updated" : "Interview";
+    activeFilters.push({ key: "dateRange", label: `${dateTypeLabel}: ${from}${from && to ? " → " : ""}${to}`, onRemove: () => clearSingleFilter("dateRange") });
   }
-  // --- end added helpers ---
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
-        <DialogHeader className="flex-shrink-0 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <Filter className="w-5 h-5" />
-            Advanced Filters
-            {isLoading.general && (
-              <span className="text-sm text-muted-foreground">
-                (Loading...)
-              </span>
-            )}
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-hidden flex flex-col p-0">
+        {/* Header */}
+        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-4 border-b bg-background">
+          <DialogTitle asChild>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Filter className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Advanced Filters</h2>
+                  <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                    {activeFilters.length > 0
+                      ? `${activeFilters.length} filter${activeFilters.length !== 1 ? "s" : ""} active`
+                      : "Refine your applicant search"}
+                  </p>
+                </div>
+              </div>
+              {isLoading.general && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground pr-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
+                  <span>Loading...</span>
+                </div>
+              )}
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        {/* --- ADDED: show active filter chips --- */}
+        {/* Active Filter Pills */}
         {activeFilters.length > 0 && (
-          <div className="px-4">
-            <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex-shrink-0 px-6 pt-3 pb-2 bg-muted/30 border-b">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Active:</span>
+              <button
+                onClick={resetFilters}
+                className="text-xs text-red-500 hover:text-red-600 font-medium hover:underline"
+              >
+                Clear all
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
               {activeFilters.map((f) => (
-                <Button
+                <span
                   key={f.key}
-                  size="sm"
-                  variant="ghost"
-                  className="rounded-full py-1.5 px-2 flex items-center gap-2 border h-auto whitespace-nowrap min-w-fit"
-                  onClick={() => {
-                    if (f.onRemove) {
-                      f.onRemove();
-                    } else {
-                      const parts = f.key.split('-');
-                      const filterType = parts[0];
-                      const valueToRemove = parts.length > 1 ? parts[1] : undefined;
-                      clearSingleFilter(filterType, valueToRemove);
-                    }
-                  }}
+                  className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium"
                 >
-                  <span className="text-sm inline-block">{f.label}</span>
-                  <X className="w-3 h-3 flex-shrink-0" />
-                </Button>
+                  {f.label}
+                  <button
+                    onClick={() => f.onRemove ? f.onRemove() : clearSingleFilter(f.key.split("-")[0], f.key.includes("-") ? f.key.split("-")[1] : undefined)}
+                    className="ml-0.5 rounded-full hover:bg-white/20 p-0.5 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               ))}
             </div>
           </div>
         )}
-        {/* --- end chips --- */}
 
-        <div className="space-y-6">
-          {/* Stage & Status & Modes */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Stage</h3>
-              <Select
-                value={filters.stage_id ? String(filters.stage_id) : "all"}
-                onValueChange={(value) => {
-                  if (value === "all") {
-                    setFilters((prev) => ({
-                      ...prev,
-                      stage: "all",
-                      stage_id: undefined,
-                      stage_status: "all",
-                    }));
-                    return;
-                  }
+        {/* Scrollable Filter Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
 
-                  const selectedStage = stageList.find(
-                    (s: any) =>
-                      String(s.stage_id) === String(value) ||
-                      String(s.id) === String(value),
-                  );
-
-                  if (selectedStage) {
-                    const stageName =
-                      selectedStage.stage_name ||
-                      selectedStage.name ||
-                      String(value);
-                    const stageId = selectedStage.stage_id || selectedStage.id;
-
-                    setFilters((prev) => ({
-                      ...prev,
-                      stage: stageName,
-                      stage_id: Number(stageId),
-                      stage_status: "all",
-                    }));
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select stage" className="truncate" />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">Select Stage</SelectItem>
-                  {/* <SelectItem value="sourcing">Sourcing</SelectItem>
-                  <SelectItem value="screening">Screening</SelectItem> */}
-
-                  {stageList.map((stage: any) => {
-                    const stageId = stage.stage_id || stage.id;
-                    const stageName =
-                      stage.stage_name || stage.name || `Stage ${stageId}`;
-                    return (
-                      <SelectItem key={stageId} value={String(stageId)}>
-                        {stageName}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+          {/* ── Section 1: Stage & Status ── */}
+          <div className="rounded-xl border border-blue-200 dark:border-blue-800 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-950/30">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Stage & Status</span>
             </div>
-
-            {/* Stage Status - Multi-select Dropdown */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">
-                Stage Status
-                {filters.stage &&
-                  filters.stage !== "all" &&
-                  stageStatuses.length > 0 && (
-                    <span className="text-red-500 ml-1">*</span>
-                  )}
-              </h3>
-              <Popover modal={false}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    disabled={
-                      !filters.stage ||
-                      filters.stage === "all" ||
-                      stageStatuses.length === 0 ||
-                      isLoading.general
-                    }
-                    className={cn(
-                      "w-full justify-between h-10",
-                      (!filters.stage || filters.stage === "all") && "text-muted-foreground",
-                      filters.stage &&
-                        filters.stage !== "all" &&
-                        stageStatuses.length > 0 &&
-                        (!filters.stage_status ||
-                          (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) ||
-                          filters.stage_status === "all")
-                        ? "border-red-300"
-                        : ""
-                    )}
-                  >
-                    <span className="truncate">
-                      {!filters.stage || filters.stage === "all"
-                        ? "Select stage first"
-                        : isLoading.general
-                          ? "Loading statuses..."
-                          : stageStatuses.length === 0
-                            ? "No statuses available - Stage can be applied"
-                            : Array.isArray(filters.stage_status) && filters.stage_status.length > 0
-                              ? `${filters.stage_status.length} selected`
-                              : "Select statuses (required)"}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[300px] p-0"
-                  align="start"
-                  onOpenAutoFocus={(e) => e.preventDefault()}
-                  onInteractOutside={(e) => {
-                    // Prevent closing when clicking inside the popover content
-                    const target = e.target as HTMLElement;
-                    if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]')) {
-                      e.preventDefault();
-                    }
-                  }}
-                  onWheel={(e) => e.stopPropagation()}
-                >
-                  <Command>
-                    <CommandInput placeholder="Search statuses..." />
-                    <CommandList
-                      className="max-h-[200px] overflow-y-scroll overscroll-contain"
-                      style={{
-                        scrollbarWidth: 'thin',
-                        WebkitOverflowScrolling: 'touch'
-                      } as React.CSSProperties}
-                      onWheel={(e) => e.stopPropagation()}
-                    >
-                      <CommandEmpty>No status found.</CommandEmpty>
-                      <CommandGroup>
-                        {/* All Option */}
-                        <CommandItem
-                          key="all-statuses"
-                          value="all"
-                          onSelect={() => {
-                            setFilters((prev) => {
-                              const currentStatuses = Array.isArray(prev.stage_status)
-                                ? prev.stage_status
-                                : prev.stage_status && prev.stage_status !== "all"
-                                  ? [prev.stage_status]
-                                  : [];
-
-                              // If all are currently selected, deselect all
-                              // Otherwise, select all
-                              const allStatuses = stageStatuses.map((s: any) => String(s.id));
-                              const isAllSelected = currentStatuses.length === allStatuses.length;
-
-                              return {
-                                ...prev,
-                                stage_status: isAllSelected ? "all" : allStatuses,
-                              };
-                            });
-                          }}
-                          className="cursor-pointer font-semibold border-b"
-                          onMouseDown={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex items-center w-full">
-                            <Checkbox
-                              checked={
-                                Array.isArray(filters.stage_status) &&
-                                filters.stage_status.length === stageStatuses.length
-                              }
-                              className="mr-2"
-                              onCheckedChange={() => { }}
-                            />
-                            <span className="flex-1">Select All</span>
-                            {Array.isArray(filters.stage_status) &&
-                              filters.stage_status.length === stageStatuses.length && (
-                                <Check className="ml-auto h-4 w-4" />
-                              )}
-                          </div>
-                        </CommandItem>
-
-                        {stageStatuses.map((status: any) => {
-                          const statusName = status.status_name || status.name;
-                          const statusId = String(status.id);
-                          const isSelected = Array.isArray(filters.stage_status)
-                            ? filters.stage_status.includes(statusId)
-                            : filters.stage_status === statusId;
-
-                          return (
-                            <CommandItem
-                              key={status.id || statusName}
-                              value={statusName}
-                              onSelect={() => {
-                                setFilters((prev) => {
-                                  const currentStatuses = Array.isArray(prev.stage_status)
-                                    ? prev.stage_status
-                                    : prev.stage_status && prev.stage_status !== "all"
-                                      ? [prev.stage_status]
-                                      : [];
-
-                                  let newStatuses: string[];
-                                  if (isSelected) {
-                                    // Remove from selection
-                                    newStatuses = currentStatuses.filter((s) => s !== statusId);
-                                  } else {
-                                    // Add to selection
-                                    newStatuses = [...currentStatuses, statusId];
-                                  }
-
-                                  return {
-                                    ...prev,
-                                    stage_status: newStatuses.length > 0 ? newStatuses : "all",
-                                  };
-                                });
-                              }}
-                              className="cursor-pointer"
-                              onMouseDown={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex items-center w-full">
-                                <Checkbox
-                                  checked={isSelected}
-                                  className="mr-2"
-                                  onCheckedChange={() => { }}
-                                />
-                                <span className="flex-1">{statusName}</span>
-                                {isSelected && (
-                                  <Check className="ml-auto h-4 w-4" />
-                                )}
-                              </div>
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Exam Mode */}
-            {/* <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Exam Mode</h3>
-              <Select
-                value={filters.examMode}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, examMode: value }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select exam mode" />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Modes</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="offline">Offline</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
-
-            {/* Gender */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Gender</h3>
-              <Select
-                value={filters.gender || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, gender: value === "all" ? undefined : value }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Genders</SelectItem>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Exam Centre */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Exam Centre</h3>
-              <MultiSelectCombobox
-                options={examCentres.map((c) => ({
-                  value: String(c),
-                  label: String(c),
-                }))}
-                value={filters.exam_centre || []}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    exam_centre: value,
-                  }))
-                }
-                onOpen={fetchExamCentres}
-                placeholder={
-                  isLoading.general || isLoadingExamCentres
-                    ? "Loading..."
-                    : "Select exam centres"
-                }
-                searchPlaceholder="Search centre..."
-                emptyText="No exam centre found."
-                disabled={isLoading.general || isLoadingExamCentres}
-              />
-            </div>
-
-            {/* Interview Mode */}
-            {/* <div className="space-y-3">
-              <h3 className="font-semibold text-sm">Interview Mode</h3>
-              <Select
-                value={filters.interviewMode}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({ ...prev, interviewMode: value }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select interview mode" />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All Modes</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="offline">Offline</SelectItem>
-                </SelectContent>
-              </Select>
-            </div> */}
-          </div>
-
-          {/* Location Filters - State, District, Campus */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-            <div>
-              <h3 className="font-semibold text-sm mb-2">State</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All States" },
-                  ...availableStates.map((state) => ({
-                    value: state.name,
-                    label: state.name,
-                  })),
-                ]}
-                value={filters.state || "all"}
-                onValueChange={handleStateChange}
-                placeholder="Select State"
-                searchPlaceholder="Search state..."
-                emptyText="No state found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableStates.length} states available */}
-                {isLoading.general && " - Loading..."}
-              </p>
-            </div>
-
-            {/* District / City */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">District</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All Districts" },
-                  ...availableDistricts.map((district) => ({
-                    value: district.name,
-                    label: district.name,
-                  })),
-                ]}
-                value={filters.district?.[0] || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    district: value === "all" ? [] : [value],
-                  }))
-                }
-                placeholder={
-                  !filters.state || filters.state === "all"
-                    ? "Select state first"
-                    : isLoading.districts
-                      ? "Loading districts..."
-                      : "Select district"
-                }
-                searchPlaceholder="Search district..."
-                emptyText="No district found."
-                disabled={
-                  !filters.state ||
-                  filters.state === "all" ||
-                  isLoading.districts
-                }
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {availableDistricts.length} districts available */}
-                {"Select state first"}
-                {isLoading.districts && " - Loading..."}
-              </p>
-            </div>
-
-            {/* Campus */}
-            {!hideCampusFilter && (
-              <div>
-                <h3 className="font-semibold text-sm mb-2">Campus</h3>
-                <Combobox
-                  options={[
-                    { value: "all", label: "All Campuses" },
-                    ...campusList.map((campus) => ({
-                      value: getValue(campus),
-                      label: getDisplayName(campus, "campus_name", "Campus"),
-                    })),
-                  ]}
-                  value={filters.partner?.[0] || "all"}
+            <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Stage */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Stage</Label>
+                <Select
+                  value={filters.stage_id ? String(filters.stage_id) : "all"}
                   onValueChange={(value) => {
                     if (value === "all") {
-                      setFilters((prev) => ({
-                        ...prev,
-                        partner: [],
-                      }));
-                    } else {
-                      setFilters((prev) => ({
-                        ...prev,
-                        partner: [value],
-                      }));
+                      setFilters((prev) => ({ ...prev, stage: "all", stage_id: undefined, stage_status: "all" }));
+                      return;
+                    }
+                    const selectedStage = stageList.find((s: any) => String(s.stage_id) === String(value) || String(s.id) === String(value));
+                    if (selectedStage) {
+                      const stageName = selectedStage.stage_name || selectedStage.name || String(value);
+                      const stageId = selectedStage.stage_id || selectedStage.id;
+                      setFilters((prev) => ({ ...prev, stage: stageName, stage_id: Number(stageId), stage_status: "all" }));
                     }
                   }}
-                  onOpen={() => loadFieldData('campus')}
-                  placeholder={
-                    isLoading.general ? "Loading..." : "Select campus"
-                  }
-                  searchPlaceholder="Search campus..."
-                  emptyText="No campus found."
-                  disabled={isLoading.general}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {/* {campusList.length} campuses available */}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Partner and Donor Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-            {/* Partner */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Partner</h3>
-              <MultiSelectCombobox
-                options={[
-                  ...partnerList.map((partner) => ({
-                    value: String(getValue(partner)),
-                    label: getDisplayName(partner, "partner_name", "Partner"),
-                  })),
-                ]}
-                value={filters.partnerFilter || []}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    partnerFilter: value,
-                  }))
-                }
-                onOpen={() => loadFieldData('partnerFilter')}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select partners"
-                }
-                searchPlaceholder="Search partner..."
-                emptyText="No partner found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {partnerList.length} partners available */}
-              </p>
-            </div>
-
-            {/* Donor */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Donor</h3>
-              <MultiSelectCombobox
-                options={[
-                  ...donorList.map((donor) => ({
-                    value: String(getValue(donor)),
-                    label: getDisplayName(donor, "donor_name", "Donor"),
-                  })),
-                ]}
-                value={filters.donor || []}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    donor: value,
-                  }))
-                }
-                onOpen={() => loadFieldData('donor')}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select donors"
-                }
-                searchPlaceholder="Search donor..."
-                emptyText="No donor found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {donorList.length} donors available */}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Qualifying School</h3>
-              <MultiSelectCombobox
-                options={[
-                  ...schoolList.map((school) => ({
-                    value: String(getValue(school)),
-                    label: getDisplayName(school, "school_name", "School"),
-                  })),
-                ]}
-                value={filters.school || []}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    school: value,
-                  }))
-                }
-                onOpen={() => loadFieldData('school')}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select schools"
-                }
-                searchPlaceholder="Search school..."
-                emptyText="No school found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {schoolList.length} schools available */}
-              </p>
-            </div>
-
-            {/* Initial School */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Student Selected Course</h3>
-              <MultiSelectCombobox
-                options={[
-                  ...schoolList.map((school) => ({
-                    value: String(getValue(school)),
-                    label: getDisplayName(school, "school_name", "School"),
-                  })),
-                ]}
-                value={filters.initial_school || []}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    initial_school: value,
-                  }))
-                }
-                onOpen={() => loadFieldData('school')}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select student selected course"
-                }
-                searchPlaceholder="Search school..."
-                emptyText="No school found."
-                disabled={isLoading.general}
-              />
-            </div>
-
-            {/* Qualification */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Qualification</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All Qualifications" },
-                  ...qualificationList.map((qualification) => ({
-                    value: getValue(qualification),
-                    label: getDisplayName(
-                      qualification,
-                      "qualification_name",
-                      "Qualification",
-                    ),
-                  })),
-                ]}
-                value={filters.qualification?.[0] || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    qualification: value === "all" ? [] : [value],
-                  }))
-                }
-                onOpen={() => loadFieldData('qualification')}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select qualification"
-                }
-                searchPlaceholder="Search qualification..."
-                emptyText="No qualification found."
-                disabled={isLoading.general}
-                className={`${!filters.qualification?.length || filters.qualification[0] === "all" ? "border-red-300" : ""}`}
-              />
-            </div>
-
-            {/* Current Status */}
-            <div>
-              <h3 className="font-semibold text-sm mb-2">Current Status</h3>
-              <Combobox
-                options={[
-                  { value: "all", label: "All Statuses" },
-                  ...currentstatusList.map((status) => ({
-                    value: getValue(status),
-                    label: getDisplayName(status, "current_status_name", "Status"),
-                  })),
-                ]}
-                value={filters.currentStatus?.[0] || "all"}
-                onValueChange={(value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    currentStatus: value === "all" ? [] : [value],
-                  }))
-                }
-                onOpen={() => loadFieldData('current_status')}
-                placeholder={
-                  isLoading.general ? "Loading..." : "Select status"
-                }
-                searchPlaceholder="Search status..."
-                emptyText="No status found."
-                disabled={isLoading.general}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* {currentstatusList.length} statuses available */}
-              </p>
-            </div>
-          </div>
-
-          {/* Date Range */}
-          <div className="p-4 bg-muted/30 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-sm">Date Range</h3>
-              {(filters.dateRange.from || filters.dateRange.to) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setFilters((prev) => ({
-                      ...prev,
-                      dateRange: {
-                        ...prev.dateRange,
-                        from: undefined,
-                        to: undefined,
-                      },
-                    }));
-                  }}
-                  className="h-7 text-xs"
                 >
-                  <X className="w-3 h-3 mr-1" />
-                  Clear Dates
-                </Button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-sm">Date Type</Label>
-                <Select
-                  value={filters.dateRange.type}
-                  onValueChange={(
-                    value: "applicant" | "lastUpdate" | "interview",
-                  ) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      dateRange: { ...prev.dateRange, type: value },
-                    }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select stage" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    <SelectItem value="applicant">
-                      Applicant Creation Date
-                    </SelectItem>
-                    {/* <SelectItem value="lastUpdate">Last Update</SelectItem>
-                    <SelectItem value="interview">Interview Date</SelectItem> */}
+                    <SelectItem value="all">All Stages</SelectItem>
+                    {stageList.map((stage: any) => {
+                      const stageId = stage.stage_id || stage.id;
+                      const stageName = stage.stage_name || stage.name || `Stage ${stageId}`;
+                      return <SelectItem key={stageId} value={String(stageId)}>{stageName}</SelectItem>;
+                    })}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label className="text-sm">
+              {/* Stage Status */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  Stage Status
+                  {filters.stage && filters.stage !== "all" && stageStatuses.length > 0 && <span className="text-red-500 ml-1">*</span>}
+                </Label>
+                <Popover modal={false}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      disabled={!filters.stage || filters.stage === "all" || stageStatuses.length === 0 || isLoading.general}
+                      className={cn(
+                        "w-full justify-between h-9 text-sm font-normal",
+                        (!filters.stage || filters.stage === "all") && "text-muted-foreground",
+                        filters.stage && filters.stage !== "all" && stageStatuses.length > 0 &&
+                        (!filters.stage_status || (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) || filters.stage_status === "all")
+                          ? "border-red-300" : ""
+                      )}
+                    >
+                      <span className="truncate">
+                        {!filters.stage || filters.stage === "all" ? "Select stage first"
+                          : isLoading.general ? "Loading..."
+                          : stageStatuses.length === 0 ? "No statuses"
+                          : Array.isArray(filters.stage_status) && filters.stage_status.length > 0 ? `${filters.stage_status.length} selected`
+                          : "Select statuses"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[280px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()} onWheel={(e) => e.stopPropagation()}>
+                    <Command>
+                      <CommandInput placeholder="Search statuses..." />
+                      <CommandList className="max-h-[200px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+                        <CommandEmpty>No status found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              setFilters((prev) => {
+                                const currentStatuses = Array.isArray(prev.stage_status) ? prev.stage_status : prev.stage_status && prev.stage_status !== "all" ? [prev.stage_status] : [];
+                                const allStatuses = stageStatuses.map((s: any) => String(s.id));
+                                return { ...prev, stage_status: currentStatuses.length === allStatuses.length ? "all" : allStatuses };
+                              });
+                            }}
+                            className="cursor-pointer font-semibold border-b"
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center w-full gap-2">
+                              <Checkbox checked={Array.isArray(filters.stage_status) && filters.stage_status.length === stageStatuses.length} onCheckedChange={() => {}} />
+                              <span>Select All</span>
+                            </div>
+                          </CommandItem>
+                          {stageStatuses.map((status: any) => {
+                            const statusName = status.status_name || status.name;
+                            const statusId = String(status.id);
+                            const isSelected = Array.isArray(filters.stage_status) ? filters.stage_status.includes(statusId) : filters.stage_status === statusId;
+                            return (
+                              <CommandItem
+                                key={status.id || statusName}
+                                value={statusName}
+                                onSelect={() => {
+                                  setFilters((prev) => {
+                                    const curr = Array.isArray(prev.stage_status) ? prev.stage_status : prev.stage_status && prev.stage_status !== "all" ? [prev.stage_status] : [];
+                                    const next = isSelected ? curr.filter((s) => s !== statusId) : [...curr, statusId];
+                                    return { ...prev, stage_status: next.length > 0 ? next : "all" };
+                                  });
+                                }}
+                                className="cursor-pointer"
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex items-center w-full gap-2">
+                                  <Checkbox checked={isSelected} onCheckedChange={() => {}} />
+                                  <span className="flex-1">{statusName}</span>
+                                  {isSelected && <Check className="ml-auto h-4 w-4" />}
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Gender */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Gender</Label>
+                <Select
+                  value={filters.gender || "all"}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, gender: value === "all" ? undefined : value }))}
+                >
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="All Genders" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    <SelectItem value="all">All Genders</SelectItem>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Exam Centre */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Exam Centre</Label>
+                <MultiSelectCombobox
+                  options={examCentres.map((c) => ({ value: String(c), label: String(c) }))}
+                  value={filters.exam_centre || []}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, exam_centre: value }))}
+                  onOpen={fetchExamCentres}
+                  placeholder={isLoading.general || isLoadingExamCentres ? "Loading..." : "Select centres"}
+                  searchPlaceholder="Search centre..."
+                  emptyText="No exam centre found."
+                  disabled={isLoading.general || isLoadingExamCentres}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section 2: Location ── */}
+          <div className="rounded-xl border border-green-200 dark:border-green-800 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-green-50 dark:bg-green-950/30">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              <span className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide">Location</span>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* State */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">State</Label>
+                <Combobox
+                  options={[
+                    { value: "all", label: "All States" },
+                    ...availableStates.map((state) => ({ value: state.name, label: state.name })),
+                  ]}
+                  value={filters.state || "all"}
+                  onValueChange={handleStateChange}
+                  placeholder="Select State"
+                  searchPlaceholder="Search state..."
+                  emptyText="No state found."
+                  disabled={isLoading.general}
+                />
+              </div>
+
+              {/* District */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">District</Label>
+                <Combobox
+                  options={[
+                    { value: "all", label: "All Districts" },
+                    ...availableDistricts.map((district) => ({ value: district.name, label: district.name })),
+                  ]}
+                  value={filters.district?.[0] || "all"}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, district: value === "all" ? [] : [value] }))}
+                  placeholder={!filters.state || filters.state === "all" ? "Select state first" : isLoading.districts ? "Loading..." : "Select district"}
+                  searchPlaceholder="Search district..."
+                  emptyText="No district found."
+                  disabled={!filters.state || filters.state === "all" || isLoading.districts}
+                />
+              </div>
+
+              {/* Campus */}
+              {!hideCampusFilter && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Campus</Label>
+                  <Combobox
+                    options={[
+                      { value: "all", label: "All Campuses" },
+                      ...campusList.map((campus) => ({ value: getValue(campus), label: getDisplayName(campus, "campus_name", "Campus") })),
+                    ]}
+                    value={filters.partner?.[0] || "all"}
+                    onValueChange={(value) => setFilters((prev) => ({ ...prev, partner: value === "all" ? [] : [value] }))}
+                    onOpen={() => loadFieldData("campus")}
+                    placeholder={isLoading.general ? "Loading..." : "Select campus"}
+                    searchPlaceholder="Search campus..."
+                    emptyText="No campus found."
+                    disabled={isLoading.general}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Section 3: Partner & Donor ── */}
+          <div className="rounded-xl border border-purple-200 dark:border-purple-800 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-purple-50 dark:bg-purple-950/30">
+              <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Partner & Donor</span>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Partner */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Partner</Label>
+                <MultiSelectCombobox
+                  options={partnerList.map((partner) => ({ value: String(getValue(partner)), label: getDisplayName(partner, "partner_name", "Partner") }))}
+                  value={filters.partnerFilter || []}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, partnerFilter: value }))}
+                  onOpen={() => loadFieldData("partnerFilter")}
+                  placeholder={isLoading.general ? "Loading..." : "Select partners"}
+                  searchPlaceholder="Search partner..."
+                  emptyText="No partner found."
+                  disabled={isLoading.general}
+                />
+              </div>
+
+              {/* Donor */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Donor</Label>
+                <MultiSelectCombobox
+                  options={donorList.map((donor) => ({ value: String(getValue(donor)), label: getDisplayName(donor, "donor_name", "Donor") }))}
+                  value={filters.donor || []}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, donor: value }))}
+                  onOpen={() => loadFieldData("donor")}
+                  placeholder={isLoading.general ? "Loading..." : "Select donors"}
+                  searchPlaceholder="Search donor..."
+                  emptyText="No donor found."
+                  disabled={isLoading.general}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section 4: Academic & Personal ── */}
+          <div className="rounded-xl border border-orange-200 dark:border-orange-800 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-orange-50 dark:bg-orange-950/30">
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              <span className="text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wide">Academic & Personal</span>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Qualifying School */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Qualifying School</Label>
+                <MultiSelectCombobox
+                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
+                  value={filters.school || []}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, school: value }))}
+                  onOpen={() => loadFieldData("school")}
+                  placeholder={isLoading.general ? "Loading..." : "Select schools"}
+                  searchPlaceholder="Search school..."
+                  emptyText="No school found."
+                  disabled={isLoading.general}
+                />
+              </div>
+
+              {/* Student Selected Course */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Student Selected Course</Label>
+                <MultiSelectCombobox
+                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
+                  value={filters.initial_school || []}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, initial_school: value }))}
+                  onOpen={() => loadFieldData("school")}
+                  placeholder={isLoading.general ? "Loading..." : "Select course"}
+                  searchPlaceholder="Search school..."
+                  emptyText="No school found."
+                  disabled={isLoading.general}
+                />
+              </div>
+
+              {/* Qualification */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Qualification</Label>
+                <Combobox
+                  options={[
+                    { value: "all", label: "All Qualifications" },
+                    ...qualificationList.map((q) => ({ value: getValue(q), label: getDisplayName(q, "qualification_name", "Qualification") })),
+                  ]}
+                  value={filters.qualification?.[0] || "all"}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, qualification: value === "all" ? [] : [value] }))}
+                  onOpen={() => loadFieldData("qualification")}
+                  placeholder={isLoading.general ? "Loading..." : "Select qualification"}
+                  searchPlaceholder="Search qualification..."
+                  emptyText="No qualification found."
+                  disabled={isLoading.general}
+                />
+              </div>
+
+              {/* Current Status */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Current Status</Label>
+                <Combobox
+                  options={[
+                    { value: "all", label: "All Statuses" },
+                    ...currentstatusList.map((s) => ({ value: getValue(s), label: getDisplayName(s, "current_status_name", "Status") })),
+                  ]}
+                  value={filters.currentStatus?.[0] || "all"}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, currentStatus: value === "all" ? [] : [value] }))}
+                  onOpen={() => loadFieldData("current_status")}
+                  placeholder={isLoading.general ? "Loading..." : "Select status"}
+                  searchPlaceholder="Search status..."
+                  emptyText="No status found."
+                  disabled={isLoading.general}
+                />
+              </div>
+
+              {/* Religion */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Religion</Label>
+                <MultiSelectCombobox
+                  options={religionList.map((r) => ({ value: String(getValue(r)), label: getDisplayName(r, "religion_name", "Religion") }))}
+                  value={filters.religion || []}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, religion: value }))}
+                  onOpen={() => loadFieldData("religion")}
+                  placeholder={isLoading.general ? "Loading..." : "Select religion"}
+                  searchPlaceholder="Search religion..."
+                  emptyText="No religion found."
+                  disabled={isLoading.general}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section 5: Date Range ── */}
+          <div className="rounded-xl border border-rose-200 dark:border-rose-800 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-rose-50 dark:bg-rose-950/30">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                <span className="text-xs font-semibold text-rose-700 dark:text-rose-300 uppercase tracking-wide">Date Range</span>
+              </div>
+              {(filters.dateRange.from || filters.dateRange.to) && (
+                <button
+                  onClick={() => setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, from: undefined, to: undefined } }))}
+                  className="text-xs text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1 hover:underline"
+                >
+                  <X className="w-3 h-3" /> Clear
+                </button>
+              )}
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Date Type */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Date Type</Label>
+                <Select
+                  value={filters.dateRange.type}
+                  onValueChange={(value: "applicant" | "lastUpdate" | "interview") =>
+                    setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, type: value } }))
+                  }
+                >
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    <SelectItem value="applicant">Applicant Creation Date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* From */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">
                   From
-                  {filters.dateRange.from && !filters.dateRange.to && (
-                    <span className="text-red-500 ml-1">*</span>
-                  )}
+                  {filters.dateRange.from && !filters.dateRange.to && <span className="text-red-500 ml-1">*</span>}
                 </Label>
                 <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`w-full justify-start ${filters.dateRange.from && !filters.dateRange.to ? "border-red-300" : ""}`}
+                      className={cn(
+                        "w-full h-9 justify-start text-sm font-normal",
+                        !filters.dateRange.from && "text-muted-foreground",
+                        filters.dateRange.from && !filters.dateRange.to && "border-red-300"
+                      )}
                     >
-                      <CalendarIcon className="mr-2 h-3 w-3" />
-                      {filters.dateRange.from
-                        ? format(filters.dateRange.from, "PP")
-                        : "Pick start date"}
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {filters.dateRange.from ? format(filters.dateRange.from, "PP") : "Pick start date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 z-[60]" align="start">
                     <Calendar
                       mode="single"
                       selected={filters.dateRange.from}
-                      onSelect={(date) => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          dateRange: {
-                            ...prev.dateRange,
-                            from: date,
-                            // Auto-set end date to same as start date by default
-                            to: date,
-                          },
-                        }));
-                      }}
+                      onSelect={(date) =>
+                        setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, from: date, to: date } }))
+                      }
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-                {filters.dateRange.from && !filters.dateRange.to && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Please select end date
-                  </p>
-                )}
               </div>
 
-              <div>
-                <Label className="text-sm">
+              {/* To */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">
                   To
-                  {filters.dateRange.to && !filters.dateRange.from && (
-                    <span className="text-red-500 ml-1">*</span>
-                  )}
+                  {filters.dateRange.to && !filters.dateRange.from && <span className="text-red-500 ml-1">*</span>}
                 </Label>
                 <Popover modal={true}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`w-full justify-start ${filters.dateRange.to && !filters.dateRange.from ? "border-red-300" : ""}`}
                       disabled={!filters.dateRange.from}
+                      className={cn(
+                        "w-full h-9 justify-start text-sm font-normal",
+                        !filters.dateRange.to && "text-muted-foreground",
+                        filters.dateRange.to && !filters.dateRange.from && "border-red-300"
+                      )}
                     >
-                      <CalendarIcon className="mr-2 h-3 w-3" />
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                       {filters.dateRange.to
                         ? format(filters.dateRange.to, "PP")
-                        : filters.dateRange.from
-                          ? "Pick end date"
-                          : "Select start first"}
+                        : filters.dateRange.from ? "Pick end date" : "Select start first"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 z-[60]" align="start">
                     <Calendar
                       mode="single"
                       selected={filters.dateRange.to}
-                      onSelect={(date) => {
-                        setFilters((prev) => ({
-                          ...prev,
-                          dateRange: { ...prev.dateRange, to: date },
-                        }));
-                      }}
-                      disabled={(date) =>
-                        filters.dateRange.from
-                          ? date <= filters.dateRange.from
-                          : true
+                      onSelect={(date) =>
+                        setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, to: date } }))
                       }
+                      disabled={(date) => (filters.dateRange.from ? date <= filters.dateRange.from : true)}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
                 {!filters.dateRange.from && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select start date first
-                  </p>
-                )}
-                {filters.dateRange.to && !filters.dateRange.from && (
-                  <p className="text-xs text-red-500 mt-1">
-                    Please select start date
-                  </p>
+                  <p className="text-xs text-muted-foreground">Select start date first</p>
                 )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Bottom actions */}
-        <div className="flex justify-between pt-4 border-t mt-4">
+        </div>
+        {/* ── Footer ── */}
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-t bg-background">
           <Button
             variant="outline"
             onClick={resetFilters}
             size="sm"
             disabled={isLoading.general}
+            className="text-muted-foreground"
           >
             Reset All
           </Button>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              size="sm"
-              disabled={isLoading.general}
-            >
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onClose} size="sm" disabled={isLoading.general}>
               Cancel
             </Button>
             <Button
               onClick={handleApplyFilters}
               size="sm"
-              className="bg-primary text-primary-foreground"
               disabled={isLoading.general}
+              className="px-5"
             >
               Apply Filters
+              {activeFilters.length > 0 && (
+                <span className="ml-2 bg-white/20 text-xs rounded-full px-1.5 py-0.5">
+                  {activeFilters.length}
+                </span>
+              )}
             </Button>
           </div>
         </div>
