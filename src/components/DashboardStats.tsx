@@ -38,7 +38,7 @@ export function DashboardStats() {
 
       setMetrics({
         totalApplicants: statsData.totalStudents || 0,
-        activeApplications: statsData.offerLetterSent || 0,
+        activeApplications: statsData.admissionLetterSent || statsData.offerLetterSent || 0,
         manuallySent: statsData.manuallySent || 0,
         interviewsScheduled: 0,
         successfullyOnboarded: statsData.onboarded || 0,
