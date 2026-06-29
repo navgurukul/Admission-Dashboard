@@ -480,7 +480,7 @@ export function AdvancedFilterModal({
         {/* Active Filter Pills */}
         {activeFilters.length > 0 && (
           <div className="flex-shrink-0 px-6 pt-3 pb-2 bg-muted/30 border-b">
-            <div className="flex items-center gap-2 mb-2">
+            {/* <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Active:</span>
               <button
                 onClick={resetFilters}
@@ -488,7 +488,7 @@ export function AdvancedFilterModal({
               >
                 Clear all
               </button>
-            </div>
+            </div> */}
             <div className="flex flex-wrap gap-1.5 max-h-20 overflow-y-auto">
               {activeFilters.map((f) => (
                 <span
@@ -997,11 +997,11 @@ export function AdvancedFilterModal({
               className="px-5"
             >
               Apply Filters
-              {activeFilters.length > 0 && (
+              {/* {activeFilters.length > 0 && (
                 <span className="ml-2 bg-white/20 text-xs rounded-full px-1.5 py-0.5">
                   {activeFilters.length}
                 </span>
-              )}
+              )} */}
             </Button>
           </div>
         </div>
