@@ -563,58 +563,72 @@ export const triggerStudentStatusUpdate = async (
   roundType: "screening" | "learning" | "cultural" | "final" | "onboarded",
   status: string
 ) => {
-  let stageId: number;
-  let stageStatusId: number | null = null;
+  try {
+    const normalizedStatus = status.toLowerCase().trim();
 
-  const normalizedStatus = status.toLowerCase().trim();
+    // Mapping roundType Stage IDs
+    const stageIdMapping: Record<string, number> = {
+      screening: 3,
+      learning: 4,
+      cultural: 4,
+      final: 5,
+      onboarded: 6,
+    };
 
-  switch (roundType) {
-    case "screening":
-      stageId = 3;
-      if (normalizedStatus.includes("pass")) stageStatusId = 6;
-      else if (normalizedStatus.includes("fail")) stageStatusId = 3;
-      break;
-    case "learning":
-      stageId = 4;
-      if (normalizedStatus.includes("pass")) stageStatusId = 10;
-      else if (normalizedStatus.includes("fail")) stageStatusId = 9;
-      else if (normalizedStatus === "not eligible") stageStatusId = 25;
-      else if (normalizedStatus === "disinterested") stageStatusId = 26;
-      break;
-    case "cultural":
-      stageId = 4;
-      if (normalizedStatus.includes("pass")) stageStatusId = 23;
-      else if (normalizedStatus.includes("fail")) stageStatusId = 15;
-      else if (normalizedStatus === "not eligible") stageStatusId = 25;
-      else if (normalizedStatus === "disinterested") stageStatusId = 26;
-      break;
-    case "final":
-      stageId = 5;
-      if (normalizedStatus === "admission letter sent") stageStatusId = 11;
-      else if (normalizedStatus === "admission letter declined") stageStatusId = 12;
-      else if (normalizedStatus === "admission letter accepted") stageStatusId = 13;
-      else if (normalizedStatus === "selected but not joined") stageStatusId = 16;
-      else if (normalizedStatus === "decision pending based on diversity") stageStatusId = 17;
-      else if (normalizedStatus === "diversity failed") stageStatusId = 19;
-      break;
-    case "onboarded":
-      stageId = 6;
-      if (normalizedStatus === "onboarded") stageStatusId = 14;
-      break;
-    default:
-      return;
-  }
+    const stageId = stageIdMapping[roundType];
+    if (!stageId) return;
 
-  if (stageStatusId !== null) {
-    try {
+    // Fetch all statuses for the stageId
+    const validStatuses = await getStatusesByStageId(stageId);
+    let stageStatusId: number | null = null;
+
+    const findStatusId = (searchString: string) => {
+      const match = validStatuses.find(
+        (s: any) => s.status_name?.toLowerCase() === searchString.toLowerCase()
+      );
+      return match ? match.id : null;
+    };
+
+    switch (roundType) {
+      case "screening":
+        if (normalizedStatus.includes("pass")) stageStatusId = findStatusId("Screening Round Pass");
+        else if (normalizedStatus.includes("fail")) stageStatusId = findStatusId("Screening Round Fail");
+        break;
+
+      case "learning":
+        if (normalizedStatus.includes("pass")) stageStatusId = findStatusId("Learning Round Pass");
+        else if (normalizedStatus.includes("fail")) stageStatusId = findStatusId("Learning Round Fail");
+        else if (normalizedStatus === "not eligible") stageStatusId = findStatusId("Not Eligible");
+        else if (normalizedStatus === "disinterested") stageStatusId = findStatusId("Disinterested");
+        break;
+
+      case "cultural":
+        if (normalizedStatus.includes("pass")) stageStatusId = findStatusId("Culture Fit Round Pass");
+        else if (normalizedStatus.includes("fail")) stageStatusId = findStatusId("Culture Fit Round Fail");
+        else if (normalizedStatus === "not eligible") stageStatusId = findStatusId("Not Eligible");
+        else if (normalizedStatus === "disinterested") stageStatusId = findStatusId("Disinterested");
+        break;
+
+      case "final":
+        stageStatusId = findStatusId(normalizedStatus);
+        break;
+
+      case "onboarded":
+        stageStatusId = findStatusId("Onboarded");
+        break;
+    }
+
+    if (stageStatusId !== null) {
       await updateStudentStatus({
         student_id: studentId,
         stage_id: stageId,
         stage_status_id: stageStatusId,
       });
-    } catch (error) {
-      console.error("Failed to update student status automatically:", error);
+    } else {
+      console.warn(`Could not map status "${status}" for round "${roundType}" dynamically.`);
     }
+  } catch (error) {
+    console.error("Failed to update student status automatically:", error);
   }
 };
 
