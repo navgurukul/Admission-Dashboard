@@ -319,8 +319,9 @@ export function InterviewDetailsModal({
                 </thead>
                 <tbody>
                   {scheduleInfo.map((schedule, index) => {
-                    const isActive = schedule.status?.toLowerCase() === "scheduled" || schedule.status?.toLowerCase() === "booked";
-                    const isCancelled = schedule.status?.toLowerCase() === "cancelled";
+                    const statusLower = schedule.status?.toLowerCase() || "";
+                    const isActive = statusLower === "scheduled" || statusLower === "booked" || statusLower === "rescheduled";
+                    const isCancelled = statusLower === "cancelled";
                     const canManageThis = canManageInterview(schedule);
                     
                     return (
