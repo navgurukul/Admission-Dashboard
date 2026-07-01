@@ -69,6 +69,8 @@ const StudentForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLearningModalOpen, setIsLearningModalOpen] = useState(false);
   const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set());
+  // BCA seats are currently full — set to true to block BCA selection
+  const isBCAFull = true;
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
@@ -655,20 +657,30 @@ const StudentForm: React.FC = () => {
 
               <button
                 onClick={() => {
-                  if (!isEligible && !!hasQualification) return; // Disable if not eligible
+                  if (!isEligible && !!hasQualification) return; // Original: disable if not eligible
+                  if (school.id === 'BCA' && isBCAFull) return; // BCA full: disable
                   const matchedSchool = schools.find(s => s.school_name.includes(school.id));
                   if (matchedSchool) {
                     handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
                     setSelectedSchoolInfo(null);
                   }
                 }}
-                disabled={!isEligible && !!hasQualification}
-                className={`w-full mt-8 py-4 font-bold rounded-xl transition-all shadow-lg ${!isEligible && !!hasQualification
+                disabled={(!isEligible && !!hasQualification) || (school.id === 'BCA' && isBCAFull)}
+                className={`w-full mt-8 py-4 font-bold rounded-xl transition-all shadow-lg ${(!isEligible && !!hasQualification) || (school.id === 'BCA' && isBCAFull)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-primary text-white hover:bg-primary/90 active:scale-95'
                   }`}
               >
-                {!isEligible && !!hasQualification ? (school.id === 'BCA' && formData.gender === 'male' ? 'You are not eligible' : content.notEligible) : content.applyToSchool}
+                {school.id === 'BCA' && isBCAFull
+                  ? (selectedLanguage === 'hindi'
+                      ? 'सीटें भर गई हैं'
+                      : selectedLanguage === 'marathi'
+                        ? 'जागा भरल्या आहेत'
+                        : 'Seats are Full')
+                  : (!isEligible && !!hasQualification)
+                    ? (school.id === 'BCA' && formData.gender === 'male' ? 'You are not eligible' : content.notEligible)
+                    : content.applyToSchool
+                }
               </button>
             </section>
           </div>
@@ -2233,16 +2245,18 @@ const StudentForm: React.FC = () => {
                 const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
                 const isEligible = isSchoolEligible(school.id);
                 const hasQualification = formData.maximumQualification;
+                const isBCACard = school.id === 'BCA';
 
                 return (
                   <div
                     key={school.id}
                     data-onboarding="student-form-school-card"
                     onClick={() => {
-                      if (!isEligible && hasQualification) return; // Disable click if not eligible
-                      setSelectedSchoolInfo(school); // Open detail modal on any card click
+                      if (isBCACard && isBCAFull) return; // Block BCA if full
+                      if (!isEligible && hasQualification) return; // Original logic for other schools
+                      setSelectedSchoolInfo(school);
                     }}
-                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white ${!isEligible && hasQualification
+                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white ${(isBCACard && isBCAFull) || (!isEligible && hasQualification)
                         ? "border-gray-200 cursor-not-allowed"
                         : isSelected
                           ? "border-primary shadow-lg ring-1 ring-primary/20 hover:border-primary/50 hover:shadow-xl cursor-pointer"
@@ -2251,8 +2265,28 @@ const StudentForm: React.FC = () => {
                             : "border-gray-100 hover:border-primary/50 hover:shadow-xl cursor-pointer"
                       }`}
                   >
-                    {/* Not Eligible Gray Overlay */}
-                    {!isEligible && hasQualification && (
+                    {/* BCA Seats Full Overlay — only for BCA when isBCAFull */}
+                    {isBCACard && isBCAFull && (
+                      <div className="absolute inset-0 z-20 bg-gray-100/80 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-not-allowed">
+                        <div className="bg-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                          </svg>
+                          Seats Full
+                        </div>
+                        <p className="text-xs text-gray-600 text-center px-6 font-medium">
+                          {selectedLanguage === 'hindi'
+                            ? 'BCA की सभी सीटें भर गई हैं'
+                            : selectedLanguage === 'marathi'
+                              ? 'BCA च्या सर्व जागा भरल्या आहेत'
+                              : 'All seats for BCA are currently full'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Not Eligible Gray Overlay — original logic, untouched for non-BCA.
+                        For BCA: only show if isBCAFull is false AND not eligible */}
+                    {!isEligible && hasQualification && !(isBCACard && isBCAFull) && (
                       <div className="absolute inset-0 z-20 bg-gray-100/80 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-not-allowed">
                         <div className="bg-gray-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2302,11 +2336,12 @@ const StudentForm: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!isEligible && hasQualification) return;
+                            if (isBCACard && isBCAFull) return; // Block BCA if full
+                            if (!isEligible && hasQualification) return; // Original logic
                             setSelectedSchoolInfo(school);
                           }}
-                          disabled={!isEligible && !!hasQualification}
-                          className={`text-sm font-bold flex items-center gap-1.5 decoration-2 underline-offset-4 ${!isEligible && hasQualification ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:underline'}`}
+                          disabled={(isBCACard && isBCAFull) || (!isEligible && !!hasQualification)}
+                          className={`text-sm font-bold flex items-center gap-1.5 decoration-2 underline-offset-4 ${(isBCACard && isBCAFull) || (!isEligible && hasQualification) ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:underline'}`}
                         >
                           {content.checkDetails}
                           <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
