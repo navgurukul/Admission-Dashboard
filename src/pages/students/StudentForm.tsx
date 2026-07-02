@@ -27,6 +27,8 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { ExternalLink, PlayCircle } from "lucide-react";
 import { LearningRoundModal } from "@/components/LearningRoundModal";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
+import { useIsMobile } from "@/hooks/use-mobile";
+
 interface State {
   id: string;
   state_name: string;
@@ -51,6 +53,7 @@ const StudentForm: React.FC = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
+  const isMobile = useIsMobile();
 
   const [casts, setCasts] = useState<Cast[]>([]);
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
@@ -1125,259 +1128,211 @@ const StudentForm: React.FC = () => {
     const isBCASchool = selectedSchool?.school_name.includes('BCA');
     const ageThreshold = formData.initial_school_id ? (isBCASchool ? 16 : 16.5) : 16;
 
-    return (
-      // formData.profileImage &&
-      formData.firstName &&
-      formData.dateOfBirth &&
-      (formData.whatsappNumber || formData.alternateNumber || formData.email) &&
-      formData.gender &&
-      formData.stateCode &&
-      districtRequired &&
-      blockRequired &&
-      formData.pinCode &&
-      formData.currentStatus &&
-      formData.maximumQualification &&
-      formData.schoolMedium &&
-      formData.casteTribe &&
-      // formData.religion &&
-      alternateRequired &&
-      (currentStep === 2 ? formData.initial_school_id : true) &&
-      age >= ageThreshold &&
-      // Conditional fields for pursuing graduation
-      (qualifications.find(q => String(q.id) === formData.maximumQualification)?.qualification_name.toLowerCase().includes('pursuing') ? 
-        formData.pursuingYear && formData.collegeAttendanceMethod : true)
-    );
+    if (!isMobile) {
+      return (
+        // formData.profileImage &&
+        formData.firstName &&
+        formData.dateOfBirth &&
+        (formData.whatsappNumber || formData.alternateNumber || formData.email) &&
+        formData.gender &&
+        formData.stateCode &&
+        districtRequired &&
+        blockRequired &&
+        formData.pinCode &&
+        formData.currentStatus &&
+        formData.maximumQualification &&
+        formData.schoolMedium &&
+        formData.casteTribe &&
+        // formData.religion &&
+        alternateRequired &&
+        (currentStep === 2 ? formData.initial_school_id : true) &&
+        age >= ageThreshold &&
+        // Conditional fields for pursuing graduation
+        (qualifications.find(q => String(q.id) === formData.maximumQualification)?.qualification_name.toLowerCase().includes('pursuing') ? 
+          formData.pursuingYear && formData.collegeAttendanceMethod : true)
+      );
+    } else {
+      if (currentStep === 1) return formData.firstName && formData.dateOfBirth && formData.gender;
+      if (currentStep === 2) return (formData.whatsappNumber || formData.alternateNumber || formData.email) && alternateRequired;
+      if (currentStep === 3) return formData.stateCode && districtRequired && blockRequired && formData.pinCode;
+      if (currentStep === 4) {
+        const q = qualifications.find(q => String(q.id) === formData.maximumQualification);
+        const pursuingOk = q?.qualification_name.toLowerCase().includes('pursuing') ? formData.pursuingYear && formData.collegeAttendanceMethod : true;
+        return formData.currentStatus && formData.maximumQualification && formData.schoolMedium && formData.casteTribe && pursuingOk && age >= ageThreshold;
+      }
+      if (currentStep === 5) return formData.initial_school_id;
+      return false;
+    }
   };
 
   const handleSubmit = async () => {
     const age = getAge(formData.dateOfBirth);
 
-    // if (!formData.profileImage) {
-    //   return toast({
-    //     title: "⚠️ Profile Image Required",
-    //     description: "Please upload a profile image.",
-    //     variant: "default",
-    //     className: "border-orange-500 bg-orange-50 text-orange-900"
-    //   });
-    // }
-
-    if (!formData.firstName) {
-      return toast({
-        title: "⚠️ First Name Required",
-        description: "Please enter your first name.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
-    const isBCASchool = selectedSchool?.school_name.includes('BCA');
-    const ageThreshold = isBCASchool ? 15 : 15;
-
-    if (!formData.dateOfBirth || age < ageThreshold) {
-      return toast({
-        title: "⚠️ Invalid Date of Birth",
-        description: `You must be at least ${ageThreshold} years old.`,
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    if (formData.whatsappNumber && !/^\d{10}$/.test(formData.whatsappNumber)) {
-      return toast({
-        title: "⚠️ Invalid WhatsApp Number",
-        description: "Enter a valid 10-digit WhatsApp number or leave it empty.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    // Alternate number validation - mandatory when logged in via email
-    if (location.state?.googleEmail) {
-      if (!formData.alternateNumber) {
-        return toast({
-          title: "⚠️ Phone Number Required",
-          description: "Please enter your phone number.",
-          variant: "default",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
-        });
+    if (!isMobile) {
+      if (currentStep === 1) {
+        if (!formData.firstName) {
+          return toast({ title: "⚠️ First Name Required", description: "Please enter your first name.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
+        const isBCASchool = selectedSchool?.school_name.includes('BCA');
+        const ageThreshold = isBCASchool ? 15 : 15;
+        if (!formData.dateOfBirth || age < ageThreshold) {
+          return toast({ title: "⚠️ Invalid Date of Birth", description: `You must be at least ${ageThreshold} years old.`, variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (formData.whatsappNumber && !/^\d{10}$/.test(formData.whatsappNumber)) {
+          return toast({ title: "⚠️ Invalid WhatsApp Number", description: "Enter a valid 10-digit WhatsApp number or leave it empty.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (location.state?.googleEmail) {
+          if (!formData.alternateNumber || !/^\d{10}$/.test(formData.alternateNumber)) {
+            return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+          }
+        } else if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
+          return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (!formData.gender) {
+          return toast({ title: "⚠️ Gender Required", description: "Please select your gender.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (!formData.stateCode || !formData.pinCode) {
+          return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (districts.length > 0 && !formData.districtCode) {
+          return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (blocks.length > 0 && !formData.blockCode) {
+          return toast({ title: "⚠️ Block Required", description: "Please select a block.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (!formData.currentStatus || !formData.maximumQualification || !formData.schoolMedium || !formData.casteTribe) {
+          return toast({ title: "Additional Info Required", description: "Please fill all required additional fields.", variant: "destructive" });
+        }
+        const selectedQual = qualifications.find(q => String(q.id) === formData.maximumQualification);
+        const isPursuing = selectedQual?.qualification_name.toLowerCase().includes('pursuing');
+        if (isPursuing) {
+          if (!formData.pursuingYear || !formData.collegeAttendanceMethod) {
+            return toast({ title: "⚠️ Question Required", description: "Please answer all pursuing qualification questions.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+          }
+        }
+        setCurrentStep(2);
+        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        return;
       }
-      if (!/^\d{10}$/.test(formData.alternateNumber)) {
-        return toast({
-          title: "⚠️ Invalid Phone Number",
-          description: "Enter a valid 10-digit phone number.",
-          variant: "default",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
-        });
+    } else {
+      if (currentStep === 1) {
+        if (!formData.firstName) {
+          return toast({ title: "⚠️ First Name Required", description: "Please enter your first name.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (!formData.dateOfBirth) {
+          return toast({ title: "⚠️ Invalid Date of Birth", description: `You must select your date of birth.`, variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (!formData.gender) {
+          return toast({ title: "⚠️ Gender Required", description: "Please select your gender.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        setCurrentStep(2);
+        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        return;
       }
-    } else if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
-      return toast({
-        title: "⚠️ Invalid Phone Number",
-        description: "Enter a valid 10-digit phone number.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    if (!formData.gender) {
-      return toast({
-        title: "⚠️ Gender Required",
-        description: "Please select your gender.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    // Validate State and Pin Code (always required)
-    if (!formData.stateCode || !formData.pinCode) {
-      return toast({
-        title: "⚠️ Address Required",
-        description: "Please fill State and Pin Code.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    // Validate District (required only if districts are available)
-    if (districts.length > 0 && !formData.districtCode) {
-      return toast({
-        title: "⚠️ District Required",
-        description: "Please select a district.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    // Validate Block (required only if blocks are available)
-    if (blocks.length > 0 && !formData.blockCode) {
-      return toast({
-        title: "⚠️ Block Required",
-        description: "Please select a block.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    if (
-      !formData.currentStatus ||
-      !formData.maximumQualification ||
-      !formData.schoolMedium ||
-      !formData.casteTribe
-    ) {
-      return toast({
-        title: "Additional Info Required",
-        description: "Please fill all required additional fields.",
-        variant: "destructive",
-      });
-    }
-
-    // Validate pursuing graduation fields
-    const selectedQual = qualifications.find(q => String(q.id) === formData.maximumQualification);
-    const isPursuing = selectedQual?.qualification_name.toLowerCase().includes('pursuing');
-
-    if (isPursuing) {
-      if (!formData.pursuingYear) {
-        return toast({
-          title: "⚠️ Question Required",
-          description: "Please select which year is going on.",
-          variant: "default",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
-        });
+  
+      if (currentStep === 2) {
+        if (formData.whatsappNumber && !/^\d{10}$/.test(formData.whatsappNumber)) {
+          return toast({ title: "⚠️ Invalid WhatsApp Number", description: "Enter a valid 10-digit WhatsApp number or leave it empty.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (location.state?.googleEmail) {
+          if (!formData.alternateNumber || !/^\d{10}$/.test(formData.alternateNumber)) {
+            return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+          }
+        } else if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
+          return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        setCurrentStep(3);
+        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        return;
       }
-      if (!formData.collegeAttendanceMethod) {
-        return toast({
-          title: "⚠️ Question Required",
-          description: "Please select your college attendance method.",
-          variant: "default",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
-        });
+  
+      if (currentStep === 3) {
+        if (!formData.stateCode || !formData.pinCode) {
+          return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (districts.length > 0 && !formData.districtCode) {
+          return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (blocks.length > 0 && !formData.blockCode) {
+          return toast({ title: "⚠️ Block Required", description: "Please select a block.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        setCurrentStep(4);
+        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+  
+      if (currentStep === 4) {
+        if (!formData.currentStatus || !formData.maximumQualification || !formData.schoolMedium || !formData.casteTribe) {
+          return toast({ title: "Additional Info Required", description: "Please fill all required additional fields.", variant: "destructive" });
+        }
+        const selectedQual = qualifications.find(q => String(q.id) === formData.maximumQualification);
+        const isPursuing = selectedQual?.qualification_name.toLowerCase().includes('pursuing');
+        if (isPursuing) {
+          if (!formData.pursuingYear || !formData.collegeAttendanceMethod) {
+            return toast({ title: "⚠️ Question Required", description: "Please answer all pursuing qualification questions.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+          }
+        }
+        setCurrentStep(5);
+        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+        return;
       }
     }
 
-    if (currentStep === 1) {
-      setCurrentStep(2);
-      // Scroll the container to top
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    if ((!isMobile && currentStep === 2) || (isMobile && currentStep === 5)) {
+      const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
+      const isBCASchool = selectedSchool?.school_name.includes('BCA');
+      const ageThreshold = isBCASchool ? 15 : 15;
+      if (age < ageThreshold) {
+        return toast({ title: "⚠️ Invalid Date of Birth", description: `You must be at least ${ageThreshold} years old.`, variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
       }
-      return;
-    }
-
-    if (!formData.initial_school_id) {
-      setSchoolError("Please select a school.");
-      return toast({
-        title: "⚠️ School Selection Required",
-        description: "Please select your preferred school.",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-    }
-
-    try {
-      const apiPayload = mapFormDataToApi(formData);
-      const studentFormResponseData = await createStudent(apiPayload);
-
-      // console.log("Student API Response:", studentFormResponseData);
-
-      // Store registration status
-      localStorage.setItem("registrationDone", "true");
-
-      // Store the complete API response
-      localStorage.setItem(
-        "studentApiResponse",
-        JSON.stringify(studentFormResponseData),
-      );
-
-      // Store form data
-      localStorage.setItem("studentFormData", JSON.stringify(formData));
-
-      // Extract and store studentId from response
-      // Handle different possible response structures
-      let studentId = null;
-      if (studentFormResponseData?.id) {
-        studentId = studentFormResponseData.id;
-      } else if (studentFormResponseData?.data?.id) {
-        studentId = studentFormResponseData.data.id;
-      } else if (studentFormResponseData?.student?.id) {
-        studentId = studentFormResponseData.student.id;
+      if (!formData.initial_school_id) {
+        setSchoolError("Please select a school.");
+        return toast({ title: "⚠️ School Selection Required", description: "Please select your preferred school.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
       }
+      try {
+        const apiPayload = mapFormDataToApi(formData);
+        const studentFormResponseData = await createStudent(apiPayload);
 
-      if (studentId) {
-        localStorage.setItem("studentId", studentId.toString());
-        // console.log("Student ID stored:", studentId);
-      } else {
-        console.warn("Student ID not found in response");
+        localStorage.setItem("registrationDone", "true");
+        localStorage.setItem("studentApiResponse", JSON.stringify(studentFormResponseData));
+        localStorage.setItem("studentFormData", JSON.stringify(formData));
+
+        let studentId = null;
+        if (studentFormResponseData?.id) studentId = studentFormResponseData.id;
+        else if (studentFormResponseData?.data?.id) studentId = studentFormResponseData.data.id;
+        else if (studentFormResponseData?.student?.id) studentId = studentFormResponseData.student.id;
+
+        if (studentId) {
+          localStorage.setItem("studentId", studentId.toString());
+        } else {
+          console.warn("Student ID not found in response");
+        }
+
+        toast({ title: "✅ Registration Successful", description: "Your registration was successful!", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
+        navigate("/students/test/start");
+      } catch (error) {
+        console.error("Error creating student:", error);
+        toast({ title: "❌ Registration Failed", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
       }
-
-      toast({
-        title: "✅ Registration Successful",
-        description: "Your registration was successful!",
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900"
-      });
-
-      navigate("/students/test/start");
-    } catch (error) {
-      console.error("Error creating student:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while creating student.";
-      toast({
-        title: "❌ Registration Failed",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
     }
   };
 
   const handlePrevious = () => {
-    if (currentStep === 2) {
-      setCurrentStep(1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!isMobile) {
+      if (currentStep === 2) {
+        setCurrentStep(1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        navigate("/students/details/instructions");
+      }
     } else {
-      navigate("/students/details/instructions");
+      if (currentStep > 1) {
+        setCurrentStep(currentStep - 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        navigate("/students/details/instructions");
+      }
     }
   };
   // Calculate the maximum date allowed
@@ -1724,54 +1679,98 @@ const StudentForm: React.FC = () => {
       ];
 
   return (
-    <div className="min-h-screen student-bg-gradient flex justify-center p-4 pt-20 md:pt-24 relative">
-      <ContextualHelpWidget
-        sectionId="student-registration-form"
-        sectionTitle="Student Registration"
-        steps={studentFormGuideSteps}
-        demo={{
-          title: "Student registration demo",
-          embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_REGISTRATION?rel=0",
-          note: "Replace this with a short registration walkthrough.",
-        }}
-        faqs={[
-          {
-            question: "What should I complete on this page?",
-            answer: "Complete your basic details first, then choose the school or program that fits you.",
-          },
-          {
-            question: "Can I continue in parts?",
-            answer: "The form saves progress in local storage while you fill the student details.",
-          },
-        ]}
-        showInlineButtons={false}
-        showFloatingButton={!selectedSchoolInfo && !isLearningModalOpen}
-        autoStartOnFirstVisit={true}
-      />
+    <div className={`min-h-screen flex justify-center p-4 relative ${!isMobile ? 'student-bg-gradient pt-20 md:pt-24' : 'bg-gradient-to-br from-pink-100/80 to-purple-50 pt-16 md:pt-20'}`}>
+      {!isMobile && (
+        <ContextualHelpWidget
+          sectionId="student-registration-form"
+          sectionTitle="Student Registration"
+          steps={studentFormGuideSteps}
+          demo={{
+            title: "Student registration demo",
+            embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_REGISTRATION?rel=0",
+            note: "Replace this with a short registration walkthrough.",
+          }}
+          faqs={[
+            {
+              question: "What should I complete on this page?",
+              answer: "Complete your basic details first, then choose the school or program that fits you.",
+            },
+            {
+              question: "Can I continue in parts?",
+              answer: "The form saves progress in local storage while you fill the student details.",
+            },
+          ]}
+          showInlineButtons={false}
+          showFloatingButton={!selectedSchoolInfo && !isLearningModalOpen}
+          autoStartOnFirstVisit={true}
+        />
+      )}
       <LanguageSelector />
       <LogoutButton className="shadow-lg" />
-      <div ref={scrollContainerRef} className={`bg-card rounded-2xl shadow-large p-6 w-full overflow-y-auto relative ${currentStep === 1 ? 'max-w-6xl' : 'max-w-7xl'} max-h-[85vh]`}>
-        {/* Header */}
-        <div className="text-center mb-6" data-onboarding="student-form-header">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2 ">
-            {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
-          </h1>
-        </div>
+      <div ref={scrollContainerRef} className={`overflow-y-auto relative ${!isMobile ? 'bg-card shadow-large max-h-[85vh] rounded-2xl p-4 sm:p-6 w-full ' + (currentStep === 1 ? 'max-w-6xl' : 'max-w-7xl') : 'w-full max-w-[450px]'}`}>
+        {/* Header and Step Indicator */}
+        {!isMobile ? (
+          <div className="text-center mb-4 sm:mb-6" data-onboarding="student-form-header">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+              {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
+            </h1>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center mb-6 relative">
+            {currentStep > 1 && (
+              <button
+                onClick={handlePrevious}
+                className="absolute left-0 top-0 p-1.5 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+            )}
+            
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center mt-1">
+              {currentStep === 1 ? content.signUp : 
+               currentStep === 2 ? content.contactInfo :
+               currentStep === 3 ? "Address Details" :
+               currentStep === 4 ? "Additional Info" : content.selectSchoolHeading}
+            </h1>
 
-        {currentStep === 1 ? (
+            {/* 5-Step Indicators (Dashes) */}
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((step) => (
+                <div 
+                  key={step} 
+                  className={`h-1.5 rounded-full transition-all duration-300 ${currentStep === step ? 'w-6 bg-primary' : currentStep > step ? 'w-4 bg-primary/40' : 'w-4 bg-gray-200'}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 1)) && (
           <>
             {/* Profile Image Upload */}
             <div className="text-center">
-              <div className="w-24 h-24 mx-auto border-2 border-dashed border-input rounded-xl flex flex-col items-center justify-center bg-muted relative cursor-pointer hover:border-primary transition-colors">
+              <div className={`w-24 h-24 mx-auto ${!isMobile ? 'border-2 border-dashed border-input bg-muted' : ''} rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-primary transition-colors`}>
                 {!imagePreview ? (
-                  <>
-                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mb-1">
-                      <span className="text-primary-foreground text-sm">📷</span>
+                  !isMobile ? (
+                    <>
+                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mb-1">
+                        <span className="text-primary-foreground text-sm">📷</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {content.addPhoto}
+                      </span>
+                    </>
+                  ) : (
+                    <div className="w-full h-full rounded-xl flex flex-col items-center justify-center bg-transparent">
+                      <div className="w-20 h-20 bg-gray-200/80 rounded-full drop-shadow-sm flex flex-col items-center justify-center overflow-hidden gap-0.5">
+                        <svg className="w-4 h-4 text-gray-400 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-gray-400 text-[10px] text-center font-medium leading-tight">Add Photo</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {content.addPhoto}
-                    </span>
-                  </>
+                  )
                 ) : (
                   <img
                     src={imagePreview}
@@ -1789,11 +1788,13 @@ const StudentForm: React.FC = () => {
             </div>
 
             {/* Section Title */}
-            <h2 className="text-xl font-semibold text-gray-800 mb-4" data-onboarding="student-form-basic">
-              {content.basicDetails}
-            </h2>
+            {!isMobile && (
+              <h2 className="text-xl font-semibold text-gray-800 mb-4" data-onboarding="student-form-basic">
+                {content.basicDetails}
+              </h2>
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 mb-3 md:mb-6">
               {/* Name Fields */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1804,7 +1805,7 @@ const StudentForm: React.FC = () => {
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:prime"
+                  className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:prime"
                   placeholder={content.enterFirstName}
                 />
               </div>
@@ -1817,7 +1818,7 @@ const StudentForm: React.FC = () => {
                   name="middleName"
                   value={formData.middleName}
                   onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder={content.enterMiddleName}
                 />
               </div>
@@ -1830,14 +1831,14 @@ const StudentForm: React.FC = () => {
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder={content.enterLastName}
                 />
               </div>
             </div>
 
             {/* Date of Birth and Gender */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {content.dateOfBirth}
@@ -1849,7 +1850,7 @@ const StudentForm: React.FC = () => {
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
                     max={getMaxDOB()}
-                    className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-2.5 md:p-3 pr-10 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -1900,13 +1901,19 @@ const StudentForm: React.FC = () => {
                 </div>
               </div>
             </div>
+          </>
+        )}
 
+        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 2)) && (
+          <>
             {/* Contact Information */}
-            <div className="mb-4" data-onboarding="student-form-contact">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                {content.contactInfo}
-              </h3>
-              <div className="space-y-4">
+            <div className="mb-4 animate-in fade-in slide-in-from-right-4" data-onboarding="student-form-contact">
+              {!isMobile && (
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  {content.contactInfo}
+                </h3>
+              )}
+              <div className="space-y-3 md:space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {content.whatsappNumber}
@@ -1918,7 +1925,7 @@ const StudentForm: React.FC = () => {
                     pattern="[0-9]{10}"
                     value={formData.whatsappNumber}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder={content.enterWhatsapp}
                   />
                   {whatsappError && (
@@ -1937,7 +1944,7 @@ const StudentForm: React.FC = () => {
                     value={formData.alternateNumber}
                     onChange={handleInputChange}
                     disabled={!!formData.alternateNumber && !location.state?.googleEmail}
-                    className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${(formData.alternateNumber && !location.state?.googleEmail) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    className={`w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary ${(formData.alternateNumber && !location.state?.googleEmail) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     placeholder={content.enterAlternate}
                   />
                   {alternateError && (
@@ -1954,7 +1961,7 @@ const StudentForm: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     disabled={!!location.state?.googleEmail}
-                    className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${location.state?.googleEmail
+                    className={`w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary ${location.state?.googleEmail
                       ? "bg-gray-100 cursor-not-allowed"
                       : ""
                       }`}
@@ -1966,15 +1973,20 @@ const StudentForm: React.FC = () => {
                 </div>
               </div>
             </div>
+          </>
+        )}
 
-            {/* Additional Fields */}
-            <div className="mb-4" data-onboarding="student-form-addition">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                Additional Information
-              </h3>
-
+        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 3)) && (
+          <>
+            {/* Address Details */}
+            <div className="mb-4 animate-in fade-in slide-in-from-right-4">
+              {!isMobile && (
+                <h3 className="text-[17px] text-[#1E3A5F] font-bold mb-4 pt-6">
+                  Additional Information
+                </h3>
+              )}
               {/* State, District and Block */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {content.state}
@@ -1992,7 +2004,7 @@ const StudentForm: React.FC = () => {
                     searchPlaceholder="Search state..."
                     emptyText="No state found."
                     disabled={loadingStates.states}
-                    className="h-12"
+                    className="h-11 md:h-12"
                   />
                 </div>
                 <div>
@@ -2019,7 +2031,7 @@ const StudentForm: React.FC = () => {
                     searchPlaceholder="Search district..."
                     emptyText="No district found."
                     disabled={loadingStates.districts || !formData.stateCode}
-                    className="h-12"
+                    className="h-11 md:h-12"
                   />
                 </div>
                 <div>
@@ -2048,11 +2060,11 @@ const StudentForm: React.FC = () => {
                     searchPlaceholder="Search block..."
                     emptyText="No block found."
                     disabled={loadingStates.blocks || !formData.districtCode}
-                    className="h-12"
+                    className="h-11 md:h-12"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {content.pinCode}
@@ -2062,7 +2074,7 @@ const StudentForm: React.FC = () => {
                     name="pinCode"
                     value={formData.pinCode}
                     onChange={handleInputChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Enter PIN code"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -2070,9 +2082,15 @@ const StudentForm: React.FC = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          </>
+        )}
 
+        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 4)) && (
+          <>
+            <div className="mb-4 animate-in fade-in slide-in-from-right-4">
               {/* Current Status and Maximum Qualification */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {content.currentStatus}
@@ -2089,7 +2107,7 @@ const StudentForm: React.FC = () => {
                     placeholder={content.selectOption}
                     searchPlaceholder="Search..."
                     emptyText="No option found."
-                    className="h-12"
+                    className="h-11 md:h-12"
                   />
                 </div>
                 <div>
@@ -2225,8 +2243,10 @@ const StudentForm: React.FC = () => {
               </div>
             </div>
           </>
-        ) : (
-          <div className="space-y-6">
+        )}
+
+        {((!isMobile && currentStep === 2) || (isMobile && currentStep === 5)) && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
             <div className="text-center mb-6">
               <p className="text-gray-600 mb-3">
                 {content.selectSchoolDescription}
@@ -2303,7 +2323,7 @@ const StudentForm: React.FC = () => {
                     )}
 
                     {/* Top Decoration */}
-                    <div className={`h-2 w-full bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-400 to-blue-600' :
+                    <div className={`h-1.5 w-full bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-400 to-blue-600' :
                       school.color === 'emerald' ? 'from-emerald-400 to-emerald-600' :
                         school.color === 'amber' ? 'from-amber-400 to-amber-600' :
                           school.color === 'purple' ? 'from-purple-400 to-purple-600' :
@@ -2311,9 +2331,9 @@ const StudentForm: React.FC = () => {
                               'from-indigo-400 to-indigo-600'
                       }`} />
 
-                    <div className="p-7 flex flex-col h-full relative z-10">
-                      <div className="flex justify-between items-start mb-5">
-                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${school.color === 'blue' ? 'bg-blue-100 text-blue-700' :
+                    <div className="p-4 md:p-7 flex flex-col h-full relative z-10">
+                      <div className="flex justify-between items-start mb-4 md:mb-5">
+                        <span className={`text-[10px] font-bold uppercase tracking-wide md:tracking-widest px-3 py-1 md:px-2.5 md:py-1 rounded-full ${school.color === 'blue' ? 'bg-blue-100 text-blue-700' :
                           school.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
                             school.color === 'amber' ? 'bg-amber-100 text-amber-700' :
                               school.color === 'purple' ? 'bg-purple-100 text-purple-700' :
@@ -2329,27 +2349,14 @@ const StudentForm: React.FC = () => {
                         )}
                       </div>
 
-                      <h3 className="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors">{school.name}</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed mb-6 line-clamp-5">{school.description}</p>
+                      <h3 className="text-[17px] md:text-xl font-bold text-gray-800 mb-2 md:mb-3 group-hover:text-primary transition-colors">{school.name}</h3>
+                      <p className="text-[13px] md:text-sm text-gray-500 md:text-gray-600 leading-snug md:leading-relaxed mb-5 md:mb-6 line-clamp-3 md:line-clamp-5">{school.description}</p>
 
-                      <div className="mt-auto space-y-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isBCACard && isBCAFull) return; // Block BCA if full
-                            if (!isEligible && hasQualification) return; // Original logic
-                            setSelectedSchoolInfo(school);
-                          }}
-                          disabled={(isBCACard && isBCAFull) || (!isEligible && !!hasQualification)}
-                          className={`text-sm font-bold flex items-center gap-1.5 decoration-2 underline-offset-4 ${(isBCACard && isBCAFull) || (!isEligible && hasQualification) ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:underline'}`}
-                        >
-                          {content.checkDetails}
-                          <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                        </button>
-
-                        <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-100">
+                      <div className="mt-auto">
+                        {/* Mobile Bottom Layout */}
+                        <div className="flex md:hidden items-center justify-between">
                           <div
-                            className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                            className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
                               const newExpanded = new Set(expandedLocations);
@@ -2361,8 +2368,8 @@ const StudentForm: React.FC = () => {
                               setExpandedLocations(newExpanded);
                             }}
                           >
-                            <span className="text-base">📍</span>
-                            <span className="text-xs text-gray-600 font-medium">
+                            <span className="text-[15px] text-red-500">📍</span>
+                            <span className="text-[13px] text-gray-500 font-medium">
                               {expandedLocations.has(school.id)
                                 ? school.location
                                 : (school.id !== 'BCA'
@@ -2372,9 +2379,65 @@ const StudentForm: React.FC = () => {
                               }
                             </span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">⏳</span>
-                            <span className="text-xs text-gray-600 font-medium">{school.duration.split('(')[0].trim()}</span>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isEligible && hasQualification) return;
+                              setSelectedSchoolInfo(school);
+                            }}
+                            disabled={!isEligible && !!hasQualification}
+                            className={`text-[13px] font-bold flex items-center gap-1 ${!isEligible && hasQualification ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:opacity-80'}`}
+                          >
+                            {content.checkDetails}
+                            <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                          </button>
+                        </div>
+
+                        {/* Desktop Bottom Layout */}
+                        <div className="hidden md:block space-y-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isEligible && hasQualification) return;
+                              setSelectedSchoolInfo(school);
+                            }}
+                            disabled={!isEligible && !!hasQualification}
+                            className={`text-sm font-bold flex items-center gap-1.5 decoration-2 underline-offset-4 ${!isEligible && hasQualification ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:underline'}`}
+                          >
+                            {content.checkDetails}
+                            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                          </button>
+
+                          <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-100">
+                            <div
+                              className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newExpanded = new Set(expandedLocations);
+                                if (newExpanded.has(school.id)) {
+                                  newExpanded.delete(school.id);
+                                } else {
+                                  newExpanded.add(school.id);
+                                }
+                                setExpandedLocations(newExpanded);
+                              }}
+                            >
+                              <span className="text-base text-red-500">📍</span>
+                              <span className="text-xs text-gray-600 font-medium">
+                                {expandedLocations.has(school.id)
+                                  ? school.location
+                                  : (school.id !== 'BCA'
+                                    ? content.variousCampuses
+                                    : school.location
+                                  )
+                                }
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base text-gray-400">⏳</span>
+                              <span className="text-xs text-gray-600 font-medium">{school.duration.split('(')[0].trim()}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2389,32 +2452,39 @@ const StudentForm: React.FC = () => {
         )}
 
         {/* Action Buttons */}
-        <div className="flex justify-center space-x-4 mt-12">
+        {isMobile && currentStep === 5 && !selectedSchoolInfo && <div className="h-32" />}
+        <div className={`flex flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center sm:space-x-4 ${
+          isMobile && currentStep === 5
+            ? `fixed bottom-0 left-0 right-0 w-full px-4 pb-6 pt-4 z-50 bg-white/70 backdrop-blur-lg border-t border-white/50 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] ${selectedSchoolInfo ? 'hidden' : ''}`
+            : "mt-8"
+        }`}>
           <button
             onClick={handlePrevious}
-            className="px-8 py-3 bg-white border-2 border-purple-400 text-purple-600 rounded-2xl hover:bg-purple-50 transition-all font-bold min-w-[140px]"
+            className="w-[80%] sm:w-auto rounded-2xl border-2 border-purple-400 bg-white px-4 py-2 md:px-6 md:py-3 text-[15px] md:text-base font-bold text-purple-600 transition-all hover:bg-purple-50 sm:min-w-[140px]"
           >
-            {content.back}
+            {isMobile && selectedLanguage === 'hindi' ? 'पीछे' : content.back}
           </button>
           <button
             onClick={handleSubmit}
-            data-onboarding={currentStep === 1 ? "student-form-school-step" : "student-form-submit"}
-            className={`px-6 py-3 rounded-2xl transition-all student-btn text-white font-bold min-w-[140px] shadow-lg hover:shadow-primary/20 active:scale-95`}
+            data-onboarding={(!isMobile && currentStep === 1) || (isMobile && currentStep < 5) ? "student-form-school-step" : "student-form-submit"}
+            className={`w-[80%] sm:w-auto rounded-2xl px-4 py-2 md:px-6 md:py-3 text-[15px] md:text-base font-bold text-white shadow-lg transition-all student-btn hover:shadow-primary/20 active:scale-95 sm:min-w-[140px]`}
           >
-            {currentStep === 1 ? content.nextStep : content.saveContinue}
+            {(!isMobile && currentStep === 1) || (isMobile && currentStep < 5) ? (isMobile && selectedLanguage === 'hindi' ? 'आगे' : content.nextStep) : content.saveContinue}
           </button>
         </div>
 
-        {/* Progress Display */}
-        <div className="flex flex-col items-center mt-8">
-          <div className="flex space-x-3 mb-3">
-            <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 1 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-primary/20'}`}></div>
-            <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 2 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-gray-100'}`}></div>
+        {/* Desktop Progress Display */}
+        {!isMobile && (
+          <div className="mt-8 flex flex-col items-center">
+            <div className="flex space-x-3 mb-3">
+              <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 1 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-primary/20'}`}></div>
+              <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 2 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-gray-100'}`}></div>
+            </div>
+            <span className="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">
+              {content.phase} {currentStep} of 2
+            </span>
           </div>
-          <span className="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">
-            {content.phase} {currentStep} of 2
-          </span>
-        </div>
+        )}
       </div>
 
       {/* Learning Round Modal */}

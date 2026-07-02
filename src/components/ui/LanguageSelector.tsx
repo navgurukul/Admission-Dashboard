@@ -51,13 +51,13 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className }) => {
   }, [showDropdown]);
 
   return (
-    <div className={`fixed top-16 right-5 md:top-5 md:right-40 z-50 language-selector ${className || ""}`}>
+    <div className={`fixed top-5 right-[115px] md:top-5 md:right-40 z-50 language-selector ${className || ""}`}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="flex items-center gap-2 student-btn px-4 md:px-5 py-2 rounded-full shadow-md hover:opacity-90 hover:scale-105 transition-all duration-200"
+        className="flex items-center gap-1.5 md:gap-2 student-btn px-3 py-1.5 md:px-5 md:py-2 rounded-full shadow-md hover:opacity-90 hover:scale-105 transition-all duration-200"
       >
         <Languages className="w-4 h-4 md:w-5 md:h-5" />
-        <span className="font-medium text-sm md:text-base">{currentLanguage?.label}</span>
+        <span className="font-medium text-xs md:text-base">{currentLanguage?.label}</span>
       </button>
 
       {showDropdown && (
