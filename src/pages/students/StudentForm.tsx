@@ -836,6 +836,23 @@ const StudentForm: React.FC = () => {
     }
   };
 
+  // Adjust currentStep when switching between mobile and desktop views
+  useEffect(() => {
+    setCurrentStep((prevStep) => {
+      if (!isMobile) {
+        // Mobile to Desktop
+        if (prevStep >= 1 && prevStep <= 4) return 1;
+        if (prevStep >= 5) return 2;
+        return prevStep;
+      } else {
+        // Desktop to Mobile
+        if (prevStep === 1) return 1;
+        if (prevStep >= 2) return 5;
+        return prevStep;
+      }
+    });
+  }, [isMobile]);
+
   useEffect(() => {
     const savedFormData = localStorage.getItem("studentFormData");
     const googleEmail = location.state?.googleEmail;
