@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import {
@@ -905,31 +906,24 @@ export function AdvancedFilterModal({
                   From
                   {filters.dateRange.from && !filters.dateRange.to && <span className="text-red-500 ml-1">*</span>}
                 </Label>
-                <Popover modal={true}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full h-9 justify-start text-sm font-normal",
-                        !filters.dateRange.from && "text-muted-foreground",
-                        filters.dateRange.from && !filters.dateRange.to && "border-red-300"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {filters.dateRange.from ? format(filters.dateRange.from, "PP") : "Pick start date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[60]" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filters.dateRange.from}
-                      onSelect={(date) =>
-                        setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, from: date, to: date } }))
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date"
+                  className={cn(
+                    "w-full h-9 text-sm",
+                    !filters.dateRange.from && "text-muted-foreground",
+                    filters.dateRange.from && !filters.dateRange.to && "border-red-300"
+                  )}
+                  value={filters.dateRange.from ? format(filters.dateRange.from, "yyyy-MM-dd") : ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    let newDate = undefined;
+                    if (val) {
+                      const [year, month, day] = val.split('-').map(Number);
+                      newDate = new Date(year, month - 1, day);
+                    }
+                    setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, from: newDate, to: newDate } }));
+                  }}
+                />
               </div>
 
               {/* To */}
@@ -938,35 +932,26 @@ export function AdvancedFilterModal({
                   To
                   {filters.dateRange.to && !filters.dateRange.from && <span className="text-red-500 ml-1">*</span>}
                 </Label>
-                <Popover modal={true}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      disabled={!filters.dateRange.from}
-                      className={cn(
-                        "w-full h-9 justify-start text-sm font-normal",
-                        !filters.dateRange.to && "text-muted-foreground",
-                        filters.dateRange.to && !filters.dateRange.from && "border-red-300"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {filters.dateRange.to
-                        ? format(filters.dateRange.to, "PP")
-                        : filters.dateRange.from ? "Pick end date" : "Select start first"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-[60]" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={filters.dateRange.to}
-                      onSelect={(date) =>
-                        setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, to: date } }))
-                      }
-                      disabled={(date) => (filters.dateRange.from ? date <= filters.dateRange.from : true)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date"
+                  disabled={!filters.dateRange.from}
+                  className={cn(
+                    "w-full h-9 text-sm",
+                    !filters.dateRange.to && "text-muted-foreground",
+                    filters.dateRange.to && !filters.dateRange.from && "border-red-300"
+                  )}
+                  value={filters.dateRange.to ? format(filters.dateRange.to, "yyyy-MM-dd") : ""}
+                  min={filters.dateRange.from ? format(filters.dateRange.from, "yyyy-MM-dd") : undefined}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    let newDate = undefined;
+                    if (val) {
+                      const [year, month, day] = val.split('-').map(Number);
+                      newDate = new Date(year, month - 1, day);
+                    }
+                    setFilters((prev) => ({ ...prev, dateRange: { ...prev.dateRange, to: newDate } }));
+                  }}
+                />
                 {!filters.dateRange.from && (
                   <p className="text-xs text-muted-foreground">Select start date first</p>
                 )}
