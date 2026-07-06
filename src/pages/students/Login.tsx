@@ -616,49 +616,49 @@ export default function StudentLogin() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 lg:p-12 student-bg-light min-h-screen lg:min-h-0">
+      <div className="w-full lg:w-1/2 flex items-start lg:items-center justify-center p-4 pt-[68px] sm:p-8 lg:p-12 student-bg-light min-h-[100dvh] lg:min-h-0">
         <div className="w-full max-w-lg">
           {/* Branding Section */}
-          <div className="text-center mb-10">
-            <div className="flex items-center justify-center mb-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-secondary-purple to-primary rounded-2xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
-                <User className="w-10 h-10 text-white" aria-hidden="true" />
+          <div className="text-center mb-4 lg:mb-10">
+            <div className="flex items-center justify-center mb-3 lg:mb-6">
+              <div className="w-14 h-14 lg:w-20 lg:h-20 bg-gradient-to-br from-secondary-purple to-primary rounded-2xl flex items-center justify-center shadow-lg transform transition-transform hover:scale-105">
+                <User className="w-7 h-7 lg:w-10 lg:h-10 text-white" aria-hidden="true" />
               </div>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-1.5 lg:mb-3">
               {getContent().title}
             </h1>
-            <p className="text-base sm:text-lg text-muted-foreground">
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground px-2 lg:px-0">
               {getContent().description}
             </p>
           </div>
 
           {/* Login Card */}
           <Card className="shadow-2xl border-2 border-border/50 backdrop-blur-sm overflow-hidden">
-            <CardContent className="pt-10 pb-10 px-8 sm:px-10 space-y-8">
+            <CardContent className="pt-6 pb-6 px-4 lg:pt-10 lg:pb-10 lg:px-8 sm:px-10 space-y-5 lg:space-y-8">
               {/* Security Badge */}
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground" role="status" aria-label="Secure login badge">
-                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <div className="flex items-center justify-center gap-2 text-[13px] lg:text-sm text-muted-foreground" role="status" aria-label="Secure login badge">
+                <svg className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 <span>{getContent().secureLogin}</span>
               </div>
 
               {/* Google Sign In Button */}
-              <div className="space-y-4">
-                <div className="relative flex justify-center text-xs uppercase">
+              <div className="space-y-3 lg:space-y-4">
+                <div className="relative flex justify-center text-[11px] lg:text-xs uppercase">
                   <span className="bg-card px-2 text-muted-foreground">{getContent().signInWith}</span>
                 </div>
                 <div
                   id="google-signin-button-student"
                   ref={googleButtonRef}
-                  className="w-full flex justify-center [&_button]:!min-h-[48px] [&_button]:!h-12 [&_button]:transition-all [&_button]:hover:shadow-md [&_button]:hover:scale-[1.02] [&_button]:active:scale-[0.98]"
+                  className="w-full flex justify-center [&_button]:!min-h-[44px] lg:[&_button]:!min-h-[48px] [&_button]:!h-[44px] lg:[&_button]:!h-12 [&_button]:transition-all [&_button]:hover:shadow-md [&_button]:hover:scale-[1.02] [&_button]:active:scale-[0.98]"
                   role="button"
                   aria-label="Sign in with Google"
                 ></div>
                 {googleLoading && (
-                  <div className="flex items-center justify-center text-sm text-muted-foreground" role="status" aria-live="polite">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <div className="flex items-center justify-center text-[13px] lg:text-sm text-muted-foreground" role="status" aria-live="polite">
+                    <svg className="animate-spin -ml-1 mr-2 h-3.5 w-3.5 lg:h-4 lg:w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -672,16 +672,16 @@ export default function StudentLogin() {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border"></div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
+                <div className="relative flex justify-center text-[11px] lg:text-xs uppercase">
                   <span className="bg-card px-4 text-muted-foreground font-semibold">{getContent().orEnterManually}</span>
                 </div>
               </div>
 
               {/* Manual Entry Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              <form onSubmit={handleSubmit} className="space-y-3 lg:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                  <div className="space-y-1.5 lg:space-y-2">
+                    <label htmlFor="name" className="text-[13px] lg:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       {getContent().firstName}
                     </label>
                     <Input
@@ -691,11 +691,11 @@ export default function StudentLogin() {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="h-11 border-border/50 focus:border-primary/50"
+                      className="h-10 lg:h-11 text-[15px] lg:text-sm border-border/50 focus:border-primary/50"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label htmlFor="lastname" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  <div className="space-y-1.5 lg:space-y-2">
+                    <label htmlFor="lastname" className="text-[13px] lg:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       {getContent().lastName}
                     </label>
                     <Input
@@ -705,14 +705,14 @@ export default function StudentLogin() {
                       value={formData.lastname}
                       onChange={handleChange}
                       required
-                      className="h-11 border-border/50 focus:border-primary/50"
+                      className="h-10 lg:h-11 text-[15px] lg:text-sm border-border/50 focus:border-primary/50"
                     />
                   </div>
                 </div>
 
                 {/* Middle Name */}
-                <div className="space-y-2">
-                  <label htmlFor="middleName" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <div className="space-y-1.5 lg:space-y-2">
+                  <label htmlFor="middleName" className="text-[13px] lg:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     {getContent().middleName}
                   </label>
                   <Input
@@ -721,12 +721,12 @@ export default function StudentLogin() {
                     placeholder={getContent().middleNamePlaceholder}
                     value={formData.middleName}
                     onChange={handleChange}
-                    className="h-11 border-border/50 focus:border-primary/50"
+                    className="h-10 lg:h-11 text-[15px] lg:text-sm border-border/50 focus:border-primary/50"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="phone" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <div className="space-y-1.5 lg:space-y-2">
+                  <label htmlFor="phone" className="text-[13px] lg:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     {getContent().phone}
                   </label>
                   <Input
@@ -738,13 +738,13 @@ export default function StudentLogin() {
                     onChange={handleChange}
                     required
                     maxLength={10}
-                    className="h-11 border-border/50 focus:border-primary/50"
+                    className="h-10 lg:h-11 text-[15px] lg:text-sm border-border/50 focus:border-primary/50"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                  className="w-full h-11 lg:h-12 text-[15px] lg:text-base font-semibold shadow-lg hover:shadow-xl transition-all active:scale-[0.98] mt-1 lg:mt-0"
                   disabled={loading}
                 >
                   {loading ? (
@@ -762,9 +762,9 @@ export default function StudentLogin() {
               </form>
 
               {/* Help Text */}
-              <div className="text-center space-y-3 text-sm pt-6 border-t border-border/50">
+              <div className="text-center space-y-2 lg:space-y-3 text-[13px] lg:text-sm pt-4 lg:pt-6 border-t border-border/50">
                 <p className="text-muted-foreground font-medium">{getContent().troubleSigning}</p>
-                <div className="space-y-2">
+                <div className="space-y-1.5 lg:space-y-2">
                   <p className="text-foreground">
                     <span className="text-muted-foreground">{getContent().contactUs} </span>
                     <a href={`mailto:${ADMISSIONS_EMAIL}`} className="font-semibold hover:text-primary transition-colors">
