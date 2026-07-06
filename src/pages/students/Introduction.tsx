@@ -74,25 +74,25 @@ const Instructions: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen student-bg-gradient flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] student-bg-gradient flex flex-col items-center justify-start pt-[76px] px-4 pb-4 md:justify-center md:p-4">
       <LanguageSelector className="from-primary to-primary/90" />
       <LogoutButton className="from-primary to-primary/90" />
-      <div className="bg-card  card-shadow rounded-2xl shadow-large p-8 max-w-2xl w-full">
-        <h1 className="text-3xl font-bold text-foreground text-center mb-4">
+      <div className="bg-[#f8f9fa] md:bg-card card-shadow rounded-2xl shadow-large p-4 pt-5 md:p-8 max-w-2xl w-full">
+        <h1 className="text-[22px] md:text-3xl font-extrabold md:font-bold text-gray-800 md:text-foreground text-center mb-1.5 md:mb-4">
           {content.title}
         </h1>
 
-        <p className="text-muted-foreground text-center mb-8">
+        <p className="text-[13px] md:text-base text-gray-600 md:text-muted-foreground text-center mb-6 md:mb-8 px-1 md:px-0">
           {content.instructionsIntro}
         </p>
 
-        <div className="space-y-4 mb-8">
+        <div className="space-y-3 md:space-y-4 mb-6 md:mb-8">
           {content.instructions.map((instruction, index) => (
-            <div key={index} className="flex items-start space-x-3">
-              <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+            <div key={index} className="flex items-start space-x-3 md:space-x-3 bg-white md:bg-transparent shadow-sm md:shadow-none rounded-xl md:rounded-none p-3.5 md:p-0">
+              <span className="bg-primary text-primary-foreground rounded-full w-7 h-7 md:w-6 md:h-6 flex items-center justify-center text-[13px] md:text-sm font-bold flex-shrink-0 mt-0.5 md:mt-0">
                 {index + 1}
               </span>
-              <p className="text-foreground">{instruction}</p>
+              <p className="text-[13.5px] md:text-base text-gray-700 md:text-foreground font-medium md:font-normal leading-snug md:leading-normal">{instruction}</p>
             </div>
           ))}
         </div>
@@ -100,28 +100,28 @@ const Instructions: React.FC = () => {
         <div className="text-center">
           <button
             onClick={handleNext}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-8 rounded-lg transition duration-200"
+            className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground text-[15px] md:text-base font-bold py-3.5 md:py-3 px-6 md:px-8 rounded-xl md:rounded-lg transition duration-200 shadow-md md:shadow-none"
           >
             {content.imReady}
           </button>
         </div>
 
         {/* Progress Dots */}
-        <div className="flex justify-center space-x-2 mt-8">
-          <div className="w-3 h-3 bg-primary rounded-full"></div>
-          <div className="w-3 h-3 bg-muted rounded-full"></div>
+        <div className="flex justify-center space-x-2 mt-6 md:mt-8">
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-primary rounded-full"></div>
+          <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-gray-200 md:bg-muted rounded-full"></div>
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between mt-6">
+        <div className="flex justify-between mt-5 md:mt-6">
           <div />
           <button
             onClick={handleNext}
-            className="text-primary hover:text-primary/80 flex items-center"
+            className="text-primary hover:text-primary/80 flex items-center bg-white md:bg-transparent shadow-sm md:shadow-none rounded-full md:rounded-none px-4 py-1.5 md:px-0 md:py-0 text-[13px] md:text-base font-bold md:font-normal"
           >
             {content.next}
             <svg
-              className="w-4 h-4 ml-1"
+              className="w-3.5 h-3.5 md:w-4 md:h-4 ml-1"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -129,7 +129,7 @@ const Instructions: React.FC = () => {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 d="M9 5l7 7-7 7"
               />
             </svg>
