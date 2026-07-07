@@ -32,10 +32,10 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ className }) => {
       {!showConfirm ? (
         <button
           onClick={() => setShowConfirm(true)}
-          className="flex items-center gap-2 student-btn px-5 py-2 rounded-full shadow-md hover:opacity-90 hover:scale-105 transition-all duration-200"
+          className="flex items-center gap-1.5 md:gap-2 student-btn px-3 py-1.5 md:px-5 md:py-2 rounded-full shadow-md hover:opacity-90 hover:scale-105 transition-all duration-200"
         >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium">Logout</span>
+          <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+          <span className="font-medium text-xs md:text-base">Logout</span>
         </button>
       ) : (
         <div className="bg-card shadow-xl rounded-2xl p-4 border border-border flex flex-col items-center space-y-3 animate-fade-in">

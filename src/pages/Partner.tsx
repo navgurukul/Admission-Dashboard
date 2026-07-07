@@ -228,6 +228,9 @@ const PartnerPage = () => {
         pages = 1;
       }
 
+      // Filter out "No Partner Assigned" from backend response
+      partnersArray = partnersArray.filter(p => p.partner_name !== "No Partner Assigned");
+
       // Normalize districts: 'districts' for IDs, 'displayDistricts' for Names
       const normalizedPartners = partnersArray.map(p => {
         const districtIds = Array.isArray(p.districts)
@@ -246,8 +249,9 @@ const PartnerPage = () => {
       });
 
       setPartners(normalizedPartners);
-      setTotalPartnersCount(total);
-      setTotalPages(pages);
+      // Adjust total count to exclude filtered partners
+      setTotalPartnersCount(partnersArray.length);
+      setTotalPages(Math.ceil(partnersArray.length / rowsPerPage));
       setLoading(false);
       setLoadingAbortController(null);
     } catch (error) {
@@ -382,6 +386,11 @@ const PartnerPage = () => {
   // Filter partners based on additional client-side filters (district, slug, email domain)
   // Search by name is handled server-side via API
   const filteredPartners = partners.filter((partner) => {
+    // Hide "No Partner Assigned"
+    if (partner.partner_name === "No Partner Assigned") {
+      return false;
+    }
+    
     const matchesDistrict = filters.district
       ? (partner.displayDistricts || []).some((d) =>
         d.toLowerCase().includes(filters.district.toLowerCase()),
@@ -410,6 +419,10 @@ const PartnerPage = () => {
   if (isClientFiltered) {
     // 1. Filter the Full List locally
     const matches = allPartnersForStats.filter((partner) => {
+      // Hide "No Partner Assigned"
+      if (partner.partner_name === "No Partner Assigned") {
+        return false;
+      }
 
       const q = searchQuery.toLowerCase();
       const matchesSearch = q ? partner.partner_name?.toLowerCase().includes(q) : true;
@@ -444,12 +457,13 @@ const PartnerPage = () => {
 
   const paginatedPartners = currentTableData;
 
-  // Stats
-  const totalPartners = totalPartnersCount;
+  // Stats - Exclude "No Partner Assigned"
+  const filteredPartnersForStats = allPartnersForStats.filter(p => p.partner_name !== "No Partner Assigned");
+  const totalPartners = filteredPartnersForStats.length;
   const activeDistricts = new Set(
-    allPartnersForStats.flatMap((p) => p.displayDistricts || []),
+    filteredPartnersForStats.flatMap((p) => p.displayDistricts || []),
   ).size;
-  const totalStudents = allPartnersForStats.reduce((acc, curr) => acc + (curr.student_count || 0), 0);
+  const totalStudents = filteredPartnersForStats.reduce((acc, curr) => acc + (curr.student_count || 0), 0);
 
 
   // CSV Download
@@ -458,12 +472,17 @@ const PartnerPage = () => {
     let filename = "partners.csv";
 
     if (mode === 'all') {
-      dataToExport = allPartnersForStats;
+      dataToExport = allPartnersForStats.filter(partner => partner.partner_name !== "No Partner Assigned");
       filename = "all_partners.csv";
     } else {
       // Get all matching partners from the full list
       const q = searchQuery.toLowerCase();
       dataToExport = allPartnersForStats.filter((partner) => {
+        // Hide "No Partner Assigned"
+        if (partner.partner_name === "No Partner Assigned") {
+          return false;
+        }
+        
         const matchesSearch = q ? (partner.partner_name || "").toLowerCase().includes(q) : true;
         const matchesDistrict = filters.district
           ? (partner.displayDistricts || []).some((d: string) => d.toLowerCase().includes(filters.district.toLowerCase()))
@@ -1257,6 +1276,11 @@ const PartnerPage = () => {
                           Export Filtered Results ({(() => {
                             const q = searchQuery.toLowerCase();
                             return allPartnersForStats.filter((partner) => {
+                              // Hide "No Partner Assigned"
+                              if (partner.partner_name === "No Partner Assigned") {
+                                return false;
+                              }
+                              
                               const matchesSearch = q ? (partner.partner_name || "").toLowerCase().includes(q) : true;
                               const matchesDistrict = filters.district
                                 ? (partner.displayDistricts || []).some((d: string) => d.toLowerCase().includes(filters.district.toLowerCase()))
