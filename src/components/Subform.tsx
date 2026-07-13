@@ -783,10 +783,23 @@ export function InlineSubform({
             </tr>
           </thead>
           <tbody>
-            {rows.filter(row => row.id || row.isEditing).map((row) => {
+            {rows.filter(row => row.id || row.isEditing).map((row, filteredIdx, filteredArray) => {
               const idx = rows.indexOf(row);
+              const isLatest = filteredIdx === filteredArray.length - 1;
+              const hasMultiple = filteredArray.length > 1;
+              const isOlder = hasMultiple && !isLatest && !row.isEditing;
+              
               return (
-              <tr key={row.id || `new-row-${idx}`} className="border-b hover:bg-gray-50">
+              <tr 
+                key={row.id || `new-row-${idx}`} 
+                className={`border-b transition-all duration-300 ${
+                  isOlder 
+                    ? "opacity-70 grayscale-[30%] bg-muted/10 text-muted-foreground" 
+                    : isLatest && hasMultiple
+                      ? "bg-slate-100 shadow-[inset_4px_0_0_#475569] font-medium" 
+                      : ""
+                }`}
+              >
                 {visibleFields.map((f) => {
                   // Audit fields should always be readonly
                   const isAuditField = ["created_at", "updated_at", "last_updated_by", "audit_info"].includes(f.name);
