@@ -133,7 +133,7 @@ export const ApplicantTableHeader = ({
         )}
         {isColumnVisible('initial_school') && (
           <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
-            Student Selected Course
+            Prefered school
           </TableHead>
         )}
         {/* Screening Round Fields */}

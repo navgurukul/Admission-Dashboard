@@ -500,7 +500,7 @@ const CampusDetail = () => {
         const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
         tags.push({
           key: `initial_school-${s}`,
-          label: `Student Selected Course: ${schoolLabel}`,
+          label: `Prefered school: ${schoolLabel}`,
           onRemove: () => handleClearSingleFilter("initial_school", s),
         });
       });

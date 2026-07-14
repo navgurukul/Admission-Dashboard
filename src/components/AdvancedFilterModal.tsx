@@ -797,9 +797,9 @@ export function AdvancedFilterModal({
                 />
               </div>
 
-              {/* Student Selected Course */}
+              {/* Prefered school */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Student Selected Course</Label>
+                <Label className="text-xs font-medium text-muted-foreground">Prefered school</Label>
                 <MultiSelectCombobox
                   options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
                   value={filters.initial_school || []}
