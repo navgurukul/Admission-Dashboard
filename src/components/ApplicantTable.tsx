@@ -160,7 +160,7 @@ const ApplicantTable = () => {
       { id: 'stage', label: 'Stage', visible: true },
       { id: 'campus', label: 'Campus', visible: false },
       { id: 'school', label: 'School', visible: true },
-      { id: 'initial_school', label: 'Student Selected Course', visible: false },
+      { id: 'initial_school', label: 'Prefered school', visible: false },
 
       // Communication & Timestamps
       { id: 'notes', label: 'Communication Notes', visible: false },
@@ -1468,7 +1468,7 @@ const ApplicantTable = () => {
         const schoolLabel = sch?.school_name || resolveSchoolName(s) || s;
         tags.push({
           key: `initial_school-${s}`,
-          label: `Student Selected Course: ${schoolLabel}`,
+          label: `Prefered school: ${schoolLabel}`,
           onRemove: () => handleClearSingleFilter("initial_school", s),
         });
       });

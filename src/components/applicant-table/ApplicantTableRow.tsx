@@ -934,7 +934,7 @@ export const ApplicantTableRow = ({
         </TableCell>
       )}
 
-      {/* Student Selected Course */}
+      {/* Prefered school */}
       {isColumnVisible('initial_school') && (
         <TableCell className="min-w-[140px] max-w-[180px] px-2">
           <div className="truncate text-sm">
