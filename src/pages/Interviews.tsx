@@ -7,11 +7,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { getScheduledInterviews, type ScheduledInterview } from "@/utils/api";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 
 const Interviews = () => {
   const [interviews, setInterviews] = useState<ScheduledInterview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useSessionStorage<string>("user_interview_date", "");
   const { toast } = useToast();
   const navigate = useNavigate();
 

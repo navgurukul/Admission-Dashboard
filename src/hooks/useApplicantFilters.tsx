@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { searchStudentsApi } from "@/utils/api";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface FilterState {
@@ -34,35 +35,54 @@ export const useApplicantFilters = (
   religionList: any[],
   questionSetList: any[]
 ) => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useSessionStorage("applicant_search", "");
   const { debouncedValue: debouncedSearchTerm, isPending: isSearchPending } = useDebounce(searchTerm, 800);
-  const [filters, setFilters] = useState<FilterState>({
-    stage: "all",
-    stage_id: undefined,
-    stage_status: "all",
-    examMode: "all",
-    interviewMode: "all",
-    partner: [],
-    district: [],
-    market: [],
-    exam_centre: [],
-    school: [],
-    initial_school: [],
-    religion: [],
-    qualification: [],
-    currentStatus: [],
-    state: undefined,
-    gender: undefined,
-    donor: [],
-    partnerFilter: [],
-    dateRange: { type: "applicant" as const, from: undefined, to: undefined },
+  const [filters, setFilters] = useState<FilterState>(() => {
+    try {
+      const saved = sessionStorage.getItem("applicant_filters");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.dateRange) {
+          if (parsed.dateRange.from) parsed.dateRange.from = new Date(parsed.dateRange.from);
+          if (parsed.dateRange.to) parsed.dateRange.to = new Date(parsed.dateRange.to);
+        }
+        return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse saved filters:", e);
+    }
+    return {
+      stage: "all",
+      stage_id: undefined,
+      stage_status: "all",
+      examMode: "all",
+      interviewMode: "all",
+      partner: [],
+      district: [],
+      market: [],
+      exam_centre: [],
+      school: [],
+      initial_school: [],
+      religion: [],
+      qualification: [],
+      currentStatus: [],
+      state: undefined,
+      gender: undefined,
+      donor: [],
+      partnerFilter: [],
+      dateRange: { type: "applicant" as const, from: undefined, to: undefined },
+    };
   });
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
   const [isFiltering, setIsFiltering] = useState(false);
-  const [hasActiveFilters, setHasActiveFilters] = useState(false);
+  const [hasActiveFilters, setHasActiveFilters] = useSessionStorage("applicant_has_filters", false);
+
+  useEffect(() => {
+    sessionStorage.setItem("applicant_filters", JSON.stringify(filters));
+  }, [filters]);
 
   const { toast } = useToast();
 
