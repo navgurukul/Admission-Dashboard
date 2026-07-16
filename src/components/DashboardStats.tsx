@@ -64,15 +64,21 @@ export function DashboardStats() {
       extra: null,
     },
     {
-      title: "Admission Letter Sent",
-      value: loading ? "..." : metrics.activeApplications.toLocaleString(),
+      title: "Total Admission Letter Sent",
+      value: loading ? "..." : (metrics.activeApplications + metrics.manuallySent).toLocaleString(),
       icon: Clock,
       color: "text-secondary-purple",
       bgColor: "bg-secondary-purple/10",
-      extra: {
-        label: "Manually Sent",
-        value: loading ? "..." : metrics.manuallySent.toLocaleString(),
-      },
+      extras: [
+        {
+          label: "Admission Letter Sent",
+          value: loading ? "..." : metrics.activeApplications.toLocaleString(),
+        },
+        {
+          label: "Manually Sent",
+          value: loading ? "..." : metrics.manuallySent.toLocaleString(),
+        },
+      ],
     },
     {
       title: "Successfully Onboarded",
@@ -89,22 +95,38 @@ export function DashboardStats() {
       {stats.map((stat) => (
         <div
           key={stat.title}
-          className="bg-card rounded-xl p-6 shadow-soft border border-border"
+          className="bg-card rounded-xl px-5 py-3 shadow-soft border border-border"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
+              <p className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </p>
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
             </div>
             <div
-              className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}
+              className={`w-9 h-9 ${stat.bgColor} rounded-lg flex items-center justify-center`}
             >
-              <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </div>
           </div>
-          {stat.extra && (
+          
+          {stat.extras && (
+            <div className="mt-3 pt-2 border-t border-border grid grid-cols-2 gap-x-4 gap-y-1">
+              {stat.extras.map((extra, idx) => (
+                <div key={idx} className="flex flex-col">
+                  <p className="text-xs font-medium text-muted-foreground mb-0.5">
+                    {extra.label}
+                  </p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {extra.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {!stat.extras && stat.extra && (
             <div className="mt-1 pt-1 border-t border-border flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">
                 {stat.extra.label}
