@@ -3518,3 +3518,54 @@ export const getAvailableTemplates = async (): Promise<any> => {
   return data;
 };
 
+// Get Interview Questions
+export const getInterviewQuestions = async (stage_id: number): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/interview-questions/stage/${stage_id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch interview questions");
+  }
+  
+  return data;
+};
+
+// Submit Cultural Fit Round Feedback
+export const submitCulturalFitRoundFeedback = async (payload: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/submit/culturalFitRoundFeedback`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to submit cultural fit round feedback");
+  }
+  
+  return data;
+};
+
+// Update Cultural Fit Round Feedback
+export const updateCulturalFitRoundFeedback = async (id: number, payload: any): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/update/culturalFitRoundFeedback/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to update cultural fit round feedback");
+  }
+  
+  return data;
+};
+
+

@@ -28,6 +28,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { TransitionsModal } from "./TransitionsModal";
 import { InterviewDetailsModal } from "./InterviewDetailsModal";
+import { CfrFeedbackModal } from "./CfrFeedbackModal";
 // import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 // import { Calendar } from "lucide-react";
 // import {
@@ -235,6 +236,8 @@ export function ApplicantModal({
   const [showStudentPreviewDialog, setShowStudentPreviewDialog] = useState(false);
   const [showEmbeddedStudent, setShowEmbeddedStudent] = useState(false);
   const [iframeSrc, setIframeSrc] = useState("");
+  const [isCfrFeedbackModalOpen, setIsCfrFeedbackModalOpen] = useState(false);
+  const [selectedCfrRow, setSelectedCfrRow] = useState<any>(null);
   const studentPreviewStorageKeys = useMemo(() => [] as string[], []);
   const studentPreviewStorageBackupRef = useRef<Record<string, string | null> | null>(null);
   const isExamSessionCompleted = useCallback((session: any) => {
@@ -2774,9 +2777,29 @@ Interviewer: ${interviewerName}`;
                   },
                   {
                     name: "comments",
-                    label: "Comments *",
-                    type: "text" as const,
-                    disabled: isStageDisabled(currentApplicant, "LR"),
+                    label: "Feedback Details",
+                    type: "component" as const,
+                    disabled: isStageDisabled(currentApplicant, "CFR"),
+                    component: ({ row, disabled }: any) => {
+                      const isSaved = !!row?.id;
+                      // Explicitly set read-only if it's a saved row and not currently being edited
+                      const isReadOnly = isSaved && !row?.isEditing;
+                      
+                      return (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isStageDisabled(currentApplicant, "CFR") && !isSaved}
+                          className="w-full text-xs"
+                          onClick={() => {
+                            setSelectedCfrRow({ ...row, _isReadOnly: isReadOnly });
+                            setIsCfrFeedbackModalOpen(true);
+                          }}
+                        >
+                          {isSaved ? (row?.isEditing ? "View" : "View") : "Add"}
+                        </Button>
+                      );
+                    },
                   },
                   {
                     name: "audit_info",
@@ -3294,6 +3317,16 @@ Interviewer: ${interviewerName}`;
         isStageDisabled={isStageDisabled(currentApplicant, interviewDetailsRoundType || "LR")}
         hasPassedRound={hasPassedRound(currentApplicant, interviewDetailsRoundType || "LR")}
       />
+
+      {isCfrFeedbackModalOpen && (
+        <CfrFeedbackModal
+          isOpen={isCfrFeedbackModalOpen}
+          onClose={() => setIsCfrFeedbackModalOpen(false)}
+          studentId={currentApplicant?.id}
+          existingData={selectedCfrRow}
+          onSuccess={() => setRefreshKey(prev => prev + 1)}
+        />
+      )}
 
       {/* {showCommentsModal && (
         <ApplicantCommentsModal
