@@ -3569,3 +3569,22 @@ export const updateCulturalFitRoundFeedback = async (id: number, payload: any): 
 };
 
 
+
+// ─── Reset Student Data ───────────────────────────────────────────────────────
+// POST /resetStudentData/:id  (Admin Token required)
+// Sends student back to Sourcing stage and clears current school/status.
+// Old data is NOT deleted – it is archived (is_archived: true).
+export const resetStudentData = async (studentId: number): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/students/resetStudentData/${studentId}`, {
+    method: "POST",
+    headers: getAuthHeaders(false), // No body → no Content-Type header
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to reset student data");
+  }
+
+  return data;
+};

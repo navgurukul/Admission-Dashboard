@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X, FileText } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X, FileText, History, RotateCcw } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 // import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,7 @@ import {
   getStudentDataByEmail,
   getStudentDataByPhone,
   getAvailableTemplates,
+  resetStudentData,
   type CompleteStudentData,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
@@ -224,6 +225,13 @@ export function ApplicantModal({
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [showTemplatesInfo, setShowTemplatesInfo] = useState(false);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+
+  // Reset student data states
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // History modal states
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
 
   // Interview details modal states
@@ -914,17 +922,18 @@ Interviewer: ${interviewerName}`;
   }, []);
 
   // Helper function to check if student has passed a specific round
+  // Only considers NON-archived rounds
   const hasPassedRound = useCallback((applicant: any, roundType: "LR" | "CFR"): boolean => {
     if (!applicant) return false;
     
     if (roundType === "LR") {
-      // Check if any learning round has "pass" status
-      return applicant.interview_learner_round?.some((round: any) => 
+      return (applicant.interview_learner_round || []).some((round: any) => 
+        round?.is_archived !== true &&
         round.learning_round_status?.toLowerCase().includes("pass")
       ) || false;
     } else if (roundType === "CFR") {
-      // Check if any cultural fit round has "pass" status
-      return applicant.interview_cultural_fit_round?.some((round: any) => 
+      return (applicant.interview_cultural_fit_round || []).some((round: any) => 
+        round?.is_archived !== true &&
         round.cultural_fit_round_status?.toLowerCase().includes("pass")
       ) || false;
     }
@@ -1231,11 +1240,13 @@ Interviewer: ${interviewerName}`;
       const selectedCampusName = campus.find(c => c.value === selectedCampusId?.toString())?.label;
       
       // Determine school - use the one from the most recent passed round
-      const learningRoundSchoolId = currentApplicant.interview_learner_round?.find((r: any) => 
+      const learningRoundSchoolId = (currentApplicant.interview_learner_round || []).find((r: any) => 
+        r?.is_archived !== true &&
         r.learning_round_status?.toLowerCase().includes("pass")
       )?.school_id;
       
-      const screeningSchoolId = currentApplicant.exam_sessions?.find((s: any) => 
+      const screeningSchoolId = (currentApplicant.exam_sessions || []).find((s: any) => 
+        s?.is_archived !== true &&
         s.status?.toLowerCase().includes("pass")
       )?.school_id;
 
@@ -1690,10 +1701,12 @@ Interviewer: ${interviewerName}`;
     }
   };
 
-  const examSession = currentApplicant?.exam_sessions?.[0] ?? null;
+  const examSession = (currentApplicant?.exam_sessions || []).find((s: any) => !s.is_archived) ?? null;
 
   // Logic to determine if screening is passed (needed before screeningFields definition)
+  // Only consider NON-archived sessions
   const isScreeningPassed = (currentApplicant?.exam_sessions || []).some((session: any) => {
+    if (session?.is_archived === true) return false;
     const status = session?.status || "";
     return (
       status.toLowerCase().includes("pass") ||
@@ -1897,35 +1910,40 @@ Interviewer: ${interviewerName}`;
 
   const initialScreeningData = useMemo(
     () =>
-      currentApplicant?.exam_sessions?.map((session) => ({
-        id: session.id,
-        status: session.status ?? currentApplicant.status ?? "",
-        question_set_id: session.question_set_id?.toString() || "",
-        set_name: session.set_name || "", // ✅ Include set_name if available
-        obtained_marks:
-          session.obtained_marks !== null && session.obtained_marks !== undefined
-            ? session.obtained_marks.toString()
-            : "",
-        school_id:
-          session.school_id !== null && session.school_id !== undefined
-            ? session.school_id.toString()
-            : "",
-        school_name: session.school_name || "", // ✅ Include school_name if available
-        exam_centre: session.exam_centre || "",
-        date_of_test: session.date_of_test?.split("T")[0] || "",
-        audit_info: {
-          created_at: session.created_at || "",
-          updated_at: session.updated_at || "",
-          last_updated_by: session.last_updated_by || "",
-        },
-      })) || [],
+      (currentApplicant?.exam_sessions || [])
+        .filter((session: any) => session?.is_archived !== true) // hide archived
+        .map((session: any) => ({
+          id: session.id,
+          status: session.status ?? currentApplicant.status ?? "",
+          question_set_id: session.question_set_id?.toString() || "",
+          set_name: session.set_name || "",
+          obtained_marks:
+            session.obtained_marks !== null && session.obtained_marks !== undefined
+              ? session.obtained_marks.toString()
+              : "",
+          school_id:
+            session.school_id !== null && session.school_id !== undefined
+              ? session.school_id.toString()
+              : "",
+          school_name: session.school_name || "",
+          exam_centre: session.exam_centre || "",
+          date_of_test: session.date_of_test?.split("T")[0] || "",
+          audit_info: {
+            created_at: session.created_at || "",
+            updated_at: session.updated_at || "",
+            last_updated_by: session.last_updated_by || "",
+          },
+        })),
     [currentApplicant]
   );
 
   // Map learning round data with audit info and schedule info from API
   const initialLearningData = useMemo(
     () => {
-      const learningRounds = currentApplicant?.interview_learner_round || [];
+      // Only show NON-archived learning rounds in the main UI
+      const learningRounds = (currentApplicant?.interview_learner_round || []).filter(
+        (r: any) => r?.is_archived !== true
+      );
       
       // Get schedule info for learning round from live API data - ONLY LR schedules
       const schedules = liveScheduleData
@@ -1978,7 +1996,10 @@ Interviewer: ${interviewerName}`;
   // Map cultural fit round data with audit info and schedule info from API
   const initialCulturalData = useMemo(
     () => {
-      const culturalRounds = currentApplicant?.interview_cultural_fit_round || [];
+      // Only show NON-archived cultural fit rounds in the main UI
+      const culturalRounds = (currentApplicant?.interview_cultural_fit_round || []).filter(
+        (r: any) => r?.is_archived !== true
+      );
       
       // Get schedule info for cultural fit round from live API data - ONLY CFR schedules
       const schedules = liveScheduleData
@@ -2084,6 +2105,111 @@ Interviewer: ${interviewerName}`;
     [],
   );
 
+  // ── Archived history helpers (MUST be before early return — Rules of Hooks) ──
+  const archivedExamSessions = useMemo(
+    () => (currentApplicant?.exam_sessions || []).filter((s: any) => s.is_archived === true),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentApplicant?.exam_sessions]
+  );
+  const archivedLearnerRounds = useMemo(
+    () => (currentApplicant?.interview_learner_round || []).filter((r: any) => r.is_archived === true),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentApplicant?.interview_learner_round]
+  );
+  const archivedCulturalRounds = useMemo(
+    () => (currentApplicant?.interview_cultural_fit_round || []).filter((r: any) => r.is_archived === true),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentApplicant?.interview_cultural_fit_round]
+  );
+
+  // ── Group archived records into attempts ──────────────────────────────────
+  // Priority:
+  // 1. If backend sends reset_attempt field → group by that number
+  // 2. If backend sends archived_at field → group by same archived_at timestamp (same reset event)
+  // 3. Fallback: treat ALL archived records as one attempt per reset
+  //    (since all records from a single reset share the same archived_at time)
+  const groupedAttempts = useMemo(() => {
+    const allArchived = [
+      ...archivedExamSessions.map((r: any) => ({ type: "screening" as const, record: r })),
+      ...archivedLearnerRounds.map((r: any) => ({ type: "learning" as const, record: r })),
+      ...archivedCulturalRounds.map((r: any) => ({ type: "cultural" as const, record: r })),
+    ];
+
+    if (allArchived.length === 0) return [];
+
+    // ── Strategy 1: reset_attempt field ──────────────────────────────────
+    const hasResetAttemptField = allArchived.some((x) => x.record?.reset_attempt !== undefined);
+    if (hasResetAttemptField) {
+      const map = new Map<number, { screening: any[]; learning: any[]; cultural: any[] }>();
+      const ensure = (n: number) => {
+        if (!map.has(n)) map.set(n, { screening: [], learning: [], cultural: [] });
+        return map.get(n)!;
+      };
+      allArchived.forEach(({ type, record }) => {
+        ensure(record.reset_attempt ?? 0)[type].push(record);
+      });
+      return Array.from(map.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([, data], i) => ({ attemptNumber: i + 1, ...data }));
+    }
+
+    // ── Strategy 2: archived_at field (same timestamp = same reset event) ─
+    const hasArchivedAt = allArchived.some((x) => x.record?.archived_at);
+    if (hasArchivedAt) {
+      // Round timestamps to nearest minute to group records archived together
+      const getKey = (r: any) => {
+        if (!r.archived_at) return "unknown";
+        const d = new Date(r.archived_at);
+        d.setSeconds(0, 0);
+        return d.toISOString();
+      };
+      const map = new Map<string, { screening: any[]; learning: any[]; cultural: any[] }>();
+      const ensure = (k: string) => {
+        if (!map.has(k)) map.set(k, { screening: [], learning: [], cultural: [] });
+        return map.get(k)!;
+      };
+      allArchived.forEach(({ type, record }) => {
+        ensure(getKey(record))[type].push(record);
+      });
+      // Sort buckets by the archived_at key (chronological)
+      return Array.from(map.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([, data], i) => ({ attemptNumber: i + 1, ...data }));
+    }
+
+    // ── Strategy 3: No grouping field — use updated_at proximity (5 min window) ─
+    // Sort everything by updated_at or created_at, then bucket by 5-minute windows
+    const getTs = (r: any) =>
+      r?.updated_at ? new Date(r.updated_at).getTime()
+      : r?.created_at ? new Date(r.created_at).getTime()
+      : 0;
+
+    const sorted = [...allArchived].sort((a, b) => getTs(a.record) - getTs(b.record));
+    const WINDOW_MS = 5 * 60 * 1000; // 5 minutes — records reset together are very close
+    const buckets: Array<{ anchorTs: number; screening: any[]; learning: any[]; cultural: any[] }> = [];
+
+    sorted.forEach(({ type, record }) => {
+      const ts = getTs(record);
+      const existing = buckets.find((b) => Math.abs(ts - b.anchorTs) <= WINDOW_MS);
+      if (existing) {
+        existing[type].push(record);
+        // Expand anchor to latest ts in the bucket
+        if (ts > existing.anchorTs) existing.anchorTs = ts;
+      } else {
+        const bucket = { anchorTs: ts, screening: [] as any[], learning: [] as any[], cultural: [] as any[] };
+        bucket[type].push(record);
+        buckets.push(bucket);
+      }
+    });
+
+    return buckets.map((b, i) => ({
+      attemptNumber: i + 1,
+      screening: b.screening,
+      learning: b.learning,
+      cultural: b.cultural,
+    }));
+  }, [archivedExamSessions, archivedLearnerRounds, archivedCulturalRounds]);
+
   // Early return AFTER all hooks
   if (!applicant || !currentApplicant) return null;
 
@@ -2102,18 +2228,18 @@ Interviewer: ${interviewerName}`;
     });
 
   const isStageDisabled = (applicant: any, stage: string) => {
-    // Reuse isScreeningPassed logic - already defined earlier
+    // Reuse isScreeningPassed logic - already defined earlier (filters archived)
     const screeningPassed = isScreeningPassed;
 
-    // Check if learning round passed (check all rounds)
-    const learnerRounds = applicant?.interview_learner_round || [];
+    // Check if learning round passed — only NON-archived
+    const learnerRounds = (applicant?.interview_learner_round || []).filter((r: any) => r?.is_archived !== true);
     const learningPassed = learnerRounds.some((round: any) => {
       const status = round?.learning_round_status || "";
       return status.toLowerCase().includes("pass");
     });
 
-    // Check if CFR passed (check all rounds)
-    const cfrRounds = applicant?.interview_cultural_fit_round || [];
+    // Check if CFR passed — only NON-archived
+    const cfrRounds = (applicant?.interview_cultural_fit_round || []).filter((r: any) => r?.is_archived !== true);
     const cfrPassed = cfrRounds.some((round: any) => {
       const status = round?.cultural_fit_status || "";
       return status.toLowerCase().includes("pass");
@@ -2138,20 +2264,77 @@ Interviewer: ${interviewerName}`;
   };
 
   // Logic to determine if learning and cultural rounds are passed (to disable editing)
+  // Only consider NON-archived rounds
   const isLearningPassed = (currentApplicant?.interview_learner_round || []).some((round: any) => {
+    if (round?.is_archived === true) return false;
     const status = round?.learning_round_status || "";
     return status.toLowerCase().includes("pass");
   });
 
   const isCulturalPassed = (currentApplicant?.interview_cultural_fit_round || []).some((round: any) => {
+    if (round?.is_archived === true) return false;
     const status = round?.cultural_fit_status || "";
     return status.toLowerCase().includes("pass");
   });
 
   // Check if student has started next rounds (to disable deletion of previous rounds)
-  const hasLearningRoundData = (currentApplicant?.interview_learner_round || []).length > 0;
-  const hasCulturalRoundData = (currentApplicant?.interview_cultural_fit_round || []).length > 0;
+  // Only count NON-archived records
+  const hasLearningRoundData = (currentApplicant?.interview_learner_round || []).filter((r: any) => r?.is_archived !== true).length > 0;
+  const hasCulturalRoundData = (currentApplicant?.interview_cultural_fit_round || []).filter((r: any) => r?.is_archived !== true).length > 0;
   const hasOfferData = !!currentApplicant?.campus_id || (currentApplicant?.final_decisions || []).length > 0;
+
+  // ── Reset button visibility ──────────────────────────────────────────────
+  // "After CFR" = student has final_decisions with offer_letter_status OR onboarded_status set
+  const finalDecision = currentApplicant?.final_decisions?.[0];
+  const isAfterCFR = !!(
+    (finalDecision?.offer_letter_status) ||
+    (finalDecision?.onboarded_status)
+  );
+
+  // Reset button enable hoga sirf jab student ke paas active (non-archived)
+  // screening ya learning round ka koi data ho
+  const hasActiveScreeningData = (currentApplicant?.exam_sessions || [])
+    .some((s: any) => s?.is_archived !== true);
+  const hasActiveLearningData = (currentApplicant?.interview_learner_round || [])
+    .some((r: any) => r?.is_archived !== true);
+  const hasEnoughDataToReset = hasActiveScreeningData || hasActiveLearningData;
+
+  // Show for Admin (role 1) and role 3 — hidden for role 2 (Staff/Team without edit)
+  const canShowResetButton = hasEditAccess && !isTeamUser && !isAfterCFR;
+  // Disabled when no active screening/learning data exists
+  const isResetButtonDisabled = !hasEnoughDataToReset;
+
+  const hasHistory = archivedExamSessions.length > 0 || archivedLearnerRounds.length > 0 || archivedCulturalRounds.length > 0;
+
+  // ── Handle Reset ─────────────────────────────────────────────────────────
+  const handleResetStudent = async () => {
+    if (!currentApplicant?.id) return;
+    try {
+      setIsResetting(true);
+      await resetStudentData(currentApplicant.id);
+      toast({
+        title: "✅ Student Reset Successful",
+        description: "Student has been moved back to Sourcing stage. Previous data is saved in history.",
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+      setShowResetConfirm(false);
+      // Refresh applicant data
+      const fresh = await getStudentById(currentApplicant.id);
+      const freshData = (fresh as any)?.data ?? fresh;
+      if (freshData) setCurrentApplicant(freshData);
+      setRefreshKey((prev) => prev + 1);
+    } catch (error: any) {
+      toast({
+        title: "❌ Reset Failed",
+        description: error?.message || "Could not reset student data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -2228,6 +2411,32 @@ Interviewer: ${interviewerName}`;
               >
                 Student Preview
               </Button>
+              {/* History Button – always visible to admins */}
+              {hasEditAccess && !isTeamUser && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHistoryModal(true)}
+                  className="flex items-center gap-2 hover:bg-blue-50 text-blue-700 border-blue-300 shadow-sm transition-all"
+                >
+                  <History className="h-4 w-4" />
+                  History
+                </Button>
+              )}
+              {/* Reset Button – only visible for Admin when student is at CFR or before */}
+              {canShowResetButton && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowResetConfirm(true)}
+                  disabled={isResetButtonDisabled}
+                  title={isResetButtonDisabled ? "Reset ke liye pehle Screening ya Learning Round data hona zaroori hai" : "Reset Student Data"}
+                  className="flex items-center gap-2 hover:bg-red-50 text-red-600 border-red-300 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset Data
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -3278,6 +3487,265 @@ Interviewer: ${interviewerName}`;
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Reset Student Data Confirmation ── */}
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <RotateCcw className="h-5 w-5" />
+              Reset Student Data?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Student <strong>{currentApplicant?.first_name} {currentApplicant?.last_name}</strong> will be moved back to the <strong>Sourcing</strong> stage and their current school/status will be cleared.
+              </span>
+              <span className="block text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 text-sm">
+                ⚠️ Previous data will not be deleted — it will be saved in history and can be viewed via the "History" button.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetStudent}
+              disabled={isResetting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isResetting ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Resetting...</>
+              ) : (
+                "Yes, Reset"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Student History Modal ── */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-full">
+                <History className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold text-gray-900">
+                  Past Attempts History
+                </DialogTitle>
+                <DialogDescription className="text-sm text-gray-500 mt-0.5">
+                  {currentApplicant?.first_name} {currentApplicant?.last_name} — {groupedAttempts.length > 0 ? `${groupedAttempts.length} past ${groupedAttempts.length === 1 ? "attempt" : "attempts"} found` : "no past attempts"}
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+
+            {groupedAttempts.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <History className="h-8 w-8 text-gray-300" />
+                </div>
+                <p className="text-gray-500 font-medium">No past attempts found</p>
+                <p className="text-gray-400 text-sm mt-1">History will appear here after a reset is performed.</p>
+              </div>
+            )}
+
+            {groupedAttempts.map((attempt) => (
+              <div key={attempt.attemptNumber} className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                {/* Attempt Header — sirf number chip, "Attempt X" text nahi */}
+                <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-600">
+                  {/* <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-bold">#{attempt.attemptNumber}</span>
+                  </div> */}
+                  {/* <div className="ml-auto flex items-center gap-1.5">
+                    {attempt.screening.length > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/30 text-blue-100 font-medium">Screening</span>
+                    )}
+                    {attempt.learning.length > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/30 text-purple-100 font-medium">Learning</span>
+                    )}
+                    {attempt.cultural.length > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-400/30 text-green-100 font-medium">CFR</span>
+                    )}
+                  </div> */}
+                </div>
+
+                <div className="divide-y divide-gray-100">
+
+                  {/* ── Screening ── */}
+                  {attempt.screening.map((session: any, i: number) => {
+                    const isPassed = session.status?.toLowerCase().includes("pass");
+                    const isFailed = session.status?.toLowerCase().includes("fail");
+                    return (
+                      <div key={i} className="px-4 py-3 bg-blue-50/40">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>
+                            Screening Round
+                          </span>
+                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                            isPassed ? "bg-green-100 text-green-700" :
+                            isFailed ? "bg-red-100 text-red-600" :
+                            "bg-gray-100 text-gray-500"
+                          }`}>
+                            {session.status || "—"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-400">Obtained Marks</p>
+                            <p className="font-semibold text-gray-800">{session.obtained_marks ?? "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">School</p>
+                            <p className="font-semibold text-gray-800">{session.school_name || session.school_id || "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">Question Set</p>
+                            <p className="font-semibold text-gray-800">{session.set_name || session.question_set_name || session.question_set_id || "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400">Date of Test</p>
+                            <p className="font-semibold text-gray-800">{session.date_of_test ? session.date_of_test.split("T")[0] : "—"}</p>
+                          </div>
+                          {session.exam_centre && (
+                            <div>
+                              <p className="text-xs text-gray-400">Exam Centre</p>
+                              <p className="font-semibold text-gray-800">{session.exam_centre}</p>
+                            </div>
+                          )}
+                          {session.last_updated_by && (
+                            <div>
+                              <p className="text-xs text-gray-400">Updated By</p>
+                              <p className="font-semibold text-gray-800">{session.last_updated_by}</p>
+                            </div>
+                          )}
+                        </div>
+                        {session.created_at && (
+                          <p className="text-xs text-gray-400 mt-2">
+                            Recorded: {new Date(session.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* ── Learning Round ── */}
+                  {attempt.learning.map((round: any, i: number) => {
+                    const isPassed = round.learning_round_status?.toLowerCase().includes("pass");
+                    const isFailed = round.learning_round_status?.toLowerCase().includes("fail");
+                    return (
+                      <div key={i} className="px-4 py-3 bg-purple-50/40">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
+                            Learning Round
+                          </span>
+                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                            isPassed ? "bg-green-100 text-green-700" :
+                            isFailed ? "bg-red-100 text-red-600" :
+                            "bg-gray-100 text-gray-500"
+                          }`}>
+                            {round.learning_round_status || "—"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-400">School</p>
+                            <p className="font-semibold text-gray-800">{round.school_name || round.school_id || "—"}</p>
+                          </div>
+                          {round.last_updated_by && (
+                            <div>
+                              <p className="text-xs text-gray-400">Updated By</p>
+                              <p className="font-semibold text-gray-800">{round.last_updated_by}</p>
+                            </div>
+                          )}
+                        </div>
+                        {round.comments && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-400 mb-1">Comments</p>
+                            <p className="text-sm text-gray-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">{round.comments}</p>
+                          </div>
+                        )}
+                        {round.created_at && (
+                          <p className="text-xs text-gray-400 mt-2">
+                            Recorded: {new Date(round.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* ── Cultural Fit Round ── */}
+                  {attempt.cultural.map((round: any, i: number) => {
+                    const status = round.cultural_fit_status || round.cultural_fit_round_status || "";
+                    const isPassed = status.toLowerCase().includes("pass");
+                    const isFailed = status.toLowerCase().includes("fail");
+                    return (
+                      <div key={i} className="px-4 py-3 bg-green-50/40">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+                            Cultural Fit Round
+                          </span>
+                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                            isPassed ? "bg-green-100 text-green-700" :
+                            isFailed ? "bg-red-100 text-red-600" :
+                            "bg-gray-100 text-gray-500"
+                          }`}>
+                            {status || "—"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                          {/* Status field — prominent display */}
+                          <div>
+                            <p className="text-xs text-gray-400">Status</p>
+                            <p className="font-semibold text-gray-800">{status || "—"}</p>
+                          </div>
+                          {round.last_updated_by && (
+                            <div>
+                              <p className="text-xs text-gray-400">Updated By</p>
+                              <p className="font-semibold text-gray-800">{round.last_updated_by}</p>
+                            </div>
+                          )}
+                        </div>
+                        {round.comments && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-400 mb-1">Comments</p>
+                            <p className="text-sm text-gray-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">{round.comments}</p>
+                          </div>
+                        )}
+                        {round.created_at && (
+                          <p className="text-xs text-gray-400 mt-2">
+                            Recorded: {new Date(round.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* No data in this attempt */}
+                  {attempt.screening.length === 0 && attempt.learning.length === 0 && attempt.cultural.length === 0 && (
+                    <div className="px-4 py-3 text-sm text-gray-400 italic">No records found for this attempt.</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-3 border-t bg-gray-50 flex justify-end">
+            <Button onClick={() => setShowHistoryModal(false)} className="bg-blue-600 hover:bg-blue-700 text-white px-6">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Schedule Interview Modal */}
       <ScheduleInterviewModal
