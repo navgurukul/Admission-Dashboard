@@ -937,6 +937,31 @@ const StudentForm: React.FC = () => {
 
   }, [location.state?.googleEmail]);
 
+  // If redirected from Retest with startAtStep2 flag, jump directly to step 2 (School Selection)
+  // Uses a ref to avoid stale closure — runs once when component mounts with this state
+  useEffect(() => {
+    if (!location.state?.startAtStep2) return;
+
+    // Replace history state so back navigation doesn't re-trigger step jump
+    window.history.replaceState(
+      { ...window.history.state, startAtStep2: false },
+      "",
+    );
+
+    // Wait for savedFormData useEffect to populate formData, then jump to step 2
+    const timer = setTimeout(() => {
+      setCurrentStep(2);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {

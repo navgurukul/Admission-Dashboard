@@ -52,6 +52,8 @@ type TestRow = {
   };
   // Optional: when reattempt is locked due to 15-day cooldown after a fail
   cooldownUntil?: string | null;
+  // True when this row is from an archived (reset) attempt — show basic info + Retest only
+  isArchived?: boolean;
 };
 
 export default function StudentResult() {
@@ -506,18 +508,40 @@ export default function StudentResult() {
                   new Date(b.created_at).getTime(),
               );
 
-              // Push each screening test attempt
-              examSessions.forEach((exam: any, index: number) => {
-                const screeningText = String(exam.status || "").toLowerCase();
+              // Separate archived vs active
+              const archivedSessions = examSessions.filter((e: any) => e.is_archived === true);
+              const activeSessions = examSessions.filter((e: any) => e.is_archived !== true);
 
+              // Push archived screening attempts first (basic info only)
+              archivedSessions.forEach((exam: any, index: number) => {
+                const screeningText = String(exam.status || "").toLowerCase();
                 let screeningStatus: "Pass" | "Fail" = "Fail";
                 if (screeningText.includes("pass")) screeningStatus = "Pass";
 
                 updatedTests.push({
                   id: 100 + index,
+                  name: `Screening Test (Attempt ${index + 1})`,
+                  status: screeningStatus,
+                  score: exam.obtained_marks ?? null,
+                  action: "archived",
+                  slotBooking: { status: null, scheduledTime: "" },
+                  isArchived: true,
+                });
+              });
+
+              // Push active screening attempts
+              const archivedOffset = archivedSessions.length;
+              activeSessions.forEach((exam: any, index: number) => {
+                const screeningText = String(exam.status || "").toLowerCase();
+                let screeningStatus: "Pass" | "Fail" = "Fail";
+                if (screeningText.includes("pass")) screeningStatus = "Pass";
+
+                const totalAttempts = archivedOffset + activeSessions.length;
+                updatedTests.push({
+                  id: 100 + archivedOffset + index,
                   name:
-                    examSessions.length > 1
-                      ? `Screening Test (Attempt ${index + 1})`
+                    totalAttempts > 1
+                      ? `Screening Test (Attempt ${archivedOffset + index + 1})`
                       : "Screening Test",
                   status: screeningStatus,
                   score: exam.obtained_marks ?? null,
@@ -526,12 +550,16 @@ export default function StudentResult() {
                     status: null,
                     scheduledTime: exam.date_of_test || "",
                   },
+                  isArchived: false,
                 });
               });
             }
 
-            // Check if any screening test was passed
-            const hasPassedScreening = examSessions.some(
+            // For pass/gating checks — only use active (non-archived) sessions
+            const activeExamSessions = examSessions.filter((e: any) => e.is_archived !== true);
+
+            // Check if any ACTIVE screening test was passed
+            const hasPassedScreening = activeExamSessions.some(
               (exam: any) => exam.status && String(exam.status).toLowerCase().includes("pass"),
             );
 
@@ -584,8 +612,32 @@ export default function StudentResult() {
                 new Date(b.created_at).getTime(),
             );
 
-            // Push LR rounds - rows are ONLY created from interview_learner_round
-            lrRounds.forEach((lr: any, index: number) => {
+            // Separate archived vs active LR rounds
+            const archivedLrRounds = lrRounds.filter((r: any) => r.is_archived === true);
+            const activeLrRounds = lrRounds.filter((r: any) => r.is_archived !== true);
+
+            // Push archived LR rows (basic info + Retest only)
+            archivedLrRounds.forEach((lr: any, index: number) => {
+              const lrText = lr.learning_round_status || "";
+              let lrStatus: "Pass" | "Fail" | "Pending" = "Pending";
+              if (lrText.toLowerCase().includes("pass")) lrStatus = "Pass";
+              else if (lrText.toLowerCase().includes("fail")) lrStatus = "Fail";
+
+              updatedTests.push({
+                id: 200 + index,
+                name: `Learning Round (Attempt ${index + 1})`,
+                status: lrStatus,
+                score: null,
+                action: "archived",
+                slotBooking: { status: null, scheduledTime: "" },
+                isArchived: true,
+              });
+            });
+
+            const lrArchivedOffset = archivedLrRounds.length;
+
+            // Push active LR rounds
+            activeLrRounds.forEach((lr: any, index: number) => {
               const lrText = lr.learning_round_status || "";
               let lrAttemptStatus: "Pass" | "Fail" | "Pending" = "Pending";
               if (lrText.toLowerCase().includes("pass"))
@@ -593,36 +645,28 @@ export default function StudentResult() {
               else if (lrText.toLowerCase().includes("fail"))
                 lrAttemptStatus = "Fail";
 
-              // Find schedule by attempt number using title matching
-              const attemptNumber = index + 1;
+              // Attempt number in context of all rounds (archived + active)
+              const attemptNumber = lrArchivedOffset + index + 1;
               const matchingSchedule = findScheduleByAttempt(lrSchedules, "LR", attemptNumber);
 
-              // Determine scheduled time from API schedule
               let scheduledTime = "";
               let slotStatus: BookingStatus = null;
 
               if (matchingSchedule) {
                 scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
                 slotStatus = normalizeBooking(
-                      matchingSchedule.slot_details?.status ||
-                      matchingSchedule.status,
-                    );
+                  matchingSchedule.slot_details?.status || matchingSchedule.status,
+                );
               } else {
                 scheduledTime = lr.scheduled_time || lr.scheduled_at || "";
               }
 
-              // Check if time has passed
-              let hasTimePassed = false;
-              if (scheduledTime) {
-                const scheduledDateTime = new Date(scheduledTime);
-                hasTimePassed = scheduledDateTime < new Date();
-              }
-
+              const totalLrAttempts = lrArchivedOffset + activeLrRounds.length;
               updatedTests.push({
-                id: 200 + index,
+                id: 200 + lrArchivedOffset + index,
                 name:
-                  lrRounds.length > 1
-                    ? `Learning Round (Attempt ${index + 1})`
+                  totalLrAttempts > 1
+                    ? `Learning Round (Attempt ${attemptNumber})`
                     : "Learning Round",
                 status: lrAttemptStatus,
                 score: null,
@@ -637,12 +681,13 @@ export default function StudentResult() {
                       : slotStatus,
                   scheduledTime: scheduledTime,
                 },
+                isArchived: false,
               });
             });
 
-            // Determine latest LR status (used for CFR gating and cooldown)
+            // Determine latest LR status from ACTIVE rounds only
             const latestLR =
-              lrRounds.length > 0 ? lrRounds[lrRounds.length - 1] : null;
+              activeLrRounds.length > 0 ? activeLrRounds[activeLrRounds.length - 1] : null;
             let lrStatus: "Pass" | "Fail" | "Pending" = "Pending";
             if (latestLR) {
               const lrText = latestLR.learning_round_status || "";
@@ -659,8 +704,8 @@ export default function StudentResult() {
               lrFailCooldownUntil = cooldownEnd.toISOString();
             }
 
-            // If screening passed but no LR rounds exist, create placeholder row
-            if (hasPassedScreening && lrRounds.length === 0) {
+            // If screening passed but no ACTIVE LR rounds exist, create placeholder row
+            if (hasPassedScreening && activeLrRounds.length === 0) {
               // Find schedule for attempt 1 using title matching
               const bookedSlotInfo = findScheduleByAttempt(lrSchedules, "LR", 1);
 
@@ -703,8 +748,32 @@ export default function StudentResult() {
                 new Date(b.created_at).getTime(),
             );
 
-            // Push CFR rounds - rows are ONLY created from interview_cultural_fit_round
-            cfrRounds.forEach((cfr: any, index: number) => {
+            // Separate archived vs active CFR rounds
+            const archivedCfrRounds = cfrRounds.filter((r: any) => r.is_archived === true);
+            const activeCfrRounds = cfrRounds.filter((r: any) => r.is_archived !== true);
+
+            // Push archived CFR rows (basic info + Retest only)
+            archivedCfrRounds.forEach((cfr: any, index: number) => {
+              const cfrText = cfr.cultural_fit_status || "";
+              let cfrStatus: "Pass" | "Fail" | "Pending" = "Pending";
+              if (cfrText.toLowerCase().includes("pass")) cfrStatus = "Pass";
+              else if (cfrText.toLowerCase().includes("fail")) cfrStatus = "Fail";
+
+              updatedTests.push({
+                id: 300 + index,
+                name: `Cultural Fit Round (Attempt ${index + 1})`,
+                status: cfrStatus,
+                score: null,
+                action: "archived",
+                slotBooking: { status: null, scheduledTime: "" },
+                isArchived: true,
+              });
+            });
+
+            const cfrArchivedOffset = archivedCfrRounds.length;
+
+            // Push active CFR rounds
+            activeCfrRounds.forEach((cfr: any, index: number) => {
               const cfrText = cfr.cultural_fit_status || "";
               let cfrAttemptStatus: "Pass" | "Fail" | "Pending" = "Pending";
               if (cfrText.toLowerCase().includes("pass"))
@@ -712,36 +781,27 @@ export default function StudentResult() {
               else if (cfrText.toLowerCase().includes("fail"))
                 cfrAttemptStatus = "Fail";
 
-              // Find schedule by attempt number using title matching
-              const attemptNumber = index + 1;
+              const attemptNumber = cfrArchivedOffset + index + 1;
               const matchingSchedule = findScheduleByAttempt(cfrSchedules, "CFR", attemptNumber);
 
-              // Determine scheduled time from API schedule
               let scheduledTime = "";
               let slotStatus: BookingStatus = null;
 
               if (matchingSchedule) {
                 scheduledTime = `${matchingSchedule.date}T${matchingSchedule.start_time}`;
                 slotStatus = normalizeBooking(
-                      matchingSchedule.slot_details?.status ||
-                      matchingSchedule.status,
-                    );
+                  matchingSchedule.slot_details?.status || matchingSchedule.status,
+                );
               } else {
                 scheduledTime = cfr.scheduled_time || cfr.scheduled_at || "";
               }
 
-              // Check if time has passed
-              let hasTimePassed = false;
-              if (scheduledTime) {
-                const scheduledDateTime = new Date(scheduledTime);
-                hasTimePassed = scheduledDateTime < new Date();
-              }
-
+              const totalCfrAttempts = cfrArchivedOffset + activeCfrRounds.length;
               updatedTests.push({
-                id: 300 + index,
+                id: 300 + cfrArchivedOffset + index,
                 name:
-                  cfrRounds.length > 1
-                    ? `Cultural Fit Round (Attempt ${index + 1})`
+                  totalCfrAttempts > 1
+                    ? `Cultural Fit Round (Attempt ${attemptNumber})`
                     : "Cultural Fit Round",
                 status: cfrAttemptStatus,
                 score: null,
@@ -756,12 +816,13 @@ export default function StudentResult() {
                       : slotStatus,
                   scheduledTime: scheduledTime,
                 },
+                isArchived: false,
               });
             });
 
-            // Determine latest CFR status (for gating and cooldown)
+            // Determine latest CFR status from ACTIVE rounds only
             const latestCFR =
-              cfrRounds.length > 0 ? cfrRounds[cfrRounds.length - 1] : null;
+              activeCfrRounds.length > 0 ? activeCfrRounds[activeCfrRounds.length - 1] : null;
             let cfrStatus: "Pass" | "Fail" | "Pending" = "Pending";
             if (latestCFR) {
               const cfrText = latestCFR.cultural_fit_status || "";
@@ -779,8 +840,8 @@ export default function StudentResult() {
               cfrFailCooldownUntil = cooldownEnd.toISOString();
             }
 
-            // If latest LR passed and no CFR rounds exist, create placeholder row
-            if (lrStatus === "Pass" && cfrRounds.length === 0) {
+            // If latest ACTIVE LR passed and no ACTIVE CFR rounds exist, create placeholder row
+            if (lrStatus === "Pass" && activeCfrRounds.length === 0) {
               // Find schedule for attempt 1 using title matching
               const bookedSlotInfo = findScheduleByAttempt(cfrSchedules, "CFR", 1);
 
@@ -812,9 +873,9 @@ export default function StudentResult() {
               });
             }
 
-            // If latest LR failed, create new LR placeholder for rebooking (with 15-day cooldown)
+            // If latest ACTIVE LR failed, create new LR placeholder for rebooking (with 15-day cooldown)
             if (lrStatus === "Fail") {
-              const nextAttemptNumber = lrRounds.length + 1;
+              const nextAttemptNumber = lrArchivedOffset + activeLrRounds.length + 1;
               // Find schedule for next attempt using title matching
               const bookedSlotInfo = findScheduleByAttempt(lrSchedules, "LR", nextAttemptNumber);
 
@@ -834,7 +895,7 @@ export default function StudentResult() {
                 : false;
 
               updatedTests.push({
-                id: 200 + lrRounds.length,
+                id: 200 + lrArchivedOffset + activeLrRounds.length,
                 name: `Learning Round (Attempt ${nextAttemptNumber})`,
                 status: "Pending",
                 score: null,
@@ -847,9 +908,9 @@ export default function StudentResult() {
               });
             }
 
-            // If latest CFR failed, create new CFR placeholder for rebooking (with 15-day cooldown)
+            // If latest ACTIVE CFR failed, create new CFR placeholder for rebooking (with 15-day cooldown)
             if (cfrStatus === "Fail") {
-              const nextAttemptNumber = cfrRounds.length + 1;
+              const nextAttemptNumber = cfrArchivedOffset + activeCfrRounds.length + 1;
               // Find schedule for next attempt using title matching
               const bookedSlotInfo = findScheduleByAttempt(cfrSchedules, "CFR", nextAttemptNumber);
 
@@ -873,7 +934,7 @@ export default function StudentResult() {
                 : false;
 
               updatedTests.push({
-                id: 300 + cfrRounds.length,
+                id: 300 + cfrArchivedOffset + activeCfrRounds.length,
                 name: `Cultural Fit Round(Attempt ${nextAttemptNumber})`,
                 status: "Pending",
                 score: null,
@@ -927,12 +988,69 @@ export default function StudentResult() {
   };
 
   const handleRetestNavigation = () => {
+    // Clear test-related flags so student can retake
     localStorage.setItem("testStarted", "false");
     localStorage.setItem("testCompleted", "false");
     localStorage.setItem("allowRetest", "true");
     localStorage.setItem("registrationDone", "true");
 
-    navigate("/students/test/start", { replace: true });
+    // Pre-fill studentFormData from existing API data so fields are not blank on Phase 2
+    if (completeData) {
+      const profile =
+        completeData?.data?.student ||
+        (completeData as any)?.student ||
+        completeData;
+
+      if (profile) {
+        const preFilledForm = {
+          profileImage: null,
+          imageUrl: profile.image_url || "",
+          firstName: profile.first_name || "",
+          middleName: profile.middle_name || "",
+          lastName: profile.last_name || "",
+          dateOfBirth: profile.dob ? profile.dob.split("T")[0] : "",
+          // whatsapp_number preferred; fallback to phone_number
+          whatsappNumber: profile.whatsapp_number || profile.phone_number || "",
+          // alternateNumber stored separately — keep existing if present
+          alternateNumber: profile.alternate_number || profile.phone_number || "",
+          email: profile.email || "",
+          gender: profile.gender || "",
+          // stateCode is the state code (e.g. "AP") used by form dropdowns
+          state: profile.state || "",
+          stateCode: profile.state || "",
+          // districtCode = district_code from API (not name). If not available, use name
+          // StudentForm.fetchDistricts will load the list and the saved code will match
+          district: profile.district || "",
+          districtCode: profile.district_code || profile.district || "",
+          block: profile.block || "",
+          // blockCode = block id. API usually returns block name only; leave empty so
+          // student re-selects — avoids mismatch on address step (step 3, not step 2)
+          blockCode: profile.block_id ? String(profile.block_id) : "",
+          city: profile.city || "",
+          pinCode: profile.pin_code || "",
+          currentStatus: profile.current_status_id
+            ? String(profile.current_status_id)
+            : "",
+          maximumQualification: profile.qualification_id
+            ? String(profile.qualification_id)
+            : "",
+          schoolMedium: profile.school_medium || "",
+          casteTribe: profile.cast_id ? String(profile.cast_id) : "",
+          religion: profile.religion_id ? String(profile.religion_id) : "",
+          // Clear school — student must pick a new one
+          initial_school_id: "",
+          pursuingYear: profile.pursuing_year || "",
+          collegeAttendanceMethod: profile.college_attendance_method || "",
+        };
+        localStorage.setItem("studentFormData", JSON.stringify(preFilledForm));
+      }
+    }
+
+    // Redirect to registration page — jump directly to Phase 2 (School Selection)
+    navigate("/students/details/registration", {
+      state: { startAtStep2: true },
+      replace: true,
+    });
   };
 
   if (loading) {
@@ -1171,6 +1289,71 @@ export default function StudentResult() {
                           }
                           return false;
                         });
+
+                        // ── Archived row: basic info + "Previous Attempt" badge + Retest button ──
+                        if (test.isArchived) {
+                          // Hide Retest if any ACTIVE screening session has passed
+                          const hasActiveScreeningPass = tests.some(
+                            (t: TestRow) =>
+                              !t.isArchived &&
+                              t.name.includes("Screening Test") &&
+                              t.status === "Pass"
+                          );
+
+                          return (
+                            <tr key={test.id} className="block md:table-row bg-muted/30 md:bg-muted/20 border border-border/40 md:border-border/40 rounded-2xl md:rounded-none mb-6 md:mb-0 overflow-hidden relative opacity-80">
+                              {/* Stage name */}
+                              <td className="relative block md:table-cell px-5 pt-5 pb-3 md:py-4 border-b border-border/20 md:border-b md:border-border/40 text-sm font-medium text-muted-foreground">
+                                <div className="md:hidden absolute left-0 top-0 bottom-0 w-1.5 bg-gray-300" />
+                                <div className="flex items-center gap-2 ml-1 md:ml-0">
+                                  <span>{test.name}</span>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-200 text-gray-500 uppercase tracking-wide">
+                                    Previous Attempt
+                                  </span>
+                                </div>
+                              </td>
+                              {/* Status */}
+                              <td className="hidden md:table-cell px-5 py-4 md:border-b border-border/40 text-sm">
+                                <span className={`px-2.5 py-1 rounded-md text-sm font-semibold inline-flex items-center gap-1 border ${
+                                  test.status === "Pass"
+                                    ? "bg-green-100 text-green-700 border-green-200"
+                                    : test.status === "Fail"
+                                      ? "bg-red-50 text-red-600 border-red-200"
+                                      : "bg-gray-100 text-gray-500 border-gray-200"
+                                }`}>
+                                  {test.status === "Pass" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                                  {test.status === "Fail" && <XCircle className="w-3.5 h-3.5" />}
+                                  {test.status === "Pass" ? content.pass : test.status === "Fail" ? content.fail : content.pending}
+                                </span>
+                              </td>
+                              {/* Scheduled Time — N/A for archived */}
+                              <td className="flex md:table-cell items-center gap-3 px-5 py-3 md:py-4 border-b border-border/20 md:border-b md:border-border/40 text-sm">
+                                <Calendar className="w-4 h-4 md:hidden text-muted-foreground/50 ml-1 flex-shrink-0" />
+                                <span className="italic text-muted-foreground/60 text-sm">—</span>
+                              </td>
+                              {/* Action */}
+                              <td className="flex md:table-cell items-center px-5 pt-3 pb-5 md:py-4 md:border-b md:border-border/40 text-sm">
+                                <div className="ml-1 md:ml-0">
+                                  {test.name.includes("Screening Test") && !hasActiveScreeningPass ? (
+                                    <Button
+                                      onClick={handleRetestNavigation}
+                                      size="sm"
+                                      className="bg-primary hover:bg-primary/90 font-semibold h-9 active:scale-[0.98] transition-all"
+                                    >
+                                      {content.retest}
+                                    </Button>
+                                  ) : (
+                                    <span className="text-muted-foreground/60">—</span>
+                                  )}
+                                </div>
+                              </td>
+                              {/* Marks */}
+                              <td className="hidden md:table-cell px-5 py-4 text-sm text-muted-foreground">
+                                {test.score ?? "—"}
+                              </td>
+                            </tr>
+                          );
+                        }
 
                         return (
                           <tr key={test.id} className="block md:table-row bg-background md:bg-card border border-border/60 md:border md:border-border rounded-2xl md:rounded-none mb-6 md:mb-0 hover:bg-muted/30 overflow-hidden shadow-lg shadow-black/5 md:shadow-none relative transition-all">
