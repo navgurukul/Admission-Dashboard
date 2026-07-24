@@ -371,7 +371,7 @@ export default function AdminView() {
     switch (normalizedStatus) {
       // Interview statuses
       case "scheduled":
-        colorClass = "bg-emerald-500";
+        colorClass = "bg-sky-500";
         displayStatus = "Scheduled";
         break;
       case "rescheduled":
@@ -379,7 +379,7 @@ export default function AdminView() {
         displayStatus = "Rescheduled";
         break;
       case "active":
-        colorClass = "bg-blue-500";
+        colorClass = "bg-indigo-500";
         displayStatus = "Active";
         break;
       // case "completed":
@@ -391,13 +391,13 @@ export default function AdminView() {
         displayStatus = "Passed";
         break;
       case "failed":
-        colorClass = "bg-rose-600";
+        colorClass = "bg-red-600";
         displayStatus = "Failed";
         break;
 
       // Slot statuses
       case "booked":
-        colorClass = "bg-indigo-600";
+        colorClass = "bg-teal-600";
         displayStatus = "Booked";
         break;
       case "available":
@@ -405,12 +405,16 @@ export default function AdminView() {
         displayStatus = "Available";
         break;
       case "expired":
-        colorClass = "bg-gray-500";
+        colorClass = "bg-slate-500";
         displayStatus = "Expired";
+        break;
+      case "no show":
+        colorClass = "bg-fuchsia-600";
+        displayStatus = "No Show";
         break;
       case "cancelled":
       case "canceled":
-        colorClass = "bg-red-500";
+        colorClass = "bg-orange-600";
         displayStatus = "Cancelled";
         break;
     }

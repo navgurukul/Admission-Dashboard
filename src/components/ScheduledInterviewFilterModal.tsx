@@ -121,6 +121,9 @@ export function ScheduledInterviewFilterModal({
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="Passed">Passed</SelectItem>
                   <SelectItem value="Failed">Failed</SelectItem>
+                  <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                  <SelectItem value="Expired">Expired</SelectItem>
+                  <SelectItem value="No Show">No Show</SelectItem>
                 </SelectContent>
               </Select>
             </div>
