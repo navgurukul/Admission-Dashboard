@@ -30,6 +30,7 @@ import { ScheduledInterviewFilterModal } from "@/components/ScheduledInterviewFi
 import { CreatedSlotsFilterModal } from "@/components/CreatedSlotsFilterModal";
 import { useToast } from "@/components/ui/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import {
@@ -68,27 +69,27 @@ export default function AdminView() {
   const [isApplicantModalOpen, setIsApplicantModalOpen] = useState(false);
 
   // Search and filter states for interviews
-  const [interviewSearchTerm, setInterviewSearchTerm] = useState("");
+  const [interviewSearchTerm, setInterviewSearchTerm] = useSessionStorage("admin_interview_search", "");
   const { debouncedValue: debouncedInterviewSearch, isPending: isInterviewSearching } = useDebounce(interviewSearchTerm, 800);
-  const [interviewStartDate, setInterviewStartDate] = useState("");
-  const [interviewEndDate, setInterviewEndDate] = useState("");
-  const [interviewStartTime, setInterviewStartTime] = useState("");
-  const [interviewEndTime, setInterviewEndTime] = useState("");
-  const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useState("");
-  const [interviewStatusFilter, setInterviewStatusFilter] = useState("");
+  const [interviewStartDate, setInterviewStartDate] = useSessionStorage("admin_interview_start_date", "");
+  const [interviewEndDate, setInterviewEndDate] = useSessionStorage("admin_interview_end_date", "");
+  const [interviewStartTime, setInterviewStartTime] = useSessionStorage("admin_interview_start_time", "");
+  const [interviewEndTime, setInterviewEndTime] = useSessionStorage("admin_interview_end_time", "");
+  const [interviewSlotTypeFilter, setInterviewSlotTypeFilter] = useSessionStorage("admin_interview_slot_type", "");
+  const [interviewStatusFilter, setInterviewStatusFilter] = useSessionStorage("admin_interview_status", "");
   const [isInterviewFilterModalOpen, setIsInterviewFilterModalOpen] = useState(false);
 
   // Search and filter states for slots
-  const [slotSearchTerm, setSlotSearchTerm] = useState("");
+  const [slotSearchTerm, setSlotSearchTerm] = useSessionStorage("admin_slot_search", "");
   const { debouncedValue: debouncedSlotSearch, isPending: isSlotSearching } = useDebounce(slotSearchTerm, 800);
-  const [slotDateFilter, setSlotDateFilter] = useState("");
-  const [slotTypeFilter, setSlotTypeFilter] = useState("");
-  const [slotStartTime, setSlotStartTime] = useState("");
-  const [slotEndTime, setSlotEndTime] = useState("");
+  const [slotDateFilter, setSlotDateFilter] = useSessionStorage("admin_slot_date", "");
+  const [slotTypeFilter, setSlotTypeFilter] = useSessionStorage("admin_slot_type", "");
+  const [slotStartTime, setSlotStartTime] = useSessionStorage("admin_slot_start_time", "");
+  const [slotEndTime, setSlotEndTime] = useSessionStorage("admin_slot_end_time", "");
   const [isSlotFilterModalOpen, setIsSlotFilterModalOpen] = useState(false);
 
   // Filter states for my interviews
-  const [myInterviewDateFilter, setMyInterviewDateFilter] = useState("");
+  const [myInterviewDateFilter, setMyInterviewDateFilter] = useSessionStorage("admin_my_interview_date", "");
 
   // Pagination states
   const [interviewCurrentPage, setInterviewCurrentPage] = useState(1);
@@ -370,7 +371,7 @@ export default function AdminView() {
     switch (normalizedStatus) {
       // Interview statuses
       case "scheduled":
-        colorClass = "bg-emerald-500";
+        colorClass = "bg-sky-500";
         displayStatus = "Scheduled";
         break;
       case "rescheduled":
@@ -378,7 +379,7 @@ export default function AdminView() {
         displayStatus = "Rescheduled";
         break;
       case "active":
-        colorClass = "bg-blue-500";
+        colorClass = "bg-indigo-500";
         displayStatus = "Active";
         break;
       // case "completed":
@@ -390,13 +391,13 @@ export default function AdminView() {
         displayStatus = "Passed";
         break;
       case "failed":
-        colorClass = "bg-rose-600";
+        colorClass = "bg-red-600";
         displayStatus = "Failed";
         break;
 
       // Slot statuses
       case "booked":
-        colorClass = "bg-indigo-600";
+        colorClass = "bg-teal-600";
         displayStatus = "Booked";
         break;
       case "available":
@@ -404,12 +405,16 @@ export default function AdminView() {
         displayStatus = "Available";
         break;
       case "expired":
-        colorClass = "bg-gray-500";
+        colorClass = "bg-slate-500";
         displayStatus = "Expired";
+        break;
+      case "no show":
+        colorClass = "bg-fuchsia-600";
+        displayStatus = "No Show";
         break;
       case "cancelled":
       case "canceled":
-        colorClass = "bg-red-500";
+        colorClass = "bg-orange-600";
         displayStatus = "Cancelled";
         break;
     }
