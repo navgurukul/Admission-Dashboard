@@ -272,7 +272,7 @@ export function InterviewDetailsModal({
                 },
               ]}
               showInlineButtons={false}
-              showFloatingButton={true}
+              showFloatingButton={false}
               autoStartOnFirstVisit={false}
             />
           </div>
