@@ -243,11 +243,21 @@ export function CfrFeedbackModal({
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
             <div className="flex-1 overflow-y-auto p-1 space-y-6">
-              <Tabs defaultValue="questions" className="w-full">
+              <Tabs defaultValue="general" className="w-full">
               <div className="flex w-full justify-center mb-6">
-                <TabsList>
-                  <TabsTrigger value="questions" className="px-6">Cultural Fit Round Feedback</TabsTrigger>
-                  <TabsTrigger value="general" className="px-6">Overall Feedback</TabsTrigger>
+                <TabsList className="bg-gray-100/80 p-1 rounded-lg">
+                  <TabsTrigger 
+                    value="general" 
+                    className="px-6 py-2 rounded-md data-[state=active]:bg-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-gray-500"
+                  >
+                    Overall Feedback
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="questions" 
+                    className="px-6 py-2 rounded-md data-[state=active]:bg-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-gray-500"
+                  >
+                    Detailed Feedback
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -374,15 +384,12 @@ export function CfrFeedbackModal({
                       <History className="h-5 w-5 text-gray-400" />
                     </div>
                     <p className="text-center text-base font-semibold text-gray-700">
-                      Question details are unavailable.
-                    </p>
-                    <p className="text-center text-sm text-gray-500 mt-1 max-w-lg leading-relaxed">
-                      This interview was completed before detailed question tracking was available.
+                      No Detailed Feedback Available
                     </p>
                     {existingData?._isReadOnly && (
                       <div className="mt-4 pt-3 border-t border-gray-200 w-full max-w-xl">
                         <p className="text-center text-xs text-gray-400 font-medium leading-relaxed">
-                          To add interview answers or custom questions, please click the Edit (pencil) icon on the row.
+                          Detailed feedback has not been recorded for this candidate yet. To add or update the feedback, click the Edit icon on this record.
                         </p>
                       </div>
                     )}
