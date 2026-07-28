@@ -103,6 +103,10 @@ const SlotTracking = () => {
   const [sortField, setSortField] = useState<keyof InterviewerStat | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  // Pagination
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
   // ── Fetch ─────────────────────────────────────────────────────────────────
 
   const fetchStats = async () => {
@@ -149,6 +153,7 @@ const SlotTracking = () => {
       if (!json.success) throw new Error(json.message || "API returned failure");
 
       setStats(Array.isArray(json.data) ? json.data : []);
+      setCurrentPage(1); // Naya data aaya toh page 1 pe reset
     } catch (err: any) {
       console.error("SlotTracking fetch error:", err);
       toast({
@@ -220,6 +225,7 @@ const SlotTracking = () => {
   const clearFilters = () => {
     setDateFilter("");
     setInterviewerIdFilter("");
+    setCurrentPage(1);
   };
 
   const hasActiveFilter = dateFilter || (viewMode === "all" && interviewerIdFilter);
@@ -227,6 +233,15 @@ const SlotTracking = () => {
   // Helper: interviewer name from id
   const getInterviewerName = (id: string) =>
     usersList.find((u) => String(u.id) === id)?.name || `ID: ${id}`;
+
+  // ── Pagination ────────────────────────────────────────────────────────────
+
+  const totalPages = Math.max(1, Math.ceil(sortedStats.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedStats = sortedStats.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
 
   // ── Totals ────────────────────────────────────────────────────────────────
 
@@ -505,7 +520,7 @@ const SlotTracking = () => {
                       </td>
                     </tr>
                   ) : (
-                    sortedStats.map((row, idx) => (
+                    paginatedStats.map((row, idx) => (
                       <tr
                         key={`${row.interviewer_id}-${row.date}-${idx}`}
                         className="hover:bg-muted/30 transition-colors"
@@ -588,8 +603,95 @@ const SlotTracking = () => {
             </div>
 
             {!loading && sortedStats.length > 0 && (
-              <div className="px-4 py-2.5 border-t border-border text-xs text-muted-foreground">
-                Showing {sortedStats.length} row{sortedStats.length !== 1 ? "s" : ""}
+              <div className="px-4 py-3 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* Row count info */}
+                <p className="text-xs text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-medium text-foreground">
+                    {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, sortedStats.length)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-medium text-foreground">{sortedStats.length}</span> rows
+                </p>
+
+                {/* Pagination controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    {/* Previous */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={safePage === 1}
+                      className="h-8 w-8 p-0"
+                      title="First page"
+                    >
+                      «
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={safePage === 1}
+                      className="h-8 px-3"
+                    >
+                      Previous
+                    </Button>
+
+                    {/* Page numbers */}
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((p) =>
+                          p === 1 ||
+                          p === totalPages ||
+                          Math.abs(p - safePage) <= 1
+                        )
+                        .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                          if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("...");
+                          acc.push(p);
+                          return acc;
+                        }, [])
+                        .map((p, i) =>
+                          p === "..." ? (
+                            <span key={`dots-${i}`} className="px-1 text-muted-foreground text-xs">
+                              …
+                            </span>
+                          ) : (
+                            <Button
+                              key={p}
+                              size="sm"
+                              variant={safePage === p ? "default" : "outline"}
+                              onClick={() => setCurrentPage(p as number)}
+                              className="h-8 w-8 p-0 text-xs"
+                            >
+                              {p}
+                            </Button>
+                          )
+                        )}
+                    </div>
+
+                    {/* Next */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safePage === totalPages}
+                      className="h-8 px-3"
+                    >
+                      Next
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={safePage === totalPages}
+                      className="h-8 w-8 p-0"
+                      title="Last page"
+                    >
+                      »
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
