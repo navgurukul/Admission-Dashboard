@@ -14,6 +14,7 @@ import FinalDecisions from "./pages/FinalDecisions";
 import OfferLetters from "./pages/OfferLetters";
 import OfferLetterTemplates from "./pages/OfferLetterTemplates";
 import QuestionRepository from "./pages/QuestionRepository";
+import SlotTracking from "./pages/SlotTracking";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PartnerPage from "./pages/Partner";
@@ -233,6 +234,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <QuestionRepository />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/slot-tracking"
+                element={
+                  <ProtectedRoute>
+                    <SlotTracking />
                   </ProtectedRoute>
                 }
               />
