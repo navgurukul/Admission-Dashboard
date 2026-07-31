@@ -541,7 +541,7 @@ export function AdvancedFilterModal({
                     <SelectValue placeholder="Select stage" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    <SelectItem value="all">All Stages</SelectItem>
+                    <SelectItem value="all">Select stage</SelectItem>
                     {stageList.map((stage: any) => {
                       const stageId = stage.stage_id || stage.id;
                       const stageName = stage.stage_name || stage.name || `Stage ${stageId}`;
@@ -645,10 +645,10 @@ export function AdvancedFilterModal({
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, gender: value === "all" ? undefined : value }))}
                 >
                   <SelectTrigger className="w-full h-9 text-sm">
-                    <SelectValue placeholder="All Genders" />
+                    <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
-                    <SelectItem value="all">All Genders</SelectItem>
+                    <SelectItem value="all">Select gender</SelectItem>
                     <SelectItem value="Male">Male</SelectItem>
                     <SelectItem value="Female">Female</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
@@ -685,7 +685,7 @@ export function AdvancedFilterModal({
                 <Label className="text-xs font-medium text-muted-foreground">State</Label>
                 <Combobox
                   options={[
-                    { value: "all", label: "All States" },
+                    { value: "all", label: "Select state" },
                     ...availableStates.map((state) => ({ value: state.name, label: state.name })),
                   ]}
                   value={filters.state || "all"}
@@ -702,7 +702,7 @@ export function AdvancedFilterModal({
                 <Label className="text-xs font-medium text-muted-foreground">District</Label>
                 <Combobox
                   options={[
-                    { value: "all", label: "All Districts" },
+                    { value: "all", label: "Select district" },
                     ...availableDistricts.map((district) => ({ value: district.name, label: district.name })),
                   ]}
                   value={filters.district?.[0] || "all"}
@@ -720,7 +720,7 @@ export function AdvancedFilterModal({
                   <Label className="text-xs font-medium text-muted-foreground">Campus</Label>
                   <Combobox
                     options={[
-                      { value: "all", label: "All Campuses" },
+                      { value: "all", label: "Select campus" },
                       ...campusList.map((campus) => ({ value: getValue(campus), label: getDisplayName(campus, "campus_name", "Campus") })),
                     ]}
                     value={filters.partner?.[0] || "all"}
@@ -817,7 +817,7 @@ export function AdvancedFilterModal({
                 <Label className="text-xs font-medium text-muted-foreground">Qualification</Label>
                 <Combobox
                   options={[
-                    { value: "all", label: "All Qualifications" },
+                    { value: "all", label: "Select qualification" },
                     ...qualificationList.map((q) => ({ value: getValue(q), label: getDisplayName(q, "qualification_name", "Qualification") })),
                   ]}
                   value={filters.qualification?.[0] || "all"}
@@ -835,7 +835,7 @@ export function AdvancedFilterModal({
                 <Label className="text-xs font-medium text-muted-foreground">Current Status</Label>
                 <Combobox
                   options={[
-                    { value: "all", label: "All Statuses" },
+                    { value: "all", label: "Select status" },
                     ...currentstatusList.map((s) => ({ value: getValue(s), label: getDisplayName(s, "current_status_name", "Status") })),
                   ]}
                   value={filters.currentStatus?.[0] || "all"}
@@ -969,7 +969,7 @@ export function AdvancedFilterModal({
             disabled={isLoading.general}
             className="text-muted-foreground"
           >
-            Reset All
+            Reset
           </Button>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={onClose} size="sm" disabled={isLoading.general}>
@@ -981,7 +981,7 @@ export function AdvancedFilterModal({
               disabled={isLoading.general}
               className="px-5"
             >
-              Apply Filters
+              Apply
               {/* {activeFilters.length > 0 && (
                 <span className="ml-2 bg-white/20 text-xs rounded-full px-1.5 py-0.5">
                   {activeFilters.length}
