@@ -3588,3 +3588,36 @@ export const resetStudentData = async (studentId: number): Promise<any> => {
 
   return data;
 };
+
+// ─── Slot Tracking ────────────────────────────────────────────────────────────
+
+export interface GetInterviewerStatsParams {
+  interviewer_id?: string;
+  date?: string;
+  page?: number;
+  limit?: number;
+}
+
+export const getInterviewerStats = async (params: GetInterviewerStatsParams): Promise<any> => {
+  const queryParams = new URLSearchParams();
+  if (params.interviewer_id) queryParams.append("interviewer_id", params.interviewer_id);
+  if (params.date) queryParams.append("date", params.date);
+  if (params.page !== undefined) queryParams.append("page", params.page.toString());
+  if (params.limit !== undefined) queryParams.append("limit", params.limit.toString());
+
+  const queryString = queryParams.toString();
+  const url = `${BASE_URL}/reports/interviewer-stats${queryString ? `?${queryString}` : ""}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch interviewer stats");
+  }
+
+  return data;
+};
