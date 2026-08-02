@@ -73,7 +73,7 @@ const StudentForm: React.FC = () => {
   const [isLearningModalOpen, setIsLearningModalOpen] = useState(false);
   const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set());
   // BCA seats are currently full — set to true to block BCA selection
-  const isBCAFull = true;
+  const isBCAFull = false;
   const [loadingStates, setLoadingStates] = useState({
     states: false,
     districts: false,
