@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -895,6 +895,17 @@ export const ApplicantTableRow = ({
         </TableCell>
       )}
 
+      {/* Prefered school */}
+      {isColumnVisible('initial_school') && (
+        <TableCell className="min-w-[140px] max-w-[180px] px-2">
+          <div className="truncate text-sm">
+            {schoolList.find((s: any) => Number(s.id) === Number(applicant.initial_school_id))?.school_name
+              || applicant.initial_school_name
+              || "N/A"}
+          </div>
+        </TableCell>
+      )}
+
       {/* Qualifying School */}
       {isColumnVisible('school') && (
         <TableCell className="min-w-[140px] max-w-[180px] px-2">
@@ -931,17 +942,6 @@ export const ApplicantTableRow = ({
             showActionButtons={false}
             disabled={true}
           />
-        </TableCell>
-      )}
-
-      {/* Prefered school */}
-      {isColumnVisible('initial_school') && (
-        <TableCell className="min-w-[140px] max-w-[180px] px-2">
-          <div className="truncate text-sm">
-            {schoolList.find((s: any) => Number(s.id) === Number(applicant.initial_school_id))?.school_name
-              || applicant.initial_school_name
-              || "N/A"}
-          </div>
         </TableCell>
       )}
 
