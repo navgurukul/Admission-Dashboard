@@ -126,14 +126,14 @@ export const ApplicantTableHeader = ({
             Donor
           </TableHead>
         )}
-        {isColumnVisible('school') && (
-          <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
-            Qualifying School
-          </TableHead>
-        )}
         {isColumnVisible('initial_school') && (
           <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
             Prefered school
+          </TableHead>
+        )}
+        {isColumnVisible('school') && (
+          <TableHead className="font-bold min-w-[140px] max-w-[180px] px-3">
+            Qualifying School
           </TableHead>
         )}
         {/* Screening Round Fields */}
