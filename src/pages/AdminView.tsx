@@ -84,6 +84,7 @@ export default function AdminView() {
   const { debouncedValue: debouncedSlotSearch, isPending: isSlotSearching } = useDebounce(slotSearchTerm, 800);
   const [slotDateFilter, setSlotDateFilter] = useSessionStorage("admin_slot_date", "");
   const [slotTypeFilter, setSlotTypeFilter] = useSessionStorage("admin_slot_type", "");
+  const [slotStatusFilter, setSlotStatusFilter] = useSessionStorage("admin_slot_status", "");
   const [slotStartTime, setSlotStartTime] = useSessionStorage("admin_slot_start_time", "");
   const [slotEndTime, setSlotEndTime] = useSessionStorage("admin_slot_end_time", "");
   const [isSlotFilterModalOpen, setIsSlotFilterModalOpen] = useState(false);
@@ -130,7 +131,7 @@ export default function AdminView() {
     if (activeTab !== "slots") return;
 
     fetchSlots();
-  }, [activeTab, slotCurrentPage, slotDateFilter, slotStartTime, slotEndTime, debouncedSlotSearch, slotTypeFilter, itemsPerPage]);
+  }, [activeTab, slotCurrentPage, slotDateFilter, slotStartTime, slotEndTime, debouncedSlotSearch, slotTypeFilter, slotStatusFilter, itemsPerPage]);
 
   // Optimized fetch: Only fetch my interviews when my-interviews tab is active
   useEffect(() => {
@@ -151,7 +152,7 @@ export default function AdminView() {
     if (activeTab === "slots" && slotCurrentPage !== 1) {
       setSlotCurrentPage(1);
     }
-  }, [debouncedSlotSearch, slotDateFilter, slotStartTime, slotEndTime, slotTypeFilter]);
+  }, [debouncedSlotSearch, slotDateFilter, slotStartTime, slotEndTime, slotTypeFilter, slotStatusFilter]);
 
   const fetchInterviews = async () => {
     try {
@@ -212,6 +213,7 @@ export default function AdminView() {
         page: hasTimeFilter ? 1 : slotCurrentPage,
         pageSize: hasTimeFilter ? 1000 : itemsPerPage,
         slot_type: slotTypeFilter && slotTypeFilter !== 'all' ? slotTypeFilter : undefined,
+        status: slotStatusFilter && slotStatusFilter !== 'all' ? slotStatusFilter : undefined,
         date: slotDateFilter || undefined,
         search: trimmedSearch || undefined,
       });
@@ -475,7 +477,8 @@ export default function AdminView() {
   const hasSlotFilters =
     Boolean(slotDateFilter) ||
     Boolean(slotStartTime || slotEndTime) ||
-    (Boolean(slotTypeFilter) && slotTypeFilter !== "all");
+    (Boolean(slotTypeFilter) && slotTypeFilter !== "all") ||
+    (Boolean(slotStatusFilter) && slotStatusFilter !== "all");
 
   const createdSlotsGuideSteps =
     activeTab === "slots"
@@ -976,6 +979,17 @@ export default function AdminView() {
                             <X className="w-3 h-3" />
                           </Button>
                         )}
+                        {slotStatusFilter && slotStatusFilter !== "all" && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="rounded-full py-1.5 px-3 h-auto flex items-center gap-2 text-xs"
+                            onClick={() => setSlotStatusFilter("")}
+                          >
+                            <span>Status: {slotStatusFilter}</span>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        )}
                         {slotDateFilter && (
                           <Button
                             size="sm"
@@ -1011,6 +1025,7 @@ export default function AdminView() {
                           onClick={() => {
                             setSlotDateFilter("");
                             setSlotTypeFilter("");
+                            setSlotStatusFilter("");
                             setSlotStartTime("");
                             setSlotEndTime("");
                           }}
@@ -1362,12 +1377,14 @@ export default function AdminView() {
         onClose={() => setIsSlotFilterModalOpen(false)}
         currentFilters={{
           slotType: slotTypeFilter,
+          status: slotStatusFilter,
           date: slotDateFilter,
           startTime: slotStartTime,
           endTime: slotEndTime,
         }}
         onApplyFilters={(filters) => {
           setSlotTypeFilter(filters.slotType);
+          setSlotStatusFilter(filters.status);
           setSlotDateFilter(filters.date);
           setSlotStartTime(filters.startTime);
           setSlotEndTime(filters.endTime);
