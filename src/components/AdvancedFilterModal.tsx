@@ -411,13 +411,13 @@ export function AdvancedFilterModal({
     const campus = campusList.find((c: any) => String(c.id) === String(p));
     activeFilters.push({ key: `partner-${p}`, label: `Campus: ${campus?.campus_name || campus?.name || p}`, onRemove: () => clearSingleFilter("partner", p) });
   });
-  filters.school?.forEach(s => {
-    const school = schoolList.find((sc: any) => String(sc.id) === String(s));
-    activeFilters.push({ key: `school-${s}`, label: `School: ${school?.school_name || school?.name || s}`, onRemove: () => clearSingleFilter("school", s) });
-  });
   filters.initial_school?.forEach(s => {
     const school = schoolList.find((sc: any) => String(sc.id) === String(s));
     activeFilters.push({ key: `initial_school-${s}`, label: `Course: ${school?.school_name || school?.name || s}`, onRemove: () => clearSingleFilter("initial_school", s) });
+  });
+  filters.school?.forEach(s => {
+    const school = schoolList.find((sc: any) => String(sc.id) === String(s));
+    activeFilters.push({ key: `school-${s}`, label: `School: ${school?.school_name || school?.name || s}`, onRemove: () => clearSingleFilter("school", s) });
   });
   filters.qualification?.forEach(q => {
     const qual = qualificationList.find((ql: any) => String(ql.id) === String(q));
@@ -782,21 +782,6 @@ export function AdvancedFilterModal({
               <span className="text-xs font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wide">Academic & Personal</span>
             </div>
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Qualifying School */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Qualifying School</Label>
-                <MultiSelectCombobox
-                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
-                  value={filters.school || []}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, school: value }))}
-                  onOpen={() => loadFieldData("school")}
-                  placeholder={isLoading.general ? "Loading..." : "Select schools"}
-                  searchPlaceholder="Search school..."
-                  emptyText="No school found."
-                  disabled={isLoading.general}
-                />
-              </div>
-
               {/* Prefered school */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Prefered school</Label>
@@ -806,6 +791,21 @@ export function AdvancedFilterModal({
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, initial_school: value }))}
                   onOpen={() => loadFieldData("school")}
                   placeholder={isLoading.general ? "Loading..." : "Select course"}
+                  searchPlaceholder="Search school..."
+                  emptyText="No school found."
+                  disabled={isLoading.general}
+                />
+              </div>
+
+              {/* Qualifying School */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Qualifying School</Label>
+                <MultiSelectCombobox
+                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
+                  value={filters.school || []}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, school: value }))}
+                  onOpen={() => loadFieldData("school")}
+                  placeholder={isLoading.general ? "Loading..." : "Select schools"}
                   searchPlaceholder="Search school..."
                   emptyText="No school found."
                   disabled={isLoading.general}
