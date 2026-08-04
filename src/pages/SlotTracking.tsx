@@ -31,14 +31,16 @@ interface InterviewerStat {
   interviewer_id: number;
   interviewer_name: string;
   date: string;
-  done: number;
+  slot_type: string;
+  total_slots: number;
+  empty_slots: number;
+  interview_done: number;
   pass: number;
   fail: number;
   reschedule: number;
   no_show: number;
   disinterested: number;
-  slots: number;
-  empty: number;
+  not_eligible: number;
 }
 
 interface ApiResponse {
@@ -261,14 +263,14 @@ const SlotTracking = () => {
 
   const totals = sortedStats.reduce(
     (acc, row) => ({
-      done: acc.done + (row.done || 0),
+      interview_done: acc.interview_done + (row.interview_done || 0),
       pass: acc.pass + (row.pass || 0),
       fail: acc.fail + (row.fail || 0),
-      slots: acc.slots + (row.slots || 0),
-      empty: acc.empty + (row.empty || 0),
+      total_slots: acc.total_slots + (row.total_slots || 0),
+      empty_slots: acc.empty_slots + (row.empty_slots || 0),
       no_show: acc.no_show + (row.no_show || 0),
     }),
-    { done: 0, pass: 0, fail: 0, slots: 0, empty: 0, no_show: 0 }
+    { interview_done: 0, pass: 0, fail: 0, total_slots: 0, empty_slots: 0, no_show: 0 }
   );
 
   // ── Column helpers ────────────────────────────────────────────────────────
@@ -375,11 +377,10 @@ const SlotTracking = () => {
           {sortedStats.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {[
-                // { label: "Total Done", value: totals.done, color: "text-blue-600" },
+                { label: "Total Slots", value: totals.total_slots, color: "text-purple-600" },
+                { label: "Empty Slots", value: totals.empty_slots, color: "text-orange-500" },
                 { label: "Pass", value: totals.pass, color: "text-green-600" },
                 { label: "Fail", value: totals.fail, color: "text-red-500" },
-                { label: "Total Slots", value: totals.slots, color: "text-purple-600" },
-                { label: "Empty", value: totals.empty, color: "text-orange-500" },
                 { label: "No Show", value: totals.no_show, color: "text-gray-500" },
               ].map((card) => (
                 <div
@@ -505,21 +506,23 @@ const SlotTracking = () => {
                   <tr>
                     <Th label="Date" field="date" />
                     <Th label="Name" field="interviewer_name" />
-                    <Th label="Done" field="done" className="text-blue-600" />
+                    <Th label="Type" field="slot_type" className="text-gray-600" />
+                    <Th label="Total Slots" field="total_slots" className="text-purple-600" />
+                    <Th label="Empty Slots" field="empty_slots" className="text-orange-400" />
+                    <Th label="Interview Done" field="interview_done" className="text-blue-600" />
                     <Th label="Pass" field="pass" className="text-green-600" />
                     <Th label="Fail" field="fail" className="text-red-500" />
                     <Th label="Reschedule" field="reschedule" className="text-yellow-600" />
                     <Th label="No Show" field="no_show" className="text-gray-500" />
                     <Th label="Disinterested" field="disinterested" className="text-orange-500" />
-                    <Th label="Slots" field="slots" className="text-purple-600" />
-                    <Th label="Empty" field="empty" className="text-orange-400" />
+                    <Th label="Not Eligible" field="not_eligible" className="text-red-600" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {loading ? (
                     Array.from({ length: 6 }).map((_, i) => (
                       <tr key={i} className="animate-pulse">
-                        {Array.from({ length: 10 }).map((_, j) => (
+                        {Array.from({ length: 12 }).map((_, j) => (
                           <td key={j} className="px-3 py-3">
                             <div className="h-4 bg-muted rounded w-16" />
                           </td>
@@ -528,7 +531,7 @@ const SlotTracking = () => {
                     ))
                   ) : sortedStats.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-6 py-16 text-center text-muted-foreground">
+                      <td colSpan={12} className="px-6 py-16 text-center text-muted-foreground">
                         <div className="flex flex-col items-center gap-2">
                           <CalendarDays className="w-8 h-8 opacity-30" />
                           <p className="font-medium">No data found</p>
@@ -542,15 +545,28 @@ const SlotTracking = () => {
                         key={`${row.interviewer_id}-${row.date}-${idx}`}
                         className="hover:bg-muted/30 transition-colors"
                       >
-                        <td className="px-2 py-1.5 font-medium text-foreground whitespace-nowrap">
+                        <td className="px-2 py-1.5 text-foreground whitespace-nowrap">
                           {formatDisplayDate(row.date)}
                         </td>
                         <td className="px-2 py-1.5 font-medium text-foreground whitespace-nowrap">
                           {row.interviewer_name}
                         </td>
+                        <td className="px-2 py-1.5 text-gray-700 whitespace-nowrap">
+                          {row.slot_type || "-"}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold">
+                            {row.total_slots || 0}
+                          </span>
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-50 text-orange-500 text-xs font-semibold">
+                            {row.empty_slots || 0}
+                          </span>
+                        </td>
                         <td className="px-2 py-1.5">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
-                            {row.done || 0}
+                            {row.interview_done || 0}
                           </span>
                         </td>
                         <td className="px-2 py-1.5">
@@ -579,13 +595,8 @@ const SlotTracking = () => {
                           </span>
                         </td>
                         <td className="px-2 py-1.5">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold">
-                            {row.slots || 0}
-                          </span>
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-50 text-orange-500 text-xs font-semibold">
-                            {row.empty || 0}
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50 text-red-700 text-xs font-semibold">
+                            {row.not_eligible || 0}
                           </span>
                         </td>
                       </tr>
