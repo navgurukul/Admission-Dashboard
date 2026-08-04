@@ -2986,7 +2986,7 @@ Interviewer: ${interviewerName}`;
                   },
                   {
                     name: "comments",
-                    label: "Feedback Details",
+                    label: "Feedback",
                     type: "component" as const,
                     disabled: isStageDisabled(currentApplicant, "CFR"),
                     component: ({ row, disabled }: any) => {

@@ -18,11 +18,7 @@ const OfferLetterTemplates = () => {
             <Card className="overflow-hidden border-border/60 shadow-sm">
               <div className="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 px-6 py-5 text-white">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Admission Letter Studio
-                    </div>
+                  <div className="space-y-2">                    
                     <div>
                       <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                         Admission Letter Templates
@@ -36,10 +32,6 @@ const OfferLetterTemplates = () => {
                     <Badge className="bg-white/15 text-white hover:bg-white/20 border-0 px-3 py-1.5">
                       <FileText className="mr-1 h-3.5 w-3.5" />
                       HTML Templates
-                    </Badge>
-                    <Badge className="bg-white/15 text-white hover:bg-white/20 border-0 px-3 py-1.5">
-                      <Palette className="mr-1 h-3.5 w-3.5" />
-                      Responsive Editor
                     </Badge>
                   </div>
                 </div>

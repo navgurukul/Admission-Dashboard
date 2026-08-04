@@ -19,6 +19,7 @@ import {
 
 interface CreatedSlotsFilterState {
   slotType: string;
+  status: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -53,6 +54,7 @@ export function CreatedSlotsFilterModal({
   const handleClearAll = () => {
     setFilters({
       slotType: "",
+      status: "",
       date: "",
       startTime: "",
       endTime: "",
@@ -69,8 +71,8 @@ export function CreatedSlotsFilterModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Row 1: Slot Type */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Row 1: Slot Type & Status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="created-slots-type-filter" className="text-sm font-medium">
                 Slot Type
@@ -95,6 +97,34 @@ export function CreatedSlotsFilterModal({
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="created-slots-status-filter" className="text-sm font-medium">
+                Status
+              </Label>
+              <Select
+                value={filters.status || "all"}
+                onValueChange={(value) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    status: value === "all" ? "" : value,
+                  }))
+                }
+              >
+                <SelectTrigger id="created-slots-status-filter">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Available">Available</SelectItem>
+                  <SelectItem value="Booked">Booked</SelectItem>
+                  <SelectItem value="Expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 2: Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="created-slots-date-filter" className="text-sm font-medium">
                 Date

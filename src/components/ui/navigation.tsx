@@ -15,6 +15,7 @@ import {
   BookOpen,
   Landmark,
   FileText,
+  TrendingUp,
 } from "lucide-react";
 import AdminPage from "@/pages/Admin";
 import AdminView from "@/pages/AdminView";
@@ -28,6 +29,7 @@ import Interviews from "@/pages/Interviews";
 // import OfferLetters from "@/pages/OfferLetters";
 import OfferLetterTemplates from "@/pages/OfferLetterTemplates";
 import QuestionRepository from "@/pages/QuestionRepository";
+import SlotTracking from "@/pages/SlotTracking";
 
 export interface NavigationItem {
   name: string;
@@ -97,5 +99,12 @@ export const navigation: NavigationItem[] = [
     icon: FileText,
     component: OfferLetterTemplates,
     allowedRoles: [1],
+  },
+  {
+    name: "Slot Tracking",
+    href: "/slot-tracking",
+    icon: TrendingUp,
+    component: SlotTracking,
+    allowedRoles: [1, 2, 3],
   },
 ];

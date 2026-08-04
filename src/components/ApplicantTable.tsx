@@ -95,7 +95,7 @@ const ApplicantTable = () => {
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<ColumnConfig[]>(() => {
     // Try to load from localStorage with versioning
-    const saved = localStorage.getItem('applicantTableColumns_v5');
+    const saved = localStorage.getItem('applicantTableColumns_v6');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -159,8 +159,8 @@ const ApplicantTable = () => {
       // Stage & School
       { id: 'stage', label: 'Stage', visible: true },
       { id: 'campus', label: 'Campus', visible: false },
-      { id: 'school', label: 'School', visible: true },
       { id: 'initial_school', label: 'Prefered school', visible: false },
+      { id: 'school', label: 'School', visible: true },
 
       // Communication & Timestamps
       { id: 'notes', label: 'Communication Notes', visible: false },
@@ -174,7 +174,7 @@ const ApplicantTable = () => {
 
   // Clean up old localStorage keys on mount
   useEffect(() => {
-    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2', 'applicantTableColumns_v3', 'applicantTableColumns_v5'];
+    const oldKeys = ['applicantTableColumns', 'applicantTableColumns_v2', 'applicantTableColumns_v3', 'applicantTableColumns_v4', 'applicantTableColumns_v5'];
     oldKeys.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
@@ -376,12 +376,12 @@ const ApplicantTable = () => {
         obtainedMarks = latestExam.obtained_marks || 0;
 
         // Use exam session school name if available, otherwise fall back to student's school_name
-        if (latestExam.school_name) {
-          examSchoolName = latestExam.school_name;
-        } else if (latestExam.school_id && schoolList.length > 0) {
-          const examSchool = schoolList.find((s) => s.id === latestExam.school_id);
-          examSchoolName = examSchool ? examSchool.school_name : examSchoolName;
-        }
+        // if (latestExam.school_name) {
+        //   examSchoolName = latestExam.school_name;
+        // } else if (latestExam.school_id && schoolList.length > 0) {
+        //   const examSchool = schoolList.find((s) => s.id === latestExam.school_id);
+        //   examSchoolName = examSchool ? examSchool.school_name : examSchoolName;
+        // }
       }
 
       // Find question set for maximum marks (if not already in student data)
@@ -703,7 +703,7 @@ const ApplicantTable = () => {
           : col
       );
       // Save to localStorage with versioning
-      localStorage.setItem('applicantTableColumns_v5', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v6', JSON.stringify(updated));
       return updated;
     });
   }, []);
@@ -732,7 +732,7 @@ const ApplicantTable = () => {
           : { ...col, visible: false }; // All other columns hidden by default
       });
       // Save to localStorage
-      localStorage.setItem('applicantTableColumns_v5', JSON.stringify(updated));
+      localStorage.setItem('applicantTableColumns_v6', JSON.stringify(updated));
       return updated;
     });
 

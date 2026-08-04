@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, History } from "lucide-react";
 import {
   getInterviewQuestions,
   submitCulturalFitRoundFeedback,
@@ -208,8 +208,13 @@ export function CfrFeedbackModal({
     }
   };
 
+  // In read-only mode, hide questions that have no answers
+  const displayQuestions = existingData?._isReadOnly
+    ? questions.filter((q) => q.answer && q.answer.trim() !== "")
+    : questions;
+
   // Group questions by context
-  const groupedQuestions = questions.reduce((acc: Record<string, Question[]>, q) => {
+  const groupedQuestions = displayQuestions.reduce((acc: Record<string, Question[]>, q) => {
     const group = q.context_text || "General Questions";
     if (!acc[group]) acc[group] = [];
     acc[group].push(q);
@@ -238,11 +243,21 @@ export function CfrFeedbackModal({
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
             <div className="flex-1 overflow-y-auto p-1 space-y-6">
-              <Tabs defaultValue="questions" className="w-full">
+              <Tabs defaultValue="general" className="w-full">
               <div className="flex w-full justify-center mb-6">
-                <TabsList>
-                  <TabsTrigger value="questions" className="px-6">Cultural Fit Round Feedback</TabsTrigger>
-                  <TabsTrigger value="general" className="px-6">Overall Feedback</TabsTrigger>
+                <TabsList className="bg-gray-100/80 p-1 rounded-lg">
+                  <TabsTrigger 
+                    value="general" 
+                    className="px-6 py-2 rounded-md data-[state=active]:bg-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-gray-500"
+                  >
+                    Overall Feedback
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="questions" 
+                    className="px-6 py-2 rounded-md data-[state=active]:bg-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-gray-500"
+                  >
+                    Detailed Feedback
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -269,9 +284,9 @@ export function CfrFeedbackModal({
                     onChange={(e) => setStatus(e.target.value)}
                     disabled={existingData?._isReadOnly}
                   >
-                    <option value="" disabled hidden>Selection</option>
-                    <option value=" Culture Fit Round Pass">Culture Fit Round Pass</option>
-                    <option value=" Culture Fit Round Fail">Culture Fit Round Fail</option>
+                    <option value="disabled hidden">Selection</option>
+                    <option value="Culture Fit Round Pass">Culture Fit Round Pass</option>
+                    <option value="Culture Fit Round Fail">Culture Fit Round Fail</option>
                     <option value="Not Eligible">Not Eligible</option>
                     <option value="Disinterested">Disinterested</option>
                     <option value="Reschedule">Reschedule</option>
@@ -289,7 +304,7 @@ export function CfrFeedbackModal({
                   )}
                 </div>
 
-                {questions.length > 0 && (
+                {displayQuestions.length > 0 ? (
                   <div className="flex flex-col md:flex-row gap-4 border rounded-md min-h-[500px]">
                     {/* Sidebar */}
                     <div className="w-full md:w-1/3 border-r bg-gray-50/50 p-2 overflow-y-auto max-h-[500px]">
@@ -362,6 +377,22 @@ export function CfrFeedbackModal({
                         ))}
                       </div>
                     </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 border border-dashed rounded-xl bg-gray-50/50 text-gray-500 min-h-[220px]">
+                    <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center mb-3 border shadow-sm">
+                      <History className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <p className="text-center text-base font-semibold text-gray-700">
+                      No Detailed Feedback Available
+                    </p>
+                    {existingData?._isReadOnly && (
+                      <div className="mt-4 pt-3 border-t border-gray-200 w-full max-w-xl">
+                        <p className="text-center text-xs text-gray-400 font-medium leading-relaxed">
+                          Detailed feedback has not been recorded for this candidate yet. To add or update the feedback, click the Edit icon on this record.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>
