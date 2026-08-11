@@ -1182,6 +1182,11 @@ const ApplicantTable = () => {
       apiParams.gender = filterState.gender;
     }
 
+    // Duplicate
+    if (filterState.duplicate && filterState.duplicate !== "all") {
+      apiParams.is_duplicate = filterState.duplicate === "yes" ? true : false;
+    }
+
     // Exam Centre (multi-select)
     if (filterState.exam_centre?.length) {
       const centres = filterState.exam_centre.filter((c: any) => c !== "all");
@@ -1498,6 +1503,15 @@ const ApplicantTable = () => {
       });
     }
 
+    // Duplicate
+    if ((filters as any).duplicate && (filters as any).duplicate !== "all") {
+      tags.push({
+        key: `duplicate-${(filters as any).duplicate}`,
+        label: `Duplicate: ${(filters as any).duplicate === "yes" ? "Yes" : "No"}`,
+        onRemove: () => handleClearSingleFilter("duplicate"),
+      });
+    }
+
     // Exam Centre
     if ((filters as any).exam_centre?.length) {
       const centres = (filters as any).exam_centre.filter((c: any) => c !== "all");
@@ -1559,6 +1573,7 @@ const ApplicantTable = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.duplicate && newFilters.duplicate !== "all") ||
       (newFilters.exam_centre?.length > 0) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
@@ -1619,6 +1634,7 @@ const ApplicantTable = () => {
       currentStatus: [],
       state: undefined,
       gender: undefined,
+      duplicate: undefined,
       donor: [],
       partnerFilter: [],
       exam_centre: [],
@@ -1677,6 +1693,7 @@ const ApplicantTable = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.duplicate && newFilters.duplicate !== "all") ||
       (newFilters.exam_centre?.length > 0) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
@@ -1760,6 +1777,9 @@ const ApplicantTable = () => {
         case "gender":
           newFilters.gender = undefined;
           break;
+        case "duplicate":
+          newFilters.duplicate = undefined;
+          break;
           case "exam_centre":
             newFilters.exam_centre = [];
             break;
@@ -1790,6 +1810,7 @@ const ApplicantTable = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.duplicate && newFilters.duplicate !== "all") ||
       (newFilters.exam_centre?.length > 0) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
