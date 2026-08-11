@@ -22,6 +22,7 @@ interface FilterState {
   currentStatus: any[];
   state: any;
   gender: any;
+  duplicate?: string;
   donor: any[];
   partnerFilter: any[];
   dateRange: { type: "applicant" | "lastUpdate" | "interview"; from: any; to: any };
@@ -46,7 +47,30 @@ export const useApplicantFilters = (
           if (parsed.dateRange.from) parsed.dateRange.from = new Date(parsed.dateRange.from);
           if (parsed.dateRange.to) parsed.dateRange.to = new Date(parsed.dateRange.to);
         }
-        return parsed;
+        // Merge with defaults so any newly added fields (e.g. duplicate) are always present
+        return {
+          stage: "all",
+          stage_id: undefined,
+          stage_status: "all",
+          examMode: "all",
+          interviewMode: "all",
+          partner: [],
+          district: [],
+          market: [],
+          exam_centre: [],
+          school: [],
+          initial_school: [],
+          religion: [],
+          qualification: [],
+          currentStatus: [],
+          state: undefined,
+          gender: undefined,
+          duplicate: undefined,
+          donor: [],
+          partnerFilter: [],
+          dateRange: { type: "applicant" as const, from: undefined, to: undefined },
+          ...parsed,
+        };
       }
     } catch (e) {
       console.error("Failed to parse saved filters:", e);
@@ -68,6 +92,7 @@ export const useApplicantFilters = (
       currentStatus: [],
       state: undefined,
       gender: undefined,
+      duplicate: undefined,
       donor: [],
       partnerFilter: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },

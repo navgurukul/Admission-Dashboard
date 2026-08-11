@@ -65,6 +65,7 @@ interface FilterState {
   currentStatus: string[];
   state?: string;
   gender?: string;
+  duplicate?: string;
   donor: string[];
   partnerFilter: string[];
   exam_centre: string[];
@@ -278,6 +279,8 @@ export function AdvancedFilterModal({
       qualification: [],
       currentStatus: [],
       state: undefined,
+      gender: undefined,
+      duplicate: undefined,
       donor: [],
       partnerFilter: [],
       exam_centre: [],
@@ -315,7 +318,7 @@ export function AdvancedFilterModal({
       filters.religion?.length > 0 || filters.qualification?.length > 0 ||
       filters.currentStatus?.length > 0 || filters.donor?.length > 0 ||
       filters.partnerFilter?.length > 0 || filters.exam_centre?.length > 0 ||
-      filters.state || filters.gender || filters.dateRange.from || filters.dateRange.to;
+      filters.state || filters.gender || filters.duplicate || filters.dateRange.from || filters.dateRange.to;
     if (!hasValidFilters) {
       toast({ title: "⚠️ No Filters Selected", description: "Please select at least one filter.", variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
@@ -381,6 +384,7 @@ export function AdvancedFilterModal({
         case "currentStatus": return { ...newFilters, currentStatus: [] };
         case "donor": return { ...newFilters, donor: [] };
         case "partnerFilter": return { ...newFilters, partnerFilter: [] };
+        case "duplicate": return { ...newFilters, duplicate: undefined };
         case "dateRange": case "daterange": return { ...newFilters, dateRange: { type: prev.dateRange.type } };
         default: return prev;
       }
@@ -405,6 +409,7 @@ export function AdvancedFilterModal({
 
   if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}`, onRemove: () => clearSingleFilter("state") });
   if (filters.gender) activeFilters.push({ key: "gender", label: `Gender: ${filters.gender}`, onRemove: () => setFilters((prev) => ({ ...prev, gender: undefined })) });
+  if (filters.duplicate) activeFilters.push({ key: "duplicate", label: `Duplicate: ${filters.duplicate === "yes" ? "Yes" : "No"}`, onRemove: () => clearSingleFilter("duplicate") });
 
   filters.district?.forEach(d => activeFilters.push({ key: `district-${d}`, label: `District: ${d}`, onRemove: () => clearSingleFilter("district", d) }));
   filters.partner?.forEach(p => {
@@ -652,6 +657,24 @@ export function AdvancedFilterModal({
                     <SelectItem value="Male">Male</SelectItem>
                     <SelectItem value="Female">Female</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Duplicate */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Duplicate</Label>
+                <Select
+                  value={filters.duplicate || "all"}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, duplicate: value === "all" ? undefined : value }))}
+                >
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select duplicate" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    <SelectItem value="all">Select duplicate</SelectItem>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
