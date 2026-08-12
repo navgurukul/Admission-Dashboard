@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Phone, MapPin, Calendar, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { User, Mail, Phone, MapPin, Calendar, Clock, CheckCircle2, XCircle, FileText, History, Activity } from "lucide-react";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
@@ -44,7 +45,7 @@ type TestRow = {
   id: number;
   name: string;
   status: "Pass" | "Fail" | "Pending" | "-";
-  score: number | null;
+  score: number | null | string;
   action: string;
   slotBooking: {
     status: BookingStatus;
@@ -124,6 +125,8 @@ export default function StudentResult() {
           cooldownSuffix: "तब तक कृपया अभ्यास करें।",
           interviewCompleted: "साक्षात्कार पूरा हो चुका है",
           noTestDataAvailable: "कोई परीक्षा डेटा उपलब्ध नहीं है",
+          historyTab: "पिछला इतिहास",
+          activeTab: "नवीनतम प्रयास",
         };
       case "marathi":
         return {
@@ -158,6 +161,8 @@ export default function StudentResult() {
           cooldownSuffix: "तोपर्यंत कृपया सराव करा.",
           interviewCompleted: "मुलाखत पूर्ण झाली आहे",
           noTestDataAvailable: "परीक्षा डेटा उपलब्ध नाही",
+          historyTab: "मागील इतिहास",
+          activeTab: "नवीनतम प्रयत्न",
         };
       default: // English
         return {
@@ -192,6 +197,8 @@ export default function StudentResult() {
           cooldownSuffix: "Till then please practice.",
           interviewCompleted: "Interview Completed",
           noTestDataAvailable: "No test data available",
+          historyTab: "Previous Attempts",
+          activeTab: "Latest Attempt",
         };
     }
   };
@@ -1177,7 +1184,7 @@ export default function StudentResult() {
                   new Date(b.created_at).getTime() -
                   new Date(a.created_at).getTime(),
               )[0]
-              ?.offer_letter_status?.toLowerCase() === "offer sent" && (
+              ?.offer_letter_status?.toLowerCase() === "admission letter sent" && (
               <OfferLetterCard student={completeData.data?.student} />
             )}
 
@@ -1190,8 +1197,13 @@ export default function StudentResult() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 sm:px-6 py-5 sm:py-6">
-              <div className="w-full">
-                <table className="w-full border-collapse text-left">
+              {(() => {
+                const archivedTests = (tests as any[])?.filter((t: any) => t.isArchived) || [];
+                const activeTests = (tests as any[])?.filter((t: any) => !t.isArchived) || [];
+
+                const renderTable = (testData: any[]) => (
+                  <div className="w-full">
+                    <table className="w-full border-collapse text-left">
                   <thead className="hidden md:table-header-group bg-muted text-sm border border-border rounded-t-lg overflow-hidden">
                     <tr>
                       <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.stage}</th>
@@ -1202,8 +1214,8 @@ export default function StudentResult() {
                     </tr>
                   </thead>
                   <tbody className="block md:table-row-group">
-                    {tests && tests.length > 0 ? (
-                      tests.map((test: TestRow) => {
+                    {testData && testData.length > 0 ? (
+                      testData.map((test: TestRow) => {
                         const slotStatus = test.slotBooking?.status;
                         const isSlotBooked =
                           slotStatus === "Booked" || slotStatus === "Pending";
@@ -1554,6 +1566,33 @@ export default function StudentResult() {
                   </tbody>
                 </table>
               </div>
+            );
+
+            if (archivedTests.length > 0) {
+              return (
+                <Tabs defaultValue="active" className="w-full mt-2">
+                  <TabsList className="mb-6 grid w-full sm:w-[450px] grid-cols-2 p-1.5 bg-muted/60 rounded-xl shadow-inner mx-auto sm:mx-0">
+                    <TabsTrigger value="active" className="rounded-lg py-2.5 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2">
+                      <Activity className="w-4 h-4" />
+                      {content.activeTab}
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="rounded-lg py-2.5 text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2">
+                      <History className="w-4 h-4" />
+                      {content.historyTab}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="active" className="mt-2">
+                    {renderTable(activeTests)}
+                  </TabsContent>
+                  <TabsContent value="history" className="mt-2">
+                    {renderTable(archivedTests)}
+                  </TabsContent>
+                </Tabs>
+              );
+            }
+            
+            return renderTable(activeTests);
+          })()}
             </CardContent>
           </Card>
         </div>

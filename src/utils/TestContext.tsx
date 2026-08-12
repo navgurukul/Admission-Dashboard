@@ -17,8 +17,10 @@ export interface Test {
   name: string;
   status: "Pass" | "Fail" | "Pending" | "-";
   action: string;
-  score: number | null;
+  score: number | null | string;
   slotBooking: SlotBooking;
+  isArchived?: boolean;
+  cooldownUntil?: string | null;
 }
 
 interface TestsContextType {
