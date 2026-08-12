@@ -17,7 +17,7 @@ export interface Test {
   name: string;
   status: "Pass" | "Fail" | "Pending" | "-";
   action: string;
-  score: number | null | string;
+  score: number | null;
   slotBooking: SlotBooking;
   isArchived?: boolean;
   cooldownUntil?: string | null;
