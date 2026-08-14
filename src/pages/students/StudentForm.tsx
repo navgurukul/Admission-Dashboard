@@ -13,9 +13,6 @@ import {
   // Religion,
   // getAllReligions,
   createStudent,
-  getAllStates,
-  getDistrictsByState,
-  getBlocksByDistrict,
   uploadProfileImage,
   getAllSchools,
   type School,
@@ -29,24 +26,6 @@ import { LearningRoundModal } from "@/components/LearningRoundModal";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface State {
-  id: string;
-  state_name: string;
-  state_code: string;
-}
-
-interface District {
-  id: string;
-  district_name: string;
-  district_code: string;
-  state_code: string;
-}
-
-interface Block {
-  id: string;
-  block_name: string;
-  district_code?: string; // Optional since it might not be in all responses
-}
 
 const StudentForm: React.FC = () => {
   const navigate = useNavigate();
@@ -59,9 +38,6 @@ const StudentForm: React.FC = () => {
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   // const [religions, setReligions] = useState<Religion[]>([]);
-  const [states, setStates] = useState<State[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [blocks, setBlocks] = useState<Block[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [selectedSchoolInfo, setSelectedSchoolInfo] = useState<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -74,12 +50,7 @@ const StudentForm: React.FC = () => {
   const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set());
   // BCA seats are currently full — set to true to block BCA selection
   const isBCAFull = true;
-  const [loadingStates, setLoadingStates] = useState({
-    states: false,
-    districts: false,
-    blocks: false,
-  });
-
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
     imageUrl: "", // Store the uploaded image URL
@@ -95,8 +66,6 @@ const StudentForm: React.FC = () => {
     stateCode: "",
     district: "",
     districtCode: "",
-    block: "",
-    blockCode: "",
     city: "",
     pinCode: "",
     currentStatus: "",
@@ -706,9 +675,8 @@ const StudentForm: React.FC = () => {
       phone_number: data.alternateNumber,
       email: data.email,
       gender: data.gender,
-      state: data.stateCode, 
+      state: data.state, 
       district: data.district, // Send NAME (e.g., "Hyderabad")
-      block: data.block, // Send NAME (e.g., "Asifnagar")
       city: data.city,
       pin_code: data.pinCode,
       school_medium: data.schoolMedium,
@@ -720,120 +688,6 @@ const StudentForm: React.FC = () => {
       graduation_year: data.pursuingYear || null,
       graduation_mode: data.collegeAttendanceMethod || null,
     };
-  };
-
-  // Fetch all states on component mount
-  const fetchStates = async () => {
-    try {
-      setLoadingStates((prev) => ({ ...prev, states: true }));
-      const response = await getAllStates();
-
-      // Handle different possible response structures
-      let statesData: State[] = [];
-
-      if (Array.isArray(response)) {
-        // If response is directly an array
-        statesData = response;
-      } else if (response && Array.isArray(response.data)) {
-        // If response has data property that is an array
-        statesData = response.data;
-      } else if (response && response.states) {
-        // If response has states property
-        statesData = response.states;
-      } else if (response && response.result) {
-        // If response has result property
-        statesData = response.result;
-      }
-
-      setStates(statesData || []);
-    } catch (error) {
-      // console.error("Error fetching states:", error);
-      toast({
-        title: "❌ Unable to Load States",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
-      setStates([]);
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, states: false }));
-    }
-  };
-
-  // Fetch districts when state is selected
-  const fetchDistricts = async (stateCode: string) => {
-    if (!stateCode) {
-      setDistricts([]);
-      setBlocks([]);
-      return;
-    }
-
-    try {
-      setLoadingStates((prev) => ({ ...prev, districts: true }));
-      const response = await getDistrictsByState(stateCode);
-      // Handle different possible response structures
-      let districtsData: District[] = [];
-
-      if (Array.isArray(response)) {
-        districtsData = response;
-      } else if (response && Array.isArray(response.data)) {
-        districtsData = response.data;
-      } else if (response && response.districts) {
-        districtsData = response.districts;
-      } else if (response && response.result) {
-        districtsData = response.result;
-      }
-      setDistricts(districtsData || []);
-    } catch (error) {
-      console.error("Error fetching districts:", error);
-      toast({
-        title: "❌ Unable to Load Districts",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
-      setDistricts([]);
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, districts: false }));
-    }
-  };
-
-  // Fetch blocks when district is selected
-  const fetchBlocks = async (districtCode: string) => {
-    if (!districtCode) {
-      setBlocks([]);
-      return;
-    }
-
-    try {
-      setLoadingStates((prev) => ({ ...prev, blocks: true }));
-      const response = await getBlocksByDistrict(districtCode);
-      // Handle different possible response structures
-      let blocksData: Block[] = [];
-
-      if (Array.isArray(response)) {
-        blocksData = response;
-      } else if (response && Array.isArray(response.data)) {
-        blocksData = response.data;
-      } else if (response && response.blocks) {
-        blocksData = response.blocks;
-      } else if (response && response.result) {
-        blocksData = response.result;
-      }
-
-      setBlocks(blocksData || []);
-    } catch (error) {
-      // console.error("Error fetching blocks:", error);
-      toast({
-        title: "❌ Unable to Load Blocks",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
-      setBlocks([]);
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, blocks: false }));
-    }
   };
 
   // Adjust currentStep when switching between mobile and desktop views
@@ -864,23 +718,12 @@ const StudentForm: React.FC = () => {
         parsedData.email = googleEmail;
       }
       setFormData(parsedData);
-      // If state was previously selected, fetch its districts
-      if (parsedData.stateCode) {
-        fetchDistricts(parsedData.stateCode);
-      }
-
-      // If district was previously selected, fetch its blocks
-      if (parsedData.districtCode) {
-        fetchBlocks(parsedData.districtCode);
-      }
     } else if (googleEmail) {
       // If no saved form data but Google email exists, set it
       setFormData((prev) => ({ ...prev, email: googleEmail }));
     }
 
     // Fetch initial data
-    fetchStates();
-
     const fetchCasts = async () => {
       try {
         const response = await getAllCasts();
@@ -984,51 +827,74 @@ const StudentForm: React.FC = () => {
     }
 
     let newFormData = { ...formData, [name]: processedValue };
-    // Handle state change
-    if (name === "stateCode") {
-      const selectedState = states.find((state) => state.state_code === processedValue);
-      newFormData = {
-        ...newFormData,
-        stateCode: processedValue,
-        state: selectedState?.state_name || "",
-        district: "",
-        districtCode: "",
-        block: "",
-        blockCode: "",
-      };
-      setDistricts([]);
-      setBlocks([]);
-      if (processedValue) {
-        fetchDistricts(processedValue);
-      }
-    }
 
-    // Handle district change
-    if (name === "districtCode") {
-      const selectedDistrict = districts.find(
-        (district) => district.district_code === processedValue,
-      );
-      newFormData = {
-        ...newFormData,
-        districtCode: processedValue,
-        district: selectedDistrict?.district_name || "",
-        block: "",
-        blockCode: "",
-      };
-      setBlocks([]);
-      if (processedValue) {
-        fetchBlocks(processedValue);
+    // Handle pinCode change — auto-fill state and district via pincode API
+    if (name === "pinCode") {
+      if (processedValue.length === 6) {
+        setIsPincodeLoading(true);
+        const capturedPinCode = processedValue;
+        fetch(`https://api.pincodeapi.in/api/v1/pincode/${capturedPinCode}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success" && data.data?.length > 0) {
+              const record = data.data[0];
+              const stateName = record.statename || "";
+              const districtName = record.district || "";
+              setFormData((prev) => {
+                const updatedData = {
+                  ...prev,
+                  pinCode: capturedPinCode,
+                  state: stateName,
+                  stateCode: stateName,
+                  district: districtName,
+                  districtCode: districtName,
+                };
+                localStorage.setItem("studentFormData", JSON.stringify(updatedData));
+                return updatedData;
+              });
+            } else {
+              // Invalid pincode — clear state/district
+              setFormData((prev) => {
+                const clearedData = {
+                  ...prev,
+                  pinCode: capturedPinCode,
+                  state: "",
+                  stateCode: "",
+                  district: "",
+                  districtCode: "",
+                };
+                localStorage.setItem("studentFormData", JSON.stringify(clearedData));
+                return clearedData;
+              });
+              toast({
+                title: "⚠️ Invalid PIN Code",
+                description: "No location found for this PIN code. Please check and try again.",
+                variant: "default",
+                className: "border-orange-500 bg-orange-50 text-orange-900",
+              });
+            }
+          })
+          .catch(() => {
+            toast({
+              title: "❌ PIN Code Lookup Failed",
+              description: "Unable to fetch location details. Please try again.",
+              variant: "destructive",
+              className: "border-red-500 bg-red-50 text-red-900",
+            });
+          })
+          .finally(() => {
+            setIsPincodeLoading(false);
+          });
+      } else {
+        // Less than 6 digits — clear state/district
+        newFormData = {
+          ...newFormData,
+          state: "",
+          stateCode: "",
+          district: "",
+          districtCode: "",
+        };
       }
-    }
-
-    // Handle block change
-    if (name === "blockCode") {
-      const selectedBlock = blocks.find((block) => String(block.id) === processedValue);
-      newFormData = {
-        ...newFormData,
-        blockCode: processedValue,
-        block: selectedBlock?.block_name || "",
-      };
     }
 
     setFormData(newFormData);
@@ -1157,11 +1023,8 @@ const StudentForm: React.FC = () => {
   const isFormValid = () => {
     const age = getAge(formData.dateOfBirth);
 
-    // District is mandatory only if districts are available
-    const districtRequired = districts.length > 0 ? formData.districtCode : true;
-
-    // Block is mandatory only if blocks are available
-    const blockRequired = blocks.length > 0 ? formData.blockCode : true;
+    // District is mandatory only if it was auto-filled from pincode
+    const districtRequired = formData.district ? formData.districtCode : true;
 
     // Alternate number is mandatory when user logged in via email
     const alternateRequired = location.state?.googleEmail ? formData.alternateNumber : true;
@@ -1179,7 +1042,6 @@ const StudentForm: React.FC = () => {
         formData.gender &&
         formData.stateCode &&
         districtRequired &&
-        blockRequired &&
         formData.pinCode &&
         formData.currentStatus &&
         formData.maximumQualification &&
@@ -1196,7 +1058,7 @@ const StudentForm: React.FC = () => {
     } else {
       if (currentStep === 1) return formData.firstName && formData.dateOfBirth && formData.gender;
       if (currentStep === 2) return (formData.whatsappNumber || formData.alternateNumber || formData.email) && alternateRequired;
-      if (currentStep === 3) return formData.stateCode && districtRequired && blockRequired && formData.pinCode;
+      if (currentStep === 3) return formData.stateCode && districtRequired && formData.pinCode;
       if (currentStep === 4) {
         const q = qualifications.find(q => String(q.id) === formData.maximumQualification);
         const pursuingOk = q?.qualification_name.toLowerCase().includes('pursuing') ? formData.pursuingYear && formData.collegeAttendanceMethod : true;
@@ -1237,11 +1099,8 @@ const StudentForm: React.FC = () => {
         if (!formData.stateCode || !formData.pinCode) {
           return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
-        if (districts.length > 0 && !formData.districtCode) {
+        if (formData.district && !formData.districtCode) {
           return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (blocks.length > 0 && !formData.blockCode) {
-          return toast({ title: "⚠️ Block Required", description: "Please select a block.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
         if (!formData.currentStatus || !formData.maximumQualification || !formData.schoolMedium || !formData.casteTribe) {
           return toast({ title: "Additional Info Required", description: "Please fill all required additional fields.", variant: "destructive" });
@@ -1293,11 +1152,8 @@ const StudentForm: React.FC = () => {
         if (!formData.stateCode || !formData.pinCode) {
           return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
-        if (districts.length > 0 && !formData.districtCode) {
+        if (formData.district && !formData.districtCode) {
           return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (blocks.length > 0 && !formData.blockCode) {
-          return toast({ title: "⚠️ Block Required", description: "Please select a block.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
         setCurrentStep(4);
         if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
@@ -1405,7 +1261,6 @@ const StudentForm: React.FC = () => {
           email: "ईमेल पता ",
           state: "राज्य चुनें *",
           district: "जिला चुनें",
-          block: "ब्लॉक चुनें",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "वर्तमान स्थिति *",
@@ -1418,7 +1273,6 @@ const StudentForm: React.FC = () => {
           other: "अन्य",
           selectState: "राज्य चुनें",
           selectDistrict: "जिला चुनें",
-          selectBlock: "ब्लॉक चुनें",
           selectOption: "विकल्प चुनें",
           selectQualification: "योग्यता चुनें",
           selectMedium: "माध्यम चुनें",
@@ -1485,7 +1339,6 @@ const StudentForm: React.FC = () => {
           email: "ईमेल पत्ता ",
           state: "राज्य निवडा *",
           district: "जिल्हा निवडा",
-          block: "ब्लॉक निवडा",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "सध्याची स्थिती *",
@@ -1498,7 +1351,6 @@ const StudentForm: React.FC = () => {
           other: "इतर",
           selectState: "राज्य निवडा",
           selectDistrict: "जिल्हा निवडा",
-          selectBlock: "ब्लॉक निवडा",
           selectOption: "पर्याय निवडा",
           selectQualification: "पात्रता निवडा",
           selectMedium: "माध्यम निवडा",
@@ -1565,7 +1417,6 @@ const StudentForm: React.FC = () => {
           email: "Email Address",
           state: "State *",
           district: "District",
-          block: "Block",
           pinCode: "Pin Code *",
           currentStatus: "Current Status *",
           maximumQualification: "Maximum Qualification *",
@@ -1577,7 +1428,6 @@ const StudentForm: React.FC = () => {
           other: "Other",
           selectState: "Select State",
           selectDistrict: "Select District",
-          selectBlock: "Select Block",
           selectOption: "Select Option",
           selectQualification: "Select Qualification",
           selectMedium: "Select Medium",
@@ -2028,84 +1878,6 @@ const StudentForm: React.FC = () => {
                 </h3>
               )}
               {/* State, District and Block */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.state}
-                  </label>
-                  <Combobox
-                    options={states?.map((state) => ({
-                      value: state.state_code,
-                      label: state.state_name,
-                    })) || []}
-                    value={formData.stateCode}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'stateCode', value } } as any);
-                    }}
-                    placeholder={loadingStates.states ? content.loading : content.selectState}
-                    searchPlaceholder="Search state..."
-                    emptyText="No state found."
-                    disabled={loadingStates.states}
-                    className="h-11 md:h-12"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.district}
-                    {districts.length > 0 && <span className="text-destructive"> *</span>}
-                  </label>
-                  <Combobox
-                    options={districts?.map((district) => ({
-                      value: district.district_code,
-                      label: district.district_name,
-                    })) || []}
-                    value={formData.districtCode}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'districtCode', value } } as any);
-                    }}
-                    placeholder={
-                      loadingStates.districts
-                        ? content.loading
-                        : !formData.stateCode
-                          ? "Please select a state first"
-                          : content.selectDistrict
-                    }
-                    searchPlaceholder="Search district..."
-                    emptyText="No district found."
-                    disabled={loadingStates.districts || !formData.stateCode}
-                    className="h-11 md:h-12"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.block}
-                    {blocks.length > 0 && <span className="text-destructive"> *</span>}
-                  </label>
-                  <Combobox
-                    options={blocks?.map((block) => ({
-                      value: String(block.id), // Use id as value, like ApplicantModal
-                      label: block.block_name,
-                    })) || []}
-                    value={formData.blockCode}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'blockCode', value } } as any);
-                    }}
-                    placeholder={
-                      loadingStates.blocks
-                        ? content.loading
-                        : !formData.districtCode
-                          ? "Please select a district first"
-                          : blocks.length === 0
-                            ? "No blocks available"
-                            : content.selectBlock
-                    }
-                    searchPlaceholder="Search block..."
-                    emptyText="No block found."
-                    disabled={loadingStates.blocks || !formData.districtCode}
-                    className="h-11 md:h-12"
-                  />
-                </div>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2122,6 +1894,34 @@ const StudentForm: React.FC = () => {
                   <p className="text-xs text-gray-500 mt-1">
                     {content.pinCodeExample}
                   </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.state}
+                  </label>
+                  <input
+                    type="text"
+                    value={isPincodeLoading ? "Loading..." : formData.state}
+                    readOnly
+                    disabled
+                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed text-gray-600"
+                    placeholder="Auto-filled from PIN code"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.district}
+                  </label>
+                  <input
+                    type="text"
+                    value={isPincodeLoading ? "Loading..." : formData.district}
+                    readOnly
+                    disabled
+                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed text-gray-600"
+                    placeholder="Auto-filled from PIN code"
+                  />
                 </div>
               </div>
             </div>
@@ -2157,7 +1957,7 @@ const StudentForm: React.FC = () => {
                     {content.maximumQualification}
                   </label>
                   <Combobox
-                    options={qualifications?.map((item) => ({
+                    options={qualifications?.filter((item) => item.qualification_name.toLowerCase() !== '10th pass').map((item) => ({
                       value: String(item.id),
                       label: item.qualification_name,
                     })) || []}
