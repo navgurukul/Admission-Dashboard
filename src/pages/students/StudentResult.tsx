@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Phone, MapPin, Calendar, Clock, CheckCircle2, XCircle, FileText, History, Activity } from "lucide-react";
+import { User, Mail, Phone, MapPin, Calendar, Clock, CheckCircle2, XCircle, FileText, History, Activity, MessageSquare } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
@@ -55,6 +56,7 @@ type TestRow = {
   cooldownUntil?: string | null;
   // True when this row is from an archived (reset) attempt — show basic info + Retest only
   isArchived?: boolean;
+  feedback?: string;
 };
 
 export default function StudentResult() {
@@ -111,6 +113,7 @@ export default function StudentResult() {
           bookSlot: "स्लॉट बुक करें",
           reschedule: "शेड्यूल देखें",
           viewDetails: "विवरण देखें",
+          viewFeedback: "फीडबैक देखें",
           email2: "ईमेल:",
           helpline: "हेल्पलाइन:",
           chosenSchool: "चुना हुआ स्कूल:",
@@ -129,6 +132,10 @@ export default function StudentResult() {
           activeTab: "नवीनतम प्रयास",
           archivedMessageTitle: "आपके पिछले प्रयास आर्काइव कर दिए गए हैं।",
           archivedMessageSub: "आप नीचे दिए गए बटन पर क्लिक करके एक नया प्रयास शुरू कर सकते हैं।",
+          feedback: "फीडबैक",
+          feedbackTooltip: "इस राउंड कि फीडबैक देखने के लिए क्लिक करें",
+          interviewerFeedback: "इंटरव्यू फीडबैक",
+          close: "Close",
         };
       case "marathi":
         return {
@@ -149,6 +156,7 @@ export default function StudentResult() {
           bookSlot: "स्लॉट बुक करा",
           reschedule: "शेड्यूल पहा",
           viewDetails: "तपशील पहा",
+          viewFeedback: "फीडबॅक पहा",
           email2: "ईमेल:",
           helpline: "हेल्पलाइन:",
           chosenSchool: "निवडलेली शाळा:",
@@ -167,6 +175,10 @@ export default function StudentResult() {
           activeTab: "नवीनतम प्रयत्न",
           archivedMessageTitle: "तुमचे मागील प्रयत्न संग्रहित केले गेले आहेत.",
           archivedMessageSub: "तुम्ही खालील बटणावर क्लिक करून नवीन प्रयत्न सुरू करू शकता.",
+          feedback: "फीडबॅक",
+          feedbackTooltip: "या राउंडचा फीडबॅक पाहण्यासाठी क्लिक करा",
+          interviewerFeedback: "इंटरव्यू फीडबॅक",
+          close: "Close",
         };
       default: // English
         return {
@@ -187,6 +199,7 @@ export default function StudentResult() {
           bookSlot: "Book Slot",
           reschedule: "View Schedule",
           viewDetails: "View Details",
+          viewFeedback: "View Feedback",
           email2: "Email:",
           helpline: "Helpline:",
           chosenSchool: "Selected School:",
@@ -205,6 +218,10 @@ export default function StudentResult() {
           activeTab: "Latest Attempt",
           archivedMessageTitle: "Your previous attempts have been archived.",
           archivedMessageSub: "You can start a fresh attempt by clicking the button below.",
+          feedback: "Feedback",
+          feedbackTooltip: "Click to view your feedback for this round",
+          interviewerFeedback: "Interview Feedback",
+          close: "Close",
         };
     }
   };
@@ -644,6 +661,7 @@ export default function StudentResult() {
                 action: "archived",
                 slotBooking: { status: null, scheduledTime: "" },
                 isArchived: true,
+                feedback: lr.comments,
               });
             });
 
@@ -695,6 +713,7 @@ export default function StudentResult() {
                   scheduledTime: scheduledTime,
                 },
                 isArchived: false,
+                feedback: lr.comments,
               });
             });
 
@@ -780,6 +799,7 @@ export default function StudentResult() {
                 action: "archived",
                 slotBooking: { status: null, scheduledTime: "" },
                 isArchived: true,
+                feedback: cfr.comments,
               });
             });
 
@@ -830,6 +850,7 @@ export default function StudentResult() {
                   scheduledTime: scheduledTime,
                 },
                 isArchived: false,
+                feedback: cfr.comments,
               });
             });
 
@@ -1353,7 +1374,41 @@ export default function StudentResult() {
                               {/* Action */}
                               <td className="flex md:table-cell items-center px-5 pt-3 pb-5 md:py-4 md:border-b md:border-border/40 text-sm">
                                 <div className="ml-1 md:ml-0">
-                                  <span className="text-muted-foreground/60">—</span>
+                                  {test.feedback ? (
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button title={content.feedbackTooltip} className="h-8 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary shadow-none px-4 border-0">
+                                          <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                                          {content.viewFeedback || content.feedback}
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-border/50">
+                                        <div className="p-6 pb-4">
+                                          <DialogHeader className="mb-4 text-left space-y-1">
+                                            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+                                              <MessageSquare className="w-5 h-5 text-primary" />
+                                              {content.interviewerFeedback || "Interviewer's Feedback"}
+                                            </DialogTitle>
+                                            <DialogDescription className="text-sm text-muted-foreground font-medium mt-1">
+                                              {test.name}
+                                            </DialogDescription>
+                                          </DialogHeader>
+                                          <div className="bg-muted/50 rounded-xl p-4 text-sm text-foreground whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto pr-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                                            {test.feedback}
+                                          </div>
+                                        </div>
+                                        <div className="p-4 pt-0 flex justify-end">
+                                          <DialogClose asChild>
+                                            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 rounded-lg shadow-sm">
+                                              {content.close || "Close"}
+                                            </Button>
+                                          </DialogClose>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  ) : (
+                                    <span className="text-muted-foreground/60">—</span>
+                                  )}
                                 </div>
                               </td>
                               {/* Marks */}
@@ -1479,7 +1534,41 @@ export default function StudentResult() {
                                   <div className="w-full">
                                     {/* If completed (Pass/Fail), show nothing */}
                                     {test.action === "Completed" ? (
-                                      <p className="text-muted-foreground font-medium">-</p>
+                                      test.feedback ? (
+                                        <Dialog>
+                                          <DialogTrigger asChild>
+                                            <Button title={content.feedbackTooltip} className="w-full sm:w-auto h-11 md:h-9 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary shadow-none px-4 border-0">
+                                              <MessageSquare className="w-4 h-4 mr-2 md:w-3.5 md:h-3.5 md:mr-1.5" />
+                                              {content.viewFeedback || content.feedback}
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-border/50">
+                                            <div className="p-6 pb-4">
+                                              <DialogHeader className="mb-4 text-left space-y-1">
+                                                <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+                                                  <MessageSquare className="w-5 h-5 text-primary" />
+                                                  {content.interviewerFeedback || "Interviewer's Feedback"}
+                                                </DialogTitle>
+                                                <DialogDescription className="text-sm text-muted-foreground font-medium mt-1">
+                                                  {test.name}
+                                                </DialogDescription>
+                                              </DialogHeader>
+                                              <div className="bg-muted/50 rounded-xl p-4 text-sm text-foreground whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto pr-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                                                {test.feedback}
+                                              </div>
+                                            </div>
+                                            <div className="p-4 pt-0 flex justify-end">
+                                              <DialogClose asChild>
+                                                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 rounded-lg shadow-sm">
+                                                  {content.close || "Close"}
+                                                </Button>
+                                              </DialogClose>
+                                            </div>
+                                          </DialogContent>
+                                        </Dialog>
+                                      ) : (
+                                        <p className="text-muted-foreground font-medium">-</p>
+                                      )
                                     ) : isCooldownActive ? (
                                       <div className="flex flex-col gap-2">
                                         <Button
