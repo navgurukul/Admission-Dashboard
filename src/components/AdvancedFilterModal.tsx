@@ -871,20 +871,7 @@ export function AdvancedFilterModal({
                 />
               </div>
 
-              {/* Religion */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Religion</Label>
-                <MultiSelectCombobox
-                  options={religionList.map((r) => ({ value: String(getValue(r)), label: getDisplayName(r, "religion_name", "Religion") }))}
-                  value={filters.religion || []}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, religion: value }))}
-                  onOpen={() => loadFieldData("religion")}
-                  placeholder={isLoading.general ? "Loading..." : "Select religion"}
-                  searchPlaceholder="Search religion..."
-                  emptyText="No religion found."
-                  disabled={isLoading.general}
-                />
-              </div>
+
             </div>
           </div>
 
