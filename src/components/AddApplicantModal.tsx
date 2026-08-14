@@ -34,8 +34,6 @@ import {
   createStudent,
   submitScreeningRound,
   uploadProfileImage,
-  getBlocksByDistrict,
-  getDistrictsByState,
   getStudentDataByEmail,
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
@@ -68,44 +66,16 @@ export function AddApplicantModal({
     castList,
     partnerList,
     donorList,
-    stateList,
     loadFieldData, // ✅ For on-demand loading when dropdowns open
   } = useOnDemandReferenceData();
 
   // ✅ Load only state data when modal opens (needed for state dropdown)
-  // All other data loads on-demand when user interacts with specific fields
-  useEffect(() => {
-    const loadInitialData = async () => {
-      if (isOpen && stateList.length === 0) {
-        // console.log("🔄 AddApplicantModal: Loading state data...");
-        await loadFieldData('state');
-        // console.log("✅ AddApplicantModal: State data loaded");
-        
-      }
-    };
-
-    loadInitialData();
-  }, [isOpen, stateList.length, loadFieldData]);
 
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const { toast } = useToast();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [districtOptions, setDistrictOptions] = useState<
-    { value: string; label: string }[]
-  >([]);
-  const [blockOptions, setBlockOptions] = useState<
-    { value: string; label: string }[]
-  >([]);
-  const [selectedState, setSelectedState] = useState<string>("");
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
-  const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
-  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
-  const [selectedBlock, setSelectedBlock] = useState<string>("");
-  const [showLocationWarning, setShowLocationWarning] = useState({
-    district: false,
-    block: false,
-  });
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [emailExists, setEmailExists] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
@@ -120,8 +90,6 @@ export function AddApplicantModal({
     email: "",
     dob: "",
     city: "",
-    block: "",
-    blockCode: "",
     state: "",
     stateCode: "",
     district: "",
@@ -158,8 +126,6 @@ export function AddApplicantModal({
       email: "",
       dob: "",
       city: "",
-      block: "",
-      blockCode: "",
       state: "",
       stateCode: "",
       district: "",
@@ -184,11 +150,6 @@ export function AddApplicantModal({
       communication_notes: "",
       school_medium: "",
     });
-    setSelectedState("");
-    setSelectedDistrict("");
-    setSelectedBlock("");
-    setDistrictOptions([]);
-    setBlockOptions([]);
     setActiveTab("basic");
     setErrors({});
     setImagePreview(null);
@@ -223,7 +184,7 @@ export function AddApplicantModal({
         [field]: lettersOnly,
       }));
     }
-    // Handle PIN code - only allow 6 digits
+    // Handle PIN code - only allow 6 digits + auto-fill state/district
     else if (field === "pin_code" && typeof value === "string") {
       const digitsOnly = value.replace(/\D/g, "");
       const truncated = digitsOnly.slice(0, 6);
@@ -231,6 +192,60 @@ export function AddApplicantModal({
         ...prev,
         [field]: truncated,
       }));
+      // When 6 digits entered, fetch state & district from pincode API
+      if (truncated.length === 6) {
+        setIsPincodeLoading(true);
+        const capturedPin = truncated;
+        fetch(`https://api.pincodeapi.in/api/v1/pincode/${capturedPin}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success" && data.data?.length > 0) {
+              const record = data.data[0];
+              setFormData((prev) => ({
+                ...prev,
+                pin_code: capturedPin,
+                state: record.statename || "",
+                stateCode: record.statename || "",
+                district: record.district || "",
+                districtCode: record.district || "",
+              }));
+            } else {
+              setFormData((prev) => ({
+                ...prev,
+                pin_code: capturedPin,
+                state: "",
+                stateCode: "",
+                district: "",
+                districtCode: "",
+              }));
+              toast({
+                title: "⚠️ Invalid PIN Code",
+                description: "No location found for this PIN code.",
+                variant: "default",
+                className: "border-orange-500 bg-orange-50 text-orange-900",
+              });
+            }
+          })
+          .catch(() => {
+            toast({
+              title: "❌ PIN Code Lookup Failed",
+              description: "Unable to fetch location details. Please try again.",
+              variant: "destructive",
+              className: "border-red-500 bg-red-50 text-red-900",
+            });
+          })
+          .finally(() => setIsPincodeLoading(false));
+      } else {
+        // Less than 6 digits — clear state/district
+        setFormData((prev) => ({
+          ...prev,
+          pin_code: truncated,
+          state: "",
+          stateCode: "",
+          district: "",
+          districtCode: "",
+        }));
+      }
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -246,99 +261,6 @@ export function AddApplicantModal({
       });
     }
   };
-
-  useEffect(() => {
-    if (!selectedState) {
-      setDistrictOptions([]);
-      setBlockOptions([]);
-      setFormData((prev) => ({
-        ...prev,
-        district: "",
-        block: "",
-      }));
-      return;
-    }
-
-    const fetchDistricts = async () => {
-      setIsLoadingDistricts(true);
-      try {
-        const districtsRes = await getDistrictsByState(selectedState);
-        const districts = districtsRes?.data || districtsRes || [];
-        const mappedDistricts = districts.map((d: any) => ({
-          value: d.district_code,
-          label: d.district_name,
-        }));
-        setDistrictOptions(mappedDistricts);
-
-        // Find state label directly from the props data
-        const stateLabel = stateList.find((s) => s.value === selectedState)?.label || selectedState;
-        
-        setFormData((prev) => ({
-          ...prev,
-          district: "",
-          districtCode: "",
-          block: "",
-          blockCode: "",
-          state: stateLabel,
-          stateCode: selectedState,
-        }));
-      } catch (err) {
-        // console.error("Failed to fetch districts:", err);
-        setDistrictOptions([]);
-      } finally {
-        setIsLoadingDistricts(false);
-      }
-    };
-
-    fetchDistricts();
-  }, [selectedState]); // Removed stateOptions from dependencies
-
-  useEffect(() => {
-    if (!selectedDistrict) {
-      setBlockOptions([]);
-      setSelectedBlock("");
-      setFormData((prev) => ({
-        ...prev,
-        block: "",
-        blockCode: "",
-      }));
-      return;
-    }
-
-    const fetchBlocks = async () => {
-      setIsLoadingBlocks(true);
-      try {
-        const blocksRes = await getBlocksByDistrict(selectedDistrict);
-        const blocks = blocksRes?.data || blocksRes || [];
-        
-        // Use id as value and block_name as label
-        const mappedBlocks = blocks.map((b: any) => ({
-          value: String(b.id), // Use id as value since block_code is not available
-          label: b.block_name, // Use block_name for display
-        }));
-        
-        setBlockOptions(mappedBlocks);
-        setSelectedBlock(""); // Clear selected block when district changes
-
-        // Find district label directly from the current districtOptions state
-        const districtLabel = districtOptions.find((d) => d.value === selectedDistrict)?.label || selectedDistrict;
-
-        setFormData((prev) => ({
-          ...prev,
-          district: districtLabel,
-          districtCode: selectedDistrict,
-          block: "",
-          blockCode: "",
-        }));
-      } catch (err) {
-        setBlockOptions([]);
-      } finally {
-        setIsLoadingBlocks(false);
-      }
-    };
-
-    fetchBlocks();
-  }, [selectedDistrict]); // districtOptions not in dependencies - using current state value
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -484,18 +406,8 @@ export function AddApplicantModal({
       }
     }
 
-    if (!selectedState) {
-      newErrors.state = "State is required";
-    }
-
-    // District is required only if districts are available
-    if (districtOptions.length > 0 && !selectedDistrict) {
-      newErrors.district = "District is required";
-    }
-
-    // Block is required only if blocks are available
-    if (blockOptions.length > 0 && !formData.block) {
-      newErrors.block = "Block is required";
+    if (!formData.state) {
+      newErrors.state = "State is required (enter a valid PIN code)";
     }
 
     if (!formData.pin_code.trim()) {
@@ -571,7 +483,6 @@ export function AddApplicantModal({
         dob: "Date of Birth",
         state: "State",
         district: "District",
-        block: "Block",
         pin_code: "PIN Code",
         cast_id: "Caste",
         qualification_id: "Qualification",
@@ -654,7 +565,6 @@ export function AddApplicantModal({
         state: formData.stateCode || null, 
         city: formData.city || null,
         district: formData.district || null, // Send NAME instead of code
-        block: formData.block || null, // Send NAME instead of code
         pin_code: formData.pin_code || null,
         cast_id: formData.cast_id ? Number(formData.cast_id) : null,
         qualification_id: formData.qualification_id
@@ -802,9 +712,7 @@ export function AddApplicantModal({
           formData.email &&
           !emailExists &&
           !errors.email &&
-          selectedState &&
-          selectedDistrict &&
-          formData.block &&
+          formData.state &&
           formData.pin_code &&
           formData.cast_id &&
           formData.qualification_id &&
@@ -1164,149 +1072,6 @@ export function AddApplicantModal({
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="state" className="text-sm font-medium">
-                      State *
-                    </Label>
-                    <Combobox
-                      options={stateList}
-                      value={selectedState}
-                      onValueChange={(value) => {
-                        if (selectedDistrict || formData.block) {
-                          setShowLocationWarning({
-                            district: !!selectedDistrict,
-                            block: !!formData.block,
-                          });
-                          setTimeout(() => {
-                            setShowLocationWarning({
-                              district: false,
-                              block: false,
-                            });
-                          }, 3000);
-                        }
-                        setSelectedState(value);
-                        setSelectedDistrict("");
-                        setBlockOptions([]);
-                      }}
-                      placeholder="Select state"
-                      searchPlaceholder="Search state..."
-                      emptyText="No state found."
-                      className={cn(
-                        "h-10 border shadow-sm hover:bg-accent",
-                        errors.state && "border-red-500"
-                      )}
-                    />
-                    {errors.state && (
-                      <p className="text-red-500 text-xs flex items-center">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.state}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="district" className="text-sm font-medium">
-                      District
-                      {districtOptions.length > 0 && <span className="text-red-500"> *</span>}
-                    </Label>
-                    <Combobox
-                      options={districtOptions}
-                      value={selectedDistrict}
-                      onValueChange={(value) => {
-                        if (selectedBlock) {
-                          setShowLocationWarning({
-                            district: false,
-                            block: true,
-                          });
-                          setTimeout(() => {
-                            setShowLocationWarning({
-                              district: false,
-                              block: false,
-                            });
-                          }, 3000);
-                        }
-                        setSelectedDistrict(value);
-                        setFormData((prev) => ({
-                          ...prev,
-                          block: "",
-                        }));
-                      }}
-                      placeholder={
-                        isLoadingDistricts
-                          ? "Loading districts..."
-                          : !selectedState
-                          ? "Select state first"
-                          : "Select district"
-                      }
-                      searchPlaceholder="Search district..."
-                      emptyText="No district found."
-                      disabled={!selectedState || isLoadingDistricts}
-                      className={cn(
-                        "h-10 border shadow-sm hover:bg-accent",
-                        showLocationWarning.district && "border-red-500",
-                        errors.district && "border-red-500"
-                      )}
-                    />
-                    {errors.district && (
-                      <p className="text-red-500 text-xs flex items-center">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.district}
-                      </p>
-                    )}
-                  </div>
-                  {/* <div className="space-y-2">
-                    <Label htmlFor="city" className="text-sm font-medium">
-                      City
-                    </Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) =>
-                        handleInputChange("city", e.target.value)
-                      }
-                      placeholder="Enter city"
-                    />
-                  </div> */}
-                  <div className="space-y-2">
-                    <Label htmlFor="block" className="text-sm font-medium">
-                      Block
-                      {blockOptions.length > 0 && <span className="text-red-500"> *</span>}
-                    </Label>
-                    <Combobox
-                      options={blockOptions}
-                      value={selectedBlock}
-                      onValueChange={(value) => {
-                        setSelectedBlock(value);
-                        const blockLabel = blockOptions.find((b) => b.value === value)?.label || value;
-                        setFormData((prev) => ({
-                          ...prev,
-                          block: blockLabel,
-                          blockCode: value,
-                        }));
-                      }}
-                      placeholder={
-                        isLoadingBlocks
-                          ? "Loading blocks..."
-                          : !selectedDistrict
-                          ? "Select district first"
-                          : blockOptions.length === 0
-                          ? "No blocks available"
-                          : "Select block"
-                      }
-                      searchPlaceholder="Search block..."
-                      emptyText="No block found."
-                      disabled={!selectedDistrict || isLoadingBlocks}
-                      className={cn(
-                        "h-10 border shadow-sm hover:bg-accent",
-                        (showLocationWarning.block || errors.block) && "border-red-500"
-                      )}
-                    />
-                    {errors.block && (
-                      <p className="text-red-500 text-xs flex items-center">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.block}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="pin_code" className="text-sm font-medium">
                       PIN Code *
                     </Label>
@@ -1327,6 +1092,41 @@ export function AddApplicantModal({
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
                         {errors.pin_code}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="district" className="text-sm font-medium">
+                      District
+                    </Label>
+                    <Input
+                      id="district"
+                      value={isPincodeLoading ? "Loading..." : formData.district}
+                      readOnly
+                      disabled
+                      placeholder="Auto-filled from PIN code"
+                      className="bg-gray-100 cursor-not-allowed text-gray-600"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state" className="text-sm font-medium">
+                      State *
+                    </Label>
+                    <Input
+                      id="state"
+                      value={isPincodeLoading ? "Loading..." : formData.state}
+                      readOnly
+                      disabled
+                      placeholder="Auto-filled from PIN code"
+                      className={cn(
+                        "bg-gray-100 cursor-not-allowed text-gray-600",
+                        errors.state && "border-red-500"
+                      )}
+                    />
+                    {errors.state && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.state}
                       </p>
                     )}
                   </div>
