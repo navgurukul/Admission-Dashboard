@@ -45,7 +45,7 @@ type TestRow = {
   id: number;
   name: string;
   status: "Pass" | "Fail" | "Pending" | "-";
-  score: number | null | string;
+  score: number | null;
   action: string;
   slotBooking: {
     status: BookingStatus;
@@ -127,6 +127,8 @@ export default function StudentResult() {
           noTestDataAvailable: "कोई परीक्षा डेटा उपलब्ध नहीं है",
           historyTab: "पिछला इतिहास",
           activeTab: "नवीनतम प्रयास",
+          archivedMessageTitle: "आपके पिछले प्रयास आर्काइव कर दिए गए हैं।",
+          archivedMessageSub: "आप नीचे दिए गए बटन पर क्लिक करके एक नया प्रयास शुरू कर सकते हैं।",
         };
       case "marathi":
         return {
@@ -163,6 +165,8 @@ export default function StudentResult() {
           noTestDataAvailable: "परीक्षा डेटा उपलब्ध नाही",
           historyTab: "मागील इतिहास",
           activeTab: "नवीनतम प्रयत्न",
+          archivedMessageTitle: "तुमचे मागील प्रयत्न संग्रहित केले गेले आहेत.",
+          archivedMessageSub: "तुम्ही खालील बटणावर क्लिक करून नवीन प्रयत्न सुरू करू शकता.",
         };
       default: // English
         return {
@@ -199,6 +203,8 @@ export default function StudentResult() {
           noTestDataAvailable: "No test data available",
           historyTab: "Previous Attempts",
           activeTab: "Latest Attempt",
+          archivedMessageTitle: "Your previous attempts have been archived.",
+          archivedMessageSub: "You can start a fresh attempt by clicking the button below.",
         };
     }
   };
@@ -529,7 +535,7 @@ export default function StudentResult() {
                   id: 100 + index,
                   name: `Screening Test (Attempt ${index + 1})`,
                   status: screeningStatus,
-                  score: exam.obtained_marks ?? null,
+                  score: exam.obtained_marks !== null && exam.obtained_marks !== undefined ? Number(exam.obtained_marks) : null,
                   action: "archived",
                   slotBooking: { status: null, scheduledTime: "" },
                   isArchived: true,
@@ -551,7 +557,7 @@ export default function StudentResult() {
                       ? `Screening Test (Attempt ${archivedOffset + index + 1})`
                       : "Screening Test",
                   status: screeningStatus,
-                  score: exam.obtained_marks ?? null,
+                  score: exam.obtained_marks !== null && exam.obtained_marks !== undefined ? Number(exam.obtained_marks) : null,
                   action: screeningStatus === "Pass" ? "Completed" : "Failed",
                   slotBooking: {
                     status: null,
@@ -994,7 +1000,7 @@ export default function StudentResult() {
     });
   };
 
-  const handleRetestNavigation = () => {
+  const handleRetestNavigation = (isReset: boolean = false) => {
     // Clear test-related flags so student can retake
     localStorage.setItem("testStarted", "false");
     localStorage.setItem("testCompleted", "false");
@@ -1044,8 +1050,8 @@ export default function StudentResult() {
           schoolMedium: profile.school_medium || "",
           casteTribe: profile.cast_id ? String(profile.cast_id) : "",
           religion: profile.religion_id ? String(profile.religion_id) : "",
-          // Clear school — student must pick a new one
-          initial_school_id: "",
+          // For reset, clear school so they can pick a new one. Otherwise keep it.
+          initial_school_id: isReset ? "" : (profile.initial_school_id || profile.school_id || profile.schoolId || ""),
           pursuingYear: profile.pursuing_year || "",
           collegeAttendanceMethod: profile.college_attendance_method || "",
         };
@@ -1053,11 +1059,18 @@ export default function StudentResult() {
       }
     }
 
-    // Redirect to registration page — jump directly to Phase 2 (School Selection)
-    navigate("/students/details/registration", {
-      state: { startAtStep2: true },
-      replace: true,
-    });
+    if (isReset) {
+      // Redirect to registration page — jump directly to Phase 2 (School Selection)
+      navigate("/students/details/registration", {
+        state: { startAtStep2: true },
+        replace: true,
+      });
+    } else {
+      // Redirect directly to the test start page
+      navigate("/students/test/start", {
+        replace: true,
+      });
+    }
   };
 
   if (loading) {
@@ -1201,7 +1214,7 @@ export default function StudentResult() {
                 const archivedTests = (tests as any[])?.filter((t: any) => t.isArchived) || [];
                 const activeTests = (tests as any[])?.filter((t: any) => !t.isArchived) || [];
 
-                const renderTable = (testData: any[]) => (
+                const renderTable = (testData: any[], isActiveTab: boolean = false) => (
                   <div className="w-full">
                     <table className="w-full border-collapse text-left">
                   <thead className="hidden md:table-header-group bg-muted text-sm border border-border rounded-t-lg overflow-hidden">
@@ -1279,8 +1292,10 @@ export default function StudentResult() {
                           }
                         }
 
-                        // Check if any attempt of the same type has passed
+                        // Check if any active attempt of the same type has passed
                         const hasPassedAttempt = tests.some((t: TestRow) => {
+                          if (t.isArchived) return false;
+
                           if (
                             test.name.includes("Screening Test") &&
                             t.name.includes("Screening Test")
@@ -1304,14 +1319,6 @@ export default function StudentResult() {
 
                         // ── Archived row: basic info + "Previous Attempt" badge + Retest button ──
                         if (test.isArchived) {
-                          // Hide Retest if any ACTIVE screening session has passed
-                          const hasActiveScreeningPass = tests.some(
-                            (t: TestRow) =>
-                              !t.isArchived &&
-                              t.name.includes("Screening Test") &&
-                              t.status === "Pass"
-                          );
-
                           return (
                             <tr key={test.id} className="block md:table-row bg-muted/30 md:bg-muted/20 border border-border/40 md:border-border/40 rounded-2xl md:rounded-none mb-6 md:mb-0 overflow-hidden relative opacity-80">
                               {/* Stage name */}
@@ -1346,17 +1353,7 @@ export default function StudentResult() {
                               {/* Action */}
                               <td className="flex md:table-cell items-center px-5 pt-3 pb-5 md:py-4 md:border-b md:border-border/40 text-sm">
                                 <div className="ml-1 md:ml-0">
-                                  {test.name.includes("Screening Test") && !hasActiveScreeningPass ? (
-                                    <Button
-                                      onClick={handleRetestNavigation}
-                                      size="sm"
-                                      className="bg-primary hover:bg-primary/90 font-semibold h-9 active:scale-[0.98] transition-all"
-                                    >
-                                      {content.retest}
-                                    </Button>
-                                  ) : (
-                                    <span className="text-muted-foreground/60">—</span>
-                                  )}
+                                  <span className="text-muted-foreground/60">—</span>
                                 </div>
                               </td>
                               {/* Marks */}
@@ -1469,7 +1466,7 @@ export default function StudentResult() {
                                     </Button>
                                   ) : test.status === "Fail" ? (
                                     <Button
-                                      onClick={handleRetestNavigation}
+                                      onClick={() => handleRetestNavigation(false)}
                                       className="bg-primary hover:bg-primary/90 w-full sm:w-auto font-semibold shadow-md md:shadow-sm h-11 md:h-9 active:scale-[0.98] transition-all"
                                     >
                                       {content.retest}
@@ -1554,11 +1551,23 @@ export default function StudentResult() {
                       <tr className="block md:table-row border border-border md:border-none rounded-xl md:rounded-none md:border-b">
                         <td
                           colSpan={5}
-                          className="block md:table-cell px-4 py-12 text-center text-muted-foreground text-sm md:text-base bg-muted/10 md:bg-transparent rounded-xl md:rounded-none"
+                          className="block md:table-cell px-4 py-8 text-center text-muted-foreground text-sm md:text-base bg-muted/10 md:bg-transparent rounded-xl md:rounded-none"
                         >
-                          <div className="flex flex-col items-center justify-center space-y-3">
-                            <span className="text-4xl md:text-5xl opacity-50">📄</span>
-                            <span className="font-medium">{content.noTestDataAvailable}</span>
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <span className="text-4xl md:text-5xl opacity-50 mb-1">📄</span>
+                            {isActiveTab && archivedTests.length > 0 ? (
+                              <>
+                                <span className="text-sm text-muted-foreground pb-2">{content.archivedMessageSub}</span>
+                                <Button
+                                  onClick={() => handleRetestNavigation(true)}
+                                  className="bg-primary hover:bg-primary/90 font-semibold shadow-md active:scale-[0.98] transition-all"
+                                >
+                                  {content.retest}
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="font-medium">{content.noTestDataAvailable}</span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1582,16 +1591,16 @@ export default function StudentResult() {
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="active" className="mt-2">
-                    {renderTable(activeTests)}
+                    {renderTable(activeTests, true)}
                   </TabsContent>
                   <TabsContent value="history" className="mt-2">
-                    {renderTable(archivedTests)}
+                    {renderTable(archivedTests, false)}
                   </TabsContent>
                 </Tabs>
               );
             }
             
-            return renderTable(activeTests);
+            return renderTable(activeTests, true);
           })()}
             </CardContent>
           </Card>
