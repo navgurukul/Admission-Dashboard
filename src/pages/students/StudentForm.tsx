@@ -1023,8 +1023,8 @@ const StudentForm: React.FC = () => {
   const isFormValid = () => {
     const age = getAge(formData.dateOfBirth);
 
-    // District is mandatory only if it was auto-filled from pincode
-    const districtRequired = formData.district ? formData.districtCode : true;
+    // District and state are auto-filled from PIN code
+    const locationValid = formData.stateCode && formData.pinCode.length === 6;
 
     // Alternate number is mandatory when user logged in via email
     const alternateRequired = location.state?.googleEmail ? formData.alternateNumber : true;
@@ -1041,8 +1041,7 @@ const StudentForm: React.FC = () => {
         (formData.whatsappNumber || formData.alternateNumber || formData.email) &&
         formData.gender &&
         formData.stateCode &&
-        districtRequired &&
-        formData.pinCode &&
+        locationValid &&
         formData.currentStatus &&
         formData.maximumQualification &&
         formData.schoolMedium &&
@@ -1058,7 +1057,7 @@ const StudentForm: React.FC = () => {
     } else {
       if (currentStep === 1) return formData.firstName && formData.dateOfBirth && formData.gender;
       if (currentStep === 2) return (formData.whatsappNumber || formData.alternateNumber || formData.email) && alternateRequired;
-      if (currentStep === 3) return formData.stateCode && districtRequired && formData.pinCode;
+      if (currentStep === 3) return locationValid;
       if (currentStep === 4) {
         const q = qualifications.find(q => String(q.id) === formData.maximumQualification);
         const pursuingOk = q?.qualification_name.toLowerCase().includes('pursuing') ? formData.pursuingYear && formData.collegeAttendanceMethod : true;
@@ -1096,11 +1095,11 @@ const StudentForm: React.FC = () => {
         if (!formData.gender) {
           return toast({ title: "⚠️ Gender Required", description: "Please select your gender.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
-        if (!formData.stateCode || !formData.pinCode) {
-          return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        if (!formData.pinCode || formData.pinCode.length !== 6) {
+          return toast({ title: "⚠️ PIN Code Required", description: "Please enter a valid 6-digit PIN code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
-        if (formData.district && !formData.districtCode) {
-          return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        if (!formData.stateCode) {
+          return toast({ title: "⚠️ Address Required", description: "Please enter a valid PIN code to auto-fill state and district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
         if (!formData.currentStatus || !formData.maximumQualification || !formData.schoolMedium || !formData.casteTribe) {
           return toast({ title: "Additional Info Required", description: "Please fill all required additional fields.", variant: "destructive" });
@@ -1149,11 +1148,11 @@ const StudentForm: React.FC = () => {
       }
   
       if (currentStep === 3) {
-        if (!formData.stateCode || !formData.pinCode) {
-          return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        if (!formData.pinCode || formData.pinCode.length !== 6) {
+          return toast({ title: "⚠️ PIN Code Required", description: "Please enter a valid 6-digit PIN code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
-        if (formData.district && !formData.districtCode) {
-          return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        if (!formData.stateCode) {
+          return toast({ title: "⚠️ Address Required", description: "Please enter a valid PIN code to auto-fill state and district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
         }
         setCurrentStep(4);
         if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
@@ -1259,8 +1258,8 @@ const StudentForm: React.FC = () => {
           whatsappNumber: "व्हाट्सऐप नंबर",
           alternateNumber: "फोन नंबर",
           email: "ईमेल पता ",
-          state: "राज्य चुनें *",
-          district: "जिला चुनें",
+          state: "राज्य *",
+          district: "जिला",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "वर्तमान स्थिति *",
@@ -1337,8 +1336,8 @@ const StudentForm: React.FC = () => {
           whatsappNumber: "व्हाट्सअॅप नंबर",
           alternateNumber: "फोन नंबर",
           email: "ईमेल पत्ता ",
-          state: "राज्य निवडा *",
-          district: "जिल्हा निवडा",
+          state: "राज्य *",
+          district: "जिल्हा",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "सध्याची स्थिती *",
@@ -1877,8 +1876,8 @@ const StudentForm: React.FC = () => {
                   Additional Information
                 </h3>
               )}
-              {/* State, District and Block */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
+              {/* PIN Code, District and State */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-3 md:mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {content.pinCode}
@@ -1888,27 +1887,15 @@ const StudentForm: React.FC = () => {
                     name="pinCode"
                     value={formData.pinCode}
                     onChange={handleInputChange}
+                    maxLength={6}
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
                     className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Enter PIN code"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     {content.pinCodeExample}
                   </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.state}
-                  </label>
-                  <input
-                    type="text"
-                    value={isPincodeLoading ? "Loading..." : formData.state}
-                    readOnly
-                    disabled
-                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed text-gray-600"
-                    placeholder="Auto-filled from PIN code"
-                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1917,6 +1904,19 @@ const StudentForm: React.FC = () => {
                   <input
                     type="text"
                     value={isPincodeLoading ? "Loading..." : formData.district}
+                    readOnly
+                    disabled
+                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed text-gray-600"
+                    placeholder="Auto-filled from PIN code"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {content.state}
+                  </label>
+                  <input
+                    type="text"
+                    value={isPincodeLoading ? "Loading..." : formData.state}
                     readOnly
                     disabled
                     className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl bg-gray-100 cursor-not-allowed text-gray-600"
