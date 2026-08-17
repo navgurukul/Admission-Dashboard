@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getSlotScheduleStats, SlotScheduleStatsResponse } from "@/utils/api";
-import { Calendar, CheckCircle, User } from "lucide-react";
+import { Calendar, CheckCircle, User, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const InterviewStatsCards = () => {
@@ -29,8 +29,7 @@ export const InterviewStatsCards = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Skeleton className="h-28 rounded-xl bg-gray-100" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Skeleton className="h-28 rounded-xl bg-gray-100" />
         <Skeleton className="h-28 rounded-xl bg-gray-100" />
         <Skeleton className="h-28 rounded-xl bg-gray-100" />
@@ -46,16 +45,17 @@ export const InterviewStatsCards = () => {
   const expiredSlots = data?.slots?.all_time?.expired || 0;
   
   const todaysSlots = data?.slots?.today?.total || 0;
+  const todaysBooked = data?.slots?.today?.booked || 0;
+  const todaysAvailable = data?.slots?.today?.available || 0;
+  const todaysExpired = data?.slots?.today?.expired || 0;
+  
   const totalScheduled = data?.schedules?.total_scheduled || 0;
   const completedInterviews = data?.schedules?.completed || 0;
   const canceledInterviews = data?.schedules?.cancelled || 0;
   const noShowInterviews = data?.schedules?.no_show || 0;
-  
-  const availableSlotsPercentage = totalSlots > 0 ? Math.round((availableSlots / totalSlots) * 100) : 0;
-  const bookedSlotsPercentage = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
       {/* Total Slots */}
       <div className="bg-white border border-blue-200 rounded-2xl p-3 shadow-sm relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-transparent opacity-50" />
@@ -67,37 +67,42 @@ export const InterviewStatsCards = () => {
         </div>
         <div className="relative z-10">
           <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{totalSlots.toLocaleString()}</h3>
-          <div className="text-[10px] xl:text-xs text-gray-400 flex flex-wrap items-center gap-x-2 mt-1">
-            <span>Expired: <span className="text-gray-600 font-medium">{expiredSlots.toLocaleString()}</span></span>
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            <span className="bg-violet-50 text-violet-600 border border-violet-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Booked: <span className="font-bold">{bookedSlots.toLocaleString()}</span>
+            </span>
+            <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Available: <span className="font-bold">{availableSlots.toLocaleString()}</span>
+            </span>
+            <span className="bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Expired: <span className="font-bold">{expiredSlots.toLocaleString()}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Available Slots */}
-      <div className="bg-white border border-emerald-200 rounded-2xl p-3 shadow-sm relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 to-transparent opacity-50" />
-        <div className="relative z-10 flex items-center space-x-2 mb-2">
-          <div className="p-1.5 bg-emerald-100 rounded-md">
-            <CheckCircle className="w-4 h-4 text-emerald-500" />
-          </div>
-          <span className="text-gray-500 font-medium text-sm">Available</span>
-        </div>
-        <div className="relative z-10">
-          <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{availableSlots.toLocaleString()}</h3>
-        </div>
-      </div>
-
-      {/* Booked Slots */}
+      {/* Today's Stats */}
       <div className="bg-white border border-violet-200 rounded-2xl p-3 shadow-sm relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-50 to-transparent opacity-50" />
         <div className="relative z-10 flex items-center space-x-2 mb-2">
           <div className="p-1.5 bg-violet-100 rounded-md">
-            <User className="w-4 h-4 text-violet-500" />
+            <Clock className="w-4 h-4 text-violet-500" />
           </div>
-          <span className="text-gray-500 font-medium text-sm">Booked</span>
+          <span className="text-gray-500 font-medium text-sm">Today</span>
         </div>
         <div className="relative z-10">
-          <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{bookedSlots.toLocaleString()}</h3>
+          <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{todaysSlots.toLocaleString()}</h3>
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            <span className="bg-violet-50 text-violet-600 border border-violet-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Booked: <span className="font-bold">{todaysBooked.toLocaleString()}</span>
+            </span>
+            <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Available: <span className="font-bold">{todaysAvailable.toLocaleString()}</span>
+            </span>
+            <span className="bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Expired: <span className="font-bold">{todaysExpired.toLocaleString()}</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -112,10 +117,16 @@ export const InterviewStatsCards = () => {
         </div>
         <div className="relative z-10">
           <h3 className="text-3xl font-bold text-gray-900 tracking-tight">{totalScheduled.toLocaleString()}</h3>
-          <div className="text-[10px] xl:text-xs text-gray-400 flex flex-wrap items-center gap-x-2 mt-1">
-            <span>Completed: <span className="text-gray-600 font-medium">{completedInterviews}</span></span>
-            <span>Cancelled: <span className="text-gray-600 font-medium">{canceledInterviews}</span></span>
-            <span>No Show: <span className="text-gray-600 font-medium">{noShowInterviews}</span></span>
+          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+            <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Completed: <span className="font-bold">{completedInterviews}</span>
+            </span>
+            <span className="bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              Cancelled: <span className="font-bold">{canceledInterviews}</span>
+            </span>
+            <span className="bg-amber-50 text-amber-600 border border-amber-100 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              No Show: <span className="font-bold">{noShowInterviews}</span>
+            </span>
           </div>
         </div>
       </div>
