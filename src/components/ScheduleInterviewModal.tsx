@@ -89,6 +89,8 @@ export const ScheduleInterviewModal = ({
   const [topicName, setTopicName] = useState("");
   const [interviewerEmail, setInterviewerEmail] = useState("");
   const [interviewerName, setInterviewerName] = useState("");
+  const [schedulerEmail, setSchedulerEmail] = useState("");
+  const [schedulerName, setSchedulerName] = useState("");
   const [isFetchingStudent, setIsFetchingStudent] = useState(false);
   const [studentDataFetched, setStudentDataFetched] = useState(false);
   const [completeStudentData, setCompleteStudentData] = useState<any>(null);
@@ -189,6 +191,10 @@ export const ScheduleInterviewModal = ({
       setInterviewerEmail(defaultInterviewerEmail);
       setInterviewerName(defaultInterviewerName);
 
+      // Auto-fill scheduler details from current user
+      setSchedulerEmail(user?.email || "");
+      setSchedulerName(user?.name || "");
+
       // Auto-fill topic based on slot type if slotData is provided (normal mode)
       if (slotData && !isDirectScheduleMode) {
         const slotType = (slotData as any).slot_type;
@@ -274,11 +280,11 @@ export const ScheduleInterviewModal = ({
       return null;
     }
 
-    const lrSchedules = completeStudentData.interview_schedules_lr || [];
-    const cfrSchedules = completeStudentData.interview_schedules_cfr || [];
-    const lrRounds = completeStudentData.interview_learner_round || [];
-    const cfrRounds = completeStudentData.interview_cultural_fit_round || [];
-    const examSessions = completeStudentData.exam_sessions || [];
+    const lrSchedules = (completeStudentData.interview_schedules_lr || []).filter((s: any) => !s.is_archived);
+    const cfrSchedules = (completeStudentData.interview_schedules_cfr || []).filter((s: any) => !s.is_archived);
+    const lrRounds = (completeStudentData.interview_learner_round || []).filter((r: any) => !r.is_archived);
+    const cfrRounds = (completeStudentData.interview_cultural_fit_round || []).filter((r: any) => !r.is_archived);
+    const examSessions = (completeStudentData.exam_sessions || []).filter((e: any) => !e.is_archived);
 
     // Check if student has passed screening test (exam_sessions)
     const hasPassedScreening = examSessions.some(
@@ -579,11 +585,6 @@ export const ScheduleInterviewModal = ({
     }
 
     try {
-      // Get admin email to include in calendar invites
-      const currentUser = getCurrentUser();
-      const adminEmail = currentUser?.email || "";
-      const adminName = currentUser?.name || "Admin";
-
       await onSchedule(
         slotToUse.id,
         parseInt(studentId),
@@ -595,8 +596,8 @@ export const ScheduleInterviewModal = ({
         slotToUse.start_time,
         slotToUse.end_time,
         topicName,
-        adminEmail,
-        adminName
+        schedulerEmail || "admin@navgurukul.org",
+        schedulerName || "Admin"
       );
 
       // Reset form
@@ -605,6 +606,8 @@ export const ScheduleInterviewModal = ({
       setStudentName("");
       setTopicName("");
       setInterviewerEmail("");
+      setSchedulerEmail("");
+      setSchedulerName("");
       setSelectedDate("");
       setSelectedSlotId(null);
       setStudentDataFetched(false);
@@ -934,6 +937,45 @@ export const ScheduleInterviewModal = ({
               <p className="text-xs text-gray-500 mt-1">
                 You can change the interviewer details if needed
               </p>
+            </div>
+          </div>
+
+          {/* Scheduler Info */}
+          <div
+            className="p-4 bg-muted/30 rounded-lg space-y-4 shadow-soft border border-border"
+            data-onboarding="schedule-interview-scheduler"
+          >
+            <h3 className="font-semibold text-foreground flex items-center">
+              <User className="w-5 h-5 mr-2 text-primary" />
+              Scheduler Information
+            </h3>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Scheduler Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={schedulerName}
+                readOnly
+                className="w-full px-3 py-2 border border-border rounded-md bg-muted text-foreground cursor-not-allowed font-medium mb-3"
+                placeholder="Scheduler Name"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Scheduler Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={schedulerEmail}
+                readOnly
+                className="w-full px-3 py-2 border border-border rounded-md bg-muted text-foreground cursor-not-allowed font-medium"
+                placeholder="scheduler@example.com"
+                required
+              />
             </div>
           </div>
 

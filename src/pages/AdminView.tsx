@@ -795,7 +795,7 @@ export default function AdminView() {
                                 <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
                                 <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
                                 <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
-                                <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
+                                <TableHead className="font-semibold min-w-[120px]">Scheduler</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -821,7 +821,6 @@ export default function AdminView() {
                                   <TableCell className="min-w-[160px]">
                                     <div>
                                       <div className="font-medium">{interview.interviewer_name || "Not Assigned"}</div>
-                                      <div className="text-xs text-muted-foreground">{interview.interviewer_email || "N/A"}</div>
                                     </div>
                                   </TableCell>
                                   <TableCell className="min-w-[100px]">
@@ -878,8 +877,11 @@ export default function AdminView() {
                                       <span className="text-muted-foreground text-xs sm:text-sm">No Link</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="whitespace-nowrap min-w-[120px]">
-                                    <span className="text-xs sm:text-sm">{interview.created_by || "N/A"}</span>
+                                  <TableCell className="min-w-[160px]">
+                                    <div>
+                                      <div className="font-medium">{interview.scheduler_name || interview.created_by || "N/A"}</div>
+                                      <div className="text-xs text-muted-foreground">{interview.scheduler_email}</div>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
 
@@ -1078,7 +1080,6 @@ export default function AdminView() {
                                   <TableCell className="min-w-[160px]">
                                     <div>
                                       <div className="font-medium">{slot.user_name || `User #${slot.created_by}`}</div>
-                                      <div className="text-xs text-muted-foreground">{slot.user_email}</div>
                                     </div>
                                   </TableCell>
                                   <TableCell className="min-w-[100px]">
@@ -1241,7 +1242,7 @@ export default function AdminView() {
                             <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
                             <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
                             <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
-                            <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Scheduler</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1317,8 +1318,11 @@ export default function AdminView() {
                                   <span className="text-muted-foreground text-sm">No Link</span>
                                 )}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap min-w-[120px]">
-                                <span className="text-sm">{interview.created_by || "N/A"}</span>
+                              <TableCell className="min-w-[160px]">
+                                <div>
+                                  <div className="font-medium">{interview.scheduler_name || interview.created_by || "N/A"}</div>
+                                  <div className="text-xs text-muted-foreground">{interview.scheduler_email}</div>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
