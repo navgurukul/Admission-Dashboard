@@ -3627,3 +3627,44 @@ export const getInterviewerStats = async (params: GetInterviewerStatsParams): Pr
 
   return data;
 };
+
+// ─── Dashboard Stats ────────────────────────────────────────────────────────────
+
+export interface SlotScheduleStatsResponse {
+  slots: {
+    all_time: {
+      total: number;
+      booked: number;
+      available: number;
+      expired: number;
+    };
+    today: {
+      total: number;
+      booked: number;
+      available: number;
+      expired: number;
+    };
+  };
+  schedules: {
+    total_scheduled: number;
+    completed: number;
+    cancelled: number;
+    no_show: number;
+  };
+  
+}
+
+export const getSlotScheduleStats = async (): Promise<any> => {
+  const response = await fetch(`${BASE_URL}/dashboard/slot-schedule-stats`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch slot schedule stats");
+  }
+
+  return data;
+};
