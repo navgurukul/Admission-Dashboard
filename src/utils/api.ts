@@ -144,9 +144,11 @@ export const loginWithGoogle = async (
 export const getAllUsers = async (
   page: number = 1,
   limit: number = 10,
+  activeOnly: boolean = false,
 ): Promise<{ users: User[]; total: number }> => {
+  const statusQuery = activeOnly ? "&status=true" : "";
   const response = await fetch(
-    `${BASE_URL}/users?page=${page}&limit=${limit}`,
+    `${BASE_URL}/users?page=${page}&limit=${limit}${statusQuery}`,
     {
       method: "GET",
       headers: getAuthHeaders(),
@@ -162,10 +164,14 @@ export const getAllUsers = async (
   // API returns {success, message, data: {data: User[], total, totalPages}}
   // We need to transform it to {users: User[], total: number}
   // Also normalize user_role_id to role_id for consistency
-  const users = (result.data?.data || []).map((user: any) => ({
+  let users = (result.data?.data || []).map((user: any) => ({
     ...user,
     role_id: user.user_role_id,
   }));
+
+  if (activeOnly) {
+    users = users.filter((user: User) => user.status === true);
+  }
 
   return {
     users,
