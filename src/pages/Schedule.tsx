@@ -513,9 +513,9 @@ const Schedule = () => {
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-foreground">
+                {/* <h1 className="text-xl md:text-2xl font-bold text-foreground">
                   {isAdmin ? "Admin View" : "My Dashboard"}
-                </h1>
+                </h1> */}
                 <p className="text-xs md:text-sm text-muted-foreground mt-1">
                   Manage interview slots and availability
                 </p>
@@ -613,7 +613,7 @@ const Schedule = () => {
                     onClick={() => navigate("/admin-view")}
                     className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                   >
-                    Created Slots
+                    Slots
                   </TabsTrigger>
                 </>
                 <TabsTrigger
@@ -627,56 +627,7 @@ const Schedule = () => {
             </Tabs>
           )}
 
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
-            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-primary/30 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Today's Booked
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {bookedTodayCount}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-secondary-purple/30 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Available Today
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {availableTodayCount}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-secondary-purple/10 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-secondary-purple" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-primary/30  transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Total Slots
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {allSlots.length}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Available Slots Management */}
           <div

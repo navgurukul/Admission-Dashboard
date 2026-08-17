@@ -577,7 +577,7 @@ export default function AdminView() {
                   data-onboarding="adminview-slots-tab"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
-                  Created Slots
+                  Slots
                 </TabsTrigger>
                 <TabsTrigger
                   value="my-interviews"
@@ -945,7 +945,7 @@ export default function AdminView() {
                     <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                       <CardTitle className="flex items-center gap-2 text-lg" data-onboarding="adminview-slots-header">
                         <Clock className="w-4 h-4" />
-                        All Created Slots
+                        All Slots
                       </CardTitle>
                       <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end" data-onboarding="adminview-slots-filters">
                         <div className="w-full sm:w-[320px]">
