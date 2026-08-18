@@ -25,6 +25,7 @@ import { ApplicantModal } from "./ApplicantModal";
 // import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 import CSVImportModal from "./CSVImportModal";
 import { BulkOfferResultsModal } from "./BulkOfferResultsModal";
+import { CSVExportFieldsModal } from "./CSVExportFieldsModal";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
@@ -71,6 +72,8 @@ const ApplicantTable = () => {
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showBulkOfferResults, setShowBulkOfferResults] = useState(false);
   const [bulkOfferResults, setBulkOfferResults] = useState<any>(null);
+  const [showCSVExportModal, setShowCSVExportModal] = useState(false);
+  const [pendingExportType, setPendingExportType] = useState<'all' | 'filtered' | 'selected'>('all');
 
   // Applicant Modals
   const [applicantToView, setApplicantToView] = useState<any | null>(null);
@@ -1856,12 +1859,18 @@ const ApplicantTable = () => {
       return;
     }
 
+    // Open the field selection modal
+    setPendingExportType(exportType);
+    setShowCSVExportModal(true);
+  };
+
+  const handleExportWithFields = async (selectedFields: string[]) => {
     try {
       setIsExporting(true);
 
       // Get the full applicant data for selected rows if export type is 'selected'
       let selectedApplicantsData: any[] = [];
-      if (exportType === 'selected') {
+      if (pendingExportType === 'selected') {
         selectedApplicantsData = filteredApplicants.filter((applicant) =>
           selectedRows.includes(applicant.id)
         );
@@ -1869,7 +1878,7 @@ const ApplicantTable = () => {
 
       // Prepare filter parameters for filtered export
       let filterParams = null;
-      if (exportType === 'filtered' && hasActiveFilters) {
+      if (pendingExportType === 'filtered' && hasActiveFilters) {
         filterParams = transformFiltersToAPI(filters);
       }
 
@@ -1878,8 +1887,8 @@ const ApplicantTable = () => {
       // For 'selected' export, pass selected data
       // For 'filtered' export, pass filter params (not paginated data)
       // For search, pass search results
-      const shouldPassFilteredData = exportType === 'selected' ||
-        (searchTerm.trim().length > 0 && exportType === 'filtered');
+      const shouldPassFilteredData = pendingExportType === 'selected' ||
+        (searchTerm.trim().length > 0 && pendingExportType === 'filtered');
 
       await exportApplicantsToCSV({
         questionSetList,
@@ -1887,7 +1896,8 @@ const ApplicantTable = () => {
         selectedData: selectedApplicantsData,
         filterParams: filterParams, // Pass filter parameters for batch fetching
         searchTerm: searchTerm.trim(), // Pass search term
-        exportType,
+        exportType: pendingExportType,
+        selectedFields, // Pass selected fields
         toast,
       });
     } catch (error) {
@@ -2308,6 +2318,20 @@ const ApplicantTable = () => {
         isOpen={showBulkOfferResults}
         onClose={() => setShowBulkOfferResults(false)}
         results={bulkOfferResults}
+      />
+
+      <CSVExportFieldsModal
+        open={showCSVExportModal}
+        onClose={() => setShowCSVExportModal(false)}
+        onExport={handleExportWithFields}
+        exportType={pendingExportType}
+        exportCount={
+          pendingExportType === 'selected' 
+            ? selectedRows.length 
+            : pendingExportType === 'filtered' 
+              ? currentTotalCount 
+              : totalStudents
+        }
       />
     </Card>
   );
