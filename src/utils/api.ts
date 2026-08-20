@@ -3599,6 +3599,8 @@ export const resetStudentData = async (studentId: number): Promise<any> => {
 
 export interface GetInterviewerStatsParams {
   interviewer_id?: string;
+  start_date?: string;
+  end_date?: string;
   date?: string;
   page?: number;
   limit?: number;
@@ -3607,7 +3609,21 @@ export interface GetInterviewerStatsParams {
 export const getInterviewerStats = async (params: GetInterviewerStatsParams): Promise<any> => {
   const queryParams = new URLSearchParams();
   if (params.interviewer_id) queryParams.append("interviewer_id", params.interviewer_id);
-  if (params.date) queryParams.append("date", params.date);
+
+  if (params.start_date) {
+    queryParams.append("start_date", params.start_date);
+    if (params.end_date && params.start_date !== "all") {
+      queryParams.append("end_date", params.end_date);
+    }
+  } else if (params.date) {
+    if (params.date === "all") {
+      queryParams.append("start_date", "all");
+    } else {
+      queryParams.append("start_date", params.date);
+      queryParams.append("end_date", params.date);
+    }
+  }
+
   if (params.page !== undefined) queryParams.append("page", params.page.toString());
   if (params.limit !== undefined) queryParams.append("limit", params.limit.toString());
 
