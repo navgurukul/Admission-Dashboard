@@ -72,6 +72,7 @@ import {
   getMyAvailableSlots,
   getInterviewByStudentId,
   getAllSlots,
+  getQuestionsBySetType,
   cancelScheduledInterview,
   updateScheduledInterview,
   getStudentDataByEmail,
@@ -1714,6 +1715,34 @@ Interviewer: ${interviewerName}`;
     );
   });
 
+  const [isQuestionSetPreviewOpen, setIsQuestionSetPreviewOpen] = useState(false);
+  const [previewSetName, setPreviewSetName] = useState<string>("");
+  const [previewSetQuestions, setPreviewSetQuestions] = useState<any[]>([]);
+  const [isLoadingQuestionSetPreview, setIsLoadingQuestionSetPreview] = useState(false);
+
+  const handleOpenQuestionSetPreview = useCallback(async (setName?: string) => {
+    const nextSetName = setName?.trim();
+    if (!nextSetName) return;
+
+    try {
+      setIsLoadingQuestionSetPreview(true);
+      const response = await getQuestionsBySetType(nextSetName);
+      const questions = response?.data || response?.questions || [];
+      setPreviewSetName(nextSetName);
+      setPreviewSetQuestions(questions);
+      setIsQuestionSetPreviewOpen(true);
+    } catch (error) {
+      console.error("Failed to load question set preview:", error);
+      toast({
+        title: "Unable to open set",
+        description: "This question set could not be loaded right now.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingQuestionSetPreview(false);
+    }
+  }, [toast]);
+
   const screeningFields = [
     {
       name: "status",
@@ -1737,26 +1766,22 @@ Interviewer: ${interviewerName}`;
         // Read-only mode (no updateRow passed)
         if (!updateRow) {
           const rowId = row?.question_set_id?.toString();
-          
-          // Try to find set name from questionSets list by ID
           const set = questionSets.find(s => s.value === rowId);
-          
-          if (set) {
+          const setName = set?.label || row?.set_name || "";
+
+          if (setName) {
             return (
-              <span className="text-gray-900" title={set.label}>
-                {set.label}
-              </span>
+              <button
+                type="button"
+                className="text-left text-gray-900 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 py-0.5"
+                title={setName}
+                onClick={() => handleOpenQuestionSetPreview(setName)}
+              >
+                {setName}
+              </button>
             );
           }
-          // If set_name field exists in row, use it
-          if (row?.set_name && row.set_name.trim() !== "") {
-            return (
-              <span className="text-gray-900" title={row.set_name}>
-                {row.set_name}
-              </span>
-            );
-          }
-          // Fallback: show ID or dash
+
           return <span className="text-gray-500">{rowId || "—"}</span>;
         }
         
@@ -3452,6 +3477,60 @@ Interviewer: ${interviewerName}`;
         </div>
       </DialogContent>
     </Dialog>
+
+      <Dialog
+        open={isQuestionSetPreviewOpen}
+        onOpenChange={(open) => {
+          setIsQuestionSetPreviewOpen(open);
+          if (!open) {
+            setPreviewSetName("");
+            setPreviewSetQuestions([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>{previewSetName || "Question Set"}</DialogTitle>
+            <DialogDescription>
+              Questions in this set
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto pr-2">
+            {isLoadingQuestionSetPreview ? (
+              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading set questions...
+              </div>
+            ) : previewSetQuestions.length > 0 ? (
+              <div className="space-y-4">
+                {previewSetQuestions.map((question: any, index: number) => (
+                  <div key={question.id || `${question.question_text || "q"}-${index}`} className="rounded-lg border bg-white p-4 shadow-sm">
+                    <p className="mb-2 text-sm font-semibold text-gray-800">
+                      {index + 1}. {question.english_text || question.question_text || "Untitled question"}
+                    </p>
+
+                    {Array.isArray(question.english_options || question.options) && (question.english_options || question.options).length > 0 && (
+                      <ul className="space-y-1 text-sm text-gray-700">
+                        {(question.english_options || question.options).map((option: any, optionIndex: number) => (
+                          <li key={`${question.id || index}-option-${optionIndex}`} className="flex gap-2">
+                            <span className="font-medium">{String.fromCharCode(65 + optionIndex)}.</span>
+                            <span>{typeof option === "string" ? option : option?.option_text || option?.text || "Option"}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                No questions available for this set.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {showEditModal && (
         <InlineEditModal
