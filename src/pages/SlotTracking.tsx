@@ -240,6 +240,35 @@ const calculateGroupTotal = (rows: DateAggregatedRow[]): DateAggregatedRow => {
   );
 };
 
+const extractCounts = (obj: any, dateLabel: string = "All Time"): DateAggregatedRow => {
+  if (!obj || typeof obj !== "object") {
+    return {
+      date: dateLabel,
+      formattedDate: dateLabel,
+      finalTotalDone: 0,
+      finalTotalPass: 0,
+      finalTotalFail: 0,
+      finalTotalReschedule: 0,
+      finalTotalNoShow: 0,
+      finalTotalDisinterested: 0,
+      finalTotalSlots: 0,
+      finalTotalEmpty: 0,
+    };
+  }
+  return {
+    date: dateLabel,
+    formattedDate: dateLabel,
+    finalTotalDone: Number(obj.interview_done ?? obj.finalTotalDone ?? obj.done ?? obj.conducted ?? 0),
+    finalTotalPass: Number(obj.pass ?? obj.finalTotalPass ?? obj.passed ?? 0),
+    finalTotalFail: Number(obj.fail ?? obj.finalTotalFail ?? obj.failed ?? 0),
+    finalTotalReschedule: Number(obj.reschedule ?? obj.finalTotalReschedule ?? obj.rescheduled ?? 0),
+    finalTotalNoShow: Number(obj.no_show ?? obj.finalTotalNoShow ?? obj.noshow ?? 0),
+    finalTotalDisinterested: Number(obj.disinterested ?? obj.finalTotalDisinterested ?? 0),
+    finalTotalSlots: Number(obj.total_slots ?? obj.finalTotalSlots ?? obj.total ?? 0),
+    finalTotalEmpty: Number(obj.empty_slots ?? obj.finalTotalEmpty ?? obj.empty ?? 0),
+  };
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const SlotTracking = () => {
@@ -284,6 +313,7 @@ const SlotTracking = () => {
 
   // Stats data
   const [stats, setStats] = useState<InterviewerStat[]>([]);
+  const [allTimeSummary, setAllTimeSummary] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   // Screenshot & PDF ref and states
@@ -377,6 +407,41 @@ const SlotTracking = () => {
         throw new Error(json.message || "API returned failure");
       }
 
+      let summaryObj: any = null;
+
+      // Extract all_time_summary if available
+      if (json.all_time_summary) {
+        summaryObj = json.all_time_summary;
+      } else if (json.data && json.data.all_time_summary) {
+        summaryObj = json.data.all_time_summary;
+      } else if (json.summary) {
+        summaryObj = json.summary;
+      } else if (json.data && json.data.summary) {
+        summaryObj = json.data.summary;
+      }
+
+      // Check if json.data itself is an object containing summary keys when not an array
+      if (!summaryObj && json.data && typeof json.data === "object" && !Array.isArray(json.data)) {
+        if (
+          json.data.LR ||
+          json.data.CFR ||
+          json.data.CRF ||
+          json.data.Total ||
+          json.data.interview_done !== undefined ||
+          json.data.total_slots !== undefined
+        ) {
+          summaryObj = json.data;
+        }
+      }
+
+      if (!summaryObj && typeof json === "object" && !Array.isArray(json)) {
+        if (json.LR || json.CFR || json.CRF || json.Total) {
+          summaryObj = json;
+        }
+      }
+
+      setAllTimeSummary(summaryObj);
+
       let items: InterviewerStat[] = [];
 
       if (Array.isArray(json.data)) {
@@ -387,6 +452,8 @@ const SlotTracking = () => {
         items = json.data.data;
       } else if (Array.isArray(json.records)) {
         items = json.records;
+      } else if (Array.isArray(summaryObj)) {
+        items = summaryObj;
       }
 
       setStats(items);
@@ -398,6 +465,7 @@ const SlotTracking = () => {
         variant: "destructive",
       });
       setStats([]);
+      setAllTimeSummary(null);
     } finally {
       setLoading(false);
     }
@@ -444,16 +512,89 @@ const SlotTracking = () => {
 
   // 1. Learning Rounds Online (LR)
   const lrItems = useMemo(() => stats.filter((s) => isLRType(s.slot_type)), [stats]);
-  const lrDateRows = useMemo(() => aggregateByDate(lrItems), [lrItems]);
-  const lrTotalRow = useMemo(() => calculateGroupTotal(lrDateRows), [lrDateRows]);
+
+  const lrDateRows = useMemo(() => {
+    if (timeMode === "all_time" && allTimeSummary) {
+      const lrObj =
+        allTimeSummary.LR ||
+        allTimeSummary.lr ||
+        allTimeSummary.learning_rounds ||
+        allTimeSummary["Learning Rounds"];
+      if (lrObj) {
+        return [extractCounts(lrObj, "All Time")];
+      }
+    }
+    return aggregateByDate(lrItems);
+  }, [lrItems, timeMode, allTimeSummary]);
+
+  const lrTotalRow = useMemo(() => {
+    if (timeMode === "all_time" && allTimeSummary) {
+      const lrObj =
+        allTimeSummary.LR ||
+        allTimeSummary.lr ||
+        allTimeSummary.learning_rounds ||
+        allTimeSummary["Learning Rounds"];
+      if (lrObj) return extractCounts(lrObj, "Total");
+    }
+    return calculateGroupTotal(lrDateRows);
+  }, [lrDateRows, timeMode, allTimeSummary]);
 
   // 2. Culture-Fit Rounds Online (CFR / CRF)
   const crfItems = useMemo(() => stats.filter((s) => isCRFType(s.slot_type)), [stats]);
-  const crfDateRows = useMemo(() => aggregateByDate(crfItems), [crfItems]);
-  const crfTotalRow = useMemo(() => calculateGroupTotal(crfDateRows), [crfDateRows]);
+
+  const crfDateRows = useMemo(() => {
+    if (timeMode === "all_time" && allTimeSummary) {
+      const crfObj =
+        allTimeSummary.CFR ||
+        allTimeSummary.CRF ||
+        allTimeSummary.crf ||
+        allTimeSummary.cfr ||
+        allTimeSummary.culture_fit_rounds ||
+        allTimeSummary["Culture-Fit Rounds"];
+      if (crfObj) {
+        return [extractCounts(crfObj, "All Time")];
+      }
+    }
+    return aggregateByDate(crfItems);
+  }, [crfItems, timeMode, allTimeSummary]);
+
+  const crfTotalRow = useMemo(() => {
+    if (timeMode === "all_time" && allTimeSummary) {
+      const crfObj =
+        allTimeSummary.CFR ||
+        allTimeSummary.CRF ||
+        allTimeSummary.crf ||
+        allTimeSummary.cfr ||
+        allTimeSummary.culture_fit_rounds ||
+        allTimeSummary["Culture-Fit Rounds"];
+      if (crfObj) return extractCounts(crfObj, "Total");
+    }
+    return calculateGroupTotal(crfDateRows);
+  }, [crfDateRows, timeMode, allTimeSummary]);
 
   // 3. Total Interviews (CFR + LR) Grand Total
   const grandTotalRow = useMemo((): DateAggregatedRow => {
+    if (timeMode === "all_time" && allTimeSummary) {
+      const totalObj =
+        allTimeSummary.Total ||
+        allTimeSummary.total ||
+        allTimeSummary.grand_total ||
+        allTimeSummary.all_time_summary;
+      if (
+        totalObj &&
+        (totalObj.interview_done !== undefined ||
+          totalObj.total_slots !== undefined ||
+          totalObj.finalTotalDone !== undefined)
+      ) {
+        return extractCounts(totalObj, "Total");
+      }
+      if (
+        allTimeSummary.interview_done !== undefined ||
+        allTimeSummary.total_slots !== undefined
+      ) {
+        return extractCounts(allTimeSummary, "Total");
+      }
+    }
     return {
       date: "Total",
       formattedDate: "Total",
@@ -466,7 +607,7 @@ const SlotTracking = () => {
       finalTotalSlots: lrTotalRow.finalTotalSlots + crfTotalRow.finalTotalSlots,
       finalTotalEmpty: lrTotalRow.finalTotalEmpty + crfTotalRow.finalTotalEmpty,
     };
-  }, [lrTotalRow, crfTotalRow]);
+  }, [lrTotalRow, crfTotalRow, timeMode, allTimeSummary]);
 
   // Date-wise combined rows for Total Interviews CFR + LR
   const combinedDateRows = useMemo(() => {
@@ -1127,13 +1268,6 @@ const SlotTracking = () => {
                 </div>
               )}
 
-              {/* All-Time Mode Info */}
-              {timeMode === "all_time" && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Sparkles className="w-4 h-4 text-purple-500" />
-                  <span>Fetching entire historical record history (`start_date=all`)</span>
-                </div>
-              )}
 
               {/* Custom Range Mode Controls */}
               {timeMode === "custom" && (
