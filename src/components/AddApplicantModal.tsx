@@ -196,18 +196,18 @@ export function AddApplicantModal({
       if (truncated.length === 6) {
         setIsPincodeLoading(true);
         const capturedPin = truncated;
-        fetch(`https://api.pincodeapi.in/api/v1/pincode/${capturedPin}`)
+        fetch(`https://api.postalpincode.in/pincode/${capturedPin}`)
           .then((res) => res.json())
           .then((data) => {
-            if (data.status === "success" && data.data?.length > 0) {
-              const record = data.data[0];
+            if (Array.isArray(data) && data[0]?.Status === "Success" && data[0]?.PostOffice?.length > 0) {
+              const record = data[0].PostOffice[0];
               setFormData((prev) => ({
                 ...prev,
                 pin_code: capturedPin,
-                state: record.statename || "",
-                stateCode: record.statename || "",
-                district: record.district || "",
-                districtCode: record.district || "",
+                state: record.State || "",
+                stateCode: record.State || "",
+                district: record.District || "",
+                districtCode: record.District || "",
               }));
             } else {
               setFormData((prev) => ({

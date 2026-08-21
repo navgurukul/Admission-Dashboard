@@ -833,13 +833,13 @@ const StudentForm: React.FC = () => {
       if (processedValue.length === 6) {
         setIsPincodeLoading(true);
         const capturedPinCode = processedValue;
-        fetch(`https://api.pincodeapi.in/api/v1/pincode/${capturedPinCode}`)
+        fetch(`https://api.postalpincode.in/pincode/${capturedPinCode}`)
           .then((res) => res.json())
           .then((data) => {
-            if (data.status === "success" && data.data?.length > 0) {
-              const record = data.data[0];
-              const stateName = record.statename || "";
-              const districtName = record.district || "";
+            if (Array.isArray(data) && data[0]?.Status === "Success" && data[0]?.PostOffice?.length > 0) {
+              const record = data[0].PostOffice[0];
+              const stateName = record.State || "";
+              const districtName = record.District || "";
               setFormData((prev) => {
                 const updatedData = {
                   ...prev,

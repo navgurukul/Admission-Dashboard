@@ -841,7 +841,12 @@ export function AdvancedFilterModal({
                 <Combobox
                   options={[
                     { value: "all", label: "Select qualification" },
-                    ...qualificationList.map((q) => ({ value: getValue(q), label: getDisplayName(q, "qualification_name", "Qualification") })),
+                    ...qualificationList
+                      .filter((q) => {
+                        const name = getDisplayName(q, "qualification_name", "Qualification").toLowerCase();
+                        return !name.includes("10th");
+                      })
+                      .map((q) => ({ value: getValue(q), label: getDisplayName(q, "qualification_name", "Qualification") })),
                   ]}
                   value={filters.qualification?.[0] || "all"}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, qualification: value === "all" ? [] : [value] }))}

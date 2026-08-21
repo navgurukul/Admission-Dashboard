@@ -121,7 +121,6 @@ const ApplicantTable = () => {
       { id: 'gender', label: 'Gender', visible: true },
       { id: 'dob', label: 'DOB', visible: false },
       { id: 'cast', label: 'Cast', visible: false },
-      { id: 'religion', label: 'Religion', visible: false },
       { id: 'qualification', label: 'Qualification', visible: false },
       { id: 'current_status', label: 'Current Status', visible: false },
 
@@ -748,6 +747,7 @@ const ApplicantTable = () => {
 
   // ✅ FIXED: Remove visibleColumns from dependencies to prevent API calls on UI-only changes
   const isColumnVisible = useCallback((columnId: string) => {
+    if (columnId === 'religion') return false;
     const column = visibleColumns.find(col => col.id === columnId);
     return column?.visible ?? true;
   }, [visibleColumns]); // Update when column visibility changes
