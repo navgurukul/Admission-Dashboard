@@ -6,7 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ApplicantScheduling } from "./ApplicantScheduling";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2484,7 +2485,7 @@ Interviewer: ${interviewerName}`;
           </DialogHeader>
 
           <div className="w-full px-3 sm:px-4 py-3 sm:py-4 overflow-y-auto">
-              <div className="grid grid-cols-1 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Personal Information */}
             <div className="space-y-4" data-onboarding="applicant-details-personal">
               <h3 className="text-base sm:text-lg font-semibold">Personal Information</h3>
@@ -2847,6 +2848,23 @@ Interviewer: ${interviewerName}`;
           // disabledReason={!hasEditAccess ? "You do not have edit access" : undefined}
           />
 
+          {/* LR Scheduling Accordion */}
+          <Accordion type="single" collapsible className="w-full mb-2">
+            <AccordionItem value="lr-scheduling" className="border-none">
+              <AccordionTrigger className="w-fit flex-none inline-flex items-center gap-2 bg-pink-50 border border-pink-200 text-pink-700 hover:text-pink-800 hover:bg-pink-100 hover:no-underline py-2 px-4 rounded-md shadow-sm transition-colors">
+                <CalendarIcon className="h-4 w-4" />
+                <span className="font-semibold text-sm">Learning Round Scheduling History</span>
+              </AccordionTrigger>
+              <AccordionContent className="pt-2 pb-4">
+                <ApplicantScheduling 
+                  student={currentApplicant} 
+                  targetRound="LR"
+                  onProfileUpdate={() => setRefreshKey(prev => prev + 1)}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
           {/* Learning & Cultural Fit Rounds */}
           <div className="grid grid-cols-1 gap-4 sm:gap-6">
             <div className="col-span-full w-full">
@@ -2966,6 +2984,25 @@ Interviewer: ${interviewerName}`;
                 }
               />
             </div>
+            {/* CFR Scheduling Accordion */}
+            <div className="col-span-full w-full mt-4">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="cfr-scheduling" className="border-none">
+                  <AccordionTrigger className="w-fit flex-none inline-flex items-center gap-2 bg-pink-50 border border-pink-200 text-pink-700 hover:text-pink-800 hover:bg-pink-100 hover:no-underline py-2 px-4 rounded-md shadow-sm transition-colors">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span className="font-semibold text-sm">Cultural Fit Round Scheduling History</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-2 pb-4">
+                    <ApplicantScheduling 
+                      student={currentApplicant} 
+                      targetRound="CFR"
+                      onProfileUpdate={() => setRefreshKey(prev => prev + 1)}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+
             <div className="col-span-full w-full">
               <InlineSubform
                 key={`cultural-${currentApplicant.id}-${liveScheduleData.length}`}
@@ -3425,8 +3462,8 @@ Interviewer: ${interviewerName}`;
                 </div>
               </div>
             </div>
-        </div>
           </div>
+        </div>
       </DialogContent>
     </Dialog>
 
