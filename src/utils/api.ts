@@ -3684,3 +3684,42 @@ export const getSlotScheduleStats = async (): Promise<any> => {
 
   return data;
 };
+
+// ─── Scheduling Section APIs ───────────────────────────────────────────────────
+
+export const getSchedulingHistory = async (student_id: number | string) => {
+  const response = await fetch(`${BASE_URL}/scheduling/${student_id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to fetch scheduling history");
+  }
+
+  return data;
+};
+
+export const createSchedulingAttempt = async (payload: {
+  student_id: number | string;
+  round: "LR" | "CFR";
+  status: string;
+  remarks?: string;
+  scheduling_method?: string;
+}) => {
+  const response = await fetch(`${BASE_URL}/scheduling/attempt`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create scheduling attempt");
+  }
+
+  return data;
+};
