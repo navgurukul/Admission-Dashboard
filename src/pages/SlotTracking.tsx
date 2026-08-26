@@ -8,6 +8,21 @@ import { getCurrentUser, getAllUsers, getInterviewerStats } from "@/utils/api";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+} from "recharts";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,7 +39,6 @@ import {
   Users,
   Download,
   Sparkles,
-  Layers,
   Filter,
   Calendar,
   FileSpreadsheet,
@@ -32,6 +46,12 @@ import {
   Camera,
   Loader2,
   FileDown,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+  EyeOff,
+  Frown,
+  UserX,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,6 +72,25 @@ interface InterviewerStat {
   not_eligible: number;
 }
 
+interface SlotStatSummary {
+  total_slots?: number;
+  empty_slots?: number;
+  interview_done?: number;
+  pass?: number;
+  fail?: number;
+  reschedule?: number;
+  no_show?: number;
+  disinterested?: number;
+  not_eligible?: number;
+}
+
+interface AllTimeSummary {
+  LR?: SlotStatSummary;
+  CFR?: SlotStatSummary;
+  CRF?: SlotStatSummary;
+  Total?: SlotStatSummary;
+}
+
 interface UserOption {
   id: number;
   name: string;
@@ -68,6 +107,7 @@ interface DateAggregatedRow {
   finalTotalReschedule: number;
   finalTotalNoShow: number;
   finalTotalDisinterested: number;
+  finalTotalNotEligible: number;
   finalTotalSlots: number;
   finalTotalEmpty: number;
 }
@@ -100,35 +140,10 @@ const getThisWeekRange = (): { start: string; end: string } => {
   return { start: formatDateISO(monday), end: formatDateISO(sunday) };
 };
 
-const getLast7DaysRange = (): { start: string; end: string } => {
-  const now = new Date();
-  const past = new Date(now);
-  past.setDate(now.getDate() - 6);
-  return { start: formatDateISO(past), end: formatDateISO(now) };
-};
-
-const getLastWeekRange = (): { start: string; end: string } => {
-  const now = new Date();
-  const day = now.getDay();
-  const diffToMon = (day + 6) % 7;
-  const lastMonday = new Date(now);
-  lastMonday.setDate(now.getDate() - diffToMon - 7);
-  const lastSunday = new Date(lastMonday);
-  lastSunday.setDate(lastMonday.getDate() + 6);
-  return { start: formatDateISO(lastMonday), end: formatDateISO(lastSunday) };
-};
-
 const getThisMonthRange = (): { start: string; end: string } => {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return { start: formatDateISO(firstDay), end: formatDateISO(lastDay) };
-};
-
-const getLastMonthRange = (): { start: string; end: string } => {
-  const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
   return { start: formatDateISO(firstDay), end: formatDateISO(lastDay) };
 };
 
@@ -143,8 +158,7 @@ const formatSheetDate = (dateStr: string): string => {
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ];
     const month = monthNames[d.getMonth()];
-    const year = d.getFullYear();
-    return `${day}-${month}-${year}`;
+    return `${day} ${month}`;
   } catch {
     return dateStr;
   }
@@ -164,7 +178,6 @@ const formatDisplayDate = (dateStr: string): string => {
   }
 };
 
-// Helper to identify slot type
 const isLRType = (type?: string): boolean => {
   if (!type) return false;
   const t = type.trim().toUpperCase();
@@ -177,7 +190,6 @@ const isCRFType = (type?: string): boolean => {
   return t === "CRF" || t === "CFR" || t.includes("CULTURE") || t.includes("CULTURAL");
 };
 
-// Aggregate records by Date
 const aggregateByDate = (items: InterviewerStat[]): DateAggregatedRow[] => {
   const map = new Map<string, DateAggregatedRow>();
 
@@ -192,6 +204,7 @@ const aggregateByDate = (items: InterviewerStat[]): DateAggregatedRow[] => {
       finalTotalReschedule: 0,
       finalTotalNoShow: 0,
       finalTotalDisinterested: 0,
+      finalTotalNotEligible: 0,
       finalTotalSlots: 0,
       finalTotalEmpty: 0,
     };
@@ -202,6 +215,7 @@ const aggregateByDate = (items: InterviewerStat[]): DateAggregatedRow[] => {
     existing.finalTotalReschedule += item.reschedule || 0;
     existing.finalTotalNoShow += item.no_show || 0;
     existing.finalTotalDisinterested += item.disinterested || 0;
+    existing.finalTotalNotEligible += item.not_eligible || 0;
     existing.finalTotalSlots += item.total_slots || 0;
     existing.finalTotalEmpty += item.empty_slots || 0;
 
@@ -222,6 +236,7 @@ const calculateGroupTotal = (rows: DateAggregatedRow[]): DateAggregatedRow => {
       finalTotalReschedule: acc.finalTotalReschedule + r.finalTotalReschedule,
       finalTotalNoShow: acc.finalTotalNoShow + r.finalTotalNoShow,
       finalTotalDisinterested: acc.finalTotalDisinterested + r.finalTotalDisinterested,
+      finalTotalNotEligible: acc.finalTotalNotEligible + r.finalTotalNotEligible,
       finalTotalSlots: acc.finalTotalSlots + r.finalTotalSlots,
       finalTotalEmpty: acc.finalTotalEmpty + r.finalTotalEmpty,
     }),
@@ -234,39 +249,11 @@ const calculateGroupTotal = (rows: DateAggregatedRow[]): DateAggregatedRow => {
       finalTotalReschedule: 0,
       finalTotalNoShow: 0,
       finalTotalDisinterested: 0,
+      finalTotalNotEligible: 0,
       finalTotalSlots: 0,
       finalTotalEmpty: 0,
     }
   );
-};
-
-const extractCounts = (obj: any, dateLabel: string = "All Time"): DateAggregatedRow => {
-  if (!obj || typeof obj !== "object") {
-    return {
-      date: dateLabel,
-      formattedDate: dateLabel,
-      finalTotalDone: 0,
-      finalTotalPass: 0,
-      finalTotalFail: 0,
-      finalTotalReschedule: 0,
-      finalTotalNoShow: 0,
-      finalTotalDisinterested: 0,
-      finalTotalSlots: 0,
-      finalTotalEmpty: 0,
-    };
-  }
-  return {
-    date: dateLabel,
-    formattedDate: dateLabel,
-    finalTotalDone: Number(obj.interview_done ?? obj.finalTotalDone ?? obj.done ?? obj.conducted ?? 0),
-    finalTotalPass: Number(obj.pass ?? obj.finalTotalPass ?? obj.passed ?? 0),
-    finalTotalFail: Number(obj.fail ?? obj.finalTotalFail ?? obj.failed ?? 0),
-    finalTotalReschedule: Number(obj.reschedule ?? obj.finalTotalReschedule ?? obj.rescheduled ?? 0),
-    finalTotalNoShow: Number(obj.no_show ?? obj.finalTotalNoShow ?? obj.noshow ?? 0),
-    finalTotalDisinterested: Number(obj.disinterested ?? obj.finalTotalDisinterested ?? 0),
-    finalTotalSlots: Number(obj.total_slots ?? obj.finalTotalSlots ?? obj.total ?? 0),
-    finalTotalEmpty: Number(obj.empty_slots ?? obj.finalTotalEmpty ?? obj.empty ?? 0),
-  };
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -278,56 +265,31 @@ const SlotTracking = () => {
   const userRole = Number(currentUser?.user_role_id);
   const isAdmin = userRole === 1 || userRole === 3;
 
-  // View scope: "all" for all interviewers (admin only) or "my"
   const [viewScope, setViewScope] = useState<"my" | "all">(isAdmin ? "all" : "my");
+  const [timeMode, setTimeMode] = useState<TimePeriodMode>("weekly");
 
-  // Display mode: "sheet" (Exact Google Sheet style format) vs "detailed"
-  const [displayMode, setDisplayMode] = useState<"sheet" | "detailed">("sheet");
-
-  // Time period mode: daily | weekly | monthly | all_time | custom
-  const [timeMode, setTimeMode] = useState<TimePeriodMode>("daily");
-
-  // Date states
   const [dailyDate, setDailyDate] = useState<string>(getTodayDate());
-
-  const [weeklyPreset, setWeeklyPreset] = useState<"this_week" | "last_7_days" | "last_week">("this_week");
   const [weekRange, setWeekRange] = useState<{ start: string; end: string }>(getThisWeekRange());
-
-  const [monthlyPreset, setMonthlyPreset] = useState<"this_month" | "last_month">("this_month");
   const [monthRange, setMonthRange] = useState<{ start: string; end: string }>(getThisMonthRange());
-
   const [customRange, setCustomRange] = useState<{ start: string; end: string }>({
     start: getTodayDate(),
     end: getTodayDate(),
   });
 
-  // Filter by specific interviewer (when viewScope === "all")
   const [selectedInterviewerId, setSelectedInterviewerId] = useState<string>("");
-
-  // Search filter for detailed table
   const [searchQuery, setSearchQuery] = useState<string>("");
-
-  // Users list for dropdown
   const [usersList, setUsersList] = useState<UserOption[]>([]);
   const [usersLoading, setUsersLoading] = useState<boolean>(false);
 
-  // Stats data
   const [stats, setStats] = useState<InterviewerStat[]>([]);
-  const [allTimeSummary, setAllTimeSummary] = useState<any>(null);
+  const [allTimeSummary, setAllTimeSummary] = useState<AllTimeSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Screenshot & PDF ref and states
   const sheetRef = useRef<HTMLDivElement>(null);
   const [capturingScreenshot, setCapturingScreenshot] = useState<boolean>(false);
   const [generatingPdf, setGeneratingPdf] = useState<boolean>(false);
 
-  // ── Compute current start_date and end_date for API request ──────────────
-
-  const getActiveApiParams = (): {
-    start_date: string;
-    end_date?: string;
-    interviewer_id?: string;
-  } => {
+  const getActiveApiParams = () => {
     let start_date = "";
     let end_date: string | undefined = undefined;
 
@@ -336,52 +298,38 @@ const SlotTracking = () => {
         start_date = dailyDate || getTodayDate();
         end_date = dailyDate || getTodayDate();
         break;
-
       case "weekly":
         start_date = weekRange.start;
         end_date = weekRange.end;
         break;
-
       case "monthly":
         start_date = monthRange.start;
         end_date = monthRange.end;
         break;
-
       case "all_time":
         start_date = "all";
         end_date = undefined;
         break;
-
       case "custom":
         start_date = customRange.start;
         end_date = customRange.end;
         break;
     }
 
-    const params: {
-      start_date: string;
-      end_date?: string;
-      interviewer_id?: string;
-    } = { start_date };
+    const params: { start_date: string; end_date?: string; interviewer_id?: string } = { start_date };
 
     if (end_date && start_date !== "all") {
       params.end_date = end_date;
     }
 
-    if (viewScope === "my") {
-      if (currentUserId) {
-        params.interviewer_id = String(currentUserId);
-      }
-    } else if (viewScope === "all") {
-      if (selectedInterviewerId.trim() && selectedInterviewerId !== "all") {
-        params.interviewer_id = selectedInterviewerId.trim();
-      }
+    if (viewScope === "my" && currentUserId) {
+      params.interviewer_id = String(currentUserId);
+    } else if (viewScope === "all" && selectedInterviewerId.trim() && selectedInterviewerId !== "all") {
+      params.interviewer_id = selectedInterviewerId.trim();
     }
 
     return params;
   };
-
-  // ── Fetch Stats ──────────────────────────────────────────────────────────
 
   const fetchStats = async () => {
     if (viewScope === "my" && !currentUserId) {
@@ -396,67 +344,32 @@ const SlotTracking = () => {
     setLoading(true);
     try {
       const activeParams = getActiveApiParams();
-      // For sheet reporting, we fetch full data
-      const params: Record<string, any> = {
-        ...activeParams,
-        limit: 1000,
-      };
+      const params: Record<string, any> = { ...activeParams, limit: 1000 };
 
       const json = await getInterviewerStats(params);
       if (!json.success && json.success !== undefined) {
         throw new Error(json.message || "API returned failure");
       }
 
-      let summaryObj: any = null;
+      const dataObj = json.data || json;
 
-      // Extract all_time_summary if available
-      if (json.all_time_summary) {
-        summaryObj = json.all_time_summary;
-      } else if (json.data && json.data.all_time_summary) {
-        summaryObj = json.data.all_time_summary;
-      } else if (json.summary) {
-        summaryObj = json.summary;
-      } else if (json.data && json.data.summary) {
-        summaryObj = json.data.summary;
+      if (
+        dataObj &&
+        typeof dataObj === "object" &&
+        !Array.isArray(dataObj) &&
+        (dataObj.LR || dataObj.CFR || dataObj.CRF || dataObj.Total)
+      ) {
+        setAllTimeSummary(dataObj as AllTimeSummary);
+        setStats([]);
+      } else {
+        setAllTimeSummary(null);
+        let items: InterviewerStat[] = [];
+        if (Array.isArray(json.data)) items = json.data;
+        else if (json.data && Array.isArray(json.data.records)) items = json.data.records;
+        else if (json.data && Array.isArray(json.data.data)) items = json.data.data;
+        else if (Array.isArray(json.records)) items = json.records;
+        setStats(items);
       }
-
-      // Check if json.data itself is an object containing summary keys when not an array
-      if (!summaryObj && json.data && typeof json.data === "object" && !Array.isArray(json.data)) {
-        if (
-          json.data.LR ||
-          json.data.CFR ||
-          json.data.CRF ||
-          json.data.Total ||
-          json.data.interview_done !== undefined ||
-          json.data.total_slots !== undefined
-        ) {
-          summaryObj = json.data;
-        }
-      }
-
-      if (!summaryObj && typeof json === "object" && !Array.isArray(json)) {
-        if (json.LR || json.CFR || json.CRF || json.Total) {
-          summaryObj = json;
-        }
-      }
-
-      setAllTimeSummary(summaryObj);
-
-      let items: InterviewerStat[] = [];
-
-      if (Array.isArray(json.data)) {
-        items = json.data;
-      } else if (json.data && Array.isArray(json.data.records)) {
-        items = json.data.records;
-      } else if (json.data && Array.isArray(json.data.data)) {
-        items = json.data.data;
-      } else if (Array.isArray(json.records)) {
-        items = json.records;
-      } else if (Array.isArray(summaryObj)) {
-        items = summaryObj;
-      }
-
-      setStats(items);
     } catch (err: any) {
       console.error("SlotTracking fetch error:", err);
       toast({
@@ -486,8 +399,6 @@ const SlotTracking = () => {
     selectedInterviewerId,
   ]);
 
-  // ── Fetch Users for dropdown ─────────────────────────────────────────────
-
   useEffect(() => {
     const fetchUsers = async () => {
       setUsersLoading(true);
@@ -503,97 +414,113 @@ const SlotTracking = () => {
         setUsersLoading(false);
       }
     };
-    if (isAdmin) {
-      fetchUsers();
-    }
+    if (isAdmin) fetchUsers();
   }, [isAdmin]);
 
-  // ── Sheet Format Calculations ────────────────────────────────────────────
+  // ── Sheet Calculations ───────────────────────────────────────────────────
 
-  // 1. Learning Rounds Online (LR)
   const lrItems = useMemo(() => stats.filter((s) => isLRType(s.slot_type)), [stats]);
-
   const lrDateRows = useMemo(() => {
-    if (timeMode === "all_time" && allTimeSummary) {
-      const lrObj =
-        allTimeSummary.LR ||
-        allTimeSummary.lr ||
-        allTimeSummary.learning_rounds ||
-        allTimeSummary["Learning Rounds"];
-      if (lrObj) {
-        return [extractCounts(lrObj, "All Time")];
-      }
+    if (allTimeSummary?.LR) {
+      const lr = allTimeSummary.LR;
+      return [
+        {
+          date: "All Time",
+          formattedDate: "All Time",
+          finalTotalDone: lr.interview_done || 0,
+          finalTotalPass: lr.pass || 0,
+          finalTotalFail: lr.fail || 0,
+          finalTotalReschedule: lr.reschedule || 0,
+          finalTotalNoShow: lr.no_show || 0,
+          finalTotalDisinterested: lr.disinterested || 0,
+          finalTotalNotEligible: lr.not_eligible || 0,
+          finalTotalSlots: lr.total_slots || 0,
+          finalTotalEmpty: lr.empty_slots || 0,
+        },
+      ];
     }
     return aggregateByDate(lrItems);
-  }, [lrItems, timeMode, allTimeSummary]);
+  }, [allTimeSummary, lrItems]);
 
   const lrTotalRow = useMemo(() => {
-    if (timeMode === "all_time" && allTimeSummary) {
-      const lrObj =
-        allTimeSummary.LR ||
-        allTimeSummary.lr ||
-        allTimeSummary.learning_rounds ||
-        allTimeSummary["Learning Rounds"];
-      if (lrObj) return extractCounts(lrObj, "Total");
+    if (allTimeSummary?.LR) {
+      const lr = allTimeSummary.LR;
+      return {
+        date: "Total",
+        formattedDate: "Total",
+        finalTotalDone: lr.interview_done || 0,
+        finalTotalPass: lr.pass || 0,
+        finalTotalFail: lr.fail || 0,
+        finalTotalReschedule: lr.reschedule || 0,
+        finalTotalNoShow: lr.no_show || 0,
+        finalTotalDisinterested: lr.disinterested || 0,
+        finalTotalNotEligible: lr.not_eligible || 0,
+        finalTotalSlots: lr.total_slots || 0,
+        finalTotalEmpty: lr.empty_slots || 0,
+      };
     }
     return calculateGroupTotal(lrDateRows);
-  }, [lrDateRows, timeMode, allTimeSummary]);
+  }, [allTimeSummary, lrDateRows]);
 
-  // 2. Culture-Fit Rounds Online (CFR / CRF)
   const crfItems = useMemo(() => stats.filter((s) => isCRFType(s.slot_type)), [stats]);
-
   const crfDateRows = useMemo(() => {
-    if (timeMode === "all_time" && allTimeSummary) {
-      const crfObj =
-        allTimeSummary.CFR ||
-        allTimeSummary.CRF ||
-        allTimeSummary.crf ||
-        allTimeSummary.cfr ||
-        allTimeSummary.culture_fit_rounds ||
-        allTimeSummary["Culture-Fit Rounds"];
-      if (crfObj) {
-        return [extractCounts(crfObj, "All Time")];
-      }
+    const cfr = allTimeSummary?.CFR || allTimeSummary?.CRF;
+    if (cfr) {
+      return [
+        {
+          date: "All Time",
+          formattedDate: "All Time",
+          finalTotalDone: cfr.interview_done || 0,
+          finalTotalPass: cfr.pass || 0,
+          finalTotalFail: cfr.fail || 0,
+          finalTotalReschedule: cfr.reschedule || 0,
+          finalTotalNoShow: cfr.no_show || 0,
+          finalTotalDisinterested: cfr.disinterested || 0,
+          finalTotalNotEligible: cfr.not_eligible || 0,
+          finalTotalSlots: cfr.total_slots || 0,
+          finalTotalEmpty: cfr.empty_slots || 0,
+        },
+      ];
     }
     return aggregateByDate(crfItems);
-  }, [crfItems, timeMode, allTimeSummary]);
+  }, [allTimeSummary, crfItems]);
 
   const crfTotalRow = useMemo(() => {
-    if (timeMode === "all_time" && allTimeSummary) {
-      const crfObj =
-        allTimeSummary.CFR ||
-        allTimeSummary.CRF ||
-        allTimeSummary.crf ||
-        allTimeSummary.cfr ||
-        allTimeSummary.culture_fit_rounds ||
-        allTimeSummary["Culture-Fit Rounds"];
-      if (crfObj) return extractCounts(crfObj, "Total");
+    const cfr = allTimeSummary?.CFR || allTimeSummary?.CRF;
+    if (cfr) {
+      return {
+        date: "Total",
+        formattedDate: "Total",
+        finalTotalDone: cfr.interview_done || 0,
+        finalTotalPass: cfr.pass || 0,
+        finalTotalFail: cfr.fail || 0,
+        finalTotalReschedule: cfr.reschedule || 0,
+        finalTotalNoShow: cfr.no_show || 0,
+        finalTotalDisinterested: cfr.disinterested || 0,
+        finalTotalNotEligible: cfr.not_eligible || 0,
+        finalTotalSlots: cfr.total_slots || 0,
+        finalTotalEmpty: cfr.empty_slots || 0,
+      };
     }
     return calculateGroupTotal(crfDateRows);
-  }, [crfDateRows, timeMode, allTimeSummary]);
+  }, [allTimeSummary, crfDateRows]);
 
-  // 3. Total Interviews (CFR + LR) Grand Total
   const grandTotalRow = useMemo((): DateAggregatedRow => {
-    if (timeMode === "all_time" && allTimeSummary) {
-      const totalObj =
-        allTimeSummary.Total ||
-        allTimeSummary.total ||
-        allTimeSummary.grand_total ||
-        allTimeSummary.all_time_summary;
-      if (
-        totalObj &&
-        (totalObj.interview_done !== undefined ||
-          totalObj.total_slots !== undefined ||
-          totalObj.finalTotalDone !== undefined)
-      ) {
-        return extractCounts(totalObj, "Total");
-      }
-      if (
-        allTimeSummary.interview_done !== undefined ||
-        allTimeSummary.total_slots !== undefined
-      ) {
-        return extractCounts(allTimeSummary, "Total");
-      }
+    if (allTimeSummary?.Total) {
+      const tot = allTimeSummary.Total;
+      return {
+        date: "Total",
+        formattedDate: "Total",
+        finalTotalDone: tot.interview_done || 0,
+        finalTotalPass: tot.pass || 0,
+        finalTotalFail: tot.fail || 0,
+        finalTotalReschedule: tot.reschedule || 0,
+        finalTotalNoShow: tot.no_show || 0,
+        finalTotalDisinterested: tot.disinterested || 0,
+        finalTotalNotEligible: tot.not_eligible || 0,
+        finalTotalSlots: tot.total_slots || 0,
+        finalTotalEmpty: tot.empty_slots || 0,
+      };
     }
     return {
       date: "Total",
@@ -604,1181 +531,613 @@ const SlotTracking = () => {
       finalTotalReschedule: lrTotalRow.finalTotalReschedule + crfTotalRow.finalTotalReschedule,
       finalTotalNoShow: lrTotalRow.finalTotalNoShow + crfTotalRow.finalTotalNoShow,
       finalTotalDisinterested: lrTotalRow.finalTotalDisinterested + crfTotalRow.finalTotalDisinterested,
+      finalTotalNotEligible: lrTotalRow.finalTotalNotEligible + crfTotalRow.finalTotalNotEligible,
       finalTotalSlots: lrTotalRow.finalTotalSlots + crfTotalRow.finalTotalSlots,
       finalTotalEmpty: lrTotalRow.finalTotalEmpty + crfTotalRow.finalTotalEmpty,
     };
-  }, [lrTotalRow, crfTotalRow, timeMode, allTimeSummary]);
+  }, [allTimeSummary, lrTotalRow, crfTotalRow]);
 
-  // Date-wise combined rows for Total Interviews CFR + LR
-  const combinedDateRows = useMemo(() => {
-    const datesSet = new Set<string>();
-    lrDateRows.forEach((r) => datesSet.add(r.date));
-    crfDateRows.forEach((r) => datesSet.add(r.date));
+  // ── Chart Datasets ────────────────────────────────────────────────────────
 
-    const sortedDates = Array.from(datesSet).sort((a, b) => a.localeCompare(b));
+  const trendData = useMemo(() => {
+    const datesMap = new Map<string, { date: string; LR: number; CFR: number }>();
 
-    return sortedDates.map((d) => {
-      const lr = lrDateRows.find((r) => r.date === d);
-      const crf = crfDateRows.find((r) => r.date === d);
-
-      return {
-        date: d,
-        formattedDate: formatSheetDate(d),
-        finalTotalDone: (lr?.finalTotalDone || 0) + (crf?.finalTotalDone || 0),
-        finalTotalPass: (lr?.finalTotalPass || 0) + (crf?.finalTotalPass || 0),
-        finalTotalFail: (lr?.finalTotalFail || 0) + (crf?.finalTotalFail || 0),
-        finalTotalReschedule: (lr?.finalTotalReschedule || 0) + (crf?.finalTotalReschedule || 0),
-        finalTotalNoShow: (lr?.finalTotalNoShow || 0) + (crf?.finalTotalNoShow || 0),
-        finalTotalDisinterested: (lr?.finalTotalDisinterested || 0) + (crf?.finalTotalDisinterested || 0),
-        finalTotalSlots: (lr?.finalTotalSlots || 0) + (crf?.finalTotalSlots || 0),
-        finalTotalEmpty: (lr?.finalTotalEmpty || 0) + (crf?.finalTotalEmpty || 0),
-      };
+    lrDateRows.forEach((r) => {
+      if (r.date === "Total" || r.date === "All Time") return;
+      const key = r.date;
+      const formatted = r.formattedDate;
+      const cur = datesMap.get(key) || { date: formatted, LR: 0, CFR: 0 };
+      cur.LR += r.finalTotalDone;
+      datesMap.set(key, cur);
     });
+
+    crfDateRows.forEach((r) => {
+      if (r.date === "Total" || r.date === "All Time") return;
+      const key = r.date;
+      const formatted = r.formattedDate;
+      const cur = datesMap.get(key) || { date: formatted, LR: 0, CFR: 0 };
+      cur.CFR += r.finalTotalDone;
+      datesMap.set(key, cur);
+    });
+
+    return Array.from(datesMap.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [lrDateRows, crfDateRows]);
+
+  const pieData = useMemo(() => {
+    const raw = [
+      { name: "Pass", value: grandTotalRow.finalTotalPass, color: "#16A34A" },
+      { name: "Fail", value: grandTotalRow.finalTotalFail, color: "#DC2626" },
+      { name: "Reschedule", value: grandTotalRow.finalTotalReschedule, color: "#EA580C" },
+      { name: "No Show", value: grandTotalRow.finalTotalNoShow, color: "#6B7280" },
+      { name: "Disinterested", value: grandTotalRow.finalTotalDisinterested, color: "#EAB308" },
+      { name: "Not Eligible", value: grandTotalRow.finalTotalNotEligible, color: "#EC4899" },
+    ];
+    return raw;
+  }, [grandTotalRow]);
+
+  const barData = useMemo(() => {
+    return [
+      { name: "LR", done: lrTotalRow.finalTotalDone, fill: "#3B82F6" },
+      { name: "CFR", done: crfTotalRow.finalTotalDone, fill: "#22C55E" },
+    ];
+  }, [lrTotalRow, crfTotalRow]);
 
   // ── CSV Export ───────────────────────────────────────────────────────────
 
   const handleExportCSV = () => {
     const csvLines: string[] = [];
+    csvLines.push("Performance Summary Report");
+    csvLines.push(`Period: ${timeMode.toUpperCase()}`);
+    csvLines.push("");
 
-    // Section 1: Learning Rounds Online
-    csvLines.push(`,,,Learning Rounds Online,,,,,`);
+    csvLines.push("Round,Total Slots,Interviews Done,Pass,Fail,Reschedule,No Show,Disinterested,Not Eligible,Empty Slots");
     csvLines.push(
-      [
-        "Dates",
-        "Final Total Done",
-        "Final Total Pass",
-        "Final Total Fail",
-        "Final Total Reschedule",
-        "Final Total No Show",
-        "Final Total Disinterested",
-        "Final Total Slots",
-        "Final Total Empty",
-      ].join(",")
-    );
-    lrDateRows.forEach((r) => {
-      csvLines.push(
-        [
-          `"${r.formattedDate}"`,
-          r.finalTotalDone,
-          r.finalTotalPass,
-          r.finalTotalFail,
-          r.finalTotalReschedule,
-          r.finalTotalNoShow,
-          r.finalTotalDisinterested,
-          r.finalTotalSlots,
-          r.finalTotalEmpty,
-        ].join(",")
-      );
-    });
-    csvLines.push(
-      [
-        "Total",
-        lrTotalRow.finalTotalDone,
-        lrTotalRow.finalTotalPass,
-        lrTotalRow.finalTotalFail,
-        lrTotalRow.finalTotalReschedule,
-        lrTotalRow.finalTotalNoShow,
-        lrTotalRow.finalTotalDisinterested,
-        lrTotalRow.finalTotalSlots,
-        lrTotalRow.finalTotalEmpty,
-      ].join(",")
-    );
-    csvLines.push(""); // empty row
-
-    // Section 2: Culture-Fit Rounds Online
-    csvLines.push(`,,,Culture-Fit Rounds Online,,,,,`);
-    csvLines.push(
-      [
-        "Date",
-        "Final Total Done",
-        "Final Total Pass",
-        "Final Total Fail",
-        "Final Total Reschedule",
-        "Final Total No Show",
-        "Final Total Disinterested",
-        "Final Total Slots",
-        "Final Total Empty",
-      ].join(",")
-    );
-    crfDateRows.forEach((r) => {
-      csvLines.push(
-        [
-          `"${r.formattedDate}"`,
-          r.finalTotalDone,
-          r.finalTotalPass,
-          r.finalTotalFail,
-          r.finalTotalReschedule,
-          r.finalTotalNoShow,
-          r.finalTotalDisinterested,
-          r.finalTotalSlots,
-          r.finalTotalEmpty,
-        ].join(",")
-      );
-    });
-    csvLines.push(
-      [
-        "Total",
-        crfTotalRow.finalTotalDone,
-        crfTotalRow.finalTotalPass,
-        crfTotalRow.finalTotalFail,
-        crfTotalRow.finalTotalReschedule,
-        crfTotalRow.finalTotalNoShow,
-        crfTotalRow.finalTotalDisinterested,
-        crfTotalRow.finalTotalSlots,
-        crfTotalRow.finalTotalEmpty,
-      ].join(",")
-    );
-    csvLines.push(""); // empty row
-
-    // Section 3: Total Interviews (CFR + LR)
-    csvLines.push(`,,,Total Interviews (CFR + LR),,,,,`);
-    csvLines.push(
-      [
-        "",
-        "Final Total Done",
-        "Final Total Pass",
-        "Final Total Fail",
-        "Final Total Reschedule",
-        "Final Total No Show",
-        "Final Total Disinterested",
-        "Final Total Slots",
-        "Final Total Empty",
-      ].join(",")
+      `LR,${lrTotalRow.finalTotalSlots},${lrTotalRow.finalTotalDone},${lrTotalRow.finalTotalPass},${lrTotalRow.finalTotalFail},${lrTotalRow.finalTotalReschedule},${lrTotalRow.finalTotalNoShow},${lrTotalRow.finalTotalDisinterested},${lrTotalRow.finalTotalNotEligible},${lrTotalRow.finalTotalEmpty}`
     );
     csvLines.push(
-      [
-        "",
-        grandTotalRow.finalTotalDone,
-        grandTotalRow.finalTotalPass,
-        grandTotalRow.finalTotalFail,
-        grandTotalRow.finalTotalReschedule,
-        grandTotalRow.finalTotalNoShow,
-        grandTotalRow.finalTotalDisinterested,
-        grandTotalRow.finalTotalSlots,
-        grandTotalRow.finalTotalEmpty,
-      ].join(",")
+      `CFR,${crfTotalRow.finalTotalSlots},${crfTotalRow.finalTotalDone},${crfTotalRow.finalTotalPass},${crfTotalRow.finalTotalFail},${crfTotalRow.finalTotalReschedule},${crfTotalRow.finalTotalNoShow},${crfTotalRow.finalTotalDisinterested},${crfTotalRow.finalTotalNotEligible},${crfTotalRow.finalTotalEmpty}`
+    );
+    csvLines.push(
+      `Total,${grandTotalRow.finalTotalSlots},${grandTotalRow.finalTotalDone},${grandTotalRow.finalTotalPass},${grandTotalRow.finalTotalFail},${grandTotalRow.finalTotalReschedule},${grandTotalRow.finalTotalNoShow},${grandTotalRow.finalTotalDisinterested},${grandTotalRow.finalTotalNotEligible},${grandTotalRow.finalTotalEmpty}`
     );
 
     const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `slot-sheet-report-${timeMode}-${formatDateISO(new Date())}.csv`);
+    link.setAttribute("download", `reports-${timeMode}-${formatDateISO(new Date())}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
     toast({
-      title: "✅ Sheet Exported",
-      description: "Downloaded spreadsheet report as CSV file.",
+      title: "✅ Report Exported",
+      description: "Downloaded summary report as CSV file.",
     });
   };
 
-  // ── Screenshot Capture ───────────────────────────────────────────────────
-
-  const handleTakeScreenshot = async () => {
-    if (!sheetRef.current) return;
-    setCapturingScreenshot(true);
-
-    try {
-      // Small pause to ensure layout is ready
-      await new Promise((resolve) => setTimeout(resolve, 120));
-
-      const isDark = document.documentElement.classList.contains("dark");
-      const dataUrl = await toPng(sheetRef.current, {
-        quality: 1,
-        pixelRatio: 2, // Crisp 2x retina screenshot
-        backgroundColor: isDark ? "#09090b" : "#ffffff",
-        cacheBust: true,
-      });
-
-      const link = document.createElement("a");
-      link.download = `slot-tracking-sheet-${timeMode}-${formatDateISO(new Date())}.png`;
-      link.href = dataUrl;
-      link.click();
-
-      toast({
-        title: "📸 Screenshot Downloaded",
-        description: "Slot tracking report screenshot saved as high-resolution PNG image.",
-      });
-    } catch (error: any) {
-      console.error("Screenshot error:", error);
-      toast({
-        title: "❌ Failed to take screenshot",
-        description: error?.message || "Could not capture image",
-        variant: "destructive",
-      });
-    } finally {
-      setCapturingScreenshot(false);
-    }
-  };
-
-  // ── PDF Download ─────────────────────────────────────────────────────────
-
-  const handleDownloadPDF = async () => {
-    if (!sheetRef.current) return;
-    setGeneratingPdf(true);
-
-    try {
-      // Small pause to ensure layout is ready
-      await new Promise((resolve) => setTimeout(resolve, 120));
-
-      const isDark = document.documentElement.classList.contains("dark");
-      const dataUrl = await toPng(sheetRef.current, {
-        quality: 1,
-        pixelRatio: 2, // 2x high resolution
-        backgroundColor: isDark ? "#09090b" : "#ffffff",
-        cacheBust: true,
-      });
-
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise((resolve, reject) => {
-        img.onload = () => resolve(true);
-        img.onerror = (e) => reject(e);
-      });
-
-      // Landscape A4 orientation for table spreadsheets
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth(); // 297mm
-      const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
-      const margin = 8;
-      const maxContentWidth = pageWidth - margin * 2;
-      const maxContentHeight = pageHeight - margin * 2;
-
-      const imgWidth = maxContentWidth;
-      const imgHeight = (img.height * imgWidth) / img.width;
-
-      if (imgHeight <= maxContentHeight) {
-        // Fits comfortably on single page
-        pdf.addImage(dataUrl, "PNG", margin, margin, imgWidth, imgHeight);
-      } else {
-        // Handle multi-page pagination smoothly
-        let heightLeft = imgHeight;
-        let position = margin;
-
-        pdf.addImage(dataUrl, "PNG", margin, position, imgWidth, imgHeight);
-        heightLeft -= maxContentHeight;
-
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight + margin;
-          pdf.addPage();
-          pdf.addImage(dataUrl, "PNG", margin, position, imgWidth, imgHeight);
-          heightLeft -= maxContentHeight;
-        }
-      }
-
-      pdf.save(`slot-tracking-sheet-${timeMode}-${formatDateISO(new Date())}.pdf`);
-
-      toast({
-        title: "📄 PDF Downloaded",
-        description: "Slot tracking report saved as a PDF document.",
-      });
-    } catch (error: any) {
-      console.error("PDF download error:", error);
-      toast({
-        title: "❌ Failed to download PDF",
-        description: error?.message || "Could not generate PDF file",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingPdf(false);
-    }
-  };
-
-  // Active Date Filter Text
-  const getActiveFilterLabel = () => {
-    switch (timeMode) {
-      case "daily":
-        return `Daily: ${formatDisplayDate(dailyDate)}`;
-      case "weekly":
-        return `Weekly: ${formatDisplayDate(weekRange.start)} – ${formatDisplayDate(weekRange.end)}`;
-      case "monthly":
-        return `Monthly: ${formatDisplayDate(monthRange.start)} – ${formatDisplayDate(monthRange.end)}`;
-      case "all_time":
-        return "All-Time Historical History";
-      case "custom":
-        return `Custom: ${formatDisplayDate(customRange.start)} – ${formatDisplayDate(customRange.end)}`;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex font-sans text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-zinc-950 flex font-sans text-slate-900 dark:text-slate-100">
       <AdmissionsSidebar />
 
-      <main className="md:ml-64 flex-1 p-3 sm:p-6 overflow-y-auto h-screen">
-        <div className="max-w-[1550px] mx-auto space-y-4 mt-12 md:mt-0">
+      <main className="md:ml-64 flex-1 p-4 sm:p-6 overflow-y-auto h-screen">
+        <div ref={sheetRef} className="max-w-[1550px] mx-auto space-y-5 mt-12 md:mt-0 pb-12">
 
-          {/* ── Page Header ── */}
-          <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center font-bold">
-                  <FileSpreadsheet className="w-5 h-5" />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                    Slot Tracking & Performance Sheet
-                  </h1>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    Learning Rounds (Online), Culture-Fit Rounds (Online), and Total Combined (CFR + LR) stats.
-                  </p>
-                </div>
-              </div>
+          {/* ── Page Header Bar ── */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                Reports
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {timeMode === "daily" && "Daily performance report for all interviews"}
+                {timeMode === "weekly" && "Weekly performance report for all interviews"}
+                {timeMode === "monthly" && "Monthly performance report for all interviews"}
+                {timeMode === "all_time" && "All-time performance overview for all interviews"}
+                {timeMode === "custom" && "Custom date range performance report"}
+              </p>
+            </div>
 
-              {/* View Scope & Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                {/* View Mode Switcher: Sheet vs Detailed */}
-                <div className="inline-flex p-1 bg-muted/80 rounded-xl border border-border">
-                  <button
-                    onClick={() => setDisplayMode("sheet")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${displayMode === "sheet"
-                        ? "bg-background text-foreground shadow-sm font-semibold"
-                        : "text-muted-foreground hover:text-foreground"
-                      }`}
-                  >
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-amber-600" />
-                    Sheet View
-                  </button>
-                  <button
-                    onClick={() => setDisplayMode("detailed")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${displayMode === "detailed"
-                        ? "bg-background text-foreground shadow-sm font-semibold"
-                        : "text-muted-foreground hover:text-foreground"
-                      }`}
-                  >
-                    <TableIcon className="w-3.5 h-3.5 text-indigo-500" />
-                    Interviewer Records
-                  </button>
-                </div>
-
-                {/* Scope Switcher (Admin Only) */}
-                {isAdmin ? (
-                  <div className="inline-flex p-1 bg-muted/80 rounded-xl border border-border">
-                    <button
-                      onClick={() => setViewScope("all")}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${viewScope === "all"
-                          ? "bg-background text-foreground shadow-sm font-semibold"
-                          : "text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                      <Users className="w-3.5 h-3.5 text-indigo-500" />
-                      All Interviewers
-                    </button>
-                    <button
-                      onClick={() => setViewScope("my")}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${viewScope === "my"
-                          ? "bg-background text-foreground shadow-sm font-semibold"
-                          : "text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                      <User className="w-3.5 h-3.5 text-blue-500" />
-                      My Stats
-                    </button>
-                  </div>
-                ) : (
-                  <Badge variant="secondary" className="px-3 py-1.5 text-xs gap-1.5 bg-blue-50 text-blue-700 border-blue-200">
-                    <User className="w-3.5 h-3.5" />
-                    My Performance
-                  </Badge>
-                )}
-
-                {/* Download PDF Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadPDF}
-                  disabled={generatingPdf || loading || stats.length === 0}
-                  className="h-9 gap-1.5 text-xs font-medium shadow-sm hover:bg-muted text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/60"
+            {/* Top Right Action Pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              {isAdmin && (
+                <Select
+                  value={selectedInterviewerId || "all"}
+                  onValueChange={(val) => setSelectedInterviewerId(val === "all" ? "" : val)}
+                  disabled={usersLoading}
                 >
-                  {generatingPdf ? (
-                    <Loader2 className="w-3.5 h-3.5 text-rose-600 animate-spin" />
-                  ) : (
-                    <FileDown className="w-3.5 h-3.5 text-rose-600" />
-                  )}
-                  {generatingPdf ? "Generating..." : "Download PDF"}
-                </Button>
+                  <SelectTrigger className="h-9 text-xs w-[180px] bg-white dark:bg-zinc-900 border-slate-200">
+                    <SelectValue placeholder={usersLoading ? "Loading..." : "All Interviewers"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Interviewers</SelectItem>
+                    {usersList.map((u) => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
-                {/* Screenshot Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTakeScreenshot}
-                  disabled={capturingScreenshot || loading || stats.length === 0}
-                  className="h-9 gap-1.5 text-xs font-medium shadow-sm hover:bg-muted text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60"
-                >
-                  {capturingScreenshot ? (
-                    <Loader2 className="w-3.5 h-3.5 text-purple-600 animate-spin" />
-                  ) : (
-                    <Camera className="w-3.5 h-3.5 text-purple-600" />
-                  )}
-                  {capturingScreenshot ? "Capturing..." : "Screenshot"}
-                </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewScope(viewScope === "all" ? "my" : "all")}
+                className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-zinc-900 border-slate-200"
+              >
+                <User className="w-3.5 h-3.5 text-slate-600" />
+                {viewScope === "all" ? "All Interviewers" : "My Stats"}
+              </Button>
 
-                {/* Export CSV */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportCSV}
-                  disabled={loading || stats.length === 0}
-                  className="h-9 gap-1.5 text-xs font-medium shadow-sm hover:bg-muted"
-                >
-                  <Download className="w-3.5 h-3.5 text-emerald-600" />
-                  Export Sheet
-                </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setTimeMode("daily");
+                  setDailyDate(getTodayDate());
+                }}
+                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${
+                  timeMode === "daily"
+                    ? "bg-[#E11D48] hover:bg-[#BE123C] text-white"
+                    : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                Today's Slots
+              </Button>
 
-                {/* Refresh */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchStats}
-                  disabled={loading}
-                  className="h-9 gap-1.5 text-xs font-medium shadow-sm hover:bg-muted"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-primary ${loading ? "animate-spin" : ""}`} />
-                  Refresh
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                onClick={() => setTimeMode("weekly")}
+                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${
+                  timeMode === "weekly" || timeMode === "monthly"
+                    ? "bg-slate-900 dark:bg-zinc-800 text-white"
+                    : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
+                }`}
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+                Reports
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTimeMode("all_time")}
+                className={`h-9 gap-1.5 text-xs font-medium border-slate-200 ${
+                  timeMode === "all_time" ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-white dark:bg-zinc-900"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                View All
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchStats}
+                disabled={loading}
+                className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-zinc-900 border-slate-200"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                disabled={loading}
+                className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-zinc-900 border-slate-200 shadow-sm"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-700" />
+                Export
+              </Button>
             </div>
           </div>
 
-          {/* ── Time Period & Date Range Filter Bar ── */}
-          <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-            {/* Filter Mode Tabs */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-                <button
-                  onClick={() => setTimeMode("daily")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${timeMode === "daily"
-                      ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                      : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  Daily
-                </button>
-
-                <button
-                  onClick={() => setTimeMode("weekly")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${timeMode === "weekly"
-                      ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                      : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                >
-                  <CalendarRange className="w-3.5 h-3.5" />
-                  Weekly
-                </button>
-
-                <button
-                  onClick={() => setTimeMode("monthly")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${timeMode === "monthly"
-                      ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                      : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                >
-                  <CalendarDays className="w-3.5 h-3.5" />
-                  Monthly
-                </button>
-
-                <button
-                  onClick={() => setTimeMode("all_time")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${timeMode === "all_time"
-                      ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                      : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  All-Time
-                </button>
-
-                <button
-                  onClick={() => setTimeMode("custom")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${timeMode === "custom"
-                      ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                      : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
-                >
-                  <Filter className="w-3.5 h-3.5" />
-                  Custom Range
-                </button>
-              </div>
-
-              {/* Status Badge */}
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs px-2.5 py-1 font-medium bg-muted/40 border-border">
-                  Active: <span className="font-semibold text-foreground ml-1">{getActiveFilterLabel()}</span>
-                </Badge>
-              </div>
+          {/* ── Tabs & Filter Controls Bar ── */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-4">
+            {/* Tabs */}
+            <div className="border-b border-slate-200 dark:border-zinc-800 flex items-center gap-8 text-sm font-medium">
+              <button
+                onClick={() => setTimeMode("daily")}
+                className={`pb-2.5 transition-all relative ${
+                  timeMode === "daily"
+                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                }`}
+              >
+                Daily
+              </button>
+              <button
+                onClick={() => setTimeMode("weekly")}
+                className={`pb-2.5 transition-all relative ${
+                  timeMode === "weekly"
+                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                }`}
+              >
+                Weekly
+              </button>
+              <button
+                onClick={() => setTimeMode("monthly")}
+                className={`pb-2.5 transition-all relative ${
+                  timeMode === "monthly"
+                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                }`}
+              >
+                Monthly
+              </button>
             </div>
 
-            {/* Mode-specific Controls & Presets */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-              {/* Daily Mode Controls */}
+            {/* Date selector row */}
+            <div className="flex flex-wrap items-center gap-3">
               {timeMode === "daily" && (
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-lg border border-border">
-                    <Button
-                      size="sm"
-                      variant={dailyDate === getTodayDate() ? "default" : "ghost"}
-                      onClick={() => setDailyDate(getTodayDate())}
-                      className="h-7 text-xs px-3"
-                    >
-                      Today
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={dailyDate === getYesterdayDate() ? "default" : "ghost"}
-                      onClick={() => setDailyDate(getYesterdayDate())}
-                      className="h-7 text-xs px-3"
-                    >
-                      Yesterday
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground font-medium">Select Date:</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-slate-500">Date</span>
+                  <div className="relative">
                     <Input
                       type="date"
                       value={dailyDate}
                       onChange={(e) => setDailyDate(e.target.value)}
-                      className="h-8 text-xs w-[150px] bg-background"
+                      className="h-9 text-xs w-[180px] bg-white dark:bg-zinc-900 border-slate-200 pr-8"
                     />
+                    <Calendar className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
+                  <Button
+                    size="sm"
+                    onClick={fetchStats}
+                    className="h-9 px-4 text-xs font-medium bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-lg"
+                  >
+                    Apply
+                  </Button>
                 </div>
               )}
 
-              {/* Weekly Mode Controls */}
               {timeMode === "weekly" && (
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-lg border border-border">
-                    <Button
-                      size="sm"
-                      variant={weeklyPreset === "this_week" ? "default" : "ghost"}
-                      onClick={() => {
-                        setWeeklyPreset("this_week");
-                        setWeekRange(getThisWeekRange());
-                      }}
-                      className="h-7 text-xs px-3"
-                    >
-                      This Week
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={weeklyPreset === "last_7_days" ? "default" : "ghost"}
-                      onClick={() => {
-                        setWeeklyPreset("last_7_days");
-                        setWeekRange(getLast7DaysRange());
-                      }}
-                      className="h-7 text-xs px-3"
-                    >
-                      Last 7 Days
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={weeklyPreset === "last_week" ? "default" : "ghost"}
-                      onClick={() => {
-                        setWeeklyPreset("last_week");
-                        setWeekRange(getLastWeekRange());
-                      }}
-                      className="h-7 text-xs px-3"
-                    >
-                      Last Week
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground font-medium">Range:</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-slate-500">Week</span>
+                  <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
                     <Input
                       type="date"
                       value={weekRange.start}
-                      onChange={(e) => {
-                        setWeeklyPreset("this_week");
-                        setWeekRange((prev) => ({ ...prev, start: e.target.value }));
-                      }}
-                      className="h-8 text-xs w-[140px] bg-background"
+                      onChange={(e) => setWeekRange((prev) => ({ ...prev, start: e.target.value }))}
+                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
                     />
-                    <span className="text-xs text-muted-foreground">to</span>
+                    <span className="text-xs text-slate-400">-</span>
                     <Input
                       type="date"
                       value={weekRange.end}
-                      onChange={(e) => {
-                        setWeeklyPreset("this_week");
-                        setWeekRange((prev) => ({ ...prev, end: e.target.value }));
-                      }}
-                      className="h-8 text-xs w-[140px] bg-background"
+                      onChange={(e) => setWeekRange((prev) => ({ ...prev, end: e.target.value }))}
+                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
                     />
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   </div>
+                  <Button
+                    size="sm"
+                    onClick={fetchStats}
+                    className="h-9 px-4 text-xs font-medium bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-lg"
+                  >
+                    Apply
+                  </Button>
                 </div>
               )}
 
-              {/* Monthly Mode Controls */}
               {timeMode === "monthly" && (
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-lg border border-border">
-                    <Button
-                      size="sm"
-                      variant={monthlyPreset === "this_month" ? "default" : "ghost"}
-                      onClick={() => {
-                        setMonthlyPreset("this_month");
-                        setMonthRange(getThisMonthRange());
-                      }}
-                      className="h-7 text-xs px-3"
-                    >
-                      This Month
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={monthlyPreset === "last_month" ? "default" : "ghost"}
-                      onClick={() => {
-                        setMonthlyPreset("last_month");
-                        setMonthRange(getLastMonthRange());
-                      }}
-                      className="h-7 text-xs px-3"
-                    >
-                      Last Month
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground font-medium">Month Range:</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-slate-500">Month</span>
+                  <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
                     <Input
                       type="date"
                       value={monthRange.start}
-                      onChange={(e) => {
-                        setMonthRange((prev) => ({ ...prev, start: e.target.value }));
-                      }}
-                      className="h-8 text-xs w-[140px] bg-background"
+                      onChange={(e) => setMonthRange((prev) => ({ ...prev, start: e.target.value }))}
+                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
                     />
-                    <span className="text-xs text-muted-foreground">to</span>
+                    <span className="text-xs text-slate-400">-</span>
                     <Input
                       type="date"
                       value={monthRange.end}
-                      onChange={(e) => {
-                        setMonthRange((prev) => ({ ...prev, end: e.target.value }));
-                      }}
-                      className="h-8 text-xs w-[140px] bg-background"
+                      onChange={(e) => setMonthRange((prev) => ({ ...prev, end: e.target.value }))}
+                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
                     />
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   </div>
-                </div>
-              )}
-
-
-              {/* Custom Range Mode Controls */}
-              {timeMode === "custom" && (
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground font-medium">From:</span>
-                    <Input
-                      type="date"
-                      value={customRange.start}
-                      onChange={(e) =>
-                        setCustomRange((prev) => ({ ...prev, start: e.target.value }))
-                      }
-                      className="h-8 text-xs w-[140px] bg-background"
-                    />
-                    <span className="text-xs text-muted-foreground font-medium">To:</span>
-                    <Input
-                      type="date"
-                      value={customRange.end}
-                      onChange={(e) =>
-                        setCustomRange((prev) => ({ ...prev, end: e.target.value }))
-                      }
-                      className="h-8 text-xs w-[140px] bg-background"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Interviewer Filter */}
-              {isAdmin && viewScope === "all" && (
-                <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                    <User className="w-3 h-3 text-primary" /> Interviewer:
-                  </span>
-                  <Select
-                    value={selectedInterviewerId || "all"}
-                    onValueChange={(val) => setSelectedInterviewerId(val === "all" ? "" : val)}
-                    disabled={usersLoading}
+                  <Button
+                    size="sm"
+                    onClick={fetchStats}
+                    className="h-9 px-4 text-xs font-medium bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-lg"
                   >
-                    <SelectTrigger className="h-8 text-xs w-[200px] bg-background">
-                      <SelectValue placeholder={usersLoading ? "Loading users..." : "All Interviewers"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Interviewers (Combined)</SelectItem>
-                      {usersList.map((u) => (
-                        <SelectItem key={u.id} value={String(u.id)}>
-                          {u.name} (ID: {u.id})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    Apply
+                  </Button>
                 </div>
               )}
+
+              {timeMode === "all_time" && (
+                <div className="text-xs font-medium text-slate-500 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-500" />
+                  <span>Displaying all historical records</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── Row of 9 Metric Cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 pt-2">
+              {/* Total Slots */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Total Slots</span>
+                  <div className="w-6 h-6 rounded-md bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+                    <Calendar className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-purple-600 dark:text-purple-400">
+                  {grandTotalRow.finalTotalSlots.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Interviews Done */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Interviews Done</span>
+                  <div className="w-6 h-6 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-blue-600 dark:text-blue-400">
+                  {grandTotalRow.finalTotalDone.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Pass */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Pass</span>
+                  <div className="w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {grandTotalRow.finalTotalPass.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Fail */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Fail</span>
+                  <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+                    <XCircle className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-rose-600 dark:text-rose-400">
+                  {grandTotalRow.finalTotalFail.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Reschedule */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Reschedule</span>
+                  <div className="w-6 h-6 rounded-md bg-orange-50 dark:bg-orange-950 text-orange-600 flex items-center justify-center">
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-orange-600 dark:text-orange-400">
+                  {grandTotalRow.finalTotalReschedule.toLocaleString()}
+                </div>
+              </div>
+
+              {/* No Show */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">No Show</span>
+                  <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 flex items-center justify-center">
+                    <EyeOff className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-slate-600 dark:text-slate-300">
+                  {grandTotalRow.finalTotalNoShow.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Disinterested */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Disinterested</span>
+                  <div className="w-6 h-6 rounded-md bg-amber-50 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
+                    <Frown className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-amber-600 dark:text-amber-400">
+                  {grandTotalRow.finalTotalDisinterested.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Not Eligible */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Not Eligible</span>
+                  <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+                    <UserX className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-rose-600 dark:text-rose-400">
+                  {grandTotalRow.finalTotalNotEligible.toLocaleString()}
+                </div>
+              </div>
+
+              {/* Empty Slots */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Empty Slots</span>
+                  <div className="w-6 h-6 rounded-md bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+                    <CalendarDays className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+                <div className="mt-3 text-xl font-bold text-purple-600 dark:text-purple-400">
+                  {grandTotalRow.finalTotalEmpty.toLocaleString()}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════════════════════
-              VIEW 1: EXACT SHEET FORMAT REPORT (AS PER SCREENSHOT)
-             ══════════════════════════════════════════════════════════════════════ */}
-          {displayMode === "sheet" && (
-            <div ref={sheetRef} className="space-y-6 bg-card dark:bg-zinc-950 p-2 sm:p-4 rounded-2xl border border-border/40 shadow-sm">
-
-              {/* ── 1. Learning Rounds Online Table ── */}
-              <div className="bg-card border border-slate-300 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-                {/* Title Top Header Bar (Outside Table) */}
-                <div className="bg-slate-50/80 dark:bg-zinc-900/80 border-b border-slate-300 dark:border-zinc-700 py-2.5 px-4 flex items-center justify-center">
-                  <span className="bg-[#FCE4D6] dark:bg-amber-950/90 text-[#7030A0] dark:text-amber-200 font-extrabold text-sm sm:text-base px-6 py-1.5 rounded-lg border border-amber-300/80 dark:border-amber-800 shadow-sm text-center tracking-wide">
-                    Learning Rounds Online
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm border-collapse">
-                    <thead>
-                      {/* Column Headers Row */}
-                      <tr>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Dates
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Done
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Pass
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Fail
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Reschedule
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total No Show
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Disinterested
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Slots
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Empty
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {loading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
-                          <tr key={i} className="animate-pulse bg-white dark:bg-zinc-900">
-                            {Array.from({ length: 9 }).map((_, j) => (
-                              <td key={j} className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700">
-                                <div className="h-4 bg-muted rounded w-14 mx-auto" />
-                              </td>
-                            ))}
-                          </tr>
-                        ))
-                      ) : lrDateRows.length === 0 ? (
-                        <tr className="bg-white dark:bg-zinc-900">
-                          <td className="px-3 py-3 text-center font-medium border border-slate-300 dark:border-zinc-700 text-muted-foreground">
-                            {timeMode === "daily" ? formatSheetDate(dailyDate) : "No data"}
-                          </td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                        </tr>
-                      ) : (
-                        lrDateRows.map((row) => (
-                          <tr key={row.date} className="bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/60 transition-colors">
-                            <td className="px-3 py-2 text-center font-semibold text-foreground border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                              {row.formattedDate}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalDone}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalPass}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalFail}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalReschedule}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalNoShow}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalDisinterested}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalSlots}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalEmpty}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-
-                      {/* Total Row */}
-                      <tr className="bg-[#FFF2CC] dark:bg-amber-900/40 text-slate-900 dark:text-amber-100 font-bold border-t-2 border-slate-300 dark:border-zinc-700">
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          Total
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalDone}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalPass}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalFail}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalReschedule}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalNoShow}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalDisinterested}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalSlots}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {lrTotalRow.finalTotalEmpty}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* ── 2. Culture-Fit Rounds Online Table ── */}
-              <div className="bg-card border border-slate-300 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-                {/* Title Top Header Bar (Outside Table) */}
-                <div className="bg-slate-50/80 dark:bg-zinc-900/80 border-b border-slate-300 dark:border-zinc-700 py-2.5 px-4 flex items-center justify-center">
-                  <span className="bg-[#FCE4D6] dark:bg-amber-950/90 text-[#7030A0] dark:text-amber-200 font-extrabold text-sm sm:text-base px-6 py-1.5 rounded-lg border border-amber-300/80 dark:border-amber-800 shadow-sm text-center tracking-wide">
-                    Culture-Fit Rounds Online
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm border-collapse">
-                    <thead>
-                      {/* Column Headers Row */}
-                      <tr>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Date
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Done
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Pass
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Fail
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Reschedule
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total No Show
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Disinterested
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Slots
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Empty
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {loading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
-                          <tr key={i} className="animate-pulse bg-white dark:bg-zinc-900">
-                            {Array.from({ length: 9 }).map((_, j) => (
-                              <td key={j} className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700">
-                                <div className="h-4 bg-muted rounded w-14 mx-auto" />
-                              </td>
-                            ))}
-                          </tr>
-                        ))
-                      ) : crfDateRows.length === 0 ? (
-                        <tr className="bg-white dark:bg-zinc-900">
-                          <td className="px-3 py-3 text-center font-medium border border-slate-300 dark:border-zinc-700 text-muted-foreground">
-                            {timeMode === "daily" ? formatSheetDate(dailyDate) : "No data"}
-                          </td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                          <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700">0</td>
-                        </tr>
-                      ) : (
-                        crfDateRows.map((row) => (
-                          <tr key={row.date} className="bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800/60 transition-colors">
-                            <td className="px-3 py-2 text-center font-semibold text-foreground border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                              {row.formattedDate}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalDone}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalPass}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalFail}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalReschedule}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalNoShow}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalDisinterested}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalSlots}
-                            </td>
-                            <td className="px-3 py-2 text-center border border-slate-300 dark:border-zinc-700 font-medium">
-                              {row.finalTotalEmpty}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-
-                      {/* Total Row */}
-                      <tr className="bg-[#FFF2CC] dark:bg-amber-900/40 text-slate-900 dark:text-amber-100 font-bold border-t-2 border-slate-300 dark:border-zinc-700">
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          Total
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalDone}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalPass}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalFail}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalReschedule}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalNoShow}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalDisinterested}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalSlots}
-                        </td>
-                        <td className="px-3 py-2.5 text-center border border-slate-300 dark:border-zinc-700 font-extrabold">
-                          {crfTotalRow.finalTotalEmpty}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* ── 3. Total Interviews (CFR + LR) Grand Total Table ── */}
-              <div className="bg-card border border-slate-300 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-                {/* Title Top Header Bar (Outside Table) */}
-                <div className="bg-slate-50/80 dark:bg-zinc-900/80 border-b border-slate-300 dark:border-zinc-700 py-2.5 px-4 flex items-center justify-center">
-                  <span className="bg-[#FCE4D6] dark:bg-amber-950/90 text-[#7030A0] dark:text-amber-200 font-extrabold text-sm sm:text-base px-6 py-1.5 rounded-lg border border-amber-300/80 dark:border-amber-800 shadow-sm text-center tracking-wide">
-                    Total Interviews (CFR + LR)
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm border-collapse">
-                    <thead>
-                      {/* Column Headers Row */}
-                      <tr>
-                        <th className="w-20 bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700" />
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Done
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Pass
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Fail
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Reschedule
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total No Show
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Disinterested
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Slots
-                        </th>
-                        <th className="bg-[#D9E1F2] dark:bg-blue-950/70 text-[#1F3864] dark:text-blue-200 font-bold text-center px-3 py-2.5 border border-slate-300 dark:border-zinc-700 whitespace-nowrap">
-                          Final Total Empty
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {/* Grand Total Row */}
-                      <tr className="bg-[#FFF2CC] dark:bg-amber-900/40 text-slate-900 dark:text-amber-100 font-bold text-sm">
-                        <td className="bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 px-3 py-3 font-semibold text-center text-muted-foreground">
-                          Total
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalDone}
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalPass}
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalFail}
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalReschedule}
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalNoShow}
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalDisinterested}
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalSlots}
-                        </td>
-                        <td className="px-3 py-3 text-center border border-slate-300 dark:border-zinc-700 font-black">
-                          {grandTotalRow.finalTotalEmpty}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
+          {/* ── Performance by Round Table ── */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+            <div className="px-5 py-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Performance by Round</h3>
+              {loading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
             </div>
-          )}
 
-          {/* ══════════════════════════════════════════════════════════════════════
-              VIEW 2: DETAILED INTERVIEWER RECORDS & BREAKDOWN
-             ══════════════════════════════════════════════════════════════════════ */}
-          {displayMode === "detailed" && (
-            <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden space-y-3 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/60">
-                <div className="relative w-full sm:w-72">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search interviewer or date..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-8 pl-8 text-xs bg-background"
-                  />
-                  {searchQuery && (
-                    <X
-                      className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer hover:text-foreground"
-                      onClick={() => setSearchQuery("")}
-                    />
-                  )}
-                </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-[#F8FAFC] dark:bg-zinc-800/60 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-zinc-800">
+                  <tr>
+                    <th className="px-4 py-3">Round</th>
+                    <th className="px-4 py-3 text-center text-purple-600 dark:text-purple-400">Total Slots</th>
+                    <th className="px-4 py-3 text-center text-blue-600 dark:text-blue-400">Interviews Done</th>
+                    <th className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400">Pass</th>
+                    <th className="px-4 py-3 text-center text-rose-600 dark:text-rose-400">Fail</th>
+                    <th className="px-4 py-3 text-center text-orange-600 dark:text-orange-400">Reschedule</th>
+                    <th className="px-4 py-3 text-center text-slate-500 dark:text-slate-400">No Show</th>
+                    <th className="px-4 py-3 text-center text-amber-600 dark:text-amber-400">Disinterested</th>
+                    <th className="px-4 py-3 text-center text-rose-500 dark:text-rose-400">Not Eligible</th>
+                    <th className="px-4 py-3 text-center text-purple-600 dark:text-purple-400">Empty Slots</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800 font-medium">
+                  {/* LR Row */}
+                  <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">LR</td>
+                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{lrTotalRow.finalTotalSlots}</td>
+                    <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-semibold">{lrTotalRow.finalTotalDone}</td>
+                    <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold">{lrTotalRow.finalTotalPass}</td>
+                    <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-semibold">{lrTotalRow.finalTotalFail}</td>
+                    <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">{lrTotalRow.finalTotalReschedule}</td>
+                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-semibold">{lrTotalRow.finalTotalNoShow}</td>
+                    <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-semibold">{lrTotalRow.finalTotalDisinterested}</td>
+                    <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-semibold">{lrTotalRow.finalTotalNotEligible}</td>
+                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{lrTotalRow.finalTotalEmpty}</td>
+                  </tr>
 
-                <div className="text-xs text-muted-foreground">
-                  Showing <b>{stats.length}</b> total raw interviewer slot records
-                </div>
+                  {/* CFR Row */}
+                  <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">CFR</td>
+                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{crfTotalRow.finalTotalSlots}</td>
+                    <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-semibold">{crfTotalRow.finalTotalDone}</td>
+                    <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold">{crfTotalRow.finalTotalPass}</td>
+                    <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-semibold">{crfTotalRow.finalTotalFail}</td>
+                    <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">{crfTotalRow.finalTotalReschedule}</td>
+                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-semibold">{crfTotalRow.finalTotalNoShow}</td>
+                    <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-semibold">{crfTotalRow.finalTotalDisinterested}</td>
+                    <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-semibold">{crfTotalRow.finalTotalNotEligible}</td>
+                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{crfTotalRow.finalTotalEmpty}</td>
+                  </tr>
+
+                  {/* Total Row */}
+                  <tr className="bg-slate-50 dark:bg-zinc-800/80 font-bold border-t-2 border-slate-200 dark:border-zinc-700">
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-bold">Total</td>
+                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-bold">{grandTotalRow.finalTotalSlots}</td>
+                    <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">{grandTotalRow.finalTotalDone}</td>
+                    <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">{grandTotalRow.finalTotalPass}</td>
+                    <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-bold">{grandTotalRow.finalTotalFail}</td>
+                    <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-bold">{grandTotalRow.finalTotalReschedule}</td>
+                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-bold">{grandTotalRow.finalTotalNoShow}</td>
+                    <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-bold">{grandTotalRow.finalTotalDisinterested}</td>
+                    <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">{grandTotalRow.finalTotalNotEligible}</td>
+                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-bold">{grandTotalRow.finalTotalEmpty}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ── Charts Panel ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Left/Middle Chart Panel */}
+            <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                  {timeMode === "daily"
+                    ? "Interviews Done by Round"
+                    : `Daily Interviews Trend (${formatDisplayDate(weekRange.start)} - ${formatDisplayDate(weekRange.end)})`}
+                </h3>
               </div>
 
-              <div className="overflow-x-auto border border-border rounded-lg">
-                <table className="w-full text-xs">
-                  <thead className="bg-muted/70 border-b border-border font-semibold text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Date</th>
-                      <th className="px-3 py-2 text-left">Interviewer Name</th>
-                      <th className="px-3 py-2 text-center">Round Type</th>
-                      <th className="px-3 py-2 text-center text-purple-600">Total Slots</th>
-                      <th className="px-3 py-2 text-center text-orange-500">Empty</th>
-                      <th className="px-3 py-2 text-center text-blue-600">Conducted</th>
-                      <th className="px-3 py-2 text-center text-emerald-600">Pass</th>
-                      <th className="px-3 py-2 text-center text-rose-500">Fail</th>
-                      <th className="px-3 py-2 text-center text-amber-600">Reschedule</th>
-                      <th className="px-3 py-2 text-center text-slate-500">No Show</th>
-                      <th className="px-3 py-2 text-center text-orange-600">Disinterested</th>
-                      <th className="px-3 py-2 text-center text-red-600">Not Eligible</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {stats
-                      .filter((r) => {
-                        if (!searchQuery.trim()) return true;
-                        const q = searchQuery.toLowerCase();
-                        return (
-                          (r.interviewer_name || "").toLowerCase().includes(q) ||
-                          (r.date || "").toLowerCase().includes(q) ||
-                          (r.slot_type || "").toLowerCase().includes(q)
-                        );
-                      })
-                      .map((row, idx) => {
-                        const isLR = isLRType(row.slot_type);
-                        const isCRF = isCRFType(row.slot_type);
+              {timeMode === "daily" ? (
+                <div className="h-[260px] w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px", border: "1px solid #E2E8F0" }} />
+                      <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={60}>
+                        {barData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="h-[260px] w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px", border: "1px solid #E2E8F0" }} />
+                      <Legend wrapperStyle={{ fontSize: "12px" }} align="right" verticalAlign="top" />
+                      <Line type="monotone" dataKey="LR" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="CFR" stroke="#22C55E" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
 
-                        return (
-                          <tr key={`${row.interviewer_id}-${row.date}-${idx}`} className="hover:bg-muted/20">
-                            <td className="px-3 py-2 whitespace-nowrap font-medium">{formatSheetDate(row.date)}</td>
-                            <td className="px-3 py-2 whitespace-nowrap font-semibold">{row.interviewer_name}</td>
-                            <td className="px-3 py-2 text-center whitespace-nowrap">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isLR
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                                    : isCRF
-                                      ? "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300"
-                                      : "bg-slate-100 text-slate-700"
-                                  }`}
-                              >
-                                {row.slot_type || "N/A"}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2 text-center font-bold text-purple-600">{row.total_slots || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-orange-500">{row.empty_slots || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-blue-600">{row.interview_done || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-emerald-600">{row.pass || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-rose-500">{row.fail || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-amber-600">{row.reschedule || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-slate-500">{row.no_show || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-orange-600">{row.disinterested || 0}</td>
-                            <td className="px-3 py-2 text-center font-bold text-red-600">{row.not_eligible || 0}</td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
+            {/* Right Chart Panel (Result Distribution Donut) */}
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Result Distribution</h3>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-1">
+                <div className="w-[180px] h-[180px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px" }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legend List */}
+                <div className="flex flex-col gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 w-full sm:w-auto">
+                  {pieData.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                        <span>{item.name}</span>
+                      </div>
+                      <span className="font-bold text-slate-900 dark:text-slate-100">({item.value})</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
         </div>
       </main>
