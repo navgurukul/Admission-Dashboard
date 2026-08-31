@@ -36,7 +36,15 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
     return stat.toLowerCase().includes("pass");
   });
 
+  const isCulturalPassed = (student?.interview_cultural_fit_round || []).some((round: any) => {
+    if (round?.is_archived === true) return false;
+    const stat = round?.cultural_fit_status || "";
+    return stat.toLowerCase().includes("pass");
+  });
+
   const isEligible = targetRound === "LR" ? isScreeningPassed : (isScreeningPassed && isLearningPassed);
+  
+  const isTargetRoundPassed = targetRound === "LR" ? isLearningPassed : isCulturalPassed;
 
   const fetchHistory = React.useCallback(async () => {
     if (!student?.id) return;
@@ -107,9 +115,15 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
     <div className="space-y-4">
       <div className="flex justify-between items-center px-1">
         <h3 className="text-sm font-semibold text-gray-700">
-          {targetRound === "LR" ? "Learning Round" : "Cultural Fit Round"} Scheduling History
+          {targetRound === "LR" ? "LR" : "CFR"} Schedule Activity
         </h3>
-        <Button onClick={handleOpenModal} disabled={!isEligible} size="sm" variant="outline" className="flex items-center gap-1">
+        <Button 
+          onClick={handleOpenModal} 
+          disabled={!isEligible || isTargetRoundPassed} 
+          size="sm" 
+          variant="outline" 
+          className="flex items-center gap-1"
+        >
           <Plus className="h-4 w-4" />
           Log Follow-up
         </Button>
@@ -126,13 +140,14 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
                 <TableHead className="font-semibold text-gray-700">Method</TableHead>
                 <TableHead className="font-semibold text-gray-700">Status</TableHead>
                 <TableHead className="font-semibold text-gray-700">Remarks</TableHead>
+                <TableHead className="font-semibold text-gray-700">Logged By</TableHead>
                 <TableHead className="font-semibold text-gray-700 text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tableRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-500 py-6">
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-6">
                     {!isEligible 
                       ? (targetRound === "LR" ? "Not eligible yet (Screening not passed)." : "Not eligible yet (Learning Round not passed).")
                       : "No scheduling history found."}
@@ -156,6 +171,9 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
                     </TableCell>
                     <TableCell className="text-gray-600 max-w-[200px] truncate" title={row.remarks}>
                       {row.isPlaceholder ? "—" : (row.remarks || "—")}
+                    </TableCell>
+                    <TableCell className="text-gray-600">
+                      {row.isPlaceholder ? "—" : (row.logged_by || "—")}
                     </TableCell>
                     <TableCell className="text-gray-600 text-right whitespace-nowrap">
                       {row.isPlaceholder ? "—" : (() => {

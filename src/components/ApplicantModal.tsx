@@ -2853,7 +2853,7 @@ Interviewer: ${interviewerName}`;
             <AccordionItem value="lr-scheduling" className="border-none">
               <AccordionTrigger className="w-fit flex-none inline-flex items-center gap-2 bg-pink-50 border border-pink-200 text-pink-700 hover:text-pink-800 hover:bg-pink-100 hover:no-underline py-2 px-4 rounded-md shadow-sm transition-colors">
                 <CalendarIcon className="h-4 w-4" />
-                <span className="font-semibold text-sm">Learning Round Scheduling History</span>
+                <span className="font-semibold text-sm">LR Schedule Activity</span>
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-4">
                 <ApplicantScheduling 
@@ -2990,7 +2990,7 @@ Interviewer: ${interviewerName}`;
                 <AccordionItem value="cfr-scheduling" className="border-none">
                   <AccordionTrigger className="w-fit flex-none inline-flex items-center gap-2 bg-pink-50 border border-pink-200 text-pink-700 hover:text-pink-800 hover:bg-pink-100 hover:no-underline py-2 px-4 rounded-md shadow-sm transition-colors">
                     <CalendarIcon className="h-4 w-4" />
-                    <span className="font-semibold text-sm">Cultural Fit Round Scheduling History</span>
+                    <span className="font-semibold text-sm">CFR Schedule Activity</span>
                   </AccordionTrigger>
                   <AccordionContent className="pt-2 pb-4">
                     <ApplicantScheduling 
