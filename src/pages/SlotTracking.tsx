@@ -266,7 +266,10 @@ const SlotTracking = () => {
   const isAdmin = userRole === 1 || userRole === 3;
 
   const [viewScope, setViewScope] = useState<"my" | "all">(isAdmin ? "all" : "my");
-  const [timeMode, setTimeMode] = useState<TimePeriodMode>("weekly");
+  const [timeMode, setTimeMode] = useState<TimePeriodMode>("daily");
+  const [showReports, setShowReports] = useState<boolean>(false);
+  const [todaySlotsPage, setTodaySlotsPage] = useState<number>(1);
+  const [todaySlotsRowsPerPage, setTodaySlotsRowsPerPage] = useState<number>(10);
 
   const [dailyDate, setDailyDate] = useState<string>(getTodayDate());
   const [weekRange, setWeekRange] = useState<{ start: string; end: string }>(getThisWeekRange());
@@ -419,14 +422,41 @@ const SlotTracking = () => {
 
   // ── Sheet Calculations ───────────────────────────────────────────────────
 
+  // Pagination for Today's Slots
+  const paginatedStats = useMemo(() => {
+    if (!showReports && timeMode === "daily") {
+      const startIdx = (todaySlotsPage - 1) * todaySlotsRowsPerPage;
+      const endIdx = startIdx + todaySlotsRowsPerPage;
+      return stats.slice(startIdx, endIdx);
+    }
+    return stats;
+  }, [stats, todaySlotsPage, todaySlotsRowsPerPage, showReports, timeMode]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(stats.length / todaySlotsRowsPerPage);
+  }, [stats.length, todaySlotsRowsPerPage]);
+
   const lrItems = useMemo(() => stats.filter((s) => isLRType(s.slot_type)), [stats]);
   const lrDateRows = useMemo(() => {
+    if (lrItems.length > 0) {
+      return aggregateByDate(lrItems);
+    }
     if (allTimeSummary?.LR) {
       const lr = allTimeSummary.LR;
+      const displayLabel =
+        timeMode === "daily"
+          ? formatDisplayDate(dailyDate)
+          : timeMode === "weekly"
+          ? `${weekRange.start} - ${weekRange.end}`
+          : timeMode === "monthly"
+          ? `${monthRange.start} - ${monthRange.end}`
+          : timeMode === "custom"
+          ? `${customRange.start} - ${customRange.end}`
+          : "All Time";
       return [
         {
-          date: "All Time",
-          formattedDate: "All Time",
+          date: displayLabel,
+          formattedDate: displayLabel,
           finalTotalDone: lr.interview_done || 0,
           finalTotalPass: lr.pass || 0,
           finalTotalFail: lr.fail || 0,
@@ -440,7 +470,7 @@ const SlotTracking = () => {
       ];
     }
     return aggregateByDate(lrItems);
-  }, [allTimeSummary, lrItems]);
+  }, [allTimeSummary, lrItems, timeMode, dailyDate, weekRange, monthRange, customRange]);
 
   const lrTotalRow = useMemo(() => {
     if (allTimeSummary?.LR) {
@@ -464,12 +494,25 @@ const SlotTracking = () => {
 
   const crfItems = useMemo(() => stats.filter((s) => isCRFType(s.slot_type)), [stats]);
   const crfDateRows = useMemo(() => {
+    if (crfItems.length > 0) {
+      return aggregateByDate(crfItems);
+    }
     const cfr = allTimeSummary?.CFR || allTimeSummary?.CRF;
     if (cfr) {
+      const displayLabel =
+        timeMode === "daily"
+          ? formatDisplayDate(dailyDate)
+          : timeMode === "weekly"
+          ? `${weekRange.start} - ${weekRange.end}`
+          : timeMode === "monthly"
+          ? `${monthRange.start} - ${monthRange.end}`
+          : timeMode === "custom"
+          ? `${customRange.start} - ${customRange.end}`
+          : "All Time";
       return [
         {
-          date: "All Time",
-          formattedDate: "All Time",
+          date: displayLabel,
+          formattedDate: displayLabel,
           finalTotalDone: cfr.interview_done || 0,
           finalTotalPass: cfr.pass || 0,
           finalTotalFail: cfr.fail || 0,
@@ -483,7 +526,7 @@ const SlotTracking = () => {
       ];
     }
     return aggregateByDate(crfItems);
-  }, [allTimeSummary, crfItems]);
+  }, [allTimeSummary, crfItems, timeMode, dailyDate, weekRange, monthRange, customRange]);
 
   const crfTotalRow = useMemo(() => {
     const cfr = allTimeSummary?.CFR || allTimeSummary?.CRF;
@@ -616,6 +659,50 @@ const SlotTracking = () => {
     });
   };
 
+  const handleDownloadPDF = async () => {
+    if (!sheetRef.current) return;
+    setGeneratingPdf(true);
+    try {
+      toast({
+        title: "📄 Generating PDF...",
+        description: "Please wait while your report PDF is being generated.",
+      });
+
+      const dataUrl = await toPng(sheetRef.current, {
+        cacheBust: true,
+        quality: 0.95,
+        backgroundColor: "#F8FAFC",
+      });
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgProps = pdf.getImageProperties(dataUrl);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`reports-${timeMode}-${formatDateISO(new Date())}.pdf`);
+
+      toast({
+        title: "✅ PDF Downloaded",
+        description: "Your report PDF has been downloaded successfully.",
+      });
+    } catch (error: any) {
+      console.error("Failed to generate PDF:", error);
+      toast({
+        title: "❌ PDF Generation Failed",
+        description: error?.message || "Could not generate PDF file.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-zinc-950 flex font-sans text-slate-900 dark:text-slate-100">
       <AdmissionsSidebar />
@@ -630,9 +717,10 @@ const SlotTracking = () => {
                 Reports
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                {timeMode === "daily" && "Daily performance report for all interviews"}
-                {timeMode === "weekly" && "Weekly performance report for all interviews"}
-                {timeMode === "monthly" && "Monthly performance report for all interviews"}
+                {!showReports && timeMode === "daily" && "Today's slot tracking and performance metrics"}
+                {showReports && timeMode === "daily" && "Daily performance report for all interviews"}
+                {showReports && timeMode === "weekly" && "Weekly performance report for all interviews"}
+                {showReports && timeMode === "monthly" && "Monthly performance report for all interviews"}
                 {timeMode === "all_time" && "All-time performance overview for all interviews"}
                 {timeMode === "custom" && "Custom date range performance report"}
               </p>
@@ -673,14 +761,14 @@ const SlotTracking = () => {
               <Button
                 size="sm"
                 onClick={() => {
+                  setShowReports(false);
                   setTimeMode("daily");
                   setDailyDate(getTodayDate());
                 }}
-                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${
-                  timeMode === "daily"
-                    ? "bg-[#E11D48] hover:bg-[#BE123C] text-white"
-                    : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
-                }`}
+                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${!showReports && timeMode === "daily"
+                  ? "bg-[#E11D48] hover:bg-[#BE123C] text-white"
+                  : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
+                  }`}
               >
                 <Calendar className="w-3.5 h-3.5" />
                 Today's Slots
@@ -688,12 +776,16 @@ const SlotTracking = () => {
 
               <Button
                 size="sm"
-                onClick={() => setTimeMode("weekly")}
-                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${
-                  timeMode === "weekly" || timeMode === "monthly"
-                    ? "bg-slate-900 dark:bg-zinc-800 text-white"
-                    : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
-                }`}
+                onClick={() => {
+                  setShowReports(true);
+                  if (timeMode === "all_time" || timeMode === "custom" || !showReports) {
+                    setTimeMode("weekly");
+                  }
+                }}
+                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${showReports
+                  ? "bg-slate-900 dark:bg-zinc-800 text-white"
+                  : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
+                  }`}
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
                 Reports
@@ -703,9 +795,8 @@ const SlotTracking = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setTimeMode("all_time")}
-                className={`h-9 gap-1.5 text-xs font-medium border-slate-200 ${
-                  timeMode === "all_time" ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-white dark:bg-zinc-900"
-                }`}
+                className={`h-9 gap-1.5 text-xs font-medium border-slate-200 ${timeMode === "all_time" ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-white dark:bg-zinc-900"
+                  }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
                 View All
@@ -732,412 +823,598 @@ const SlotTracking = () => {
                 <Download className="w-3.5 h-3.5 text-slate-700" />
                 Export
               </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPDF}
+                disabled={loading || generatingPdf}
+                className="h-9 gap-1.5 text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:hover:bg-rose-900 dark:text-rose-300 border-rose-200 dark:border-rose-800 shadow-sm"
+              >
+                {generatingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <FileDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                )}
+                PDF Download
+              </Button>
             </div>
           </div>
 
-          {/* ── Tabs & Filter Controls Bar ── */}
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-4">
-            {/* Tabs */}
-            <div className="border-b border-slate-200 dark:border-zinc-800 flex items-center gap-8 text-sm font-medium">
-              <button
-                onClick={() => setTimeMode("daily")}
-                className={`pb-2.5 transition-all relative ${
-                  timeMode === "daily"
-                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                }`}
-              >
-                Daily
-              </button>
-              <button
-                onClick={() => setTimeMode("weekly")}
-                className={`pb-2.5 transition-all relative ${
-                  timeMode === "weekly"
-                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                }`}
-              >
-                Weekly
-              </button>
-              <button
-                onClick={() => setTimeMode("monthly")}
-                className={`pb-2.5 transition-all relative ${
-                  timeMode === "monthly"
-                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                }`}
-              >
-                Monthly
-              </button>
-            </div>
+          {/* ── Today's Slots Detail View ── */}
+          {!showReports && timeMode === "daily" && (
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="px-5 py-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Today's Slot Details</h3>
+                {loading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+              </div>
 
-            {/* Date selector row */}
-            <div className="flex flex-wrap items-center gap-3">
-              {timeMode === "daily" && (
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 p-4 border-b border-slate-200 dark:border-zinc-800">
+                <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-lg p-3">
+                  <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">Total Slots</div>
+                  <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                    {stats.reduce((sum, s) => sum + (s.total_slots || 0), 0)}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-lg p-3">
+                  <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">Empty Slots</div>
+                  <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                    {stats.reduce((sum, s) => sum + (s.empty_slots || 0), 0)}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-lg p-3">
+                  <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">Pass</div>
+                  <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {stats.reduce((sum, s) => sum + (s.pass || 0), 0)}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-lg p-3">
+                  <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">Fail</div>
+                  <div className="text-xl font-bold text-rose-600 dark:text-rose-400">
+                    {stats.reduce((sum, s) => sum + (s.fail || 0), 0)}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-lg p-3">
+                  <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">No Show</div>
+                  <div className="text-xl font-bold text-slate-600 dark:text-slate-400">
+                    {stats.reduce((sum, s) => sum + (s.no_show || 0), 0)}
+                  </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-lg p-3">
+                  <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-1">Reschedule</div>
+                  <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                    {stats.reduce((sum, s) => sum + (s.reschedule || 0), 0)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Detail Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-[#F8FAFC] dark:bg-zinc-800/60 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-3 sticky left-0 bg-[#F8FAFC] dark:bg-zinc-800/60 z-10">DATE</th>
+                      <th className="px-4 py-3">NAME</th>
+                      <th className="px-4 py-3">TYPE</th>
+                      <th className="px-4 py-3 text-center text-purple-600 dark:text-purple-400">TOTAL SLOTS</th>
+                      <th className="px-4 py-3 text-center text-orange-600 dark:text-orange-400">EMPTY SLOTS</th>
+                      <th className="px-4 py-3 text-center text-blue-600 dark:text-blue-400">INTERVIEW DONE</th>
+                      <th className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400">PASS</th>
+                      <th className="px-4 py-3 text-center text-rose-600 dark:text-rose-400">FAIL</th>
+                      <th className="px-4 py-3 text-center text-orange-600 dark:text-orange-400">RESCHEDULE</th>
+                      <th className="px-4 py-3 text-center text-slate-600 dark:text-slate-400">NO SHOW</th>
+                      <th className="px-4 py-3 text-center text-amber-600 dark:text-amber-400">DISINTERESTED</th>
+                      <th className="px-4 py-3 text-center text-rose-500 dark:text-rose-400">NOT ELIGIBLE</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={12} className="px-4 py-8 text-center text-slate-500">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                          Loading slot details...
+                        </td>
+                      </tr>
+                    ) : stats.length === 0 ? (
+                      <tr>
+                        <td colSpan={12} className="px-4 py-8 text-center text-slate-500">
+                          No slot data available for today
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedStats.map((stat, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                          <td className="px-4 py-3 sticky left-0 bg-white dark:bg-zinc-900 font-medium text-slate-900 dark:text-slate-100">
+                            {formatDisplayDate(stat.date)}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                            {stat.interviewer_name || "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge
+                              variant="outline"
+                              className={`${isLRType(stat.slot_type)
+                                ? "border-blue-300 text-blue-700 bg-blue-50 dark:bg-blue-950 dark:text-blue-400"
+                                : "border-green-300 text-green-700 bg-green-50 dark:bg-green-950 dark:text-green-400"
+                                }`}
+                            >
+                              {stat.slot_type || "—"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">
+                            {stat.total_slots || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">
+                            {stat.empty_slots || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-semibold">
+                            {stat.interview_done || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold">
+                            {stat.pass || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-semibold">
+                            {stat.fail || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">
+                            {stat.reschedule || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-semibold">
+                            {stat.no_show || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-semibold">
+                            {stat.disinterested || 0}
+                          </td>
+                          <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-semibold">
+                            {stat.not_eligible || 0}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Footer with pagination */}
+              <div className="px-4 py-3 border-t border-slate-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Showing{" "}
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {stats.length > 0 ? (todaySlotsPage - 1) * todaySlotsRowsPerPage + 1 : 0}
+                  </span>{" "}
+                  –{" "}
+                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    {Math.min(todaySlotsPage * todaySlotsRowsPerPage, stats.length)}
+                  </span>{" "}
+                  of <span className="font-semibold text-slate-900 dark:text-slate-100">{stats.length}</span> rows
+                </div>
+
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-slate-500">Date</span>
-                  <div className="relative">
+                  {/* Rows per page selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-600 dark:text-slate-400">Rows:</span>
+                    <Select
+                      value={String(todaySlotsRowsPerPage)}
+                      onValueChange={(val) => {
+                        setTodaySlotsRowsPerPage(Number(val));
+                        setTodaySlotsPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-16 text-xs bg-white dark:bg-zinc-900 border-slate-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Pagination buttons */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTodaySlotsPage((p) => Math.max(1, p - 1))}
+                      disabled={todaySlotsPage === 1 || stats.length === 0}
+                      className="h-8 px-3 text-xs"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 px-2">
+                      Page {stats.length > 0 ? todaySlotsPage : 0} of {totalPages || 1}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTodaySlotsPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={todaySlotsPage >= totalPages || stats.length === 0}
+                      className="h-8 px-3 text-xs"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Tabs & Filter Controls Bar ── */}
+          {showReports && (timeMode === "daily" || timeMode === "weekly" || timeMode === "monthly") && (
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-4">
+              {/* Tabs */}
+              <div className="border-b border-slate-200 dark:border-zinc-800 flex items-center gap-8 text-sm font-medium">
+                <button
+                  onClick={() => setTimeMode("daily")}
+                  className={`pb-2.5 transition-all relative ${timeMode === "daily"
+                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                    }`}
+                >
+                  Daily
+                </button>
+                <button
+                  onClick={() => setTimeMode("weekly")}
+                  className={`pb-2.5 transition-all relative ${timeMode === "weekly"
+                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                    }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  onClick={() => setTimeMode("monthly")}
+                  className={`pb-2.5 transition-all relative ${timeMode === "monthly"
+                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                    }`}
+                >
+                  Monthly
+                </button>
+              </div>
+
+              {/* Date selector row */}
+              <div className="flex flex-wrap items-center gap-3">
+                {timeMode === "daily" && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-slate-500">Date</span>
                     <Input
                       type="date"
                       value={dailyDate}
                       onChange={(e) => setDailyDate(e.target.value)}
-                      className="h-9 text-xs w-[180px] bg-white dark:bg-zinc-900 border-slate-200 pr-8"
+                      className="h-9 text-xs w-[180px] bg-white dark:bg-zinc-900 border-slate-200"
                     />
-                    <Calendar className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={fetchStats}
-                    className="h-9 px-4 text-xs font-medium bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-lg"
-                  >
-                    Apply
-                  </Button>
-                </div>
-              )}
+                )}
 
-              {timeMode === "weekly" && (
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-slate-500">Week</span>
-                  <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
-                    <Input
-                      type="date"
-                      value={weekRange.start}
-                      onChange={(e) => setWeekRange((prev) => ({ ...prev, start: e.target.value }))}
-                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                    />
-                    <span className="text-xs text-slate-400">-</span>
-                    <Input
-                      type="date"
-                      value={weekRange.end}
-                      onChange={(e) => setWeekRange((prev) => ({ ...prev, end: e.target.value }))}
-                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                    />
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                {timeMode === "weekly" && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-slate-500">Week</span>
+                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
+                      <Input
+                        type="date"
+                        value={weekRange.start}
+                        onChange={(e) => setWeekRange((prev) => ({ ...prev, start: e.target.value }))}
+                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                      />
+                      <span className="text-xs text-slate-400">-</span>
+                      <Input
+                        type="date"
+                        value={weekRange.end}
+                        onChange={(e) => setWeekRange((prev) => ({ ...prev, end: e.target.value }))}
+                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                      />
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={fetchStats}
-                    className="h-9 px-4 text-xs font-medium bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-lg"
-                  >
-                    Apply
-                  </Button>
-                </div>
-              )}
+                )}
 
-              {timeMode === "monthly" && (
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-medium text-slate-500">Month</span>
-                  <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
-                    <Input
-                      type="date"
-                      value={monthRange.start}
-                      onChange={(e) => setMonthRange((prev) => ({ ...prev, start: e.target.value }))}
-                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                    />
-                    <span className="text-xs text-slate-400">-</span>
-                    <Input
-                      type="date"
-                      value={monthRange.end}
-                      onChange={(e) => setMonthRange((prev) => ({ ...prev, end: e.target.value }))}
-                      className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                    />
-                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                {timeMode === "monthly" && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-slate-500">Month</span>
+                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
+                      <Input
+                        type="date"
+                        value={monthRange.start}
+                        onChange={(e) => setMonthRange((prev) => ({ ...prev, start: e.target.value }))}
+                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                      />
+                      <span className="text-xs text-slate-400">-</span>
+                      <Input
+                        type="date"
+                        value={monthRange.end}
+                        onChange={(e) => setMonthRange((prev) => ({ ...prev, end: e.target.value }))}
+                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                      />
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={fetchStats}
-                    className="h-9 px-4 text-xs font-medium bg-[#E11D48] hover:bg-[#BE123C] text-white rounded-lg"
-                  >
-                    Apply
-                  </Button>
-                </div>
-              )}
-
-              {timeMode === "all_time" && (
-                <div className="text-xs font-medium text-slate-500 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-500" />
-                  <span>Displaying all historical records</span>
-                </div>
-              )}
-            </div>
-
-            {/* ── Row of 9 Metric Cards ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 pt-2">
-              {/* Total Slots */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Total Slots</span>
-                  <div className="w-6 h-6 rounded-md bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
-                    <Calendar className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-                <div className="mt-3 text-xl font-bold text-purple-600 dark:text-purple-400">
-                  {grandTotalRow.finalTotalSlots.toLocaleString()}
-                </div>
+                )}
               </div>
 
-              {/* Interviews Done */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Interviews Done</span>
-                  <div className="w-6 h-6 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
-                    <Users className="w-3.5 h-3.5" />
+              {/* ── Row of 9 Metric Cards ── */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 pt-2">
+                {/* Total Slots */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Total Slots</span>
+                    <div className="w-6 h-6 rounded-md bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-purple-600 dark:text-purple-400">
+                    {grandTotalRow.finalTotalSlots.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-blue-600 dark:text-blue-400">
-                  {grandTotalRow.finalTotalDone.toLocaleString()}
-                </div>
-              </div>
 
-              {/* Pass */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Pass</span>
-                  <div className="w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
+                {/* Interviews Done */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Interviews Done</span>
+                    <div className="w-6 h-6 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-blue-600 dark:text-blue-400">
+                    {grandTotalRow.finalTotalDone.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {grandTotalRow.finalTotalPass.toLocaleString()}
-                </div>
-              </div>
 
-              {/* Fail */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Fail</span>
-                  <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
-                    <XCircle className="w-3.5 h-3.5" />
+                {/* Pass */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Pass</span>
+                    <div className="w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {grandTotalRow.finalTotalPass.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-rose-600 dark:text-rose-400">
-                  {grandTotalRow.finalTotalFail.toLocaleString()}
-                </div>
-              </div>
 
-              {/* Reschedule */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Reschedule</span>
-                  <div className="w-6 h-6 rounded-md bg-orange-50 dark:bg-orange-950 text-orange-600 flex items-center justify-center">
-                    <RotateCcw className="w-3.5 h-3.5" />
+                {/* Fail */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Fail</span>
+                    <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+                      <XCircle className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-rose-600 dark:text-rose-400">
+                    {grandTotalRow.finalTotalFail.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-orange-600 dark:text-orange-400">
-                  {grandTotalRow.finalTotalReschedule.toLocaleString()}
-                </div>
-              </div>
 
-              {/* No Show */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">No Show</span>
-                  <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 flex items-center justify-center">
-                    <EyeOff className="w-3.5 h-3.5" />
+                {/* Reschedule */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Reschedule</span>
+                    <div className="w-6 h-6 rounded-md bg-orange-50 dark:bg-orange-950 text-orange-600 flex items-center justify-center">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-orange-600 dark:text-orange-400">
+                    {grandTotalRow.finalTotalReschedule.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-slate-600 dark:text-slate-300">
-                  {grandTotalRow.finalTotalNoShow.toLocaleString()}
-                </div>
-              </div>
 
-              {/* Disinterested */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Disinterested</span>
-                  <div className="w-6 h-6 rounded-md bg-amber-50 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
-                    <Frown className="w-3.5 h-3.5" />
+                {/* No Show */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">No Show</span>
+                    <div className="w-6 h-6 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 flex items-center justify-center">
+                      <EyeOff className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-slate-600 dark:text-slate-300">
+                    {grandTotalRow.finalTotalNoShow.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-amber-600 dark:text-amber-400">
-                  {grandTotalRow.finalTotalDisinterested.toLocaleString()}
-                </div>
-              </div>
 
-              {/* Not Eligible */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Not Eligible</span>
-                  <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
-                    <UserX className="w-3.5 h-3.5" />
+                {/* Disinterested */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Disinterested</span>
+                    <div className="w-6 h-6 rounded-md bg-amber-50 dark:bg-amber-950 text-amber-600 flex items-center justify-center">
+                      <Frown className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-amber-600 dark:text-amber-400">
+                    {grandTotalRow.finalTotalDisinterested.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-rose-600 dark:text-rose-400">
-                  {grandTotalRow.finalTotalNotEligible.toLocaleString()}
-                </div>
-              </div>
 
-              {/* Empty Slots */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Empty Slots</span>
-                  <div className="w-6 h-6 rounded-md bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
-                    <CalendarDays className="w-3.5 h-3.5" />
+                {/* Not Eligible */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Not Eligible</span>
+                    <div className="w-6 h-6 rounded-md bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center">
+                      <UserX className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-rose-600 dark:text-rose-400">
+                    {grandTotalRow.finalTotalNotEligible.toLocaleString()}
                   </div>
                 </div>
-                <div className="mt-3 text-xl font-bold text-purple-600 dark:text-purple-400">
-                  {grandTotalRow.finalTotalEmpty.toLocaleString()}
+
+                {/* Empty Slots */}
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Empty Slots</span>
+                    <div className="w-6 h-6 rounded-md bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+                      <CalendarDays className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xl font-bold text-purple-600 dark:text-purple-400">
+                    {grandTotalRow.finalTotalEmpty.toLocaleString()}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* ── Performance by Round Table ── */}
-          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-            <div className="px-5 py-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Performance by Round</h3>
-              {loading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+          {showReports && (
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+              <div className="px-5 py-3 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Performance by Round</h3>
+                {loading && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-[#F8FAFC] dark:bg-zinc-800/60 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-zinc-800">
+                    <tr>
+                      <th className="px-4 py-3">Round</th>
+                      <th className="px-4 py-3 text-center text-purple-600 dark:text-purple-400">Total Slots</th>
+                      <th className="px-4 py-3 text-center text-blue-600 dark:text-blue-400">Interviews Done</th>
+                      <th className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400">Pass</th>
+                      <th className="px-4 py-3 text-center text-rose-600 dark:text-rose-400">Fail</th>
+                      <th className="px-4 py-3 text-center text-orange-600 dark:text-orange-400">Reschedule</th>
+                      <th className="px-4 py-3 text-center text-slate-500 dark:text-slate-400">No Show</th>
+                      <th className="px-4 py-3 text-center text-amber-600 dark:text-amber-400">Disinterested</th>
+                      <th className="px-4 py-3 text-center text-rose-500 dark:text-rose-400">Not Eligible</th>
+                      <th className="px-4 py-3 text-center text-purple-600 dark:text-purple-400">Empty Slots</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800 font-medium">
+                    {/* LR Row */}
+                    <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">LR</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{lrTotalRow.finalTotalSlots}</td>
+                      <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-semibold">{lrTotalRow.finalTotalDone}</td>
+                      <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold">{lrTotalRow.finalTotalPass}</td>
+                      <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-semibold">{lrTotalRow.finalTotalFail}</td>
+                      <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">{lrTotalRow.finalTotalReschedule}</td>
+                      <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-semibold">{lrTotalRow.finalTotalNoShow}</td>
+                      <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-semibold">{lrTotalRow.finalTotalDisinterested}</td>
+                      <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-semibold">{lrTotalRow.finalTotalNotEligible}</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{lrTotalRow.finalTotalEmpty}</td>
+                    </tr>
+
+                    {/* CFR Row */}
+                    <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                      <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">CFR</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{crfTotalRow.finalTotalSlots}</td>
+                      <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-semibold">{crfTotalRow.finalTotalDone}</td>
+                      <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold">{crfTotalRow.finalTotalPass}</td>
+                      <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-semibold">{crfTotalRow.finalTotalFail}</td>
+                      <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">{crfTotalRow.finalTotalReschedule}</td>
+                      <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-semibold">{crfTotalRow.finalTotalNoShow}</td>
+                      <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-semibold">{crfTotalRow.finalTotalDisinterested}</td>
+                      <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-semibold">{crfTotalRow.finalTotalNotEligible}</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{crfTotalRow.finalTotalEmpty}</td>
+                    </tr>
+
+                    {/* Total Row */}
+                    <tr className="bg-slate-50 dark:bg-zinc-800/80 font-bold border-t-2 border-slate-200 dark:border-zinc-700">
+                      <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-bold">Total</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-bold">{grandTotalRow.finalTotalSlots}</td>
+                      <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">{grandTotalRow.finalTotalDone}</td>
+                      <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">{grandTotalRow.finalTotalPass}</td>
+                      <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-bold">{grandTotalRow.finalTotalFail}</td>
+                      <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-bold">{grandTotalRow.finalTotalReschedule}</td>
+                      <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-bold">{grandTotalRow.finalTotalNoShow}</td>
+                      <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-bold">{grandTotalRow.finalTotalDisinterested}</td>
+                      <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">{grandTotalRow.finalTotalNotEligible}</td>
+                      <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-bold">{grandTotalRow.finalTotalEmpty}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-[#F8FAFC] dark:bg-zinc-800/60 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-zinc-800">
-                  <tr>
-                    <th className="px-4 py-3">Round</th>
-                    <th className="px-4 py-3 text-center text-purple-600 dark:text-purple-400">Total Slots</th>
-                    <th className="px-4 py-3 text-center text-blue-600 dark:text-blue-400">Interviews Done</th>
-                    <th className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400">Pass</th>
-                    <th className="px-4 py-3 text-center text-rose-600 dark:text-rose-400">Fail</th>
-                    <th className="px-4 py-3 text-center text-orange-600 dark:text-orange-400">Reschedule</th>
-                    <th className="px-4 py-3 text-center text-slate-500 dark:text-slate-400">No Show</th>
-                    <th className="px-4 py-3 text-center text-amber-600 dark:text-amber-400">Disinterested</th>
-                    <th className="px-4 py-3 text-center text-rose-500 dark:text-rose-400">Not Eligible</th>
-                    <th className="px-4 py-3 text-center text-purple-600 dark:text-purple-400">Empty Slots</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800 font-medium">
-                  {/* LR Row */}
-                  <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
-                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">LR</td>
-                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{lrTotalRow.finalTotalSlots}</td>
-                    <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-semibold">{lrTotalRow.finalTotalDone}</td>
-                    <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold">{lrTotalRow.finalTotalPass}</td>
-                    <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-semibold">{lrTotalRow.finalTotalFail}</td>
-                    <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">{lrTotalRow.finalTotalReschedule}</td>
-                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-semibold">{lrTotalRow.finalTotalNoShow}</td>
-                    <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-semibold">{lrTotalRow.finalTotalDisinterested}</td>
-                    <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-semibold">{lrTotalRow.finalTotalNotEligible}</td>
-                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{lrTotalRow.finalTotalEmpty}</td>
-                  </tr>
-
-                  {/* CFR Row */}
-                  <tr className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
-                    <td className="px-4 py-3 font-bold text-slate-900 dark:text-slate-100">CFR</td>
-                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{crfTotalRow.finalTotalSlots}</td>
-                    <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-semibold">{crfTotalRow.finalTotalDone}</td>
-                    <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold">{crfTotalRow.finalTotalPass}</td>
-                    <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-semibold">{crfTotalRow.finalTotalFail}</td>
-                    <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-semibold">{crfTotalRow.finalTotalReschedule}</td>
-                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-semibold">{crfTotalRow.finalTotalNoShow}</td>
-                    <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-semibold">{crfTotalRow.finalTotalDisinterested}</td>
-                    <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-semibold">{crfTotalRow.finalTotalNotEligible}</td>
-                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-semibold">{crfTotalRow.finalTotalEmpty}</td>
-                  </tr>
-
-                  {/* Total Row */}
-                  <tr className="bg-slate-50 dark:bg-zinc-800/80 font-bold border-t-2 border-slate-200 dark:border-zinc-700">
-                    <td className="px-4 py-3 text-slate-900 dark:text-slate-100 font-bold">Total</td>
-                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-bold">{grandTotalRow.finalTotalSlots}</td>
-                    <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400 font-bold">{grandTotalRow.finalTotalDone}</td>
-                    <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-bold">{grandTotalRow.finalTotalPass}</td>
-                    <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400 font-bold">{grandTotalRow.finalTotalFail}</td>
-                    <td className="px-4 py-3 text-center text-orange-600 dark:text-orange-400 font-bold">{grandTotalRow.finalTotalReschedule}</td>
-                    <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400 font-bold">{grandTotalRow.finalTotalNoShow}</td>
-                    <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400 font-bold">{grandTotalRow.finalTotalDisinterested}</td>
-                    <td className="px-4 py-3 text-center text-rose-500 dark:text-rose-400 font-bold">{grandTotalRow.finalTotalNotEligible}</td>
-                    <td className="px-4 py-3 text-center text-purple-600 dark:text-purple-400 font-bold">{grandTotalRow.finalTotalEmpty}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          )}
 
           {/* ── Charts Panel ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Left/Middle Chart Panel */}
-            <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                  {timeMode === "daily"
-                    ? "Interviews Done by Round"
-                    : `Daily Interviews Trend (${formatDisplayDate(weekRange.start)} - ${formatDisplayDate(weekRange.end)})`}
-                </h3>
+          {showReports && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* Left/Middle Chart Panel */}
+              <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    {timeMode === "daily"
+                      ? "Interviews Done by Round"
+                      : `Daily Interviews Trend (${formatDisplayDate(weekRange.start)} - ${formatDisplayDate(weekRange.end)})`}
+                  </h3>
+                </div>
+
+                {timeMode === "daily" ? (
+                  <div className="h-[260px] w-full pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px", border: "1px solid #E2E8F0" }} />
+                        <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={60}>
+                          {barData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-[260px] w-full pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={trendData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px", border: "1px solid #E2E8F0" }} />
+                        <Legend wrapperStyle={{ fontSize: "12px" }} align="right" verticalAlign="top" />
+                        <Line type="monotone" dataKey="LR" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        <Line type="monotone" dataKey="CFR" stroke="#22C55E" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
 
-              {timeMode === "daily" ? (
-                <div className="h-[260px] w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 12, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px", border: "1px solid #E2E8F0" }} />
-                      <Bar dataKey="done" radius={[6, 6, 0, 0]} barSize={60}>
-                        {barData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="h-[260px] w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trendData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px", border: "1px solid #E2E8F0" }} />
-                      <Legend wrapperStyle={{ fontSize: "12px" }} align="right" verticalAlign="top" />
-                      <Line type="monotone" dataKey="LR" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                      <Line type="monotone" dataKey="CFR" stroke="#22C55E" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
+              {/* Right Chart Panel (Result Distribution Donut) */}
+              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Result Distribution</h3>
 
-            {/* Right Chart Panel (Result Distribution Donut) */}
-            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Result Distribution</h3>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-1">
+                  <div className="w-[180px] h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px" }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-1">
-                <div className="w-[180px] h-[180px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ borderRadius: "8px", fontSize: "12px" }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Legend List */}
-                <div className="flex flex-col gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 w-full sm:w-auto">
-                  {pieData.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
-                        <span>{item.name}</span>
+                  {/* Legend List */}
+                  <div className="flex flex-col gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 w-full sm:w-auto">
+                    {pieData.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                          <span>{item.name}</span>
+                        </div>
+                        <span className="font-bold text-slate-900 dark:text-slate-100">({item.value})</span>
                       </div>
-                      <span className="font-bold text-slate-900 dark:text-slate-100">({item.value})</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
         </div>
       </main>

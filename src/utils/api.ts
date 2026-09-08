@@ -3675,6 +3675,9 @@ export const getInterviewerStats = async (params: GetInterviewerStatsParams): Pr
     queryParams.append("start_date", params.start_date);
     if (params.end_date && params.start_date !== "all") {
       queryParams.append("end_date", params.end_date);
+      if (params.start_date === params.end_date) {
+        queryParams.append("date", params.start_date);
+      }
     }
   } else if (params.date) {
     if (params.date === "all") {
@@ -3682,6 +3685,7 @@ export const getInterviewerStats = async (params: GetInterviewerStatsParams): Pr
     } else {
       queryParams.append("start_date", params.date);
       queryParams.append("end_date", params.date);
+      queryParams.append("date", params.date);
     }
   }
 
