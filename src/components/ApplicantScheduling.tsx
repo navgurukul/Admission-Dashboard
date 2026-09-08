@@ -160,9 +160,8 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
                     <TableCell className="text-gray-600">{row.isPlaceholder ? "—" : (row.scheduling_method || "—")}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        row.status === "Not Started" ? "bg-gray-100 text-gray-800" :
-                        row.status === "Slot Booked" ? "bg-green-100 text-green-800" :
-                        row.status === "Call Not Answered" ? "bg-red-100 text-red-800" :
+                        (row.status === "Scheduled" || row.status === "Rescheduled") ? "bg-green-100 text-green-800" :
+                        (row.status === "Wrong Number" || row.status === "Not Responding" || row.status === "Switch Off") ? "bg-red-100 text-red-800" :
                         row.status === "Disinterested" ? "bg-gray-100 text-gray-800" :
                         "bg-blue-100 text-blue-800"
                       }`}>
@@ -209,13 +208,12 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Call Not Answered">Call Not Answered</SelectItem>
                   <SelectItem value="Wrong Number">Wrong Number</SelectItem>
-                  <SelectItem value="Call Disconnected">Call Disconnected</SelectItem>
-                  <SelectItem value="Number Busy">Number Busy</SelectItem>
-                  <SelectItem value="Number Not Reachable">Number Not Reachable</SelectItem>
-                  <SelectItem value="Call Back Later">Call Back Later</SelectItem>
+                  <SelectItem value="Not Responding">Not Responding</SelectItem>
+                  <SelectItem value="Switch Off">Switch Off</SelectItem>
                   <SelectItem value="Disinterested">Disinterested</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="Rescheduled">Rescheduled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
