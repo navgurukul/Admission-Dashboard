@@ -782,7 +782,7 @@ const SlotTracking = () => {
                     setTimeMode("weekly");
                   }
                 }}
-                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${showReports
+                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${showReports && timeMode !== "all_time"
                   ? "bg-slate-900 dark:bg-zinc-800 text-white"
                   : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
                   }`}
@@ -792,13 +792,17 @@ const SlotTracking = () => {
               </Button>
 
               <Button
-                variant="outline"
                 size="sm"
-                onClick={() => setTimeMode("all_time")}
-                className={`h-9 gap-1.5 text-xs font-medium border-slate-200 ${timeMode === "all_time" ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-white dark:bg-zinc-900"
+                onClick={() => {
+                  setShowReports(true);
+                  setTimeMode("all_time");
+                }}
+                className={`h-9 gap-1.5 text-xs font-medium shadow-sm ${showReports && timeMode === "all_time"
+                  ? "bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-600"
+                  : "bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-slate-200"
                   }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                 View All
               </Button>
 
@@ -1043,95 +1047,99 @@ const SlotTracking = () => {
           )}
 
           {/* ── Tabs & Filter Controls Bar ── */}
-          {showReports && (timeMode === "daily" || timeMode === "weekly" || timeMode === "monthly") && (
+          {showReports && (
             <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-4">
-              {/* Tabs */}
-              <div className="border-b border-slate-200 dark:border-zinc-800 flex items-center gap-8 text-sm font-medium">
-                <button
-                  onClick={() => setTimeMode("daily")}
-                  className={`pb-2.5 transition-all relative ${timeMode === "daily"
-                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                    }`}
-                >
-                  Daily
-                </button>
-                <button
-                  onClick={() => setTimeMode("weekly")}
-                  className={`pb-2.5 transition-all relative ${timeMode === "weekly"
-                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                    }`}
-                >
-                  Weekly
-                </button>
-                <button
-                  onClick={() => setTimeMode("monthly")}
-                  className={`pb-2.5 transition-all relative ${timeMode === "monthly"
-                    ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                    }`}
-                >
-                  Monthly
-                </button>
-              </div>
-
-              {/* Date selector row */}
-              <div className="flex flex-wrap items-center gap-3">
-                {timeMode === "daily" && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-slate-500">Date</span>
-                    <Input
-                      type="date"
-                      value={dailyDate}
-                      onChange={(e) => setDailyDate(e.target.value)}
-                      className="h-9 text-xs w-[180px] bg-white dark:bg-zinc-900 border-slate-200"
-                    />
+              {/* Tabs & Date selector row (hidden in View All / all_time mode) */}
+              {timeMode !== "all_time" && (
+                <>
+                  <div className="border-b border-slate-200 dark:border-zinc-800 flex items-center gap-8 text-sm font-medium">
+                    <button
+                      onClick={() => setTimeMode("daily")}
+                      className={`pb-2.5 transition-all relative ${timeMode === "daily"
+                        ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                        }`}
+                    >
+                      Daily
+                    </button>
+                    <button
+                      onClick={() => setTimeMode("weekly")}
+                      className={`pb-2.5 transition-all relative ${timeMode === "weekly"
+                        ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                        }`}
+                    >
+                      Weekly
+                    </button>
+                    <button
+                      onClick={() => setTimeMode("monthly")}
+                      className={`pb-2.5 transition-all relative ${timeMode === "monthly"
+                        ? "text-[#E11D48] font-semibold border-b-2 border-[#E11D48]"
+                        : "text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                        }`}
+                    >
+                      Monthly
+                    </button>
                   </div>
-                )}
 
-                {timeMode === "weekly" && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-slate-500">Week</span>
-                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
-                      <Input
-                        type="date"
-                        value={weekRange.start}
-                        onChange={(e) => setWeekRange((prev) => ({ ...prev, start: e.target.value }))}
-                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                      />
-                      <span className="text-xs text-slate-400">-</span>
-                      <Input
-                        type="date"
-                        value={weekRange.end}
-                        onChange={(e) => setWeekRange((prev) => ({ ...prev, end: e.target.value }))}
-                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                      />
-                    </div>
-                  </div>
-                )}
+                  {/* Date selector row */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {timeMode === "daily" && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-slate-500">Date</span>
+                        <Input
+                          type="date"
+                          value={dailyDate}
+                          onChange={(e) => setDailyDate(e.target.value)}
+                          className="h-9 text-xs w-[180px] bg-white dark:bg-zinc-900 border-slate-200"
+                        />
+                      </div>
+                    )}
 
-                {timeMode === "monthly" && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-medium text-slate-500">Month</span>
-                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
-                      <Input
-                        type="date"
-                        value={monthRange.start}
-                        onChange={(e) => setMonthRange((prev) => ({ ...prev, start: e.target.value }))}
-                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                      />
-                      <span className="text-xs text-slate-400">-</span>
-                      <Input
-                        type="date"
-                        value={monthRange.end}
-                        onChange={(e) => setMonthRange((prev) => ({ ...prev, end: e.target.value }))}
-                        className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
-                      />
-                    </div>
+                    {timeMode === "weekly" && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-slate-500">Week</span>
+                        <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
+                          <Input
+                            type="date"
+                            value={weekRange.start}
+                            onChange={(e) => setWeekRange((prev) => ({ ...prev, start: e.target.value }))}
+                            className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                          />
+                          <span className="text-xs text-slate-400">-</span>
+                          <Input
+                            type="date"
+                            value={weekRange.end}
+                            onChange={(e) => setWeekRange((prev) => ({ ...prev, end: e.target.value }))}
+                            className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {timeMode === "monthly" && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-slate-500">Month</span>
+                        <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-slate-200 rounded-lg px-3 py-1 shadow-sm">
+                          <Input
+                            type="date"
+                            value={monthRange.start}
+                            onChange={(e) => setMonthRange((prev) => ({ ...prev, start: e.target.value }))}
+                            className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                          />
+                          <span className="text-xs text-slate-400">-</span>
+                          <Input
+                            type="date"
+                            value={monthRange.end}
+                            onChange={(e) => setMonthRange((prev) => ({ ...prev, end: e.target.value }))}
+                            className="h-7 text-xs w-[130px] border-none p-0 focus-visible:ring-0"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
 
               {/* ── Row of 9 Metric Cards ── */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3 pt-2">
