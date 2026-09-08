@@ -16,11 +16,13 @@ import { Search, Filter, X, ArrowLeft } from "lucide-react";
 import { AdvancedFilterModal } from "@/components/AdvancedFilterModal";
 import { ApplicantModal } from "@/components/ApplicantModal";
 import { Pagination } from "@/components/applicant-table/Pagination";
-import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats, getStatusesByStageId, getAllStates } from "@/utils/api";
+import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats, getStatusesByStageId, getAllStates, getCampusSchools, updateCampusSchoolStatus, CampusSchool, getUnassignedCampusSchools, assignCampusSchool } from "@/utils/api";
+import { Switch } from "@/components/ui/switch";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 import { useToast } from "@/hooks/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 
 interface FilterState {
   stage: string;
@@ -50,6 +52,7 @@ interface FilterState {
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "student", label: "Student Data" },
+  { key: "courses", label: "Course Management" },
 ];
 
 const ROWS_PER_PAGE = 10;
@@ -60,6 +63,8 @@ const CampusDetail = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [programs, setPrograms] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [campusSchools, setCampusSchools] = useState<CampusSchool[]>([]);
+  const [campusSchoolsLoading, setCampusSchoolsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [campusName, setCampusName] = useState("");
@@ -94,6 +99,12 @@ const CampusDetail = () => {
   const [selectedApplicant, setSelectedApplicant] = useState<any>(null);
   const [showApplicantModal, setShowApplicantModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshCoursesKey, setRefreshCoursesKey] = useState(0);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [unassignedSchools, setUnassignedSchools] = useState<any[]>([]);
+  const [selectedSchoolsToAssign, setSelectedSchoolsToAssign] = useState<string[]>([]);
+  const [confirmStatusModalOpen, setConfirmStatusModalOpen] = useState(false);
+  const [pendingStatusToggle, setPendingStatusToggle] = useState<{schoolId: number, currentStatus: boolean, schoolName: string} | null>(null);
 
   // ✅ DRY: Use on-demand reference data for filter tags
   // Data is loaded lazily - only when needed for displaying active filter tags
@@ -230,8 +241,12 @@ const CampusDetail = () => {
     const fetchCampusDetails = async () => {
       try {
         const response = await getCampusById(Number(id));
-        if (response.success && response.data) {
+        if (response?.data?.campus_name) {
           setCampusName(response.data.campus_name);
+        } else if (response?.campus_name) {
+          setCampusName(response.campus_name);
+        } else if (response?.success && response?.data) {
+          setCampusName(response.data.campus_name || response.data.name || "");
         }
       } catch (error) {
         console.error("Failed to fetch campus details:", error);
@@ -240,6 +255,106 @@ const CampusDetail = () => {
 
     fetchCampusDetails();
   }, [id, refreshKey]);
+
+  // Fetch campus schools for Course Management
+  useEffect(() => {
+    if (!id || activeTab !== "courses") return;
+
+    const fetchSchools = async () => {
+      setCampusSchoolsLoading(true);
+      try {
+        const response = await getCampusSchools(Number(id));
+        let schoolsData: any[] = [];
+        if (Array.isArray(response)) {
+          schoolsData = response;
+        } else if (Array.isArray(response?.data)) {
+          schoolsData = response.data;
+        } else if (Array.isArray(response?.data?.data)) {
+          schoolsData = response.data.data;
+        }
+        setCampusSchools(schoolsData);
+      } catch (err) {
+        console.error("Failed to fetch campus schools", err);
+        setCampusSchools([]);
+      } finally {
+        setCampusSchoolsLoading(false);
+      }
+    };
+    fetchSchools();
+  }, [id, activeTab, refreshCoursesKey]);
+
+  const handleOpenAssignModal = async () => {
+    if (!id) return;
+    setAssignModalOpen(true);
+    setSelectedSchoolsToAssign([]);
+    setUnassignedSchools([]);
+    try {
+      const response = await getUnassignedCampusSchools(Number(id));
+      let data: any[] = [];
+      if (Array.isArray(response)) data = response;
+      else if (Array.isArray(response?.data)) data = response.data;
+      else if (Array.isArray(response?.data?.data)) data = response.data.data;
+      setUnassignedSchools(data);
+    } catch (err) {
+      console.error("Failed to fetch unassigned schools", err);
+      toast({
+        title: "❌ Failed",
+        description: "Could not load available courses.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAssignCourse = async () => {
+    if (!id || selectedSchoolsToAssign.length === 0) return;
+    try {
+      await Promise.all(
+        selectedSchoolsToAssign.map(schoolId => 
+          assignCampusSchool(Number(id), Number(schoolId))
+        )
+      );
+      toast({
+        title: "✅ Assigned",
+        description: `Successfully assigned ${selectedSchoolsToAssign.length} course(s).`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
+      setAssignModalOpen(false);
+      setRefreshCoursesKey(prev => prev + 1);
+    } catch (err) {
+      console.error("Failed to assign course", err);
+      toast({
+        title: "❌ Failed",
+        description: getFriendlyErrorMessage(err),
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleToggleCourseStatus = async (schoolId: number, currentStatus: boolean) => {
+    try {
+      const newStatus = !currentStatus;
+      await updateCampusSchoolStatus(Number(id), schoolId, newStatus);
+      
+      // Update local state
+      setCampusSchools(prev => 
+        prev.map(cs => cs.school_id === schoolId ? { ...cs, is_open: newStatus } : cs)
+      );
+
+      toast({
+        title: "✅ Status Updated",
+        description: `Admissions are now ${newStatus ? 'open' : 'closed'} for this course.`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900"
+      });
+    } catch (err) {
+      toast({
+        title: "❌ Update Failed",
+        description: getFriendlyErrorMessage(err),
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch campus stats
   useEffect(() => {
@@ -885,7 +1000,11 @@ const CampusDetail = () => {
         <Card>
           <CardHeader>
             <CardTitle>
-              {activeTab === "overview" ? "Programs offered" : "Student Data"}
+              {activeTab === "overview" 
+                ? "Programs offered" 
+                : activeTab === "student" 
+                  ? "Student Data" 
+                  : "Course Management"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -965,6 +1084,65 @@ const CampusDetail = () => {
                   </TableBody>
                 </Table>
               ))}
+
+            {activeTab === "courses" && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button onClick={handleOpenAssignModal}>
+                    + Assign Course
+                  </Button>
+                </div>
+                {campusSchoolsLoading ? (
+                  <p>Loading courses...</p>
+                ) : !Array.isArray(campusSchools) || campusSchools.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No courses found for this campus
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>S.No</TableHead>
+                        <TableHead>School Name</TableHead>
+                        <TableHead>Cut-off Marks</TableHead>
+                        <TableHead>Course Admission Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {campusSchools.map((cs, index) => {
+                        const schoolName = cs.school?.school_name || cs.school_name || 'N/A';
+                        return (
+                          <TableRow key={cs.school_id || index}>
+                            <TableCell>{index + 1}</TableCell>
+                            <TableCell>{schoolName}</TableCell>
+                            <TableCell>{cs.school?.cut_off_marks ?? cs.cut_off_marks ?? 'N/A'}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Switch
+                                  checked={!!cs.is_open}
+                                  onCheckedChange={() => {
+                                    setPendingStatusToggle({
+                                      schoolId: cs.school_id,
+                                      currentStatus: !!cs.is_open,
+                                      schoolName
+                                    });
+                                    setConfirmStatusModalOpen(true);
+                                  }}
+                                />
+                              <span className="text-sm text-muted-foreground">
+                                {cs.is_open ? "Open" : "Closed"}
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            )}
+
             {activeTab === "student" && (
               <>
                 <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
@@ -1239,6 +1417,78 @@ const CampusDetail = () => {
               setRefreshKey((prev) => prev + 1);
             }}
           />
+        )}
+
+        {/* Assign Course Modal */}
+        {assignModalOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+            <div className="bg-background rounded-lg p-6 max-w-sm w-full shadow-lg border relative">
+              <button 
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+                onClick={() => setAssignModalOpen(false)}
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <h2 className="text-xl font-bold mb-4 pr-6">Assign Course</h2>
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <label className="text-sm font-medium">Select Courses</label>
+                  <MultiSelectCombobox
+                    options={unassignedSchools.map(s => ({
+                      value: String(s.id),
+                      label: s.school_name || s.name || `Course ${s.id}`
+                    }))}
+                    value={selectedSchoolsToAssign}
+                    onValueChange={setSelectedSchoolsToAssign}
+                    placeholder="Select courses..."
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setAssignModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAssignCourse} disabled={selectedSchoolsToAssign.length === 0}>
+                    Assign
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Confirm Status Toggle Modal */}
+        {confirmStatusModalOpen && pendingStatusToggle && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+            <div className="bg-background rounded-lg p-6 max-w-sm w-full shadow-lg border relative">
+              <button 
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setConfirmStatusModalOpen(false);
+                  setPendingStatusToggle(null);
+                }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <h2 className="text-xl font-bold mb-4 pr-6">Confirm Action</h2>
+              <p className="text-muted-foreground mb-6">
+                Are you sure you want to {pendingStatusToggle.currentStatus ? "close" : "open"} admissions for <strong>{pendingStatusToggle.schoolName}</strong> in this campus?
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => {
+                  setConfirmStatusModalOpen(false);
+                  setPendingStatusToggle(null);
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={() => {
+                  handleToggleCourseStatus(pendingStatusToggle.schoolId, pendingStatusToggle.currentStatus);
+                  setConfirmStatusModalOpen(false);
+                  setPendingStatusToggle(null);
+                }}>
+                  Confirm
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>

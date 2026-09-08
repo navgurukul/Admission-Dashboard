@@ -2489,13 +2489,14 @@ export const deleteCampusApi = async (id: number) => {
 };
 
 //  Create School
-export const createSchool = async (schoolName: string, cutOffMarks?: number) => {
+export const createSchool = async (schoolName: string, cutOffMarks?: number, campusIds?: number[]) => {
   const response = await fetch(`${BASE_URL}/schools/createSchool`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
       school_name: schoolName,
-      cut_off_marks: cutOffMarks
+      cut_off_marks: cutOffMarks,
+      campus_ids: campusIds
     }),
   });
   if (!response.ok) {
@@ -2512,6 +2513,66 @@ export interface School {
   school_name: string;
   cut_off_marks: number;
 }
+
+export interface CampusSchool {
+  campus_id: number;
+  school_id: number;
+  is_open: boolean;
+  school?: School;
+  school_name?: string;
+  cut_off_marks?: number;
+}
+
+export const getCampusSchools = async (campusId: number) => {
+  const response = await fetch(`${BASE_URL}/campus-school/${campusId}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch campus schools");
+  }
+  return await response.json();
+};
+
+export const updateCampusSchoolStatus = async (campusId: number, schoolId: number, isOpen: boolean) => {
+  const response = await fetch(`${BASE_URL}/campus-school/status`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      campus_id: campusId,
+      school_id: schoolId,
+      is_open: isOpen
+    }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update status");
+  }
+  return await response.json();
+};
+
+export const getUnassignedCampusSchools = async (campusId: number) => {
+  const response = await fetch(`${BASE_URL}/campus-school/${campusId}/unassigned`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch unassigned schools");
+  }
+  return await response.json();
+};
+
+export const assignCampusSchool = async (campusId: number, schoolId: number) => {
+  const response = await fetch(`${BASE_URL}/campus-school/assign`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      campus_id: campusId,
+      school_id: schoolId
+    }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to assign course");
+  }
+  return await response.json();
+};
 
 export const getAllSchools = async (): Promise<School[]> => {
   const response = await fetch(`${BASE_URL}/schools/getSchools`);
