@@ -28,7 +28,9 @@ import {
   createSchool,
   updateSchool,
   deleteSchool,
+  getCampusesApi,
 } from "@/utils/api";
+import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 
 interface School {
   id: number;
@@ -58,6 +60,29 @@ const SchoolPage = () => {
   const [addCutOffError, setAddCutOffError] = useState("");
   const [editSchoolNameError, setEditSchoolNameError] = useState("");
   const [editCutOffError, setEditCutOffError] = useState("");
+
+  const [campusList, setCampusList] = useState<{ id: number; campus_name: string }[]>([]);
+  const [selectedCampuses, setSelectedCampuses] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchCampuses = async () => {
+      try {
+        const data = await getCampusesApi();
+        setCampusList(data);
+      } catch (err) {
+        console.error("Failed to load campuses", err);
+      }
+    };
+    fetchCampuses();
+  }, []);
+
+  const campusOptions = useMemo(() => {
+    return campusList.map(c => ({
+      value: String(c.id),
+      label: c.campus_name
+    }));
+  }, [campusList]);
+
   const isTeamUser = useMemo(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -178,7 +203,11 @@ const SchoolPage = () => {
       return;
     }
     try {
-      const result = await createSchool(trimmedSchoolName, parsedCutOff);
+      const result = await createSchool(
+        trimmedSchoolName,
+        parsedCutOff,
+        selectedCampuses.length > 0 ? selectedCampuses.map(Number) : undefined
+      );
       const newSchoolData: School = {
         id: result.id || result.data?.id || Date.now(),
         school_name: trimmedSchoolName,
@@ -190,6 +219,7 @@ const SchoolPage = () => {
       setSchools((prev) => [...prev, newSchoolData]);
       setNewSchool("");
       setNewCutOffMarks("");
+      setSelectedCampuses([]);
       setAddDialog(false);
 
       toast({
@@ -465,11 +495,31 @@ const SchoolPage = () => {
                 <p className="mt-1 text-xs text-red-500">{addCutOffError}</p>
               )}
             </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Assign Campuses
+              </label>
+              <MultiSelectCombobox
+                options={campusOptions}
+                value={selectedCampuses}
+                onValueChange={setSelectedCampuses}
+                placeholder="Select campuses..."
+                searchPlaceholder="Search campuses..."
+                emptyText="No campus found."
+              />
+            </div>
             <div className="flex justify-end gap-2 mt-6">
               <button
                 type="button"
                 className="px-4 py-2 bg-muted text-foreground rounded hover:bg-muted/80 transition-colors"
-                onClick={() => setAddDialog(false)}
+                onClick={() => {
+                  setAddDialog(false);
+                  setNewSchool("");
+                  setNewCutOffMarks("");
+                  setSelectedCampuses([]);
+                  setAddSchoolNameError("");
+                  setAddCutOffError("");
+                }}
               >
                 Cancel
               </button>
