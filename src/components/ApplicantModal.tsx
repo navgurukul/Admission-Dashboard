@@ -372,6 +372,48 @@ export function ApplicantModal({
       label: c.campus_name,
     })), [campusList]);
 
+  const preferredCampusDisplay = useMemo(() => {
+    const pc =
+      currentApplicant?.preferred_campus ??
+      currentApplicant?.preferred_campus_name ??
+      currentApplicant?.preferred_campus_id ??
+      currentApplicant?.preferredCampus;
+
+    if (!pc && pc !== 0) return "—";
+
+    if (typeof pc === "object" && pc !== null) {
+      return pc.campus_name || pc.name || "—";
+    }
+
+    const pcStr = String(pc).trim();
+    if (
+      !pcStr ||
+      pcStr === "—" ||
+      pcStr.toLowerCase() === "null" ||
+      pcStr.toLowerCase() === "undefined"
+    ) {
+      return "—";
+    }
+
+    // Check if it matches an id in campus list
+    const matchedById = campus.find((c: any) => String(c.value) === pcStr);
+    if (matchedById?.label) return matchedById.label;
+
+    // Check if it matches a name in campus list
+    const matchedByName = campus.find(
+      (c: any) => c.label?.toLowerCase() === pcStr.toLowerCase()
+    );
+    if (matchedByName?.label) return matchedByName.label;
+
+    return pcStr;
+  }, [
+    currentApplicant?.preferred_campus,
+    currentApplicant?.preferred_campus_name,
+    currentApplicant?.preferred_campus_id,
+    currentApplicant?.preferredCampus,
+    campus,
+  ]);
+
   const questionSets = useMemo(() =>
     (questionSetList || []).map((qs: any) => ({
       value: qs.id?.toString(),
@@ -626,6 +668,21 @@ export function ApplicantModal({
     };
     loadSchools();
   }, [isOpen, schools.length, fetchSchools]);
+
+  // ✅ Load Campuses API when modal opens
+  // Always load if campusList is empty, as we need it for preferred campus and campus selection
+  useEffect(() => {
+    const loadCampuses = async () => {
+      if (isOpen && campusList.length === 0) {
+        try {
+          await fetchCampuses();
+        } catch (error) {
+          console.error('❌ Failed to load Campuses:', error);
+        }
+      }
+    };
+    loadCampuses();
+  }, [isOpen, campusList.length, fetchCampuses]);
 
   // Fetch available templates
   useEffect(() => {
@@ -2787,6 +2844,14 @@ Interviewer: ${interviewerName}`;
                   </label>
                   <div className="text-sm">
                     {getLabel(schools, currentApplicant.initial_school_id, "—", "school_name")}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Prefered campus
+                  </label>
+                  <div className="text-sm">
+                    {preferredCampusDisplay}
                   </div>
                 </div>
               </div>
