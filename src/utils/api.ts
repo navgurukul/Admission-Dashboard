@@ -1236,14 +1236,12 @@ export const getStudentById = async (id: string): Promise<Student> => {
 
 // Get Student By Email
 export const getStudentDataByEmail = async (
-  email: string,
-  firstName?: string,
+  email: string
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByEmail/${email}`,
       {
-        params: firstName ? { firstName } : {},
         headers: {
           ...(getAuthHeaders() as Record<string, string>),
         },
@@ -1298,15 +1296,11 @@ export interface CompleteStudentData {
 }
 
 export const getCompleteStudentData = async (
-  email: string,
-  firstName?: string,
+  email: string
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
-      `${BASE_URL}/students/getByEmail/${email}`,
-      {
-        params: firstName ? { firstName } : {},
-      }
+      `${BASE_URL}/students/getByEmail/${email}`
     );
     return response.data;
   } catch (error: any) {
@@ -2318,6 +2312,11 @@ export const getStageStatuses = async (stage_id: number): Promise<any> => {
 
   return data;
 };
+
+export interface Campus {
+  id: number;
+  campus_name: string;
+}
 
 // Get campuses with pagination
 export const getCampuses = async (page: number = 1, limit: number = 10) => {
