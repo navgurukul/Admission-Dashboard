@@ -127,7 +127,19 @@ export default function GamifiedLanding() {
   useEffect(() => {
     document.body.classList.remove('slide-other');
     injectCss().then(() => setCssLoaded(true));
-  }, []);
+    
+    // If the user is at the very start of the journey, clear any stale student data
+    if (currentScreen === 0) {
+      localStorage.removeItem("studentFormData");
+      localStorage.removeItem("studentId");
+      localStorage.removeItem("studentApiResponse");
+      localStorage.removeItem("studentName");
+      localStorage.removeItem("studentData");
+      localStorage.removeItem("registrationDone");
+      localStorage.removeItem("testStarted");
+      localStorage.removeItem("testCompleted");
+    }
+  }, [currentScreen]);
 
   useEffect(() => {
     if (cssLoaded && googleButtonRef.current && !googleLoading && !isAuthenticated && currentScreen === 0) {

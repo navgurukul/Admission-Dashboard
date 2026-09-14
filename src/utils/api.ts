@@ -1444,8 +1444,8 @@ export const createStudent = async (studentData: any): Promise<any> => {
     throw new Error(data.message || "Failed to create student");
   }
 
-  if (data?.data?.error === true) {
-    throw new Error(data.data.message || "Validation failed");
+  if (data?.error === true || data?.data?.error === true || data?.success === false) {
+    throw new Error(data?.message || data?.data?.message || "Validation failed");
   }
 
   return data;

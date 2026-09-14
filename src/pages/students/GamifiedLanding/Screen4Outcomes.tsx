@@ -66,6 +66,7 @@ interface Screen4OutcomesProps {
 const Screen4Outcomes: React.FC<Screen4OutcomesProps> = ({ openTestimonialModal }) => {
   const [activeSlots, setActiveSlots] = useState([0, 1, 2, 3, 4, 5]);
   const [selectedAlumni, setSelectedAlumni] = useState<number | null>(null);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
 
   useEffect(() => {
     let unassignedPool = [6, 7, 8, 9];
@@ -88,8 +89,22 @@ const Screen4Outcomes: React.FC<Screen4OutcomesProps> = ({ openTestimonialModal 
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const featuredInterval = setInterval(() => {
+      setFeaturedIndex(prev => (prev + 1) % ALUMNI_DATA.length);
+    }, 4000);
+    return () => clearInterval(featuredInterval);
+  }, []);
+
   return (
-    <section className="screen active" data-i="3" style={{ justifyContent: 'center', paddingTop: '40px' }}>
+    <section className="screen active" data-i="3" style={{ paddingTop: '90px', paddingBottom: '40px', overflowY: 'auto', justifyContent: 'flex-start' }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .perch-corner-dock, .flight-carrier-layer, .bird-shadow {
+            display: none !important;
+          }
+        }
+      `}</style>
       {/* Ground/Air Shadow for Flying Bird */}
       <div className="bird-shadow" id="birdShadow"></div>
 
@@ -135,44 +150,93 @@ const Screen4Outcomes: React.FC<Screen4OutcomesProps> = ({ openTestimonialModal 
       </div>
 
 
-      <h1 className="headline" style={{ fontSize: 'clamp(24px, 3.2vw, 42px)', fontWeight: 600 }}>2,000+ dreams turned into <span className="highlight-pink">real jobs</span></h1>
+      <h1 className="headline" style={{ fontSize: 'clamp(20px, 2.6vw, 34px)', fontWeight: 500, margin: '0 0 8px 0' }}>2,000+ dreams turned into <span className="highlight-pink">real jobs</span></h1>
       <p className="screen2-subline">Skills that opened doors. Careers that changed lives.</p>
       
-      <div className="alumni-viewport">
-        <div className="alumni-track" id="alumniTrack">
-          {/* Double list for infinite marquee effect */}
-          {[...ALUMNI_DATA, ...ALUMNI_DATA].map((a, i) => {
-            const realIdx = i % ALUMNI_DATA.length;
-            const initials = a.n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-            
-            return (
-              <div key={i} className="alumni-card" onClick={() => setSelectedAlumni(realIdx)} role="button" tabIndex={0} title={`Click to view ${a.n}'s testimonial`}>
-                <div className="acard-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <div className="alumni-avatar" style={{ background: a.color }}>{initials}</div>
+      <div style={{ display: 'flex', gap: '30px', maxWidth: '860px', width: '100%', margin: '15px auto 30px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Left: Featured Card */}
+        {(() => {
+          const a = ALUMNI_DATA[featuredIndex];
+          const initials = a.n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+          return (
+            <div className="alumni-card" style={{ flex: '1', minWidth: '300px', maxWidth: '420px', padding: '20px', position: 'relative', margin: 0, height: 'auto', display: 'flex', flexDirection: 'column', cursor: 'pointer' }} onClick={() => setSelectedAlumni(featuredIndex)}>
+                {/* Glow behind logo */}
+                <div style={{ position: 'absolute', top: '15px', right: '15px', width: '60px', height: '60px', background: 'radial-gradient(circle, rgba(233,30,99,0.15) 0%, rgba(233,30,99,0) 70%)', zIndex: 0 }}></div>
+                
+                <div className="acard-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <div className="alumni-avatar" style={{ background: a.color, width: '46px', height: '46px', fontSize: '1rem', boxShadow: 'none' }}>{initials}</div>
                         <div className="alumni-meta">
-                            <div className="aname">{a.n}</div>
-                            <div className="arole">{a.role}</div>
+                            <div className="aname" style={{ fontSize: '1rem', fontWeight: '700' }}>{a.n}</div>
+                            <div className="arole" style={{ fontSize: '0.8rem', fontWeight: '500' }}>{a.role}</div>
                         </div>
                     </div>
-                    <div className="alumni-logo-wrap">
-                        <img className="alumni-logo" src={`https://logo.clearbit.com/${a.domain}`} alt={a.co} onError={(e) => { e.currentTarget.src = a.logo; }} />
+                    <div className="alumni-logo-wrap" style={{ border: 'none', background: 'transparent', boxShadow: 'none', width: '40px', height: '40px' }}>
+                        <img className="alumni-logo" src={`https://logo.clearbit.com/${a.domain}`} alt={a.co} onError={(e) => { e.currentTarget.src = a.logo; }} style={{ borderRadius: '10px' }} />
                     </div>
                 </div>
-                <div className="apkg" style={{ marginTop: '8px' }}>
-                    <span style={{ fontSize: '1.25rem', fontWeight: '800', color: '#1e293b' }}>{a.pkg}</span>
+                
+                <div className="apkg" style={{ marginTop: '16px' }}>
+                    <span style={{ fontSize: '1.6rem', fontWeight: '700', color: '#1e293b' }}>{a.pkg}</span>
                 </div>
-                <div className="acard-quote">
-                    <div style={{color: '#cbd5e1', fontSize: '2rem', lineHeight: '0.8', fontFamily: 'serif', marginTop: '5px'}}>“</div>
-                    <div style={{fontStyle: 'italic', color: '#475569', marginTop: '-5px', fontWeight: '500', fontSize: '0.9rem'}}>{a.quote}</div>
+                
+                <div className="acard-quote" style={{ background: 'transparent', borderLeft: 'none', padding: '5px 0', marginTop: '5px' }}>
+                    <div style={{color: '#fbcfe8', fontSize: '2rem', lineHeight: '0.5', fontFamily: 'serif', marginTop: '10px'}}>“</div>
+                    <div style={{fontStyle: 'italic', color: '#334155', marginTop: '0', fontWeight: '500', fontSize: '0.85rem', lineHeight: '1.5'}}>{a.quote}</div>
                 </div>
-                <div className="acard-bottom">
-                    <div className="acard-city">📍 {a.city}</div>
-                    <div className="acard-link">View story →</div>
+                
+                <div className="acard-bottom" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="acard-city" style={{ fontSize: '12px' }}>📍 {a.city}</div>
+                    <div style={{ fontSize: '12px', color: '#e91e63', fontWeight: '600', opacity: 0.8 }}>View story →</div>
                 </div>
             </div>
-            );
-          })}
+          );
+        })()}
+
+        {/* Right: List of other alumni */}
+        <div style={{ flex: '1', minWidth: '280px', maxWidth: '360px', height: '360px', overflow: 'hidden', position: 'relative' }}>
+          <style>{`
+            @keyframes verticalMarquee {
+              0% { transform: translateY(0); }
+              100% { transform: translateY(-50%); }
+            }
+            .vertical-track {
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              animation: verticalMarquee 20s linear infinite;
+            }
+            .vertical-track:hover {
+              animation-play-state: paused;
+            }
+          `}</style>
+          <div className="vertical-track">
+            {[...ALUMNI_DATA, ...ALUMNI_DATA].map((a, i) => {
+              const realIdx = i % ALUMNI_DATA.length;
+              const initials = a.n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+              const isActive = realIdx === featuredIndex;
+              return (
+                <div key={i} onClick={() => setFeaturedIndex(realIdx)} style={{ 
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                    padding: '10px 14px', background: '#fff', borderRadius: '14px', 
+                    border: isActive ? '1.5px solid #e91e63' : '1.5px solid #e2e8f0', 
+                    cursor: 'pointer', boxShadow: isActive ? '0 4px 12px rgba(233,30,99,0.08)' : '0 2px 6px rgba(0,0,0,0.03)',
+                    transition: 'all 0.2s', flexShrink: 0
+                }}>
+                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                       <div className="alumni-avatar" style={{ background: a.color, width: '36px', height: '36px', fontSize: '12px', boxShadow: 'none' }}>{initials}</div>
+                       <div style={{ display: 'flex', flexDirection: 'column' }}>
+                           <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '13px' }}>{a.n}</span>
+                           <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{a.role} - {a.co}</span>
+                       </div>
+                   </div>
+                   <div style={{ fontWeight: '700', color: '#e91e63', fontSize: '13px' }}>
+                       {a.pkg.replace(' LPA', 'L')} 
+                   </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
       
