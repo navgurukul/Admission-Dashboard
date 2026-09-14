@@ -15,7 +15,7 @@ import Screen6Final from "./GamifiedLanding/Screen6Final";
 import LeavesCanvas from "./GamifiedLanding/LeavesCanvas";
 import GamifiedHud from "./GamifiedLanding/GamifiedHud";
 
-const injectCss = () => {
+const injectCss = (): Promise<void> => {
   const cssFiles = [
     "/gamified-assets/css/variables.css",
     "/gamified-assets/css/base.css",
@@ -24,17 +24,23 @@ const injectCss = () => {
     "/gamified-assets/css/mentor.css",
     "/gamified-assets/css/screens.css",
   ];
-  cssFiles.forEach((href, index) => {
-    const id = `gamified-css-${index}`;
-    if (!document.getElementById(id)) {
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      // Using setAttribute prevents the browser from automatically resolving to an absolute URL property initially
-      link.setAttribute("href", href);
-      document.head.appendChild(link);
-    }
+  const promises = cssFiles.map((href, index) => {
+    return new Promise<void>((resolve) => {
+      const id = `gamified-css-${index}`;
+      if (document.getElementById(id)) {
+        resolve();
+      } else {
+        const link = document.createElement("link");
+        link.id = id;
+        link.rel = "stylesheet";
+        link.onload = () => resolve();
+        link.onerror = () => resolve();
+        link.setAttribute("href", href);
+        document.head.appendChild(link);
+      }
+    });
   });
+  return Promise.all(promises).then(() => {});
 };
 
 export default function GamifiedLanding() {
@@ -50,6 +56,8 @@ export default function GamifiedLanding() {
   useEffect(() => {
     sessionStorage.setItem("gamifiedScreen", currentScreen.toString());
   }, [currentScreen]);
+
+  const [cssLoaded, setCssLoaded] = useState(false);
 
   const {
     user: googleUser,
@@ -118,17 +126,17 @@ export default function GamifiedLanding() {
 
   useEffect(() => {
     document.body.classList.remove('slide-other');
-    injectCss();
+    injectCss().then(() => setCssLoaded(true));
   }, []);
 
   useEffect(() => {
-    if (googleButtonRef.current && !googleLoading && !isAuthenticated && currentScreen === 0) {
+    if (cssLoaded && googleButtonRef.current && !googleLoading && !isAuthenticated && currentScreen === 0) {
       const timer = setTimeout(() => {
         renderGoogleSignInButton("google-signin-button-gamified");
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [googleLoading, isAuthenticated, currentScreen]);
+  }, [googleLoading, isAuthenticated, currentScreen, cssLoaded]);
 
   useEffect(() => {
     if (currentScreen === 0) {
@@ -157,7 +165,8 @@ export default function GamifiedLanding() {
       }
       try {
         const response = await getStudentDataByEmail(googleUser.email);
-        if (response && (response.student || response.data || response.id)) {
+        const resAny = response as any;
+        if (resAny && (resAny.student || resAny.data || resAny.id)) {
           // User exists! Resume journey.
           setHasProcessedAuth(true);
           handleExistingUserRedirect(response, googleUser.email);
@@ -196,7 +205,8 @@ export default function GamifiedLanding() {
       // 1. API check: verify if the student already exists
       try {
         const response = await getStudentDataByPhone(formData.phone, formData.name);
-        if (response && (response.student || response.data || response.id)) {
+        const resAny = response as any;
+        if (resAny && (resAny.student || resAny.data || resAny.id)) {
           // User exists! Resume journey.
           handleExistingUserRedirect(response);
           return;
@@ -231,6 +241,15 @@ export default function GamifiedLanding() {
     setModalSchoolIndex(null);
     setCurrentScreen(2);
   };
+
+  if (!cssLoaded) {
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-[#fffcf5] fixed inset-0 z-[10000]">
+        <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-gray-500 font-medium">Loading your journey...</p>
+      </div>
+    );
+  }
 
   return (
     <div 
