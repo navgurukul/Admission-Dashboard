@@ -147,12 +147,27 @@ const StudentForm: React.FC = () => {
     let available: string[] = [];
 
     if (gender === 'male') {
-      available.push('Dharmshala');
+      available.push('Dharamshala');
       if (district.includes('dantewada')) available.push('Dantewada');
     } else if (gender === 'female') {
-      available = ['Pune', 'Sarjapur', 'Kishanganj', 'Himachal Campus'];
+      available = ['Pune', 'Sarjapur'];
       if (district.includes('dantewada')) available.unshift('Dantewada');
       if (district.includes('jashpur')) available.unshift('Jashpur');
+      
+      // Female + BCA -> Himachal Campus
+      let age = 0;
+      if (formData.dateOfBirth) {
+        const today = new Date();
+        const birthDate = new Date(formData.dateOfBirth);
+        age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+      }
+      if (age >= 15) {
+        available.push('Himachal Campus');
+      }
     }
     
     return available;
@@ -976,7 +991,18 @@ const StudentForm: React.FC = () => {
         }
       }
       
-      // --- STEP 4 SUBMIT (Create Student) ---
+      // --- STEP 4 SUBMIT (Save locally and proceed) ---
+      localStorage.setItem("studentFormData", JSON.stringify(formData));
+      setCurrentStep(5);
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (currentStep === 5) {
+      if (!formData.preferred_campus_id || !formData.initial_school_id) {
+        return toast({ title: "⚠️ Campus & Course Required", description: "Please select both Campus and Course.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+
       try {
         const apiPayload = mapFormDataToApi(formData);
         let studentFormResponseData;
@@ -994,39 +1020,16 @@ const StudentForm: React.FC = () => {
         } else {
            studentFormResponseData = await updateStudent(existingStudentId, apiPayload);
         }
+        
         localStorage.setItem("studentApiResponse", JSON.stringify(studentFormResponseData));
-        
-        setCurrentStep(5);
-        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-      } catch (error) {
-        console.error("Error creating student:", error);
-        toast({ title: "❌ Registration Failed", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
-      }
-      return;
-    }
-
-    if (currentStep === 5) {
-      if (!formData.preferred_campus_id || !formData.initial_school_id) {
-        return toast({ title: "⚠️ Campus & Course Required", description: "Please select both Campus and Course.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-      }
-
-      try {
-        const studentIdStr = localStorage.getItem("studentId");
-        if (!studentIdStr) {
-           throw new Error("Student ID missing. Please go back and try again.");
-        }
-        
-        const apiPayload = mapFormDataToApi(formData);
-        const studentFormResponseData = await updateStudent(studentIdStr, apiPayload);
-
         localStorage.setItem("registrationDone", "true");
         localStorage.setItem("studentFormData", JSON.stringify(formData));
 
         toast({ title: "✅ Registration Successful", description: "Your registration was successful!", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
         navigate("/students/test/start");
       } catch (error) {
-        console.error("Error updating student:", error);
-        toast({ title: "❌ Update Failed", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
+        console.error("Error saving student:", error);
+        toast({ title: "❌ Registration Failed", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
       }
     }
   };
@@ -2343,12 +2346,11 @@ const StudentForm: React.FC = () => {
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
-                          // Just pass the selected campus name to the modal
                           setSelectedCampusInfo({ name: formData.preferred_campus_id });
                         }} 
-                        className="text-[10px] sm:text-[11px] text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md font-semibold flex items-center gap-1 transition-colors"
+                        className="text-[10px] sm:text-[11px] text-white bg-pink-500 hover:bg-pink-600 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 transition-all shadow-sm hover:shadow"
                       >
-                        ℹ️ {content.aboutCampus || "About Campus"}
+                        ℹ️ Click here for Campus Details
                       </button>
                     )}
                   </div>
@@ -2383,9 +2385,9 @@ const StudentForm: React.FC = () => {
                           const detail = schoolDetails.find(sd => selectedSch && (selectedSch.school_name.includes(sd.id) || sd.id.includes(selectedSch.school_name)));
                           if (detail) setSelectedSchoolInfo(detail);
                         }} 
-                        className="text-[10px] sm:text-[11px] text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md font-semibold flex items-center gap-1 transition-colors"
+                        className="text-[10px] sm:text-[11px] text-white bg-pink-500 hover:bg-pink-600 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 transition-all shadow-sm hover:shadow"
                       >
-                        ℹ️ About Course
+                        ℹ️ Click here for Course Details
                       </button>
                     )}
                   </div>

@@ -31,10 +31,10 @@ const Screen6Final: React.FC = () => {
 
   return (
     <section id="finalScreen" className="screen active w-full h-full" data-i="5">
-      <div className="w-full max-w-[820px] mx-auto bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col md:flex-row overflow-hidden text-left font-sans relative z-[101] shrink-0 my-auto">
+      <div className="w-full max-w-[560px] mx-auto bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden text-left font-sans relative z-[101] shrink-0 my-auto">
         
-        {/* Left Side */}
-        <div className="flex-1 p-6 sm:p-8 md:p-12 lg:p-14 flex flex-col justify-center bg-white relative">
+        {/* Content */}
+        <div className="flex-1 p-6 sm:p-8 md:p-12 flex flex-col justify-center bg-white relative">
           
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-500 font-bold px-3 py-1.5 rounded-full text-[12px] mb-6 w-max border border-rose-100">
@@ -95,60 +95,6 @@ const Screen6Final: React.FC = () => {
             </button>
           </div>
           
-        </div>
-
-        {/* Right Side */}
-        <div className="w-full md:w-[320px] lg:w-[340px] bg-gradient-to-br from-[#2a1c2c] to-[#1a101d] text-white p-6 sm:p-8 md:p-10 flex flex-col justify-between shrink-0 relative overflow-hidden">
-          
-          {/* Subtle glow effect in the top right as seen in image */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-[#f97316]/15 rounded-full blur-[80px] pointer-events-none transform translate-x-1/4 -translate-y-1/4"></div>
-
-          <div className="relative z-10 mt-4">
-            <h3 className="text-4xl lg:text-5xl font-serif text-[#ffedd5] mb-2 font-bold tracking-tight">2,000+</h3>
-            <p className="text-[#e2e8f0] text-[15px] font-medium leading-relaxed max-w-[250px]">students who started exactly where you are now</p>
-          </div>
-
-          <div className="flex justify-center py-12 relative z-10">
-            {/* Simple SVG Illustration of a waving person */}
-            <svg width="120" height="120" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Head */}
-              <circle cx="50" cy="30" r="16" fill="#fcd34d" />
-              {/* Hair curve */}
-              <path d="M 34 30 Q 50 -2, 66 30" stroke="#1e293b" strokeWidth="2" fill="none" />
-              {/* Eyes */}
-              <circle cx="43" cy="28" r="2.5" fill="#1e293b" />
-              <circle cx="57" cy="28" r="2.5" fill="#1e293b" />
-              {/* Smile */}
-              <path d="M 45 35 Q 50 42, 55 35" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" fill="none" />
-              {/* Body */}
-              <path d="M 30 55 Q 50 48, 70 55 L 67 100 L 33 100 Z" fill="#f97316" />
-              {/* Waving Arm */}
-              <path d="M 68 62 Q 85 50, 78 35" stroke="#f97316" strokeWidth="12" strokeLinecap="round" fill="none" />
-              {/* Hand/Coin */}
-              <circle cx="78" cy="32" r="7" fill="#fcd34d" />
-            </svg>
-          </div>
-
-          <ul className="flex flex-col gap-4 text-[14px] font-medium relative z-10 mb-4">
-            <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5 border border-white/10">
-                <Check size={12} strokeWidth={3} className="text-[#e2e8f0]" />
-              </div>
-              <span className="text-[#cbd5e1] leading-tight pt-0.5">100% scholarship, always free</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5 border border-white/10">
-                <Check size={12} strokeWidth={3} className="text-[#e2e8f0]" />
-              </div>
-              <span className="text-[#cbd5e1] leading-tight pt-0.5">No coding background needed</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5 border border-white/10">
-                <Check size={12} strokeWidth={3} className="text-[#e2e8f0]" />
-              </div>
-              <span className="text-[#cbd5e1] leading-tight pt-0.5">Retake allowed if you don't clear it</span>
-            </li>
-          </ul>
         </div>
       </div>
     </section>
