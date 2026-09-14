@@ -5,6 +5,28 @@ import { useLanguage } from "@/routes/LaunguageContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
+import LeavesCanvas from "./GamifiedLanding/LeavesCanvas";
+
+const injectCss = () => {
+  const cssFiles = [
+    "/gamified-assets/css/variables.css",
+    "/gamified-assets/css/base.css",
+    "/gamified-assets/css/components.css",
+    "/gamified-assets/css/hud.css",
+    "/gamified-assets/css/mentor.css",
+    "/gamified-assets/css/screens.css",
+  ];
+  cssFiles.forEach((href, index) => {
+    const id = `gamified-css-${index}`;
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.setAttribute("href", href);
+      document.head.appendChild(link);
+    }
+  });
+};
 
 const ScreeningRoundStartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +40,10 @@ const ScreeningRoundStartPage: React.FC = () => {
   const studentId = localStorage.getItem("studentId") || "";
 
   // Fetch values when page loads
+  useEffect(() => {
+    injectCss();
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -126,14 +152,35 @@ const ScreeningRoundStartPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center student-bg-gradient">
-        <p className="text-primary-foreground text-lg">Loading test details...</p>
+      <div className="h-screen flex items-center justify-center bg-transparent relative font-sans">
+        <div id="world">
+          <LeavesCanvas />
+        </div>
+        <div className="text-center relative z-10">
+          <p className="text-gray-800 font-bold text-lg">Loading test details...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen student-bg-gradient flex items-center justify-center">
+    <div className="min-h-screen overflow-y-auto font-sans relative flex flex-col bg-transparent">
+      <div id="world">
+        <LeavesCanvas />
+      </div>
+      
+      {/* Top Navbar */}
+      <header className="relative z-50 flex items-center justify-between px-6 py-4 md:px-10">
+        <div className="flex items-center gap-2">
+          <img src="/gamified-assets/navgurukul-logo.png" alt="Navgurukul Logo" className="h-6 sm:h-8 object-contain" />
+        </div>
+        <div className="flex items-center gap-3">
+          <LanguageSelector inline />
+          <LogoutButton inline />
+        </div>
+      </header>
+
+      <main className="relative z-10 flex-1 flex flex-col pt-2 px-4 pb-6 w-full max-w-5xl mx-auto flex items-center justify-center">
       <ContextualHelpWidget
         sectionId="student-screening-start"
         sectionTitle="Screening Test Start"
@@ -173,8 +220,6 @@ const ScreeningRoundStartPage: React.FC = () => {
         showFloatingButton={true}
         autoStartOnFirstVisit={true}
       />
-      <LanguageSelector />
-      <LogoutButton />
       <div className="bg-card rounded-2xl shadow-large p-8 max-w-lg w-full flex flex-col items-center justify-center">
         <h1 className="text-2xl font-semibold mb-4" data-onboarding="student-screening-start-title">{content.heading}</h1>
         <p className="text-muted-foreground mb-2">{content.description1}</p>
@@ -190,6 +235,7 @@ const ScreeningRoundStartPage: React.FC = () => {
           {content.buttonText}
         </button>
       </div>
+      </main>
     </div>
   );
 };

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Phone, MapPin, Calendar, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { User, Mail, Phone, MapPin, Calendar, Clock, CheckCircle2, XCircle, FileText, History, Activity, MessageSquare, Lock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { useTests } from "../../utils/TestContext";
 import LogoutButton from "@/components/ui/LogoutButton";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
@@ -21,6 +23,28 @@ import { OfferLetterCard } from "./OfferLetterCard";
 import Footer from "@/components/Footer";
 import { useLanguage } from "@/routes/LaunguageContext";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
+import LeavesCanvas from "./GamifiedLanding/LeavesCanvas";
+
+const injectCss = () => {
+  const cssFiles = [
+    "/gamified-assets/css/variables.css",
+    "/gamified-assets/css/base.css",
+    "/gamified-assets/css/components.css",
+    "/gamified-assets/css/hud.css",
+    "/gamified-assets/css/mentor.css",
+    "/gamified-assets/css/screens.css",
+  ];
+  cssFiles.forEach((href, index) => {
+    const id = `gamified-css-${index}`;
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.setAttribute("href", href);
+      document.head.appendChild(link);
+    }
+  });
+};
 
 interface Student {
   firstName: string;
@@ -54,6 +78,7 @@ type TestRow = {
   cooldownUntil?: string | null;
   // True when this row is from an archived (reset) attempt — show basic info + Retest only
   isArchived?: boolean;
+  feedback?: string;
 };
 
 export default function StudentResult() {
@@ -72,6 +97,10 @@ export default function StudentResult() {
   const { toast } = useToast();
   const { selectedLanguage } = useLanguage();
   const { signOut: googleSignOut } = useGoogleAuth();
+
+  useEffect(() => {
+    injectCss();
+  }, []);
 
   const handleLogout = () => {
     // Sign out from Google if authenticated
@@ -110,9 +139,10 @@ export default function StudentResult() {
           bookSlot: "स्लॉट बुक करें",
           reschedule: "शेड्यूल देखें",
           viewDetails: "विवरण देखें",
+          viewFeedback: "फीडबैक देखें",
           email2: "ईमेल:",
           helpline: "हेल्पलाइन:",
-          chosenSchool: "चुना हुआ स्कूल:",
+          chosenSchool: "पसंदीदा स्कूल:",
           issuesText: "परिणाम या स्लॉट बुकिंग से संबंधित किसी भी समस्या के लिए, प्रवेश सहायता से संपर्क करें।",
           scheduled: "शेड्यूल",
           pass: "उत्तीर्ण",
@@ -124,6 +154,14 @@ export default function StudentResult() {
           cooldownSuffix: "तब तक कृपया अभ्यास करें।",
           interviewCompleted: "साक्षात्कार पूरा हो चुका है",
           noTestDataAvailable: "कोई परीक्षा डेटा उपलब्ध नहीं है",
+          historyTab: "पिछला इतिहास",
+          activeTab: "नवीनतम प्रयास",
+          archivedMessageTitle: "आपके पिछले प्रयास आर्काइव कर दिए गए हैं।",
+          archivedMessageSub: "आप नीचे दिए गए बटन पर क्लिक करके एक नया प्रयास शुरू कर सकते हैं।",
+          feedback: "फीडबैक",
+          feedbackTooltip: "इस राउंड कि फीडबैक देखने के लिए क्लिक करें",
+          interviewerFeedback: "इंटरव्यू फीडबैक",
+          close: "Close",
         };
       case "marathi":
         return {
@@ -144,9 +182,10 @@ export default function StudentResult() {
           bookSlot: "स्लॉट बुक करा",
           reschedule: "शेड्यूल पहा",
           viewDetails: "तपशील पहा",
+          viewFeedback: "फीडबॅक पहा",
           email2: "ईमेल:",
           helpline: "हेल्पलाइन:",
-          chosenSchool: "निवडलेली शाळा:",
+          chosenSchool: "पसंतीची शाळा:",
           issuesText: "निकाल किंवा स्लॉट बुकिंगशी संबंधित कोणत्याही समस्यांसाठी, प्रवेश सहाय्यकडे संपर्क साधा.",
           scheduled: "शेड्यूल",
           pass: "उत्तीर्ण",
@@ -158,6 +197,14 @@ export default function StudentResult() {
           cooldownSuffix: "तोपर्यंत कृपया सराव करा.",
           interviewCompleted: "मुलाखत पूर्ण झाली आहे",
           noTestDataAvailable: "परीक्षा डेटा उपलब्ध नाही",
+          historyTab: "मागील इतिहास",
+          activeTab: "नवीनतम प्रयत्न",
+          archivedMessageTitle: "तुमचे मागील प्रयत्न संग्रहित केले गेले आहेत.",
+          archivedMessageSub: "तुम्ही खालील बटणावर क्लिक करून नवीन प्रयत्न सुरू करू शकता.",
+          feedback: "फीडबॅक",
+          feedbackTooltip: "या राउंडचा फीडबॅक पाहण्यासाठी क्लिक करा",
+          interviewerFeedback: "इंटरव्यू फीडबॅक",
+          close: "Close",
         };
       default: // English
         return {
@@ -178,9 +225,10 @@ export default function StudentResult() {
           bookSlot: "Book Slot",
           reschedule: "View Schedule",
           viewDetails: "View Details",
+          viewFeedback: "View Feedback",
           email2: "Email:",
           helpline: "Helpline:",
-          chosenSchool: "Selected School:",
+          chosenSchool: "Preferred School:",
           issuesText: "For any issues related to results or slot booking, contact admissions support.",
           scheduled: "Scheduled",
           pass: "Pass",
@@ -192,6 +240,14 @@ export default function StudentResult() {
           cooldownSuffix: "Till then please practice.",
           interviewCompleted: "Interview Completed",
           noTestDataAvailable: "No test data available",
+          historyTab: "Previous Attempts",
+          activeTab: "Latest Attempt",
+          archivedMessageTitle: "Your previous attempts have been archived.",
+          archivedMessageSub: "You can start a fresh attempt by clicking the button below.",
+          feedback: "Feedback",
+          feedbackTooltip: "Click to view your feedback for this round",
+          interviewerFeedback: "Interview Feedback",
+          close: "Close",
         };
     }
   };
@@ -351,8 +407,7 @@ export default function StudentResult() {
             );
           } else if (previewEmail) {
             data = await getStudentDataByEmail(
-              previewEmail,
-              previewFirstName || undefined,
+              previewEmail
             );
           }
         }
@@ -431,7 +486,7 @@ export default function StudentResult() {
             // PRIORITY 1: Use the method that was actually used for login
             if (loginMethod === "email" && email) {
               try {
-                data = await getCompleteStudentData(email, firstName);
+                data = await getCompleteStudentData(email);
               } catch (emailError: any) {
                 // Fallback to phone if email fails and phone is available
                 if (phone) {
@@ -451,7 +506,7 @@ export default function StudentResult() {
                 // Fallback to email if phone fails and email is available
                 if (email) {
                   try {
-                    data = await getCompleteStudentData(email, firstName);
+                    data = await getCompleteStudentData(email);
                   } catch (emailError: any) {
                     throw phoneError; // Throw original phone error
                   }
@@ -464,7 +519,7 @@ export default function StudentResult() {
               if (phone) {
                 data = await getStudentDataByPhone(phone, firstName);
               } else if (email) {
-                data = await getCompleteStudentData(email, firstName);
+                data = await getCompleteStudentData(email);
               }
             }
           }
@@ -522,7 +577,7 @@ export default function StudentResult() {
                   id: 100 + index,
                   name: `Screening Test (Attempt ${index + 1})`,
                   status: screeningStatus,
-                  score: exam.obtained_marks ?? null,
+                  score: exam.obtained_marks !== null && exam.obtained_marks !== undefined ? Number(exam.obtained_marks) : null,
                   action: "archived",
                   slotBooking: { status: null, scheduledTime: "" },
                   isArchived: true,
@@ -544,7 +599,7 @@ export default function StudentResult() {
                       ? `Screening Test (Attempt ${archivedOffset + index + 1})`
                       : "Screening Test",
                   status: screeningStatus,
-                  score: exam.obtained_marks ?? null,
+                  score: exam.obtained_marks !== null && exam.obtained_marks !== undefined ? Number(exam.obtained_marks) : null,
                   action: screeningStatus === "Pass" ? "Completed" : "Failed",
                   slotBooking: {
                     status: null,
@@ -631,6 +686,7 @@ export default function StudentResult() {
                 action: "archived",
                 slotBooking: { status: null, scheduledTime: "" },
                 isArchived: true,
+                feedback: lr.comments,
               });
             });
 
@@ -682,6 +738,7 @@ export default function StudentResult() {
                   scheduledTime: scheduledTime,
                 },
                 isArchived: false,
+                feedback: lr.comments,
               });
             });
 
@@ -767,6 +824,7 @@ export default function StudentResult() {
                 action: "archived",
                 slotBooking: { status: null, scheduledTime: "" },
                 isArchived: true,
+                feedback: cfr.comments,
               });
             });
 
@@ -817,6 +875,7 @@ export default function StudentResult() {
                   scheduledTime: scheduledTime,
                 },
                 isArchived: false,
+                feedback: cfr.comments,
               });
             });
 
@@ -987,7 +1046,7 @@ export default function StudentResult() {
     });
   };
 
-  const handleRetestNavigation = () => {
+  const handleRetestNavigation = (isReset: boolean = false) => {
     // Clear test-related flags so student can retake
     localStorage.setItem("testStarted", "false");
     localStorage.setItem("testCompleted", "false");
@@ -1037,8 +1096,8 @@ export default function StudentResult() {
           schoolMedium: profile.school_medium || "",
           casteTribe: profile.cast_id ? String(profile.cast_id) : "",
           religion: profile.religion_id ? String(profile.religion_id) : "",
-          // Clear school — student must pick a new one
-          initial_school_id: "",
+          // For reset, clear school so they can pick a new one. Otherwise keep it.
+          initial_school_id: isReset ? "" : (profile.initial_school_id || profile.school_id || profile.schoolId || ""),
           pursuingYear: profile.pursuing_year || "",
           collegeAttendanceMethod: profile.college_attendance_method || "",
         };
@@ -1046,26 +1105,67 @@ export default function StudentResult() {
       }
     }
 
-    // Redirect to registration page — jump directly to Phase 2 (School Selection)
-    navigate("/students/details/registration", {
-      state: { startAtStep2: true },
-      replace: true,
-    });
+    if (isReset) {
+      // Redirect to gamified landing page — jump directly to Phase 2 (Campus Selection)
+      sessionStorage.setItem("gamifiedScreen", "1");
+      navigate("/students/", {
+        replace: true,
+      });
+    } else {
+      // Redirect directly to the test start page
+      navigate("/students/test/start", {
+        replace: true,
+      });
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center student-bg-gradient">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading student data…</p>
+      <div className="h-screen flex items-center justify-center bg-transparent relative font-sans">
+        <div id="world">
+          <LeavesCanvas />
+        </div>
+        <div className="text-center relative z-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <p className="text-gray-800 font-bold text-lg">Loading student data…</p>
         </div>
       </div>
     );
   }
 
+  const activeTests = (tests as any[])?.filter(t => !t.isArchived) || [];
+  const hasPassedScreening = activeTests.some(t => t.name.includes("Screening Test") && t.status === "Pass");
+  const hasPassedLR = activeTests.some(t => t.name.includes("Learning Round") && t.status === "Pass");
+  const hasPassedCFR = activeTests.some(t => (t.name.includes("Cultural Fit Round") || t.name.includes("Culture Fit Round")) && t.status === "Pass");
+
+  let stagesCleared = 0;
+  if (hasPassedScreening) stagesCleared = 1;
+  if (hasPassedLR) stagesCleared = 2;
+  if (hasPassedCFR) stagesCleared = 3;
+
+  let nextActionText = "Take your Screening Test to move forward";
+  if (stagesCleared === 1) nextActionText = "Book your Learning Round to move forward";
+  if (stagesCleared === 2) nextActionText = "Book your Cultural Fit Round to move forward";
+  if (stagesCleared === 3) nextActionText = "Wait for Campus Welcome to move forward";
+
   return (
-    <div className="min-h-screen student-bg-gradient p-4 flex flex-col">
+    <div className="h-screen overflow-y-auto font-sans relative flex flex-col bg-transparent">
+      <div id="world">
+        <LeavesCanvas />
+      </div>
+      
+      {/* Top Navbar */}
+      <header className="relative z-50 flex items-center justify-between px-6 py-4 md:px-10">
+        <div className="flex items-center gap-2">
+          <img src="/gamified-assets/navgurukul-logo.png" alt="Navgurukul Logo" className="h-6 sm:h-8 object-contain" />
+        </div>
+        <div className="flex items-center gap-3">
+          <LanguageSelector inline />
+          <LogoutButton inline />
+        </div>
+      </header>
+
+      <main className="relative z-10 flex-1 flex flex-col pt-2 px-4 pb-6 w-full max-w-5xl mx-auto">
       <ContextualHelpWidget
         sectionId="student-final-result"
         sectionTitle="Student Final Result"
@@ -1090,80 +1190,131 @@ export default function StudentResult() {
         floatingContainer="body"
         autoStartOnFirstVisit={true}
       />
-      <div className="flex-1 flex">
-        <div className="bg-card rounded-t-md shadow-2xl p-6 w-full overflow-y-auto">
-          <header className="mb-6 mt-14 md:mt-0 px-1 sm:px-0">
-            <LanguageSelector />
-            <LogoutButton />
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 sm:p-3 rounded-xl sm:rounded-2xl hidden sm:block">
-                 <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">{content.title}</h1>
-                <p className="text-sm sm:text-base text-muted-foreground mt-1 font-medium">
-                  {content.subtitle}
-                </p>
-              </div>
+      
+      {/* Progress Bar Card */}
+      <Card className="mb-4 border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden" data-onboarding="student-result-progress">
+        <div className="p-3 md:p-4 flex flex-col">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+            <div className="text-xl">
+              <span className="font-bold text-pink-600 text-2xl">{stagesCleared}</span>
+              <span className="text-gray-400 font-bold text-xl">/3</span>
+              <span className="text-gray-600 font-medium ml-2 text-sm">stages cleared</span>
             </div>
-          </header>
+            <div className="bg-pink-50 text-pink-600 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 border border-pink-100">
+              <span className="text-lg">📌</span> {nextActionText}
+            </div>
+          </div>
+
+          {/* Stepper UI */}
+          <div className="relative flex justify-between items-start w-full px-2 sm:px-8">
+            {/* Track line (background) */}
+            <div className="absolute top-4 left-6 right-6 h-1 bg-gray-100 -z-10 rounded-full"></div>
+            
+            {/* Progress line (active) */}
+            <div 
+              className="absolute top-4 left-6 h-1 bg-emerald-500 -z-10 rounded-full transition-all duration-500" 
+              style={{ width: `${(stagesCleared / 3) * 100}%` }}
+            ></div>
+
+            {/* Stage 1: Screening Test */}
+            <div className="flex flex-col items-center gap-2 bg-white px-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${stagesCleared >= 1 ? 'bg-emerald-500 text-white' : 'bg-white border-2 border-emerald-500 text-emerald-500'}`}>
+                 {stagesCleared >= 1 ? <CheckCircle2 className="w-5 h-5" /> : <span className="font-bold text-sm">1</span>}
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold text-gray-800 text-center max-w-[80px]">Screening Test</span>
+            </div>
+
+            {/* Stage 2: Learning Round */}
+            <div className="flex flex-col items-center gap-2 bg-white px-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${stagesCleared >= 2 ? 'bg-emerald-500 text-white' : (stagesCleared === 1 ? 'bg-white border-2 border-emerald-500 text-emerald-500' : 'bg-white border-2 border-gray-200 text-gray-400')}`}>
+                 {stagesCleared >= 2 ? <CheckCircle2 className="w-5 h-5" /> : <span className="font-bold text-sm">2</span>}
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold text-gray-800 text-center max-w-[80px]">Learning Round</span>
+            </div>
+
+            {/* Stage 3: Cultural Fit Round */}
+            <div className="flex flex-col items-center gap-2 bg-white px-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${stagesCleared >= 3 ? 'bg-emerald-500 text-white' : (stagesCleared === 2 ? 'bg-white border-2 border-orange-400 text-orange-400' : 'bg-white border-2 border-gray-200 text-gray-400')}`}>
+                 {stagesCleared >= 3 ? <CheckCircle2 className="w-5 h-5" /> : <span className="font-bold text-sm">3</span>}
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold text-gray-800 text-center max-w-[80px]">Cultural Fit Round</span>
+            </div>
+
+            {/* Stage 4: Campus Welcome */}
+            <div className="flex flex-col items-center gap-2 bg-white px-2">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400">
+                 <Lock className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] sm:text-xs font-bold text-gray-400 text-center max-w-[80px]">Campus Welcome</span>
+            </div>
+          </div>
+        </div>
+      </Card>
 
           {/* Student Details */}
-          <Card className="mb-6 border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/20" data-onboarding="student-result-details">
-            <CardHeader className="pb-4 px-5 sm:px-6 border-b border-border/40 bg-muted/30">
-              <CardTitle className="text-lg md:text-xl font-bold flex items-center gap-2">
-                <User className="w-5 h-5 text-primary" />
+          <Card className="mb-4 border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden" data-onboarding="student-result-details">
+            <CardHeader className="pb-3 px-4 sm:px-5 border-b border-gray-100 bg-white">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-gray-800">
+                <div className="bg-indigo-50 p-2 rounded-full text-indigo-800">
+                  <User className="w-4 h-4" />
+                </div>
                 {content.studentDetails}
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm md:text-base px-5 sm:px-6 py-5 sm:py-6">
-              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
-                <div className="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-full text-blue-600 dark:text-blue-400 flex-shrink-0">
-                  <User className="w-5 h-5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.name}</span>
-                  <span className="font-semibold sm:font-medium text-foreground truncate">{student?.firstName || "-"} {student?.middleName || ""} {student?.lastName || ""}</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
-                <div className="bg-purple-100 dark:bg-purple-900/30 p-2.5 rounded-full text-purple-600 dark:text-purple-400 flex-shrink-0">
-                  <Mail className="w-5 h-5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="flex flex-col overflow-hidden min-w-0">
-                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.email}</span>
-                  <span className="font-semibold sm:font-medium text-foreground truncate block w-full">{student?.email || "-"}</span>
-                </div>
-              </div>
+            <CardContent className="px-4 sm:px-5 py-4 sm:py-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-indigo-50 p-2 rounded-lg text-indigo-500 mt-1">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-0.5">{content.name || "Name"}</span>
+                      <span className="font-bold text-gray-800 text-sm md:text-base">{student?.firstName || "-"} {student?.middleName || ""} {student?.lastName || ""}</span>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
-                <div className="bg-green-100 dark:bg-green-900/30 p-2.5 rounded-full text-green-600 dark:text-green-400 flex-shrink-0">
-                  <Phone className="w-5 h-5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.phoneNumber}</span>
-                  <span className="font-semibold sm:font-medium text-foreground truncate">{student?.whatsappNumber || "-"}</span>
-                </div>
-              </div>
+                  <div className="flex items-start gap-3">
+                    <div className="bg-emerald-50 p-2 rounded-lg text-emerald-500 mt-1">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-0.5">{content.phoneNumber || "Phone Number"}</span>
+                      <span className="font-bold text-gray-800 text-sm md:text-base">{student?.whatsappNumber || "-"}</span>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
-                <div className="bg-orange-100 dark:bg-orange-900/30 p-2.5 rounded-full text-orange-600 dark:text-orange-400 flex-shrink-0">
-                  <MapPin className="w-5 h-5 sm:w-4 sm:h-4" />
+                  <div className="flex items-start gap-3">
+                    <div className="bg-blue-50 p-2 rounded-lg text-blue-500 mt-1">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-0.5">{content.chosenSchool || "Selected School"}</span>
+                      <span className="font-bold text-gray-800 text-sm md:text-base">{displaySchool}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.state}</span>
-                  <span className="font-semibold sm:font-medium text-foreground truncate">{displayState}</span>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-4 bg-background sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-border/50 sm:border-transparent shadow-sm sm:shadow-none">
-                <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2.5 rounded-full text-indigo-600 dark:text-indigo-400 flex-shrink-0">
-                  <FileText className="w-5 h-5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="flex flex-col overflow-hidden min-w-0">
-                  <span className="text-[11px] sm:text-sm font-bold text-muted-foreground uppercase tracking-widest sm:normal-case sm:tracking-normal mb-0.5">{content.chosenSchool}</span>
-                  <span className="font-semibold sm:font-medium text-foreground truncate block w-full" title={displaySchool}>{displaySchool}</span>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-purple-50 p-2 rounded-lg text-purple-500 mt-1">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-0.5">{content.email || "Email"}</span>
+                      <span className="font-bold text-gray-800 text-sm md:text-base">{student?.email || "-"}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="bg-orange-50 p-2 rounded-lg text-orange-500 mt-1">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-gray-500 mb-0.5">{content.state || "State"}</span>
+                      <span className="font-bold text-gray-800 text-sm md:text-base">{displayState}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -1177,33 +1328,38 @@ export default function StudentResult() {
                   new Date(b.created_at).getTime() -
                   new Date(a.created_at).getTime(),
               )[0]
-              ?.offer_letter_status?.toLowerCase() === "offer sent" && (
+              ?.offer_letter_status?.toLowerCase() === "admission letter sent" && (
               <OfferLetterCard student={completeData.data?.student} />
             )}
 
           {/* Test Results & Slot Booking */}
-          <Card className="border-transparent sm:border-border shadow-lg sm:shadow-sm mx-0 sm:mx-0 overflow-hidden bg-gradient-to-br from-card to-muted/10" data-onboarding="student-result-table">
-            <CardHeader className="pb-4 px-5 sm:px-6 border-b border-border/40 bg-muted/30">
-              <CardTitle className="text-lg md:text-xl font-bold flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
+          <Card className="border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden mb-6" data-onboarding="student-result-table">
+            <CardHeader className="pb-3 px-4 sm:px-5 border-b border-gray-100 bg-white">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-gray-800">
+                <FileText className="w-5 h-5 text-gray-400" />
                 {content.testResults}
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 sm:px-6 py-5 sm:py-6">
-              <div className="w-full">
-                <table className="w-full border-collapse text-left">
-                  <thead className="hidden md:table-header-group bg-muted text-sm border border-border rounded-t-lg overflow-hidden">
+              {(() => {
+                const archivedTests = (tests as any[])?.filter((t: any) => t.isArchived) || [];
+                const activeTests = (tests as any[])?.filter((t: any) => !t.isArchived) || [];
+
+                const renderTable = (testData: any[], isActiveTab: boolean = false) => (
+                  <div className="w-full">
+                    <table className="w-full border-collapse text-left">
+                  <thead className="hidden md:table-header-group bg-pink-50/30 text-sm border-b border-gray-100">
                     <tr>
-                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.stage}</th>
-                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.status}</th>
-                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50">{content.scheduledTime}</th>
-                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs border-r border-border/50" data-onboarding="student-result-action-header">{content.actions}</th>
-                      <th className="px-5 py-4 font-semibold text-muted-foreground uppercase tracking-wider text-xs">{content.marks}</th>
+                      <th className="px-5 py-4 font-bold text-gray-500 capitalize tracking-wide text-xs">{content.stage}</th>
+                      <th className="px-5 py-4 font-bold text-gray-500 capitalize tracking-wide text-xs">{content.status}</th>
+                      <th className="px-5 py-4 font-bold text-gray-500 capitalize tracking-wide text-xs">{content.scheduledTime}</th>
+                      <th className="px-5 py-4 font-bold text-gray-500 capitalize tracking-wide text-xs" data-onboarding="student-result-action-header">{content.actions}</th>
+                      <th className="px-5 py-4 font-bold text-gray-500 capitalize tracking-wide text-xs">{content.marks}</th>
                     </tr>
                   </thead>
                   <tbody className="block md:table-row-group">
-                    {tests && tests.length > 0 ? (
-                      tests.map((test: TestRow) => {
+                    {testData && testData.length > 0 ? (
+                      testData.map((test: TestRow) => {
                         const slotStatus = test.slotBooking?.status;
                         const isSlotBooked =
                           slotStatus === "Booked" || slotStatus === "Pending";
@@ -1267,8 +1423,10 @@ export default function StudentResult() {
                           }
                         }
 
-                        // Check if any attempt of the same type has passed
+                        // Check if any active attempt of the same type has passed
                         const hasPassedAttempt = tests.some((t: TestRow) => {
+                          if (t.isArchived) return false;
+
                           if (
                             test.name.includes("Screening Test") &&
                             t.name.includes("Screening Test")
@@ -1292,14 +1450,6 @@ export default function StudentResult() {
 
                         // ── Archived row: basic info + "Previous Attempt" badge + Retest button ──
                         if (test.isArchived) {
-                          // Hide Retest if any ACTIVE screening session has passed
-                          const hasActiveScreeningPass = tests.some(
-                            (t: TestRow) =>
-                              !t.isArchived &&
-                              t.name.includes("Screening Test") &&
-                              t.status === "Pass"
-                          );
-
                           return (
                             <tr key={test.id} className="block md:table-row bg-muted/30 md:bg-muted/20 border border-border/40 md:border-border/40 rounded-2xl md:rounded-none mb-6 md:mb-0 overflow-hidden relative opacity-80">
                               {/* Stage name */}
@@ -1314,11 +1464,11 @@ export default function StudentResult() {
                               </td>
                               {/* Status */}
                               <td className="hidden md:table-cell px-5 py-4 md:border-b border-border/40 text-sm">
-                                <span className={`px-2.5 py-1 rounded-md text-sm font-semibold inline-flex items-center gap-1 border ${
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 border ${
                                   test.status === "Pass"
-                                    ? "bg-green-100 text-green-700 border-green-200"
+                                    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                                     : test.status === "Fail"
-                                      ? "bg-red-50 text-red-600 border-red-200"
+                                      ? "bg-rose-50 text-rose-600 border-rose-200"
                                       : "bg-gray-100 text-gray-500 border-gray-200"
                                 }`}>
                                   {test.status === "Pass" && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -1334,14 +1484,38 @@ export default function StudentResult() {
                               {/* Action */}
                               <td className="flex md:table-cell items-center px-5 pt-3 pb-5 md:py-4 md:border-b md:border-border/40 text-sm">
                                 <div className="ml-1 md:ml-0">
-                                  {test.name.includes("Screening Test") && !hasActiveScreeningPass ? (
-                                    <Button
-                                      onClick={handleRetestNavigation}
-                                      size="sm"
-                                      className="bg-primary hover:bg-primary/90 font-semibold h-9 active:scale-[0.98] transition-all"
-                                    >
-                                      {content.retest}
-                                    </Button>
+                                  {test.feedback ? (
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button title={content.feedbackTooltip} className="h-8 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary shadow-none px-4 border-0">
+                                          <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                                          {content.viewFeedback || content.feedback}
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-border/50">
+                                        <div className="p-6 pb-4">
+                                          <DialogHeader className="mb-4 text-left space-y-1">
+                                            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+                                              <MessageSquare className="w-5 h-5 text-primary" />
+                                              {content.interviewerFeedback || "Interviewer's Feedback"}
+                                            </DialogTitle>
+                                            <DialogDescription className="text-sm text-muted-foreground font-medium mt-1">
+                                              {test.name}
+                                            </DialogDescription>
+                                          </DialogHeader>
+                                          <div className="bg-muted/50 rounded-xl p-4 text-sm text-foreground whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto pr-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                                            {test.feedback}
+                                          </div>
+                                        </div>
+                                        <div className="p-4 pt-0 flex justify-end">
+                                          <DialogClose asChild>
+                                            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 rounded-lg shadow-sm">
+                                              {content.close || "Close"}
+                                            </Button>
+                                          </DialogClose>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
                                   ) : (
                                     <span className="text-muted-foreground/60">—</span>
                                   )}
@@ -1401,13 +1575,13 @@ export default function StudentResult() {
 
                             <td className="hidden md:table-cell px-5 py-4 md:border-b border-border/60 text-sm">
                               <span
-                                className={`px-2.5 py-1 rounded-md text-sm font-semibold flex-shrink-0 inline-flex items-center gap-1 border ${test.status === "Pass"
-                                  ? "bg-green-100 text-green-700 border-green-200"
+                                className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 inline-flex items-center gap-1 border ${test.status === "Pass"
+                                  ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                                   : test.status === "Pending"
                                     ? isSlotBooked && test.slotBooking?.scheduledTime
-                                      ? "bg-blue-50 text-blue-700 border-blue-200"
-                                      : "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                    : "bg-red-50 text-red-700 border-red-200"
+                                      ? "bg-blue-50 text-blue-600 border-blue-200"
+                                      : "bg-amber-50 text-amber-600 border-amber-200"
+                                    : "bg-rose-50 text-rose-600 border-rose-200"
                                   }`}
                               >
                                 {test.status === "Pass" && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -1457,7 +1631,7 @@ export default function StudentResult() {
                                     </Button>
                                   ) : test.status === "Fail" ? (
                                     <Button
-                                      onClick={handleRetestNavigation}
+                                      onClick={() => handleRetestNavigation(false)}
                                       className="bg-primary hover:bg-primary/90 w-full sm:w-auto font-semibold shadow-md md:shadow-sm h-11 md:h-9 active:scale-[0.98] transition-all"
                                     >
                                       {content.retest}
@@ -1470,7 +1644,41 @@ export default function StudentResult() {
                                   <div className="w-full">
                                     {/* If completed (Pass/Fail), show nothing */}
                                     {test.action === "Completed" ? (
-                                      <p className="text-muted-foreground font-medium">-</p>
+                                      test.feedback ? (
+                                        <Dialog>
+                                          <DialogTrigger asChild>
+                                            <Button title={content.feedbackTooltip} className="w-full sm:w-auto h-11 md:h-9 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary shadow-none px-4 border-0">
+                                              <MessageSquare className="w-4 h-4 mr-2 md:w-3.5 md:h-3.5 md:mr-1.5" />
+                                              {content.viewFeedback || content.feedback}
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-border/50">
+                                            <div className="p-6 pb-4">
+                                              <DialogHeader className="mb-4 text-left space-y-1">
+                                                <DialogTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+                                                  <MessageSquare className="w-5 h-5 text-primary" />
+                                                  {content.interviewerFeedback || "Interviewer's Feedback"}
+                                                </DialogTitle>
+                                                <DialogDescription className="text-sm text-muted-foreground font-medium mt-1">
+                                                  {test.name}
+                                                </DialogDescription>
+                                              </DialogHeader>
+                                              <div className="bg-muted/50 rounded-xl p-4 text-sm text-foreground whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto pr-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                                                {test.feedback}
+                                              </div>
+                                            </div>
+                                            <div className="p-4 pt-0 flex justify-end">
+                                              <DialogClose asChild>
+                                                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-6 rounded-lg shadow-sm">
+                                                  {content.close || "Close"}
+                                                </Button>
+                                              </DialogClose>
+                                            </div>
+                                          </DialogContent>
+                                        </Dialog>
+                                      ) : (
+                                        <p className="text-muted-foreground font-medium">-</p>
+                                      )
                                     ) : isCooldownActive ? (
                                       <div className="flex flex-col gap-2">
                                         <Button
@@ -1542,11 +1750,23 @@ export default function StudentResult() {
                       <tr className="block md:table-row border border-border md:border-none rounded-xl md:rounded-none md:border-b">
                         <td
                           colSpan={5}
-                          className="block md:table-cell px-4 py-12 text-center text-muted-foreground text-sm md:text-base bg-muted/10 md:bg-transparent rounded-xl md:rounded-none"
+                          className="block md:table-cell px-4 py-8 text-center text-muted-foreground text-sm md:text-base bg-muted/10 md:bg-transparent rounded-xl md:rounded-none"
                         >
-                          <div className="flex flex-col items-center justify-center space-y-3">
-                            <span className="text-4xl md:text-5xl opacity-50">📄</span>
-                            <span className="font-medium">{content.noTestDataAvailable}</span>
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <span className="text-4xl md:text-5xl opacity-50 mb-1">📄</span>
+                            {isActiveTab && archivedTests.length > 0 ? (
+                              <>
+                                <span className="text-sm text-muted-foreground pb-2">{content.archivedMessageSub}</span>
+                                <Button
+                                  onClick={() => handleRetestNavigation(true)}
+                                  className="bg-primary hover:bg-primary/90 font-semibold shadow-md active:scale-[0.98] transition-all"
+                                >
+                                  {content.retest}
+                                </Button>
+                              </>
+                            ) : (
+                              <span className="font-medium">{content.noTestDataAvailable}</span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1554,11 +1774,37 @@ export default function StudentResult() {
                   </tbody>
                 </table>
               </div>
+            );
+
+            if (archivedTests.length > 0) {
+              return (
+                <Tabs defaultValue="active" className="w-full mt-2">
+                  <TabsList className="mb-6 grid w-full sm:w-[450px] grid-cols-2 p-1.5 bg-gray-50 rounded-xl mx-auto sm:mx-0 border border-gray-100">
+                    <TabsTrigger value="active" className="rounded-lg py-2.5 text-sm font-semibold text-gray-500 data-[state=active]:bg-pink-50 data-[state=active]:text-pink-600 transition-all gap-2">
+                      <Activity className="w-4 h-4" />
+                      {content.activeTab || "Latest Attempt"}
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="rounded-lg py-2.5 text-sm font-semibold text-gray-500 data-[state=active]:bg-pink-50 data-[state=active]:text-pink-600 transition-all gap-2">
+                      <History className="w-4 h-4" />
+                      {content.historyTab || "Previous Attempts"}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="active" className="mt-2">
+                    {renderTable(activeTests, true)}
+                  </TabsContent>
+                  <TabsContent value="history" className="mt-2">
+                    {renderTable(archivedTests, false)}
+                  </TabsContent>
+                </Tabs>
+              );
+            }
+            
+            return renderTable(activeTests, true);
+          })()}
             </CardContent>
           </Card>
-        </div>
-      </div>
-      {/* Footer sits outside the white card */}
+      </main>
+      {/* Footer sits outside the main tag */}
       <Footer />
     </div>
   );

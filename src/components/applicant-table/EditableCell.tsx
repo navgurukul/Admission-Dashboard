@@ -152,6 +152,7 @@ export function EditableCell({
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
+      setEditingCell(null);
       return;
     }
 
@@ -166,6 +167,7 @@ export function EditableCell({
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
+      setEditingCell(null);
       return;
     }
 
@@ -180,6 +182,7 @@ export function EditableCell({
         variant: "default",
         className: "border-orange-500 bg-orange-50 text-orange-900",
       });
+      setEditingCell(null);
       return;
     }
 
@@ -310,10 +313,14 @@ export function EditableCell({
     }
   };
 
+  const [isCancelling, setIsCancelling] = useState(false);
+
   const cancelCellEdit = () => {
+    setIsCancelling(true);
     setEditingCell(null);
     setCellValue("");
     setLocalError(null);
+    setTimeout(() => setIsCancelling(false), 100);
   };
 
   // Memoize dropdown change handler to prevent recreation on each render
@@ -518,8 +525,7 @@ export function EditableCell({
         disabled={isUpdating || disabled}
       >
         <SelectTrigger
-          className={`h-8 border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring ${disabled ? '!opacity-100 !cursor-default [&>svg]:hidden' : ''
-            }`}
+          className={`h-8 border-0 shadow-none hover:bg-muted/50 focus:ring-1 focus:ring-ring ${disabled ? '!opacity-100 !cursor-default [&>svg]:hidden' : ''} ${forceTextDisplay ? '[&>svg]:hidden border-0 shadow-none bg-transparent px-1' : ''}`}
           style={disabled ? { opacity: 1 } : {}}
         >
           <SelectValue placeholder={placeholder} />
@@ -768,6 +774,7 @@ export function EditableCell({
               if (e.key === "Enter") saveCellEdit();
               if (e.key === "Escape") cancelCellEdit();
             }}
+            onBlur={() => { if (!isCancelling) saveCellEdit(); }}
             className="h-7 text-xs flex-1  min-w-0"
             autoFocus
             disabled={isUpdating || disabled}

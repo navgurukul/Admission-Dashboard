@@ -29,6 +29,7 @@ import {
   scheduleInterview,
   deleteInterviewSlot,
   getCurrentUser,
+  getSlotScheduleStats,
 } from "@/utils/api";
 import {
   initClient,
@@ -125,8 +126,91 @@ const Schedule = () => {
     initGoogle();
   }, []);
 
+  // Stat cards state
+  const [statsData, setStatsData] = useState<{
+    totalSlots: number;
+    todaysBooked: number;
+    todaysAvailable: number;
+    todaysLrAvailable: number;
+    todaysCfrAvailable: number;
+  }>({
+    totalSlots: 0,
+    todaysBooked: 0,
+    todaysAvailable: 0,
+    todaysLrAvailable: 0,
+    todaysCfrAvailable: 0,
+  });
+
+  const fetchCardStats = async () => {
+    try {
+      const todayObj = new Date();
+      const year = todayObj.getFullYear();
+      const month = String(todayObj.getMonth() + 1).padStart(2, "0");
+      const day = String(todayObj.getDate()).padStart(2, "0");
+      const todayStr = `${year}-${month}-${day}`;
+
+      const [statsRes, todaySlotsRes] = await Promise.allSettled([
+        getSlotScheduleStats(),
+        getAllSlots({ date: todayStr, pageSize: 1000 }),
+      ]);
+
+      let totalSlots = 0;
+      let todaysBooked = 0;
+      let todaysAvailable = 0;
+      let todaysLrAvailable = 0;
+      let todaysCfrAvailable = 0;
+
+      if (statsRes.status === "fulfilled" && statsRes.value) {
+        const sData = statsRes.value?.data || statsRes.value;
+        totalSlots = sData?.slots?.all_time?.total || 0;
+        todaysBooked = sData?.slots?.today?.booked || 0;
+        todaysAvailable = sData?.slots?.today?.available || 0;
+      }
+
+      if (todaySlotsRes.status === "fulfilled" && todaySlotsRes.value) {
+        const todaySlotsList: SlotData[] = Array.isArray(todaySlotsRes.value?.data)
+          ? todaySlotsRes.value.data
+          : (todaySlotsRes.value as any)?.data?.data || [];
+
+        const availableToday = todaySlotsList.filter(
+          (s) => !s.is_booked && (!s.status || s.status.toLowerCase() === "available")
+        );
+
+        const bookedToday = todaySlotsList.filter((s) => s.is_booked);
+
+        todaysLrAvailable = availableToday.filter(
+          (s) => String(s.slot_type).toUpperCase() === "LR"
+        ).length;
+
+        todaysCfrAvailable = availableToday.filter(
+          (s) => String(s.slot_type).toUpperCase() === "CFR"
+        ).length;
+
+        if (statsRes.status !== "fulfilled") {
+          todaysBooked = bookedToday.length;
+          todaysAvailable = availableToday.length;
+        }
+
+        if (!totalSlots && todaySlotsRes.value?.total) {
+          totalSlots = todaySlotsRes.value.total;
+        }
+      }
+
+      setStatsData({
+        totalSlots,
+        todaysBooked,
+        todaysAvailable,
+        todaysLrAvailable,
+        todaysCfrAvailable,
+      });
+    } catch (error) {
+      console.error("Error fetching card stats:", error);
+    }
+  };
+
   useEffect(() => {
     fetchAllAvailableSlots(currentPage);
+    fetchCardStats();
   }, [currentPage, selectedDate, selectedStatus, selectedSlotType, selectedStartTime, selectedEndTime, debouncedSearchTerm, pageSize]);
 
   // Reset to page 1 when pageSize changes
@@ -513,9 +597,9 @@ const Schedule = () => {
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-foreground">
+                {/* <h1 className="text-xl md:text-2xl font-bold text-foreground">
                   {isAdmin ? "Admin View" : "My Dashboard"}
-                </h1>
+                </h1> */}
                 <p className="text-xs md:text-sm text-muted-foreground mt-1">
                   Manage interview slots and availability
                 </p>
@@ -627,56 +711,65 @@ const Schedule = () => {
             </Tabs>
           )}
 
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
-            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-primary/30 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Today's Booked
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {bookedTodayCount}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-primary" />
-                </div>
+          {/* Stat Cards Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Today's Booked Card */}
+            <div className="bg-card rounded-xl p-4 border border-border shadow-soft flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Today's Booked
+                </p>
+                <h3 className="text-2xl md:text-3xl font-bold text-foreground mt-1">
+                  {statsData.todaysBooked}
+                </h3>
+              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-pink-100/70 text-pink-600 flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-pink-600" />
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-secondary-purple/30 transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Available Today
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {availableTodayCount}
-                  </p>
+            {/* Available Today Card */}
+            <div className="bg-card rounded-xl p-4 border border-border shadow-soft flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Available Today
+                </p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground">
+                    {statsData.todaysAvailable}
+                  </h3>
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                      LR: {statsData.todaysLrAvailable}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                      CFR: {statsData.todaysCfrAvailable}
+                    </span>
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-secondary-purple/10 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-secondary-purple" />
-                </div>
+              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-purple-100/70 text-purple-600 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 md:w-6 md:h-6 text-purple-600" />
               </div>
             </div>
 
-            <div className="bg-card rounded-xl p-4 shadow-medium border border-border hover:border-primary/30  transition-all">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Total Slots
-                  </p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {allSlots.length}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-primary" />
-                </div>
+            {/* Total Slots Card */}
+            <div className="bg-card rounded-xl p-4 border border-border shadow-soft flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Slots
+                </p>
+                <h3 className="text-2xl md:text-3xl font-bold text-foreground mt-1">
+                  {statsData.totalSlots}
+                </h3>
+              </div>
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-pink-100/70 text-pink-600 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 md:w-6 md:h-6 text-pink-600" />
               </div>
             </div>
           </div>
+
+
 
           {/* Available Slots Management */}
           <div

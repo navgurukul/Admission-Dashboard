@@ -73,9 +73,9 @@ export const ColumnVisibility = ({
     setIsOpen(false);
   };
 
-  // Filter out checkbox, actions, city, and activities from display, and filter by search term
+  // Filter out checkbox, actions, city, activities, and religion from display, and filter by search term
   const displayColumns = tempColumns.filter(
-    (col) => col.id !== 'checkbox' && col.id !== 'actions' && col.id !== 'city' && col.id !== 'activities'
+    (col) => col.id !== 'checkbox' && col.id !== 'actions' && col.id !== 'city' && col.id !== 'activities' && col.id !== 'religion'
   );
 
   const filteredColumns = displayColumns.filter((column) =>
