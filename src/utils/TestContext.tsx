@@ -19,8 +19,6 @@ export interface Test {
   action: string;
   score: number | null;
   slotBooking: SlotBooking;
-  isArchived?: boolean;
-  cooldownUntil?: string | null;
 }
 
 interface TestsContextType {

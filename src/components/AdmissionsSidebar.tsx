@@ -41,16 +41,12 @@ export function AdmissionsSidebar() {
         googleSignOut();
       }
       logoutUser(); // This clears localStorage
-      // window.location.href = "/students/login";
-       sessionStorage.clear();
-      window.location.href = "/student";
+      window.location.href = "/students/login";
     } catch (error) {
       console.error("Logout error:", error);
       // Force logout anyway
       logoutUser();
-      // window.location.href = "/students/login";
-      sessionStorage.clear();
-      window.location.href = "/student";
+      window.location.href = "/students/login";
     }
   };
   // Check if current path is interview related

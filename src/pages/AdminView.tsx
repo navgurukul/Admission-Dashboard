@@ -40,7 +40,6 @@ import {
   createCalendarEvent,
   formatDateTimeForCalendar,
 } from "@/utils/googleCalendar";
-import { InterviewStatsCards } from "@/components/InterviewStatsCards";
 
 export default function AdminView() {
   const navigate = useNavigate();
@@ -550,16 +549,15 @@ export default function AdminView() {
       <div className="flex-1 md:ml-64 min-w-0 overflow-hidden flex flex-col">
         <div className="flex-1 overflow-hidden flex flex-col px-6 md:px-8 pt-16 md:pt-6 pb-4 md:pb-6">
           {/* Page Header */}
-          <div className="mb-2 flex-shrink-0">
-            {/* <h1 className="text-xl md:text-2xl font-bold text-foreground">
+          <div className="mb-3 flex-shrink-0">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">
               {isAdmin ? "Admin View" : "Interviews"}
-            </h1> */}
-            <p className="text-xs md:text-sm text-muted-foreground mt-0.5 mb-2">
+            </h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
               {isAdmin
                 ? "Overview of all scheduled interviews and created slots"
                 : "Manage your scheduled interviews and availability"}
             </p>
-            {isAdmin && activeTab !== "my-interviews" && <InterviewStatsCards />}
           </div>
 
           <Tabs value={activeTab} className="flex-1 flex flex-col overflow-hidden" onValueChange={setActiveTab}>
@@ -577,7 +575,7 @@ export default function AdminView() {
                   data-onboarding="adminview-slots-tab"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
-                  Slots
+                  Created Slots
                 </TabsTrigger>
                 <TabsTrigger
                   value="my-interviews"
@@ -653,15 +651,15 @@ export default function AdminView() {
 
             {/* Interviews Tab */}
             {isAdmin && (
-              <TabsContent value="interviews" className="mt-1 flex-1 overflow-hidden data-[state=active]:flex flex-col">
-                <Card className="h-full flex flex-col shadow-sm">
-                  <CardHeader className="flex-shrink-0 p-3 pb-2">
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <TabsContent value="interviews" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
+                <Card className="h-full flex flex-col">
+                  <CardHeader className="flex-shrink-0 gap-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <CardTitle
-                        className="flex items-center gap-2 text-lg"
+                        className="flex items-center gap-2 pt-1"
                         data-onboarding="adminview-interviews-header"
                       >
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-5 h-5" />
                         All Scheduled Interviews
                       </CardTitle>
                       <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:justify-end">
@@ -764,7 +762,7 @@ export default function AdminView() {
                       </div>
                     )}
                   </CardHeader>
-                  <CardContent className="flex-1 flex flex-col overflow-hidden p-3 pt-0">
+                  <CardContent className="flex-1 flex flex-col overflow-hidden pt-2">
                     {interviewsLoading || isInterviewSearching ? (
                       <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-2">
@@ -783,8 +781,8 @@ export default function AdminView() {
                       </div>
                     ) : (
                       <>
-                        <div className="table-scroll-area border rounded-lg overflow-auto flex-1 w-full min-h-0 mb-1">
-                          <Table className="[&_th]:px-2 [&_th]:py-1 [&_th]:text-xs [&_td]:px-2 [&_td]:py-1 [&_td]:text-xs">
+                        <div className="table-scroll-area border rounded-lg overflow-auto flex-1 w-full min-h-0 mb-2">
+                          <Table className="[&_th]:px-1.5 [&_th]:py-1.5 [&_th]:text-xs [&_td]:px-1.5 [&_td]:py-1.5 [&_td]:text-sm">
                             <TableHeader className="sticky top-0 bg-muted/30 z-10">
                               <TableRow className="bg-muted/30">
                                 <TableHead className="font-semibold min-w-[160px]">Applicant</TableHead>
@@ -795,7 +793,7 @@ export default function AdminView() {
                                 <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
                                 <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
                                 <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
-                                <TableHead className="font-semibold min-w-[120px]">Scheduler</TableHead>
+                                <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -821,6 +819,7 @@ export default function AdminView() {
                                   <TableCell className="min-w-[160px]">
                                     <div>
                                       <div className="font-medium">{interview.interviewer_name || "Not Assigned"}</div>
+                                      <div className="text-xs text-muted-foreground">{interview.interviewer_email || "N/A"}</div>
                                     </div>
                                   </TableCell>
                                   <TableCell className="min-w-[100px]">
@@ -877,11 +876,8 @@ export default function AdminView() {
                                       <span className="text-muted-foreground text-xs sm:text-sm">No Link</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="min-w-[160px]">
-                                    <div>
-                                      <div className="font-medium">{interview.scheduler_name || interview.created_by || "N/A"}</div>
-                                      <div className="text-xs text-muted-foreground">{interview.scheduler_email}</div>
-                                    </div>
+                                  <TableCell className="whitespace-nowrap min-w-[120px]">
+                                    <span className="text-xs sm:text-sm">{interview.created_by || "N/A"}</span>
                                   </TableCell>
                                 </TableRow>
 
@@ -941,13 +937,13 @@ export default function AdminView() {
 
             {/* Slots Tab */}
             {isAdmin && (
-              <TabsContent value="slots" className="mt-1 flex-1 overflow-hidden data-[state=active]:flex flex-col">
-                <Card className="h-full flex flex-col shadow-sm">
-                  <CardHeader className="flex-shrink-0 p-3 pb-2">
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                      <CardTitle className="flex items-center gap-2 text-lg" data-onboarding="adminview-slots-header">
-                        <Clock className="w-4 h-4" />
-                        All Slots
+              <TabsContent value="slots" className="mt-3 flex-1 overflow-hidden data-[state=active]:flex flex-col">
+                <Card className="h-full flex flex-col">
+                  <CardHeader className="flex-shrink-0 gap-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <CardTitle className="flex items-center gap-2 pt-1" data-onboarding="adminview-slots-header">
+                        <Clock className="w-5 h-5" />
+                        All Created Slots
                       </CardTitle>
                       <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end" data-onboarding="adminview-slots-filters">
                         <div className="w-full sm:w-[320px]">
@@ -1040,7 +1036,7 @@ export default function AdminView() {
                       </div>
                     )}
                   </CardHeader>
-                  <CardContent className="flex-1 flex flex-col overflow-hidden p-3 pt-0">
+                  <CardContent className="flex-1 flex flex-col overflow-hidden pt-2">
                     {slotsLoading || isSlotSearching ? (
                       <div className="flex items-center justify-center py-12">
                         <div className="flex flex-col items-center gap-2">
@@ -1060,10 +1056,10 @@ export default function AdminView() {
                     ) : (
                       <>
                         <div
-                          className="table-scroll-area border rounded-lg overflow-auto flex-1 min-h-0 mb-1"
+                          className="table-scroll-area border rounded-lg overflow-auto flex-1 min-h-0 mb-2"
                           data-onboarding="adminview-slots-table"
                         >
-                          <Table className="[&_th]:px-2 [&_th]:py-1 [&_th]:text-xs [&_td]:px-2 [&_td]:py-1 [&_td]:text-xs">
+                          <Table className="[&_th]:px-1.5 [&_th]:py-1.5 [&_th]:text-xs [&_td]:px-1.5 [&_td]:py-1.5 [&_td]:text-sm">
                             <TableHeader className="sticky top-0 bg-muted/30 z-10">
                               <TableRow className="bg-muted/30">
                                 <TableHead className="font-semibold min-w-[160px]">Created By</TableHead>
@@ -1080,6 +1076,7 @@ export default function AdminView() {
                                   <TableCell className="min-w-[160px]">
                                     <div>
                                       <div className="font-medium">{slot.user_name || `User #${slot.created_by}`}</div>
+                                      <div className="text-xs text-muted-foreground">{slot.user_email}</div>
                                     </div>
                                   </TableCell>
                                   <TableCell className="min-w-[100px]">
@@ -1242,7 +1239,7 @@ export default function AdminView() {
                             <TableHead className="font-semibold min-w-[140px]">Time</TableHead>
                             <TableHead className="font-semibold min-w-[100px]">Status</TableHead>
                             <TableHead className="font-semibold min-w-[90px]">Meeting Link</TableHead>
-                            <TableHead className="font-semibold min-w-[120px]">Scheduler</TableHead>
+                            <TableHead className="font-semibold min-w-[120px]">Scheduled By</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1318,11 +1315,8 @@ export default function AdminView() {
                                   <span className="text-muted-foreground text-sm">No Link</span>
                                 )}
                               </TableCell>
-                              <TableCell className="min-w-[160px]">
-                                <div>
-                                  <div className="font-medium">{interview.scheduler_name || interview.created_by || "N/A"}</div>
-                                  <div className="text-xs text-muted-foreground">{interview.scheduler_email}</div>
-                                </div>
+                              <TableCell className="whitespace-nowrap min-w-[120px]">
+                                <span className="text-sm">{interview.created_by || "N/A"}</span>
                               </TableCell>
                             </TableRow>
                           ))}

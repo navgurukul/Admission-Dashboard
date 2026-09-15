@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useLanguage } from "../routes/LaunguageContext";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Code, Users, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import image from "@/assets/ng-logo-horizontal.png";
-import { Input } from "@/components/ui/input";
-import { getStudentDataByPhone } from "@/utils/api";
-import { useToast } from "@/hooks/use-toast";
 
 const slides = [
   {
@@ -104,14 +101,8 @@ const StudentLandingPage = () => {
   const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const navigate = useNavigate();
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
-  
-  const [formData, setFormData] = useState({ name: "", phone: "" });
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-  const formRef = useRef(null);
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   const languages = [
     { value: "english", label: "English" },
@@ -151,7 +142,122 @@ const StudentLandingPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isLanguageDropdownOpen]);
 
-  // The old form has been removed in favor of navigating directly to the Gamified Landing page.
+  const handleNavigation = async () => {
+    // const googleUser = localStorage.getItem("user");
+    // const testStarted = localStorage.getItem("testStarted") === "true";
+    // const testCompleted = localStorage.getItem("testCompleted") === "true";
+    // const allowRetest = localStorage.getItem("allowRetest") === "true";
+
+    // // Case 1: Not logged in
+    // if (!googleUser) {
+      navigate("/students/login");
+    //   return;
+    // }
+
+    // try {
+    //   // Try to get email from user data
+    //   const parsedUser = JSON.parse(googleUser);
+    //   const email = parsedUser.email;
+
+    //   if (email) {
+    //     // Import the API function dynamically
+    //     const { getCompleteStudentData } = await import("@/utils/api");
+
+    //     // Fetch complete student data
+    //     const data = await getCompleteStudentData(email);
+
+    //     // Get latest exam session
+    //     const examSessions = data.data.exam_sessions || [];
+    //     const latestExam =
+    //       examSessions.length > 0
+    //         ? examSessions.reduce((latest, current) =>
+    //             new Date(current.created_at) > new Date(latest.created_at)
+    //               ? current
+    //               : latest,
+    //           )
+    //         : null;
+
+    //     if (latestExam) {
+    //       // Exam completed
+    //       if (latestExam.is_passed) {
+    //         // Get latest LR status
+    //         const lrRounds = data.data.interview_learner_round || [];
+    //         const latestLR =
+    //           lrRounds.length > 0
+    //             ? lrRounds.reduce((latest, current) =>
+    //                 new Date(current.created_at) > new Date(latest.created_at)
+    //                   ? current
+    //                   : latest,
+    //               )
+    //             : null;
+
+    //         // Check if LR is passed
+    //         const isLRPassed =
+    //           latestLR?.learning_round_status?.includes("Pass");
+
+    //         if (isLRPassed) {
+    //           // LR passed - check CFR status
+    //           const cfrRounds = data.data.interview_cultural_fit_round || [];
+    //           const latestCFR =
+    //             cfrRounds.length > 0
+    //               ? cfrRounds.reduce((latest, current) =>
+    //                   new Date(current.created_at) > new Date(latest.created_at)
+    //                     ? current
+    //                     : latest,
+    //                 )
+    //               : null;
+
+    //           // Show result page with CFR status
+    //           navigate("/students/final-result");
+    //           return;
+    //         } else {
+    //           // Exam passed - show result page to book LR or view status
+    //           navigate("/students/final-result");
+    //           return;
+    //         }
+    //       } else {
+    //         // Failed exam
+    //         if (allowRetest) {
+    //           navigate("/students/test/start");
+    //           return;
+    //         } else {
+    //           navigate("/students/final-result");
+    //           return;
+    //         }
+    //       }
+    //     } else {
+    //       // No exam session found
+    //       if (testCompleted && !allowRetest) {
+    //         navigate("/students/final-result");
+    //         return;
+    //       }
+
+    //       if (testStarted || allowRetest) {
+    //         navigate("/students/test/start");
+    //         return;
+    //       }
+
+    //       // Not started - go to instructions
+    //       navigate("/students/details/instructions");
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("Error fetching student data:", error);
+
+    //   // Fallback to old logic if API fails
+    //   if (testCompleted && !allowRetest) {
+    //     navigate("/students/final-result");
+    //     return;
+    //   }
+
+    //   if (testStarted || allowRetest) {
+    //     navigate("/students/test/start");
+    //     return;
+    //   }
+
+    //   navigate("/students/details/instructions");
+    // }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-student-bg-light">
@@ -219,7 +325,7 @@ const StudentLandingPage = () => {
           </div>
 
           <Button
-            onClick={() => navigate("/student")}
+            onClick={handleNavigation}
             size="sm"
             className="hidden sm:flex student-btn text-xs md:text-sm px-3 md:px-4 shadow-md hover:shadow-lg"
           >
@@ -251,27 +357,23 @@ const StudentLandingPage = () => {
                 {content[selectedLanguage].description}
               </p>
 
-              <div className="flex flex-col gap-3 md:gap-4 pt-2 md:pt-4 max-w-md">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    type="button"
-                    onClick={() => navigate("/student")}
-                    className="student-btn group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full flex-1"
-                  >
-                    {content[selectedLanguage].buttonText}
-                    <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-primary text-primary hover:bg-primary/5 w-full sm:w-auto"
-                    onClick={() => {
-                      window.open("https://www.navgurukul.org/", "_blank");
-                    }}
-                  >
-                    {content[selectedLanguage].learnMoreText}
-                  </Button>
-                </div>
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-2 md:pt-4">
+                <Button
+                  onClick={handleNavigation}
+                  className="student-btn group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full sm:w-auto"
+                >
+                  {content[selectedLanguage].buttonText}
+                  <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 md:h-12 px-5 md:px-6 text-sm md:text-base border-primary text-primary hover:bg-primary/5 w-full sm:w-auto"
+                  onClick={() => {
+                    window.open("https://www.navgurukul.org/", "_blank");
+                  }}
+                >
+                  {content[selectedLanguage].learnMoreText}
+                </Button>
               </div>
 
               {/* <div className="grid grid-cols-3 gap-2 md:gap-4 pt-4 md:pt-8">
@@ -293,80 +395,32 @@ const StudentLandingPage = () => {
             {/* Right Section - Video Carousel */}
             <div className="relative order-1 md:order-2">
               <div className="absolute inset-0 bg-primary/5 rounded-2xl blur-3xl"></div>
-
-              {/* Carousel Wrapper */}
-              <div className="relative w-full">
-                {/* Prev Button */}
-                <button
-                  onClick={(e) => { e.preventDefault(); prevSlide(); }}
-                  aria-label="Previous slide"
-                  className="absolute left-2 z-20 flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 active:scale-95 transition-all border-2 border-white"
-                  style={{ top: "calc(50% - 20px)", transform: "translateY(-50%)" }}
+              <div className="relative w-full overflow-hidden rounded-xl md:rounded-2xl shadow-xl md:shadow-2xl">
+                <a
+                  href={slides[currentSlide].videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
+                  <img
+                    src={slides[currentSlide].image}
+                    alt={
+                      selectedLanguage === "english"
+                        ? slides[currentSlide].englishCaption
+                        : selectedLanguage === "hindi"
+                          ? slides[currentSlide].hindiCaption
+                          : slides[currentSlide].marathiCaption
+                    }
+                    className="w-full h-auto object-cover aspect-video"
+                  />
+                </a>
 
-                {/* Next Button */}
-                <button
-                  onClick={(e) => { e.preventDefault(); nextSlide(); }}
-                  aria-label="Next slide"
-                  className="absolute right-2 z-20 flex items-center justify-center w-9 h-9 md:w-11 md:h-11 rounded-full bg-primary text-white shadow-lg hover:bg-primary/90 active:scale-95 transition-all border-2 border-white"
-                  style={{ top: "calc(50% - 20px)", transform: "translateY(-50%)" }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                {/* Image + Caption */}
-                <div className="overflow-hidden rounded-xl md:rounded-2xl shadow-xl md:shadow-2xl">
-                  <a
-                    href={slides[currentSlide].videoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <img
-                      src={slides[currentSlide].image}
-                      alt={
-                        selectedLanguage === "english"
-                          ? slides[currentSlide].englishCaption
-                          : selectedLanguage === "hindi"
-                            ? slides[currentSlide].hindiCaption
-                            : slides[currentSlide].marathiCaption
-                      }
-                      className="w-full h-auto object-cover aspect-video"
-                    />
-                  </a>
-
-                  {/* Caption */}
-                  <div className="bg-black/85 text-white text-center py-2 md:py-3 text-sm md:text-sm lg:text-base px-10">
-                    {selectedLanguage === "english"
-                      ? slides[currentSlide].englishCaption
-                      : selectedLanguage === "hindi"
-                        ? slides[currentSlide].hindiCaption
-                        : slides[currentSlide].marathiCaption}
-                  </div>
-                </div>
-
-                {/* Dot Indicators + Counter */}
-                <div className="flex items-center justify-center gap-2 mt-3">
-                  {slides.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentSlide(idx)}
-                      aria-label={`Go to slide ${idx + 1}`}
-                      className={`rounded-full transition-all duration-300 ${
-                        idx === currentSlide
-                          ? "w-6 h-2.5 bg-primary shadow-md"
-                          : "w-2.5 h-2.5 bg-primary/30 hover:bg-primary/60"
-                      }`}
-                    />
-                  ))}
-                  <span className="ml-2 text-xs text-muted-foreground font-medium">
-                    {currentSlide + 1}/{slides.length}
-                  </span>
+                {/* Caption */}
+                <div className="absolute bottom-0 left-0 right-0 bg-black text-white text-center py-2 md:py-3 text-lg md:text-sm lg:text-base px-2">
+                  {selectedLanguage === "english"
+                    ? slides[currentSlide].englishCaption
+                    : selectedLanguage === "hindi"
+                      ? slides[currentSlide].hindiCaption
+                      : slides[currentSlide].marathiCaption}
                 </div>
               </div>
             </div>

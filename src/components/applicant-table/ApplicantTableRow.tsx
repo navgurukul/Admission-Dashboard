@@ -589,7 +589,7 @@ export const ApplicantTableRow = ({
             onUpdate={onUpdate}
             forceTextDisplay={true}
             showActionButtons={false}
-            showPencil={false}
+            showPencil={canEditApplicantDetails}
             disabled={!canEditApplicantDetails}
           />
         </TableCell>
