@@ -144,11 +144,9 @@ export const loginWithGoogle = async (
 export const getAllUsers = async (
   page: number = 1,
   limit: number = 10,
-  activeOnly: boolean = false,
 ): Promise<{ users: User[]; total: number }> => {
-  const statusQuery = activeOnly ? "&status=true" : "";
   const response = await fetch(
-    `${BASE_URL}/users?page=${page}&limit=${limit}${statusQuery}`,
+    `${BASE_URL}/users?page=${page}&limit=${limit}`,
     {
       method: "GET",
       headers: getAuthHeaders(),
@@ -164,14 +162,10 @@ export const getAllUsers = async (
   // API returns {success, message, data: {data: User[], total, totalPages}}
   // We need to transform it to {users: User[], total: number}
   // Also normalize user_role_id to role_id for consistency
-  let users = (result.data?.data || []).map((user: any) => ({
+  const users = (result.data?.data || []).map((user: any) => ({
     ...user,
     role_id: user.user_role_id,
   }));
-
-  if (activeOnly) {
-    users = users.filter((user: User) => user.status === true);
-  }
 
   return {
     users,
@@ -1236,12 +1230,14 @@ export const getStudentById = async (id: string): Promise<Student> => {
 
 // Get Student By Email
 export const getStudentDataByEmail = async (
-  email: string
+  email: string,
+  firstName?: string,
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByEmail/${email}`,
       {
+        params: firstName ? { firstName } : {},
         headers: {
           ...(getAuthHeaders() as Record<string, string>),
         },
@@ -1296,11 +1292,15 @@ export interface CompleteStudentData {
 }
 
 export const getCompleteStudentData = async (
-  email: string
+  email: string,
+  firstName?: string,
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
-      `${BASE_URL}/students/getByEmail/${email}`
+      `${BASE_URL}/students/getByEmail/${email}`,
+      {
+        params: firstName ? { firstName } : {},
+      }
     );
     return response.data;
   } catch (error: any) {
@@ -1444,8 +1444,8 @@ export const createStudent = async (studentData: any): Promise<any> => {
     throw new Error(data.message || "Failed to create student");
   }
 
-  if (data?.error === true || data?.data?.error === true || data?.success === false) {
-    throw new Error(data?.message || data?.data?.message || "Validation failed");
+  if (data?.data?.error === true) {
+    throw new Error(data.data.message || "Validation failed");
   }
 
   return data;
@@ -2313,11 +2313,6 @@ export const getStageStatuses = async (stage_id: number): Promise<any> => {
   return data;
 };
 
-export interface Campus {
-  id: number;
-  campus_name: string;
-}
-
 // Get campuses with pagination
 export const getCampuses = async (page: number = 1, limit: number = 10) => {
   const response = await fetch(`${BASE_URL}/campuses/getCampuses?page=${page}&pageSize=${limit}`, {
@@ -2488,14 +2483,13 @@ export const deleteCampusApi = async (id: number) => {
 };
 
 //  Create School
-export const createSchool = async (schoolName: string, cutOffMarks?: number, campusIds?: number[]) => {
+export const createSchool = async (schoolName: string, cutOffMarks?: number) => {
   const response = await fetch(`${BASE_URL}/schools/createSchool`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({
       school_name: schoolName,
-      cut_off_marks: cutOffMarks,
-      campus_ids: campusIds
+      cut_off_marks: cutOffMarks
     }),
   });
   if (!response.ok) {
@@ -2512,66 +2506,6 @@ export interface School {
   school_name: string;
   cut_off_marks: number;
 }
-
-export interface CampusSchool {
-  campus_id: number;
-  school_id: number;
-  is_open: boolean;
-  school?: School;
-  school_name?: string;
-  cut_off_marks?: number;
-}
-
-export const getCampusSchools = async (campusId: number) => {
-  const response = await fetch(`${BASE_URL}/campus-school/${campusId}`, {
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch campus schools");
-  }
-  return await response.json();
-};
-
-export const updateCampusSchoolStatus = async (campusId: number, schoolId: number, isOpen: boolean) => {
-  const response = await fetch(`${BASE_URL}/campus-school/status`, {
-    method: "PUT",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      campus_id: campusId,
-      school_id: schoolId,
-      is_open: isOpen
-    }),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to update status");
-  }
-  return await response.json();
-};
-
-export const getUnassignedCampusSchools = async (campusId: number) => {
-  const response = await fetch(`${BASE_URL}/campus-school/${campusId}/unassigned`, {
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch unassigned schools");
-  }
-  return await response.json();
-};
-
-export const assignCampusSchool = async (campusId: number, schoolId: number) => {
-  const response = await fetch(`${BASE_URL}/campus-school/assign`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({
-      campus_id: campusId,
-      school_id: schoolId
-    }),
-  });
-  if (!response.ok) {
-    throw new Error("Failed to assign course");
-  }
-  return await response.json();
-};
 
 export const getAllSchools = async (): Promise<School[]> => {
   const response = await fetch(`${BASE_URL}/schools/getSchools`);
@@ -3659,8 +3593,6 @@ export const resetStudentData = async (studentId: number): Promise<any> => {
 
 export interface GetInterviewerStatsParams {
   interviewer_id?: string;
-  start_date?: string;
-  end_date?: string;
   date?: string;
   page?: number;
   limit?: number;
@@ -3669,25 +3601,7 @@ export interface GetInterviewerStatsParams {
 export const getInterviewerStats = async (params: GetInterviewerStatsParams): Promise<any> => {
   const queryParams = new URLSearchParams();
   if (params.interviewer_id) queryParams.append("interviewer_id", params.interviewer_id);
-
-  if (params.start_date) {
-    queryParams.append("start_date", params.start_date);
-    if (params.end_date && params.start_date !== "all") {
-      queryParams.append("end_date", params.end_date);
-      if (params.start_date === params.end_date) {
-        queryParams.append("date", params.start_date);
-      }
-    }
-  } else if (params.date) {
-    if (params.date === "all") {
-      queryParams.append("start_date", "all");
-    } else {
-      queryParams.append("start_date", params.date);
-      queryParams.append("end_date", params.date);
-      queryParams.append("date", params.date);
-    }
-  }
-
+  if (params.date) queryParams.append("date", params.date);
   if (params.page !== undefined) queryParams.append("page", params.page.toString());
   if (params.limit !== undefined) queryParams.append("limit", params.limit.toString());
 
@@ -3703,86 +3617,6 @@ export const getInterviewerStats = async (params: GetInterviewerStatsParams): Pr
 
   if (!response.ok) {
     throw new Error(data.message || "Failed to fetch interviewer stats");
-  }
-
-  return data;
-};
-
-// ─── Dashboard Stats ────────────────────────────────────────────────────────────
-
-export interface SlotScheduleStatsResponse {
-  slots: {
-    all_time: {
-      total: number;
-      booked: number;
-      available: number;
-      expired: number;
-    };
-    today: {
-      total: number;
-      booked: number;
-      available: number;
-      expired: number;
-    };
-  };
-  schedules: {
-    total_scheduled: number;
-    completed: number;
-    cancelled: number;
-    no_show: number;
-  };
-  
-}
-
-export const getSlotScheduleStats = async (): Promise<any> => {
-  const response = await fetch(`${BASE_URL}/dashboard/slot-schedule-stats`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch slot schedule stats");
-  }
-
-  return data;
-};
-
-// ─── Scheduling Section APIs ───────────────────────────────────────────────────
-
-export const getSchedulingHistory = async (student_id: number | string) => {
-  const response = await fetch(`${BASE_URL}/scheduling/${student_id}`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch scheduling history");
-  }
-
-  return data;
-};
-
-export const createSchedulingAttempt = async (payload: {
-  student_id: number | string;
-  round: "LR" | "CFR";
-  status: string;
-  remarks?: string;
-  scheduling_method?: string;
-}) => {
-  const response = await fetch(`${BASE_URL}/scheduling/attempt`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to create scheduling attempt");
   }
 
   return data;

@@ -6,8 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ApplicantScheduling } from "./ApplicantScheduling";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,7 +72,6 @@ import {
   getMyAvailableSlots,
   getInterviewByStudentId,
   getAllSlots,
-  getQuestionsBySetType,
   cancelScheduledInterview,
   updateScheduledInterview,
   getStudentDataByEmail,
@@ -372,48 +370,6 @@ export function ApplicantModal({
       label: c.campus_name,
     })), [campusList]);
 
-  const preferredCampusDisplay = useMemo(() => {
-    const pc =
-      currentApplicant?.preferred_campus ??
-      currentApplicant?.preferred_campus_name ??
-      currentApplicant?.preferred_campus_id ??
-      currentApplicant?.preferredCampus;
-
-    if (!pc && pc !== 0) return "—";
-
-    if (typeof pc === "object" && pc !== null) {
-      return pc.campus_name || pc.name || "—";
-    }
-
-    const pcStr = String(pc).trim();
-    if (
-      !pcStr ||
-      pcStr === "—" ||
-      pcStr.toLowerCase() === "null" ||
-      pcStr.toLowerCase() === "undefined"
-    ) {
-      return "—";
-    }
-
-    // Check if it matches an id in campus list
-    const matchedById = campus.find((c: any) => String(c.value) === pcStr);
-    if (matchedById?.label) return matchedById.label;
-
-    // Check if it matches a name in campus list
-    const matchedByName = campus.find(
-      (c: any) => c.label?.toLowerCase() === pcStr.toLowerCase()
-    );
-    if (matchedByName?.label) return matchedByName.label;
-
-    return pcStr;
-  }, [
-    currentApplicant?.preferred_campus,
-    currentApplicant?.preferred_campus_name,
-    currentApplicant?.preferred_campus_id,
-    currentApplicant?.preferredCampus,
-    campus,
-  ]);
-
   const questionSets = useMemo(() =>
     (questionSetList || []).map((qs: any) => ({
       value: qs.id?.toString(),
@@ -668,21 +624,6 @@ export function ApplicantModal({
     };
     loadSchools();
   }, [isOpen, schools.length, fetchSchools]);
-
-  // ✅ Load Campuses API when modal opens
-  // Always load if campusList is empty, as we need it for preferred campus and campus selection
-  useEffect(() => {
-    const loadCampuses = async () => {
-      if (isOpen && campusList.length === 0) {
-        try {
-          await fetchCampuses();
-        } catch (error) {
-          console.error('❌ Failed to load Campuses:', error);
-        }
-      }
-    };
-    loadCampuses();
-  }, [isOpen, campusList.length, fetchCampuses]);
 
   // Fetch available templates
   useEffect(() => {
@@ -1773,34 +1714,6 @@ Interviewer: ${interviewerName}`;
     );
   });
 
-  const [isQuestionSetPreviewOpen, setIsQuestionSetPreviewOpen] = useState(false);
-  const [previewSetName, setPreviewSetName] = useState<string>("");
-  const [previewSetQuestions, setPreviewSetQuestions] = useState<any[]>([]);
-  const [isLoadingQuestionSetPreview, setIsLoadingQuestionSetPreview] = useState(false);
-
-  const handleOpenQuestionSetPreview = useCallback(async (setName?: string) => {
-    const nextSetName = setName?.trim();
-    if (!nextSetName) return;
-
-    try {
-      setIsLoadingQuestionSetPreview(true);
-      const response = await getQuestionsBySetType(nextSetName);
-      const questions = response?.data || response?.questions || [];
-      setPreviewSetName(nextSetName);
-      setPreviewSetQuestions(questions);
-      setIsQuestionSetPreviewOpen(true);
-    } catch (error) {
-      console.error("Failed to load question set preview:", error);
-      toast({
-        title: "Unable to open set",
-        description: "This question set could not be loaded right now.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingQuestionSetPreview(false);
-    }
-  }, [toast]);
-
   const screeningFields = [
     {
       name: "status",
@@ -1824,22 +1737,26 @@ Interviewer: ${interviewerName}`;
         // Read-only mode (no updateRow passed)
         if (!updateRow) {
           const rowId = row?.question_set_id?.toString();
+          
+          // Try to find set name from questionSets list by ID
           const set = questionSets.find(s => s.value === rowId);
-          const setName = set?.label || row?.set_name || "";
-
-          if (setName) {
+          
+          if (set) {
             return (
-              <button
-                type="button"
-                className="text-left text-gray-900 underline-offset-2 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1 py-0.5"
-                title={setName}
-                onClick={() => handleOpenQuestionSetPreview(setName)}
-              >
-                {setName}
-              </button>
+              <span className="text-gray-900" title={set.label}>
+                {set.label}
+              </span>
             );
           }
-
+          // If set_name field exists in row, use it
+          if (row?.set_name && row.set_name.trim() !== "") {
+            return (
+              <span className="text-gray-900" title={row.set_name}>
+                {row.set_name}
+              </span>
+            );
+          }
+          // Fallback: show ID or dash
           return <span className="text-gray-500">{rowId || "—"}</span>;
         }
         
@@ -2542,7 +2459,7 @@ Interviewer: ${interviewerName}`;
           </DialogHeader>
 
           <div className="w-full px-3 sm:px-4 py-3 sm:py-4 overflow-y-auto">
-            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Personal Information */}
             <div className="space-y-4" data-onboarding="applicant-details-personal">
               <h3 className="text-base sm:text-lg font-semibold">Personal Information</h3>
@@ -2846,14 +2763,6 @@ Interviewer: ${interviewerName}`;
                     {getLabel(schools, currentApplicant.initial_school_id, "—", "school_name")}
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Prefered campus
-                  </label>
-                  <div className="text-sm">
-                    {preferredCampusDisplay}
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -2912,23 +2821,6 @@ Interviewer: ${interviewerName}`;
             disabled={!canEditApplicantDetails}
           // disabledReason={!hasEditAccess ? "You do not have edit access" : undefined}
           />
-
-          {/* LR Scheduling Accordion */}
-          <Accordion type="single" collapsible className="w-full mb-2">
-            <AccordionItem value="lr-scheduling" className="border-none">
-              <AccordionTrigger className="w-fit flex-none inline-flex items-center gap-2 bg-pink-50 border border-pink-200 text-pink-700 hover:text-pink-800 hover:bg-pink-100 hover:no-underline py-2 px-4 rounded-md shadow-sm transition-colors">
-                <CalendarIcon className="h-4 w-4" />
-                <span className="font-semibold text-sm">LR Schedule Activity</span>
-              </AccordionTrigger>
-              <AccordionContent className="pt-2 pb-4">
-                <ApplicantScheduling 
-                  student={currentApplicant} 
-                  targetRound="LR"
-                  onProfileUpdate={() => setRefreshKey(prev => prev + 1)}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
 
           {/* Learning & Cultural Fit Rounds */}
           <div className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -3049,25 +2941,6 @@ Interviewer: ${interviewerName}`;
                 }
               />
             </div>
-            {/* CFR Scheduling Accordion */}
-            <div className="col-span-full w-full mt-4">
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="cfr-scheduling" className="border-none">
-                  <AccordionTrigger className="w-fit flex-none inline-flex items-center gap-2 bg-pink-50 border border-pink-200 text-pink-700 hover:text-pink-800 hover:bg-pink-100 hover:no-underline py-2 px-4 rounded-md shadow-sm transition-colors">
-                    <CalendarIcon className="h-4 w-4" />
-                    <span className="font-semibold text-sm">CFR Schedule Activity</span>
-                  </AccordionTrigger>
-                  <AccordionContent className="pt-2 pb-4">
-                    <ApplicantScheduling 
-                      student={currentApplicant} 
-                      targetRound="CFR"
-                      onProfileUpdate={() => setRefreshKey(prev => prev + 1)}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-
             <div className="col-span-full w-full">
               <InlineSubform
                 key={`cultural-${currentApplicant.id}-${liveScheduleData.length}`}
@@ -3527,8 +3400,8 @@ Interviewer: ${interviewerName}`;
                 </div>
               </div>
             </div>
-          </div>
         </div>
+          </div>
       </DialogContent>
     </Dialog>
 
@@ -3579,60 +3452,6 @@ Interviewer: ${interviewerName}`;
         </div>
       </DialogContent>
     </Dialog>
-
-      <Dialog
-        open={isQuestionSetPreviewOpen}
-        onOpenChange={(open) => {
-          setIsQuestionSetPreviewOpen(open);
-          if (!open) {
-            setPreviewSetName("");
-            setPreviewSetQuestions([]);
-          }
-        }}
-      >
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{previewSetName || "Question Set"}</DialogTitle>
-            <DialogDescription>
-              Questions in this set
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto pr-2">
-            {isLoadingQuestionSetPreview ? (
-              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading set questions...
-              </div>
-            ) : previewSetQuestions.length > 0 ? (
-              <div className="space-y-4">
-                {previewSetQuestions.map((question: any, index: number) => (
-                  <div key={question.id || `${question.question_text || "q"}-${index}`} className="rounded-lg border bg-white p-4 shadow-sm">
-                    <p className="mb-2 text-sm font-semibold text-gray-800">
-                      {index + 1}. {question.english_text || question.question_text || "Untitled question"}
-                    </p>
-
-                    {Array.isArray(question.english_options || question.options) && (question.english_options || question.options).length > 0 && (
-                      <ul className="space-y-1 text-sm text-gray-700">
-                        {(question.english_options || question.options).map((option: any, optionIndex: number) => (
-                          <li key={`${question.id || index}-option-${optionIndex}`} className="flex gap-2">
-                            <span className="font-medium">{String.fromCharCode(65 + optionIndex)}.</span>
-                            <span>{typeof option === "string" ? option : option?.option_text || option?.text || "Option"}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-12 text-center text-sm text-muted-foreground">
-                No questions available for this set.
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {showEditModal && (
         <InlineEditModal

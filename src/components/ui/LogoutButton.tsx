@@ -5,10 +5,9 @@ import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 interface LogoutButtonProps {
   className?: string;
-  inline?: boolean;
 }
 
-const LogoutButton: React.FC<LogoutButtonProps> = ({ className, inline = false }) => {
+const LogoutButton: React.FC<LogoutButtonProps> = ({ className }) => {
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
   const { signOut: googleSignOut } = useGoogleAuth();
@@ -23,14 +22,13 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ className, inline = false }
 
     // Clear all localStorage completely
     localStorage.clear();
-    sessionStorage.clear();
 
-    // Redirect to start journey page
-    window.location.href = "/student";
+    // Redirect to login page
+    navigate("/students/login", { replace: true });
   };
 
   return (
-    <div className={`${inline ? 'relative' : 'fixed top-5 right-5'} z-50 ${className || ''}`}>
+    <div className="fixed top-5 right-5 z-50">
       {!showConfirm ? (
         <button
           onClick={() => setShowConfirm(true)}

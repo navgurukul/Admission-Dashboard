@@ -30,30 +30,6 @@ import {
   getStudentDataByPhone,
 } from "@/utils/api";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
-import LeavesCanvas from "./GamifiedLanding/LeavesCanvas";
-import LanguageSelector from "@/components/ui/LanguageSelector";
-import LogoutButton from "@/components/ui/LogoutButton";
-
-const injectCss = () => {
-  const cssFiles = [
-    "/gamified-assets/css/variables.css",
-    "/gamified-assets/css/base.css",
-    "/gamified-assets/css/components.css",
-    "/gamified-assets/css/hud.css",
-    "/gamified-assets/css/mentor.css",
-    "/gamified-assets/css/screens.css",
-  ];
-  cssFiles.forEach((href, index) => {
-    const id = `gamified-css-${index}`;
-    if (!document.getElementById(id)) {
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.setAttribute("href", href);
-      document.head.appendChild(link);
-    }
-  });
-};
 
 // ================== Types ==================
 interface TimeSlot {
@@ -254,9 +230,6 @@ const languageContent = {
 
 // ================== Component ==================
 const SlotBooking: React.FC = () => {
-  useEffect(() => {
-    injectCss();
-  }, []);
   // ---------- Context ----------
   const { student } = useStudent();
   const { tests, updateSlot } = useTests();
@@ -1026,23 +999,7 @@ const SlotBooking: React.FC = () => {
 
   // ---------- UI ----------
   return (
-    <div className="h-screen overflow-y-auto font-sans relative flex flex-col bg-transparent">
-      <div id="world">
-        <LeavesCanvas />
-      </div>
-      
-      {/* Top Navbar */}
-      <header className="relative z-50 flex items-center justify-between px-6 py-4 md:px-10">
-        <div className="flex items-center gap-2">
-          <img src="/gamified-assets/navgurukul-logo.png" alt="Navgurukul Logo" className="h-6 sm:h-8 object-contain" />
-        </div>
-        <div className="flex items-center gap-3">
-          <LanguageSelector inline />
-          <LogoutButton inline />
-        </div>
-      </header>
-
-      <main className="relative z-10 flex-1 flex flex-col pt-2 px-4 pb-6 w-full max-w-5xl mx-auto">
+    <div className="min-h-screen student-bg-gradient py-8 px-4">
       <ContextualHelpWidget
         sectionId="student-slot-booking"
         sectionTitle="Student Interview Booking"
@@ -1558,7 +1515,6 @@ const SlotBooking: React.FC = () => {
           </div>
         )}
       </div>
-      </main>
     </div>
   );
 };
