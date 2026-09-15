@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X, FileText, History, RotateCcw } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X, FileText, History, RotateCcw, Lock, CheckCircle2, AlertCircle, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 // import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { TransitionsModal } from "./TransitionsModal";
 import { InterviewDetailsModal } from "./InterviewDetailsModal";
-import { CfrFeedbackModal } from "./CfrFeedbackModal";
+import { CfrFeedbackModal, computeCfrAnswerStatus, type CfrAnswerStatus } from "./CfrFeedbackModal";
 // import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 // import { Calendar } from "lucide-react";
 // import {
@@ -80,6 +80,7 @@ import {
   getStudentDataByPhone,
   getAvailableTemplates,
   resetStudentData,
+  getInterviewQuestions,
   type CompleteStudentData,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
@@ -248,6 +249,9 @@ export function ApplicantModal({
   const [iframeSrc, setIframeSrc] = useState("");
   const [isCfrFeedbackModalOpen, setIsCfrFeedbackModalOpen] = useState(false);
   const [selectedCfrRow, setSelectedCfrRow] = useState<any>(null);
+  const [cfrApiQuestions, setCfrApiQuestions] = useState<any[]>([]);
+  const [isLoadingCfrQuestions, setIsLoadingCfrQuestions] = useState(false);
+  const [isPendingQuestionsExpanded, setIsPendingQuestionsExpanded] = useState(true);
   const studentPreviewStorageKeys = useMemo(() => [] as string[], []);
   const studentPreviewStorageBackupRef = useRef<Record<string, string | null> | null>(null);
   const isExamSessionCompleted = useCallback((session: any) => {
@@ -638,6 +642,29 @@ export function ApplicantModal({
       setLiveScheduleData([]);
     }
   }, [isOpen, currentApplicant?.id, refreshKey, fetchScheduleData]);
+
+  // Fetch CFR interview questions to check unanswered status
+  useEffect(() => {
+    let isMounted = true;
+    if (isOpen) {
+      setIsLoadingCfrQuestions(true);
+      getInterviewQuestions(4)
+        .then((res: any) => {
+          if (!isMounted) return;
+          const data = res?.data || res || [];
+          setCfrApiQuestions(Array.isArray(data) ? data : []);
+        })
+        .catch((err: any) => {
+          console.error("Failed to load CFR questions:", err);
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingCfrQuestions(false);
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   // ✅ Load QuestionSets API when modal opens
   // Always load if questionSetList is empty, as we may need it for display or editing
@@ -2132,6 +2159,18 @@ Interviewer: ${interviewerName}`;
     [currentApplicant, liveScheduleData]
   );
 
+  // Compute CFR Detailed Feedback questions answer status
+  const cfrAnswerStatus: CfrAnswerStatus = useMemo(() => {
+    const nonArchivedRounds = (currentApplicant?.interview_cultural_fit_round || []).filter(
+      (r: any) => r?.is_archived !== true
+    );
+    const activeCulturalRound =
+      nonArchivedRounds.slice().reverse().find((r: any) => Array.isArray(r?.qna) && r.qna.length > 0) ||
+      nonArchivedRounds[nonArchivedRounds.length - 1];
+    const existingQna = activeCulturalRound?.qna;
+    return computeCfrAnswerStatus(cfrApiQuestions, existingQna);
+  }, [cfrApiQuestions, currentApplicant?.interview_cultural_fit_round, refreshKey]);
+
   const applicantDetailsGuideSteps = useMemo(
     () => [
       {
@@ -2359,6 +2398,28 @@ Interviewer: ${interviewerName}`;
     const status = round?.cultural_fit_status || "";
     return status.toLowerCase().includes("pass");
   });
+
+  // Only require CFR feedback if student has passed Cultural Fit Round in status AND there are questions to answer
+  const isCfrFeedbackPending =
+    isCulturalPassed &&
+    !isLoadingCfrQuestions &&
+    cfrAnswerStatus.totalQuestions > 0 &&
+    cfrAnswerStatus.unansweredCount > 0;
+
+  const isOfferStageDisabled = isStageDisabled(currentApplicant, "OFFER") || isCfrFeedbackPending;
+  const isOfferLetterDisabled =
+    isCfrFeedbackPending ||
+    (isStageDisabled(currentApplicant, "OFFER") && !currentApplicant.final_decisions?.[0]?.offer_letter_status);
+  const isOnboardedDisabled =
+    isCfrFeedbackPending ||
+    (isStageDisabled(currentApplicant, "OFFER") && !currentApplicant.final_decisions?.[0]?.onboarded_status);
+  const isJoiningDateDisabled =
+    isCfrFeedbackPending ||
+    (isStageDisabled(currentApplicant, "OFFER") && !currentApplicant.final_decisions?.[0]?.joining_date);
+
+  const offerDisabledReason = isCfrFeedbackPending
+    ? "All questions in Cultural Fit Round (Detailed Feedback) must have an answer filled before Campus, Admission Letter, or Final Status fields are accessible."
+    : "All rounds should be passed";
 
   // Check if student has started next rounds (to disable deletion of previous rounds)
   // Only count NON-archived records
@@ -3119,20 +3180,27 @@ Interviewer: ${interviewerName}`;
                     component: ({ row, disabled }: any) => {
                       const isSaved = !!row?.id;
                       // Explicitly set read-only if it's a saved row and not currently being edited
-                      const isReadOnly = isSaved && !row?.isEditing;
+                      const isReadOnly = isCfrFeedbackPending ? false : (isSaved && !row?.isEditing);
                       
                       return (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={isCfrFeedbackPending ? "default" : "outline"}
                           disabled={isStageDisabled(currentApplicant, "CFR") && !isSaved}
-                          className="w-full text-xs"
+                          className={`w-full text-xs font-medium ${
+                            isCfrFeedbackPending
+                              ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-2xs"
+                              : ""
+                          }`}
                           onClick={() => {
                             setSelectedCfrRow({ ...row, _isReadOnly: isReadOnly });
                             setIsCfrFeedbackModalOpen(true);
                           }}
                         >
-                          {isSaved ? (row?.isEditing ? "View" : "View") : "Add"}
+                          <Pencil className="h-3 w-3 mr-1" />
+                          {isCfrFeedbackPending
+                            ? `Answer Questions (${cfrAnswerStatus.unansweredCount} pending)`
+                            : (isSaved ? (row?.isEditing ? "View" : "View") : "Add")}
                         </Button>
                       );
                     },
@@ -3163,7 +3231,15 @@ Interviewer: ${interviewerName}`;
             {/* Offer and Final Status */}
             <div className="space-y-4" data-onboarding="applicant-details-offer">
               <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
-                <h3 className="text-base sm:text-lg font-semibold">Admission Letter & Final Status</h3>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-base sm:text-lg font-semibold">Admission Letter & Final Status</h3>
+                  {isCfrFeedbackPending && (
+                    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 flex items-center gap-1 text-xs font-medium">
+                      <Lock className="h-3 w-3" /> Locked (Pending CFR Feedback)
+                    </Badge>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -3189,7 +3265,7 @@ Interviewer: ${interviewerName}`;
                     </TooltipProvider>
                   </div>
 
-                  {isStageDisabled(currentApplicant, "OFFER") ? (
+                  {isOfferStageDisabled ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3207,7 +3283,7 @@ Interviewer: ${interviewerName}`;
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>All rounds should be passed</p>
+                          <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3235,9 +3311,7 @@ Interviewer: ${interviewerName}`;
                   <label className="text-sm font-medium text-muted-foreground">
                     Admission Letter Status
                   </label>
-                  {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.final_decisions?.[0]
-                      ?.offer_letter_status ? (
+                  {isOfferLetterDisabled ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3285,7 +3359,7 @@ Interviewer: ${interviewerName}`;
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>All rounds should be passed</p>
+                          <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3334,8 +3408,7 @@ Interviewer: ${interviewerName}`;
                   <label className="text-sm font-medium text-muted-foreground">
                     Onboarded Status
                   </label>
-                  {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
+                  {isOnboardedDisabled ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3365,7 +3438,7 @@ Interviewer: ${interviewerName}`;
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>All rounds should be passed</p>
+                          <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3396,8 +3469,7 @@ Interviewer: ${interviewerName}`;
                   <label className="text-sm font-medium text-muted-foreground">
                     Joining Date
                 </label>
-                {isStageDisabled(currentApplicant, "OFFER") &&
-                  !currentApplicant.final_decisions?.[0]?.joining_date ? (
+                {isJoiningDateDisabled ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -3411,7 +3483,7 @@ Interviewer: ${interviewerName}`;
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>All rounds should be passed</p>
+                        <p>{offerDisabledReason}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -3973,7 +4045,10 @@ Interviewer: ${interviewerName}`;
           onClose={() => setIsCfrFeedbackModalOpen(false)}
           studentId={currentApplicant?.id}
           existingData={selectedCfrRow}
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
+          onSuccess={() => {
+            setRefreshKey(prev => prev + 1);
+            handleUpdate();
+          }}
         />
       )}
 
