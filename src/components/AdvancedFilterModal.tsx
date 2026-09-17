@@ -74,6 +74,7 @@ interface FilterState {
     from?: Date;
     to?: Date;
   };
+  mode?: string;
 }
 
 interface AdvancedFilterModalProps {
@@ -281,6 +282,7 @@ export function AdvancedFilterModal({
       state: undefined,
       gender: undefined,
       duplicate: undefined,
+      mode: undefined,
       donor: [],
       partnerFilter: [],
       exam_centre: [],
@@ -318,7 +320,7 @@ export function AdvancedFilterModal({
       filters.religion?.length > 0 || filters.qualification?.length > 0 ||
       filters.currentStatus?.length > 0 || filters.donor?.length > 0 ||
       filters.partnerFilter?.length > 0 || filters.exam_centre?.length > 0 ||
-      filters.state || filters.gender || filters.duplicate || filters.dateRange.from || filters.dateRange.to;
+      filters.state || filters.gender || filters.duplicate || filters.mode || filters.dateRange.from || filters.dateRange.to;
     if (!hasValidFilters) {
       toast({ title: "⚠️ No Filters Selected", description: "Please select at least one filter.", variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
@@ -385,6 +387,7 @@ export function AdvancedFilterModal({
         case "donor": return { ...newFilters, donor: [] };
         case "partnerFilter": return { ...newFilters, partnerFilter: [] };
         case "duplicate": return { ...newFilters, duplicate: undefined };
+        case "mode": return { ...newFilters, mode: undefined };
         case "dateRange": case "daterange": return { ...newFilters, dateRange: { type: prev.dateRange.type } };
         default: return prev;
       }
@@ -410,6 +413,7 @@ export function AdvancedFilterModal({
   if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}`, onRemove: () => clearSingleFilter("state") });
   if (filters.gender) activeFilters.push({ key: "gender", label: `Gender: ${filters.gender}`, onRemove: () => setFilters((prev) => ({ ...prev, gender: undefined })) });
   if (filters.duplicate) activeFilters.push({ key: "duplicate", label: `Duplicate: ${filters.duplicate === "yes" ? "Yes" : "No"}`, onRemove: () => clearSingleFilter("duplicate") });
+  if (filters.mode) activeFilters.push({ key: "mode", label: `Mode: ${filters.mode}`, onRemove: () => clearSingleFilter("mode") });
 
   filters.district?.forEach(d => activeFilters.push({ key: `district-${d}`, label: `District: ${d}`, onRemove: () => clearSingleFilter("district", d) }));
   filters.partner?.forEach(p => {
@@ -679,6 +683,24 @@ export function AdvancedFilterModal({
                 </Select>
               </div>
 
+              {/* Mode */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Mode</Label>
+                <Select
+                  value={filters.mode || "all"}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, mode: value === "all" ? undefined : value }))}
+                >
+                  <SelectTrigger className="w-full h-9 text-sm">
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="Online">Online</SelectItem>
+                    <SelectItem value="Offline">Offline</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Exam Centre */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Exam Centre</Label>
@@ -770,7 +792,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Partner</Label>
                 <MultiSelectCombobox
-                  options={partnerList.map((partner) => ({ value: String(getValue(partner)), label: getDisplayName(partner, "partner_name", "Partner") }))}
+                  options={[
+                    ...partnerList.map((partner) => ({ value: String(getValue(partner)), label: getDisplayName(partner, "partner_name", "Partner") }))
+                  ]}
                   value={filters.partnerFilter || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, partnerFilter: value }))}
                   onOpen={() => loadFieldData("partnerFilter")}
@@ -785,7 +809,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Donor</Label>
                 <MultiSelectCombobox
-                  options={donorList.map((donor) => ({ value: String(getValue(donor)), label: getDisplayName(donor, "donor_name", "Donor") }))}
+                  options={[
+                    ...donorList.map((donor) => ({ value: String(getValue(donor)), label: getDisplayName(donor, "donor_name", "Donor") }))
+                  ]}
                   value={filters.donor || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, donor: value }))}
                   onOpen={() => loadFieldData("donor")}
@@ -809,7 +835,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Prefered school</Label>
                 <MultiSelectCombobox
-                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
+                  options={[
+                    ...schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))
+                  ]}
                   value={filters.initial_school || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, initial_school: value }))}
                   onOpen={() => loadFieldData("school")}
@@ -824,7 +852,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Qualifying School</Label>
                 <MultiSelectCombobox
-                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
+                  options={[
+                    ...schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))
+                  ]}
                   value={filters.school || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, school: value }))}
                   onOpen={() => loadFieldData("school")}
