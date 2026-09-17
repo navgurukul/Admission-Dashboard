@@ -23,6 +23,7 @@ interface FilterState {
   state: any;
   gender: any;
   duplicate?: string;
+  mode?: string;
   donor: any[];
   partnerFilter: any[];
   dateRange: { type: "applicant" | "lastUpdate" | "interview"; from: any; to: any };
@@ -66,6 +67,7 @@ export const useApplicantFilters = (
           state: undefined,
           gender: undefined,
           duplicate: undefined,
+          mode: undefined,
           donor: [],
           partnerFilter: [],
           dateRange: { type: "applicant" as const, from: undefined, to: undefined },
@@ -93,6 +95,7 @@ export const useApplicantFilters = (
       state: undefined,
       gender: undefined,
       duplicate: undefined,
+      mode: undefined,
       donor: [],
       partnerFilter: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },

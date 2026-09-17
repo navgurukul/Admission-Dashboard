@@ -1626,8 +1626,7 @@ Interviewer: ${interviewerName}`;
         );
       } else {
         resp = await getStudentDataByEmail(
-          normalizedEmail,
-          normalizedFirstName || undefined,
+          normalizedEmail
         );
       }
 
@@ -1977,11 +1976,6 @@ Interviewer: ${interviewerName}`;
           </select>
         );
       },
-    },
-    {
-      name: "exam_centre",
-      label: "Exam Centre *",
-      type: "readonly" as const,
     },
     {
       name: "date_of_test",
@@ -2915,13 +2909,29 @@ Interviewer: ${interviewerName}`;
                     {preferredCampusDisplay}
                   </div>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Mode
+                  </label>
+                  <div className="text-sm py-2">
+                    {currentApplicant.mode === "Offline" ? "Offline" : "Online"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Exam Centre
+                  </label>
+                  <div className="text-sm py-2">
+                    {currentApplicant.exam_sessions?.[0]?.exam_centre || currentApplicant.exam_centre || "—"}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Timestamps for Personal Details */}
             <div className="space-y-3 pt-4" data-onboarding="applicant-details-timestamps">
-              <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Personal Details</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <h4 className="text-base font-bold text-gray-900">Timestamps for Personal Details</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
                     Created At
@@ -2942,6 +2952,16 @@ Interviewer: ${interviewerName}`;
                       : "Not available"}
                   </p>
                 </div>
+                {currentApplicant.mode === "Offline" && currentApplicant.imported_at && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Imported At
+                    </label>
+                    <p className="text-sm">
+                      {new Date(currentApplicant.imported_at).toLocaleString()}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
                     Last Updated By
