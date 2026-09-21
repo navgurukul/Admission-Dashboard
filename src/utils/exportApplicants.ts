@@ -192,27 +192,28 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
 
   // Field mapping: internal field ID to CSV header and data accessor
   const fieldMapping: Record<string, { header: string; accessor: (applicant: any) => any }> = {
-    first_name: { header: "FirstName", accessor: (a) => a.first_name },
-    middle_name: { header: "MiddleName", accessor: (a) => a.middle_name },
-    last_name: { header: "LastName", accessor: (a) => a.last_name },
+    first_name: { header: "*First Name", accessor: (a) => a.first_name },
+    middle_name: { header: "Middle Name", accessor: (a) => a.middle_name },
+    last_name: { header: "Last Name", accessor: (a) => a.last_name },
     gender: { header: "Gender", accessor: (a) => a.gender },
-    dob: { header: "DOB", accessor: (a) => a.dob },
+    dob: { header: "Date of Birth", accessor: (a) => a.dob },
     email: { header: "Email", accessor: (a) => a.email },
-    phone_number: { header: "PhoneNumber", accessor: (a) => a.phone_number },
-    whatsapp_number: { header: "WhatsappNumber", accessor: (a) => a.whatsapp_number },
+    phone_number: { header: "*Phone Number", accessor: (a) => a.phone_number },
+    whatsapp_number: { header: "WhatsApp Number", accessor: (a) => a.whatsapp_number },
     state: { header: "State", accessor: (a) => a.state_name || a.state || "" },
     city: { header: "City", accessor: (a) => a.city || a.city_name || "" },
     district: { header: "District", accessor: (a) => a.district_name || a.district || "" },
     block: { header: "Block", accessor: (a) => a.block_name || a.block || "" },
-    pin_code: { header: "PinCode", accessor: (a) => a.pin_code || a.pincode || "" },
+    pin_code: { header: "Pincode", accessor: (a) => a.pin_code || a.pincode || "" },
     qualification: { header: "Qualification", accessor: (a) => a.qualification_name || a.qualification || "" },
-    current_status: { header: "CurrentStatus", accessor: (a) => a.current_status_name || a.current_work },
-    cast: { header: "Cast", accessor: (a) => a.cast_name || a.caste },
-    school: { header: "School", accessor: (a) => a.school_name },
-    campus: { header: "Campus", accessor: (a) => a.campus_name },
-    communication_notes: { header: "CommunicationNotes", accessor: (a) => a.communication_notes },
+    current_status: { header: "Current Status", accessor: (a) => a.current_status_name || a.current_work },
+    partner_name: { header: "Partner Name", accessor: (a) => a.partner_name || a.cast_name || a.caste },
+    qualifying_school: { header: "Qualifying School", accessor: (a) => a.school_name },
+    preferred_school: { header: "*Prefered School", accessor: (a) => a.initial_school_name },
+    campus: { header: "Campus", accessor: (a) => a.campus_name || a.preferred_campus_name },
+    communication_notes: { header: "Communication Notes", accessor: (a) => a.communication_notes },
     question_set_name: { 
-      header: "QuestionSetName", 
+      header: "Question Set Name", 
       accessor: (a) => {
         const examSessions = a.exam_sessions || [];
         const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
@@ -227,7 +228,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     exam_centre: { 
-      header: "ExamCentre", 
+      header: "Exam Centre", 
       accessor: (a) => {
         const examSessions = a.exam_sessions || [];
         const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
@@ -235,7 +236,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     date_of_test: { 
-      header: "DateOfTest", 
+      header: "Date of Test", 
       accessor: (a) => {
         const examSessions = a.exam_sessions || [];
         const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
@@ -243,7 +244,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     obtained_marks: { 
-      header: "ObtainedMarks", 
+      header: "Obtained Marks", 
       accessor: (a) => {
         const examSessions = a.exam_sessions || [];
         const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
@@ -251,7 +252,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     exam_status: { 
-      header: "ExamStatus", 
+      header: "Screening Round Status", 
       accessor: (a) => {
         const examSessions = a.exam_sessions || [];
         const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
@@ -259,7 +260,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     exam_last_updated_by: { 
-      header: "ExamLastUpdatedByEmail", 
+      header: "Screening Round Updated By (Email)", 
       accessor: (a) => {
         const examSessions = a.exam_sessions || [];
         const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
@@ -267,7 +268,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     learning_round_status: { 
-      header: "LearningRoundStatus", 
+      header: "Learning Round Status", 
       accessor: (a) => {
         const learningRounds = a.interview_learner_round || [];
         const learningRound = learningRounds.length > 0 ? learningRounds[learningRounds.length - 1] : {};
@@ -275,7 +276,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     learning_round_comments: { 
-      header: "LearningRoundComments", 
+      header: "Learning Round Comments", 
       accessor: (a) => {
         const learningRounds = a.interview_learner_round || [];
         const learningRound = learningRounds.length > 0 ? learningRounds[learningRounds.length - 1] : {};
@@ -283,7 +284,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     learning_round_last_updated_by: { 
-      header: "LearningRoundLastUpdatedByEmail", 
+      header: "Learning Round Updated By (Email)", 
       accessor: (a) => {
         const learningRounds = a.interview_learner_round || [];
         const learningRound = learningRounds.length > 0 ? learningRounds[learningRounds.length - 1] : {};
@@ -291,7 +292,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     cultural_fit_status: { 
-      header: "CulturalFitStatus", 
+      header: "Culture Fit Status", 
       accessor: (a) => {
         const culturalFitRounds = a.interview_cultural_fit_round || [];
         const culturalFitRound = culturalFitRounds.length > 0 ? culturalFitRounds[culturalFitRounds.length - 1] : {};
@@ -299,7 +300,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     cultural_fit_comments: { 
-      header: "CulturalFitComments", 
+      header: "Culture Fit Comments", 
       accessor: (a) => {
         const culturalFitRounds = a.interview_cultural_fit_round || [];
         const culturalFitRound = culturalFitRounds.length > 0 ? culturalFitRounds[culturalFitRounds.length - 1] : {};
@@ -307,7 +308,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     cultural_fit_last_updated_by: { 
-      header: "CulturalFitLastUpdatedByEmail", 
+      header: "Culture Fit Updated By (Email)", 
       accessor: (a) => {
         const culturalFitRounds = a.interview_cultural_fit_round || [];
         const culturalFitRound = culturalFitRounds.length > 0 ? culturalFitRounds[culturalFitRounds.length - 1] : {};
@@ -315,7 +316,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     offer_letter_status: { 
-      header: "OfferLetterStatus", 
+      header: "Admission Letter Status", 
       accessor: (a) => {
         const finalDecisions = a.final_decisions || [];
         const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
@@ -323,7 +324,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     onboarded_status: { 
-      header: "OnboardedStatus", 
+      header: "Onboarded Status", 
       accessor: (a) => {
         const finalDecisions = a.final_decisions || [];
         const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
@@ -331,7 +332,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     final_notes: { 
-      header: "FinalNotes", 
+      header: "Final Notes", 
       accessor: (a) => {
         const finalDecisions = a.final_decisions || [];
         const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
@@ -339,7 +340,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     joining_date: { 
-      header: "JoiningDate", 
+      header: "Joining Date", 
       accessor: (a) => {
         const finalDecisions = a.final_decisions || [];
         const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
@@ -347,7 +348,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     offer_letter_sent_by: { 
-      header: "OfferLetterSentByEmail", 
+      header: "Admission Letter Sent By (Email)", 
       accessor: (a) => {
         const finalDecisions = a.final_decisions || [];
         const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
@@ -355,7 +356,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
       }
     },
     final_status_updated_by: { 
-      header: "FinalStatusUpdatedByEmail", 
+      header: "Final Status Updated By (Email)", 
       accessor: (a) => {
         const finalDecisions = a.final_decisions || [];
         const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
