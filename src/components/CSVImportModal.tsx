@@ -49,39 +49,39 @@ const instructionGuide: GuideItem[] = [
   {
     title: "1. Use Exact Values Only",
     body: [
-      "Some columns only accept specific words like Gender, State, Qualification, and similar fields.",
-      "Always enter the exact text as instructed.",
+      "Some columns only accept specific words like Gender, State, Qualification, and Status fields.",
+      "Always enter the exact text as instructed in the 'Exact Values' tab.",
       "Do not change spelling, add extra spaces, or use shortcuts.",
     ],
   },
   {
     title: "2. Do Not Leave Important Fields Empty",
     body: [
-      "Fields like Name, Phone Number, State, and similar required columns must be filled.",
-      "Make sure you complete all mandatory fields.",
+      "Fields marked with an asterisk (*) like *First Name, *Phone Number, and *Prefered School are mandatory and must be filled.",
+      "Make sure you complete all required columns.",
     ],
   },
   {
     title: "3. Follow the Correct Format",
     body: [
       "Date of Birth: use YYYY-MM-DD. Example: 2005-10-16",
-      "Phone Number: enter a valid 10-digit number.",
+      "*Phone Number: enter a valid 10-digit number.",
       "Email: use a proper email format like example@gmail.com.",
-      "Pin Code: numbers only, no letters.",
+      "Pincode: numbers only, no letters.",
     ],
   },
   {
     title: "4. Avoid Special Characters",
     body: [
-      "Do not use symbols like @, #, %, *, or / unless the field requires it, such as email.",
+      "Do not use symbols like @, #, %, *, or / unless the field requires it, such as Email.",
       "Keep the text clean and simple.",
     ],
   },
   {
-    title: "5. Marks and Percentage",
+    title: "5. Obtained Marks",
     body: [
-      "If not required, keep the cells blank.",
-      "Enter only numbers. Do not add the % sign.",
+      "If not required, keep the cell blank.",
+      "Enter only numbers. Do not add the % sign or text.",
       "Correct: 85",
       "Wrong: 85%",
     ],
@@ -104,7 +104,7 @@ const instructionGuide: GuideItem[] = [
   {
     title: "8. Do Not Change Column Names",
     body: [
-      "Keep the column headers exactly as they are.",
+      "Keep the column headers exactly as they are in the downloaded template.",
       "Do not rename, delete, or rearrange them.",
     ],
   },
@@ -118,7 +118,7 @@ const instructionGuide: GuideItem[] = [
   {
     title: "10. When in Doubt",
     body: [
-      "If you are unsure about any value, check the reference guide or ask before filling the file.",
+      "If you are unsure about any value, check the 'Exact Values' tab before filling the file.",
     ],
   },
 ];
@@ -129,27 +129,23 @@ const referenceGuide: GuideItem[] = [
     body: ["10th Pass, 12th Pass, Graduate, Undergraduate"],
   },
   {
-    title: "CurrentStatus",
-    body: ["Student, Working, Job Searching"],
+    title: "Qualifying School",
+    body: ["Name of the school the student is currently attending or has graduated from."],
   },
   {
-    title: "Cast",
-    body: ["General, OBC, SC, ST, Other"],
+    title: "Partner Name",
+    body: ["Name of the partner organization, e.g., Partner XYZ"],
   },
-  // {
-  //   title: "Religion",
-  //   body: ["Hinduism, Islam, Christianity, Sikhism, Buddhism, Jainism, Other"],
-  // },
   {
-    title: "School",
+    title: "*Prefered School",
     body: ["SOP, SOB, SOF, BCA"],
   },
   {
     title: "Campus",
-    body: ["Dantewad, Sarjapur, Pune"],
+    body: ["Dantewada, Sarjapur, Pune"],
   },
   {
-    title: "QuestionSetName",
+    title: "Question Set Name",
     body: [
       "Must match the set names available in the dashboard.",
       "Legacy Migrated Exam",
@@ -159,13 +155,13 @@ const referenceGuide: GuideItem[] = [
     ],
   },
   {
-    title: "Statuses",
+    title: "Status Fields",
     body: [
-      "ExamStatus: Screening Test Pass, Screening Test Fail",
-      "LearningRoundStatus: Learning Round Pass, Learning Round Fail",
-      "CulturalFitStatus: Culture Fit Round Pass, Culture Fit Round Fail",
-      "AdmissionLetterStatus: Admission Letter Sent,Admission Letter Pending , Admission Letter Accepted, Admission Letter Declined, Selected but not joined",
-      "OnboardedStatus: Onboarded",
+      "Screening Round Status: Screening Test Pass, Screening Test Fail",
+      "Learning Round Status: Learning Round Pass, Learning Round Fail",
+      "Culture Fit Status: Culture Fit Round Pass, Culture Fit Round Fail",
+      "Admission Letter Status: Admission Letter Sent, Admission Letter Pending, Admission Letter Accepted, Admission Letter Declined, Selected but not joined",
+      "Onboarded Status: Onboarded",
     ],
   },
   {
@@ -178,11 +174,11 @@ const referenceGuide: GuideItem[] = [
   },
   {
     title: "Date Fields",
-    body: ["Use YYYY-MM-DD for DOB, DateOfTest, and JoiningDate."],
+    body: ["Use YYYY-MM-DD for Date of Birth, Date of Test, and Joining Date."],
   },
   {
-    title: "Percentage / Marks Fields",
-    body: ["Use numeric values only. Examples: 85.5, 78, 90"],
+    title: "Marks Fields",
+    body: ["Use numeric values only for Obtained Marks. Examples: 85.5, 78, 90"],
   },
 ];
 
@@ -462,82 +458,68 @@ const CSVImportModal = ({
 
     // First format: Full student data import (default)
     const headers = [
-      "FirstName",
-      "MiddleName",
-      "LastName",
+      "*First Name",
+      "Middle Name",
+      "Last Name",
       "Gender",
-      "DOB",
+      "Date of Birth",
       "Email",
-      "PhoneNumber",
-      "WhatsappNumber",
+      "*Phone Number",
+      "WhatsApp Number",
       "State",
       "City",
       "District",
       "Block",
-      "PinCode",
+      "Pincode",
       "Qualification",
-      "CurrentStatus",
-      "PercentageIn10th",
-      "MathMarksIn10th",
-      "PercentageIn12th",
-      "MathMarksIn12th",
-      "Cast",
-      // "Religion",
-      "School",
+      "Qualifying School",
+      "*Prefered School",
       "Campus",
-      "CommunicationNotes",
-      "QuestionSetName",
-      "ExamCentre",
-      "DateOfTest",
-      "ObtainedMarks",
-      "ExamStatus",
-      "ExamLastUpdatedByEmail",
-      "LearningRoundStatus",
-      "LearningRoundComments",
-      "LearningRoundLastUpdatedByEmail",
-      "CulturalFitStatus",
-      "CulturalFitComments",
-      "CulturalFitLastUpdatedByEmail",
-      "AdmissionLetterStatus",
-      "OnboardedStatus",
-      "FinalNotes",
-      "JoiningDate",
-      "AdmissionLetterSentByEmail",
-      "FinalStatusUpdatedByEmail",
+      "Partner Name",
+      "Question Set Name",
+      "Exam Centre",
+      "Date of Test",
+      "Obtained Marks",
+      "Screening Round Status",
+      "Learning Round Status",
+      "Learning Round Comments",
+      "Learning Round Updated By (Email)",
+      "Culture Fit Status",
+      "Culture Fit Comments",
+      "Culture Fit Updated By (Email)",
+      "Admission Letter Status",
+      "Onboarded Status",
+      "Final Notes",
+      "Joining Date",
+      "Admission Letter Sent By (Email)",
+      "Final Status Updated By (Email)",
     ];
 
     // Create sample row with example data
     const sampleRow = [
-      "xyz",
-      "Kumar",
-      "Singh",
-      "Male",
+      "Priyanka",
+      "",
+      "Mandol",
+      "Female",
       "2005-01-15",
-      "A@example.com",
+      "priyanka@gmail.com",
       "1234567890",
       "1234567890",
-      "Rajasthan",
-      "Jaipur",
-      "Jaipur",
-      "Mansarovar",
+      "Chhattisgarh",
+      "Sukma",
+      "Sukma",
+      "Sukma",
       "302020",
       "12th Pass",
-      "Student",
-      "85.5",
-      "90",
-      "78.5",
-      "85",
-      "General",
-      // "Hindu",
       "SOB",
-      "Kishanganj",
-      "Called on 01-Dec-2025",
+      "SOP",
+      "Dantewada",
+      "Partner XYZ",
       "screening-test-set",
       "Jaipur Center",
-      "2025-11-15",
+      "2026-09-19",
       "28",
       "Screening Test Pass",
-      "interviewer1@example.com",
       "Learning Round Pass",
       "Excellent problem-solving and logical thinking",
       "interviewer1@example.com",
@@ -577,212 +559,213 @@ const CSVImportModal = ({
     });
   };
 
-  const renderGuideItems = (items: GuideItem[]) => (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <div key={item.title} className="rounded-md border p-3">
-          <p className="text-sm font-semibold">{item.title}</p>
-          <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-            {item.body.map((line) => (
-              <p key={line}>{line}</p>
-            ))}
+  const renderGuideItems = (items: GuideItem[], itemType: string) => (
+    <div className="space-y-0 relative">
+      {items.map((item, index) => {
+        const titleText = item.title.replace(/^\d+\.\s*/, '');
+        return (
+          <div key={item.title} className="flex gap-3 p-3 border-b border-slate-100 last:border-b-0">
+            {itemType === "instructions" && (
+              <div className="text-xs font-bold text-pink-600 mt-1 shrink-0 w-4 text-center">{index + 1}</div>
+            )}
+            <div>
+              <p className="text-sm font-bold text-slate-800">{titleText}</p>
+              <div className="mt-0.5 text-xs text-slate-500 space-y-0.5">
+                {item.body.map((line, i) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
+      <div className="text-center py-2 text-xs font-semibold text-pink-600 hover:text-pink-700 cursor-pointer border-t border-pink-100/50 bg-pink-50/30 sticky bottom-0">
+        ↓ Scroll for all {itemType === "instructions" ? `${items.length} instructions` : "fields"}
+      </div>
     </div>
   );
 
   return (
     <>
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[700px] max-h-[90vh] overflow-hidden p-0 sm:rounded-lg">
-        <div className="flex max-h-[90vh] flex-col overflow-hidden p-4 sm:p-6">
-        <DialogHeader>
-          <DialogTitle>Import Applicants from CSV</DialogTitle>
-          <DialogDescription>
-            Choose a template and upload your CSV file. Use "Full Student Data" to create new students with complete information.
-            {/* or "Sessions Update" to update screening exam/interview rounds for existing students. */}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[850px] max-h-[90vh] overflow-hidden p-0 sm:rounded-2xl">
+        <div className="flex max-h-[90vh] flex-col overflow-hidden">
+          <div className="p-6 pb-4 border-b border-slate-100">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Import Applicants from CSV</DialogTitle>
+              <DialogDescription className="text-sm mt-1.5 text-slate-500">
+                Choose a template and upload your CSV file. Use "Full Student Data" to create new students with complete information.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
-        <div className="grid flex-1 gap-4 overflow-y-auto py-4 pr-1">
-          <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
-            <div>
-              <p className="text-sm font-medium">CSV Help Guide</p>
-              <p className="text-xs text-muted-foreground">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            
+            {/* CSV Help Guide */}
+            <div className="rounded-xl border border-pink-200 bg-slate-50/50 p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <FileSpreadsheet className="h-4 w-4 text-slate-400" />
+                <p className="text-sm font-bold text-slate-800">CSV Help Guide</p>
+              </div>
+              <p className="text-xs text-slate-500 mb-4 pl-6">
                 Review these instructions before filling or uploading the CSV.
               </p>
+
+              <Tabs defaultValue="instructions" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-white border border-pink-200 rounded-lg p-1 h-auto">
+                  <TabsTrigger value="instructions" className="text-xs font-semibold py-1.5 data-[state=active]:bg-pink-600 data-[state=active]:text-white rounded-md transition-all">Instructions</TabsTrigger>
+                  <TabsTrigger value="reference" className="text-xs font-semibold py-1.5 data-[state=active]:bg-pink-600 data-[state=active]:text-white rounded-md transition-all">Exact Values</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="instructions" className="mt-3">
+                  <ScrollArea className="h-48 rounded-lg border border-pink-200 bg-white shadow-sm">
+                    {renderGuideItems(instructionGuide, "instructions")}
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="reference" className="mt-3">
+                  <ScrollArea className="h-48 rounded-lg border border-pink-200 bg-white shadow-sm">
+                    {renderGuideItems(referenceGuide, "fields")}
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
             </div>
 
-            <Tabs defaultValue="instructions" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="instructions">Instructions</TabsTrigger>
-                <TabsTrigger value="reference">Exact Values</TabsTrigger>
-              </TabsList>
+            {/* Simple Download & Upload Section */}
+            <div className="space-y-2 pt-1">
+              <div>
+                <Label className="text-sm font-medium text-slate-800">Download Template:</Label>
+                <div className="flex justify-center py-2">
+                  <Button
+                    onClick={() => downloadTemplate('full')}
+                    variant="outline"
+                    className="flex items-center gap-2 text-sm px-6 h-10 rounded-lg shadow-sm border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800 transition-colors"
+                    type="button"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Import Template
+                  </Button>
+                </div>
+                <p className="text-sm text-slate-500 mt-2">
+                  • <strong className="text-slate-600 font-semibold">Student Import Template:</strong> Use this template to import student records with all required information.
+                </p>
+              </div>
 
-              <TabsContent value="instructions">
-                <ScrollArea className="h-64 rounded-md border bg-background p-4">
-                  <div className="mb-4">
-                    <p className="text-sm font-semibold">
-                      CSV Data Filling Guide
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      This guide will help you fill the file correctly so your
-                      data gets accepted without errors.
-                    </p>
-                  </div>
-                  {renderGuideItems(instructionGuide)}
-                </ScrollArea>
-              </TabsContent>
+              <div className="relative py-3">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center text-sm uppercase tracking-wide">
+                  <span className="bg-white px-4 text-slate-500 font-medium">
+                    OR UPLOAD YOUR FILE
+                  </span>
+                </div>
+              </div>
 
-              <TabsContent value="reference">
-                <ScrollArea className="h-64 rounded-md border bg-background p-4">
-                  <div className="mb-4">
-                    <p className="text-sm font-semibold">
-                      Exact Data Reference Guide
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Type these values exactly as shown, including spaces and
-                      capitalization.
-                    </p>
-                  </div>
-                  {renderGuideItems(referenceGuide)}
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
+              <div className="flex items-center gap-6">
+                <Label htmlFor="file" className="w-[80px] text-right text-base text-slate-700 shrink-0 font-medium">
+                  CSV File
+                </Label>
+                <div className="flex-1 flex items-center gap-2">
+                  <Input
+                    type="file"
+                    id="file"
+                    ref={fileInputRef}
+                    className="flex-1 cursor-pointer h-11 py-2 text-slate-600 bg-white file:bg-pink-50 file:text-pink-700 file:border-0 file:rounded-md file:px-4 file:py-1 file:mr-4 file:font-medium file:cursor-pointer hover:file:bg-pink-100"
+                    accept=".csv"
+                    onChange={handleFileChange}
+                  />
+                  {csvFile && csvPreviewData && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0 border-blue-200 text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-11 w-11"
+                      onClick={() => setIsPreviewOpen(true)}
+                      title="Show Preview"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="flex items-center p-3 text-sm text-destructive bg-destructive/10 rounded-xl">
+                <AlertCircle className="mr-2 h-4 w-4" />
+                {error}
+              </div>
+            )}
+
+            {isProcessing && (
+              <div className="p-4 rounded-xl border bg-slate-50">
+                <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  Processing CSV data...
+                </p>
+                <Progress value={uploadProgress} className="h-1.5" />
+              </div>
+            )}
+
+            {showResults && (
+              <div className="space-y-3 rounded-xl border bg-blue-50/50 p-6 shadow-sm flex flex-col items-center justify-center">
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 mb-2">
+                  <CheckCircle className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-base font-bold text-slate-800">Import Process Completed</p>
+                  <p className="text-sm text-slate-500">Your CSV file has been processed.</p>
+                </div>
+
+                <div className="flex gap-3 mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowErrorModal(true)}
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 bg-white"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Errors & Skipped 
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      if (successCount > 0) onSuccess();
+                      onClose();
+                    }}
+                    className="border-slate-200 bg-white hover:bg-slate-50 text-slate-700"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Warning Banner */}
+            {!showResults && (
+              <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-800 rounded-lg text-xs font-medium">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                Rows with missing required fields will be skipped — you'll see a summary after import.
+              </div>
+            )}
+
           </div>
 
-          {/* Download Template Buttons */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Download Template:</Label>
-            <div className="flex justify-center py-2">
+          {!showResults && (
+            <div className="flex justify-end p-6 pt-2">
               <Button
-                onClick={() => downloadTemplate('full')}
-                variant="outline"
-                className="flex items-center gap-2 text-xs sm:text-sm px-8"
-                type="button"
+                onClick={handleParse}
+                disabled={!csvFile || isProcessing}
+                className="h-10 px-8 text-sm font-semibold flex items-center gap-2"
               >
-                <Download className="h-4 w-4" />
-                Download Import Template
+                {isProcessing && <Loader2 className="animate-spin h-4 w-4" />}
+                {isProcessing ? "Importing..." : "Import"}
               </Button>
-              {/* <Button
-                onClick={() => downloadTemplate('update')}
-                variant="outline"
-                className="flex items-center gap-2 text-xs sm:text-sm"
-                type="button"
-              >
-                <Download className="h-4 w-4" />
-                Sessions Update
-              </Button> */}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              • <strong>Student Import Template:</strong> Use this template to import student records with all required information.
-              {/* <br/>
-              • <strong>Sessions Update:</strong> Update existing students' stages and Admission letter updates based on their email addresses. */}
-            </p>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or upload your file
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="file" className="text-right">
-              CSV File
-            </Label>
-            <div className="col-span-3 flex items-center gap-2">
-              <Input
-                type="file"
-                id="file"
-                ref={fileInputRef}
-                className="flex-1"
-                accept=".csv"
-                onChange={handleFileChange}
-              />
-              {csvFile && csvPreviewData && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0 border-blue-200 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  onClick={() => setIsPreviewOpen(true)}
-                  title="Show Preview"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {error && (
-            <div className="flex items-center text-sm text-destructive">
-              <AlertCircle className="mr-2 h-4 w-4" />
-              {error}
             </div>
           )}
-
-          {isProcessing && (
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Processing CSV data...
-              </p>
-              <Progress value={uploadProgress} />
-            </div>
-          )}
-          {showResults && (
-            <div className="space-y-3 rounded-lg border bg-blue-50/50 p-6 shadow-sm flex flex-col items-center justify-center">
-              <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-2">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-base font-semibold text-foreground">Import Process Completed</p>
-                <p className="text-sm text-muted-foreground">Your CSV file has been processed.</p>
-              </div>
-
-              <div className="flex gap-3 mt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setShowErrorModal(true)}
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Errors & Skipped 
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => {
-                    if (successCount > 0) onSuccess();
-                    onClose();
-                  }}
-                  className="border-gray-200"
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {!showResults && (
-          <Button
-            onClick={handleParse}
-            disabled={!csvFile || isProcessing}
-            className="mt-2 w-full flex items-center gap-2 sm:w-auto"
-          >
-            {isProcessing && <Loader2 className="animate-spin h-4 w-4" />}
-            {isProcessing ? "Importing..." : "Import"}
-          </Button>
-        )}
         </div>
 
         <Sheet open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
