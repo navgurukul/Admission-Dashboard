@@ -2245,6 +2245,47 @@ Interviewer: ${interviewerName}`;
   // 3. Fallback: treat ALL archived records as one attempt per reset
   //    (since all records from a single reset share the same archived_at time)
   const groupedAttempts = useMemo(() => {
+    // ── Strategy 0: Backend provides attempts_history directly ────────────────
+    if (currentApplicant?.attempts_history) {
+      const history = currentApplicant.attempts_history;
+
+      // Case A: It's an array of grouped attempt objects
+      if (Array.isArray(history) && history.length > 0) {
+        if (history[0].attempt_number !== undefined || history[0].exam_sessions !== undefined || history[0].screening !== undefined) {
+          return history.map((attempt: any, index: number) => ({
+            attemptNumber: attempt.attempt_number || attempt.attemptNumber || (history.length - index),
+            screening: attempt.exam_sessions || attempt.screening || [],
+            learning: attempt.interview_learner_round || attempt.learning || [],
+            cultural: attempt.interview_cultural_fit_round || attempt.cultural || []
+          })).sort((a: any, b: any) => b.attemptNumber - a.attemptNumber);
+        }
+      } 
+      
+      // Case B: It's an object with keys { exam_sessions: [], interview_learner_round: [], ... }
+      if (typeof history === 'object' && !Array.isArray(history)) {
+        const allArchived = [
+          ...(history.exam_sessions || []).map((r: any) => ({ type: "screening" as const, record: r })),
+          ...(history.interview_learner_round || []).map((r: any) => ({ type: "learning" as const, record: r })),
+          ...(history.interview_cultural_fit_round || []).map((r: any) => ({ type: "cultural" as const, record: r })),
+        ];
+
+        if (allArchived.length > 0) {
+          const map = new Map<number, { screening: any[]; learning: any[]; cultural: any[] }>();
+          const ensure = (n: number) => {
+            if (!map.has(n)) map.set(n, { screening: [], learning: [], cultural: [] });
+            return map.get(n)!;
+          };
+          allArchived.forEach(({ type, record }) => {
+            ensure(record.attempt_number ?? 0)[type].push(record);
+          });
+          return Array.from(map.entries())
+            .sort((a, b) => b[0] - a[0]) // sort descending, latest first
+            .map(([attemptNumber, data]) => ({ attemptNumber, ...data }));
+        }
+      }
+    }
+
+    // ── Fallback: Extracting from top level fields where is_archived === true ──
     const allArchived = [
       ...archivedExamSessions.map((r: any) => ({ type: "screening" as const, record: r })),
       ...archivedLearnerRounds.map((r: any) => ({ type: "learning" as const, record: r })),
@@ -2253,20 +2294,20 @@ Interviewer: ${interviewerName}`;
 
     if (allArchived.length === 0) return [];
 
-    // ── Strategy 1: reset_attempt field ──────────────────────────────────
-    const hasResetAttemptField = allArchived.some((x) => x.record?.reset_attempt !== undefined);
-    if (hasResetAttemptField) {
+    // ── Strategy 1: attempt_number field ──────────────────────────────────
+    const hasAttemptNumberField = allArchived.some((x) => x.record?.attempt_number !== undefined);
+    if (hasAttemptNumberField) {
       const map = new Map<number, { screening: any[]; learning: any[]; cultural: any[] }>();
       const ensure = (n: number) => {
         if (!map.has(n)) map.set(n, { screening: [], learning: [], cultural: [] });
         return map.get(n)!;
       };
       allArchived.forEach(({ type, record }) => {
-        ensure(record.reset_attempt ?? 0)[type].push(record);
+        ensure(record.attempt_number ?? 0)[type].push(record);
       });
       return Array.from(map.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([, data], i) => ({ attemptNumber: i + 1, ...data }));
+        .sort((a, b) => b[0] - a[0]) // sort descending, latest first
+        .map(([attemptNumber, data]) => ({ attemptNumber, ...data }));
     }
 
     // ── Strategy 2: archived_at field (same timestamp = same reset event) ─
@@ -3797,7 +3838,7 @@ Interviewer: ${interviewerName}`;
 
       {/* ── Student History Modal ── */}
       <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
           {/* Header */}
           <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex items-center gap-3">
@@ -3828,187 +3869,136 @@ Interviewer: ${interviewerName}`;
               </div>
             )}
 
-            {groupedAttempts.map((attempt) => (
-              <div key={attempt.attemptNumber} className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                {/* Attempt Header — sirf number chip, "Attempt X" text nahi */}
-                <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-600">
-                  {/* <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-sm font-bold">#{attempt.attemptNumber}</span>
-                  </div> */}
-                  {/* <div className="ml-auto flex items-center gap-1.5">
-                    {attempt.screening.length > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/30 text-blue-100 font-medium">Screening</span>
-                    )}
-                    {attempt.learning.length > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/30 text-purple-100 font-medium">Learning</span>
-                    )}
-                    {attempt.cultural.length > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-400/30 text-green-100 font-medium">CFR</span>
-                    )}
-                  </div> */}
-                </div>
+            <Accordion type="multiple" defaultValue={groupedAttempts.length > 0 ? [`attempt-${groupedAttempts[0].attemptNumber}`] : []} className="w-full space-y-4">
+              {groupedAttempts.map((attempt, index) => {
+                const isLatest = index === 0;
+                // Get maximum date from all records for this attempt to display at the right side
+                let maxDate = 0;
+                [...attempt.screening, ...attempt.learning, ...attempt.cultural].forEach(r => {
+                  const d = new Date(r.created_at || r.updated_at || 0).getTime();
+                  if (d > maxDate) maxDate = d;
+                });
+                const attemptDateLabel = maxDate > 0 ? new Date(maxDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "";
+                
+                // figure out badge
+                let attemptStatusText = isLatest ? "Latest" : "Attempted";
+                let badgeVariant = isLatest ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-800";
 
-                <div className="divide-y divide-gray-100">
-
-                  {/* ── Screening ── */}
-                  {attempt.screening.map((session: any, i: number) => {
-                    const isPassed = session.status?.toLowerCase().includes("pass");
-                    const isFailed = session.status?.toLowerCase().includes("fail");
-                    return (
-                      <div key={i} className="px-4 py-3 bg-blue-50/40">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>
-                            Screening Round
-                          </span>
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            isPassed ? "bg-green-100 text-green-700" :
-                            isFailed ? "bg-red-100 text-red-600" :
-                            "bg-gray-100 text-gray-500"
-                          }`}>
-                            {session.status || "—"}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-400">Obtained Marks</p>
-                            <p className="font-semibold text-gray-800">{session.obtained_marks ?? "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">School</p>
-                            <p className="font-semibold text-gray-800">{session.school_name || session.school_id || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Question Set</p>
-                            <p className="font-semibold text-gray-800">{session.set_name || session.question_set_name || session.question_set_id || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Date of Test</p>
-                            <p className="font-semibold text-gray-800">{session.date_of_test ? session.date_of_test.split("T")[0] : "—"}</p>
-                          </div>
-                          {session.exam_centre && (
-                            <div>
-                              <p className="text-xs text-gray-400">Exam Centre</p>
-                              <p className="font-semibold text-gray-800">{session.exam_centre}</p>
-                            </div>
-                          )}
-                          {session.last_updated_by && (
-                            <div>
-                              <p className="text-xs text-gray-400">Updated By</p>
-                              <p className="font-semibold text-gray-800">{session.last_updated_by}</p>
-                            </div>
-                          )}
-                        </div>
-                        {session.created_at && (
-                          <p className="text-xs text-gray-400 mt-2">
-                            Recorded: {new Date(session.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
+                return (
+                  <AccordionItem key={attempt.attemptNumber} value={`attempt-${attempt.attemptNumber}`} className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gray-50 flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-gray-900">Attempt {attempt.attemptNumber}</span>
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeVariant}`}>
+                          {attemptStatusText}
+                        </span>
                       </div>
-                    );
-                  })}
-
-                  {/* ── Learning Round ── */}
-                  {attempt.learning.map((round: any, i: number) => {
-                    const isPassed = round.learning_round_status?.toLowerCase().includes("pass");
-                    const isFailed = round.learning_round_status?.toLowerCase().includes("fail");
-                    return (
-                      <div key={i} className="px-4 py-3 bg-purple-50/40">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
-                            Learning Round
-                          </span>
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            isPassed ? "bg-green-100 text-green-700" :
-                            isFailed ? "bg-red-100 text-red-600" :
-                            "bg-gray-100 text-gray-500"
-                          }`}>
-                            {round.learning_round_status || "—"}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-400">School</p>
-                            <p className="font-semibold text-gray-800">{round.school_name || round.school_id || "—"}</p>
-                          </div>
-                          {round.last_updated_by && (
-                            <div>
-                              <p className="text-xs text-gray-400">Updated By</p>
-                              <p className="font-semibold text-gray-800">{round.last_updated_by}</p>
-                            </div>
-                          )}
-                        </div>
-                        {round.comments && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-400 mb-1">Comments</p>
-                            <p className="text-sm text-gray-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">{round.comments}</p>
-                          </div>
-                        )}
-                        {round.created_at && (
-                          <p className="text-xs text-gray-400 mt-2">
-                            Recorded: {new Date(round.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
+                      <div className="flex items-center gap-2 ml-auto pr-4">
+                        <span className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
+                          {attemptDateLabel}
+                        </span>
                       </div>
-                    );
-                  })}
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0 border-t">
+                       <div className="overflow-x-auto">
+                         <table className="w-full text-sm text-left">
+                           <thead className="bg-white text-gray-500 font-medium border-b border-gray-100">
+                             <tr>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Round</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Status</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Marks</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Qualifying school</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Set</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Test date</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Exam centre</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Updated by</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Created at</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Updated at</th>
+                             </tr>
+                           </thead>
+                           <tbody className="divide-y divide-gray-100 bg-white">
+                              {/* Screening Row */}
+                              {attempt.screening.map((session: any, i: number) => {
+                                const status = session.status || "—";
+                                const isPassed = status.toLowerCase().includes("pass");
+                                const isFailed = status.toLowerCase().includes("fail");
+                                return (
+                                  <tr key={`scr-${i}`} className="hover:bg-gray-50/50">
+                                    <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">{session.stage_name || "Screening Round"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${isPassed ? 'bg-green-100 text-green-700' : isFailed ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.obtained_marks ?? "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.school_name || session.school_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.set_name || session.question_set_name || session.question_set_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.date_of_test ? new Date(session.date_of_test).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.exam_centre || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.last_updated_by || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.created_at ? new Date(session.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.updated_at ? new Date(session.updated_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                  </tr>
+                                )
+                              })}
 
-                  {/* ── Cultural Fit Round ── */}
-                  {attempt.cultural.map((round: any, i: number) => {
-                    const status = round.cultural_fit_status || round.cultural_fit_round_status || "";
-                    const isPassed = status.toLowerCase().includes("pass");
-                    const isFailed = status.toLowerCase().includes("fail");
-                    return (
-                      <div key={i} className="px-4 py-3 bg-green-50/40">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
-                            Cultural Fit Round
-                          </span>
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            isPassed ? "bg-green-100 text-green-700" :
-                            isFailed ? "bg-red-100 text-red-600" :
-                            "bg-gray-100 text-gray-500"
-                          }`}>
-                            {status || "—"}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                          {/* Status field — prominent display */}
-                          <div>
-                            <p className="text-xs text-gray-400">Status</p>
-                            <p className="font-semibold text-gray-800">{status || "—"}</p>
-                          </div>
-                          {round.last_updated_by && (
-                            <div>
-                              <p className="text-xs text-gray-400">Updated By</p>
-                              <p className="font-semibold text-gray-800">{round.last_updated_by}</p>
-                            </div>
-                          )}
-                        </div>
-                        {round.comments && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-400 mb-1">Comments</p>
-                            <p className="text-sm text-gray-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">{round.comments}</p>
-                          </div>
-                        )}
-                        {round.created_at && (
-                          <p className="text-xs text-gray-400 mt-2">
-                            Recorded: {new Date(round.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+                              {/* Learning Row */}
+                              {attempt.learning.map((round: any, i: number) => {
+                                const status = round.learning_round_status || "—";
+                                const isPassed = status.toLowerCase().includes("pass");
+                                const isFailed = status.toLowerCase().includes("fail");
+                                return (
+                                  <tr key={`lr-${i}`} className="hover:bg-gray-50/50">
+                                    <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">{round.stage_name || "Learning Round"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${isPassed ? 'bg-green-100 text-green-700' : isFailed ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.obtained_marks ?? "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.school_name || round.school_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.set_name || round.question_set_name || round.question_set_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.date_of_test ? new Date(round.date_of_test).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.exam_centre || round.mode || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.last_updated_by || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.created_at ? new Date(round.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.updated_at ? new Date(round.updated_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                  </tr>
+                                )
+                              })}
 
-                  {/* No data in this attempt */}
-                  {attempt.screening.length === 0 && attempt.learning.length === 0 && attempt.cultural.length === 0 && (
-                    <div className="px-4 py-3 text-sm text-gray-400 italic">No records found for this attempt.</div>
-                  )}
-                </div>
-              </div>
-            ))}
+                              {/* Cultural Fit Row */}
+                              {attempt.cultural.map((round: any, i: number) => {
+                                const status = round.cultural_fit_status || round.cultural_fit_round_status || "—";
+                                const isPassed = status.toLowerCase().includes("pass");
+                                const isFailed = status.toLowerCase().includes("fail");
+                                return (
+                                  <tr key={`cfr-${i}`} className="hover:bg-gray-50/50">
+                                    <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">{round.stage_name || "Culture Fit Round"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${isPassed ? 'bg-green-100 text-green-700' : isFailed ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.obtained_marks ?? "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.school_name || round.school_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.set_name || round.question_set_name || round.question_set_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.date_of_test ? new Date(round.date_of_test).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.exam_centre || round.mode || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.last_updated_by || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.created_at ? new Date(round.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.updated_at ? new Date(round.updated_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                  </tr>
+                                )
+                              })}
+                           </tbody>
+                         </table>
+                       </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </div>
 
           {/* Footer */}
