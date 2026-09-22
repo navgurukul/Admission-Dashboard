@@ -2254,19 +2254,21 @@ Interviewer: ${interviewerName}`;
         if (history[0].attempt_number !== undefined || history[0].exam_sessions !== undefined || history[0].screening !== undefined) {
           return history.map((attempt: any, index: number) => ({
             attemptNumber: attempt.attempt_number || attempt.attemptNumber || (history.length - index),
-            screening: attempt.exam_sessions || attempt.screening || [],
-            learning: attempt.interview_learner_round || attempt.learning || [],
-            cultural: attempt.interview_cultural_fit_round || attempt.cultural || []
-          })).sort((a: any, b: any) => b.attemptNumber - a.attemptNumber);
+            screening: (attempt.exam_sessions || attempt.screening || []).filter((r: any) => r.is_archived === true),
+            learning: (attempt.interview_learner_round || attempt.learning || []).filter((r: any) => r.is_archived === true),
+            cultural: (attempt.interview_cultural_fit_round || attempt.cultural || []).filter((r: any) => r.is_archived === true)
+          }))
+          .filter((a: any) => a.screening.length > 0 || a.learning.length > 0 || a.cultural.length > 0)
+          .sort((a: any, b: any) => b.attemptNumber - a.attemptNumber);
         }
       } 
       
       // Case B: It's an object with keys { exam_sessions: [], interview_learner_round: [], ... }
       if (typeof history === 'object' && !Array.isArray(history)) {
         const allArchived = [
-          ...(history.exam_sessions || []).map((r: any) => ({ type: "screening" as const, record: r })),
-          ...(history.interview_learner_round || []).map((r: any) => ({ type: "learning" as const, record: r })),
-          ...(history.interview_cultural_fit_round || []).map((r: any) => ({ type: "cultural" as const, record: r })),
+          ...(history.exam_sessions || []).filter((r: any) => r.is_archived === true).map((r: any) => ({ type: "screening" as const, record: r })),
+          ...(history.interview_learner_round || []).filter((r: any) => r.is_archived === true).map((r: any) => ({ type: "learning" as const, record: r })),
+          ...(history.interview_cultural_fit_round || []).filter((r: any) => r.is_archived === true).map((r: any) => ({ type: "cultural" as const, record: r })),
         ];
 
         if (allArchived.length > 0) {

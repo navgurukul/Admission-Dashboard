@@ -385,167 +385,11 @@ const CSVImportModal = ({
   // Removed client-side processCSVData as backend now handles everything and returns results
 
 
-  const downloadTemplate = (templateType: 'full' | 'update' = 'full') => {
-    if (templateType === 'update') {
-      // Second format: For updating existing students with multiple session data (Email-based)
-      const headers = [
-        "Email",
-        "QuestionSetName",
-        "ExamCentre",
-        "DateOfTest",
-        "ObtainedMarks",
-        "ExamStatus",
-        "ExamLastUpdatedByEmail",
-        "LearningRoundStatus",
-        "LearningRoundComments",
-        "LearningRoundLastUpdatedByEmail",
-        "CulturalFitStatus",
-        "CulturalFitComments",
-        "CulturalFitLastUpdatedByEmail",
-        "AdmissionLetterStatus",
-        "OnboardedStatus",
-        "FinalNotes",
-        "JoiningDate",
-        "AdmissionLetterSentByEmail",
-        "FinalStatusUpdatedByEmail",
-      ];
-
-      const sampleRow = [
-        "student@example.com",
-        "A",
-        "Jaipur Center",
-        "2025-11-15",
-        "28",
-        "Screening Test Pass",
-        "interviewer1@example.com",
-        "Learning Round Pass",
-        "Excellent problem-solving and logical thinking",
-        "interviewer1@example.com",
-        "Culture Fit Round Pass",
-        "Strong values alignment and team player",
-        "interviewer2@example.com",
-        "Admission letter Sent",
-        "Onboarded",
-        "Selected for January 2025 batch",
-        "2025-01-15",
-        "abc@navgurukul.org",
-        "abc@navgurukul.org",
-      ];
-
-      const csvContent = [headers, sampleRow]
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      
-      link.setAttribute("href", url);
-      link.setAttribute("download", "student_sessions_update_template.csv");
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast({
-        title: "✅ Template Downloaded",
-        description: "Student Sessions Update template has been downloaded successfully!",
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
-      return;
-    }
-
-    // First format: Full student data import (default)
-    const headers = [
-      "*First Name",
-      "Middle Name",
-      "Last Name",
-      "Gender",
-      "Date of Birth",
-      "Email",
-      "*Phone Number",
-      "WhatsApp Number",
-      "State",
-      "City",
-      "District",
-      "Block",
-      "Pincode",
-      "Qualification",
-      "Qualifying School",
-      "*Prefered School",
-      "Campus",
-      "Partner Name",
-      "Question Set Name",
-      "Exam Centre",
-      "Date of Test",
-      "Obtained Marks",
-      "Screening Round Status",
-      "Learning Round Status",
-      "Learning Round Comments",
-      "Learning Round Updated By (Email)",
-      "Culture Fit Status",
-      "Culture Fit Comments",
-      "Culture Fit Updated By (Email)",
-      "Admission Letter Status",
-      "Onboarded Status",
-      "Final Notes",
-      "Joining Date",
-      "Admission Letter Sent By (Email)",
-      "Final Status Updated By (Email)",
-    ];
-
-    // Create sample row with example data
-    const sampleRow = [
-      "Priyanka",
-      "",
-      "Mandol",
-      "Female",
-      "2005-01-15",
-      "priyanka@gmail.com",
-      "1234567890",
-      "1234567890",
-      "Chhattisgarh",
-      "Sukma",
-      "Sukma",
-      "Sukma",
-      "302020",
-      "12th Pass",
-      "SOB",
-      "SOP",
-      "Dantewada",
-      "Partner XYZ",
-      "screening-test-set",
-      "Jaipur Center",
-      "2026-09-19",
-      "28",
-      "Screening Test Pass",
-      "Learning Round Pass",
-      "Excellent problem-solving and logical thinking",
-      "interviewer1@example.com",
-      "Culture Fit Round Pass",
-      "Strong values alignment and team player",
-      "interviewer2@example.com",
-      "Admission Letter Sent",
-      "Onboarded",
-      "Selected for January 2025 batch",
-      "2025-01-15",
-      "abc@navgurukul.org",
-      "abc@navgurukul.org",
-    ];
-
-    // Combine headers and sample row
-    const csvContent = [headers, sampleRow]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
-      .join("\n");
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const downloadTemplate = () => {
+    // Full student data import (Download static Excel file from public folder)
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", "applicants_import_template.csv");
+    link.href = "/Applicant_Bulk_Upload_Template.xlsx";
+    link.download = "Applicant_Bulk_Upload_Template.xlsx";
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -553,7 +397,7 @@ const CSVImportModal = ({
 
     toast({
       title: "✅ Template Downloaded",
-      description: "CSV template has been downloaded successfully!",
+      description: "Excel template has been downloaded successfully!",
       variant: "default",
       className: "border-green-500 bg-green-50 text-green-900",
     });
@@ -637,7 +481,7 @@ const CSVImportModal = ({
                 <Label className="text-sm font-medium text-slate-800">Download Template:</Label>
                 <div className="flex justify-center py-2">
                   <Button
-                    onClick={() => downloadTemplate('full')}
+                    onClick={() => downloadTemplate()}
                     variant="outline"
                     className="flex items-center gap-2 text-sm px-6 h-10 rounded-lg shadow-sm border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800 transition-colors"
                     type="button"
