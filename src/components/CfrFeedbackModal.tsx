@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import {
   Dialog,
   DialogContent,
@@ -1134,11 +1132,11 @@ export function CfrFeedbackModal({
 
   const handleDownloadReport = async () => {
     try {
-      // Validate that there's data to download
+      // Validate that there's data to print
       if (!status && !comments && groups.length === 0) {
         toast({
           title: "No Data Available",
-          description: "Please add feedback before downloading the report.",
+          description: "Please add feedback before printing the report.",
           variant: "default",
           className: "border-orange-500 bg-orange-50 text-orange-900",
         });
@@ -1155,73 +1153,13 @@ export function CfrFeedbackModal({
         return;
       }
 
-      // Show loading toast
-      const loadingToastId = toast({
-        title: "Generating PDF",
-        description: "Please wait while we generate your report...",
-        duration: 30000, // 30 seconds timeout
-      });
-
-      // Small delay to ensure DOM is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Capture the report container as canvas
-      const canvas = await html2canvas(reportContainer, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: reportContainer.scrollWidth,
-        windowHeight: reportContainer.scrollHeight,
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      
-      // Calculate scaling to fit content on page
-      const ratio = pdfWidth / imgWidth;
-      const scaledHeight = imgHeight * ratio;
-
-      // If content is taller than one page, we might need multiple pages
-      let heightLeft = scaledHeight;
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
-      heightLeft -= pdfHeight;
-
-      // Add additional pages if needed
-      while (heightLeft > 0) {
-        position = heightLeft - scaledHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, scaledHeight);
-        heightLeft -= pdfHeight;
-      }
-
-      // Save the PDF with sanitized filename
-      const sanitizedStudentId = String(studentId).replace(/[^a-z0-9]/gi, '_');
-      const dateStr = new Date().toISOString().split('T')[0];
-      const fileName = `CFR_Report_Student_${sanitizedStudentId}_${dateStr}.pdf`;
-      pdf.save(fileName);
-
-      toast({
-        title: "Success",
-        description: `Report downloaded as ${fileName}`,
-      });
+      // Call the browser's native print preview
+      window.print();
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error printing report:", error);
       toast({
-        title: "Download Failed",
-        description: error instanceof Error ? error.message : "Failed to generate PDF report. Please try again.",
+        title: "Print Failed",
+        description: error instanceof Error ? error.message : "Failed to print report. Please try again.",
         variant: "destructive",
       });
     }
@@ -1375,19 +1313,19 @@ export function CfrFeedbackModal({
                 </div>
 
                 <TabsContent value="complete" className="space-y-4">
-                  {/* Download Button */}
-                  <div className="flex justify-end mb-2">
+                  {/* Print Button */}
+                  <div className="flex justify-end mb-2 print:hidden">
                     <Button
                       onClick={() => handleDownloadReport()}
                       className="bg-pink-600 hover:bg-pink-700 text-white flex items-center gap-2"
                       size="sm"
                       disabled={!status && !comments && groups.length === 0}
-                      title={!status && !comments && groups.length === 0 ? "No data available to download" : "Download report as PDF"}
+                      title={!status && !comments && groups.length === 0 ? "No data available to print" : "Print / Save as PDF"}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                       </svg>
-                      Download Report
+                      Print / Save as PDF
                     </Button>
                   </div>
 
@@ -1444,14 +1382,14 @@ export function CfrFeedbackModal({
                         {status && status !== "disabled hidden" ? (
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-semibold text-gray-600">Status:</span>
-                            <span className={`px-4 py-1.5 rounded text-sm font-bold border-2 ${
-                              status === "Culture Fit Round Pass" ? "bg-green-50 text-green-800 border-green-600" :
-                              status === "Culture Fit Round Fail" ? "bg-red-50 text-red-800 border-red-600" :
-                              status === "Not Eligible" ? "bg-gray-50 text-gray-800 border-gray-600" :
-                              status === "Disinterested" ? "bg-yellow-50 text-yellow-800 border-yellow-600" :
-                              status === "Reschedule" ? "bg-orange-50 text-orange-800 border-orange-600" :
-                              status === "No Show" ? "bg-purple-50 text-purple-800 border-purple-600" :
-                              "bg-gray-50 text-gray-800 border-gray-600"
+                            <span className={`text-sm font-bold ${
+                              status === "Culture Fit Round Pass" ? "text-green-700" :
+                              status === "Culture Fit Round Fail" ? "text-red-700" :
+                              status === "Not Eligible" ? "text-gray-700" :
+                              status === "Disinterested" ? "text-yellow-700" :
+                              status === "Reschedule" ? "text-orange-700" :
+                              status === "No Show" ? "text-purple-700" :
+                              "text-gray-700"
                             }`}>
                               {status}
                             </span>
@@ -1579,13 +1517,7 @@ export function CfrFeedbackModal({
                       )}
                     </div>
 
-                    {/* Report Footer */}
-                    <div className="border-t-2 border-gray-300 pt-4 mt-8">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <p>Generated by NavGurukul Admission System</p>
-                        <p className="font-mono">{new Date().toLocaleString('en-IN')}</p>
-                      </div>
-                    </div>
+
                   </div>
                 </TabsContent>
 
