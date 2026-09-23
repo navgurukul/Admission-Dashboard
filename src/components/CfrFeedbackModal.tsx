@@ -604,6 +604,7 @@ interface CfrFeedbackModalProps {
   studentId: number;
   existingData?: any; // The CFR round data from interview_cultural_fit_round
   onSuccess?: () => void;
+  studentDetails?: any;
 }
 
 export function CfrFeedbackModal({
@@ -612,6 +613,7 @@ export function CfrFeedbackModal({
   studentId,
   existingData,
   onSuccess,
+  studentDetails,
 }: CfrFeedbackModalProps) {
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -1392,7 +1394,7 @@ export function CfrFeedbackModal({
                   {/* Report Container */}
                   <div id="cfr-report-container" className="bg-white border-2 border-gray-300 rounded-lg p-8 shadow-lg">
                     {/* Report Header */}
-                    <div className="border-b-4 border-pink-600 pb-4 mb-6">
+                    <div className="border-b-4 border-pink-600 pb-3 mb-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-wide">
@@ -1408,15 +1410,27 @@ export function CfrFeedbackModal({
                     </div>
 
                     {/* Candidate Info */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-md p-4 mb-6">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Student ID</p>
-                          <p className="text-sm font-bold text-gray-900">#{studentId}</p>
+                    <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Name</span>
+                          <span className="text-xs font-medium text-gray-900 text-ellipsis overflow-hidden whitespace-nowrap" title={studentDetails?.name || [studentDetails?.first_name, studentDetails?.last_name].filter(Boolean).join(" ") || "—"}>
+                            {studentDetails?.name || [studentDetails?.first_name, studentDetails?.last_name].filter(Boolean).join(" ") || "—"}
+                          </span>
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Interview Round</p>
-                          <p className="text-sm font-bold text-gray-900">Cultural Fit Round</p>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Email</span>
+                          <span className="text-xs font-medium text-gray-900 text-ellipsis overflow-hidden whitespace-nowrap" title={studentDetails?.email || "—"}>{studentDetails?.email || "—"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Phone</span>
+                          <span className="text-xs font-medium text-gray-900">{studentDetails?.phone_number || studentDetails?.whatsapp_number || "—"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Qualification</span>
+                          <span className="text-xs font-medium text-gray-900 text-ellipsis overflow-hidden whitespace-nowrap" title={studentDetails?.qualification_name || studentDetails?.highest_qualification || studentDetails?.qualification || "—"}>
+                            {studentDetails?.qualification_name || studentDetails?.highest_qualification || studentDetails?.qualification || "—"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1456,7 +1470,7 @@ export function CfrFeedbackModal({
                       <div className="pl-4 pr-2">
                         {comments && comments.trim() !== "" ? (
                           <div className="bg-white border border-gray-300 rounded p-3">
-                            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{comments}</p>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed break-words break-all">{comments}</p>
                           </div>
                         ) : (
                           <p className="text-sm text-gray-400 italic">No overall feedback recorded</p>
@@ -1509,7 +1523,7 @@ export function CfrFeedbackModal({
                                             </span>
                                           </td>
                                           <td className="py-3 px-3 align-top w-2/5">
-                                            <p className="text-sm font-semibold text-gray-800 leading-snug">
+                                            <p className="text-sm font-semibold text-gray-800 leading-snug break-words break-all">
                                               {q.question}
                                             </p>
                                             {q.isCustom && (
@@ -1521,7 +1535,7 @@ export function CfrFeedbackModal({
                                           <td className="py-3 px-3 align-top">
                                             {q.answer && q.answer.trim() !== "" ? (
                                               <div className="space-y-2">
-                                                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed break-words break-all">
                                                   {q.answer}
                                                 </p>
                                                 {q.link && q.link.trim() !== "" && (
