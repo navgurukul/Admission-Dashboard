@@ -4066,6 +4066,7 @@ Interviewer: ${interviewerName}`;
             setRefreshKey(prev => prev + 1);
             handleUpdate();
           }}
+          studentDetails={currentApplicant}
         />
       )}
 
