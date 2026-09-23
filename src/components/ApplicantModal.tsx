@@ -1978,6 +1978,11 @@ Interviewer: ${interviewerName}`;
       },
     },
     {
+      name: "exam_centre",
+      label: "Exam Centre *",
+      type: "readonly" as const,
+    },
+    {
       name: "date_of_test",
       label: "Date of Test *",
       type: "component" as const,
