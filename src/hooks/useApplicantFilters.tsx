@@ -7,8 +7,8 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 interface FilterState {
   stage: string;
-  stage_status: string;
-  stage_id: number;
+  stage_status: string | string[];
+  stage_id?: number;
   examMode: string;
   interviewMode: string;
   partner: any[];
@@ -111,6 +111,28 @@ export const useApplicantFilters = (
   useEffect(() => {
     sessionStorage.setItem("applicant_filters", JSON.stringify(filters));
   }, [filters]);
+
+  useEffect(() => {
+    const handleDashboardFilter = (e: any) => {
+      const type = e.detail;
+      if (type === 'Total Applicants') {
+        setFilters(prev => ({ ...prev, stage: "all", stage_id: undefined, stage_status: "all" }));
+        setHasActiveFilters(true);
+      } else if (type === 'Admission Letter Sent') {
+        setFilters(prev => ({ ...prev, stage: "all", stage_id: 5, stage_status: ["11"] }));
+        setHasActiveFilters(true);
+      } else if (type === 'Manually Sent') {
+        setFilters(prev => ({ ...prev, stage: "all", stage_id: 5, stage_status: ["27"] }));
+        setHasActiveFilters(true);
+      } else if (type === 'Successfully Onboarded') {
+        setFilters(prev => ({ ...prev, stage: "all", stage_id: 6, stage_status: "all" }));
+        setHasActiveFilters(true);
+      }
+    };
+    
+    window.addEventListener('apply_dashboard_filter', handleDashboardFilter);
+    return () => window.removeEventListener('apply_dashboard_filter', handleDashboardFilter);
+  }, []);
 
   const { toast } = useToast();
 

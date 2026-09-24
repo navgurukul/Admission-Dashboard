@@ -95,7 +95,14 @@ export function DashboardStats() {
       {stats.map((stat) => (
         <div
           key={stat.title}
-          className="bg-card rounded-xl px-5 py-3 shadow-soft border border-border"
+          onClick={() => {
+            if (stat.title !== "Total Admission Letter Sent") {
+              window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: stat.title }));
+            }
+          }}
+          className={`bg-card rounded-xl px-5 py-3 shadow-soft border border-border transition-shadow ${
+            stat.title !== "Total Admission Letter Sent" ? "cursor-pointer hover:shadow-md" : ""
+          }`}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -114,7 +121,14 @@ export function DashboardStats() {
           {stat.extras && (
             <div className="mt-3 pt-2 border-t border-border grid grid-cols-2 gap-x-4 gap-y-1">
               {stat.extras.map((extra, idx) => (
-                <div key={idx} className="flex flex-col">
+                <div 
+                  key={idx} 
+                  className="flex flex-col p-1 rounded hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: extra.label }));
+                  }}
+                >
                   <p className="text-xs font-medium text-muted-foreground mb-0.5">
                     {extra.label}
                   </p>
