@@ -2986,7 +2986,7 @@ Interviewer: ${interviewerName}`;
                   </label>
                   <p className="text-sm">
                     {currentApplicant.created_at
-                      ? new Date(currentApplicant.created_at).toLocaleString()
+                      ? new Date(currentApplicant.created_at).toLocaleString('sv-SE').substring(0, 16)
                       : "Not available"}
                   </p>
                 </div>
@@ -2996,7 +2996,7 @@ Interviewer: ${interviewerName}`;
                   </label>
                   <p className="text-sm">
                     {currentApplicant.updated_at
-                      ? new Date(currentApplicant.updated_at).toLocaleString()
+                      ? new Date(currentApplicant.updated_at).toLocaleString('sv-SE').substring(0, 16)
                       : "Not available"}
                   </p>
                 </div>
@@ -3006,7 +3006,7 @@ Interviewer: ${interviewerName}`;
                       Imported At
                     </label>
                     <p className="text-sm">
-                      {new Date(currentApplicant.imported_at).toLocaleString()}
+                      {new Date(currentApplicant.imported_at).toLocaleString('sv-SE').substring(0, 16)}
                     </p>
                   </div>
                 )}
@@ -3474,6 +3474,18 @@ Interviewer: ${interviewerName}`;
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
+                    Admission Letter Sent At
+                  </label>
+                  <div className="mt-1">
+                    <span className="text-sm text-black-900 px-3 py-2 bg-gray-50 block w-full">
+                      {currentApplicant.final_decisions?.[0]?.offer_letter_sent_at
+                        ? new Date(currentApplicant.final_decisions[0].offer_letter_sent_at).toLocaleString('sv-SE').substring(0, 16)
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
                     Onboarded Status
                   </label>
                   {isOnboardedDisabled ? (
@@ -3638,27 +3650,27 @@ Interviewer: ${interviewerName}`;
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Created At
+                      Final Status Created At
                     </label>
                     <p className="text-sm mt-1">
                       {currentApplicant.final_decisions?.[0]?.created_at
-                        ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString()
+                        ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString('sv-SE').substring(0, 16)
                         : "Not available"}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Last Updated At
+                      Final Status Updated At
                     </label>
                     <p className="text-sm mt-1">
                       {currentApplicant.final_decisions?.[0]?.updated_at
-                        ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString()
+                        ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString('sv-SE').substring(0, 16)
                         : "Not available"}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Last Updated By
+                      Final Status Updated By
                     </label>
                     <p className="text-sm mt-1">
                       {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
