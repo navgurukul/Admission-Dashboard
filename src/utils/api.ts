@@ -1173,6 +1173,12 @@ export interface StudentStats {
   offerLetterSent: number;
   onboarded: number;
   manuallySent: number;
+  dailyAdmissionStats?: Array<{
+    date: string;
+    campus_id: number;
+    campus_name: string;
+    count: string | number;
+  }>;
 }
 
 export const getStudentsStats = async (): Promise<StudentStats> => {

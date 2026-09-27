@@ -27,6 +27,7 @@ interface FilterState {
   donor: any[];
   partnerFilter: any[];
   dateRange: { type: "applicant" | "lastUpdate" | "interview"; from: any; to: any };
+  offer_letter_sent_date?: string;
 }
 
 export const useApplicantFilters = (
@@ -71,6 +72,7 @@ export const useApplicantFilters = (
           donor: [],
           partnerFilter: [],
           dateRange: { type: "applicant" as const, from: undefined, to: undefined },
+          offer_letter_sent_date: undefined,
           ...parsed,
         };
       }
@@ -99,6 +101,7 @@ export const useApplicantFilters = (
       donor: [],
       partnerFilter: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },
+      offer_letter_sent_date: undefined,
     };
   });
 
@@ -114,7 +117,7 @@ export const useApplicantFilters = (
 
   useEffect(() => {
     const handleDashboardFilter = (e: any) => {
-      const type = e.detail;
+      const type = typeof e.detail === 'string' ? e.detail : e.detail?.title;
       if (type === 'Total Applicants') {
         setFilters(prev => ({ ...prev, stage: "all", stage_id: undefined, stage_status: "all" }));
         setHasActiveFilters(true);
@@ -127,6 +130,18 @@ export const useApplicantFilters = (
       } else if (type === 'Successfully Onboarded') {
         setFilters(prev => ({ ...prev, stage: "all", stage_id: 6, stage_status: "all" }));
         setHasActiveFilters(true);
+      } else if (type === "Today's Admission Letters Sent" || type === 'Daily Admissions') {
+        const payload = e.detail;
+        if (payload?.date) {
+          setFilters(prev => ({ 
+            ...prev, 
+            stage: "all", 
+            stage_id: undefined, 
+            stage_status: "all",
+            offer_letter_sent_date: payload.date
+          }));
+          setHasActiveFilters(true);
+        }
       }
     };
     

@@ -1203,6 +1203,11 @@ const ApplicantTable = () => {
       }
     }
 
+    // Offer Letter Sent Date
+    if (filterState.offer_letter_sent_date) {
+      apiParams.offer_letter_sent_date = filterState.offer_letter_sent_date;
+    }
+
     return apiParams;
   };
 
@@ -1567,6 +1572,15 @@ const ApplicantTable = () => {
       });
     }
 
+    // Offer Letter Sent Date
+    if ((filters as any).offer_letter_sent_date) {
+      tags.push({
+        key: `offer_letter_sent_date`,
+        label: `Admission Date: ${(filters as any).offer_letter_sent_date}`,
+        onRemove: () => handleClearSingleFilter("offer_letter_sent_date"),
+      });
+    }
+
     return tags;
   }, [filters, campusList, schoolList, currentstatusList, questionSetList, religionList, stageList, partnerList, donorList, qualificationList, filteredApplicants, stageStatusList]);
 
@@ -1657,6 +1671,7 @@ const ApplicantTable = () => {
       partnerFilter: [],
       exam_centre: [],
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },
+      offer_letter_sent_date: undefined,
     });
     setHasActiveFilters(false);
     setFilteredStudents([]);
@@ -1714,6 +1729,7 @@ const ApplicantTable = () => {
       (newFilters.duplicate && newFilters.duplicate !== "all") ||
       (newFilters.mode && newFilters.mode !== "all") ||
       (newFilters.exam_centre?.length > 0) ||
+      (newFilters.offer_letter_sent_date) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
     if (!hasFilters) {
@@ -1809,6 +1825,9 @@ const ApplicantTable = () => {
         case "daterange":
           newFilters.dateRange = { type: newFilters.dateRange.type, from: undefined, to: undefined };
           break;
+        case "offer_letter_sent_date":
+          newFilters.offer_letter_sent_date = undefined;
+          break;
         default:
           return;
       }
@@ -1835,6 +1854,7 @@ const ApplicantTable = () => {
       (newFilters.duplicate && newFilters.duplicate !== "all") ||
       (newFilters.mode && newFilters.mode !== "all") ||
       (newFilters.exam_centre?.length > 0) ||
+      (newFilters.offer_letter_sent_date) ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
     if (!hasFilters) {
