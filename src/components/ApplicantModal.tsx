@@ -2979,12 +2979,12 @@ Interviewer: ${interviewerName}`;
             {/* Timestamps for Personal Details */}
             <div className="space-y-3 pt-4" data-onboarding="applicant-details-timestamps">
               <h4 className="text-base font-bold text-gray-900">Timestamps for Personal Details</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
                     Created At
                   </label>
-                  <p className="text-sm">
+                  <p className="text-[13px] text-gray-500 mt-1">
                     {currentApplicant.created_at
                       ? new Date(currentApplicant.created_at).toLocaleString('sv-SE').substring(0, 16)
                       : "Not available"}
@@ -2992,34 +2992,40 @@ Interviewer: ${interviewerName}`;
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
-                    Last Updated At
+                    Last Updated
                   </label>
-                  <p className="text-sm">
-                    {currentApplicant.updated_at
-                      ? new Date(currentApplicant.updated_at).toLocaleString('sv-SE').substring(0, 16)
-                      : "Not available"}
-                  </p>
+                  <div className="mt-1">
+                    {currentApplicant.last_updated_by || currentApplicant.updated_at ? (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-gray-700">
+                        {currentApplicant.last_updated_by && (
+                          <span>
+                            by {currentApplicant.last_updated_by}
+                          </span>
+                        )}
+                        {currentApplicant.last_updated_by && currentApplicant.updated_at && (
+                          <span>at</span>
+                        )}
+                        {currentApplicant.updated_at && (
+                          <span className="whitespace-nowrap">
+                            {new Date(currentApplicant.updated_at).toLocaleString('sv-SE').substring(0, 16)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[13px] text-gray-500 block">—</span>
+                    )}
+                  </div>
                 </div>
                 {currentApplicant.mode === "Offline" && currentApplicant.imported_at && (
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">
                       Imported At
                     </label>
-                    <p className="text-sm">
+                    <p className="text-[13px] text-gray-500 mt-1">
                       {new Date(currentApplicant.imported_at).toLocaleString('sv-SE').substring(0, 16)}
                     </p>
                   </div>
                 )}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Last Updated By
-                  </label>
-                  <p className="text-sm">
-                    {currentApplicant.last_updated_by
-                      ? currentApplicant.last_updated_by
-                      : "Not available"}
-                  </p>
-                </div>
               </div>
             </div>
           </div>
@@ -3464,24 +3470,28 @@ Interviewer: ${interviewerName}`;
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Admission Letter Sent By
+                    Admission letter sent
                   </label>
                   <div className="mt-1">
-                    <span className="text-sm text-black-900 px-3 py-2 bg-gray-50 block w-full">
-                      {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by || "—"}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Admission Letter Sent At
-                  </label>
-                  <div className="mt-1">
-                    <span className="text-sm text-black-900 px-3 py-2 bg-gray-50 block w-full">
-                      {currentApplicant.final_decisions?.[0]?.offer_letter_sent_at
-                        ? new Date(currentApplicant.final_decisions[0].offer_letter_sent_at).toLocaleString('sv-SE').substring(0, 16)
-                        : "—"}
-                    </span>
+                    {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by || currentApplicant.final_decisions?.[0]?.offer_letter_sent_at ? (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[13px] pt-1 text-gray-700">
+                        {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by && (
+                          <span>
+                            by {currentApplicant.final_decisions[0].offer_letter_sent_by}
+                          </span>
+                        )}
+                        {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by && currentApplicant.final_decisions?.[0]?.offer_letter_sent_at && (
+                          <span>at</span>
+                        )}
+                        {currentApplicant.final_decisions?.[0]?.offer_letter_sent_at && (
+                          <span className="whitespace-nowrap">
+                            {new Date(currentApplicant.final_decisions[0].offer_letter_sent_at).toLocaleString('sv-SE').substring(0, 16)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[13px] text-gray-500 block pt-1">—</span>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -3647,12 +3657,12 @@ Interviewer: ${interviewerName}`;
               {/* Audit Information - Below Final Note */}
               <div className="space-y-3 pt-4">
                 <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Admission Letter</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
                       Final Status Created At
                     </label>
-                    <p className="text-sm mt-1">
+                    <p className="text-[13px] text-gray-500 mt-1 pt-1">
                       {currentApplicant.final_decisions?.[0]?.created_at
                         ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString('sv-SE').substring(0, 16)
                         : "Not available"}
@@ -3660,21 +3670,29 @@ Interviewer: ${interviewerName}`;
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Final Status Updated At
+                      Final Status Updated
                     </label>
-                    <p className="text-sm mt-1">
-                      {currentApplicant.final_decisions?.[0]?.updated_at
-                        ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString('sv-SE').substring(0, 16)
-                        : "Not available"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Final Status Updated By
-                    </label>
-                    <p className="text-sm mt-1">
-                      {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
-                    </p>
+                    <div className="mt-1 pt-1">
+                      {currentApplicant.final_decisions?.[0]?.last_status_updated_by || currentApplicant.final_decisions?.[0]?.updated_at ? (
+                        <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-gray-700">
+                          {currentApplicant.final_decisions?.[0]?.last_status_updated_by && (
+                            <span>
+                              by {currentApplicant.final_decisions[0].last_status_updated_by}
+                            </span>
+                          )}
+                          {currentApplicant.final_decisions?.[0]?.last_status_updated_by && currentApplicant.final_decisions?.[0]?.updated_at && (
+                            <span>at</span>
+                          )}
+                          {currentApplicant.final_decisions?.[0]?.updated_at && (
+                            <span className="whitespace-nowrap">
+                              {new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString('sv-SE').substring(0, 16)}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-gray-500 block">—</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3899,18 +3917,11 @@ Interviewer: ${interviewerName}`;
                 });
                 const attemptDateLabel = maxDate > 0 ? new Date(maxDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "";
                 
-                // figure out badge
-                let attemptStatusText = isLatest ? "Latest" : "Attempted";
-                let badgeVariant = isLatest ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-800";
-
                 return (
                   <AccordionItem key={attempt.attemptNumber} value={`attempt-${attempt.attemptNumber}`} className="border rounded-lg overflow-hidden bg-white shadow-sm">
                     <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gray-50 flex items-center justify-between group">
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-gray-900">Attempt {attempt.attemptNumber}</span>
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeVariant}`}>
-                          {attemptStatusText}
-                        </span>
                       </div>
                       <div className="flex items-center gap-2 ml-auto pr-4">
                         <span className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
