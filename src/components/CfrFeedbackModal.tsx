@@ -1595,20 +1595,31 @@ export function CfrFeedbackModal({
 
                         <div className="space-y-1 flex-1">
                           {groups.map((group) => {
-                            const count = groupedQuestions[group]?.length || 0;
+                            const groupQs = groupedQuestions[group] || [];
+                            const count = groupQs.length;
+                            const unansweredCount = groupQs.filter(q => !q.answer || q.answer.trim() === "").length;
+                            const hasUnanswered = count > 0 && unansweredCount > 0;
                             return (
                               <div
                                 key={group}
                                 onClick={() => handleSelectGroup(group)}
-                                className={`group/topic flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                                className={`group/topic flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-medium transition-colors cursor-pointer border ${
                                   activeGroup === group
-                                    ? "bg-pink-100 text-pink-700 font-semibold"
-                                    : "bg-pink-50/30 hover:bg-pink-50 text-gray-700"
+                                    ? "bg-pink-100 text-pink-700 font-semibold border-pink-200"
+                                    : hasUnanswered
+                                      ? "bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 shadow-sm"
+                                      : "bg-pink-50/30 hover:bg-pink-50 text-gray-700 border-transparent"
                                 }`}
                               >
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0 pr-1">
                                   <span className="truncate leading-tight block">{group}</span>
-                                  <span className="text-[11px] text-gray-400 font-normal shrink-0">({count})</span>
+                                  {hasUnanswered ? (
+                                    <span className="text-[10px] font-bold text-amber-700 shrink-0 bg-amber-200/50 px-1.5 py-0.5 rounded-full" title={`${unansweredCount} questions missing`}>
+                                      {unansweredCount} missing
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] text-gray-400 font-normal shrink-0">({count})</span>
+                                  )}
                                 </div>
 
                                 {!existingData?._isReadOnly && (
@@ -1687,8 +1698,10 @@ export function CfrFeedbackModal({
                                 <div
                                   key={q.id || index}
                                   id={`cfr-q-item-${q.id}`}
-                                  className={`space-y-3 bg-white p-4 rounded-lg border shadow-sm transition-all hover:border-pink-200 ${
-                                    !q.answer || q.answer.trim() === "" ? "border-amber-300 ring-1 ring-amber-200/70" : ""
+                                  className={`space-y-3 bg-white p-4 rounded-lg shadow-sm transition-all hover:border-pink-300 ${
+                                    !q.answer || q.answer.trim() === "" 
+                                      ? "border-2 border-red-400 shadow-red-100" 
+                                      : "border border-gray-200"
                                   }`}
                                 >
                                   <div className="flex justify-between items-start gap-2">

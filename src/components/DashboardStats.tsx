@@ -188,14 +188,20 @@ export function DashboardStats() {
               
               <div className="flex flex-col">
                 <div 
-                  className="flex items-center justify-between cursor-pointer py-1 hover:bg-muted/50 rounded -mx-1 px-1 transition-colors"
+                  className={`flex items-center justify-between py-1 rounded -mx-1 px-1 transition-colors ${metrics.dailyAdmissionStats.length > 0 ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default'}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setIsCampusExpanded(!isCampusExpanded);
+                    if (metrics.dailyAdmissionStats.length > 0) {
+                      setIsCampusExpanded(!isCampusExpanded);
+                    }
                   }}
                 >
                   <span className="text-xs font-medium text-muted-foreground">Campus Wise</span>
-                  {isCampusExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                  {metrics.dailyAdmissionStats.length > 0 ? (
+                    isCampusExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <span className="text-xs font-medium text-muted-foreground italic">0 sent today</span>
+                  )}
                 </div>
                 
                 {isCampusExpanded && (
