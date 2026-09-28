@@ -1472,7 +1472,12 @@ Interviewer: ${interviewerName}`;
 
       payload.stage_id = newStageId;
 
-      await submitFinalDecision(payload);
+      const response = await submitFinalDecision(payload);
+      
+      let responseData: any = null;
+      try {
+        responseData = await response.clone().json();
+      } catch (e) {}
 
       // Update local state immediately - no need for extra API call
       setCurrentApplicant((prev) => ({
@@ -1491,10 +1496,23 @@ Interviewer: ${interviewerName}`;
       if (field === "joining_date") {
         setJoiningDate(value);
       }
+      
+      // Fetch fresh data from backend to ensure all timestamps and generated fields are updated
+      await handleUpdate();
+
+      let toastDescription = "Final decision updated successfully.";
+      const emailStatus = responseData?.email_status || responseData?.data?.email_status;
+      if (emailStatus) {
+        if (emailStatus.success) {
+          toastDescription = `${emailStatus.message} to ${emailStatus.email}`;
+        } else if (emailStatus.attempted) {
+          toastDescription = `Decision updated, but email failed: ${emailStatus.message}`;
+        }
+      }
 
       toast({
         title: "Success",
-        description: "Final decision updated successfully.",
+        description: toastDescription,
         variant: "default",
         className: "border-green-400 bg-green-50 text-green-900",
       });
