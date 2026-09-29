@@ -46,7 +46,7 @@ export function DashboardStats() {
 
       // Fetch accurate counts directly from the filter API to ensure numbers match the table
       const onboardedData = await getFilterStudent({ stage_id: 6, limit: 1 });
-      const admissionLetterData = await getFilterStudent({ stage_id: 5, limit: 1 });
+      const admissionLetterData = await getFilterStudent({ stage_id: 5, stage_status: ["11"], limit: 1 });
 
       const today = new Date();
       const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
