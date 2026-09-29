@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -17,7 +17,7 @@ import {
 // import { Input } from "@/components/ui/input";
 // import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X, Loader2, Plus } from "lucide-react";
 import { AddApplicantModal } from "./AddApplicantModal";
 import { AdvancedFilterModal } from "./AdvancedFilterModal";
 import { BulkUpdateModal } from "./BulkUpdateModal";
@@ -87,6 +87,9 @@ const ApplicantTable = () => {
 
   // Loading state for pagination/search/filter (NOT for data updates)
   const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Duplicate count state (fetched separately for optimization)
+  const [duplicateCount, setDuplicateCount] = useState<number | null>(null);
 
   // Selected rows
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -192,6 +195,29 @@ const ApplicantTable = () => {
   const [showBulkOfferConfirmation, setShowBulkOfferConfirmation] = useState(false);
   const [stageStatuses, setStageStatuses] = useState<any[]>([]);
   const [stageStatusesByStageId, setStageStatusesByStageId] = useState<Record<string, any[]>>({});
+
+  // ✅ CRITICAL OPTIMIZATION: Fetch global duplicates in background
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDuplicateCount = async () => {
+      try {
+        // limit: 1 ensures we only get the total count without downloading a large array
+        const response = await getFilterStudent({ is_duplicate: true, limit: 1, page: 1 });
+        if (isMounted && response) {
+          // Fallback to 0 if total is missing or malformed
+          const total = response.total !== undefined ? Number(response.total) : 0;
+          setDuplicateCount(isNaN(total) ? 0 : total);
+        }
+      } catch (error) {
+        console.error("Failed to fetch duplicate count:", error);
+        if (isMounted) setDuplicateCount(0); // fallback on error so UI doesn't hang on "..."
+      }
+    };
+    
+    fetchDuplicateCount();
+    return () => { isMounted = false; };
+  }, [triggerRefresh]); // Re-run when dashboard refreshes
 
   // ✅ CRITICAL OPTIMIZATION: Only fetch students data on initial load
   const {
@@ -438,6 +464,8 @@ const ApplicantTable = () => {
   );
 
   // This enables stage_id + stage_status_id based when round arrays are empty.
+  // DISABLED: User requested to stop these API calls as they are not currently being used
+  /*
   useEffect(() => {
     const stageIds: string[] = Array.from(
       new Set(
@@ -488,6 +516,7 @@ const ApplicantTable = () => {
       isCancelled = true;
     };
   }, [filteredApplicants, stageStatusesByStageId]);
+  */
 
   // Reset to page 1 when search term changes
   useEffect(() => {
@@ -626,8 +655,12 @@ const ApplicantTable = () => {
 
       // Load current statuses if stage_status filter is active AND we don't have stage-specific data
       if ((filters as any).stage_status?.length) {
-        if (stageStatuses.length === 0 && currentstatusList.length === 0) {
-          // console.log("🔄 Loading current statuses for filter tags...");
+        const isNumeric = !isNaN(Number((filters as any).stage_status));
+        const hasStageId = !!(filters as any).stage_id && (filters as any).stage_id !== "all";
+        
+        // If stage_id is present, the other useEffect will fetch stage-specific statuses ('5' API), 
+        // so we don't need to fetch 'currentallstatuses' here.
+        if (isNumeric && !hasStageId && stageStatuses.length === 0 && currentstatusList.length === 0) {
           needsLoading.push(fetchCurrentStatuses());
         }
       }
@@ -2012,104 +2045,23 @@ const ApplicantTable = () => {
           <div className="flex flex-col mr-10">
             <CardTitle>Applicants</CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
-              {searchTerm
-                ? `${currentTotalCount} applicants found (search)`
-                : hasActiveFilters
-                  ? `${currentTotalCount} applicants found (filtered)`
-                  : `${totalStudents} total applicants with duplicates`}
+              {searchTerm ? (
+                `${currentTotalCount} applicants found (search)`
+              ) : hasActiveFilters ? (
+                `${currentTotalCount} applicants found (filtered)`
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span>{(totalStudents || 0).toLocaleString()} records</span>
+                  <span className="text-gray-300">•</span>
+                  <span>{((totalStudents || 0) - (duplicateCount || 0)).toLocaleString()} unique applicants</span>
+                  <span className="text-gray-300">•</span>
+                  <span>{duplicateCount !== null ? duplicateCount.toLocaleString() : "..."} duplicates</span>
+                </div>
+              )}
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 mt-2 md:mt-0" data-onboarding="dashboard-actions">
-            <ContextualHelpWidget
-              sectionId="dashboard-applicants"
-              sectionTitle="Applicants Dashboard"
-              showFloatingButton={!showAddModal && !applicantToView}
-              demo={{
-                title: "Applicants Dashboard Demo",
-                embedUrl: "https://www.youtube.com/embed/VIDEO_ID_APPLICANT_DASHBOARD?rel=0",
-                note:
-                  "Replace this placeholder with a short applicant workflow demo under 60 seconds.",
-              }}
-              faqs={[
-                {
-                  question: "What does this guide cover?",
-                  answer:
-                    "It walks through the applicants table, action buttons, and the add-applicant modal so new teammates can follow the workflow quickly.",
-                },
-                {
-                  question: "Does the guide open the applicant form?",
-                  answer:
-                    "Yes. The tour can open the Add Applicant modal and move between Basic and Screening tabs while explaining the key fields.",
-                },
-                {
-                  question: "Can I replay the guide later?",
-                  answer:
-                    "Yes. Use Take Tour near the actions row or Start Guide from the floating help launcher.",
-                },
-              ]}
-              steps={[
-                {
-                  id: "dashboard-overview",
-                  target: '[data-onboarding="dashboard-applicants-header"]',
-                  text: "See total number of applicant and tools here",
-                },
-                {
-                  id: "dashboard-actions",
-                  target: '[data-onboarding="dashboard-actions"]',
-                  text: "Use these actions for imports,filters and column option to view and manage all columns.",
-                },
-                {
-                  id: "dashboard-add",
-                  target: '[data-onboarding="applicant-add-button"]',
-                  text: "Add a new applicant here.",
-                },
-                {
-                  id: "modal-title",
-                  target: '[data-onboarding="applicant-modal-title"]',
-                  text: "Fill this form to add applicants.",
-                  onBeforeShow: () => {
-                    setGuidedApplicantTab("basic");
-                    setShowAddModal(true);
-                  },
-                },
-                {
-                  id: "modal-basic-tab",
-                  target: '[data-onboarding="applicant-basic-tab"]',
-                  text: "Start with basic details first.",
-                  onBeforeShow: () => {
-                    setGuidedApplicantTab("basic");
-                    setShowAddModal(true);
-                  },
-                },
-                {
-                  id: "modal-screening-tab",
-                  target: '[data-onboarding="applicant-screening-tab"]',
-                  text: "Then complete screening round details here.",
-                  onBeforeShow: () => {
-                    setGuidedApplicantTab("screening");
-                    setShowAddModal(true);
-                  },
-                },
-                {
-                  id: "dashboard-table",
-                  target: '[data-onboarding="dashboard-applicants-table"]',
-                  text: "Review applicants in this table.",
-                  onBeforeShow: () => {
-                    setShowAddModal(false);
-                    setGuidedApplicantTab(null);
-                  },
-                },
-                {
-                  id: "row-actions",
-                  target: '[data-onboarding="applicant-row-actions-button"]',
-                  text: "Open applicant actions from here.",
-                  onBeforeShow: () => {
-                    setShowAddModal(false);
-                    setGuidedApplicantTab(null);
-                  },
-                },
-              ]}
-            />
+            {/* Help widget removed as requested */}
             {canEditApplicantDetails && (
               <BulkActions
                 selectedRowsCount={selectedRows.length}
@@ -2129,6 +2081,17 @@ const ApplicantTable = () => {
               filteredCount={currentTotalCount}
               selectedCount={selectedRows.length}
             />
+            {canEditApplicantDetails && (
+              <Button
+                onClick={() => { ensureReferenceDataLoaded(); setShowAddModal(true); }}
+                size="sm"
+                className="flex-shrink-0 bg-pink-600 hover:bg-pink-700 text-white"
+                data-onboarding="applicant-add-button"
+              >
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Add Applicant</span>
+              </Button>
+            )}
             <ColumnVisibility
               columns={visibleColumns}
               onColumnToggle={handleColumnToggle}

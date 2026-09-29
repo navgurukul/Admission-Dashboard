@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { TrendingUp, Users, Clock, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { TrendingUp, Users, Mail, CheckCircle, ChevronRight, ChevronDown } from "lucide-react";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { useDashboardRefresh } from "@/hooks/useDashboardRefresh";
 import { getStudentsStats, getFilterStudent } from "@/utils/api";
@@ -43,7 +43,10 @@ export function DashboardStats() {
       }
 
       const statsData = await getStudentsStats();
-      const onboardedData = await getFilterStudent({ stage_id: 6 });
+
+      // Fetch accurate counts directly from the filter API to ensure numbers match the table
+      const onboardedData = await getFilterStudent({ stage_id: 6, limit: 1 });
+      const admissionLetterData = await getFilterStudent({ stage_id: 5, limit: 1 });
 
       const today = new Date();
       const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -51,10 +54,10 @@ export function DashboardStats() {
 
       setMetrics({
         totalApplicants: statsData.totalStudents || 0,
-        activeApplications: statsData.admissionLetterSent || statsData.offerLetterSent || 0,
+        activeApplications: (admissionLetterData && admissionLetterData.total !== undefined) ? admissionLetterData.total : (statsData.admissionLetterSent || statsData.offerLetterSent || 0),
         manuallySent: statsData.manuallySent || 0,
         interviewsScheduled: 0,
-        successfullyOnboarded: onboardedData.total || statsData.onboarded || 0,
+        successfullyOnboarded: (onboardedData && onboardedData.total !== undefined) ? onboardedData.total : (statsData.onboarded || 0),
         dailyAdmissionStats: todaysStats,
         totalDailyAdmissionCount: (statsData as any).totalDailyAdmissionCount || 0,
       });
@@ -71,124 +74,138 @@ export function DashboardStats() {
 
   const stats = [
     {
+      id: "applicants",
       title: "Total Applicants",
       value: loading ? "..." : metrics.totalApplicants.toLocaleString(),
+      subtitle: "Unique applicants",
       icon: Users,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      extra: null,
+      color: "text-blue-500",
+      bgColor: "bg-blue-50",
+      showInfo: true,
+      showChevron: false,
+      titleFirst: true,
     },
     {
-      title: "Total Admission Letter Sent",
+      id: "admission_letters",
+      title: "Admission Letters Sent",
       value: loading ? "..." : (metrics.activeApplications + metrics.manuallySent).toLocaleString(),
-      icon: Clock,
-      color: "text-secondary-purple",
-      bgColor: "bg-secondary-purple/10",
-      extras: [
-        {
-          label: "Admission Letter Sent",
-          value: loading ? "..." : metrics.activeApplications.toLocaleString(),
-        },
-        {
-          label: "Manually Sent",
-          value: loading ? "..." : metrics.manuallySent.toLocaleString(),
-        },
-      ],
+      subtitle: `${loading ? "..." : metrics.activeApplications} system sent • ${loading ? "..." : metrics.manuallySent} manual`,
+      icon: Mail,
+      color: "text-pink-500",
+      bgColor: "bg-pink-50",
+      showInfo: true,
+      showChevron: true,
+      titleFirst: true,
     },
     {
+      id: "onboarded",
       title: "Successfully Onboarded",
       value: loading ? "..." : metrics.successfullyOnboarded.toLocaleString(),
       icon: CheckCircle,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      extra: null,
+      color: "text-green-500",
+      bgColor: "bg-green-50",
+      showInfo: true,
+      showChevron: false,
+      titleFirst: true,
     },
     {
-      title: "Today's Admission Letters Sent",
+      id: "todays_admissions",
+      title: "Today's Admissions",
       value: loading ? "..." : (metrics.totalDailyAdmissionCount || 0).toLocaleString(),
-      icon: TrendingUp,
-      color: "text-green-500",
-      bgColor: "bg-green-500/10",
-      isDailyAdmissions: true,
-      displayDate: (() => {
+      subtitle: (() => {
         const d = new Date();
-        return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
+        const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        return `${dateStr} • All Campuses`;
       })(),
+      icon: TrendingUp,
+      color: "text-purple-500",
+      bgColor: "bg-purple-50",
+      showInfo: false,
+      showChevron: true,
+      titleFirst: true,
+      isDailyAdmissions: true,
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {stats.map((stat) => (
         <div
-          key={stat.title}
+          key={stat.id}
           onClick={() => {
-            if (stat.title !== "Total Admission Letter Sent" && !(stat as any).isDailyAdmissions) {
-              window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: stat.title }));
+            if (stat.id === "applicants") return;
+            
+            if (stat.id === "admission_letters") {
+              window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: "Admission Letter Sent" }));
+            } else if (stat.isDailyAdmissions) {
+              const today = new Date();
+              const rawDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+              window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { 
+                detail: { title: "Today's Admission Letters Sent", date: rawDate, campus: "All" } 
+              }));
+            } else {
+              window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: stat.title === "Successfully Onboarded" ? "Successfully Onboarded" : stat.title }));
             }
           }}
-          className={`bg-card rounded-xl px-5 py-3 shadow-soft border border-border transition-shadow ${
-            stat.title !== "Total Admission Letter Sent" && !(stat as any).isDailyAdmissions ? "cursor-pointer hover:shadow-md" : ""
-          }`}
+          className={`bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center relative transition-shadow ${stat.id !== "applicants" ? "cursor-pointer hover:shadow-md" : "cursor-default"}`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
-            </div>
-            <div
-              className={`w-9 h-9 ${stat.bgColor} rounded-lg flex items-center justify-center`}
-            >
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
-            </div>
+          {/* Icon - Left side */}
+          <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center mr-4 ${stat.bgColor}`}>
+            <stat.icon className={`w-6 h-6 ${stat.color}`} />
           </div>
-          
-          {stat.extras && (
-            <div className="mt-3 pt-2 border-t border-border">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                {stat.extras.map((extra, idx) => (
-                  <div 
-                    key={idx} 
-                    className="flex flex-col p-1 rounded hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: extra.label }));
-                    }}
-                  >
-                    <p className="text-xs font-medium text-muted-foreground mb-0.5">
-                      {extra.label}
-                    </p>
-                    <p className="text-sm font-semibold text-foreground">
-                      {extra.value}
-                    </p>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="pr-6">
+              {stat.titleFirst ? (
+                <>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <p className="text-sm font-medium text-gray-600 truncate">{stat.title}</p>
                   </div>
-                ))}
-              </div>
+                  <p className="text-2xl font-bold text-gray-900 leading-none mb-1">{stat.value}</p>
+                  {stat.id === "admission_letters" ? (
+                    <p className="text-xs text-gray-500 truncate">
+                      <span 
+                        className="cursor-pointer hover:text-pink-600 hover:underline transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: "Admission Letter Sent" }));
+                        }}
+                      >
+                        {loading ? "..." : metrics.activeApplications} system sent
+                      </span>
+                      {" • "}
+                      <span 
+                        className="cursor-pointer hover:text-pink-600 hover:underline transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { detail: "Manually Sent" }));
+                        }}
+                      >
+                        {loading ? "..." : metrics.manuallySent} manual
+                      </span>
+                    </p>
+                  ) : stat.subtitle && (
+                    <p className="text-xs text-gray-500 truncate">{stat.subtitle}</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-gray-900 leading-none mb-1">{stat.value}</p>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <p className="text-sm font-medium text-gray-600 truncate">{stat.title}</p>
+                  </div>
+                  {stat.subtitle && (
+                    <p className="text-xs text-gray-500 truncate">{stat.subtitle}</p>
+                  )}
+                </>
+              )}
             </div>
-          )}
-          
-          {(stat as any).isDailyAdmissions && (
-            <div className="mt-3 pt-2 border-t border-border flex flex-col gap-2">
-              <div 
-                className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-1 rounded -mx-1 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const today = new Date();
-                  const rawDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                  window.dispatchEvent(new CustomEvent('apply_dashboard_filter', { 
-                    detail: { title: stat.title, date: rawDate, campus: "All" } 
-                  }));
-                }}
-              >
-                <span className="text-xs font-medium text-muted-foreground">Date</span>
-                <span className="text-sm font-semibold text-foreground">{(stat as any).displayDate}</span>
-              </div>
-              
-              <div className="flex flex-col">
+
+            {stat.isDailyAdmissions && (
+              <div className="mt-2 pt-2 border-t border-gray-100 pr-4">
                 <div 
-                  className={`flex items-center justify-between py-1 rounded -mx-1 px-1 transition-colors ${metrics.dailyAdmissionStats.length > 0 ? 'cursor-pointer hover:bg-muted/50' : 'cursor-default'}`}
+                  className={`flex items-center justify-between py-1 rounded transition-colors ${metrics.dailyAdmissionStats.length > 0 ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (metrics.dailyAdmissionStats.length > 0) {
@@ -196,40 +213,41 @@ export function DashboardStats() {
                     }
                   }}
                 >
-                  <span className="text-xs font-medium text-muted-foreground">Campus Wise</span>
+                  <span className="text-xs font-medium text-gray-500">View by Campus</span>
                   {metrics.dailyAdmissionStats.length > 0 ? (
-                    isCampusExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    isCampusExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />
                   ) : (
-                    <span className="text-xs font-medium text-muted-foreground italic">0 sent today</span>
+                    <span className="text-xs font-medium text-gray-400 italic">0 sent today</span>
                   )}
                 </div>
                 
                 {isCampusExpanded && (
-                  <div className="mt-1 space-y-0.5 border-t border-border pt-1">
-                    {metrics.dailyAdmissionStats.map(s => (
-                      <div 
-                        key={s.campus_id} 
-                        className="flex items-center justify-between text-xs hover:bg-accent p-1 rounded transition-colors cursor-default"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <span className="font-medium text-muted-foreground">{s.campus_name}</span>
-                        <span className="font-semibold text-foreground">{s.count}</span>
-                      </div>
-                    ))}
+                  <div 
+                    className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-2 z-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="text-xs font-semibold text-gray-500 mb-2 px-1">Campuses</div>
+                    <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                      {metrics.dailyAdmissionStats.map(s => (
+                        <div 
+                          key={s.campus_id} 
+                          className="flex items-center justify-between text-xs hover:bg-gray-50 p-1.5 rounded transition-colors cursor-default"
+                        >
+                          <span className="font-medium text-gray-600">{s.campus_name}</span>
+                          <span className="font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-full">{s.count}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {!stat.extras && !(stat as any).isDailyAdmissions && stat.extra && (
-            <div className="mt-1 pt-1 border-t border-border flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">
-                {stat.extra.label}
-              </p>
-              <p className="text-sm font-semibold text-foreground">
-                {stat.extra.value}
-              </p>
+          {/* Chevron - Right side (only if not daily admissions to avoid conflict) */}
+          {stat.showChevron && !stat.isDailyAdmissions && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+              <ChevronRight className="w-5 h-5 text-gray-400" />
             </div>
           )}
         </div>

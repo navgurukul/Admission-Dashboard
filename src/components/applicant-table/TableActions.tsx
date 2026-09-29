@@ -120,17 +120,6 @@ export const TableActions = ({
         <Filter className="h-4 w-4 md:mr-2" />
         <span className="hidden md:inline">Filters</span>
       </Button>
-      {onAddApplicant && (
-        <Button
-          onClick={onAddApplicant}
-          size="sm"
-          className="flex-shrink-0"
-          data-onboarding="applicant-add-button"
-        >
-          <Plus className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">Add Applicant</span>
-        </Button>
-      )}
     </div>
   );
 };

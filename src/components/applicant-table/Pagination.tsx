@@ -94,7 +94,7 @@ export const Pagination = ({
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mt-4">
       {/* Showing count */}
       <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left order-2 sm:order-1">
-        Showing {showingStart} – {showingEnd} of {currentTotalCount}
+        Showing {showingStart} – {showingEnd} of {currentTotalCount} applicants
       </p>
 
       {/* Pagination controls */}
