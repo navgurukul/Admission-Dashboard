@@ -1411,7 +1411,7 @@ const StudentForm: React.FC = () => {
           currentStatus: "वर्तमान स्थिति *",
           maximumQualification: "अधिकतम योग्यता *",
           schoolMedium: "स्कूल माध्यम *",
-          casteTribe: "जाति/जनजाति *",
+          casteTribe: "वर्ग (Category) *",
           religion: "धर्म *",
           back: "वापस",
           saveContinue: "सहेजें और जारी रखें",
@@ -1491,7 +1491,7 @@ const StudentForm: React.FC = () => {
           currentStatus: "सध्याची स्थिती *",
           maximumQualification: "कमाल पात्रता *",
           schoolMedium: "शाळेचे माध्यम *",
-          casteTribe: "जात/आदिवासी *",
+          casteTribe: "प्रवर्ग (Category) *",
           religion: "धर्म *",
           back: "मागे",
           saveContinue: "जतन करा आणि सुरू ठेवा",
@@ -1570,7 +1570,7 @@ const StudentForm: React.FC = () => {
           currentStatus: "Current Status *",
           maximumQualification: "Maximum Qualification *",
           schoolMedium: "School Medium *",
-          casteTribe: "Caste/Tribe *",
+          casteTribe: "Category *",
           religion: "Religion *",
           back: "Back",
           saveContinue: "Save & Continue",
@@ -2257,8 +2257,8 @@ const StudentForm: React.FC = () => {
                       handleInputChange({ target: { name: 'casteTribe', value } } as any);
                     }}
                     placeholder={content.selectOption}
-                    searchPlaceholder="Search caste..."
-                    emptyText="No caste found."
+                    searchPlaceholder="Search category..."
+                    emptyText="No category found."
                     className="h-12"
                   />
                 </div>
