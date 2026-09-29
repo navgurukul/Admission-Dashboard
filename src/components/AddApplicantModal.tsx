@@ -505,7 +505,7 @@ export function AddApplicantModal({
     }
 
     if (!formData.cast_id) {
-      newErrors.cast_id = "Caste is required";
+      newErrors.cast_id = "Category is required";
     }
 
     if (!formData.qualification_id) {
@@ -573,7 +573,7 @@ export function AddApplicantModal({
         district: "District",
         block: "Block",
         pin_code: "PIN Code",
-        cast_id: "Caste",
+        cast_id: "Category",
         qualification_id: "Qualification",
         current_status_id: "Current Work",
         // religion_id: "Religion",
@@ -1341,7 +1341,7 @@ export function AddApplicantModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="caste_id" className="text-sm font-medium">
-                      Caste *
+                      Category *
                     </Label>
                     <Combobox
                       options={(Array.isArray(castList) ? castList : [])?.map((caste: any) => ({
@@ -1353,9 +1353,9 @@ export function AddApplicantModal({
                         handleInputChange("cast_id", value === "none" ? "" : value)
                       }
                       onOpen={() => loadFieldData('cast')}
-                      placeholder="Select caste"
-                      searchPlaceholder="Search caste..."
-                      emptyText="No caste found."
+                      placeholder="Select category"
+                      searchPlaceholder="Search category..."
+                      emptyText="No category found."
                       className={cn(
                         "h-10 border shadow-sm hover:bg-accent",
                         errors.cast_id && "border-red-500"
