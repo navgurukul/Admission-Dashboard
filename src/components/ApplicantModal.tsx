@@ -176,6 +176,91 @@ const ScheduleInfoDisplay = ({ row }: any) => {
   );
 };
 
+// Component to handle the Final Note UI
+const FinalNoteSection = ({ currentApplicant, canEditApplicantDetails, handleFinalDecisionUpdate }: any) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const initialNote = currentApplicant?.final_decisions?.[0]?.final_notes || "";
+
+  const handleEdit = () => {
+    setDraft(initialNote);
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    setIsUpdating(true);
+    await handleFinalDecisionUpdate("final_notes", draft);
+    setIsUpdating(false);
+    setIsEditing(false);
+  };
+
+  // Truncate logic
+  const maxLength = 100;
+  const shouldTruncate = initialNote.length > maxLength;
+  const displayNote = (shouldTruncate && !isExpanded) 
+    ? initialNote.slice(0, maxLength) + "..."
+    : initialNote;
+
+  return (
+    <div className="lg:col-span-2 sm:col-span-2 col-span-1 w-full min-w-0 overflow-hidden">
+      <div className="flex justify-between items-center mb-1">
+        <label className="text-sm font-medium text-muted-foreground block">Final Note</label>
+        {!isEditing && canEditApplicantDetails && (
+          <Button variant="ghost" size="icon" onClick={handleEdit} disabled={isUpdating} className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="Edit note">
+            {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+          </Button>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2 mt-1">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={4}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+            placeholder="Enter final notes here..."
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={handleCancel} disabled={isUpdating}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isUpdating}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 text-sm text-gray-700">
+          {initialNote ? (
+            <div>
+              <p className="whitespace-pre-wrap break-words">{displayNote}</p>
+              {shouldTruncate && (
+                <button 
+                  onClick={() => setIsExpanded(!isExpanded)} 
+                  className="text-blue-600 hover:underline mt-2 p-0 h-auto font-medium"
+                >
+                  {isExpanded ? "Show less" : "Read more"}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-400 italic">No final note</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 interface ApplicantModalProps {
   applicant: any;
   isOpen: boolean;
@@ -3325,28 +3410,17 @@ Interviewer: ${interviewerName}`;
               <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-base sm:text-lg font-semibold">Admission Letter & Final Status</h3>
-                  {isCfrFeedbackPending && (
-                    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 flex items-center gap-1 text-xs font-medium">
-                      <Lock className="h-3 w-3" /> Locked (Pending CFR Feedback)
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      Campus <span className="text-red-500">*</span>
-                    </label>
+                  <div className="flex items-center gap-2">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="h-6 px-2 text-[10px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm whitespace-nowrap"
+                            className="h-7 px-3 text-[11px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm whitespace-nowrap"
                             onClick={() => setShowTemplatesInfo(true)}
                           >
+                            <FileText className="h-3.5 w-3.5 mr-1.5" />
                             Available Admission Letter Templates
                           </Button>
                         </TooltipTrigger>
@@ -3355,6 +3429,20 @@ Interviewer: ${interviewerName}`;
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                    {isCfrFeedbackPending && (
+                      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 flex items-center gap-1 text-xs font-medium">
+                        <Lock className="h-3 w-3" /> Locked (Pending CFR Feedback)
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      Campus <span className="text-red-500">*</span>
+                    </label>
                   </div>
 
                   {isOfferStageDisabled ? (
@@ -3374,7 +3462,7 @@ Interviewer: ${interviewerName}`;
                             />
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="max-w-sm text-center">
                           <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
@@ -3450,7 +3538,7 @@ Interviewer: ${interviewerName}`;
                             />
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="max-w-sm text-center">
                           <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
@@ -3545,7 +3633,7 @@ Interviewer: ${interviewerName}`;
                             />
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="max-w-sm text-center">
                           <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
@@ -3584,13 +3672,13 @@ Interviewer: ${interviewerName}`;
                         <div>
                           <input
                             type="date"
-                            className="border rounded px-2 py-1 w-full block cursor-not-allowed opacity-60"
+                            className="border-0 bg-transparent px-1 py-1 w-full block cursor-not-allowed opacity-60 text-sm text-gray-500"
                             value=""
                             disabled={true}
                           />
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent className="max-w-sm text-center">
                         <p>{offerDisabledReason}</p>
                       </TooltipContent>
                     </Tooltip>
@@ -3598,7 +3686,7 @@ Interviewer: ${interviewerName}`;
                 ) : (
                   <input
                     type="date"
-                    className="border rounded px-2 py-1 w-full block text-sm sm:text-base"
+                    className="border border-transparent hover:border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 w-full block text-sm transition-all bg-transparent hover:bg-gray-50 cursor-pointer text-gray-700"
                     value={
                       joiningDate ||
                       currentApplicant.final_decisions?.[0]?.joining_date?.split(
@@ -3637,35 +3725,11 @@ Interviewer: ${interviewerName}`;
                 </div>
                 
                 {/* Final Note - Inside Grid */}
-                <div className="lg:col-span-3 sm:col-span-1 w-full">
-                  <label className="text-sm font-medium text-muted-foreground block mb-1">
-                    Final Note
-                  </label>
-                  <EditableCell
-                    applicant={currentApplicant}
-                    field="final_notes"
-                    value={
-                      currentApplicant.final_decisions?.[0]?.final_notes || ""
-                    }
-                    displayValue={
-                      currentApplicant.final_decisions?.[0]?.final_notes ||
-                      "No final note"
-                    }
-                    renderInput={({ value, onChange }) => (
-                      <textarea
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        rows={4}
-                        className="border rounded px-2 py-1 w-full resize-y"
-                        placeholder="Enter final notes here..."
-                      />
-                    )}
-                    onUpdate={async (value) => {
-                      await handleFinalDecisionUpdate("final_notes", value);
-                    }}
-                    disabled={!canEditApplicantDetails}
-                  />
-                </div>
+                <FinalNoteSection 
+                  currentApplicant={currentApplicant}
+                  canEditApplicantDetails={canEditApplicantDetails}
+                  handleFinalDecisionUpdate={handleFinalDecisionUpdate}
+                />
               </div>
               </div>
             </div>

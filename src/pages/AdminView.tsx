@@ -880,7 +880,6 @@ export default function AdminView() {
                                   <TableCell className="min-w-[160px]">
                                     <div>
                                       <div className="font-medium">{interview.scheduler_name || interview.created_by || "N/A"}</div>
-                                      <div className="text-xs text-muted-foreground">{interview.scheduler_email}</div>
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -1321,7 +1320,6 @@ export default function AdminView() {
                               <TableCell className="min-w-[160px]">
                                 <div>
                                   <div className="font-medium">{interview.scheduler_name || interview.created_by || "N/A"}</div>
-                                  <div className="text-xs text-muted-foreground">{interview.scheduler_email}</div>
                                 </div>
                               </TableCell>
                             </TableRow>
