@@ -3334,8 +3334,8 @@ Interviewer: ${interviewerName}`;
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-muted-foreground">
+                  <div className="flex items-center gap-2 mb-1">
+                    <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
                       Campus <span className="text-red-500">*</span>
                     </label>
                     <TooltipProvider>
@@ -3344,7 +3344,7 @@ Interviewer: ${interviewerName}`;
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="h-6 px-2 text-[10px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm"
+                            className="h-6 px-2 text-[10px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm whitespace-nowrap"
                             onClick={() => setShowTemplatesInfo(true)}
                           >
                             Available Admission Letter Templates
@@ -3635,46 +3635,45 @@ Interviewer: ${interviewerName}`;
                   />
                 )}
                 </div>
+                
+                {/* Final Note - Inside Grid */}
+                <div className="lg:col-span-3 sm:col-span-1 w-full">
+                  <label className="text-sm font-medium text-muted-foreground block mb-1">
+                    Final Note
+                  </label>
+                  <EditableCell
+                    applicant={currentApplicant}
+                    field="final_notes"
+                    value={
+                      currentApplicant.final_decisions?.[0]?.final_notes || ""
+                    }
+                    displayValue={
+                      currentApplicant.final_decisions?.[0]?.final_notes ||
+                      "No final note"
+                    }
+                    renderInput={({ value, onChange }) => (
+                      <textarea
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        rows={4}
+                        className="border rounded px-2 py-1 w-full resize-y"
+                        placeholder="Enter final notes here..."
+                      />
+                    )}
+                    onUpdate={async (value) => {
+                      await handleFinalDecisionUpdate("final_notes", value);
+                    }}
+                    disabled={!canEditApplicantDetails}
+                  />
+                </div>
               </div>
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Audit Information */}
             <div className="space-y-4">
-              {/* Final Note - Full Width */}
-              <div className="w-full">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Final Note
-                </label>
-                <EditableCell
-                  applicant={currentApplicant}
-                  field="final_notes"
-                  value={
-                    currentApplicant.final_decisions?.[0]?.final_notes || ""
-                  }
-                  displayValue={
-                    currentApplicant.final_decisions?.[0]?.final_notes ||
-                    "No final note"
-                  }
-                  renderInput={({ value, onChange }) => (
-                    <textarea
-                      value={value}
-                      onChange={(e) => onChange(e.target.value)}
-                      rows={4}
-                      className="border rounded px-2 py-1 w-full resize-y"
-                      placeholder="Enter final notes here..."
-                    />
-                  )}
-                  onUpdate={async (value) => {
-                    await handleFinalDecisionUpdate("final_notes", value);
-                  }}
-                  disabled={!canEditApplicantDetails}
-                />
-              </div>
-
-              {/* Audit Information - Below Final Note */}
               <div className="space-y-3 pt-4">
-                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Admission Letter</h4>
+                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Final Status</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
