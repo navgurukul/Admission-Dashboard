@@ -2081,6 +2081,11 @@ const ApplicantTable = () => {
               filteredCount={currentTotalCount}
               selectedCount={selectedRows.length}
             />
+            <ColumnVisibility
+              columns={visibleColumns}
+              onColumnToggle={handleColumnToggle}
+              onResetToDefault={handleResetToDefault}
+            />
             {canEditApplicantDetails && (
               <Button
                 onClick={() => { ensureReferenceDataLoaded(); setShowAddModal(true); }}
@@ -2092,11 +2097,6 @@ const ApplicantTable = () => {
                 <span className="hidden md:inline">Add Applicant</span>
               </Button>
             )}
-            <ColumnVisibility
-              columns={visibleColumns}
-              onColumnToggle={handleColumnToggle}
-              onResetToDefault={handleResetToDefault}
-            />
           </div>
         </div>
       </CardHeader>
