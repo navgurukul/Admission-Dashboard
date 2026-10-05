@@ -533,8 +533,8 @@ export function EditableCell({
         <SelectContent>
           {!shouldHideSelectOption && (
             <SelectItem value="none">
-              <span className="text-muted-foreground italic">
-                {currentValue && currentValue !== "none" ? "Clear (Remove)" : "Select"}
+              <span className="text-muted-foreground">
+                {currentValue && currentValue !== "none" ? "Clear (Remove)" : placeholder}
               </span>
             </SelectItem>
           )}

@@ -3459,6 +3459,7 @@ Interviewer: ${interviewerName}`;
                               options={campus}
                               onEditStart={() => ensureFieldDataLoaded('campus_id')}
                               disabled={true}
+                              placeholder="Select campus"
                             />
                           </div>
                         </TooltipTrigger>
@@ -3483,6 +3484,7 @@ Interviewer: ${interviewerName}`;
                         options={campus}
                         onEditStart={() => ensureFieldDataLoaded('campus_id')}
                         disabled={!canEditApplicantDetails}
+                        placeholder="Select campus"
                       />
                     </div>
                   )}
@@ -3532,6 +3534,7 @@ Interviewer: ${interviewerName}`;
                                 },
                               ]}
                               disabled={true}
+                              placeholder="Select admission letter status"
                               onUpdate={async (value) => {
                                 await handleOfferLetterStatusChange(value);
                               }}
@@ -3568,6 +3571,7 @@ Interviewer: ${interviewerName}`;
                         },
                       ]}
                       disabled={!canEditApplicantDetails}
+                      placeholder="Select admission letter status"
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
                       }}
@@ -3624,6 +3628,7 @@ Interviewer: ${interviewerName}`;
                                 { value: "Onboarded", label: "Onboarded" },
                               ]}
                               disabled={true}
+                              placeholder="Select onboarded status"
                               onUpdate={async (value) => {
                                 await handleFinalDecisionUpdate(
                                   "onboarded_status",
@@ -3652,6 +3657,7 @@ Interviewer: ${interviewerName}`;
                       }
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!canEditApplicantDetails}
+                      placeholder="Select onboarded status"
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",

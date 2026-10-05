@@ -546,7 +546,7 @@ export function AdvancedFilterModal({
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.stage_id || String(filters.stage_id) === "all") && "text-muted-foreground")}>
                     <SelectValue placeholder="Select stage" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
@@ -574,7 +574,7 @@ export function AdvancedFilterModal({
                       disabled={!filters.stage || filters.stage === "all" || stageStatuses.length === 0 || isLoading.general}
                       className={cn(
                         "w-full justify-between h-9 text-sm font-normal",
-                        (!filters.stage || filters.stage === "all") && "text-muted-foreground",
+                        ((!filters.stage || filters.stage === "all") || !filters.stage_status || (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) || filters.stage_status === "all") && "text-muted-foreground",
                         filters.stage && filters.stage !== "all" && stageStatuses.length > 0 &&
                         (!filters.stage_status || (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) || filters.stage_status === "all")
                           ? "border-red-300" : ""
@@ -653,7 +653,7 @@ export function AdvancedFilterModal({
                   value={filters.gender || "all"}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, gender: value === "all" ? undefined : value }))}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.gender || filters.gender === "all") && "text-muted-foreground")}>
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
@@ -672,7 +672,7 @@ export function AdvancedFilterModal({
                   value={filters.duplicate || "all"}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, duplicate: value === "all" ? undefined : value }))}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.duplicate || filters.duplicate === "all") && "text-muted-foreground")}>
                     <SelectValue placeholder="Select duplicate" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
@@ -690,7 +690,7 @@ export function AdvancedFilterModal({
                   value={filters.mode || "all"}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, mode: value === "all" ? undefined : value }))}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.mode || filters.mode === "all") && "text-muted-foreground")}>
                     <SelectValue placeholder="Select mode" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
@@ -739,6 +739,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search state..."
                   emptyText="No state found."
                   disabled={isLoading.general}
+                  className={(!filters.state || filters.state === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 
@@ -756,6 +757,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search district..."
                   emptyText="No district found."
                   disabled={!filters.state || filters.state === "all" || isLoading.districts}
+                  className={(!filters.district || filters.district.length === 0 || filters.district[0] === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 
@@ -775,6 +777,7 @@ export function AdvancedFilterModal({
                     searchPlaceholder="Search campus..."
                     emptyText="No campus found."
                     disabled={isLoading.general}
+                    className={(!filters.partner || filters.partner.length === 0 || filters.partner[0] === "all") ? "text-muted-foreground font-normal" : ""}
                   />
                 </div>
               )}
@@ -885,6 +888,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search qualification..."
                   emptyText="No qualification found."
                   disabled={isLoading.general}
+                  className={(!filters.qualification || filters.qualification.length === 0 || filters.qualification[0] === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 
@@ -903,6 +907,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search status..."
                   emptyText="No status found."
                   disabled={isLoading.general}
+                  className={(!filters.currentStatus || filters.currentStatus.length === 0 || filters.currentStatus[0] === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 
