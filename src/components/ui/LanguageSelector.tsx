@@ -5,9 +5,10 @@ import { Language } from "@/utils/student.types";
 
 interface LanguageSelectorProps {
   className?: string;
+  inline?: boolean;
 }
 
-const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className }) => {
+const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className, inline = false }) => {
   const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -51,7 +52,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ className }) => {
   }, [showDropdown]);
 
   return (
-    <div className={`fixed top-5 right-[115px] md:top-5 md:right-40 z-50 language-selector ${className || ""}`}>
+    <div className={`${inline ? 'relative' : 'fixed top-5 right-[115px] md:top-5 md:right-40'} z-50 language-selector ${className || ""}`}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className="flex items-center gap-1.5 md:gap-2 student-btn px-3 py-1.5 md:px-5 md:py-2 rounded-full shadow-md hover:opacity-90 hover:scale-105 transition-all duration-200"

@@ -22,6 +22,8 @@ import {
 export interface ComboboxOption {
   value: string
   label: string
+  disabled?: boolean
+  subLabel?: string
 }
 
 interface ComboboxProps {
@@ -157,16 +159,33 @@ export const Combobox = React.memo(function Combobox({
                     key={safeValue}
                     value={safeValue}
                     keywords={safeLabel ? [safeLabel] : []}
-                    onSelect={handleSelect}
-                    className="cursor-pointer"
+                    onSelect={() => {
+                      if (!option.disabled) {
+                        handleSelect(safeValue);
+                      }
+                    }}
+                    className={cn(
+                      "cursor-pointer flex flex-col items-start py-2",
+                      option.disabled && "opacity-50 cursor-not-allowed bg-gray-50"
+                    )}
+                    disabled={option.disabled}
                   >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === option.value ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {safeLabel}
+                    <div className="flex items-center w-full">
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4 shrink-0",
+                          value === option.value ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <span className={cn("truncate", option.disabled && "text-gray-500")}>
+                        {safeLabel}
+                      </span>
+                    </div>
+                    {option.subLabel && (
+                      <span className="text-[10px] text-gray-400 pl-6 w-full text-left truncate">
+                        {option.subLabel}
+                      </span>
+                    )}
                   </CommandItem>
                 );
               })}

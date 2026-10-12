@@ -1,0 +1,31 @@
+:root {
+    /* NavGurukul Signature Brand Palette */
+    --pink-primary: #e91e63;
+    --pink-dark: #c2185b;
+    --pink-light: #f43f5e;
+    --pink-soft: #fdf2f8;
+    --pink-glow: rgba(233, 30, 99, 0.28);
+
+    --gold-marigold: #d97706;
+    --gold-bright: #f59e0b;
+    --gold-light: #fffbe6;
+    --saffron-terracotta: #ea580c;
+    --leaf-green: #059669;
+    --forest-green: #047857;
+    --sky-blue: #0284c7;
+
+    /* Sunrise & Natural Earth Backgrounds */
+    --bg-sunrise: linear-gradient(180deg, #fffcf5 0%, #fff7ed 35%, #fef3c7 70%, #ecfdf5 100%);
+    --bg-card: rgba(255, 255, 255, 0.94);
+    --border-line: rgba(233, 30, 99, 0.16);
+    --border-line-active: rgba(217, 119, 6, 0.45);
+
+    --text-dark: #0f172a;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --text-pink: #be185d;
+
+    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}

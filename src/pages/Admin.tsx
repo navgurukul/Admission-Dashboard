@@ -37,6 +37,9 @@ import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 
 const ROWS_PER_PAGE = 10;
 
+const getActiveUsers = (userList: User[] = []): User[] =>
+  userList.filter((user) => user.status === true);
+
 const AdminPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -104,8 +107,8 @@ const AdminPage: React.FC = () => {
   const fetchUsers = async (pageNo: number = page): Promise<void> => {
     setLoading(true);
     try {
-      const res = await getAllUsers(pageNo, ROWS_PER_PAGE);
-      const users = res?.users || [];
+      const res = await getAllUsers(pageNo, ROWS_PER_PAGE, true);
+      const users = getActiveUsers(res?.users || []);
       const total = res?.total || 0;
 
       setUsers(users);
@@ -155,7 +158,7 @@ const AdminPage: React.FC = () => {
       try {
         setIsSearching(true);
         const results = await searchUsers(debouncedSearchQuery.trim());
-        setSearchResults(results || []);
+        setSearchResults(getActiveUsers(results || []));
       } catch (err) {
         console.error("Error searching users:", err);
         setSearchResults([]);
@@ -369,7 +372,7 @@ const AdminPage: React.FC = () => {
       if (searchQuery.trim()) {
         // Re-run the search to get updated results
         const results = await searchUsers(searchQuery.trim());
-        setSearchResults(results || []);
+        setSearchResults(getActiveUsers(results || []));
       } else {
         // Just refresh current page
         await fetchUsers(page);
@@ -404,7 +407,7 @@ const AdminPage: React.FC = () => {
       // Refresh current state without changing page or search
       if (searchQuery.trim()) {
         const results = await searchUsers(searchQuery.trim());
-        setSearchResults(results || []);
+        setSearchResults(getActiveUsers(results || []));
       } else {
         await fetchUsers(page);
       }

@@ -13,12 +13,14 @@ import {
   // Religion,
   // getAllReligions,
   createStudent,
-  getAllStates,
-  getDistrictsByState,
-  getBlocksByDistrict,
+  updateStudent,
   uploadProfileImage,
   getAllSchools,
   type School,
+  getStudentDataByPhone,
+  getCampusesApi as getAllCampuses,
+  type Campus,
+  getCampusSchools,
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
 import LogoutButton from "@/components/ui/LogoutButton";
@@ -28,27 +30,34 @@ import { ExternalLink, PlayCircle } from "lucide-react";
 import { LearningRoundModal } from "@/components/LearningRoundModal";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import { useIsMobile } from "@/hooks/use-mobile";
+import LeavesCanvas from "./GamifiedLanding/LeavesCanvas";
 
-interface State {
-  id: string;
-  state_name: string;
-  state_code: string;
-}
 
-interface District {
-  id: string;
-  district_name: string;
-  district_code: string;
-  state_code: string;
-}
-
-interface Block {
-  id: string;
-  block_name: string;
-  district_code?: string; // Optional since it might not be in all responses
-}
+const injectCss = () => {
+  const cssFiles = [
+    "/gamified-assets/css/variables.css",
+    "/gamified-assets/css/base.css",
+    "/gamified-assets/css/components.css",
+    "/gamified-assets/css/hud.css",
+    "/gamified-assets/css/mentor.css",
+    "/gamified-assets/css/screens.css",
+  ];
+  cssFiles.forEach((href, index) => {
+    const id = `gamified-css-${index}`;
+    if (!document.getElementById(id)) {
+      const link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      link.setAttribute("href", href);
+      document.head.appendChild(link);
+    }
+  });
+};
 
 const StudentForm: React.FC = () => {
+  useEffect(() => {
+    injectCss();
+  }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -59,11 +68,10 @@ const StudentForm: React.FC = () => {
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   // const [religions, setReligions] = useState<Religion[]>([]);
-  const [states, setStates] = useState<State[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [blocks, setBlocks] = useState<Block[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
+  const [campuses, setCampuses] = useState<Campus[]>([]);
   const [selectedSchoolInfo, setSelectedSchoolInfo] = useState<any>(null);
+  const [selectedCampusInfo, setSelectedCampusInfo] = useState<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [emailError, setEmailError] = useState("");
   const [alternateError, setAlternateError] = useState("");
@@ -72,14 +80,8 @@ const StudentForm: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLearningModalOpen, setIsLearningModalOpen] = useState(false);
   const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set());
-  // BCA seats are currently full — set to true to block BCA selection
-  const isBCAFull = true;
-  const [loadingStates, setLoadingStates] = useState({
-    states: false,
-    districts: false,
-    blocks: false,
-  });
-
+  // BCA seats check removed - now driven by API is_open flag
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
   const [formData, setFormData] = useState({
     profileImage: null as File | null,
     imageUrl: "", // Store the uploaded image URL
@@ -95,8 +97,6 @@ const StudentForm: React.FC = () => {
     stateCode: "",
     district: "",
     districtCode: "",
-    block: "",
-    blockCode: "",
     city: "",
     pinCode: "",
     currentStatus: "",
@@ -105,11 +105,180 @@ const StudentForm: React.FC = () => {
     casteTribe: "",
     religion: "",
     initial_school_id: "",
+    preferred_campus_id: "",
     pursuingYear: "",
     collegeAttendanceMethod: "",
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+
+
+  const [availableSchoolsForCampus, setAvailableSchoolsForCampus] = useState<any[]>([]);
+
+  const getAvailableCampuses = () => {
+    // 1. Try to get dynamically from the createStudent API response
+    try {
+      const respStr = localStorage.getItem("studentApiResponse");
+      if (respStr) {
+        const resp = JSON.parse(respStr);
+        // Check for array of campuses if backend provides it
+        const dynamicCampuses = resp?.data?.campuses || resp?.data?.eligible_campuses || resp?.campuses || resp?.eligible_campuses;
+        if (dynamicCampuses && Array.isArray(dynamicCampuses) && dynamicCampuses.length > 0) {
+          return dynamicCampuses.map((c: any) => c.campus_name || c.name || c);
+        }
+        // Check if backend mapped a specific preferred_campus_id
+        const prefCampusId = resp?.data?.preferred_campus_id || resp?.preferred_campus_id;
+        if (prefCampusId) {
+          const matchingCampus = campuses.find((c: any) => String(c.id) === String(prefCampusId));
+          if (matchingCampus) {
+            return [matchingCampus.campus_name];
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing API response for campuses", e);
+    }
+
+    // 2. Fallback to hardcoded mapping if API hasn't returned them
+    const gender = formData.gender?.toLowerCase(); 
+    const district = formData.district?.toLowerCase() || ''; 
+
+    let available: string[] = [];
+
+    if (gender === 'male') {
+      available.push('Dharamshala');
+      if (district.includes('dantewada')) available.push('Dantewada');
+    } else if (gender === 'female') {
+      available = ['Pune', 'Sarjapur'];
+      if (district.includes('dantewada')) available.unshift('Dantewada');
+      if (district.includes('jashpur')) available.unshift('Jashpur');
+      
+      // Female + BCA -> Himachal Campus
+      let age = 0;
+      if (formData.dateOfBirth) {
+        const today = new Date();
+        const birthDate = new Date(formData.dateOfBirth);
+        age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+      }
+      if (age >= 15) {
+        available.push('Himachal Campus');
+      }
+    }
+    
+    return available;
+  };
+
+  // Auto-update preferred campus when dependencies change
+  useEffect(() => {
+    const available = getAvailableCampuses();
+    if (formData.preferred_campus_id && !available.includes(formData.preferred_campus_id)) {
+      setFormData(prev => {
+        const updated = { ...prev, preferred_campus_id: '' };
+        localStorage.setItem("studentFormData", JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [formData.gender, formData.district, campuses, currentStep]);
+
+  // Fetch courses when campus changes
+  useEffect(() => {
+    const fetchSchools = async () => {
+      if (!formData.preferred_campus_id) {
+        setAvailableSchoolsForCampus([]);
+        return;
+      }
+
+      // Map string name to numeric ID
+      let campusId: number | null = null;
+      const searchStr = String(formData.preferred_campus_id).toLowerCase().trim();
+      let matched = campuses.find(c => 
+        c.campus_name.toLowerCase().trim() === searchStr || 
+        c.campus_name.toLowerCase().includes(searchStr.split(' ')[0]) ||
+        searchStr.includes(c.campus_name.toLowerCase().split(' ')[0])
+      );
+      
+      if (matched) {
+        campusId = matched.id;
+      } else {
+        const fallbackMapping = [
+          { id: 2, campus_name: "Dharamshala"},
+          { id: 3, campus_name: "Bangalore" },
+          { id: 4, campus_name: "Sarjapur" },
+          { id: 5, campus_name: "Tripura" },
+          { id: 6, campus_name: "Delhi" },
+          { id: 7, campus_name: "Amravati" },
+          { id: 8, campus_name: "Jashpur" },
+          { id: 9, campus_name: "Udaipur" },
+          { id: 10, campus_name: "Dantewada" },
+          { id: 11, campus_name: "Raipur" },
+          { id: 12, campus_name: "Kishanganj" },
+          { id: 13, campus_name: "Himachal Campus"},
+          { id: 1, campus_name: "Pune" }
+        ];
+        
+        const fallbackMatched = fallbackMapping.find(c => {
+          const cName = c.campus_name.toLowerCase().trim();
+          if (cName === searchStr || cName.includes(searchStr.split(' ')[0]) || searchStr.includes(cName.split(' ')[0])) return true;
+          return false;
+        });
+        
+        if (fallbackMatched) {
+          campusId = fallbackMatched.id;
+        }
+      }
+
+      if (campusId) {
+        try {
+          const response = await getCampusSchools(campusId);
+          if (response.success && Array.isArray(response.data)) {
+             setAvailableSchoolsForCampus(response.data);
+          } else if (response.success && response.data && Array.isArray(response.data.data)) {
+             setAvailableSchoolsForCampus(response.data.data); // Fallback in case of pagination wrapper
+          } else {
+             setAvailableSchoolsForCampus([]);
+          }
+        } catch (err) {
+          console.error("Failed to fetch campus schools", err);
+          setAvailableSchoolsForCampus([]);
+        }
+      } else {
+         setAvailableSchoolsForCampus([]);
+      }
+    };
+
+    fetchSchools();
+  }, [formData.preferred_campus_id, campuses]);
+
+  // Clear course selection if it's no longer available for the selected campus
+  useEffect(() => {
+    if (formData.initial_school_id && availableSchoolsForCampus.length > 0) {
+      const isAvailable = availableSchoolsForCampus.some(s => 
+        (String(s.school_id) === String(formData.initial_school_id) || String(s.id) === String(formData.initial_school_id)) && s.is_open === true
+      );
+      
+      // Fallback: If it couldn't match by ID, try matching by name if it exists in the global schools list
+      let isAvailableByName = false;
+      if (!isAvailable) {
+         const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
+         if (selectedSchool) {
+            isAvailableByName = availableSchoolsForCampus.some(s => s.school_name === selectedSchool.school_name && s.is_open === true);
+         }
+      }
+
+      if (!isAvailable && !isAvailableByName) {
+        setFormData(prev => {
+          const updated = { ...prev, initial_school_id: "" };
+          localStorage.setItem("studentFormData", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }
+  }, [availableSchoolsForCampus, formData.initial_school_id, schools]);
 
   // Get school details based on selected language
   const getSchoolDetails = () => {
@@ -578,7 +747,7 @@ const StudentForm: React.FC = () => {
     const hasQualification = formData.maximumQualification;
     return (
       <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200`}>
-        <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
           <div className={`p-6 text-white flex justify-between items-start bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-600 to-indigo-700' :
             school.color === 'emerald' ? 'from-emerald-600 to-teal-700' :
               school.color === 'amber' ? 'from-amber-500 to-orange-600' :
@@ -600,13 +769,13 @@ const StudentForm: React.FC = () => {
             </button>
           </div>
 
-          <div className="p-8 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-8 custom-scrollbar">
+          <div className="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 custom-scrollbar">
             <section>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🎯</span>
+              <h3 className="text-base font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🎯</span>
                 {content.eligibility}
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {school.eligibility.map((item: string, i: number) => (
                   <li key={i} className="flex gap-2 text-sm text-gray-600">
                     <span className="text-primary">•</span> {item}
@@ -614,11 +783,11 @@ const StudentForm: React.FC = () => {
                 ))}
               </ul>
 
-              <h3 className="text-lg font-bold text-gray-800 mt-8 mb-3 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">📚</span>
+              <h3 className="text-base font-bold text-gray-800 mt-5 mb-2 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">📚</span>
                 {content.curriculumFocus}
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {school.curriculum.map((item: string, i: number) => (
                   <li key={i} className="flex gap-2 text-sm text-gray-600">
                     <span className="text-primary">•</span> {item}
@@ -628,11 +797,11 @@ const StudentForm: React.FC = () => {
             </section>
 
             <section>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🏆</span>
+              <h3 className="text-base font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <span className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🏆</span>
                 {content.outcomes}
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {school.outcomes.map((item: string, i: number) => (
                   <li key={i} className="flex gap-2 text-sm text-gray-600">
                     <span className="text-primary">•</span> {item}
@@ -640,8 +809,8 @@ const StudentForm: React.FC = () => {
                 ))}
               </ul>
 
-              <div className="mt-8 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl space-y-4">
-                <div className="space-y-2">
+              <div className="mt-5 p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl space-y-3">
+                <div className="space-y-1">
                   <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
                     <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center">⏳</span>
                     <span>{content.duration}</span>
@@ -660,29 +829,41 @@ const StudentForm: React.FC = () => {
 
               <button
                 onClick={() => {
-                  if (!isEligible && !!hasQualification) return; // Original: disable if not eligible
-                  if (school.id === 'BCA' && isBCAFull) return; // BCA full: disable
+                  if (!isEligible && !!hasQualification) return; 
+                  
+                  let isOpen = false;
+                  let isPresentInCampus = false;
+                  if (formData.preferred_campus_id) {
+                     const campusSchool = availableSchoolsForCampus.find(s => s.school_name === school.id);
+                     if (campusSchool) {
+                        isPresentInCampus = true;
+                        isOpen = campusSchool.is_open === true;
+                     }
+                  }
+                  
+                  if (isPresentInCampus && !isOpen) return;
+
                   const matchedSchool = schools.find(s => s.school_name.includes(school.id));
-                  if (matchedSchool) {
-                    handleInputChange({ target: { name: 'initial_school_id', value: String(matchedSchool.id) } } as any);
+                  const apiSchool = availableSchoolsForCampus.find(s => s.school_name === school.id);
+                  const finalId = apiSchool?.school_id || matchedSchool?.id;
+                  
+                  if (finalId) {
+                    handleInputChange({ target: { name: 'initial_school_id', value: String(finalId) } } as any);
                     setSelectedSchoolInfo(null);
                   }
                 }}
-                disabled={(!isEligible && !!hasQualification) || (school.id === 'BCA' && isBCAFull)}
-                className={`w-full mt-8 py-4 font-bold rounded-xl transition-all shadow-lg ${(!isEligible && !!hasQualification) || (school.id === 'BCA' && isBCAFull)
+                disabled={(!isEligible && !!hasQualification) || (formData.preferred_campus_id && availableSchoolsForCampus.find(s => s.school_name === school.id)?.is_open === false)}
+                className={`w-full mt-4 py-3 font-bold rounded-xl transition-all shadow-md ${
+                  (!isEligible && !!hasQualification) || (formData.preferred_campus_id && availableSchoolsForCampus.find(s => s.school_name === school.id)?.is_open === false)
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-primary text-white hover:bg-primary/90 active:scale-95'
-                  }`}
+                }`}
               >
-                {school.id === 'BCA' && isBCAFull
-                  ? (selectedLanguage === 'hindi'
-                      ? 'सीटें भर गई हैं'
-                      : selectedLanguage === 'marathi'
-                        ? 'जागा भरल्या आहेत'
-                        : 'Seats are Full')
-                  : (!isEligible && !!hasQualification)
+                {(!isEligible && !!hasQualification)
                     ? (school.id === 'BCA' && formData.gender === 'male' ? 'You are not eligible' : content.notEligible)
-                    : content.applyToSchool
+                    : (formData.preferred_campus_id && availableSchoolsForCampus.find(s => s.school_name === school.id)?.is_open === false)
+                      ? 'Admissions Closed for this Campus'
+                      : 'Apply'
                 }
               </button>
             </section>
@@ -692,195 +873,504 @@ const StudentForm: React.FC = () => {
     );
   };
 
+  const CampusDetailCard = ({ campus }: { campus: any }) => {
+    return (
+      <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200`}>
+        <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+          <div className="p-6 text-white flex justify-between items-start bg-gradient-to-r from-blue-600 to-indigo-700">
+            <div>
+              <h2 className="text-3xl font-bold">{campus.campus_name || campus.name}</h2>
+            </div>
+            <button
+              onClick={() => setSelectedCampusInfo(null)}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          <div className="p-8 overflow-y-auto custom-scrollbar">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">🎓</span>
+              {content.availableCourses || "Available Courses"}
+            </h3>
+            <div className="pl-11 space-y-3">
+              {availableSchoolsForCampus.length > 0 ? (
+                availableSchoolsForCampus.map((s, idx) => {
+                   const detail = schoolDetails.find(sd => sd.id === s.school_name);
+                   if (!detail) return null;
+                   return (
+                     <div key={idx} className={`p-3 rounded-xl border flex justify-between items-center ${s.is_open ? 'border-green-100 bg-green-50/50' : 'border-gray-200 bg-gray-50/50'}`}>
+                       <span className={`font-semibold text-sm ${s.is_open ? 'text-green-800' : 'text-gray-500'}`}>
+                         {detail.name}
+                       </span>
+                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.is_open ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                         {s.is_open ? 'Open' : 'Closed'}
+                       </span>
+                     </div>
+                   );
+                })
+              ) : (
+                <p className="text-sm text-gray-500">No courses info loaded.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const handleSubmit = async () => {
+    const age = getAge(formData.dateOfBirth);
+    const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
+    const isBCASchool = selectedSchool?.school_name.includes('BCA');
+    const ageThreshold = isBCASchool ? 15 : 15;
+
+    if (currentStep === 1) {
+      if (!formData.firstName) {
+        return toast({ title: "⚠️ First Name Required", description: "Please enter your first name.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+      if (!formData.dateOfBirth || age < ageThreshold) {
+        return toast({ title: "⚠️ Invalid Date of Birth", description: `You must be at least ${ageThreshold} years old.`, variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+      if (!formData.gender) {
+        return toast({ title: "⚠️ Gender Required", description: "Please select your gender.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+      setCurrentStep(2);
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (currentStep === 2) {
+      if (formData.whatsappNumber && !/^\d{10}$/.test(formData.whatsappNumber)) {
+        return toast({ title: "⚠️ Invalid WhatsApp Number", description: "Enter a valid 10-digit WhatsApp number or leave it empty.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+      
+      const hasValidAlternate = formData.alternateNumber && /^\d{10}$/.test(formData.alternateNumber);
+      const hasValidWhatsapp = formData.whatsappNumber && /^\d{10}$/.test(formData.whatsappNumber);
+      
+      if (location.state?.googleEmail) {
+        if (!hasValidAlternate) {
+          return toast({ title: "⚠️ Phone Number Required", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+      } else {
+        if (!hasValidAlternate && !hasValidWhatsapp) {
+          return toast({ title: "⚠️ Phone Number Required", description: "Please provide at least one valid 10-digit phone number (WhatsApp or Alternate).", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+        if (formData.alternateNumber && !hasValidAlternate) {
+          return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+      }
+      
+      setCurrentStep(3);
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (currentStep === 3) {
+      if (!formData.pinCode || formData.pinCode.length !== 6) {
+        return toast({ title: "⚠️ PIN Code Required", description: "Please enter a valid 6-digit PIN code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+      if (!formData.stateCode) {
+        return toast({ title: "⚠️ Address Required", description: "Please enter a valid PIN code to auto-fill state and district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+      setCurrentStep(4);
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (currentStep === 4) {
+      if (!formData.maximumQualification || !formData.schoolMedium) {
+        return toast({ title: "⚠️ Education Details Required", description: "Please fill all required education fields.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+      const selectedQual = qualifications.find(q => String(q.id) === formData.maximumQualification);
+      const isPursuing = selectedQual?.qualification_name.toLowerCase().includes('pursuing');
+      if (isPursuing) {
+        if (!formData.pursuingYear || !formData.collegeAttendanceMethod) {
+          return toast({ title: "⚠️ Question Required", description: "Please answer all pursuing qualification questions.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+        }
+      }
+      
+      // --- STEP 4 SUBMIT (Save locally and proceed) ---
+      localStorage.setItem("studentFormData", JSON.stringify(formData));
+      setCurrentStep(5);
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (currentStep === 5) {
+      if (!formData.preferred_campus_id || !formData.initial_school_id) {
+        return toast({ title: "⚠️ Campus & Course Required", description: "Please select both Campus and Course.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
+      }
+
+      try {
+        const apiPayload = mapFormDataToApi(formData);
+        let studentFormResponseData;
+        const existingStudentId = localStorage.getItem("studentId");
+        
+        if (!existingStudentId) {
+           studentFormResponseData = await createStudent(apiPayload);
+           const payload = studentFormResponseData?.data ?? studentFormResponseData ?? null;
+           const profile = payload?.student ?? payload ?? null;
+           const studentId = profile?.student_id ?? profile?.id ?? payload?.id ?? null;
+           
+           if (studentId) {
+             localStorage.setItem("studentId", studentId.toString());
+           }
+        } else {
+           studentFormResponseData = await updateStudent(existingStudentId, apiPayload);
+        }
+        
+        localStorage.setItem("studentApiResponse", JSON.stringify(studentFormResponseData));
+        localStorage.setItem("registrationDone", "true");
+        localStorage.setItem("studentFormData", JSON.stringify(formData));
+
+        toast({ title: "✅ Registration Successful", description: "Your registration was successful!", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
+        navigate("/students/test/start");
+      } catch (error) {
+        console.error("Error saving student:", error);
+        toast({ title: "❌ Registration Failed", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
+      }
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } else {
+      navigate("/students");
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+
+    // For name fields, allow only letters, spaces, apostrophes, and hyphens
+    let processedValue = value;
+    if (name === "firstName" || name === "middleName" || name === "lastName") {
+      processedValue = value.replace(/[^A-Za-z\s'-]/g, "");
+    }
+
+    if (name === "whatsappNumber" || name === "alternateNumber") {
+      processedValue = value.replace(/\D/g, "").slice(0, 10);
+    }
+
+    // For pin code, allow only digits and limit to 6 digits
+    if (name === "pinCode") {
+      processedValue = value.replace(/\D/g, "").slice(0, 6);
+    }
+
+    let newFormData = { ...formData, [name]: processedValue };
+
+    // Handle pinCode change — auto-fill state and district via pincode API
+    if (name === "pinCode") {
+      if (processedValue.length === 6) {
+        setIsPincodeLoading(true);
+        const capturedPinCode = processedValue;
+        fetch(`https://api.postalpincode.in/pincode/${capturedPinCode}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (Array.isArray(data) && data[0]?.Status === "Success" && data[0]?.PostOffice?.length > 0) {
+              const record = data[0].PostOffice[0];
+              const stateName = record.State || "";
+              const districtName = record.District || "";
+              setFormData((prev) => {
+                const updatedData = {
+                  ...prev,
+                  pinCode: capturedPinCode,
+                  state: stateName,
+                  stateCode: stateName,
+                  district: districtName,
+                  districtCode: districtName,
+                };
+                localStorage.setItem("studentFormData", JSON.stringify(updatedData));
+                return updatedData;
+              });
+            } else {
+              setFormData((prev) => {
+                const clearedData = {
+                  ...prev,
+                  pinCode: capturedPinCode,
+                  state: "",
+                  stateCode: "",
+                  district: "",
+                  districtCode: "",
+                };
+                localStorage.setItem("studentFormData", JSON.stringify(clearedData));
+                return clearedData;
+              });
+              toast({
+                title: "⚠️ Invalid PIN Code",
+                description: "No location found for this PIN code. Please check and try again.",
+                variant: "default",
+                className: "border-orange-500 bg-orange-50 text-orange-900",
+              });
+            }
+          })
+          .catch(() => {
+            toast({
+              title: "❌ PIN Code Lookup Failed",
+              description: "Unable to fetch location details. Please try again.",
+              variant: "destructive",
+              className: "border-red-500 bg-red-50 text-red-900",
+            });
+          })
+          .finally(() => {
+            setIsPincodeLoading(false);
+          });
+      } else {
+        newFormData = {
+          ...newFormData,
+          state: "",
+          stateCode: "",
+          district: "",
+          districtCode: "",
+        };
+      }
+    }
+
+    setFormData(newFormData);
+    localStorage.setItem("studentFormData", JSON.stringify(newFormData));
+
+    if (name === "alternateNumber") {
+      if (processedValue && processedValue.length !== 10) {
+        setAlternateError("Enter a valid 10-digit number");
+      } else {
+        setAlternateError("");
+      }
+    }
+
+    if (name === "whatsappNumber") {
+      if (processedValue && processedValue.length > 0 && processedValue.length !== 10) {
+        setWhatsappError("Enter a valid 10-digit WhatsApp number");
+      } else {
+        setWhatsappError("");
+      }
+    }
+
+    if (name === "initial_school_id") {
+      if (!processedValue) {
+        setSchoolError("Please select a school");
+      } else {
+        setSchoolError("");
+      }
+    }
+
+    if (name === "email") {
+      if (processedValue && !validateEmail(processedValue)) {
+        setEmailError("Please enter a valid email address");
+      } else {
+        setEmailError("");
+      }
+    }
+  };
+
+  const validateEmail = (email: string) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      toast({
+        title: content.verifying || "Verifying...",
+        description:
+          content.verifyingMessage ||
+          "Please wait while we verify the image...",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900"
+      });
+
+      const faceDetectionResult = await detectHumanFace(file);
+
+      if (!faceDetectionResult.success) {
+        toast({
+          variant: "destructive",
+          title: content.noFaceDetected || "❌ Face Verification Failed",
+          description: faceDetectionResult.message,
+          className: "border-red-500 bg-red-50 text-red-900",
+          duration: 5000
+        });
+        e.target.value = "";
+        return;
+      }
+
+      try {
+        const uploadResult = await uploadProfileImage(file);
+
+        const newFormData = {
+          ...formData,
+          profileImage: file,
+          imageUrl: uploadResult.url,
+        };
+        setFormData(newFormData);
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        toast({
+          title: content.faceVerified || "✅ Face Verified",
+          description:
+            content.faceVerifiedMessage || "Image uploaded successfully!",
+          variant: "default",
+          className: "border-green-500 bg-green-50 text-green-900"
+        });
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast({
+          variant: "destructive",
+          title: "❌ Upload Failed",
+          description: getFriendlyErrorMessage(error),
+          className: "border-red-500 bg-red-50 text-red-900"
+        });
+        e.target.value = "";
+      }
+    }
+  };
+
   // Convert camelCase → snake_case before API call
   const mapFormDataToApi = (data: typeof formData) => {
     const partnerId = localStorage.getItem("partner_id");
 
-    return {
-      image_url: data.imageUrl || null,
+    // Dynamically find the campus ID from the campuses state
+    let campusId: number | null = null;
+    if (data.preferred_campus_id) {
+      const searchStr = String(data.preferred_campus_id).toLowerCase().trim();
+      
+      // Try from dynamic state first
+      let matched = campuses.find(c => 
+        c.campus_name.toLowerCase().trim() === searchStr || 
+        c.campus_name.toLowerCase().includes(searchStr.split(' ')[0]) ||
+        searchStr.includes(c.campus_name.toLowerCase().split(' ')[0])
+      );
+      
+      if (matched) {
+        campusId = matched.id;
+      } else {
+        // Hardcoded Fallback from known API response
+        const fallbackMapping = [
+          { id: 2, campus_name: "Dharamshala" },
+          { id: 3, campus_name: "Bangalore" },
+          { id: 4, campus_name: "Sarjapur" },
+          { id: 5, campus_name: "Tripura" },
+          { id: 6, campus_name: "Delhi" },
+          { id: 7, campus_name: "Amravati" },
+          { id: 8, campus_name: "Jashpur" },
+          { id: 9, campus_name: "Udaipur" },
+          { id: 10, campus_name: "Dantewada" },
+          { id: 11, campus_name: "Raipur" },
+          { id: 12, campus_name: "Kishanganj" },
+          { id: 13, campus_name: "Himachal Campus" },
+          { id: 1, campus_name: "Pune" }
+        ];
+        
+        const fallbackMatched = fallbackMapping.find(c => {
+          const cName = c.campus_name.toLowerCase().trim();
+          if (cName === searchStr || cName.includes(searchStr.split(' ')[0]) || searchStr.includes(cName.split(' ')[0])) return true;
+          return false;
+        });
+        
+        if (fallbackMatched) {
+          campusId = fallbackMatched.id;
+        } else {
+          console.warn("Could not find matching campus for:", data.preferred_campus_id);
+        }
+      }
+    }
+
+    const payload: any = {
       first_name: data.firstName,
-      middle_name: data.middleName,
       last_name: data.lastName,
       dob: data.dateOfBirth,
-      whatsapp_number: data.whatsappNumber,
-      phone_number: data.alternateNumber,
       email: data.email,
       gender: data.gender,
-      state: data.stateCode, 
-      district: data.district, // Send NAME (e.g., "Hyderabad")
-      block: data.block, // Send NAME (e.g., "Asifnagar")
-      city: data.city,
+      state: data.state, 
+      district: data.district, 
       pin_code: data.pinCode,
       school_medium: data.schoolMedium,
       current_status_id: Number(data.currentStatus) || null,
       qualification_id: Number(data.maximumQualification) || null,
-      religion_id: Number(data.religion) || null,
-      partner_id: partnerId ? Number(partnerId) : null,
       initial_school_id: Number(data.initial_school_id) || null,
-      graduation_year: data.pursuingYear || null,
-      graduation_mode: data.collegeAttendanceMethod || null,
     };
+
+    if (data.imageUrl) payload.image_url = data.imageUrl;
+    if (data.middleName) payload.middle_name = data.middleName;
+    if (data.whatsappNumber) payload.whatsapp_number = data.whatsappNumber;
+    if (data.alternateNumber) payload.phone_number = data.alternateNumber;
+    if (data.city) payload.city = data.city;
+    if (data.religion) payload.religion_id = Number(data.religion);
+    if (data.casteTribe) payload.cast_id = Number(data.casteTribe);
+    if (partnerId) payload.partner_id = Number(partnerId);
+    if (campusId !== null) {
+      payload.preferred_campus_id = campusId;
+    } else if (data.preferred_campus_id) {
+      payload.preferred_campus_id = data.preferred_campus_id;
+    }
+    if (data.pursuingYear) payload.graduation_year = data.pursuingYear;
+    if (data.collegeAttendanceMethod) payload.graduation_mode = data.collegeAttendanceMethod;
+
+    return payload;
   };
 
-  // Fetch all states on component mount
-  const fetchStates = async () => {
-    try {
-      setLoadingStates((prev) => ({ ...prev, states: true }));
-      const response = await getAllStates();
-
-      // Handle different possible response structures
-      let statesData: State[] = [];
-
-      if (Array.isArray(response)) {
-        // If response is directly an array
-        statesData = response;
-      } else if (response && Array.isArray(response.data)) {
-        // If response has data property that is an array
-        statesData = response.data;
-      } else if (response && response.states) {
-        // If response has states property
-        statesData = response.states;
-      } else if (response && response.result) {
-        // If response has result property
-        statesData = response.result;
-      }
-
-      setStates(statesData || []);
-    } catch (error) {
-      // console.error("Error fetching states:", error);
-      toast({
-        title: "❌ Unable to Load States",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
-      setStates([]);
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, states: false }));
-    }
-  };
-
-  // Fetch districts when state is selected
-  const fetchDistricts = async (stateCode: string) => {
-    if (!stateCode) {
-      setDistricts([]);
-      setBlocks([]);
-      return;
-    }
-
-    try {
-      setLoadingStates((prev) => ({ ...prev, districts: true }));
-      const response = await getDistrictsByState(stateCode);
-      // Handle different possible response structures
-      let districtsData: District[] = [];
-
-      if (Array.isArray(response)) {
-        districtsData = response;
-      } else if (response && Array.isArray(response.data)) {
-        districtsData = response.data;
-      } else if (response && response.districts) {
-        districtsData = response.districts;
-      } else if (response && response.result) {
-        districtsData = response.result;
-      }
-      setDistricts(districtsData || []);
-    } catch (error) {
-      console.error("Error fetching districts:", error);
-      toast({
-        title: "❌ Unable to Load Districts",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
-      setDistricts([]);
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, districts: false }));
-    }
-  };
-
-  // Fetch blocks when district is selected
-  const fetchBlocks = async (districtCode: string) => {
-    if (!districtCode) {
-      setBlocks([]);
-      return;
-    }
-
-    try {
-      setLoadingStates((prev) => ({ ...prev, blocks: true }));
-      const response = await getBlocksByDistrict(districtCode);
-      // Handle different possible response structures
-      let blocksData: Block[] = [];
-
-      if (Array.isArray(response)) {
-        blocksData = response;
-      } else if (response && Array.isArray(response.data)) {
-        blocksData = response.data;
-      } else if (response && response.blocks) {
-        blocksData = response.blocks;
-      } else if (response && response.result) {
-        blocksData = response.result;
-      }
-
-      setBlocks(blocksData || []);
-    } catch (error) {
-      // console.error("Error fetching blocks:", error);
-      toast({
-        title: "❌ Unable to Load Blocks",
-        description: getFriendlyErrorMessage(error),
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
-      setBlocks([]);
-    } finally {
-      setLoadingStates((prev) => ({ ...prev, blocks: false }));
-    }
-  };
-
-  // Adjust currentStep when switching between mobile and desktop views
+  // Steps are now unified for both mobile and desktop.
   useEffect(() => {
-    setCurrentStep((prevStep) => {
-      if (!isMobile) {
-        // Mobile to Desktop
-        if (prevStep >= 1 && prevStep <= 4) return 1;
-        if (prevStep >= 5) return 2;
-        return prevStep;
-      } else {
-        // Desktop to Mobile
-        if (prevStep === 1) return 1;
-        if (prevStep >= 2) return 5;
-        return prevStep;
-      }
-    });
+    // No longer need to reset step based on screen size since both use 1-4 steps
   }, [isMobile]);
 
   useEffect(() => {
     const savedFormData = localStorage.getItem("studentFormData");
     const googleEmail = location.state?.googleEmail;
-
+    const savedUserStr = localStorage.getItem("user");
+    
+    let parsedData: any = {};
     if (savedFormData) {
-      const parsedData = JSON.parse(savedFormData);
-      // If Google email is present and email is not already set, use Google email
-      if (googleEmail && !parsedData.email) {
-        parsedData.email = googleEmail;
-      }
-      setFormData(parsedData);
-      // If state was previously selected, fetch its districts
-      if (parsedData.stateCode) {
-        fetchDistricts(parsedData.stateCode);
-      }
+      try { parsedData = JSON.parse(savedFormData); } catch (e) {}
+    }
+    
+    let userData: any = null;
+    if (savedUserStr) {
+      try { userData = JSON.parse(savedUserStr); } catch (e) {}
+    }
 
-      // If district was previously selected, fetch its blocks
-      if (parsedData.districtCode) {
-        fetchBlocks(parsedData.districtCode);
+    // Merge Google User Data if missing in studentFormData
+    if (userData) {
+      if (!parsedData.firstName && userData.first_name) {
+        parsedData.firstName = userData.first_name;
+      } else if (!parsedData.firstName && userData.name) {
+        const parts = userData.name.split(' ');
+        parsedData.firstName = parts[0];
+        if (parts.length > 1) {
+           parsedData.lastName = parts.slice(1).join(' ');
+        }
       }
-    } else if (googleEmail) {
-      // If no saved form data but Google email exists, set it
-      setFormData((prev) => ({ ...prev, email: googleEmail }));
+      if (!parsedData.email && userData.email) {
+        parsedData.email = userData.email;
+      }
+      if (!parsedData.alternateNumber && (userData.phone || userData.mobile)) {
+        parsedData.alternateNumber = userData.phone || userData.mobile;
+      }
+    }
+
+    if (googleEmail && !parsedData.email) {
+      parsedData.email = googleEmail;
+    }
+
+    if (Object.keys(parsedData).length > 0) {
+      setFormData(prev => ({ ...prev, ...parsedData }));
     }
 
     // Fetch initial data
-    fetchStates();
-
     const fetchCasts = async () => {
       try {
         const response = await getAllCasts();
@@ -913,17 +1403,6 @@ const StudentForm: React.FC = () => {
     };
     fetchStatuses();
 
-    // fetch religions
-    // const fetchReligions = async () => {
-    //   try {
-    //     const response = await getAllReligions();
-    //     setReligions(response);
-    //   } catch (error) {
-    //     // console.error("Error fetching religions:", error);
-    //   }
-    // };
-    // fetchReligions();
-
     // fetch schools
     const fetchSchools = async () => {
       try {
@@ -935,214 +1414,18 @@ const StudentForm: React.FC = () => {
     };
     fetchSchools();
 
-  }, [location.state?.googleEmail]);
-
-  // If redirected from Retest with startAtStep2 flag, jump directly to step 2 (School Selection)
-  // Uses a ref to avoid stale closure — runs once when component mounts with this state
-  useEffect(() => {
-    if (!location.state?.startAtStep2) return;
-
-    // Replace history state so back navigation doesn't re-trigger step jump
-    window.history.replaceState(
-      { ...window.history.state, startAtStep2: false },
-      "",
-    );
-
-    // Wait for savedFormData useEffect to populate formData, then jump to step 2
-    const timer = setTimeout(() => {
-      setCurrentStep(2);
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    }, 100);
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-
-    // For name fields, allow only letters, spaces, apostrophes, and hyphens
-    let processedValue = value;
-    if (name === "firstName" || name === "middleName" || name === "lastName") {
-      processedValue = value.replace(/[^A-Za-z\s'-]/g, "");
-    }
-
-    // For phone fields, strip non-digit characters and limit to 10 digits
-    if (name === "whatsappNumber" || name === "alternateNumber") {
-      processedValue = value.replace(/\D/g, "").slice(0, 10);
-    }
-
-    // For pin code, allow only digits and limit to 6 digits
-    if (name === "pinCode") {
-      processedValue = value.replace(/\D/g, "").slice(0, 6);
-    }
-
-    let newFormData = { ...formData, [name]: processedValue };
-    // Handle state change
-    if (name === "stateCode") {
-      const selectedState = states.find((state) => state.state_code === processedValue);
-      newFormData = {
-        ...newFormData,
-        stateCode: processedValue,
-        state: selectedState?.state_name || "",
-        district: "",
-        districtCode: "",
-        block: "",
-        blockCode: "",
-      };
-      setDistricts([]);
-      setBlocks([]);
-      if (processedValue) {
-        fetchDistricts(processedValue);
-      }
-    }
-
-    // Handle district change
-    if (name === "districtCode") {
-      const selectedDistrict = districts.find(
-        (district) => district.district_code === processedValue,
-      );
-      newFormData = {
-        ...newFormData,
-        districtCode: processedValue,
-        district: selectedDistrict?.district_name || "",
-        block: "",
-        blockCode: "",
-      };
-      setBlocks([]);
-      if (processedValue) {
-        fetchBlocks(processedValue);
-      }
-    }
-
-    // Handle block change
-    if (name === "blockCode") {
-      const selectedBlock = blocks.find((block) => String(block.id) === processedValue);
-      newFormData = {
-        ...newFormData,
-        blockCode: processedValue,
-        block: selectedBlock?.block_name || "",
-      };
-    }
-
-    setFormData(newFormData);
-    localStorage.setItem("studentFormData", JSON.stringify(newFormData));
-
-    // Live validation for alternate and whatsapp numbers
-    if (name === "alternateNumber") {
-      if (processedValue && processedValue.length !== 10) {
-        setAlternateError("Enter a valid 10-digit number");
-      } else {
-        setAlternateError("");
-      }
-    }
-
-    if (name === "whatsappNumber") {
-      if (processedValue && processedValue.length > 0 && processedValue.length !== 10) {
-        setWhatsappError("Enter a valid 10-digit WhatsApp number");
-      } else {
-        setWhatsappError("");
-      }
-    }
-
-    if (name === "initial_school_id") {
-      if (!processedValue) {
-        setSchoolError("Please select a school");
-      } else {
-        setSchoolError("");
-      }
-    }
-
-    // Live email validation
-    if (name === "email") {
-      if (processedValue && !validateEmail(processedValue)) {
-        setEmailError("Please enter a valid email address");
-      } else {
-        setEmailError("");
-      }
-    }
-  };
-
-  const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Show loading toast
-      toast({
-        title: content.verifying || "Verifying...",
-        description:
-          content.verifyingMessage ||
-          "Please wait while we verify the image...",
-        variant: "default",
-        className: "border-orange-500 bg-orange-50 text-orange-900"
-      });
-
-      // Verify if image contains human face
-      const faceDetectionResult = await detectHumanFace(file);
-
-      if (!faceDetectionResult.success) {
-        // Show error toast with specific message
-        toast({
-          variant: "destructive",
-          title: content.noFaceDetected || "❌ Face Verification Failed",
-          description: faceDetectionResult.message,
-          className: "border-red-500 bg-red-50 text-red-900",
-          duration: 5000
-        });
-        // Clear the file input
-        e.target.value = "";
-        return;
-      }
-
-      // Face detected successfully - upload the image
+    // fetch campuses
+    const fetchCampuses = async () => {
       try {
-        const uploadResult = await uploadProfileImage(file);
-
-        // Update form data with uploaded image URL
-        const newFormData = {
-          ...formData,
-          profileImage: file,
-          imageUrl: uploadResult.url,
-        };
-        setFormData(newFormData);
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-
-        // Show success toast
-        toast({
-          title: content.faceVerified || "✅ Face Verified",
-          description:
-            content.faceVerifiedMessage || "Image uploaded successfully!",
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900"
-        });
+        const campusesData = await getAllCampuses();
+        setCampuses(campusesData);
       } catch (error) {
-        console.error("Error uploading image:", error);
-        toast({
-          variant: "destructive",
-          title: "❌ Upload Failed",
-          description: getFriendlyErrorMessage(error),
-          className: "border-red-500 bg-red-50 text-red-900"
-        });
-        // Clear the file input
-        e.target.value = "";
+        // console.error("Error fetching campuses:", error);
       }
-    }
-  };
+    };
+    fetchCampuses();
+
+  }, [location.state?.googleEmail]);
 
   // Calculate age in years
   const getAge = (dob: string) => {
@@ -1154,229 +1437,8 @@ const StudentForm: React.FC = () => {
     return age;
   };
 
-  const isFormValid = () => {
-    const age = getAge(formData.dateOfBirth);
 
-    // District is mandatory only if districts are available
-    const districtRequired = districts.length > 0 ? formData.districtCode : true;
 
-    // Block is mandatory only if blocks are available
-    const blockRequired = blocks.length > 0 ? formData.blockCode : true;
-
-    // Alternate number is mandatory when user logged in via email
-    const alternateRequired = location.state?.googleEmail ? formData.alternateNumber : true;
-
-    const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
-    const isBCASchool = selectedSchool?.school_name.includes('BCA');
-    const ageThreshold = formData.initial_school_id ? (isBCASchool ? 16 : 16.5) : 16;
-
-    if (!isMobile) {
-      return (
-        // formData.profileImage &&
-        formData.firstName &&
-        formData.dateOfBirth &&
-        (formData.whatsappNumber || formData.alternateNumber || formData.email) &&
-        formData.gender &&
-        formData.stateCode &&
-        districtRequired &&
-        blockRequired &&
-        formData.pinCode &&
-        formData.currentStatus &&
-        formData.maximumQualification &&
-        formData.schoolMedium &&
-        formData.casteTribe &&
-        // formData.religion &&
-        alternateRequired &&
-        (currentStep === 2 ? formData.initial_school_id : true) &&
-        age >= ageThreshold &&
-        // Conditional fields for pursuing graduation
-        (qualifications.find(q => String(q.id) === formData.maximumQualification)?.qualification_name.toLowerCase().includes('pursuing') ? 
-          formData.pursuingYear && formData.collegeAttendanceMethod : true)
-      );
-    } else {
-      if (currentStep === 1) return formData.firstName && formData.dateOfBirth && formData.gender;
-      if (currentStep === 2) return (formData.whatsappNumber || formData.alternateNumber || formData.email) && alternateRequired;
-      if (currentStep === 3) return formData.stateCode && districtRequired && blockRequired && formData.pinCode;
-      if (currentStep === 4) {
-        const q = qualifications.find(q => String(q.id) === formData.maximumQualification);
-        const pursuingOk = q?.qualification_name.toLowerCase().includes('pursuing') ? formData.pursuingYear && formData.collegeAttendanceMethod : true;
-        return formData.currentStatus && formData.maximumQualification && formData.schoolMedium && formData.casteTribe && pursuingOk && age >= ageThreshold;
-      }
-      if (currentStep === 5) return formData.initial_school_id;
-      return false;
-    }
-  };
-
-  const handleSubmit = async () => {
-    const age = getAge(formData.dateOfBirth);
-
-    if (!isMobile) {
-      if (currentStep === 1) {
-        if (!formData.firstName) {
-          return toast({ title: "⚠️ First Name Required", description: "Please enter your first name.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
-        const isBCASchool = selectedSchool?.school_name.includes('BCA');
-        const ageThreshold = isBCASchool ? 15 : 15;
-        if (!formData.dateOfBirth || age < ageThreshold) {
-          return toast({ title: "⚠️ Invalid Date of Birth", description: `You must be at least ${ageThreshold} years old.`, variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (formData.whatsappNumber && !/^\d{10}$/.test(formData.whatsappNumber)) {
-          return toast({ title: "⚠️ Invalid WhatsApp Number", description: "Enter a valid 10-digit WhatsApp number or leave it empty.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (location.state?.googleEmail) {
-          if (!formData.alternateNumber || !/^\d{10}$/.test(formData.alternateNumber)) {
-            return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-          }
-        } else if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
-          return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (!formData.gender) {
-          return toast({ title: "⚠️ Gender Required", description: "Please select your gender.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (!formData.stateCode || !formData.pinCode) {
-          return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (districts.length > 0 && !formData.districtCode) {
-          return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (blocks.length > 0 && !formData.blockCode) {
-          return toast({ title: "⚠️ Block Required", description: "Please select a block.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (!formData.currentStatus || !formData.maximumQualification || !formData.schoolMedium || !formData.casteTribe) {
-          return toast({ title: "Additional Info Required", description: "Please fill all required additional fields.", variant: "destructive" });
-        }
-        const selectedQual = qualifications.find(q => String(q.id) === formData.maximumQualification);
-        const isPursuing = selectedQual?.qualification_name.toLowerCase().includes('pursuing');
-        if (isPursuing) {
-          if (!formData.pursuingYear || !formData.collegeAttendanceMethod) {
-            return toast({ title: "⚠️ Question Required", description: "Please answer all pursuing qualification questions.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-          }
-        }
-        setCurrentStep(2);
-        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-    } else {
-      if (currentStep === 1) {
-        if (!formData.firstName) {
-          return toast({ title: "⚠️ First Name Required", description: "Please enter your first name.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (!formData.dateOfBirth) {
-          return toast({ title: "⚠️ Invalid Date of Birth", description: `You must select your date of birth.`, variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (!formData.gender) {
-          return toast({ title: "⚠️ Gender Required", description: "Please select your gender.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        setCurrentStep(2);
-        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-  
-      if (currentStep === 2) {
-        if (formData.whatsappNumber && !/^\d{10}$/.test(formData.whatsappNumber)) {
-          return toast({ title: "⚠️ Invalid WhatsApp Number", description: "Enter a valid 10-digit WhatsApp number or leave it empty.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (location.state?.googleEmail) {
-          if (!formData.alternateNumber || !/^\d{10}$/.test(formData.alternateNumber)) {
-            return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-          }
-        } else if (formData.alternateNumber && !/^\d{10}$/.test(formData.alternateNumber)) {
-          return toast({ title: "⚠️ Invalid Phone Number", description: "Enter a valid 10-digit phone number.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        setCurrentStep(3);
-        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-  
-      if (currentStep === 3) {
-        if (!formData.stateCode || !formData.pinCode) {
-          return toast({ title: "⚠️ Address Required", description: "Please fill State and Pin Code.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (districts.length > 0 && !formData.districtCode) {
-          return toast({ title: "⚠️ District Required", description: "Please select a district.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        if (blocks.length > 0 && !formData.blockCode) {
-          return toast({ title: "⚠️ Block Required", description: "Please select a block.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-        }
-        setCurrentStep(4);
-        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-  
-      if (currentStep === 4) {
-        if (!formData.currentStatus || !formData.maximumQualification || !formData.schoolMedium || !formData.casteTribe) {
-          return toast({ title: "Additional Info Required", description: "Please fill all required additional fields.", variant: "destructive" });
-        }
-        const selectedQual = qualifications.find(q => String(q.id) === formData.maximumQualification);
-        const isPursuing = selectedQual?.qualification_name.toLowerCase().includes('pursuing');
-        if (isPursuing) {
-          if (!formData.pursuingYear || !formData.collegeAttendanceMethod) {
-            return toast({ title: "⚠️ Question Required", description: "Please answer all pursuing qualification questions.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-          }
-        }
-        setCurrentStep(5);
-        if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-    }
-
-    if ((!isMobile && currentStep === 2) || (isMobile && currentStep === 5)) {
-      const selectedSchool = schools.find(s => String(s.id) === String(formData.initial_school_id));
-      const isBCASchool = selectedSchool?.school_name.includes('BCA');
-      const ageThreshold = isBCASchool ? 15 : 15;
-      if (age < ageThreshold) {
-        return toast({ title: "⚠️ Invalid Date of Birth", description: `You must be at least ${ageThreshold} years old.`, variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-      }
-      if (!formData.initial_school_id) {
-        setSchoolError("Please select a school.");
-        return toast({ title: "⚠️ School Selection Required", description: "Please select your preferred school.", variant: "default", className: "border-orange-500 bg-orange-50 text-orange-900" });
-      }
-      try {
-        const apiPayload = mapFormDataToApi(formData);
-        const studentFormResponseData = await createStudent(apiPayload);
-
-        localStorage.setItem("registrationDone", "true");
-        localStorage.setItem("studentApiResponse", JSON.stringify(studentFormResponseData));
-        localStorage.setItem("studentFormData", JSON.stringify(formData));
-
-        let studentId = null;
-        if (studentFormResponseData?.id) studentId = studentFormResponseData.id;
-        else if (studentFormResponseData?.data?.id) studentId = studentFormResponseData.data.id;
-        else if (studentFormResponseData?.student?.id) studentId = studentFormResponseData.student.id;
-
-        if (studentId) {
-          localStorage.setItem("studentId", studentId.toString());
-        } else {
-          console.warn("Student ID not found in response");
-        }
-
-        toast({ title: "✅ Registration Successful", description: "Your registration was successful!", variant: "default", className: "border-green-500 bg-green-50 text-green-900" });
-        navigate("/students/test/start");
-      } catch (error) {
-        console.error("Error creating student:", error);
-        toast({ title: "❌ Registration Failed", description: getFriendlyErrorMessage(error), variant: "destructive", className: "border-red-500 bg-red-50 text-red-900" });
-      }
-    }
-  };
-
-  const handlePrevious = () => {
-    if (!isMobile) {
-      if (currentStep === 2) {
-        setCurrentStep(1);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        navigate("/students/details/instructions");
-      }
-    } else {
-      if (currentStep > 1) {
-        setCurrentStep(currentStep - 1);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        navigate("/students/details/instructions");
-      }
-    }
-  };
   // Calculate the maximum date allowed
   const getMaxDOB = () => {
     const today = new Date();
@@ -1403,9 +1465,8 @@ const StudentForm: React.FC = () => {
           whatsappNumber: "व्हाट्सऐप नंबर",
           alternateNumber: "फोन नंबर",
           email: "ईमेल पता ",
-          state: "राज्य चुनें *",
-          district: "जिला चुनें",
-          block: "ब्लॉक चुनें",
+          state: "राज्य *",
+          district: "जिला",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "वर्तमान स्थिति *",
@@ -1418,7 +1479,6 @@ const StudentForm: React.FC = () => {
           other: "अन्य",
           selectState: "राज्य चुनें",
           selectDistrict: "जिला चुनें",
-          selectBlock: "ब्लॉक चुनें",
           selectOption: "विकल्प चुनें",
           selectQualification: "योग्यता चुनें",
           selectMedium: "माध्यम चुनें",
@@ -1439,8 +1499,8 @@ const StudentForm: React.FC = () => {
           faceVerified: "चेहरा सत्यापित",
           faceVerifiedMessage: "छवि सफलतापूर्वक अपलोड की गई!",
           loading: "लोड हो रहा है...",
-          selectSchoolHeading: "अपना स्कूल चुनें",
-          selectSchoolDescription: "कृपया हमारे स्कूलों के बारे में जानकारी पढ़ें और वह चुनें जिसके लिए आप आवेदन करना चाहते हैं।",
+          selectSchoolHeading: "अपना कैंपस चुनें",
+          selectSchoolDescription: "कृपया वह कैंपस चुनें जिसके लिए आप आवेदन करना चाहते हैं।",
           checkDetails: "विवरण देखें",
           eligibility: "पात्रता",
           curriculumFocus: "पाठ्यक्रम फोकस",
@@ -1465,6 +1525,17 @@ const StudentForm: React.FC = () => {
           yearFinal: "अंतिम वर्ष (Final Year)",
           attendanceRegular: "मैं नियमित रूप से कॉलेज जाता हूँ, प्रतिदिन कक्षाओं में उपस्थित रहता हूँ। (Regular)",
           attendancePrivate: "मैं केवल परीक्षा देने जाता हूँ और घर पर अध्ययन करता हूँ। (Private/Exam-only)",
+          aboutCampus: "कैंपस के बारे में",
+          campusLocation: "कैंपस का स्थान",
+          availableCourses: "उपलब्ध कोर्सेज",
+          createProfile: "अपनी प्रोफ़ाइल बनाएं",
+          takes3Mins: "इसमें लगभग 3 मिनट लगेंगे। आप एडमिशन से पहले कभी भी विवरण संपादित कर सकते हैं।",
+          addressDetails: "पते का विवरण",
+          educationDetails: "शिक्षा",
+          campus: "कैंपस",
+          campusAndCourse: "कैंपस और कोर्स",
+          preferredCampus: "पसंदीदा कैंपस *",
+          preferredCourse: "पसंदीदा कोर्स *",
         };
 
       case "marathi":
@@ -1483,9 +1554,8 @@ const StudentForm: React.FC = () => {
           whatsappNumber: "व्हाट्सअॅप नंबर",
           alternateNumber: "फोन नंबर",
           email: "ईमेल पत्ता ",
-          state: "राज्य निवडा *",
-          district: "जिल्हा निवडा",
-          block: "ब्लॉक निवडा",
+          state: "राज्य *",
+          district: "जिल्हा",
           city: "शहर *",
           pinCode: "पिन कोड *",
           currentStatus: "सध्याची स्थिती *",
@@ -1498,7 +1568,6 @@ const StudentForm: React.FC = () => {
           other: "इतर",
           selectState: "राज्य निवडा",
           selectDistrict: "जिल्हा निवडा",
-          selectBlock: "ब्लॉक निवडा",
           selectOption: "पर्याय निवडा",
           selectQualification: "पात्रता निवडा",
           selectMedium: "माध्यम निवडा",
@@ -1545,6 +1614,17 @@ const StudentForm: React.FC = () => {
           yearFinal: "अंतिम वर्ष (Final Year)",
           attendanceRegular: "मी नियमितपणे कॉलेजला जातो, रोज वर्गात हजर राहतो. (Regular)",
           attendancePrivate: "मी फक्त परीक्षा द्यायला जातो आणि घरी अभ्यास करतो. (Private/Exam-only)",
+          aboutCampus: "कॅम्पस बद्दल",
+          campusLocation: "कॅम्पसचे ठिकाण",
+          availableCourses: "उपलब्ध कोर्सेस",
+          createProfile: "तुमची प्रोफाइल तयार करा",
+          takes3Mins: "यास सुमारे ३ मिनिटे लागतील. प्रवेश घेण्यापूर्वी तुम्ही हे तपशील कधीही बदलू शकता.",
+          addressDetails: "पत्त्याचे तपशील",
+          educationDetails: "शिक्षण",
+          campus: "कॅम्पस",
+          campusAndCourse: "कॅम्पस आणि कोर्स",
+          preferredCampus: "पसंतीचे कॅम्पस *",
+          preferredCourse: "पसंतीचे कोर्स *",
         };
 
       default: // English
@@ -1565,7 +1645,6 @@ const StudentForm: React.FC = () => {
           email: "Email Address",
           state: "State *",
           district: "District",
-          block: "Block",
           pinCode: "Pin Code *",
           currentStatus: "Current Status *",
           maximumQualification: "Maximum Qualification *",
@@ -1577,7 +1656,6 @@ const StudentForm: React.FC = () => {
           other: "Other",
           selectState: "Select State",
           selectDistrict: "Select District",
-          selectBlock: "Select Block",
           selectOption: "Select Option",
           selectQualification: "Select Qualification",
           selectMedium: "Select Medium",
@@ -1597,8 +1675,8 @@ const StudentForm: React.FC = () => {
           faceVerified: "✅ Face Verified",
           faceVerifiedMessage: "Image uploaded successfully!",
           loading: "Loading...",
-          selectSchoolHeading: "Select Your School",
-          selectSchoolDescription: "Please go through the information about our schools and select the one you'd like to apply for.",
+          selectSchoolHeading: "Select Your Campus",
+          selectSchoolDescription: "Please select the campus you want to apply for.",
           checkDetails: "Check Details",
           eligibility: "Eligibility",
           curriculumFocus: "Curriculum focus",
@@ -1623,6 +1701,17 @@ const StudentForm: React.FC = () => {
           yearFinal: "Final Year",
           attendanceRegular: "I go to college regularly, attend classes daily.",
           attendancePrivate: "I only go to write exams and study at home.",
+          aboutCampus: "About Campus",
+          campusLocation: "Campus Location",
+          availableCourses: "Available Courses",
+          createProfile: "Create your profile",
+          takes3Mins: "Takes about 3 minutes. You can edit these details anytime before you enroll.",
+          addressDetails: "Address Details",
+          educationDetails: "Education",
+          campus: "Campus",
+          campusAndCourse: "Campus & Course",
+          preferredCampus: "Preferred Campus *",
+          preferredCourse: "Preferred Course *",
         };
     }
   };
@@ -1721,103 +1810,125 @@ const StudentForm: React.FC = () => {
       ];
 
   return (
-    <div className={`min-h-screen flex justify-center p-4 relative ${!isMobile ? 'student-bg-gradient pt-20 md:pt-24' : 'bg-gradient-to-br from-pink-100/80 to-purple-50 pt-16 md:pt-20'}`}>
-      {!isMobile && (
-        <ContextualHelpWidget
-          sectionId="student-registration-form"
-          sectionTitle="Student Registration"
-          steps={studentFormGuideSteps}
-          demo={{
-            title: "Student registration demo",
-            embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_REGISTRATION?rel=0",
-            note: "Replace this with a short registration walkthrough.",
-          }}
-          faqs={[
-            {
-              question: "What should I complete on this page?",
-              answer: "Complete your basic details first, then choose the school or program that fits you.",
-            },
-            {
-              question: "Can I continue in parts?",
-              answer: "The form saves progress in local storage while you fill the student details.",
-            },
-          ]}
-          showInlineButtons={false}
-          showFloatingButton={!selectedSchoolInfo && !isLearningModalOpen}
-          autoStartOnFirstVisit={true}
-        />
-      )}
-      <LanguageSelector />
-      <LogoutButton className="shadow-lg" />
-      <div ref={scrollContainerRef} className={`overflow-y-auto relative ${!isMobile ? 'bg-card shadow-large max-h-[85vh] rounded-2xl p-4 sm:p-6 w-full ' + (currentStep === 1 ? 'max-w-6xl' : 'max-w-7xl') : 'w-full max-w-[450px]'}`}>
-        {/* Header and Step Indicator */}
-        {!isMobile ? (
-          <div className="text-center mb-4 sm:mb-6" data-onboarding="student-form-header">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
-              {currentStep === 1 ? content.signUp : content.selectSchoolHeading}
-            </h1>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center mb-6 relative">
-            {currentStep > 1 && (
-              <button
-                onClick={handlePrevious}
-                className="absolute left-0 top-0 p-1.5 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
-              </button>
-            )}
-            
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center mt-1">
-              {currentStep === 1 ? content.signUp : 
-               currentStep === 2 ? content.contactInfo :
-               currentStep === 3 ? "Address Details" :
-               currentStep === 4 ? "Additional Info" : content.selectSchoolHeading}
-            </h1>
+    <div className="h-screen overflow-y-auto font-sans relative flex flex-col bg-transparent">
+      <div id="world">
+        <LeavesCanvas />
+      </div>
+      {/* Top Navbar */}
+      <header className="relative z-50 flex items-center justify-between px-6 py-4 md:px-10">
+        <div className="flex items-center gap-2">
+          <img src="/gamified-assets/navgurukul-logo.png" alt="Navgurukul Logo" className="h-6 sm:h-8 object-contain" />
+        </div>
+        <div className="flex items-center gap-2 md:gap-3">
+          <LanguageSelector inline />
+          <LogoutButton inline />
+        </div>
+      </header>
 
-            {/* 5-Step Indicators (Dashes) */}
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((step) => (
-                <div 
-                  key={step} 
-                  className={`h-1.5 rounded-full transition-all duration-300 ${currentStep === step ? 'w-6 bg-primary' : currentStep > step ? 'w-4 bg-primary/40' : 'w-4 bg-gray-200'}`}
-                />
-              ))}
-            </div>
-          </div>
+      <main className="relative z-10 flex-1 flex flex-col items-center pt-2 px-4 pb-6 w-full max-w-4xl mx-auto">
+        <style>{`
+          /* Form Inputs Styling */
+          input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="number"], select, textarea {
+             border: 1.5px solid #e2e8f0 !important;
+             border-radius: 10px !important;
+             background-color: white !important;
+             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+             transition: all 0.2s ease-in-out !important;
+          }
+          input[type="text"]:focus, input[type="email"]:focus, input[type="tel"]:focus, input[type="date"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+             border-color: #ec4899 !important;
+             box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1) !important;
+             outline: none !important;
+          }
+          /* Combobox trigger buttons */
+          [role="combobox"] {
+             border-radius: 10px !important;
+             border: 1.5px solid #e2e8f0 !important;
+             background-color: white !important;
+             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+             transition: all 0.2s ease-in-out !important;
+          }
+          [role="combobox"][data-state="open"] {
+             border-color: #ec4899 !important;
+             box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.1) !important;
+          }
+        `}</style>
+        {!isMobile && (
+          <ContextualHelpWidget
+            sectionId="student-registration-form"
+            sectionTitle="Student Registration"
+            steps={studentFormGuideSteps}
+            demo={{
+              title: "Student registration demo",
+              embedUrl: "https://www.youtube.com/embed/VIDEO_ID_STUDENT_REGISTRATION?rel=0",
+              note: "Replace this with a short registration walkthrough.",
+            }}
+            faqs={[
+              {
+                question: "What should I complete on this page?",
+                answer: "Complete your basic details first, then choose the school or program that fits you.",
+              },
+              {
+                question: "Can I continue in parts?",
+                answer: "The form saves progress in local storage while you fill the student details.",
+              },
+            ]}
+            showInlineButtons={false}
+            showFloatingButton={!selectedSchoolInfo && !isLearningModalOpen}
+            autoStartOnFirstVisit={true}
+          />
         )}
 
-        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 1)) && (
+        {/* Stepper */}
+        <div className="flex items-center gap-2 sm:gap-4 mb-5 w-full justify-center overflow-x-auto px-2">
+          {[
+            { id: 1, label: content.basicDetails || "Basic Details" },
+            { id: 2, label: content.contactInfo || "Contact Info" },
+            { id: 3, label: content.addressDetails || "Address Details" },
+            { id: 4, label: content.educationDetails || "Education" },
+            { id: 5, label: content.campus || "Campus" }
+          ].map((step, idx, arr) => (
+            <React.Fragment key={step.id}>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${currentStep === step.id ? 'border-pink-500 text-pink-600 bg-pink-50/50' : currentStep > step.id ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-gray-200 text-gray-400 bg-white'}`}>
+                  {currentStep > step.id ? "✓" : step.id}
+                </div>
+                <span className={`text-xs font-semibold hidden md:block ${currentStep === step.id ? 'text-pink-600' : 'text-gray-400'}`}>
+                  {step.label}
+                </span>
+              </div>
+              {idx < arr.length - 1 && (
+                <div className={`h-[1px] w-6 sm:w-12 ${currentStep > step.id ? 'bg-pink-500' : 'bg-gray-200'}`} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Title */}
+        <div className="text-center mb-5">
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-1">{content.createProfile || "Create your profile"}</h1>
+          <p className="text-gray-500 text-xs md:text-sm">{content.takes3Mins || "Takes about 3 minutes. You can edit these details anytime before you enroll."}</p>
+        </div>
+
+        {/* Form Card */}
+        <div ref={scrollContainerRef} className="w-full bg-white rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-200/50 p-5 sm:p-8 mb-4 relative">
+
+        {currentStep === 1 && (
           <>
             {/* Profile Image Upload */}
-            <div className="text-center">
-              <div className={`w-24 h-24 mx-auto ${!isMobile ? 'border-2 border-dashed border-input bg-muted' : ''} rounded-xl flex flex-col items-center justify-center relative cursor-pointer hover:border-primary transition-colors`}>
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-4 border-b border-gray-100 pb-4">
+              <div className={`w-16 h-16 shrink-0 rounded-full flex flex-col items-center justify-center relative cursor-pointer transition-all duration-300 border-2 border-dashed ${imagePreview ? 'border-pink-400 bg-white shadow-sm' : 'border-gray-200 bg-pink-50/20 hover:border-pink-300 hover:bg-pink-50'}`}>
                 {!imagePreview ? (
-                  !isMobile ? (
-                    <>
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mb-1">
-                        <span className="text-primary-foreground text-sm">📷</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {content.addPhoto}
-                      </span>
-                    </>
-                  ) : (
-                    <div className="w-full h-full rounded-xl flex flex-col items-center justify-center bg-transparent">
-                      <div className="w-20 h-20 bg-gray-200/80 rounded-full drop-shadow-sm flex flex-col items-center justify-center overflow-hidden gap-0.5">
-                        <svg className="w-4 h-4 text-gray-400 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="text-gray-400 text-[10px] text-center font-medium leading-tight">Add Photo</span>
-                      </div>
-                    </div>
-                  )
+                  <div className="flex flex-col items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                 ) : (
                   <img
                     src={imagePreview}
                     alt="Profile"
-                    className="w-full h-full object-cover rounded-xl"
+                    className="w-full h-full object-cover rounded-full p-1"
                   />
                 )}
                 <input
@@ -1825,139 +1936,162 @@ const StudentForm: React.FC = () => {
                   accept="image/*"
                   onChange={handleImageChange}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  title="Upload Profile Photo"
                 />
+              </div>
+              <div className="text-center md:text-left">
+                <h3 className="text-sm font-bold text-gray-800 mb-0.5">
+                  Add a profile photo <span className="text-teal-500 font-semibold">(optional)</span>
+                </h3>
+                {/* <p className="text-xs text-gray-500">
+                  Helps your mentors recognise you at orientation. JPG or PNG, under 5MB.
+                </p> */}
               </div>
             </div>
 
-            {/* Section Title */}
-            {!isMobile && (
-              <h2 className="text-xl font-semibold text-gray-800 mb-4" data-onboarding="student-form-basic">
-                {content.basicDetails}
-              </h2>
-            )}
+            {/* --- BASIC DETAILS SECTION --- */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+                </div>
+                <h2 className="text-base md:text-lg font-bold text-gray-900 tracking-tight" data-onboarding="student-form-basic">
+                  {content.basicDetails}
+                </h2>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 mb-3 md:mb-6">
-              {/* Name Fields */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {content.firstName}
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:prime"
-                  placeholder={content.enterFirstName}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {content.middleName}
-                </label>
-                <input
-                  type="text"
-                  name="middleName"
-                  value={formData.middleName}
-                  onChange={handleInputChange}
-                  className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder={content.enterMiddleName}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {content.lastName}
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder={content.enterLastName}
-                />
-              </div>
-            </div>
-
-            {/* Date of Birth and Gender */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {content.dateOfBirth}
-                </label>
-                <div className="relative">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 md:gap-3 mb-2 md:mb-3">
+                {/* Name Fields */}
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
+                    {content.firstName}
+                  </label>
                   <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={formData.dateOfBirth}
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
                     onChange={handleInputChange}
-                    max={getMaxDOB()}
-                    className="w-full p-2.5 md:p-3 pr-10 text-[15px] md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-2 text-[13px] placeholder:text-gray-400 h-9"
+                    placeholder={content.enterFirstName}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
+                    {content.middleName}
+                  </label>
+                  <input
+                    type="text"
+                    name="middleName"
+                    value={formData.middleName}
+                    onChange={handleInputChange}
+                    className="w-full p-2 text-[13px] placeholder:text-gray-400 h-9"
+                    placeholder={content.enterMiddleName}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
+                    {content.lastName}
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className="w-full p-2 text-[13px] placeholder:text-gray-400 h-9"
+                    placeholder={content.enterLastName}
                   />
                 </div>
               </div>
-              <div className="flex flex-col">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {content.gender}
-                </label>
-                <div className="flex items-center h-12 space-x-6">
-                  <label className="flex items-center space-x-2.5 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="male"
-                      checked={formData.gender === "male"}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
-                    />
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                      {content.male}
-                    </span>
+
+              {/* Date of Birth and Gender */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-1">
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
+                    {content.dateOfBirth}
                   </label>
-                  <label className="flex items-center space-x-2.5 cursor-pointer group">
+                  <div className="relative">
                     <input
-                      type="radio"
-                      name="gender"
-                      value="female"
-                      checked={formData.gender === "female"}
+                      type="date"
+                      name="dateOfBirth"
+                      value={formData.dateOfBirth}
                       onChange={handleInputChange}
-                      className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
+                      max={getMaxDOB()}
+                      className="w-full p-2 pr-10 text-[13px] placeholder:text-gray-400 h-9"
                     />
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                      {content.female}
-                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
+                    {content.gender}
                   </label>
-                  <label className="flex items-center space-x-2.5 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="other"
-                      checked={formData.gender === "other"}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 text-primary focus:ring-primary accent-primary cursor-pointer"
-                    />
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary transition-colors">
-                      {content.other}
-                    </span>
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl border-[1.5px] cursor-pointer transition-all ${formData.gender === 'male' ? 'border-pink-500 bg-pink-50 text-pink-700 font-bold shadow-[0_0_0_2px_rgba(236,72,153,0.1)]' : 'border-gray-200 bg-white/70 hover:border-pink-300 text-gray-600 font-medium'}`}>
+                      <input
+                        type="radio"
+                        name="gender"
+                        value="male"
+                        checked={formData.gender === "male"}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      <span className={`w-3 h-3 rounded-full border-[1.5px] flex items-center justify-center ${formData.gender === 'male' ? 'border-pink-500' : 'border-gray-300'}`}>
+                         {formData.gender === 'male' && <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>}
+                      </span>
+                      <span className="text-xs">{content.male}</span>
+                    </label>
+
+                    <label className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl border-[1.5px] cursor-pointer transition-all ${formData.gender === 'female' ? 'border-pink-500 bg-pink-50 text-pink-700 font-bold shadow-[0_0_0_2px_rgba(236,72,153,0.1)]' : 'border-gray-200 bg-white/70 hover:border-pink-300 text-gray-600 font-medium'}`}>
+                      <input
+                        type="radio"
+                        name="gender"
+                        value="female"
+                        checked={formData.gender === "female"}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      <span className={`w-3 h-3 rounded-full border-[1.5px] flex items-center justify-center ${formData.gender === 'female' ? 'border-pink-500' : 'border-gray-300'}`}>
+                         {formData.gender === 'female' && <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>}
+                      </span>
+                      <span className="text-xs">{content.female}</span>
+                    </label>
+
+                    <label className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl border-[1.5px] cursor-pointer transition-all ${formData.gender === 'other' ? 'border-pink-500 bg-pink-50 text-pink-700 font-bold shadow-[0_0_0_2px_rgba(236,72,153,0.1)]' : 'border-gray-200 bg-white/70 hover:border-pink-300 text-gray-600 font-medium'}`}>
+                      <input
+                        type="radio"
+                        name="gender"
+                        value="other"
+                        checked={formData.gender === "other"}
+                        onChange={handleInputChange}
+                        className="hidden"
+                      />
+                      <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${formData.gender === 'other' ? 'border-pink-500' : 'border-gray-300'}`}>
+                         {formData.gender === 'other' && <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>}
+                      </span>
+                      <span className="text-sm">{content.other}</span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
           </>
         )}
 
-        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 2)) && (
+        {currentStep === 2 && (
           <>
-            {/* Contact Information */}
+            {/* --- CONTACT INFORMATION SECTION --- */}
             <div className="mb-4 animate-in fade-in slide-in-from-right-4" data-onboarding="student-form-contact">
-              {!isMobile && (
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
+                </div>
+                <h2 className="text-base md:text-lg font-bold text-gray-900 tracking-tight">
                   {content.contactInfo}
-                </h3>
-              )}
-              <div className="space-y-3 md:space-y-4">
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 mb-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
                     {content.whatsappNumber}
                   </label>
                   <input
@@ -1967,15 +2101,15 @@ const StudentForm: React.FC = () => {
                     pattern="[0-9]{10}"
                     value={formData.whatsappNumber}
                     onChange={handleInputChange}
-                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-2 text-[13px] placeholder:text-gray-400 h-9"
                     placeholder={content.enterWhatsapp}
                   />
                   {whatsappError && (
-                    <p className="text-destructive text-sm mt-1">{whatsappError}</p>
+                    <p className="text-destructive text-[10px] sm:text-xs mt-1 font-medium">{whatsappError}</p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
                     {content.alternateNumber}{location.state?.googleEmail ? ' *' : ''}
                   </label>
                   <input
@@ -1986,15 +2120,15 @@ const StudentForm: React.FC = () => {
                     value={formData.alternateNumber}
                     onChange={handleInputChange}
                     disabled={!!formData.alternateNumber && !location.state?.googleEmail}
-                    className={`w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary ${(formData.alternateNumber && !location.state?.googleEmail) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    className={`w-full p-2 text-[13px] placeholder:text-gray-400 h-9 ${(formData.alternateNumber && !location.state?.googleEmail) ? 'bg-gray-100 cursor-not-allowed opacity-80' : ''}`}
                     placeholder={content.enterAlternate}
                   />
                   {alternateError && (
-                    <p className="text-destructive text-sm mt-1">{alternateError}</p>
+                    <p className="text-destructive text-[10px] sm:text-xs mt-1 font-medium">{alternateError}</p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
                     {content.email}
                   </label>
                   <input
@@ -2003,14 +2137,11 @@ const StudentForm: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     disabled={!!location.state?.googleEmail}
-                    className={`w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary ${location.state?.googleEmail
-                      ? "bg-gray-100 cursor-not-allowed"
-                      : ""
-                      }`}
+                    className={`w-full p-2 text-[13px] placeholder:text-gray-400 h-9 ${location.state?.googleEmail ? "bg-gray-100 cursor-not-allowed opacity-80" : ""}`}
                     placeholder={content.enterEmail}
                   />
                   {emailError && (
-                    <p className="text-destructive text-sm mt-1">{emailError}</p>
+                    <p className="text-destructive text-[10px] sm:text-xs mt-1 font-medium">{emailError}</p>
                   )}
                 </div>
               </div>
@@ -2018,97 +2149,23 @@ const StudentForm: React.FC = () => {
           </>
         )}
 
-        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 3)) && (
+        {currentStep === 3 && (
           <>
-            {/* Address Details */}
+            {/* --- ADDRESS DETAILS SECTION --- */}
             <div className="mb-4 animate-in fade-in slide-in-from-right-4">
-              {!isMobile && (
-                <h3 className="text-[17px] text-[#1E3A5F] font-bold mb-4 pt-6">
-                  Additional Information
-                </h3>
-              )}
-              {/* State, District and Block */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.state}
-                  </label>
-                  <Combobox
-                    options={states?.map((state) => ({
-                      value: state.state_code,
-                      label: state.state_name,
-                    })) || []}
-                    value={formData.stateCode}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'stateCode', value } } as any);
-                    }}
-                    placeholder={loadingStates.states ? content.loading : content.selectState}
-                    searchPlaceholder="Search state..."
-                    emptyText="No state found."
-                    disabled={loadingStates.states}
-                    className="h-11 md:h-12"
-                  />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.district}
-                    {districts.length > 0 && <span className="text-destructive"> *</span>}
-                  </label>
-                  <Combobox
-                    options={districts?.map((district) => ({
-                      value: district.district_code,
-                      label: district.district_name,
-                    })) || []}
-                    value={formData.districtCode}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'districtCode', value } } as any);
-                    }}
-                    placeholder={
-                      loadingStates.districts
-                        ? content.loading
-                        : !formData.stateCode
-                          ? "Please select a state first"
-                          : content.selectDistrict
-                    }
-                    searchPlaceholder="Search district..."
-                    emptyText="No district found."
-                    disabled={loadingStates.districts || !formData.stateCode}
-                    className="h-11 md:h-12"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.block}
-                    {blocks.length > 0 && <span className="text-destructive"> *</span>}
-                  </label>
-                  <Combobox
-                    options={blocks?.map((block) => ({
-                      value: String(block.id), // Use id as value, like ApplicantModal
-                      label: block.block_name,
-                    })) || []}
-                    value={formData.blockCode}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'blockCode', value } } as any);
-                    }}
-                    placeholder={
-                      loadingStates.blocks
-                        ? content.loading
-                        : !formData.districtCode
-                          ? "Please select a district first"
-                          : blocks.length === 0
-                            ? "No blocks available"
-                            : content.selectBlock
-                    }
-                    searchPlaceholder="Search block..."
-                    emptyText="No block found."
-                    disabled={loadingStates.blocks || !formData.districtCode}
-                    className="h-11 md:h-12"
-                  />
-                </div>
+                <h2 className="text-base md:text-lg font-bold text-gray-900 tracking-tight">
+                  Address Details
+                </h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
+
+              {/* PIN Code, District and State */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 mb-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
                     {content.pinCode}
                   </label>
                   <input
@@ -2116,48 +2173,68 @@ const StudentForm: React.FC = () => {
                     name="pinCode"
                     value={formData.pinCode}
                     onChange={handleInputChange}
-                    className="w-full p-2.5 md:p-3 text-[15px] md:text-base border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
+                    maxLength={6}
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    className="w-full p-2 text-[13px] placeholder:text-gray-400 h-9"
                     placeholder="Enter PIN code"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-[10px] font-medium text-gray-400 mt-1 uppercase tracking-wide">
                     {content.pinCodeExample}
                   </p>
+                </div>
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
+                    {content.district}
+                  </label>
+                  <input
+                    type="text"
+                    value={isPincodeLoading ? "Loading..." : formData.district}
+                    readOnly
+                    disabled
+                    className="w-full p-2 text-[13px] h-9 bg-gray-100/80 cursor-not-allowed text-gray-600 placeholder:text-gray-400 opacity-80"
+                    placeholder="Auto-filled from PIN code"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-semibold text-gray-700 mb-1">
+                    {content.state}
+                  </label>
+                  <input
+                    type="text"
+                    value={isPincodeLoading ? "Loading..." : formData.state}
+                    readOnly
+                    disabled
+                    className="w-full p-2 text-[13px] h-9 bg-gray-100/80 cursor-not-allowed text-gray-600 placeholder:text-gray-400 opacity-80"
+                    placeholder="Auto-filled from PIN code"
+                  />
                 </div>
               </div>
             </div>
           </>
         )}
 
-        {((!isMobile && currentStep === 1) || (isMobile && currentStep === 4)) && (
+        {currentStep === 4 && (
           <>
+            {/* --- EDUCATION SECTION --- */}
             <div className="mb-4 animate-in fade-in slide-in-from-right-4">
-              {/* Current Status and Maximum Qualification */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.currentStatus}
-                  </label>
-                  <Combobox
-                    options={statuses?.map((item) => ({
-                      value: String(item.id),
-                      label: item.current_status_name,
-                    })) || []}
-                    value={formData.currentStatus}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'currentStatus', value } } as any);
-                    }}
-                    placeholder={content.selectOption}
-                    searchPlaceholder="Search..."
-                    emptyText="No option found."
-                    className="h-11 md:h-12"
-                  />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.22 4.621 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" /></svg>
                 </div>
+                <h2 className="text-base md:text-lg font-bold text-gray-900 tracking-tight">
+                  Education Details
+                </h2>
+              </div>
+
+              {/* Maximum Qualification & School Medium */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
                     {content.maximumQualification}
                   </label>
                   <Combobox
-                    options={qualifications?.map((item) => ({
+                    options={qualifications?.filter((item) => item.qualification_name.toLowerCase() !== '10th pass').map((item) => ({
                       value: String(item.id),
                       label: item.qualification_name,
                     })) || []}
@@ -2168,16 +2245,37 @@ const StudentForm: React.FC = () => {
                     placeholder={content.selectQualification}
                     searchPlaceholder="Search..."
                     emptyText="No qualification found."
-                    className="h-12"
+                    className="h-9 w-full border-gray-300 rounded-xl text-[13px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
+                    {content.schoolMedium}
+                  </label>
+                  <Combobox
+                    options={[
+                      { value: "English", label: "English" },
+                      { value: "Hindi", label: "Hindi" },
+                      { value: "Marathi", label: "Marathi" },
+                      { value: "Other", label: "Other" },
+                    ]}
+                    value={formData.schoolMedium}
+                    onValueChange={(value) => {
+                      handleInputChange({ target: { name: 'schoolMedium', value } } as any);
+                    }}
+                    placeholder={content.selectMedium}
+                    searchPlaceholder="Search..."
+                    emptyText="No medium found."
+                    className="h-9 w-full border-gray-300 rounded-xl text-[13px]"
                   />
                 </div>
               </div>
 
               {/* Conditional Graduation Fields */}
               {qualifications.find(q => String(q.id) === formData.maximumQualification)?.qualification_name.toLowerCase().includes('pursuing') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 animate-in fade-in slide-in-from-top-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-3 animate-in fade-in slide-in-from-top-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
                       {content.pursuingYear}
                     </label>
                     <Combobox
@@ -2195,11 +2293,11 @@ const StudentForm: React.FC = () => {
                       placeholder={content.selectOption}
                       searchPlaceholder="Search..."
                       emptyText="No option found."
-                      className="h-12"
+                      className="h-9 w-full border-gray-300 rounded-xl text-[13px]"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-[11px] sm:text-xs font-medium text-gray-600 mb-1">
                       {content.collegeAttendanceMethod}
                     </label>
                     <Combobox
@@ -2214,320 +2312,155 @@ const StudentForm: React.FC = () => {
                       placeholder={content.selectOption}
                       searchPlaceholder="Search..."
                       emptyText="No option found."
-                      className="h-12"
+                      className="h-9 w-full border-gray-300 rounded-xl text-[13px]"
                     />
                   </div>
                 </div>
               )}
+            </div>
+          </>
+        )}
 
-              {/* School Medium, Caste/Tribe, Religion */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {currentStep === 5 && (
+          <>
+            {/* --- CAMPUS & COURSE SECTION --- */}
+            <div className="mb-4 animate-in fade-in slide-in-from-right-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.22 4.621 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" /></svg>
+                </div>
+                <h2 className="text-base md:text-lg font-bold text-gray-900 tracking-tight">
+                  {content.campusAndCourse || "Campus & Course"}
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                {/* Selected Campus First */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.schoolMedium}
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[11px] sm:text-xs font-medium text-gray-600">
+                      {content.preferredCampus || "Preferred Campus *"}
+                    </label>
+                    {formData.preferred_campus_id && (
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedCampusInfo({ name: formData.preferred_campus_id });
+                        }} 
+                        className="text-[10px] sm:text-[11px] text-white bg-pink-500 hover:bg-pink-600 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 transition-all shadow-sm hover:shadow"
+                      >
+                        ℹ️ Click here for Campus Details
+                      </button>
+                    )}
+                  </div>
                   <Combobox
-                    options={[
-                      { value: "English", label: "English" },
-                      { value: "Hindi", label: "Hindi" },
-                      { value: "Marathi", label: "Marathi" },
-                      { value: "Other", label: "Other" },
-                    ]}
-                    value={formData.schoolMedium}
+                    options={getAvailableCampuses().map((campusName) => ({
+                      value: campusName,
+                      label: campusName,
+                    }))}
+                    value={formData.preferred_campus_id}
                     onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'schoolMedium', value } } as any);
+                      handleInputChange({ target: { name: 'preferred_campus_id', value } } as any);
                     }}
-                    placeholder={content.selectMedium}
+                    placeholder="Select Campus"
                     searchPlaceholder="Search..."
-                    emptyText="No medium found."
-                    className="h-12"
+                    emptyText="No campus found."
+                    className="h-9 w-full border-gray-300 rounded-xl text-[13px]"
                   />
                 </div>
+
+                {/* Selected Course Second */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.casteTribe}
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[11px] sm:text-xs font-medium text-gray-600">
+                      {content.preferredCourse || "Preferred Course *"}
+                    </label>
+                    {formData.initial_school_id && (
+                      <button 
+                        type="button" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const selectedSch = schools.find(sch => String(sch.id) === String(formData.initial_school_id));
+                          const detail = schoolDetails.find(sd => selectedSch && (selectedSch.school_name.includes(sd.id) || sd.id.includes(selectedSch.school_name)));
+                          if (detail) setSelectedSchoolInfo(detail);
+                        }} 
+                        className="text-[10px] sm:text-[11px] text-white bg-pink-500 hover:bg-pink-600 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 transition-all shadow-sm hover:shadow"
+                      >
+                        ℹ️ Click here for Course Details
+                      </button>
+                    )}
+                  </div>
                   <Combobox
-                    options={casts?.map((item) => ({
-                      value: String(item.id),
-                      label: item.cast_name,
-                    })) || []}
-                    value={formData.casteTribe}
+                    options={availableSchoolsForCampus.map(s => {
+                       const detail = schoolDetails.find(sd => sd.id === s.school_name);
+                       if (detail && isSchoolEligible(detail.id)) {
+                           // Use s.school_id if available, fallback to matching global schools by name
+                           const matched = schools.find(sch => sch.id === s.school_id || sch.school_name.includes(detail.id));
+                           const isOpen = s.is_open === true;
+                           return {
+                             value: String(s.school_id || (matched ? matched.id : s.id)),
+                             label: detail.name,
+                             disabled: !isOpen,
+                             subLabel: !isOpen ? (selectedLanguage === 'hindi' ? "इस कैंपस के लिए एडमिशन बंद हैं" : "Admissions Closed for this Campus") : undefined
+                           };
+                       }
+                       return null;
+                    }).filter(Boolean) as any[]}
+                    value={String(formData.initial_school_id)}
                     onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'casteTribe', value } } as any);
+                      handleInputChange({ target: { name: 'initial_school_id', value } } as any);
                     }}
-                    placeholder={content.selectOption}
-                    searchPlaceholder="Search caste..."
-                    emptyText="No caste found."
-                    className="h-12"
+                    placeholder="Select Course"
+                    searchPlaceholder="Search..."
+                    emptyText="No course found."
+                    className="h-9 w-full border-gray-300 rounded-xl text-[13px]"
                   />
                 </div>
-                {/* Religion field hidden as requested */}
-                {/* <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {content.religion}
-                  </label>
-                  <Combobox
-                    options={religions?.map((religion) => ({
-                      value: String(religion.id),
-                      label: religion.religion_name,
-                    })) || []}
-                    value={formData.religion}
-                    onValueChange={(value) => {
-                      handleInputChange({ target: { name: 'religion', value } } as any);
-                    }}
-                    placeholder={content.selectReligion}
-                    searchPlaceholder="Search religion..."
-                    emptyText="No religion found."
-                    className="h-12"
-                  />
-                </div> */}
               </div>
             </div>
           </>
         )}
 
-        {((!isMobile && currentStep === 2) || (isMobile && currentStep === 5)) && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-            <div className="text-center mb-6">
-              <p className="text-gray-600 mb-3">
-                {content.selectSchoolDescription}
-              </p>
-              <button
-                onClick={() => setIsLearningModalOpen(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white student-btn rounded-xl shadow-lg hover:shadow-primary/20 active:scale-95 transition-all"
-              >
-                <PlayCircle className="w-4 h-4" />
-                <span>{content.videoButtonText}</span>
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-onboarding="student-form-school-options">
-              {schoolDetails.map((school) => {
-                const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
-                const isEligible = isSchoolEligible(school.id);
-                const hasQualification = formData.maximumQualification;
-                const isBCACard = school.id === 'BCA';
 
-                return (
-                  <div
-                    key={school.id}
-                    data-onboarding="student-form-school-card"
-                    onClick={() => {
-                      if (isBCACard && isBCAFull) return; // Block BCA if full
-                      if (!isEligible && hasQualification) return; // Original logic for other schools
-                      setSelectedSchoolInfo(school);
-                    }}
-                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white ${(isBCACard && isBCAFull) || (!isEligible && hasQualification)
-                        ? "border-gray-200 cursor-not-allowed"
-                        : isSelected
-                          ? "border-primary shadow-lg ring-1 ring-primary/20 hover:border-primary/50 hover:shadow-xl cursor-pointer"
-                          : hasQualification
-                            ? "border-green-200 hover:border-primary/50 hover:shadow-xl cursor-pointer"
-                            : "border-gray-100 hover:border-primary/50 hover:shadow-xl cursor-pointer"
-                      }`}
-                  >
-                    {/* BCA Seats Full Overlay — only for BCA when isBCAFull */}
-                    {isBCACard && isBCAFull && (
-                      <div className="absolute inset-0 z-20 bg-gray-100/80 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-not-allowed">
-                        <div className="bg-red-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          </svg>
-                          Seats Full
-                        </div>
-                        <p className="text-xs text-gray-600 text-center px-6 font-medium">
-                          {selectedLanguage === 'hindi'
-                            ? 'BCA की सभी सीटें भर गई हैं'
-                            : selectedLanguage === 'marathi'
-                              ? 'BCA च्या सर्व जागा भरल्या आहेत'
-                              : 'All seats for BCA are currently full'}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Not Eligible Gray Overlay — original logic, untouched for non-BCA.
-                        For BCA: only show if isBCAFull is false AND not eligible */}
-                    {!isEligible && hasQualification && !(isBCACard && isBCAFull) && (
-                      <div className="absolute inset-0 z-20 bg-gray-100/80 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-not-allowed">
-                        <div className="bg-gray-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                          Not Eligible
-                        </div>
-                        <p className="text-xs text-gray-500 text-center px-6">
-                          {school.id === 'BCA' && formData.gender === 'male'
-                            ? 'This program is for female students only'
-                            : 'Your qualification does not meet the requirements'}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Top Decoration */}
-                    <div className={`h-1.5 w-full bg-gradient-to-r ${school.color === 'blue' ? 'from-blue-400 to-blue-600' :
-                      school.color === 'emerald' ? 'from-emerald-400 to-emerald-600' :
-                        school.color === 'amber' ? 'from-amber-400 to-amber-600' :
-                          school.color === 'purple' ? 'from-purple-400 to-purple-600' :
-                            school.color === 'rose' ? 'from-rose-400 to-rose-600' :
-                              'from-indigo-400 to-indigo-600'
-                      }`} />
-
-                    <div className="p-4 md:p-7 flex flex-col h-full relative z-10">
-                      <div className="flex justify-between items-start mb-4 md:mb-5">
-                        <span className={`text-[10px] font-bold uppercase tracking-wide md:tracking-widest px-3 py-1 md:px-2.5 md:py-1 rounded-full ${school.color === 'blue' ? 'bg-blue-100 text-blue-700' :
-                          school.color === 'emerald' ? 'bg-emerald-100 text-emerald-700' :
-                            school.color === 'amber' ? 'bg-amber-100 text-amber-700' :
-                              school.color === 'purple' ? 'bg-purple-100 text-purple-700' :
-                                school.color === 'rose' ? 'bg-rose-100 text-rose-700' :
-                                  'bg-indigo-100 text-indigo-700'
-                          }`}>
-                          {school.tag}
-                        </span>
-                        {isSelected && (
-                          <div className="bg-primary text-white rounded-full p-1 shadow-sm">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                          </div>
-                        )}
-                      </div>
-
-                      <h3 className="text-[17px] md:text-xl font-bold text-gray-800 mb-2 md:mb-3 group-hover:text-primary transition-colors">{school.name}</h3>
-                      <p className="text-[13px] md:text-sm text-gray-500 md:text-gray-600 leading-snug md:leading-relaxed mb-5 md:mb-6 line-clamp-3 md:line-clamp-5">{school.description}</p>
-
-                      <div className="mt-auto">
-                        {/* Mobile Bottom Layout */}
-                        <div className="flex md:hidden items-center justify-between">
-                          <div
-                            className="flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const newExpanded = new Set(expandedLocations);
-                              if (newExpanded.has(school.id)) {
-                                newExpanded.delete(school.id);
-                              } else {
-                                newExpanded.add(school.id);
-                              }
-                              setExpandedLocations(newExpanded);
-                            }}
-                          >
-                            <span className="text-[15px] text-red-500">📍</span>
-                            <span className="text-[13px] text-gray-500 font-medium">
-                              {expandedLocations.has(school.id)
-                                ? school.location
-                                : (school.id !== 'BCA'
-                                  ? content.variousCampuses
-                                  : school.location
-                                )
-                              }
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!isEligible && hasQualification) return;
-                              setSelectedSchoolInfo(school);
-                            }}
-                            disabled={!isEligible && !!hasQualification}
-                            className={`text-[13px] font-bold flex items-center gap-1 ${!isEligible && hasQualification ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:opacity-80'}`}
-                          >
-                            {content.checkDetails}
-                            <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                          </button>
-                        </div>
-
-                        {/* Desktop Bottom Layout */}
-                        <div className="hidden md:block space-y-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!isEligible && hasQualification) return;
-                              setSelectedSchoolInfo(school);
-                            }}
-                            disabled={!isEligible && !!hasQualification}
-                            className={`text-sm font-bold flex items-center gap-1.5 decoration-2 underline-offset-4 ${!isEligible && hasQualification ? 'text-gray-400 cursor-not-allowed' : 'text-primary hover:underline'}`}
-                          >
-                            {content.checkDetails}
-                            <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                          </button>
-
-                          <div className="grid grid-cols-1 gap-2 pt-2 border-t border-gray-100">
-                            <div
-                              className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const newExpanded = new Set(expandedLocations);
-                                if (newExpanded.has(school.id)) {
-                                  newExpanded.delete(school.id);
-                                } else {
-                                  newExpanded.add(school.id);
-                                }
-                                setExpandedLocations(newExpanded);
-                              }}
-                            >
-                              <span className="text-base text-red-500">📍</span>
-                              <span className="text-xs text-gray-600 font-medium">
-                                {expandedLocations.has(school.id)
-                                  ? school.location
-                                  : (school.id !== 'BCA'
-                                    ? content.variousCampuses
-                                    : school.location
-                                  )
-                                }
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-base text-gray-400">⏳</span>
-                              <span className="text-xs text-gray-600 font-medium">{school.duration.split('(')[0].trim()}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {selectedSchoolInfo && <SchoolDetailCard school={selectedSchoolInfo} />}
-          </div>
-        )}
+        <div className="h-px bg-gray-100 my-4 w-full" />
 
         {/* Action Buttons */}
-        {isMobile && currentStep === 5 && !selectedSchoolInfo && <div className="h-32" />}
-        <div className={`flex flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center sm:space-x-4 ${
-          isMobile && currentStep === 5
-            ? `fixed bottom-0 left-0 right-0 w-full px-4 pb-6 pt-4 z-50 bg-white/70 backdrop-blur-lg border-t border-white/50 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] ${selectedSchoolInfo ? 'hidden' : ''}`
-            : "mt-8"
-        }`}>
+        <div className="flex items-center justify-between mt-2">
+          {currentStep > 1 ? (
+            <button
+              type="button"
+              onClick={handlePrevious}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-95"
+            >
+              <span>&larr;</span> {content.back}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate("/students")}
+              className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-95"
+            >
+              <span>&larr;</span> {content.back}
+            </button>
+          )}
+          
           <button
-            onClick={handlePrevious}
-            className="w-[80%] sm:w-auto rounded-2xl border-2 border-purple-400 bg-white px-4 py-2 md:px-6 md:py-3 text-[15px] md:text-base font-bold text-purple-600 transition-all hover:bg-purple-50 sm:min-w-[140px]"
-          >
-            {isMobile && selectedLanguage === 'hindi' ? 'पीछे' : content.back}
-          </button>
-          <button
+            type="button"
             onClick={handleSubmit}
-            data-onboarding={(!isMobile && currentStep === 1) || (isMobile && currentStep < 5) ? "student-form-school-step" : "student-form-submit"}
-            className={`w-[80%] sm:w-auto rounded-2xl px-4 py-2 md:px-6 md:py-3 text-[15px] md:text-base font-bold text-white shadow-lg transition-all student-btn hover:shadow-primary/20 active:scale-95 sm:min-w-[140px]`}
+            data-onboarding={currentStep === 5 ? "student-form-submit" : "student-form-school-step"}
+            className="rounded-xl bg-pink-500 hover:bg-pink-600 px-8 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95"
           >
-            {(!isMobile && currentStep === 1) || (isMobile && currentStep < 5) ? (isMobile && selectedLanguage === 'hindi' ? 'आगे' : content.nextStep) : content.saveContinue}
+            {currentStep === 1 ? `Next: ${content.contactInfo || "Contact Info"}` : 
+             currentStep === 2 ? `Next: Address Details` :
+             currentStep === 3 ? `Next: Education` :
+             currentStep === 4 ? `Next: Campus` :
+             currentStep === 5 ? content.saveContinue : (selectedLanguage === 'hindi' ? 'आगे' : content.nextStep)}
           </button>
         </div>
-
-        {/* Desktop Progress Display */}
-        {!isMobile && (
-          <div className="mt-8 flex flex-col items-center">
-            <div className="flex space-x-3 mb-3">
-              <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 1 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-primary/20'}`}></div>
-              <div className={`w-16 h-2 rounded-full transition-all duration-500 ${currentStep === 2 ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-gray-100'}`}></div>
-            </div>
-            <span className="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">
-              {content.phase} {currentStep} of 2
-            </span>
-          </div>
-        )}
-      </div>
+        </div>
+      </main>
 
       {/* Learning Round Modal */}
       <LearningRoundModal
@@ -2537,7 +2470,13 @@ const StudentForm: React.FC = () => {
         title="Learning Round Overview"
         description="Watch this video to understand how the learning round works and what to expect."
       />
-    </div >
+
+      {/* School Details Modal */}
+      {selectedSchoolInfo && <SchoolDetailCard school={selectedSchoolInfo} />}
+
+      {/* Campus Details Modal */}
+      {selectedCampusInfo && <CampusDetailCard campus={selectedCampusInfo} />}
+    </div>
   );
 };
 

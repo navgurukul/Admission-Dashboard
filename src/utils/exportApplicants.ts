@@ -7,6 +7,7 @@ interface ExportOptions {
   filterParams?: any; // Filter parameters for batch fetching
   searchTerm?: string; // Search term for search export
   exportType?: 'all' | 'filtered' | 'selected'; // 'all' = all data, 'filtered' = current filtered/searched data, 'selected' = selected rows only
+  selectedFields?: string[]; // Selected fields to include in export
   toast: (options: {
     title: string;
     description: string;
@@ -27,6 +28,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
     filterParams = null,
     searchTerm = "",
     exportType = 'all', // Default: export all data
+    selectedFields = [], // Default: empty array means all fields
     toast,
   } = options;
 
@@ -188,47 +190,198 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
     return;
   }
 
-  // Headers matching the required import format
-  const headers = [
-    "FirstName",
-    "MiddleName",
-    "LastName",
-    "Gender",
-    "DOB",
-    "Email",
-    "PhoneNumber",
-    "WhatsappNumber",
-    "State",
-    "City",
-    "District",
-    "Block",
-    "PinCode",
-    "Qualification",
-    "CurrentStatus",
-    "Cast",
-    // "Religion",
-    "School",
-    "Campus",
-    "CommunicationNotes",
-    "QuestionSetName",
-    "ExamCentre",
-    "DateOfTest",
-    "ObtainedMarks",
-    "ExamStatus",
-    "ExamLastUpdatedByEmail",
-    "LearningRoundStatus",
-    "LearningRoundComments",
-    "LearningRoundLastUpdatedByEmail",
-    "CulturalFitStatus",
-    "CulturalFitComments",
-    "CulturalFitLastUpdatedByEmail",
-    "OfferLetterStatus",
-    "OnboardedStatus",
-    "FinalNotes",
-    "JoiningDate",
-    "OfferLetterSentByEmail",
-    "FinalStatusUpdatedByEmail",
-  ];
+  // Field mapping: internal field ID to CSV header and data accessor
+  const fieldMapping: Record<string, { header: string; accessor: (applicant: any) => any }> = {
+    first_name: { header: "FirstName", accessor: (a) => a.first_name },
+    middle_name: { header: "MiddleName", accessor: (a) => a.middle_name },
+    last_name: { header: "LastName", accessor: (a) => a.last_name },
+    gender: { header: "Gender", accessor: (a) => a.gender },
+    dob: { header: "DOB", accessor: (a) => a.dob },
+    email: { header: "Email", accessor: (a) => a.email },
+    phone_number: { header: "PhoneNumber", accessor: (a) => a.phone_number },
+    whatsapp_number: { header: "WhatsappNumber", accessor: (a) => a.whatsapp_number },
+    state: { header: "State", accessor: (a) => a.state_name || a.state || "" },
+    city: { header: "City", accessor: (a) => a.city || a.city_name || "" },
+    district: { header: "District", accessor: (a) => a.district_name || a.district || "" },
+    block: { header: "Block", accessor: (a) => a.block_name || a.block || "" },
+    pin_code: { header: "PinCode", accessor: (a) => a.pin_code || a.pincode || "" },
+    qualification: { header: "Qualification", accessor: (a) => a.qualification_name || a.qualification || "" },
+    current_status: { header: "CurrentStatus", accessor: (a) => a.current_status_name || a.current_work },
+    cast: { header: "Cast", accessor: (a) => a.cast_name || a.caste },
+    school: { header: "School", accessor: (a) => a.school_name },
+    campus: { header: "Campus", accessor: (a) => a.campus_name },
+    communication_notes: { header: "CommunicationNotes", accessor: (a) => a.communication_notes },
+    question_set_name: { 
+      header: "QuestionSetName", 
+      accessor: (a) => {
+        const examSessions = a.exam_sessions || [];
+        const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
+        let questionSetName = a.question_set_name || a.set_name || "";
+        if (examSession.question_set_id) {
+          const examQuestionSet = questionSetList.find((q) => q.id === examSession.question_set_id);
+          if (examQuestionSet) {
+            questionSetName = examQuestionSet.name;
+          }
+        }
+        return questionSetName;
+      }
+    },
+    exam_centre: { 
+      header: "ExamCentre", 
+      accessor: (a) => {
+        const examSessions = a.exam_sessions || [];
+        const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
+        return examSession.exam_centre || a.exam_centre || "";
+      }
+    },
+    date_of_test: { 
+      header: "DateOfTest", 
+      accessor: (a) => {
+        const examSessions = a.exam_sessions || [];
+        const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
+        return examSession.date_of_test || a.date_of_test;
+      }
+    },
+    obtained_marks: { 
+      header: "ObtainedMarks", 
+      accessor: (a) => {
+        const examSessions = a.exam_sessions || [];
+        const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
+        return examSession.obtained_marks || a.obtained_marks || "";
+      }
+    },
+    exam_status: { 
+      header: "ExamStatus", 
+      accessor: (a) => {
+        const examSessions = a.exam_sessions || [];
+        const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
+        return examSession.status || a.exam_status || a.status || "";
+      }
+    },
+    exam_last_updated_by: { 
+      header: "ExamLastUpdatedByEmail", 
+      accessor: (a) => {
+        const examSessions = a.exam_sessions || [];
+        const examSession = examSessions.length > 0 ? examSessions[examSessions.length - 1] : {};
+        return examSession.last_updated_by || a.exam_last_updated_by || "";
+      }
+    },
+    learning_round_status: { 
+      header: "LearningRoundStatus", 
+      accessor: (a) => {
+        const learningRounds = a.interview_learner_round || [];
+        const learningRound = learningRounds.length > 0 ? learningRounds[learningRounds.length - 1] : {};
+        return learningRound.learning_round_status || a.lr_status || "";
+      }
+    },
+    learning_round_comments: { 
+      header: "LearningRoundComments", 
+      accessor: (a) => {
+        const learningRounds = a.interview_learner_round || [];
+        const learningRound = learningRounds.length > 0 ? learningRounds[learningRounds.length - 1] : {};
+        return learningRound.comments || a.lr_comments || "";
+      }
+    },
+    learning_round_last_updated_by: { 
+      header: "LearningRoundLastUpdatedByEmail", 
+      accessor: (a) => {
+        const learningRounds = a.interview_learner_round || [];
+        const learningRound = learningRounds.length > 0 ? learningRounds[learningRounds.length - 1] : {};
+        return learningRound.last_updated_by || a.lr_last_updated_by || "";
+      }
+    },
+    cultural_fit_status: { 
+      header: "CulturalFitStatus", 
+      accessor: (a) => {
+        const culturalFitRounds = a.interview_cultural_fit_round || [];
+        const culturalFitRound = culturalFitRounds.length > 0 ? culturalFitRounds[culturalFitRounds.length - 1] : {};
+        return culturalFitRound.cultural_fit_status || a.cfr_status;
+      }
+    },
+    cultural_fit_comments: { 
+      header: "CulturalFitComments", 
+      accessor: (a) => {
+        const culturalFitRounds = a.interview_cultural_fit_round || [];
+        const culturalFitRound = culturalFitRounds.length > 0 ? culturalFitRounds[culturalFitRounds.length - 1] : {};
+        return culturalFitRound.comments || a.cfr_comments;
+      }
+    },
+    cultural_fit_last_updated_by: { 
+      header: "CulturalFitLastUpdatedByEmail", 
+      accessor: (a) => {
+        const culturalFitRounds = a.interview_cultural_fit_round || [];
+        const culturalFitRound = culturalFitRounds.length > 0 ? culturalFitRounds[culturalFitRounds.length - 1] : {};
+        return culturalFitRound.last_updated_by || a.cfr_last_updated_by;
+      }
+    },
+    offer_letter_status: { 
+      header: "OfferLetterStatus", 
+      accessor: (a) => {
+        const finalDecisions = a.final_decisions || [];
+        const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
+        return finalDecision.offer_letter_status || a.offer_letter_status;
+      }
+    },
+    onboarded_status: { 
+      header: "OnboardedStatus", 
+      accessor: (a) => {
+        const finalDecisions = a.final_decisions || [];
+        const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
+        return finalDecision.onboarded_status || a.onboarded_status || a.joining_status;
+      }
+    },
+    final_notes: { 
+      header: "FinalNotes", 
+      accessor: (a) => {
+        const finalDecisions = a.final_decisions || [];
+        const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
+        return finalDecision.final_notes || a.final_notes;
+      }
+    },
+    joining_date: { 
+      header: "JoiningDate", 
+      accessor: (a) => {
+        const finalDecisions = a.final_decisions || [];
+        const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
+        return finalDecision.joining_date || a.joining_date;
+      }
+    },
+    offer_letter_sent_by: { 
+      header: "OfferLetterSentByEmail", 
+      accessor: (a) => {
+        const finalDecisions = a.final_decisions || [];
+        const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
+        return finalDecision.offer_letter_sent_by || a.offer_letter_sent_by;
+      }
+    },
+    final_status_updated_by: { 
+      header: "FinalStatusUpdatedByEmail", 
+      accessor: (a) => {
+        const finalDecisions = a.final_decisions || [];
+        const finalDecision = finalDecisions.length > 0 ? finalDecisions[finalDecisions.length - 1] : {};
+        return finalDecision.last_status_updated_by || a.last_status_updated_by;
+      }
+    },
+  };
+
+  // Determine which fields to export
+  // If selectedFields is empty or not provided, export all fields (backward compatibility)
+  const fieldsToExport = selectedFields && selectedFields.length > 0 
+    ? selectedFields.filter(field => fieldMapping[field]) // Only include valid fields
+    : Object.keys(fieldMapping); // Export all fields if none selected
+
+  // Safety check: ensure we have at least required fields
+  if (fieldsToExport.length === 0) {
+    toast({
+      title: "⚠️ No Fields Selected",
+      description: "Please select at least one field to export",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Generate headers
+  const headers = fieldsToExport.map(fieldId => fieldMapping[fieldId].header);
 
   // Helper to format CSV values (escape special characters)
   const formatValue = (value: any) => {
@@ -265,97 +418,18 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
   const csvContent = [
     headers.join(","),
     ...dataToExport.map((applicant: any) => {
-      // Extract data from nested structures (if available) or flat fields - using LAST value
-      const examSessions = applicant.exam_sessions || [];
-      const learningRounds = applicant.interview_learner_round || [];
-      const culturalFitRounds = applicant.interview_cultural_fit_round || [];
-      const finalDecisions = applicant.final_decisions || [];
-
-      //    console.log(applicant)
-
-
-      const examSession =
-        examSessions.length > 0
-          ? examSessions[examSessions.length - 1]
-          : {};
-      const learningRound =
-        learningRounds.length > 0
-          ? learningRounds[learningRounds.length - 1]
-          : {};
-      const culturalFitRound =
-        culturalFitRounds.length > 0
-          ? culturalFitRounds[culturalFitRounds.length - 1]
-          : {};
-      const finalDecision =
-        finalDecisions.length > 0
-          ? finalDecisions[finalDecisions.length - 1]
-          : {};
-
-      // Resolve question set name from exam session's question_set_id
-      let questionSetNameResolved = applicant.question_set_name || applicant.set_name || "";
-      if (examSession.question_set_id) {
-        const examQuestionSet = questionSetList.find(
-          (q) => q.id === examSession.question_set_id
-        );
-        if (examQuestionSet) {
-          questionSetNameResolved = examQuestionSet.name;
+      const row = fieldsToExport.map(fieldId => {
+        const field = fieldMapping[fieldId];
+        const value = field.accessor(applicant);
+        
+        // Apply date formatting for date fields
+        if (fieldId === 'dob' || fieldId === 'date_of_test' || fieldId === 'joining_date') {
+          return formatValue(formatDate(value));
         }
-      }
-
-      const row = [
-        formatValue(applicant.first_name),
-        formatValue(applicant.middle_name),
-        formatValue(applicant.last_name),
-        formatValue(applicant.gender),
-        formatValue(applicant.dob),
-        formatValue(applicant.email),
-        formatValue(applicant.phone_number),
-        formatValue(applicant.whatsapp_number),
-        formatValue(applicant.state_name || applicant.state || ""),
-        formatValue(applicant.city || applicant.city_name || ""),
-        formatValue(applicant.district_name || applicant.district || ""),
-        formatValue(applicant.block_name || applicant.block || ""),
-        formatValue(applicant.pin_code || applicant.pincode || ""),
-        formatValue(applicant.qualification_name || applicant.qualification || ""),
-        formatValue(applicant.current_status_name || applicant.current_work),
-        formatValue(applicant.cast_name || applicant.caste),
-        // formatValue(applicant.religion_name || applicant.religion),
-        formatValue(applicant.school_name),
-        formatValue(applicant.campus_name),
-        formatValue(applicant.communication_notes),
-        formatValue(questionSetNameResolved),
-        formatValue(examSession.exam_centre || applicant.exam_centre || ""),
-        formatDate(examSession.date_of_test || applicant.date_of_test),
-        formatValue(examSession.obtained_marks || applicant.obtained_marks || ""),
-        formatValue(examSession.status || applicant.exam_status || applicant.status || ""),
-        formatValue(examSession.last_updated_by || applicant.exam_last_updated_by || ""),
-        formatValue(learningRound.learning_round_status || applicant.lr_status || ""),
-        formatValue(learningRound.comments || applicant.lr_comments || ""),
-        formatValue(learningRound.last_updated_by || applicant.lr_last_updated_by || ""),
-        formatValue(
-          culturalFitRound.cultural_fit_status || applicant.cfr_status,
-        ),
-        formatValue(culturalFitRound.comments || applicant.cfr_comments),
-        formatValue(
-          culturalFitRound.last_updated_by || applicant.cfr_last_updated_by,
-        ),
-        formatValue(
-          finalDecision.offer_letter_status || applicant.offer_letter_status,
-        ),
-        formatValue(
-          finalDecision.onboarded_status ||
-          applicant.onboarded_status ||
-          applicant.joining_status,
-        ),
-        formatValue(finalDecision.final_notes || applicant.final_notes),
-        formatDate(finalDecision.joining_date || applicant.joining_date),
-        formatValue(
-          finalDecision.offer_letter_sent_by || applicant.offer_letter_sent_by,
-        ),
-        formatValue(
-          finalDecision.last_status_updated_by || applicant.last_status_updated_by,
-        ),
-      ];
+        
+        return formatValue(value);
+      });
+      
       return row.join(",");
     }),
   ].join("\n");

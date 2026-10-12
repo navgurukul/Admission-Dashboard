@@ -260,7 +260,8 @@ const App = () => (
                 <Route path="qualification" element={<Qualification />} />
                 <Route index element={<UserRole />} />
               </Route>
-              {/* Custom student redirect route */}
+              {/* Custom student routes */}
+              <Route path="/student/*" element={<StudentRoutes />} />
               <Route path="/students/*" element={<StudentRoutes />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
