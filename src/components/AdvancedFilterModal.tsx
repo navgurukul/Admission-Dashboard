@@ -74,6 +74,7 @@ interface FilterState {
     from?: Date;
     to?: Date;
   };
+  mode?: string;
 }
 
 interface AdvancedFilterModalProps {
@@ -281,6 +282,7 @@ export function AdvancedFilterModal({
       state: undefined,
       gender: undefined,
       duplicate: undefined,
+      mode: undefined,
       donor: [],
       partnerFilter: [],
       exam_centre: [],
@@ -318,7 +320,7 @@ export function AdvancedFilterModal({
       filters.religion?.length > 0 || filters.qualification?.length > 0 ||
       filters.currentStatus?.length > 0 || filters.donor?.length > 0 ||
       filters.partnerFilter?.length > 0 || filters.exam_centre?.length > 0 ||
-      filters.state || filters.gender || filters.duplicate || filters.dateRange.from || filters.dateRange.to;
+      filters.state || filters.gender || filters.duplicate || filters.mode || filters.dateRange.from || filters.dateRange.to;
     if (!hasValidFilters) {
       toast({ title: "⚠️ No Filters Selected", description: "Please select at least one filter.", variant: "destructive", className: "border-orange-500 bg-orange-50 text-orange-900" });
       return;
@@ -385,6 +387,7 @@ export function AdvancedFilterModal({
         case "donor": return { ...newFilters, donor: [] };
         case "partnerFilter": return { ...newFilters, partnerFilter: [] };
         case "duplicate": return { ...newFilters, duplicate: undefined };
+        case "mode": return { ...newFilters, mode: undefined };
         case "dateRange": case "daterange": return { ...newFilters, dateRange: { type: prev.dateRange.type } };
         default: return prev;
       }
@@ -410,6 +413,7 @@ export function AdvancedFilterModal({
   if (filters.state) activeFilters.push({ key: "state", label: `State: ${filters.state}`, onRemove: () => clearSingleFilter("state") });
   if (filters.gender) activeFilters.push({ key: "gender", label: `Gender: ${filters.gender}`, onRemove: () => setFilters((prev) => ({ ...prev, gender: undefined })) });
   if (filters.duplicate) activeFilters.push({ key: "duplicate", label: `Duplicate: ${filters.duplicate === "yes" ? "Yes" : "No"}`, onRemove: () => clearSingleFilter("duplicate") });
+  if (filters.mode) activeFilters.push({ key: "mode", label: `Mode: ${filters.mode}`, onRemove: () => clearSingleFilter("mode") });
 
   filters.district?.forEach(d => activeFilters.push({ key: `district-${d}`, label: `District: ${d}`, onRemove: () => clearSingleFilter("district", d) }));
   filters.partner?.forEach(p => {
@@ -542,7 +546,7 @@ export function AdvancedFilterModal({
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.stage_id || String(filters.stage_id) === "all") && "text-muted-foreground")}>
                     <SelectValue placeholder="Select stage" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
@@ -570,7 +574,7 @@ export function AdvancedFilterModal({
                       disabled={!filters.stage || filters.stage === "all" || stageStatuses.length === 0 || isLoading.general}
                       className={cn(
                         "w-full justify-between h-9 text-sm font-normal",
-                        (!filters.stage || filters.stage === "all") && "text-muted-foreground",
+                        ((!filters.stage || filters.stage === "all") || !filters.stage_status || (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) || filters.stage_status === "all") && "text-muted-foreground",
                         filters.stage && filters.stage !== "all" && stageStatuses.length > 0 &&
                         (!filters.stage_status || (Array.isArray(filters.stage_status) && filters.stage_status.length === 0) || filters.stage_status === "all")
                           ? "border-red-300" : ""
@@ -649,7 +653,7 @@ export function AdvancedFilterModal({
                   value={filters.gender || "all"}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, gender: value === "all" ? undefined : value }))}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.gender || filters.gender === "all") && "text-muted-foreground")}>
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
@@ -668,13 +672,31 @@ export function AdvancedFilterModal({
                   value={filters.duplicate || "all"}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, duplicate: value === "all" ? undefined : value }))}
                 >
-                  <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.duplicate || filters.duplicate === "all") && "text-muted-foreground")}>
                     <SelectValue placeholder="Select duplicate" />
                   </SelectTrigger>
                   <SelectContent className="z-50">
                     <SelectItem value="all">Select duplicate</SelectItem>
                     <SelectItem value="yes">Yes</SelectItem>
                     <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Mode */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Mode</Label>
+                <Select
+                  value={filters.mode || "all"}
+                  onValueChange={(value) => setFilters((prev) => ({ ...prev, mode: value === "all" ? undefined : value }))}
+                >
+                  <SelectTrigger className={cn("w-full h-9 text-sm", (!filters.mode || filters.mode === "all") && "text-muted-foreground")}>
+                    <SelectValue placeholder="Select mode" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="Online">Online</SelectItem>
+                    <SelectItem value="Offline">Offline</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -717,6 +739,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search state..."
                   emptyText="No state found."
                   disabled={isLoading.general}
+                  className={(!filters.state || filters.state === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 
@@ -734,6 +757,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search district..."
                   emptyText="No district found."
                   disabled={!filters.state || filters.state === "all" || isLoading.districts}
+                  className={(!filters.district || filters.district.length === 0 || filters.district[0] === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 
@@ -753,6 +777,7 @@ export function AdvancedFilterModal({
                     searchPlaceholder="Search campus..."
                     emptyText="No campus found."
                     disabled={isLoading.general}
+                    className={(!filters.partner || filters.partner.length === 0 || filters.partner[0] === "all") ? "text-muted-foreground font-normal" : ""}
                   />
                 </div>
               )}
@@ -770,7 +795,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Partner</Label>
                 <MultiSelectCombobox
-                  options={partnerList.map((partner) => ({ value: String(getValue(partner)), label: getDisplayName(partner, "partner_name", "Partner") }))}
+                  options={[
+                    ...partnerList.map((partner) => ({ value: String(getValue(partner)), label: getDisplayName(partner, "partner_name", "Partner") }))
+                  ]}
                   value={filters.partnerFilter || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, partnerFilter: value }))}
                   onOpen={() => loadFieldData("partnerFilter")}
@@ -785,7 +812,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Donor</Label>
                 <MultiSelectCombobox
-                  options={donorList.map((donor) => ({ value: String(getValue(donor)), label: getDisplayName(donor, "donor_name", "Donor") }))}
+                  options={[
+                    ...donorList.map((donor) => ({ value: String(getValue(donor)), label: getDisplayName(donor, "donor_name", "Donor") }))
+                  ]}
                   value={filters.donor || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, donor: value }))}
                   onOpen={() => loadFieldData("donor")}
@@ -809,7 +838,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Prefered school</Label>
                 <MultiSelectCombobox
-                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
+                  options={[
+                    ...schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))
+                  ]}
                   value={filters.initial_school || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, initial_school: value }))}
                   onOpen={() => loadFieldData("school")}
@@ -824,7 +855,9 @@ export function AdvancedFilterModal({
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Qualifying School</Label>
                 <MultiSelectCombobox
-                  options={schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))}
+                  options={[
+                    ...schoolList.map((school) => ({ value: String(getValue(school)), label: getDisplayName(school, "school_name", "School") }))
+                  ]}
                   value={filters.school || []}
                   onValueChange={(value) => setFilters((prev) => ({ ...prev, school: value }))}
                   onOpen={() => loadFieldData("school")}
@@ -855,6 +888,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search qualification..."
                   emptyText="No qualification found."
                   disabled={isLoading.general}
+                  className={(!filters.qualification || filters.qualification.length === 0 || filters.qualification[0] === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 
@@ -873,6 +907,7 @@ export function AdvancedFilterModal({
                   searchPlaceholder="Search status..."
                   emptyText="No status found."
                   disabled={isLoading.general}
+                  className={(!filters.currentStatus || filters.currentStatus.length === 0 || filters.currentStatus[0] === "all") ? "text-muted-foreground font-normal" : ""}
                 />
               </div>
 

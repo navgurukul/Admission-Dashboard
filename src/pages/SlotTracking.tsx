@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { getCurrentUser, getAllUsers, getInterviewerStats } from "@/utils/api";
-import { toPng } from "html-to-image";
+import { toCanvas } from "html-to-image";
 import jsPDF from "jspdf";
+import SlotTrackingPDFTemplate from "@/components/SlotTrackingPDFTemplate";
 import {
   ResponsiveContainer,
   LineChart,
@@ -289,8 +290,10 @@ const SlotTracking = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const sheetRef = useRef<HTMLDivElement>(null);
+  const pdfTemplateRef = useRef<HTMLDivElement>(null);
   const [capturingScreenshot, setCapturingScreenshot] = useState<boolean>(false);
   const [generatingPdf, setGeneratingPdf] = useState<boolean>(false);
+  const [showPdfTemplate, setShowPdfTemplate] = useState<boolean>(true);
 
   const getActiveApiParams = () => {
     let start_date = "";
@@ -660,32 +663,65 @@ const SlotTracking = () => {
   };
 
   const handleDownloadPDF = async () => {
-    if (!sheetRef.current) return;
+    console.log("PDF Download clicked!");
+    
     setGeneratingPdf(true);
+
     try {
       toast({
         title: "📄 Generating PDF...",
         description: "Please wait while your report PDF is being generated.",
       });
 
-      const dataUrl = await toPng(sheetRef.current, {
+      // Wait for any rendering to complete
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      if (!pdfTemplateRef.current) {
+        throw new Error("PDF template not found");
+      }
+
+      console.log("Converting to canvas...");
+      
+      // Convert to canvas (better for SVG/Charts)
+      const canvas = await toCanvas(pdfTemplateRef.current, {
         cacheBust: true,
-        quality: 0.95,
-        backgroundColor: "#F8FAFC",
+        quality: 1,
+        backgroundColor: "#FFFFFF",
+        pixelRatio: 2,
+        width: 794,
+        height: 1123,
       });
 
+      console.log("Canvas created, size:", canvas.width, "x", canvas.height);
+
+      // Convert canvas to image
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      console.log("Image data created");
+
+      // Create PDF in portrait mode
       const pdf = new jsPDF({
-        orientation: "landscape",
+        orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
 
-      const imgProps = pdf.getImageProperties(dataUrl);
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`reports-${timeMode}-${formatDateISO(new Date())}.pdf`);
+      console.log("Adding image to PDF...");
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      
+      // Generate filename
+      const interviewerName = selectedInterviewerId 
+        ? usersList.find((u) => String(u.id) === selectedInterviewerId)?.name || "report"
+        : viewScope === "my" && currentUser?.name
+        ? currentUser.name
+        : "all-interviewers";
+      
+      const fileName = `admission-report-${interviewerName.replace(/\s+/g, "-")}-${timeMode}-${formatDateISO(new Date())}.pdf`;
+      
+      console.log("Saving PDF as:", fileName);
+      pdf.save(fileName);
 
       toast({
         title: "✅ PDF Downloaded",
@@ -728,7 +764,7 @@ const SlotTracking = () => {
 
             {/* Top Right Action Pills */}
             <div className="flex flex-wrap items-center gap-2">
-              {isAdmin && (
+              {isAdmin && viewScope === "all" && (
                 <Select
                   value={selectedInterviewerId || "all"}
                   onValueChange={(val) => setSelectedInterviewerId(val === "all" ? "" : val)}
@@ -1426,6 +1462,61 @@ const SlotTracking = () => {
 
         </div>
       </main>
+
+      {/* Hidden PDF Template for Export */}
+      <div 
+        style={{ 
+          position: 'fixed', 
+          left: '-9999px', 
+          top: 0,
+          visibility: showPdfTemplate ? 'visible' : 'hidden',
+          pointerEvents: 'none'
+        }}
+      >
+        <SlotTrackingPDFTemplate
+          ref={pdfTemplateRef}
+          periodTitle={
+            timeMode === "daily"
+              ? "Interview Slots Performance"
+              : timeMode === "weekly"
+              ? "Interview Slots Performance"
+              : timeMode === "monthly"
+              ? "Interview Slots Performance"
+              : timeMode === "all_time"
+              ? "Interview Slots Performance"
+              : "Interview Slots Performance"
+          }
+          periodSubtitle={
+            timeMode === "daily"
+              ? formatDisplayDate(dailyDate)
+              : timeMode === "weekly"
+              ? `${formatDisplayDate(weekRange.start)} – ${formatDisplayDate(weekRange.end)}`
+              : timeMode === "monthly"
+              ? `${formatDisplayDate(monthRange.start)} – ${formatDisplayDate(monthRange.end)}`
+              : timeMode === "custom"
+              ? `${formatDisplayDate(customRange.start)} – ${formatDisplayDate(customRange.end)}`
+              : "All Time"
+          }
+          generatedDate={new Date().toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+          grandTotalRow={grandTotalRow}
+          lrTotalRow={lrTotalRow}
+          crfTotalRow={crfTotalRow}
+          trendData={trendData}
+          pieData={pieData}
+          interviewerName={
+            selectedInterviewerId
+              ? usersList.find((u) => String(u.id) === selectedInterviewerId)?.name
+              : viewScope === "my" && currentUser?.name
+              ? currentUser.name
+              : undefined
+          }
+          showCharts={showReports}
+        />
+      </div>
     </div>
   );
 };

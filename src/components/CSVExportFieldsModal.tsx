@@ -31,13 +31,13 @@ interface CSVExportFieldsModalProps {
 // Define all available CSV fields organized by category
 const ALL_CSV_FIELDS: CSVField[] = [
   // Personal Information
-  { id: 'first_name', label: 'First Name', category: 'Personal Information', required: true },
+  { id: 'first_name', label: '*First Name', category: 'Personal Information', required: true },
   { id: 'middle_name', label: 'Middle Name', category: 'Personal Information' },
   { id: 'last_name', label: 'Last Name', category: 'Personal Information', required: true },
   { id: 'gender', label: 'Gender', category: 'Personal Information' },
   { id: 'dob', label: 'Date of Birth', category: 'Personal Information' },
   { id: 'email', label: 'Email', category: 'Personal Information' },
-  { id: 'phone_number', label: 'Phone Number', category: 'Personal Information' },
+  { id: 'phone_number', label: '*Phone Number', category: 'Personal Information' },
   { id: 'whatsapp_number', label: 'WhatsApp Number', category: 'Personal Information' },
   
   // Address Information
@@ -45,15 +45,15 @@ const ALL_CSV_FIELDS: CSVField[] = [
   { id: 'city', label: 'City', category: 'Address Information' },
   { id: 'district', label: 'District', category: 'Address Information' },
   { id: 'block', label: 'Block', category: 'Address Information' },
-  { id: 'pin_code', label: 'Pin Code', category: 'Address Information' },
+  { id: 'pin_code', label: 'Pincode', category: 'Address Information' },
   
   // Academic & Background
   { id: 'qualification', label: 'Qualification', category: 'Academic & Background' },
-  { id: 'current_status', label: 'Current Status', category: 'Academic & Background' },
-  { id: 'cast', label: 'Cast', category: 'Academic & Background' },
+  { id: 'qualifying_school', label: 'Qualifying School', category: 'Academic & Background' },
+  { id: 'partner_name', label: 'Partner Name', category: 'Academic & Background' },
   
   // School & Campus
-  { id: 'school', label: 'School', category: 'School & Campus' },
+  { id: 'preferred_school', label: '*Prefered School', category: 'School & Campus' },
   { id: 'campus', label: 'Campus', category: 'School & Campus' },
   
   // Communication
@@ -64,26 +64,26 @@ const ALL_CSV_FIELDS: CSVField[] = [
   { id: 'exam_centre', label: 'Exam Centre', category: 'Screening Round' },
   { id: 'date_of_test', label: 'Date of Test', category: 'Screening Round' },
   { id: 'obtained_marks', label: 'Obtained Marks', category: 'Screening Round' },
-  { id: 'exam_status', label: 'Exam Status', category: 'Screening Round' },
-  { id: 'exam_last_updated_by', label: 'Exam Last Updated By', category: 'Screening Round' },
+  { id: 'exam_status', label: 'Screening Round Status', category: 'Screening Round' },
+  { id: 'exam_last_updated_by', label: 'Screening Round Updated By (Email)', category: 'Screening Round' },
   
   // Learning Round
   { id: 'learning_round_status', label: 'Learning Round Status', category: 'Learning Round' },
   { id: 'learning_round_comments', label: 'Learning Round Comments', category: 'Learning Round' },
-  { id: 'learning_round_last_updated_by', label: 'Learning Round Last Updated By', category: 'Learning Round' },
+  { id: 'learning_round_last_updated_by', label: 'Learning Round Updated By (Email)', category: 'Learning Round' },
   
   // Cultural Fit Round
-  { id: 'cultural_fit_status', label: 'Cultural Fit Status', category: 'Cultural Fit Round' },
-  { id: 'cultural_fit_comments', label: 'Cultural Fit Comments', category: 'Cultural Fit Round' },
-  { id: 'cultural_fit_last_updated_by', label: 'Cultural Fit Last Updated By', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_status', label: 'Culture Fit Status', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_comments', label: 'Culture Fit Comments', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_last_updated_by', label: 'Culture Fit Updated By (Email)', category: 'Cultural Fit Round' },
   
   // Final Decision
   { id: 'offer_letter_status', label: 'Admission Letter Status', category: 'Final Decision' },
   { id: 'onboarded_status', label: 'Onboarded Status', category: 'Final Decision' },
   { id: 'final_notes', label: 'Final Notes', category: 'Final Decision' },
   { id: 'joining_date', label: 'Joining Date', category: 'Final Decision' },
-  { id: 'offer_letter_sent_by', label: 'Admission Letter Sent By', category: 'Final Decision' },
-  { id: 'final_status_updated_by', label: 'Final Status Updated By', category: 'Final Decision' },
+  { id: 'offer_letter_sent_by', label: 'Admission Letter Sent By (Email)', category: 'Final Decision' },
+  { id: 'final_status_updated_by', label: 'Final Status Updated By (Email)', category: 'Final Decision' },
 ];
 
 // Group fields by category

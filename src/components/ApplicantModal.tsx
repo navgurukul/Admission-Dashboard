@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X, FileText, History, RotateCcw } from "lucide-react";
+import { Edit, MessageSquare, Pencil, ChevronsUpDown, Check, Calendar as CalendarIcon, Video, Clock, Loader2, Smartphone, RefreshCw, X, FileText, History, RotateCcw, Lock, CheckCircle2, AlertCircle, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 // import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,7 @@ import { StatusBadge } from "./StatusBadge";
 import { InlineEditModal } from "./InlineEditModal";
 import { TransitionsModal } from "./TransitionsModal";
 import { InterviewDetailsModal } from "./InterviewDetailsModal";
-import { CfrFeedbackModal } from "./CfrFeedbackModal";
+import { CfrFeedbackModal, computeCfrAnswerStatus, type CfrAnswerStatus } from "./CfrFeedbackModal";
 // import { ApplicantCommentsModal } from "./ApplicantCommentsModal";
 // import { Calendar } from "lucide-react";
 // import {
@@ -80,6 +80,7 @@ import {
   getStudentDataByPhone,
   getAvailableTemplates,
   resetStudentData,
+  getInterviewQuestions,
   type CompleteStudentData,
 } from "@/utils/api";
 import { InlineSubform } from "@/components/Subform";
@@ -175,6 +176,91 @@ const ScheduleInfoDisplay = ({ row }: any) => {
   );
 };
 
+// Component to handle the Final Note UI
+const FinalNoteSection = ({ currentApplicant, canEditApplicantDetails, handleFinalDecisionUpdate }: any) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const initialNote = currentApplicant?.final_decisions?.[0]?.final_notes || "";
+
+  const handleEdit = () => {
+    setDraft(initialNote);
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    setIsUpdating(true);
+    await handleFinalDecisionUpdate("final_notes", draft);
+    setIsUpdating(false);
+    setIsEditing(false);
+  };
+
+  // Truncate logic
+  const maxLength = 100;
+  const shouldTruncate = initialNote.length > maxLength;
+  const displayNote = (shouldTruncate && !isExpanded) 
+    ? initialNote.slice(0, maxLength) + "..."
+    : initialNote;
+
+  return (
+    <div className="lg:col-span-2 sm:col-span-2 col-span-1 w-full min-w-0 overflow-hidden">
+      <div className="flex justify-between items-center mb-1">
+        <label className="text-sm font-medium text-muted-foreground block">Final Note</label>
+        {!isEditing && canEditApplicantDetails && (
+          <Button variant="ghost" size="icon" onClick={handleEdit} disabled={isUpdating} className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="Edit note">
+            {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+          </Button>
+        )}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2 mt-1">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={4}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+            placeholder="Enter final notes here..."
+          />
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={handleCancel} disabled={isUpdating}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isUpdating}>
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 text-sm text-gray-700">
+          {initialNote ? (
+            <div>
+              <p className="whitespace-pre-wrap break-words">{displayNote}</p>
+              {shouldTruncate && (
+                <button 
+                  onClick={() => setIsExpanded(!isExpanded)} 
+                  className="text-blue-600 hover:underline mt-2 p-0 h-auto font-medium"
+                >
+                  {isExpanded ? "Show less" : "Read more"}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-400 italic">No final note</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 interface ApplicantModalProps {
   applicant: any;
   isOpen: boolean;
@@ -248,6 +334,9 @@ export function ApplicantModal({
   const [iframeSrc, setIframeSrc] = useState("");
   const [isCfrFeedbackModalOpen, setIsCfrFeedbackModalOpen] = useState(false);
   const [selectedCfrRow, setSelectedCfrRow] = useState<any>(null);
+  const [cfrApiQuestions, setCfrApiQuestions] = useState<any[]>([]);
+  const [isLoadingCfrQuestions, setIsLoadingCfrQuestions] = useState(false);
+  const [isPendingQuestionsExpanded, setIsPendingQuestionsExpanded] = useState(true);
   const studentPreviewStorageKeys = useMemo(() => [] as string[], []);
   const studentPreviewStorageBackupRef = useRef<Record<string, string | null> | null>(null);
   const isExamSessionCompleted = useCallback((session: any) => {
@@ -638,6 +727,29 @@ export function ApplicantModal({
       setLiveScheduleData([]);
     }
   }, [isOpen, currentApplicant?.id, refreshKey, fetchScheduleData]);
+
+  // Fetch CFR interview questions to check unanswered status
+  useEffect(() => {
+    let isMounted = true;
+    if (isOpen) {
+      setIsLoadingCfrQuestions(true);
+      getInterviewQuestions(4)
+        .then((res: any) => {
+          if (!isMounted) return;
+          const data = res?.data || res || [];
+          setCfrApiQuestions(Array.isArray(data) ? data : []);
+        })
+        .catch((err: any) => {
+          console.error("Failed to load CFR questions:", err);
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingCfrQuestions(false);
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   // ✅ Load QuestionSets API when modal opens
   // Always load if questionSetList is empty, as we may need it for display or editing
@@ -1445,7 +1557,12 @@ Interviewer: ${interviewerName}`;
 
       payload.stage_id = newStageId;
 
-      await submitFinalDecision(payload);
+      const response = await submitFinalDecision(payload);
+      
+      let responseData: any = null;
+      try {
+        responseData = await response.clone().json();
+      } catch (e) {}
 
       // Update local state immediately - no need for extra API call
       setCurrentApplicant((prev) => ({
@@ -1464,10 +1581,23 @@ Interviewer: ${interviewerName}`;
       if (field === "joining_date") {
         setJoiningDate(value);
       }
+      
+      // Fetch fresh data from backend to ensure all timestamps and generated fields are updated
+      await handleUpdate();
+
+      let toastDescription = "Final decision updated successfully.";
+      const emailStatus = responseData?.email_status || responseData?.data?.email_status;
+      if (emailStatus) {
+        if (emailStatus.success) {
+          toastDescription = `${emailStatus.message} to ${emailStatus.email}`;
+        } else if (emailStatus.attempted) {
+          toastDescription = `Decision updated, but email failed: ${emailStatus.message}`;
+        }
+      }
 
       toast({
         title: "Success",
-        description: "Final decision updated successfully.",
+        description: toastDescription,
         variant: "default",
         className: "border-green-400 bg-green-50 text-green-900",
       });
@@ -1599,8 +1729,7 @@ Interviewer: ${interviewerName}`;
         );
       } else {
         resp = await getStudentDataByEmail(
-          normalizedEmail,
-          normalizedFirstName || undefined,
+          normalizedEmail
         );
       }
 
@@ -2132,6 +2261,18 @@ Interviewer: ${interviewerName}`;
     [currentApplicant, liveScheduleData]
   );
 
+  // Compute CFR Detailed Feedback questions answer status
+  const cfrAnswerStatus: CfrAnswerStatus = useMemo(() => {
+    const nonArchivedRounds = (currentApplicant?.interview_cultural_fit_round || []).filter(
+      (r: any) => r?.is_archived !== true
+    );
+    const activeCulturalRound =
+      nonArchivedRounds.slice().reverse().find((r: any) => Array.isArray(r?.qna) && r.qna.length > 0) ||
+      nonArchivedRounds[nonArchivedRounds.length - 1];
+    const existingQna = activeCulturalRound?.qna;
+    return computeCfrAnswerStatus(cfrApiQuestions, existingQna);
+  }, [cfrApiQuestions, currentApplicant?.interview_cultural_fit_round, refreshKey]);
+
   const applicantDetailsGuideSteps = useMemo(
     () => [
       {
@@ -2212,6 +2353,49 @@ Interviewer: ${interviewerName}`;
   // 3. Fallback: treat ALL archived records as one attempt per reset
   //    (since all records from a single reset share the same archived_at time)
   const groupedAttempts = useMemo(() => {
+    // ── Strategy 0: Backend provides attempts_history directly ────────────────
+    if (currentApplicant?.attempts_history) {
+      const history = currentApplicant.attempts_history;
+
+      // Case A: It's an array of grouped attempt objects
+      if (Array.isArray(history) && history.length > 0) {
+        if (history[0].attempt_number !== undefined || history[0].exam_sessions !== undefined || history[0].screening !== undefined) {
+          return history.map((attempt: any, index: number) => ({
+            attemptNumber: attempt.attempt_number || attempt.attemptNumber || (history.length - index),
+            screening: (attempt.exam_sessions || attempt.screening || []).filter((r: any) => r.is_archived === true),
+            learning: (attempt.interview_learner_round || attempt.learning || []).filter((r: any) => r.is_archived === true),
+            cultural: (attempt.interview_cultural_fit_round || attempt.cultural || []).filter((r: any) => r.is_archived === true)
+          }))
+          .filter((a: any) => a.screening.length > 0 || a.learning.length > 0 || a.cultural.length > 0)
+          .sort((a: any, b: any) => b.attemptNumber - a.attemptNumber);
+        }
+      } 
+      
+      // Case B: It's an object with keys { exam_sessions: [], interview_learner_round: [], ... }
+      if (typeof history === 'object' && !Array.isArray(history)) {
+        const allArchived = [
+          ...(history.exam_sessions || []).filter((r: any) => r.is_archived === true).map((r: any) => ({ type: "screening" as const, record: r })),
+          ...(history.interview_learner_round || []).filter((r: any) => r.is_archived === true).map((r: any) => ({ type: "learning" as const, record: r })),
+          ...(history.interview_cultural_fit_round || []).filter((r: any) => r.is_archived === true).map((r: any) => ({ type: "cultural" as const, record: r })),
+        ];
+
+        if (allArchived.length > 0) {
+          const map = new Map<number, { screening: any[]; learning: any[]; cultural: any[] }>();
+          const ensure = (n: number) => {
+            if (!map.has(n)) map.set(n, { screening: [], learning: [], cultural: [] });
+            return map.get(n)!;
+          };
+          allArchived.forEach(({ type, record }) => {
+            ensure(record.attempt_number ?? 0)[type].push(record);
+          });
+          return Array.from(map.entries())
+            .sort((a, b) => b[0] - a[0]) // sort descending, latest first
+            .map(([attemptNumber, data]) => ({ attemptNumber, ...data }));
+        }
+      }
+    }
+
+    // ── Fallback: Extracting from top level fields where is_archived === true ──
     const allArchived = [
       ...archivedExamSessions.map((r: any) => ({ type: "screening" as const, record: r })),
       ...archivedLearnerRounds.map((r: any) => ({ type: "learning" as const, record: r })),
@@ -2220,20 +2404,20 @@ Interviewer: ${interviewerName}`;
 
     if (allArchived.length === 0) return [];
 
-    // ── Strategy 1: reset_attempt field ──────────────────────────────────
-    const hasResetAttemptField = allArchived.some((x) => x.record?.reset_attempt !== undefined);
-    if (hasResetAttemptField) {
+    // ── Strategy 1: attempt_number field ──────────────────────────────────
+    const hasAttemptNumberField = allArchived.some((x) => x.record?.attempt_number !== undefined);
+    if (hasAttemptNumberField) {
       const map = new Map<number, { screening: any[]; learning: any[]; cultural: any[] }>();
       const ensure = (n: number) => {
         if (!map.has(n)) map.set(n, { screening: [], learning: [], cultural: [] });
         return map.get(n)!;
       };
       allArchived.forEach(({ type, record }) => {
-        ensure(record.reset_attempt ?? 0)[type].push(record);
+        ensure(record.attempt_number ?? 0)[type].push(record);
       });
       return Array.from(map.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([, data], i) => ({ attemptNumber: i + 1, ...data }));
+        .sort((a, b) => b[0] - a[0]) // sort descending, latest first
+        .map(([attemptNumber, data]) => ({ attemptNumber, ...data }));
     }
 
     // ── Strategy 2: archived_at field (same timestamp = same reset event) ─
@@ -2359,6 +2543,28 @@ Interviewer: ${interviewerName}`;
     const status = round?.cultural_fit_status || "";
     return status.toLowerCase().includes("pass");
   });
+
+  // Only require CFR feedback if student has passed Cultural Fit Round in status AND there are questions to answer
+  const isCfrFeedbackPending =
+    isCulturalPassed &&
+    !isLoadingCfrQuestions &&
+    cfrAnswerStatus.totalQuestions > 0 &&
+    cfrAnswerStatus.unansweredCount > 0;
+
+  const isOfferStageDisabled = isStageDisabled(currentApplicant, "OFFER") || isCfrFeedbackPending;
+  const isOfferLetterDisabled =
+    isCfrFeedbackPending ||
+    (isStageDisabled(currentApplicant, "OFFER") && !currentApplicant.final_decisions?.[0]?.offer_letter_status);
+  const isOnboardedDisabled =
+    isCfrFeedbackPending ||
+    (isStageDisabled(currentApplicant, "OFFER") && !currentApplicant.final_decisions?.[0]?.onboarded_status);
+  const isJoiningDateDisabled =
+    isCfrFeedbackPending ||
+    (isStageDisabled(currentApplicant, "OFFER") && !currentApplicant.final_decisions?.[0]?.joining_date);
+
+  const offerDisabledReason = isCfrFeedbackPending
+    ? "All questions in Cultural Fit Round (Detailed Feedback) must have an answer filled before Campus, Admission Letter, or Final Status fields are accessible."
+    : "All rounds should be passed";
 
   // Check if student has started next rounds (to disable deletion of previous rounds)
   // Only count NON-archived records
@@ -2854,43 +3060,75 @@ Interviewer: ${interviewerName}`;
                     {preferredCampusDisplay}
                   </div>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Mode
+                  </label>
+                  <div className="text-sm py-2">
+                    {currentApplicant.mode === "Offline" ? "Offline" : "Online"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Exam Centre
+                  </label>
+                  <div className="text-sm py-2">
+                    {currentApplicant.exam_sessions?.[0]?.exam_centre || currentApplicant.exam_centre || "—"}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Timestamps for Personal Details */}
             <div className="space-y-3 pt-4" data-onboarding="applicant-details-timestamps">
-              <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Personal Details</h4>
+              <h4 className="text-base font-bold text-gray-900">Timestamps for Personal Details</h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
                     Created At
                   </label>
-                  <p className="text-sm">
+                  <p className="text-[13px] text-gray-500 mt-1">
                     {currentApplicant.created_at
-                      ? new Date(currentApplicant.created_at).toLocaleString()
+                      ? new Date(currentApplicant.created_at).toLocaleString('sv-SE').substring(0, 16)
                       : "Not available"}
                   </p>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
-                    Last Updated At
+                    Last Updated
                   </label>
-                  <p className="text-sm">
-                    {currentApplicant.updated_at
-                      ? new Date(currentApplicant.updated_at).toLocaleString()
-                      : "Not available"}
-                  </p>
+                  <div className="mt-1">
+                    {currentApplicant.last_updated_by || currentApplicant.updated_at ? (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-gray-700">
+                        {currentApplicant.last_updated_by && (
+                          <span>
+                            by {currentApplicant.last_updated_by}
+                          </span>
+                        )}
+                        {currentApplicant.last_updated_by && currentApplicant.updated_at && (
+                          <span>at</span>
+                        )}
+                        {currentApplicant.updated_at && (
+                          <span className="whitespace-nowrap">
+                            {new Date(currentApplicant.updated_at).toLocaleString('sv-SE').substring(0, 16)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[13px] text-gray-500 block">—</span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Last Updated By
-                  </label>
-                  <p className="text-sm">
-                    {currentApplicant.last_updated_by
-                      ? currentApplicant.last_updated_by
-                      : "Not available"}
-                  </p>
-                </div>
+                {currentApplicant.mode === "Offline" && currentApplicant.imported_at && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Imported At
+                    </label>
+                    <p className="text-[13px] text-gray-500 mt-1">
+                      {new Date(currentApplicant.imported_at).toLocaleString('sv-SE').substring(0, 16)}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -3119,20 +3357,27 @@ Interviewer: ${interviewerName}`;
                     component: ({ row, disabled }: any) => {
                       const isSaved = !!row?.id;
                       // Explicitly set read-only if it's a saved row and not currently being edited
-                      const isReadOnly = isSaved && !row?.isEditing;
+                      const isReadOnly = isCfrFeedbackPending ? false : (isSaved && !row?.isEditing);
                       
                       return (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={isCfrFeedbackPending ? "default" : "outline"}
                           disabled={isStageDisabled(currentApplicant, "CFR") && !isSaved}
-                          className="w-full text-xs"
+                          className={`w-full text-xs font-medium ${
+                            isCfrFeedbackPending
+                              ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-2xs"
+                              : ""
+                          }`}
                           onClick={() => {
                             setSelectedCfrRow({ ...row, _isReadOnly: isReadOnly });
                             setIsCfrFeedbackModalOpen(true);
                           }}
                         >
-                          {isSaved ? (row?.isEditing ? "View" : "View") : "Add"}
+                          <Pencil className="h-3 w-3 mr-1" />
+                          {isCfrFeedbackPending
+                            ? `Answer Questions (${cfrAnswerStatus.unansweredCount} pending)`
+                            : (isSaved ? (row?.isEditing ? "View" : "View") : "Add")}
                         </Button>
                       );
                     },
@@ -3163,22 +3408,19 @@ Interviewer: ${interviewerName}`;
             {/* Offer and Final Status */}
             <div className="space-y-4" data-onboarding="applicant-details-offer">
               <div className="rounded-lg border border-border p-4 flex flex-col gap-4">
-                <h3 className="text-base sm:text-lg font-semibold">Admission Letter & Final Status</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-base sm:text-lg font-semibold">Admission Letter & Final Status</h3>
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Campus <span className="text-red-500">*</span>
-                    </label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="h-6 px-2 text-[10px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm"
+                            className="h-7 px-3 text-[11px] font-bold border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 hover:text-pink-700 hover:border-pink-300 transition-all shadow-sm whitespace-nowrap"
                             onClick={() => setShowTemplatesInfo(true)}
                           >
+                            <FileText className="h-3.5 w-3.5 mr-1.5" />
                             Available Admission Letter Templates
                           </Button>
                         </TooltipTrigger>
@@ -3187,9 +3429,23 @@ Interviewer: ${interviewerName}`;
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                    {isCfrFeedbackPending && (
+                      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 flex items-center gap-1 text-xs font-medium">
+                        <Lock className="h-3 w-3" /> Locked (Pending CFR Feedback)
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      Campus <span className="text-red-500">*</span>
+                    </label>
                   </div>
 
-                  {isStageDisabled(currentApplicant, "OFFER") ? (
+                  {isOfferStageDisabled ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3203,11 +3459,12 @@ Interviewer: ${interviewerName}`;
                               options={campus}
                               onEditStart={() => ensureFieldDataLoaded('campus_id')}
                               disabled={true}
+                              placeholder="Select campus"
                             />
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>All rounds should be passed</p>
+                        <TooltipContent className="max-w-sm text-center">
+                          <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3227,6 +3484,7 @@ Interviewer: ${interviewerName}`;
                         options={campus}
                         onEditStart={() => ensureFieldDataLoaded('campus_id')}
                         disabled={!canEditApplicantDetails}
+                        placeholder="Select campus"
                       />
                     </div>
                   )}
@@ -3235,9 +3493,7 @@ Interviewer: ${interviewerName}`;
                   <label className="text-sm font-medium text-muted-foreground">
                     Admission Letter Status
                   </label>
-                  {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.final_decisions?.[0]
-                      ?.offer_letter_status ? (
+                  {isOfferLetterDisabled ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3278,14 +3534,15 @@ Interviewer: ${interviewerName}`;
                                 },
                               ]}
                               disabled={true}
+                              placeholder="Select admission letter status"
                               onUpdate={async (value) => {
                                 await handleOfferLetterStatusChange(value);
                               }}
                             />
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>All rounds should be passed</p>
+                        <TooltipContent className="max-w-sm text-center">
+                          <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3314,6 +3571,7 @@ Interviewer: ${interviewerName}`;
                         },
                       ]}
                       disabled={!canEditApplicantDetails}
+                      placeholder="Select admission letter status"
                       onUpdate={async (value) => {
                         await handleOfferLetterStatusChange(value);
                       }}
@@ -3322,20 +3580,35 @@ Interviewer: ${interviewerName}`;
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Admission Letter Sent By
+                    Admission letter sent
                   </label>
                   <div className="mt-1">
-                    <span className="text-sm text-black-900 px-3 py-2 bg-gray-50 block w-full">
-                      {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by || "—"}
-                    </span>
+                    {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by || currentApplicant.final_decisions?.[0]?.offer_letter_sent_at ? (
+                      <div className="flex flex-wrap items-center gap-1.5 text-[13px] pt-1 text-gray-700">
+                        {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by && (
+                          <span>
+                            by {currentApplicant.final_decisions[0].offer_letter_sent_by}
+                          </span>
+                        )}
+                        {currentApplicant.final_decisions?.[0]?.offer_letter_sent_by && currentApplicant.final_decisions?.[0]?.offer_letter_sent_at && (
+                          <span>at</span>
+                        )}
+                        {currentApplicant.final_decisions?.[0]?.offer_letter_sent_at && (
+                          <span className="whitespace-nowrap">
+                            {new Date(currentApplicant.final_decisions[0].offer_letter_sent_at).toLocaleString('sv-SE').substring(0, 16)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[13px] text-gray-500 block pt-1">—</span>
+                    )}
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Onboarded Status
                   </label>
-                  {isStageDisabled(currentApplicant, "OFFER") &&
-                    !currentApplicant.final_decisions?.[0]?.onboarded_status ? (
+                  {isOnboardedDisabled ? (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -3355,6 +3628,7 @@ Interviewer: ${interviewerName}`;
                                 { value: "Onboarded", label: "Onboarded" },
                               ]}
                               disabled={true}
+                              placeholder="Select onboarded status"
                               onUpdate={async (value) => {
                                 await handleFinalDecisionUpdate(
                                   "onboarded_status",
@@ -3364,8 +3638,8 @@ Interviewer: ${interviewerName}`;
                             />
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>All rounds should be passed</p>
+                        <TooltipContent className="max-w-sm text-center">
+                          <p>{offerDisabledReason}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -3383,6 +3657,7 @@ Interviewer: ${interviewerName}`;
                       }
                       options={[{ value: "Onboarded", label: "Onboarded" }]}
                       disabled={!canEditApplicantDetails}
+                      placeholder="Select onboarded status"
                       onUpdate={async (value) => {
                         await handleFinalDecisionUpdate(
                           "onboarded_status",
@@ -3396,29 +3671,28 @@ Interviewer: ${interviewerName}`;
                   <label className="text-sm font-medium text-muted-foreground">
                     Joining Date
                 </label>
-                {isStageDisabled(currentApplicant, "OFFER") &&
-                  !currentApplicant.final_decisions?.[0]?.joining_date ? (
+                {isJoiningDateDisabled ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div>
                           <input
                             type="date"
-                            className="border rounded px-2 py-1 w-full block cursor-not-allowed opacity-60"
+                            className="border-0 bg-transparent px-1 py-1 w-full block cursor-not-allowed opacity-60 text-sm text-gray-500"
                             value=""
                             disabled={true}
                           />
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p>All rounds should be passed</p>
+                      <TooltipContent className="max-w-sm text-center">
+                        <p>{offerDisabledReason}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 ) : (
                   <input
                     type="date"
-                    className="border rounded px-2 py-1 w-full block text-sm sm:text-base"
+                    className="border border-transparent hover:border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded px-2 py-1 w-full block text-sm transition-all bg-transparent hover:bg-gray-50 cursor-pointer text-gray-700"
                     value={
                       joiningDate ||
                       currentApplicant.final_decisions?.[0]?.joining_date?.split(
@@ -3455,74 +3729,57 @@ Interviewer: ${interviewerName}`;
                   />
                 )}
                 </div>
+                
+                {/* Final Note - Inside Grid */}
+                <FinalNoteSection 
+                  currentApplicant={currentApplicant}
+                  canEditApplicantDetails={canEditApplicantDetails}
+                  handleFinalDecisionUpdate={handleFinalDecisionUpdate}
+                />
               </div>
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Audit Information */}
             <div className="space-y-4">
-              {/* Final Note - Full Width */}
-              <div className="w-full">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Final Note
-                </label>
-                <EditableCell
-                  applicant={currentApplicant}
-                  field="final_notes"
-                  value={
-                    currentApplicant.final_decisions?.[0]?.final_notes || ""
-                  }
-                  displayValue={
-                    currentApplicant.final_decisions?.[0]?.final_notes ||
-                    "No final note"
-                  }
-                  renderInput={({ value, onChange }) => (
-                    <textarea
-                      value={value}
-                      onChange={(e) => onChange(e.target.value)}
-                      rows={4}
-                      className="border rounded px-2 py-1 w-full resize-y"
-                      placeholder="Enter final notes here..."
-                    />
-                  )}
-                  onUpdate={async (value) => {
-                    await handleFinalDecisionUpdate("final_notes", value);
-                  }}
-                  disabled={!canEditApplicantDetails}
-                />
-              </div>
-
-              {/* Audit Information - Below Final Note */}
               <div className="space-y-3 pt-4">
-                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Admission Letter</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <h4 className="text-sm font-semibold text-muted-foreground">Timestamps for Final Status</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Created At
+                      Final Status Created At
                     </label>
-                    <p className="text-sm mt-1">
+                    <p className="text-[13px] text-gray-500 mt-1 pt-1">
                       {currentApplicant.final_decisions?.[0]?.created_at
-                        ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString()
+                        ? new Date(currentApplicant.final_decisions[0].created_at).toLocaleString('sv-SE').substring(0, 16)
                         : "Not available"}
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Last Updated At
+                      Final Status Updated
                     </label>
-                    <p className="text-sm mt-1">
-                      {currentApplicant.final_decisions?.[0]?.updated_at
-                        ? new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString()
-                        : "Not available"}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Last Updated By
-                    </label>
-                    <p className="text-sm mt-1">
-                      {currentApplicant.final_decisions?.[0]?.last_status_updated_by || "Not available"}
-                    </p>
+                    <div className="mt-1 pt-1">
+                      {currentApplicant.final_decisions?.[0]?.last_status_updated_by || currentApplicant.final_decisions?.[0]?.updated_at ? (
+                        <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-gray-700">
+                          {currentApplicant.final_decisions?.[0]?.last_status_updated_by && (
+                            <span>
+                              by {currentApplicant.final_decisions[0].last_status_updated_by}
+                            </span>
+                          )}
+                          {currentApplicant.final_decisions?.[0]?.last_status_updated_by && currentApplicant.final_decisions?.[0]?.updated_at && (
+                            <span>at</span>
+                          )}
+                          {currentApplicant.final_decisions?.[0]?.updated_at && (
+                            <span className="whitespace-nowrap">
+                              {new Date(currentApplicant.final_decisions[0].updated_at).toLocaleString('sv-SE').substring(0, 16)}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-gray-500 block">—</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3705,7 +3962,7 @@ Interviewer: ${interviewerName}`;
 
       {/* ── Student History Modal ── */}
       <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
           {/* Header */}
           <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex items-center gap-3">
@@ -3736,187 +3993,129 @@ Interviewer: ${interviewerName}`;
               </div>
             )}
 
-            {groupedAttempts.map((attempt) => (
-              <div key={attempt.attemptNumber} className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                {/* Attempt Header — sirf number chip, "Attempt X" text nahi */}
-                <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-slate-700 to-slate-600">
-                  {/* <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-sm font-bold">#{attempt.attemptNumber}</span>
-                  </div> */}
-                  {/* <div className="ml-auto flex items-center gap-1.5">
-                    {attempt.screening.length > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-400/30 text-blue-100 font-medium">Screening</span>
-                    )}
-                    {attempt.learning.length > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-400/30 text-purple-100 font-medium">Learning</span>
-                    )}
-                    {attempt.cultural.length > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-400/30 text-green-100 font-medium">CFR</span>
-                    )}
-                  </div> */}
-                </div>
-
-                <div className="divide-y divide-gray-100">
-
-                  {/* ── Screening ── */}
-                  {attempt.screening.map((session: any, i: number) => {
-                    const isPassed = session.status?.toLowerCase().includes("pass");
-                    const isFailed = session.status?.toLowerCase().includes("fail");
-                    return (
-                      <div key={i} className="px-4 py-3 bg-blue-50/40">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>
-                            Screening Round
-                          </span>
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            isPassed ? "bg-green-100 text-green-700" :
-                            isFailed ? "bg-red-100 text-red-600" :
-                            "bg-gray-100 text-gray-500"
-                          }`}>
-                            {session.status || "—"}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-400">Obtained Marks</p>
-                            <p className="font-semibold text-gray-800">{session.obtained_marks ?? "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">School</p>
-                            <p className="font-semibold text-gray-800">{session.school_name || session.school_id || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Question Set</p>
-                            <p className="font-semibold text-gray-800">{session.set_name || session.question_set_name || session.question_set_id || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-400">Date of Test</p>
-                            <p className="font-semibold text-gray-800">{session.date_of_test ? session.date_of_test.split("T")[0] : "—"}</p>
-                          </div>
-                          {session.exam_centre && (
-                            <div>
-                              <p className="text-xs text-gray-400">Exam Centre</p>
-                              <p className="font-semibold text-gray-800">{session.exam_centre}</p>
-                            </div>
-                          )}
-                          {session.last_updated_by && (
-                            <div>
-                              <p className="text-xs text-gray-400">Updated By</p>
-                              <p className="font-semibold text-gray-800">{session.last_updated_by}</p>
-                            </div>
-                          )}
-                        </div>
-                        {session.created_at && (
-                          <p className="text-xs text-gray-400 mt-2">
-                            Recorded: {new Date(session.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
+            <Accordion type="multiple" defaultValue={groupedAttempts.length > 0 ? [`attempt-${groupedAttempts[0].attemptNumber}`] : []} className="w-full space-y-4">
+              {groupedAttempts.map((attempt, index) => {
+                const isLatest = index === 0;
+                // Get maximum date from all records for this attempt to display at the right side
+                let maxDate = 0;
+                [...attempt.screening, ...attempt.learning, ...attempt.cultural].forEach(r => {
+                  const d = new Date(r.created_at || r.updated_at || 0).getTime();
+                  if (d > maxDate) maxDate = d;
+                });
+                const attemptDateLabel = maxDate > 0 ? new Date(maxDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "";
+                
+                return (
+                  <AccordionItem key={attempt.attemptNumber} value={`attempt-${attempt.attemptNumber}`} className="border rounded-lg overflow-hidden bg-white shadow-sm">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline bg-gray-50 flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-gray-900">Attempt {attempt.attemptNumber}</span>
                       </div>
-                    );
-                  })}
-
-                  {/* ── Learning Round ── */}
-                  {attempt.learning.map((round: any, i: number) => {
-                    const isPassed = round.learning_round_status?.toLowerCase().includes("pass");
-                    const isFailed = round.learning_round_status?.toLowerCase().includes("fail");
-                    return (
-                      <div key={i} className="px-4 py-3 bg-purple-50/40">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-purple-600 uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
-                            Learning Round
-                          </span>
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            isPassed ? "bg-green-100 text-green-700" :
-                            isFailed ? "bg-red-100 text-red-600" :
-                            "bg-gray-100 text-gray-500"
-                          }`}>
-                            {round.learning_round_status || "—"}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                          <div>
-                            <p className="text-xs text-gray-400">School</p>
-                            <p className="font-semibold text-gray-800">{round.school_name || round.school_id || "—"}</p>
-                          </div>
-                          {round.last_updated_by && (
-                            <div>
-                              <p className="text-xs text-gray-400">Updated By</p>
-                              <p className="font-semibold text-gray-800">{round.last_updated_by}</p>
-                            </div>
-                          )}
-                        </div>
-                        {round.comments && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-400 mb-1">Comments</p>
-                            <p className="text-sm text-gray-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">{round.comments}</p>
-                          </div>
-                        )}
-                        {round.created_at && (
-                          <p className="text-xs text-gray-400 mt-2">
-                            Recorded: {new Date(round.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
+                      <div className="flex items-center gap-2 ml-auto pr-4">
+                        <span className="text-sm text-gray-500 group-hover:text-gray-700 transition-colors">
+                          {attemptDateLabel}
+                        </span>
                       </div>
-                    );
-                  })}
+                    </AccordionTrigger>
+                    <AccordionContent className="p-0 border-t">
+                       <div className="overflow-x-auto">
+                         <table className="w-full text-sm text-left">
+                           <thead className="bg-white text-gray-500 font-medium border-b border-gray-100">
+                             <tr>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Round</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Status</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Marks</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Qualifying school</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Set</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Test date</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Exam centre</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Updated by</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Created at</th>
+                               <th className="px-3 py-2 whitespace-nowrap font-medium">Updated at</th>
+                             </tr>
+                           </thead>
+                           <tbody className="divide-y divide-gray-100 bg-white">
+                              {/* Screening Row */}
+                              {attempt.screening.map((session: any, i: number) => {
+                                const status = session.status || "—";
+                                const isPassed = status.toLowerCase().includes("pass");
+                                const isFailed = status.toLowerCase().includes("fail");
+                                return (
+                                  <tr key={`scr-${i}`} className="hover:bg-gray-50/50">
+                                    <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">{session.stage_name || "Screening Round"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${isPassed ? 'bg-green-100 text-green-700' : isFailed ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.obtained_marks ?? "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.school_name || session.school_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.set_name || session.question_set_name || session.question_set_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.date_of_test ? new Date(session.date_of_test).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.exam_centre || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.last_updated_by || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.created_at ? new Date(session.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{session.updated_at ? new Date(session.updated_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                  </tr>
+                                )
+                              })}
 
-                  {/* ── Cultural Fit Round ── */}
-                  {attempt.cultural.map((round: any, i: number) => {
-                    const status = round.cultural_fit_status || round.cultural_fit_round_status || "";
-                    const isPassed = status.toLowerCase().includes("pass");
-                    const isFailed = status.toLowerCase().includes("fail");
-                    return (
-                      <div key={i} className="px-4 py-3 bg-green-50/40">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-green-600 uppercase tracking-wider flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
-                            Cultural Fit Round
-                          </span>
-                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                            isPassed ? "bg-green-100 text-green-700" :
-                            isFailed ? "bg-red-100 text-red-600" :
-                            "bg-gray-100 text-gray-500"
-                          }`}>
-                            {status || "—"}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                          {/* Status field — prominent display */}
-                          <div>
-                            <p className="text-xs text-gray-400">Status</p>
-                            <p className="font-semibold text-gray-800">{status || "—"}</p>
-                          </div>
-                          {round.last_updated_by && (
-                            <div>
-                              <p className="text-xs text-gray-400">Updated By</p>
-                              <p className="font-semibold text-gray-800">{round.last_updated_by}</p>
-                            </div>
-                          )}
-                        </div>
-                        {round.comments && (
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-400 mb-1">Comments</p>
-                            <p className="text-sm text-gray-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">{round.comments}</p>
-                          </div>
-                        )}
-                        {round.created_at && (
-                          <p className="text-xs text-gray-400 mt-2">
-                            Recorded: {new Date(round.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+                              {/* Learning Row */}
+                              {attempt.learning.map((round: any, i: number) => {
+                                const status = round.learning_round_status || "—";
+                                const isPassed = status.toLowerCase().includes("pass");
+                                const isFailed = status.toLowerCase().includes("fail");
+                                return (
+                                  <tr key={`lr-${i}`} className="hover:bg-gray-50/50">
+                                    <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">{round.stage_name || "Learning Round"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${isPassed ? 'bg-green-100 text-green-700' : isFailed ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.obtained_marks ?? "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.school_name || round.school_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.set_name || round.question_set_name || round.question_set_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.date_of_test ? new Date(round.date_of_test).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.exam_centre || round.mode || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.last_updated_by || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.created_at ? new Date(round.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.updated_at ? new Date(round.updated_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                  </tr>
+                                )
+                              })}
 
-                  {/* No data in this attempt */}
-                  {attempt.screening.length === 0 && attempt.learning.length === 0 && attempt.cultural.length === 0 && (
-                    <div className="px-4 py-3 text-sm text-gray-400 italic">No records found for this attempt.</div>
-                  )}
-                </div>
-              </div>
-            ))}
+                              {/* Cultural Fit Row */}
+                              {attempt.cultural.map((round: any, i: number) => {
+                                const status = round.cultural_fit_status || round.cultural_fit_round_status || "—";
+                                const isPassed = status.toLowerCase().includes("pass");
+                                const isFailed = status.toLowerCase().includes("fail");
+                                return (
+                                  <tr key={`cfr-${i}`} className="hover:bg-gray-50/50">
+                                    <td className="px-3 py-2 whitespace-nowrap font-semibold text-gray-900">{round.stage_name || "Culture Fit Round"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">
+                                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${isPassed ? 'bg-green-100 text-green-700' : isFailed ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.obtained_marks ?? "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.school_name || round.school_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.set_name || round.question_set_name || round.question_set_id || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.date_of_test ? new Date(round.date_of_test).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.exam_centre || round.mode || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.last_updated_by || "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.created_at ? new Date(round.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap">{round.updated_at ? new Date(round.updated_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : "—"}</td>
+                                  </tr>
+                                )
+                              })}
+                           </tbody>
+                         </table>
+                       </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </div>
 
           {/* Footer */}
@@ -3973,7 +4172,11 @@ Interviewer: ${interviewerName}`;
           onClose={() => setIsCfrFeedbackModalOpen(false)}
           studentId={currentApplicant?.id}
           existingData={selectedCfrRow}
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
+          onSuccess={() => {
+            setRefreshKey(prev => prev + 1);
+            handleUpdate();
+          }}
+          studentDetails={currentApplicant}
         />
       )}
 

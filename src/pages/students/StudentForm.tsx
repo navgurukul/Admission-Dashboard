@@ -117,30 +117,7 @@ const StudentForm: React.FC = () => {
   const [availableSchoolsForCampus, setAvailableSchoolsForCampus] = useState<any[]>([]);
 
   const getAvailableCampuses = () => {
-    // 1. Try to get dynamically from the createStudent API response
-    try {
-      const respStr = localStorage.getItem("studentApiResponse");
-      if (respStr) {
-        const resp = JSON.parse(respStr);
-        // Check for array of campuses if backend provides it
-        const dynamicCampuses = resp?.data?.campuses || resp?.data?.eligible_campuses || resp?.campuses || resp?.eligible_campuses;
-        if (dynamicCampuses && Array.isArray(dynamicCampuses) && dynamicCampuses.length > 0) {
-          return dynamicCampuses.map((c: any) => c.campus_name || c.name || c);
-        }
-        // Check if backend mapped a specific preferred_campus_id
-        const prefCampusId = resp?.data?.preferred_campus_id || resp?.preferred_campus_id;
-        if (prefCampusId) {
-          const matchingCampus = campuses.find((c: any) => String(c.id) === String(prefCampusId));
-          if (matchingCampus) {
-            return [matchingCampus.campus_name];
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Error parsing API response for campuses", e);
-    }
-
-    // 2. Fallback to hardcoded mapping if API hasn't returned them
+    // Frontend hardcoded mapping based on Gender and District
     const gender = formData.gender?.toLowerCase(); 
     const district = formData.district?.toLowerCase() || ''; 
 
@@ -150,7 +127,7 @@ const StudentForm: React.FC = () => {
       available.push('Dharamshala');
       if (district.includes('dantewada')) available.push('Dantewada');
     } else if (gender === 'female') {
-      available = ['Pune', 'Sarjapur'];
+      available = ['Pune', 'Sarjapur', 'Kishanganj'];
       if (district.includes('dantewada')) available.unshift('Dantewada');
       if (district.includes('jashpur')) available.unshift('Jashpur');
       

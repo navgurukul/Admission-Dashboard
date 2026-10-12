@@ -41,18 +41,18 @@ export interface NavigationItem {
 
 export const navigation: NavigationItem[] = [
   {
-    name: "User Management",
-    href: "/admin",
-    icon: Shield,
-    component: AdminPage,
-    allowedRoles: [1, 3],
-  },
-  {
     name: "Dashboard",
     href: "/",
     icon: LayoutDashboard,
     component: Dashboard,
     allowedRoles: [1, 2, 3],
+  },
+  {
+    name: "User Management",
+    href: "/admin",
+    icon: Shield,
+    component: AdminPage,
+    allowedRoles: [1, 3],
   },
   { name: "Donor", href: "/donor", icon: Handshake, component: DonorPage, allowedRoles: [1, 3] },
   { name: "Partner", href: "/partners", icon: Users, component: PartnerPage, allowedRoles: [1, 3] },

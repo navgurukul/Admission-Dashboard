@@ -39,6 +39,7 @@ interface FilterState {
   currentStatus: string[];
   state?: string;
   gender?: string;
+  mode?: string;
   exam_centre: string[];
   donor: string[];
   partnerFilter: string[];
@@ -91,6 +92,7 @@ const CampusDetail = () => {
     currentStatus: [],
     donor: [],
     partnerFilter: [],
+    mode: undefined,
     exam_centre: [],
     dateRange: { type: "applicant" },
   });
@@ -185,6 +187,7 @@ const CampusDetail = () => {
     if (f.state && f.state !== "all") apiParams.state = resolveStateFilterValue(f.state, statesOverride);
     if (f.district?.length && f.district[0] !== "all") apiParams.district = f.district[0];
     if (f.gender && f.gender !== "all") apiParams.gender = f.gender;
+    if (f.mode && f.mode !== "all") apiParams.mode = f.mode;
     if (f.exam_centre?.length) apiParams.exam_centre = f.exam_centre;
 
     return apiParams;
@@ -728,6 +731,11 @@ const CampusDetail = () => {
       }
     }
 
+    // Mode
+    if ((filters as any).mode && (filters as any).mode !== "all") {
+      tags.push({ key: `mode-${(filters as any).mode}`, label: `Mode: ${(filters as any).mode}`, onRemove: () => handleClearSingleFilter("mode") });
+    }
+
     // Date range
     if ((filters as any).dateRange?.from && (filters as any).dateRange?.to) {
       const from = new Date((filters as any).dateRange.from).toLocaleDateString();
@@ -759,6 +767,7 @@ const CampusDetail = () => {
       donor: [],
       partnerFilter: [],
       exam_centre: [],
+      mode: undefined,
       dateRange: { type: "applicant" as const, from: undefined, to: undefined },
     });
     setHasActiveFilters(false);
@@ -855,6 +864,9 @@ const CampusDetail = () => {
       case "gender":
         newFilters.gender = undefined;
         break;
+      case "mode":
+        newFilters.mode = undefined;
+        break;
       case "exam_centre":
         newFilters.exam_centre = [];
         break;
@@ -899,6 +911,7 @@ const CampusDetail = () => {
       (newFilters.state && newFilters.state !== "all") ||
       (newFilters.district?.length && newFilters.district[0] !== "all") ||
       (newFilters.gender && newFilters.gender !== "all") ||
+      (newFilters.mode && newFilters.mode !== "all") ||
       (newFilters.exam_centre?.length && newFilters.exam_centre[0] !== "all") ||
       (newFilters.dateRange?.from && newFilters.dateRange?.to);
 
