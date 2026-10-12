@@ -527,6 +527,11 @@ const StudentForm: React.FC = () => {
 
   // Helper function to check if a school is eligible based on qualification
   const isSchoolEligible = (schoolId: string) => {
+    const partnerSlug = localStorage.getItem("partner_slug");
+    if (partnerSlug === "project-potential-aug-2026-outreach" && schoolId !== "SOB") {
+      return false;
+    }
+
     // Check age eligibility
     const age = getAge(formData.dateOfBirth);
     const ageThreshold = schoolId === 'BCA' ? 15 : 16.5;
@@ -2305,9 +2310,15 @@ const StudentForm: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-onboarding="student-form-school-options">
               {schoolDetails.map((school) => {
                 const isSelected = formData.initial_school_id === String(schools.find(s => s.school_name.includes(school.id))?.id);
-                const isEligible = isSchoolEligible(school.id);
+                let isEligible = isSchoolEligible(school.id);
                 const hasQualification = formData.maximumQualification;
                 const isBCACard = school.id === 'BCA';
+
+                const partnerSlug = localStorage.getItem("partner_slug");
+                const isPartnerRestricted = partnerSlug === "project-potential-aug-2026-outreach" && school.id !== "SOB";
+                if (isPartnerRestricted) {
+                  isEligible = false;
+                }
 
                 return (
                   <div
@@ -2315,10 +2326,10 @@ const StudentForm: React.FC = () => {
                     data-onboarding="student-form-school-card"
                     onClick={() => {
                       if (isBCACard && isBCAFull) return; // Block BCA if full
-                      if (!isEligible && hasQualification) return; // Original logic for other schools
+                      if (!isEligible && (hasQualification || isPartnerRestricted)) return; // Original logic for other schools
                       setSelectedSchoolInfo(school);
                     }}
-                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white ${(isBCACard && isBCAFull) || (!isEligible && hasQualification)
+                    className={`group border-2 rounded-2xl flex flex-col h-full transition-all relative overflow-hidden bg-white ${(isBCACard && isBCAFull) || (!isEligible && (hasQualification || isPartnerRestricted))
                         ? "border-gray-200 cursor-not-allowed"
                         : isSelected
                           ? "border-primary shadow-lg ring-1 ring-primary/20 hover:border-primary/50 hover:shadow-xl cursor-pointer"
@@ -2348,16 +2359,18 @@ const StudentForm: React.FC = () => {
 
                     {/* Not Eligible Gray Overlay — original logic, untouched for non-BCA.
                         For BCA: only show if isBCAFull is false AND not eligible */}
-                    {!isEligible && hasQualification && !(isBCACard && isBCAFull) && (
+                    {!isEligible && (hasQualification || isPartnerRestricted) && !(isBCACard && isBCAFull) && (
                       <div className="absolute inset-0 z-20 bg-gray-100/80 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-2 cursor-not-allowed">
                         <div className="bg-gray-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                           </svg>
-                          Not Eligible
+                          {isPartnerRestricted ? 'Not Available' : 'Not Eligible'}
                         </div>
                         <p className="text-xs text-gray-500 text-center px-6">
-                          {school.id === 'BCA' && formData.gender === 'male'
+                          {isPartnerRestricted
+                            ? 'This school is not available for this partner link'
+                            : school.id === 'BCA' && formData.gender === 'male'
                             ? 'This program is for female students only'
                             : 'Your qualification does not meet the requirements'}
                         </p>

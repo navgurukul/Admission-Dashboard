@@ -34,6 +34,7 @@ const PartnerLanding = () => {
                     localStorage.setItem("partner_id", partner.id);
                     // Optional: Store partner name for UI welcome message if needed
                     localStorage.setItem("partner_name", partner.partner_name);
+                    localStorage.setItem("partner_slug", partner.slug);
                     setLoading(false);
                     // navigate("/students"); // Removed auto-redirect
                 } else {
