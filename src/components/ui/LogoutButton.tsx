@@ -26,7 +26,7 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({ className, inline = false }
     sessionStorage.clear();
 
     // Redirect to start journey page
-    window.location.href = "/student";
+    window.location.href = "/students";
   };
 
   return (
