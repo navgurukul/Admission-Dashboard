@@ -65,9 +65,26 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Combobox } from "@/components/ui/combobox";
-import { getPartners, getAllPartners, createPartner, updatePartner, deletePartner, Partner, getStudentsByPartnerId, getAllStates, getDistrictsByState, getAllQuestionSets, createQuestionSet, getQuestionsBySetName, getAuthHeaders } from "@/utils/api";
+import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
+import {
+  getPartners,
+  getAllPartners,
+  createPartner,
+  updatePartner,
+  deletePartner,
+  Partner,
+  getStudentsByPartnerId,
+  getAllStates,
+  getDistrictsByState,
+  getAllQuestionSets,
+  createQuestionSet,
+  getQuestionsBySetName,
+  getAuthHeaders,
+  getTopics,
+  TopicOption,
+  getAllSchools,
+} from "@/utils/api";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
 
 const columns = [
   "Partner",
@@ -147,8 +164,6 @@ const PartnerPage = () => {
 
   // Question Sets State
   const [questionSets, setQuestionSets] = useState([]);
-  const [newAssessmentName, setNewAssessmentName] = useState("");
-  const [loadingQuestionSets, setLoadingQuestionSets] = useState(false);
   const [partnerSets, setPartnerSets] = useState([]);
   const [showQuestionsModal, setShowQuestionsModal] = useState(false);
   const [questionsLoading, setQuestionsLoading] = useState(false);
@@ -156,18 +171,17 @@ const PartnerPage = () => {
   const [selectedSetName, setSelectedSetName] = useState<string>("");
   const [selectedSetId, setSelectedSetId] = useState<string | number>("");
   const [questionLanguage, setQuestionLanguage] = useState<"english" | "hindi" | "marathi">("english");
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const [previewSets, setPreviewSets] = useState<Record<string, any>>({});
-  const [activePreviewType, setActivePreviewType] = useState<string>("SOP");
-  const [currentPartnerForCreation, setCurrentPartnerForCreation] = useState<any>(null);
-  const [pendingAssessment, setPendingAssessment] = useState<{ sourceName: string } | null>(null);
 
-  // State for Create Assessment Form
-  const [assessmentFormData, setAssessmentFormData] = useState({
+  // Random Question Set Creation State
+  const [schools, setSchools] = useState<any[]>([]);
+  const [topics, setTopics] = useState<TopicOption[]>([]);
+  const [isCreatingSet, setIsCreatingSet] = useState(false);
+  const [setFormData, setSetFormData] = useState({
     name: "",
-    description: "",
-    nameType: "random", // Fixed to random for now
-    isRandom: true
+    nameType: "random", // Only random
+    isRandom: true,
+    school_ids: [] as string[],
+    randomConfig: [] as { topicId: number; easy: number; medium: number; hard: number }[],
   });
 
   const [totalPages, setTotalPages] = useState(1);
@@ -177,7 +191,6 @@ const PartnerPage = () => {
 
   // Track partners with existing assessments
   const [partnersWithAssessments, setPartnersWithAssessments] = useState<Set<number>>(new Set());
-  const [partnerCreatingAssessment, setPartnerCreatingAssessment] = useState<number | null>(null);
   const isTeamUser = useMemo(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -327,11 +340,31 @@ const PartnerPage = () => {
     }
   };
 
+  const fetchSchools = async () => {
+    try {
+      const schoolsData = await getAllSchools();
+      setSchools(schoolsData || []);
+    } catch (error) {
+      console.error("Error fetching schools:", error);
+    }
+  };
+
+  const fetchTopics = async () => {
+    try {
+      const topicsData = await getTopics();
+      setTopics((topicsData || []).filter((topic: any) => topic?.status !== false));
+    } catch (error) {
+      console.error("Error fetching topics:", error);
+    }
+  };
+
   useEffect(() => {
     loadStates();
     // Load all partners once for global stats and districts filter
     fetchAllPartners();
     loadExistingAssessmentStatus();
+    fetchSchools();
+    fetchTopics();
   }, []);
 
   const loadStates = async () => {
@@ -888,7 +921,7 @@ const PartnerPage = () => {
     }
   };
 
-  const handleViewAssessments = async (partner) => {
+  const handleViewAssessments = async (partner: any) => {
     setSelectedPartner(partner);
     setShowAssessmentModal(true);
     setStudentsPage(1);
@@ -897,16 +930,10 @@ const PartnerPage = () => {
     try {
       const allSets = await getAllQuestionSets();
 
-      const allowedTypes = ["SOP", "SOB", "SOF", "BCA"];
-
       const filtered = allSets.filter((s: any) => {
-        // Check partnerId if it exists (loose equality for string/number safety)
-        // Checking both camelCase and snake_case to be safe with API response
         const idMatch = (s.partnerId && s.partnerId == partner.id) || (s.partner_id && s.partner_id == partner.id);
-
-        // ensure only 4 sets
-        const name = (s.name || "").toUpperCase();
-        return idMatch && allowedTypes.some(type => name.endsWith(`-${type}`));
+        const slugPrefixMatch = partner.slug && (s.name || "").toUpperCase().startsWith(`${partner.slug.toUpperCase()}-`);
+        return Boolean(idMatch || slugPrefixMatch);
       });
 
       setPartnerSets(filtered);
@@ -920,189 +947,166 @@ const PartnerPage = () => {
       });
     }
   };
-  const handleCreateAssessment = async (partner) => {
-    if (partnersWithAssessments.has(partner.id)) {
+
+  const addRandomConfigRow = () => {
+    setSetFormData(prev => ({
+      ...prev,
+      randomConfig: [...(prev.randomConfig || []), { topicId: topics[0]?.id || 0, easy: 0, medium: 0, hard: 0 }]
+    }));
+  };
+
+  const updateRandomConfigRow = (index: number, field: string, value: number) => {
+    setSetFormData(prev => {
+      const newConfig = [...(prev.randomConfig || [])];
+      newConfig[index] = { ...newConfig[index], [field]: value };
+      return { ...prev, randomConfig: newConfig };
+    });
+  };
+
+  const removeRandomConfigRow = (index: number) => {
+    setSetFormData(prev => ({
+      ...prev,
+      randomConfig: (prev.randomConfig || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const useLastRandomConfig = () => {
+    const lastConfigSet = questionSets.find((s: any) => s.random_config && s.random_config.length > 0);
+    if (!lastConfigSet) {
       toast({
-        title: "Assessment Already Created",
-        description: "An assessment for this partner already exists.",
+        title: "No Previous Configuration",
+        description: "No previous random set configuration found in the database.",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+    setSetFormData(prev => ({ ...prev, randomConfig: lastConfigSet.random_config }));
+    toast({
+      title: "Configuration Loaded",
+      description: `Loaded configuration from "${lastConfigSet.name}".`,
+      variant: "default",
+      className: "border-green-500 bg-green-50 text-green-900",
+      duration: 2000,
+    });
+  };
+
+  const handleCreateAssessment = (partner: any) => {
+    setSelectedPartner(partner);
+    setSetFormData({
+      name: `${partner.partner_name} Set`,
+      nameType: "random",
+      isRandom: true,
+      school_ids: [],
+      randomConfig: [],
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleCreateSetSubmit = async () => {
+    const finalName = setFormData.name.trim();
+    const finalDescription = "N/A";
+
+    if (!finalName) {
+      toast({
+        title: "⚠️ Required Field Missing",
+        description: "Please enter a set name",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
       });
       return;
     }
 
-    setPartnerCreatingAssessment(partner.id);
-    setQuestionsLoading(true);
-    setCurrentPartnerForCreation(partner);
+    if (!setFormData.school_ids || setFormData.school_ids.length === 0) {
+      toast({
+        title: "⚠️ Required Field Missing",
+        description: "Please select school",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
 
+    if (!setFormData.randomConfig || setFormData.randomConfig.length === 0) {
+      toast({
+        title: "⚠️ Configuration Missing",
+        description: "Please click 'Add Topic' and configure at least one question topic.",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    const totalQuestions = setFormData.randomConfig.reduce(
+      (acc, curr) => acc + (Number(curr.easy) || 0) + (Number(curr.medium) || 0) + (Number(curr.hard) || 0),
+      0
+    );
+
+    if (totalQuestions <= 0) {
+      toast({
+        title: "⚠️ Invalid Question Count",
+        description: "Total questions configured across topics must be greater than 0",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
+    setIsCreatingSet(true);
     try {
-      // 2. Fetch all sets
-      const allSets = await getAllQuestionSets();
-
-      // 2. Filter for sets that have school assignments (template sets)
-      // STICKY RULE: Only use sets that HAVE school_ids (plural) or school_id (singular) and are NOT linked to a partner
-      const schoolTemplateSets = allSets.filter((s: any) =>
-        ((s.school_ids && Array.isArray(s.school_ids) && s.school_ids.length > 0) || s.school_id) && !s.partnerId
-      );
-
-      if (schoolTemplateSets.length === 0) {
-        toast({
-          title: "⚠️ No School Template Sets Found",
-          description: "Assessment mapping requires template sets that have assigned schools.",
-          variant: "destructive",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
-        });
-        return;
-      }
-
-      const setTypes = ["SOP", "SOF", "BCA", "SOB"];
-      const categoryKeywords: Record<string, string[]> = {
-        SOP: ["SOP", "Programming"],
-        SOB: ["SOB", "Business"],
-        SOF: ["SOF", "Finance"],
-        BCA: ["BCA", "Computer"]
+      const payload = {
+        name: finalName,
+        description: finalDescription,
+        isRandom: true,
+        school_ids: setFormData.school_ids.map(Number),
+        randomConfig: setFormData.randomConfig,
+        partnerId: selectedPartner?.id ? Number(selectedPartner.id) : undefined,
+        partner_name: selectedPartner?.partner_name,
+        success: true,
       };
 
-      const previewData: Record<string, any> = {};
+      const response = await createQuestionSet(payload as any);
 
-      for (const setType of setTypes) {
-        const keywords = categoryKeywords[setType] || [setType];
-
-        // Match specifically by category keywords WITHIN schoolTemplateSets
-        let sourceTemplate = schoolTemplateSets.find(s => {
-          const name = s.name?.toUpperCase() || "";
-          const desc = s.description?.toUpperCase() || "";
-          const combinedText = `${name} ${desc}`;
-          return keywords.some(k => combinedText.includes(k.toUpperCase()));
-        });
-
-        // Use global schoolTemplate fallback if no specific category match
-        if (!sourceTemplate && schoolTemplateSets.length > 0) {
-          sourceTemplate = schoolTemplateSets[Math.floor(Math.random() * schoolTemplateSets.length)];
-        }
-
-        if (!sourceTemplate) continue;
-
-        // Robust school ID extraction (handling both singular and plural API formats)
-        let finalSchoolIds: number[] = [];
-        if (sourceTemplate.school_ids && Array.isArray(sourceTemplate.school_ids)) {
-          finalSchoolIds = sourceTemplate.school_ids.map(id => Number(id)).filter(id => !isNaN(id));
-        }
-
-        try {
-          const res = await getQuestionsBySetName(sourceTemplate.name);
-          let questions = [];
-          if (Array.isArray(res)) {
-            questions = res;
-          } else {
-            questions = res?.data || res?.questions || res?.result || res?.data?.data || [];
-          }
-
-          if (!Array.isArray(questions) || questions.length === 0) continue;
-
-          previewData[setType] = {
-            questions: questions,
-            sourceTemplateName: sourceTemplate.name,
-            schoolIds: finalSchoolIds
-          };
-        } catch (error) {
-          console.error(`Failed to fetch ${setType} template data:`, error);
-        }
-      }
-
-      if (Object.keys(previewData).length > 0) {
-        setPreviewSets(previewData);
-        setActivePreviewType(Object.keys(previewData)[0]);
-        setSelectedSetQuestions(previewData[Object.keys(previewData)[0]].questions);
-        setSelectedSetName(partner.partner_name);
-        setIsPreviewMode(true);
-        setShowQuestionsModal(true);
-      } else {
-        toast({
-          title: "⚠️ No Templates Found",
-          description: "Could not find matching templates for assessment creation.",
-          variant: "destructive",
-        });
-      }
-
-    } catch (error) {
-      console.error("Prepare Assessment Preview Error:", error);
       toast({
-        title: "❌ Error",
-        description: "An unexpected error occurred while preparing preview.",
+        title: "✅ Set Created",
+        description: response.message || `Set "${finalName}" created successfully for ${selectedPartner?.partner_name}`,
+        variant: "default",
+        className: "border-green-500 bg-green-50 text-green-900",
+      });
+
+      setShowCreateModal(false);
+      setSetFormData({
+        name: "",
+        nameType: "random",
+        isRandom: true,
+        school_ids: [],
+        randomConfig: [],
+      });
+
+      if (selectedPartner?.id) {
+        setPartnersWithAssessments(prev => new Set(prev).add(Number(selectedPartner.id)));
+      }
+
+      await loadExistingAssessmentStatus();
+
+      const allSets = await getAllQuestionSets();
+      if (selectedPartner?.id) {
+        const filtered = allSets.filter((s: any) => {
+          const idMatch = (s.partnerId && s.partnerId == selectedPartner.id) || (s.partner_id && s.partner_id == selectedPartner.id);
+          return Boolean(idMatch);
+        });
+        setPartnerSets(filtered);
+      }
+    } catch (err: any) {
+      console.error("Error creating set:", err);
+      toast({
+        title: "❌ Unable to create set",
+        description: getFriendlyErrorMessage(err),
         variant: "destructive",
+        className: "border-red-500 bg-red-50 text-red-900",
       });
     } finally {
-      setPartnerCreatingAssessment(null);
-      setQuestionsLoading(false);
-    }
-  };
-
-  const handleFinalizeCreate = async () => {
-    if (!currentPartnerForCreation || Object.keys(previewSets).length === 0) return;
-
-    setQuestionsLoading(true);
-    const createdSets: string[] = [];
-    const failedSets: string[] = [];
-
-    try {
-      for (const setType in previewSets) {
-        const data = previewSets[setType];
-        const formattedQuestions = data.questions.map((q: any) => ({
-          question_id: q.id || q.question_id,
-          difficulty_level: q.difficulty_level
-        }));
-
-        const setName = `${currentPartnerForCreation.slug}-${setType}`;
-        const payload = {
-          name: setName,
-          description: `${setType} assessment for ${currentPartnerForCreation.partner_name} from ${data.sourceTemplateName}`,
-          partnerId: currentPartnerForCreation.id,
-          partner_name: currentPartnerForCreation.partner_name,
-          isRandom: false,
-          questions: formattedQuestions,
-          school_ids: data.schoolIds
-        };
-
-        try {
-          await createQuestionSet(payload);
-          createdSets.push(setName);
-        } catch (err) {
-          console.error(`Failed to create ${setType}:`, err);
-          failedSets.push(setType);
-        }
-      }
-
-      // Show results
-      if (createdSets.length > 0) {
-        toast({
-          title: "✅ Assessments Created",
-          description: `Successfully created ${createdSets.length} sets.`,
-          variant: "default",
-          className: "border-green-500 bg-green-50 text-green-900"
-        });
-        setPartnersWithAssessments(prev => new Set(prev).add(currentPartnerForCreation.id));
-        setShowQuestionsModal(false);
-        setIsPreviewMode(false);
-        setPreviewSets({});
-      }
-
-      if (failedSets.length > 0) {
-        toast({
-          title: "⚠️ Some Sets Failed",
-          description: `Failed to map categories: ${failedSets.join(", ")}`,
-          variant: "default",
-          className: "border-orange-500 bg-orange-50 text-orange-900"
-        });
-      }
-    } catch (error) {
-      console.error("Create Assessment Flow Error:", error);
-      toast({
-        title: "❌ Error",
-        description: "An unexpected error occurred while mapping assessments.",
-        variant: "destructive",
-        className: "border-red-500 bg-red-50 text-red-900"
-      });
-    } finally {
-      setQuestionsLoading(false);
+      setIsCreatingSet(false);
     }
   };
 
@@ -1464,13 +1468,9 @@ const PartnerPage = () => {
                               size="sm"
                               onClick={() => handleCreateAssessment(partner)}
                               className={`h-8 px-2 ${partnersWithAssessments.has(partner.id) ? 'text-green-600 hover:bg-green-50' : 'text-primary hover:text-primary/80'}`}
-                              disabled={questionsLoading || partnersWithAssessments.has(partner.id)}
+                              disabled={isCreatingSet || partnersWithAssessments.has(partner.id)}
                             >
-                              {partnerCreatingAssessment === partner.id ? (
-                                <>
-                                  <FileText className="mr-2 h-4 w-4 animate-spin" /> Creating...
-                                </>
-                              ) : partnersWithAssessments.has(partner.id) ? (
+                              {partnersWithAssessments.has(partner.id) ? (
                                 <>
                                   <FileText className="mr-2 h-4 w-4" /> Created
                                 </>
@@ -1686,51 +1686,15 @@ const PartnerPage = () => {
         </Dialog>
 
         {/* QUESTIONS VIEW MODAL */}
-        <Dialog open={showQuestionsModal} onOpenChange={(open) => {
-          setShowQuestionsModal(open);
-          if (!open) {
-            setIsPreviewMode(false);
-            setPreviewSets({});
-          }
-        }}>
+        <Dialog open={showQuestionsModal} onOpenChange={setShowQuestionsModal}>
           <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
             <DialogHeader>
-              {/* <DialogTitle>Questions for: {selectedSetName}</DialogTitle>
-              <DialogDescription>Select language to view questions</DialogDescription> */}
-              <DialogTitle>
-                {pendingAssessment ? "Preview Question" : "Preview Questions"}
-              </DialogTitle>
-              <DialogDescription>
-                {pendingAssessment
-                  ? `Reviewing the selected set from ${pendingAssessment.sourceName}. Click Create to assign it to Partner ${selectedPartner?.partner_name}.`
-                  : `Select language to view questions for ${selectedSetName}`
-                }
-              </DialogDescription>
+              <DialogTitle>Questions for: {selectedSetName}</DialogTitle>
+              <DialogDescription>Select language to view questions</DialogDescription>
             </DialogHeader>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-2 p-3 bg-muted/30 rounded-lg border border-border/50">
               <div className="flex flex-wrap items-center gap-4">
-                {isPreviewMode && (
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Select Set:</Label>
-                    <Select
-                      value={activePreviewType}
-                      onValueChange={(val) => {
-                        setActivePreviewType(val);
-                        setSelectedSetQuestions(previewSets[val].questions);
-                      }}
-                    >
-                      <SelectTrigger className="w-[120px] h-9">
-                        <SelectValue placeholder="Select Set" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(previewSets).map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
 
                 <div className="flex items-center gap-2">
                   <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Language:</Label>
@@ -1826,34 +1790,8 @@ const PartnerPage = () => {
               )}
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 mt-4 border-t pt-4">
-              <Button variant="ghost" onClick={() => {
-                setShowQuestionsModal(false);
-                setIsPreviewMode(false);
-                setPreviewSets({});
-              }}>
-                Cancel
-              </Button>
-              {isPreviewMode ? (
-                <Button
-                  className="bg-primary hover:bg-primary/90 text-white min-w-[150px]"
-                  onClick={handleFinalizeCreate}
-                  disabled={questionsLoading}
-                >
-                  {questionsLoading ? (
-                    <>
-                      <FileText className="mr-2 h-4 w-4 animate-spin" /> Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="mr-2 h-4 w-4" /> Create Assessments
-                    </>
-                  )}
-                </Button>
-              ) : (
-                null
-                // <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button>
-              )}
+            <DialogFooter className="mt-4 border-t pt-4">
+              <Button variant="outline" onClick={() => setShowQuestionsModal(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2073,115 +2011,169 @@ const PartnerPage = () => {
           </DialogContent>
         </Dialog>
 
-        {/* CREATE ASSESSMENT MODAL PLACEHOLDER */}
-        <Dialog open={showCreateModal} onOpenChange={(open) => {
-          setShowCreateModal(open);
-          if (open) {
-            // Reset form on open
-            setAssessmentFormData({
-              name: "",
-              description: "",
-              nameType: "random",
-              isRandom: true
-            });
-          }
-        }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create Assessment for {selectedPartner?.partner_name}</DialogTitle>
+        {/* CREATE QUESTION SET MODAL */}
+        <Dialog
+          open={showCreateModal}
+          onOpenChange={(open) => {
+            setShowCreateModal(open);
+          }}
+        >
+          <DialogContent className="flex max-h-[92vh] max-w-2xl flex-col overflow-hidden p-0 sm:rounded-xl">
+            <DialogHeader className="border-b px-6 py-5">
+              <DialogTitle>
+                Create Question Set for {selectedPartner?.partner_name}
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
 
-              {/* Generation Method (Random Only) */}
-              <div>
-                <Label className="mb-2 block">Set Generation Method</Label>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              {/* Set Generation Method  Random */}
+              <div className="space-y-2">
+                <Label className="block">Set Generation Method</Label>
                 <RadioGroup
-                  value={assessmentFormData.nameType}
+                  value={setFormData.nameType}
                   onValueChange={(val) => {
-                    // Keep it read-only or forced for now if user requested "Only random hi show hona chiye"
-                    // But strictly implementing Radio logic if they want to see it selected
-                    setAssessmentFormData(prev => ({ ...prev, nameType: val, isRandom: val === "random" }));
+                    setSetFormData({ ...setFormData, nameType: val, isRandom: val === "random" });
                   }}
-                  className="flex items-center gap-4 mb-4"
+                  className="flex items-center gap-4"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="random" id="r-random" />
                     <Label htmlFor="r-random">Random</Label>
                   </div>
-                  {/* Hiding Custom option as per request */}
-                  {/* <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="custom" id="r-custom" disabled />
-                      <Label htmlFor="r-custom" className="text-gray-400">Custom Name</Label>
-                    </div> */}
                 </RadioGroup>
               </div>
 
-              <div>
-                <Label htmlFor="assessmentName">Assessment Name</Label>
+              {/* Set Name */}
+              <div className="space-y-2">
+                <Label htmlFor="partner-set-name">
+                  Set Name <span className="text-red-500">*</span>
+                </Label>
                 <Input
-                  id="assessmentName"
-                  value={assessmentFormData.name}
-                  onChange={(e) => setAssessmentFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter assessment name"
+                  id="partner-set-name"
+                  value={setFormData.name}
+                  onChange={(e) =>
+                    setSetFormData({ ...setFormData, name: e.target.value })
+                  }
+                  placeholder="Enter Set name"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="assessmentDesc">Description</Label>
-                <Textarea
-                  id="assessmentDesc"
-                  value={assessmentFormData.description}
-                  onChange={(e) => setAssessmentFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter description (optional)"
+              {/* Schools */}
+              <div className="space-y-2">
+                <Label htmlFor="partner-set-schools">
+                  Schools <span className="text-red-500">*</span>
+                </Label>
+                <MultiSelectCombobox
+                  options={schools.map((school) => ({
+                    value: String(school.id),
+                    label: school.school_name,
+                  }))}
+                  value={setFormData.school_ids}
+                  onValueChange={(value) =>
+                    setSetFormData({ ...setFormData, school_ids: value })
+                  }
+                  placeholder="Select schools"
+                  searchPlaceholder="Search schools..."
                 />
               </div>
 
+              {/* Random Question Configuration */}
+              <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">Random Question Configuration</Label>
+                  <div className="flex gap-2">
+                    {questionSets.some((s: any) => s.random_config && s.random_config.length > 0) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={useLastRandomConfig}
+                        className="h-8 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                      >
+                        ↩ Use Last Configuration
+                      </Button>
+                    )}
+                    <Button type="button" variant="outline" size="sm" onClick={addRandomConfigRow}>
+                      <Plus className="mr-1 h-3 w-3" /> Add Topic
+                    </Button>
+                  </div>
+                </div>
+
+                {(!setFormData.randomConfig || setFormData.randomConfig.length === 0) && (
+                  <p className="text-xs text-muted-foreground">Click "Add Topic" to configure questions.</p>
+                )}
+
+                {setFormData.randomConfig?.map((config, index) => (
+                  <div key={index} className="flex items-end gap-2 p-3 border rounded-md bg-slate-50">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs">Topic</Label>
+                      <Select
+                        value={String(config.topicId)}
+                        onValueChange={(val) => updateRandomConfigRow(index, 'topicId', Number(val))}
+                      >
+                        <SelectTrigger className="h-8 text-xs bg-white">
+                          <SelectValue placeholder="Select Topic" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {topics.map((t: any) => (
+                            <SelectItem key={t.id} value={String(t.id)}>{t.topic}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-20 space-y-1">
+                      <Label className="text-xs">Easy</Label>
+                      <Input 
+                        type="number" min="0" className="h-8 text-xs bg-white" 
+                        value={config.easy} 
+                        onChange={(e) => updateRandomConfigRow(index, 'easy', parseInt(e.target.value) || 0)} 
+                      />
+                    </div>
+                    <div className="w-20 space-y-1">
+                      <Label className="text-xs">Medium</Label>
+                      <Input 
+                        type="number" min="0" className="h-8 text-xs bg-white" 
+                        value={config.medium} 
+                        onChange={(e) => updateRandomConfigRow(index, 'medium', parseInt(e.target.value) || 0)} 
+                      />
+                    </div>
+                    <div className="w-20 space-y-1">
+                      <Label className="text-xs">Hard</Label>
+                      <Input 
+                        type="number" min="0" className="h-8 text-xs bg-white" 
+                        value={config.hard} 
+                        onChange={(e) => updateRandomConfigRow(index, 'hard', parseInt(e.target.value) || 0)} 
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => removeRandomConfigRow(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                {setFormData.randomConfig?.length > 0 && (
+                  <div className="flex justify-end text-sm font-semibold">
+                    Total Questions: {setFormData.randomConfig.reduce((acc, curr) => acc + (Number(curr.easy) || 0) + (Number(curr.medium) || 0) + (Number(curr.hard) || 0), 0)}
+                  </div>
+                )}
+              </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-              <Button onClick={async () => {
-                if (!assessmentFormData.name.trim()) {
-                  toast({
-                    title: "⚠️ Assessment Name Required",
-                    description: "Please enter an assessment name",
-                    variant: "default",
-                    className: "border-orange-500 bg-orange-50 text-orange-900"
-                  });
-                  return;
-                }
 
-                try {
-                  const payload = {
-                    name: assessmentFormData.name,
-                    description: assessmentFormData.description || `Created for partner: ${selectedPartner?.partner_name}`,
-                    partnerId: selectedPartner?.id ? parseInt(selectedPartner.id) : undefined,
-                    partner_name: selectedPartner?.partner_name,
-                    isRandom: true, // Force Random
-                  };
-
-                  // console.log("Creating Random Assessment Payload:", payload);
-
-                  // Create new question set linked to partner
-                  await createQuestionSet(payload as any);
-
-                  toast({
-                    title: "✅ Assessment Created",
-                    description: `Assessment "${assessmentFormData.name}" created for ${selectedPartner?.partner_name}`,
-                    variant: "default",
-                    className: "border-green-500 bg-green-50 text-green-900"
-                  });
-                  setShowCreateModal(false);
-                  setAssessmentFormData({ name: "", description: "", nameType: "random", isRandom: true });
-                } catch (e: any) {
-                  toast({
-                    title: "❌ Unable to Create Assessment",
-                    description: getFriendlyErrorMessage(e),
-                    variant: "destructive",
-                    className: "border-red-500 bg-red-50 text-red-900"
-                  });
-                }
-              }}>
-                Create
+            <DialogFooter className="border-t bg-background px-6 py-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCreateSetSubmit} disabled={isCreatingSet}>
+                {isCreatingSet ? (
+                  <>
+                    <FileText className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                  </>
+                ) : (
+                  "Create Set"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
