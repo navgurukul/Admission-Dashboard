@@ -12,18 +12,13 @@ import FinalResultPage from "@/pages/students/StudentResult";
 import StudentLogin from "@/pages/students/Login";
 import StudentProtectedRoute from "./StudentProtectedRoute";
 import OfferLetterPage from "@/pages/students/OfferLetterPage";
-import GamifiedLanding from "@/pages/students/GamifiedLanding"; // trigger reload
 
 const StudentRoutes: React.FC = () => {
   return (
     <Routes>
       {/* ---------- PUBLIC ---------- */}
-      {/* <Route index element={<StudentLandingPage />} />
-      <Route path="login" element={<StudentLogin />} /> */}
-      <Route index element={<GamifiedLanding />} />
-      <Route path="student" element={<GamifiedLanding />} />
-      <Route path="gamified" element={<Navigate to="." replace />} />
-      <Route path="login" element={<Navigate to="." replace />} />
+      <Route index element={<StudentLandingPage />} />
+      <Route path="login" element={<StudentLogin />} />
 
       {/* ---------- PROTECTED ---------- */}
       {/* Language Selection */}
@@ -45,9 +40,8 @@ const StudentRoutes: React.FC = () => {
           </StudentProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/students/test/start" replace />} />
-        {/* <Route path="instructions" element={<TestInstructionsPage />} /> */}
-        <Route path="instructions" element={<Navigate to="/students/test/start" replace />} />
+        <Route index element={<Navigate to="instructions" replace />} />
+        <Route path="instructions" element={<TestInstructionsPage />} />
         <Route path="registration" element={<StudentRegistrationForm />} />
       </Route>
 

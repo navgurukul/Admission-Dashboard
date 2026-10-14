@@ -33,8 +33,7 @@ const StudentProtectedRoute: React.FC<Props> = ({ children }) => {
 
   // 2️⃣ Trying to access test without registration or start
   if (!registrationDone && path.startsWith("/students/test")) {
-    // return <Navigate to="/students/details/instructions" replace />;
-     return <Navigate to="/students/details/registration" replace />;
+    return <Navigate to="/students/details/instructions" replace />;
   }
 
   // 3️⃣ Test completed, no retest allowed → lock to final-result
@@ -58,7 +57,7 @@ const StudentProtectedRoute: React.FC<Props> = ({ children }) => {
     return <Navigate to="/students/test/start" replace />;
   }
 
-  // 5️⃣ Registration done → (Instructions skipped now)
+  // 5️⃣ Registration done → cannot go back to instructions
   if (registrationDone && path.startsWith("/students/details/instructions")) {
     return <Navigate to="/students/test/start" replace />;
   }

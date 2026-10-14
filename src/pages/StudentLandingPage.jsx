@@ -219,7 +219,7 @@ const StudentLandingPage = () => {
           </div>
 
           <Button
-            onClick={() => navigate("/student")}
+            onClick={() => navigate("/students/login")}
             size="sm"
             className="hidden sm:flex student-btn text-xs md:text-sm px-3 md:px-4 shadow-md hover:shadow-lg"
           >
@@ -255,7 +255,7 @@ const StudentLandingPage = () => {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     type="button"
-                    onClick={() => navigate("/student")}
+                    onClick={() => navigate("/students/login")}
                     className="student-btn group h-11 md:h-12 px-5 md:px-6 text-sm md:text-base w-full flex-1"
                   >
                     {content[selectedLanguage].buttonText}
