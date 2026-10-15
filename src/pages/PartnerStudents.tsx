@@ -171,7 +171,7 @@ const PartnerStudents = () => {
             { id: 'whatsapp', label: 'WhatsApp', visible: false },
             { id: 'gender', label: 'Gender', visible: false },
             { id: 'dob', label: 'DOB', visible: false },
-            { id: 'cast', label: 'Cast', visible: false },
+            { id: 'category', label: 'Category', visible: false },
             { id: 'religion', label: 'Religion', visible: false },
             { id: 'qualification', label: 'Qualification', visible: false },
             { id: 'state', label: 'State', visible: false },
@@ -233,7 +233,7 @@ const PartnerStudents = () => {
             { id: 'whatsapp', label: 'WhatsApp', visible: false },
             { id: 'gender', label: 'Gender', visible: false },
             { id: 'dob', label: 'DOB', visible: false },
-            { id: 'cast', label: 'Cast', visible: false },
+            { id: 'category', label: 'Category', visible: false },
             { id: 'religion', label: 'Religion', visible: false },
             { id: 'qualification', label: 'Qualification', visible: false },
             { id: 'state', label: 'State', visible: false },
@@ -411,8 +411,8 @@ const PartnerStudents = () => {
                 return student.gender || "-";
             case 'dob':
                 return student.dob ? new Date(student.dob).toLocaleDateString("en-GB") : "-";
-            case 'cast':
-                return student.cast_name || student.cast || "-";
+            case 'category':
+                return student.category_name || student.category || "-";
             case 'religion':
                 return student.religion_name || student.religion || "-";
             case 'qualification':
@@ -880,7 +880,7 @@ const PartnerStudents = () => {
                                             {isColumnVisible('whatsapp') && <TableHead className="font-bold min-w-[120px]">WhatsApp</TableHead>}
                                             {isColumnVisible('gender') && <TableHead className="font-bold min-w-[80px]">Gender</TableHead>}
                                             {isColumnVisible('dob') && <TableHead className="font-bold min-w-[100px]">DOB</TableHead>}
-                                            {isColumnVisible('cast') && <TableHead className="font-bold min-w-[100px]">Cast</TableHead>}
+                                            {isColumnVisible('category') && <TableHead className="font-bold min-w-[100px]">Category</TableHead>}
                                             {isColumnVisible('religion') && <TableHead className="font-bold min-w-[100px]">Religion</TableHead>}
                                             {isColumnVisible('qualification') && <TableHead className="font-bold min-w-[120px]">Qualification</TableHead>}
                                             {isColumnVisible('state') && <TableHead className="font-bold min-w-[100px]">State</TableHead>}
@@ -940,8 +940,8 @@ const PartnerStudents = () => {
                                                     {isColumnVisible('dob') && (
                                                         <TableCell>{getCellValue(student, 'dob')}</TableCell>
                                                     )}
-                                                    {isColumnVisible('cast') && (
-                                                        <TableCell>{getCellValue(student, 'cast')}</TableCell>
+                                                    {isColumnVisible('category') && (
+                                                        <TableCell>{getCellValue(student, 'category')}</TableCell>
                                                     )}
                                                     {isColumnVisible('religion') && (
                                                         <TableCell>{getCellValue(student, 'religion')}</TableCell>

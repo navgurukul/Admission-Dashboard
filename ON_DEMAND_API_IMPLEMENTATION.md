@@ -38,7 +38,7 @@ resetLoadedFields()                   // Clear loaded fields cache
 - `religion` / `religion_id`
 - `question_set` / `question_set_id`
 - `qualification` / `qualification_id`
-- `cast` / `cast_id`
+- `category` / `category_id`
 - `partner_org` / `partner_id` / `partnerFilter`
 - `donor` / `donor_id`
 - `state` / `state_code`
@@ -90,8 +90,8 @@ useEffect(() => {
 
 // On-demand loading per field
 <Combobox
-  options={castList.map(...)}
-  onOpen={() => loadFieldData('cast')}
+  options={categoryList.map(...)}
+  onOpen={() => loadFieldData('category')}
   ...
 />
 ```

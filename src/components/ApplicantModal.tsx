@@ -57,7 +57,7 @@ import {
   getDistrictsByState,
   getPartnerById,
   getDonorById,
-  getAllCasts,
+  getAllCategories,
   getAllQualification,
   getAllStatus,
   getAllSchools,
@@ -292,7 +292,7 @@ export function ApplicantModal({
     religionList,
     questionSetList,
     qualificationList,
-    castList,
+    categoryList,
     partnerList,
     donorList,
     stateList: globalStateList,
@@ -304,7 +304,7 @@ export function ApplicantModal({
     fetchStages: fetchStagesFromHook,
     fetchReligions,
     fetchQualifications,
-    fetchCasts,
+    fetchCategories,
     fetchPartners,
     fetchDonors,
     fetchStates,
@@ -340,11 +340,11 @@ export function ApplicantModal({
   }, [globalStateList]);
 
   // Transform props data to the format expected by the component
-  const castes = useMemo(() =>
-    (castList || []).map((c: any) => ({
+  const categories = useMemo(() =>
+    (categoryList || []).map((c: any) => ({
       value: c.id?.toString(),
-      label: c.cast_name,
-    })), [castList]);
+      label: c.category_name,
+    })), [categoryList]);
 
   const qualifications = useMemo(() =>
     (qualificationList || []).map((q: any) => ({
@@ -442,9 +442,9 @@ export function ApplicantModal({
           }
         }
         break;
-      case 'cast_id':
-        if (castList.length === 0) {
-          await fetchCasts();
+      case 'category_id':
+        if (categoryList.length === 0) {
+          await fetchCategories();
         }
         break;
       case 'qualification_id':
@@ -489,7 +489,7 @@ export function ApplicantModal({
     campusList.length,
     currentstatusList.length,
     stageList.length,
-    castList.length,
+    categoryList.length,
     qualificationList.length,
     religionList.length,
     partnerList.length,
@@ -499,7 +499,7 @@ export function ApplicantModal({
     questionSetList.length,
     fetchCampuses,
     fetchCurrentStatuses,
-    fetchCasts,
+    fetchCategories,
     fetchQualifications,
     fetchReligions,
     fetchPartners,
@@ -2565,16 +2565,16 @@ Interviewer: ${interviewerName}`;
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Cast
+                    Category
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="cast_id"
-                    value={currentApplicant.cast_id}
-                    displayValue={getLabel(castes, currentApplicant.cast_id, "", "cast_name")}
+                    field="category_id"
+                    value={currentApplicant.category_id}
+                    displayValue={getLabel(categories, currentApplicant.category_id, "", "category_name")}
                     onUpdate={handleUpdate}
-                    options={castes}
-                    onEditStart={() => ensureFieldDataLoaded('cast_id')}
+                    options={categories}
+                    onEditStart={() => ensureFieldDataLoaded('category_id')}
                     disabled={!canEditApplicantDetails}
                   />
                 </div>

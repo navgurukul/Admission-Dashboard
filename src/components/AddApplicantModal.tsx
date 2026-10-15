@@ -65,7 +65,7 @@ export function AddApplicantModal({
     // religionList,
     questionSetList,
     qualificationList,
-    castList,
+    categoryList,
     partnerList,
     donorList,
     stateList,
@@ -127,7 +127,7 @@ export function AddApplicantModal({
     district: "",
     districtCode: "",
     pin_code: "",
-    cast_id: "",
+    category_id: "",
     gender: "",
     qualification_id: "",
     current_status_id: "",
@@ -165,7 +165,7 @@ export function AddApplicantModal({
       district: "",
       districtCode: "",
       pin_code: "",
-      cast_id: "",
+      category_id: "",
       gender: "",
       // campus_id: "",
       qualification_id: "",
@@ -504,8 +504,8 @@ export function AddApplicantModal({
       newErrors.pin_code = "PIN Code must be 6 digits";
     }
 
-    if (!formData.cast_id) {
-      newErrors.cast_id = "Category is required";
+    if (!formData.category_id) {
+      newErrors.category_id = "Category is required";
     }
 
     if (!formData.qualification_id) {
@@ -573,7 +573,7 @@ export function AddApplicantModal({
         district: "District",
         block: "Block",
         pin_code: "PIN Code",
-        cast_id: "Category",
+        category_id: "Category",
         qualification_id: "Qualification",
         current_status_id: "Current Work",
         // religion_id: "Religion",
@@ -656,7 +656,7 @@ export function AddApplicantModal({
         district: formData.district || null, // Send NAME instead of code
         block: formData.block || null, // Send NAME instead of code
         pin_code: formData.pin_code || null,
-        cast_id: formData.cast_id ? Number(formData.cast_id) : null,
+        category_id: formData.category_id ? Number(formData.category_id) : null,
         qualification_id: formData.qualification_id
           ? Number(formData.qualification_id)
           : null,
@@ -806,7 +806,7 @@ export function AddApplicantModal({
           selectedDistrict &&
           formData.block &&
           formData.pin_code &&
-          formData.cast_id &&
+          formData.category_id &&
           formData.qualification_id &&
           formData.current_status_id &&
           // formData.campus_id &&
@@ -1340,31 +1340,31 @@ export function AddApplicantModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="caste_id" className="text-sm font-medium">
+                    <Label htmlFor="category_id" className="text-sm font-medium">
                       Category *
                     </Label>
                     <Combobox
-                      options={(Array.isArray(castList) ? castList : [])?.map((caste: any) => ({
-                        value: String(caste.id),
-                        label: caste.cast_name,
+                      options={(Array.isArray(categoryList) ? categoryList : [])?.map((category: any) => ({
+                        value: String(category.id),
+                        label: category.category_name,
                       })) || []}
-                      value={formData.cast_id ? String(formData.cast_id) : ""}
+                      value={formData.category_id ? String(formData.category_id) : ""}
                       onValueChange={(value) =>
-                        handleInputChange("cast_id", value === "none" ? "" : value)
+                        handleInputChange("category_id", value === "none" ? "" : value)
                       }
-                      onOpen={() => loadFieldData('cast')}
+                      onOpen={() => loadFieldData('category')}
                       placeholder="Select category"
                       searchPlaceholder="Search category..."
                       emptyText="No category found."
                       className={cn(
                         "h-10 border shadow-sm hover:bg-accent",
-                        errors.cast_id && "border-red-500"
+                        errors.category_id && "border-red-500"
                       )}
                     />
-                    {errors.cast_id && (
+                    {errors.category_id && (
                       <p className="text-red-500 text-xs flex items-center">
                         <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.cast_id}
+                        {errors.category_id}
                       </p>
                     )}
                   </div>

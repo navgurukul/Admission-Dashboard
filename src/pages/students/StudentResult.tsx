@@ -1035,7 +1035,7 @@ export default function StudentResult() {
             ? String(profile.qualification_id)
             : "",
           schoolMedium: profile.school_medium || "",
-          casteTribe: profile.cast_id ? String(profile.cast_id) : "",
+          casteTribe: profile.category_id ? String(profile.category_id) : "",
           religion: profile.religion_id ? String(profile.religion_id) : "",
           // Clear school — student must pick a new one
           initial_school_id: "",

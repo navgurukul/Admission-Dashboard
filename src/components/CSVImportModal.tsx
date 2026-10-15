@@ -133,7 +133,7 @@ const referenceGuide: GuideItem[] = [
     body: ["Student, Working, Job Searching"],
   },
   {
-    title: "Cast",
+    title: "Category",
     body: ["General, OBC, SC, ST, Other"],
   },
   // {
@@ -481,7 +481,7 @@ const CSVImportModal = ({
       "MathMarksIn10th",
       "PercentageIn12th",
       "MathMarksIn12th",
-      "Cast",
+      "Category",
       // "Religion",
       "School",
       "Campus",

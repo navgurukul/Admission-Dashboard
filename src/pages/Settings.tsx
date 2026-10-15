@@ -12,7 +12,7 @@ import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 
 const settingsNavigation = [
   { name: "User Role", href: "/settings/user-role", icon: UserCheck },
-  { name: "Caste", href: "/settings/caste", icon: Users },
+  { name: "Category", href: "/settings/category", icon: Users },
   { name: "Religion", href: "/settings/religion", icon: BookOpen },
   {
     name: "Qualification",

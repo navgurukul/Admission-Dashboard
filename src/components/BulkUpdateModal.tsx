@@ -23,7 +23,7 @@ import {
   getAllStates,
   getDistrictsByState,
   getBlocksByDistrict,
-  getAllCasts,
+  getAllCategories,
   getAllQualification,
   getAllStatus,
   updateStudent,
@@ -85,7 +85,7 @@ export function BulkUpdateModal({
     district: "no_change",       // Store CODE for UI
     block: "no_change",          // Store ID for UI
     city: "",
-    castId: "no_change",
+    categoryId: "no_change",
     qualificationId: "no_change",
     currentWorkId: "no_change",
     partnerId: "no_change",
@@ -106,7 +106,7 @@ export function BulkUpdateModal({
   const [blockOptions, setBlockOptions] = useState<BlockOption[]>([]);
   const [loadingStates, setLoadingStates] = useState(false);
 
-  const [castOptions, setCastOptions] = useState<
+  const [categoryOptions, setCategoryOptions] = useState<
     { value: string; label: string }[]
   >([]);
   const [qualificationOptions, setQualificationOptions] = useState<
@@ -124,7 +124,7 @@ export function BulkUpdateModal({
 
   // Track which dropdowns have been loaded
   const [loadedDropdowns, setLoadedDropdowns] = useState({
-    cast: false,
+    category: false,
     qualification: false,
     currentWork: false,
     partner: false,
@@ -136,7 +136,7 @@ export function BulkUpdateModal({
     if (isOpen) {
       // Reset loaded flags when modal opens
       setLoadedDropdowns({
-        cast: false,
+        category: false,
         qualification: false,
         currentWork: false,
         partner: false,
@@ -148,7 +148,7 @@ export function BulkUpdateModal({
       fetchStates();
 
       // Clear options for lazy-loaded dropdowns
-      setCastOptions([]);
+      setCategoryOptions([]);
       setQualificationOptions([]);
       setCurrentWorkOptions([]);
       setPartnerOptions([]);
@@ -193,24 +193,24 @@ export function BulkUpdateModal({
   };
 
   // Lazy load functions for each dropdown
-  const fetchCastOptions = async () => {
-    if (loadedDropdowns.cast) return; // Already loaded
+  const fetchCategoryOptions = async () => {
+    if (loadedDropdowns.category) return; // Already loaded
     
     try {
-      const castsRes = await getAllCasts();
-      setCastOptions(
-        (castsRes || [])
+      const categoriesRes = await getAllCategories();
+      setCategoryOptions(
+        (categoriesRes || [])
           .filter((c: any) => c && c.id)
           .map((c: any) => ({
             value: String(c.id),
-            label: String(c.cast_name || c.name || `Cast #${c.id}`),
+            label: String(c.category_name || c.name || `Category #${c.id}`),
           }))
           .filter((opt) => opt.value && opt.label) // Extra safety
       );
-      setLoadedDropdowns(prev => ({ ...prev, cast: true }));
+      setLoadedDropdowns(prev => ({ ...prev, category: true }));
     } catch (err) {
-      console.error("Error fetching casts:", err);
-      setCastOptions([]);
+      console.error("Error fetching categories:", err);
+      setCategoryOptions([]);
     }
   };
 
@@ -362,7 +362,7 @@ export function BulkUpdateModal({
       updateData.state === "no_change" &&
       updateData.district === "no_change" &&
       updateData.block === "no_change" &&
-      updateData.castId === "no_change" &&
+      updateData.categoryId === "no_change" &&
       updateData.qualificationId === "no_change" &&
       updateData.currentWorkId === "no_change" &&
       updateData.partnerId === "no_change" &&
@@ -406,8 +406,8 @@ export function BulkUpdateModal({
       const blockName = blockOptions.find((opt) => opt.value === updateData.block)?.label || updateData.block;
       payload.block = blockName;  // Send NAME to API (e.g., "Block A")
     }
-    if (updateData.castId !== "no_change") {
-      payload.cast_id = Number(updateData.castId);
+    if (updateData.categoryId !== "no_change") {
+      payload.category_id = Number(updateData.categoryId);
     }
     if (updateData.qualificationId !== "no_change") {
       payload.qualification_id = Number(updateData.qualificationId);
@@ -481,7 +481,7 @@ export function BulkUpdateModal({
         district: "no_change",
         block: "no_change",
         city: "",
-        castId: "no_change",
+        categoryId: "no_change",
         qualificationId: "no_change",
         currentWorkId: "no_change",
         partnerId: "no_change",
@@ -693,23 +693,23 @@ export function BulkUpdateModal({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>Caste</Label>
+                <Label>Category</Label>
                 <Combobox
                   options={[
                     { value: "no_change", label: "No change" },
-                    ...castOptions.map((c) => ({
+                    ...categoryOptions.map((c) => ({
                       value: c.value,
                       label: c.label,
                     })),
                   ]}
-                  value={updateData.castId}
+                  value={updateData.categoryId}
                   onValueChange={(val) =>
-                    setUpdateData((prev) => ({ ...prev, castId: val }))
+                    setUpdateData((prev) => ({ ...prev, categoryId: val }))
                   }
-                  onOpen={fetchCastOptions}
-                  placeholder="Select caste"
-                  searchPlaceholder="Search caste..."
-                  emptyText="No caste found."
+                  onOpen={fetchCategoryOptions}
+                  placeholder="Select category"
+                  searchPlaceholder="Search category..."
+                  emptyText="No category found."
                 />
               </div>
 

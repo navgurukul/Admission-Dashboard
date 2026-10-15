@@ -4,8 +4,8 @@ import { useLanguage } from "@/routes/LaunguageContext.tsx";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
-  getAllCasts,
-  Cast,
+  getAllCategories,
+  Category,
   getAllQualification,
   Qualification,
   getAllStatus,
@@ -55,7 +55,7 @@ const StudentForm: React.FC = () => {
   const { selectedLanguage } = useLanguage();
   const isMobile = useIsMobile();
 
-  const [casts, setCasts] = useState<Cast[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   // const [religions, setReligions] = useState<Religion[]>([]);
@@ -719,6 +719,7 @@ const StudentForm: React.FC = () => {
       school_medium: data.schoolMedium,
       current_status_id: Number(data.currentStatus) || null,
       qualification_id: Number(data.maximumQualification) || null,
+      category_id: Number(data.casteTribe) || null,
       religion_id: Number(data.religion) || null,
       partner_id: partnerId ? Number(partnerId) : null,
       initial_school_id: Number(data.initial_school_id) || null,
@@ -886,15 +887,15 @@ const StudentForm: React.FC = () => {
     // Fetch initial data
     fetchStates();
 
-    const fetchCasts = async () => {
+    const fetchCategories = async () => {
       try {
-        const response = await getAllCasts();
-        setCasts(response);
+        const response = await getAllCategories();
+        setCategories(response);
       } catch (error) {
-        // console.error("Error fetching casts:", error);
+        // console.error("Error fetching categories:", error);
       }
     };
-    fetchCasts();
+    fetchCategories();
 
     // Fetch qualifications
     const fetchQualifications = async () => {
@@ -2225,7 +2226,7 @@ const StudentForm: React.FC = () => {
                 </div>
               )}
 
-              {/* School Medium, Caste/Tribe, Religion */}
+              {/* School Medium, Category/Tribe, Religion */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2253,9 +2254,9 @@ const StudentForm: React.FC = () => {
                     {content.casteTribe}
                   </label>
                   <Combobox
-                    options={casts?.map((item) => ({
+                    options={categories?.map((item) => ({
                       value: String(item.id),
-                      label: item.cast_name,
+                      label: item.category_name,
                     })) || []}
                     value={formData.casteTribe}
                     onValueChange={(value) => {

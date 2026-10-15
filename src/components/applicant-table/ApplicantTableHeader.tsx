@@ -86,9 +86,9 @@ export const ApplicantTableHeader = ({
             Pincode
           </TableHead>
         )}
-        {isColumnVisible('cast') && (
+        {isColumnVisible('category') && (
           <TableHead className="font-bold min-w-[100px] max-w-[120px] px-3">
-            Cast
+            Category
           </TableHead>
         )}
         {isColumnVisible('religion') && (

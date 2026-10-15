@@ -37,7 +37,7 @@ The Admission Dashboard is a React-based web application that manages every step
 - **Student Portal** — Student-facing login, slot booking, screening test, offer letter viewing
 - **Campus & School Management** — Manage campuses with per-campus applicant tracking
 - **Partner & Donor Portals** — Partner/Donor-specific student views
-- **Settings** — User roles, caste, religion, qualification management
+- **Settings** — User roles, category, religion, qualification management
 - **Google OAuth** — Authentication via Google Sign-In
 - **CSV Import/Export** — Bulk import applicants via CSV
 - **Face Verification** — TensorFlow.js powered face detection (group photo prevention)
@@ -84,7 +84,7 @@ src/
 │   └── supabase/           # Supabase client & generated types
 ├── lib/                    # Utility functions & constants
 ├── pages/
-│   ├── settings/           # Settings sub-pages (roles, caste, religion, qualification)
+│   ├── settings/           # Settings sub-pages (roles, category, religion, qualification)
 │   └── students/           # Student portal pages (login, test, slot booking, offer letter)
 ├── routes/                 # Student route guards & language context
 ├── services/               # Service layer (template service)
@@ -187,7 +187,8 @@ VITE_GOOGLE_API_KEY=your_google_api_key_here
 | `/questions` | QuestionRepository | Question bank |
 | `/settings` | Settings | App settings |
 | `/settings/user-role` | UserRole | Manage user roles |
-| `/settings/caste` | Caste | Caste settings |
+| `/settings/category` | Category | Category settings |
+| `/settings/caste` | Category | Backward-compatible category settings route |
 | `/settings/religion` | Religion | Religion settings |
 | `/settings/qualification` | Qualification | Qualification settings |
 

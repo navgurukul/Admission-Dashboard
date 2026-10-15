@@ -117,7 +117,7 @@ const ApplicantTable = () => {
       { id: 'whatsapp', label: 'WhatsApp', visible: false },
       { id: 'gender', label: 'Gender', visible: true },
       { id: 'dob', label: 'DOB', visible: false },
-      { id: 'cast', label: 'Cast', visible: false },
+      { id: 'category', label: 'Category', visible: false },
       { id: 'religion', label: 'Religion', visible: false },
       { id: 'qualification', label: 'Qualification', visible: false },
       { id: 'current_status', label: 'Current Status', visible: false },
@@ -211,7 +211,7 @@ const ApplicantTable = () => {
     religionList,
     questionSetList,
     qualificationList,
-    castList,
+    categoryList,
     partnerList,
     donorList,
     stateList,
@@ -220,7 +220,7 @@ const ApplicantTable = () => {
     fetchCampuses,
     fetchCurrentStatuses,
     fetchStages,
-    fetchCasts,
+    fetchCategories,
     fetchQualifications,
     fetchReligions,
     fetchPartners,
@@ -290,10 +290,10 @@ const ApplicantTable = () => {
           await fetchStates();
         }
         break;
-      case 'cast_id':
-        if (castList.length === 0) {
-          // console.log('📥 Fetching casts...');
-          await fetchCasts();
+      case 'category_id':
+        if (categoryList.length === 0) {
+          // console.log('📥 Fetching categories...');
+          await fetchCategories();
         }
         break;
       case 'qualification_id':
@@ -335,7 +335,7 @@ const ApplicantTable = () => {
     currentstatusList.length,
     stageList.length,
     stateList.length,
-    castList.length,
+    categoryList.length,
     qualificationList.length,
     religionList.length,
     partnerList.length,
@@ -345,7 +345,7 @@ const ApplicantTable = () => {
     fetchCurrentStatuses,
     fetchStages,
     fetchStates,
-    fetchCasts,
+    fetchCategories,
     fetchQualifications,
     fetchReligions,
     fetchPartners,
@@ -2185,7 +2185,7 @@ const ApplicantTable = () => {
                       questionSetList={questionSetList}
                       partnerList={partnerList}
                       donorList={donorList}
-                      castList={castList}
+                      categoryList={categoryList}
                       qualificationList={qualificationList}
                       stateList={stateList}
                       isColumnVisible={isColumnVisible}
