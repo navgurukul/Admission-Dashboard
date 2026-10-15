@@ -11,45 +11,45 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Edit, Trash2, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getAllCasts, createCast, updateCast, deleteCast } from "@/utils/api";
+import { getAllCategories, createCategory, updateCategory, deleteCategory } from "@/utils/api";
 
-type Cast = {
+type Category = {
   id: string;
-  cast_name: string;
+  category_name: string;
   status?: boolean;
   created_at?: string;
 };
 
-export default function Caste() {
-  const [castes, setCastes] = useState<Cast[]>([]);
+export default function Category() {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [editingCaste, setEditingCaste] = useState<Cast | null>(null);
-  const [newCaste, setNewCaste] = useState({ cast_name: "" });
-  const [editCaste, setEditCaste] = useState({ cast_name: "" });
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [newCategory, setNewCategory] = useState({ category_name: "" });
+  const [editCategory, setEditCategory] = useState({ category_name: "" });
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchCastes();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
-    console.log("Castes state updated:", castes);
-    console.log("Castes length:", castes.length);
-  }, [castes]);
+    console.log("Categories state updated:", categories);
+    console.log("Categories length:", categories.length);
+  }, [categories]);
 
-  const fetchCastes = async () => {
+  const fetchCategories = async () => {
     try {
       setLoading(true);
-      const fetchedCastes = await getAllCasts();
-      if (Array.isArray(fetchedCastes)) {
-        setCastes(fetchedCastes);
-      } else if (fetchedCastes && Array.isArray(fetchedCastes.data)) {
-        setCastes(fetchedCastes.data);
-      } else if (fetchedCastes && Array.isArray(fetchedCastes.castes)) {
-        setCastes(fetchedCastes.castes);
+      const fetchedCategories = await getAllCategories();
+      if (Array.isArray(fetchedCategories)) {
+        setCategories(fetchedCategories);
+      } else if (fetchedCategories && Array.isArray(fetchedCategories.data)) {
+        setCategories(fetchedCategories.data);
+      } else if (fetchedCategories && Array.isArray(fetchedCategories.categories)) {
+        setCategories(fetchedCategories.categories);
       } else {
-        setCastes([]);
+        setCategories([]);
         toast({
           title: "Error",
           description: "Invalid data format received from server",
@@ -57,11 +57,11 @@ export default function Caste() {
         });
       }
     } catch (error) {
-      setCastes([]);
+      setCategories([]);
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to fetch castes",
+          error instanceof Error ? error.message : "Failed to fetch categories",
         variant: "destructive",
       });
     } finally {
@@ -69,45 +69,45 @@ export default function Caste() {
     }
   };
 
-  const handleAddCaste = async () => {
-    if (!newCaste.cast_name.trim()) {
+  const handleAddCategory = async () => {
+    if (!newCategory.category_name.trim()) {
       toast({
         title: "Error",
-        description: "Cast name is required",
+        description: "Category name is required",
         variant: "destructive",
       });
       return;
     }
     if (
-      Array.isArray(castes) &&
-      castes.some(
-        (cast) =>
-          cast.cast_name.toLowerCase() === newCaste.cast_name.toLowerCase(),
+      Array.isArray(categories) &&
+      categories.some(
+        (category) =>
+          category.category_name.toLowerCase() === newCategory.category_name.toLowerCase(),
       )
     ) {
       toast({
         title: "Error",
-        description: "A cast with this name already exists",
+        description: "A category with this name already exists",
         variant: "destructive",
       });
       return;
     }
     try {
       setCreating(true);
-      const createdCast = await createCast({ cast_name: newCaste.cast_name });
-      setCastes(
-        Array.isArray(castes) ? [...castes, createdCast] : [createdCast],
+      const createdCategory = await createCategory({ category_name: newCategory.category_name });
+      setCategories(
+        Array.isArray(categories) ? [...categories, createdCategory] : [createdCategory],
       );
-      setNewCaste({ cast_name: "" });
+      setNewCategory({ category_name: "" });
       toast({
         title: "Success",
-        description: "Cast created successfully",
+        description: "Category created successfully",
       });
     } catch (error) {
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to create cast",
+          error instanceof Error ? error.message : "Failed to create category",
         variant: "destructive",
       });
     } finally {
@@ -115,80 +115,80 @@ export default function Caste() {
     }
   };
 
-  const handleEditCaste = (caste: Cast) => {
-    setEditingCaste(caste);
-    setEditCaste({ cast_name: caste.cast_name });
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setEditCategory({ category_name: category.category_name });
   };
 
-  const handleUpdateCaste = async () => {
-    if (!editingCaste || !editCaste.cast_name.trim()) {
+  const handleUpdateCategory = async () => {
+    if (!editingCategory || !editCategory.category_name.trim()) {
       toast({
         title: "Error",
-        description: "Cast name is required",
+        description: "Category name is required",
         variant: "destructive",
       });
       return;
     }
     if (
-      Array.isArray(castes) &&
-      castes.some(
-        (cast) =>
-          cast.id !== editingCaste.id &&
-          cast.cast_name.toLowerCase() === editCaste.cast_name.toLowerCase(),
+      Array.isArray(categories) &&
+      categories.some(
+        (category) =>
+          category.id !== editingCategory.id &&
+          category.category_name.toLowerCase() === editCategory.category_name.toLowerCase(),
       )
     ) {
       toast({
         title: "Error",
-        description: "A cast with this name already exists",
+        description: "A category with this name already exists",
         variant: "destructive",
       });
       return;
     }
     try {
-      const updatedCast = await updateCast(editingCaste.id, {
-        cast_name: editCaste.cast_name,
+      const updatedCategory = await updateCategory(editingCategory.id, {
+        category_name: editCategory.category_name,
       });
-      setCastes(
-        Array.isArray(castes)
-          ? castes.map((cast) =>
-              cast.id === editingCaste.id ? updatedCast : cast,
+      setCategories(
+        Array.isArray(categories)
+          ? categories.map((category) =>
+              category.id === editingCategory.id ? updatedCategory : category,
             )
-          : [updatedCast],
+          : [updatedCategory],
       );
-      setEditingCaste(null);
-      setEditCaste({ cast_name: "" });
+      setEditingCategory(null);
+      setEditCategory({ category_name: "" });
       toast({
         title: "Success",
-        description: "Cast updated successfully",
+        description: "Category updated successfully",
       });
     } catch (error) {
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to update cast",
+          error instanceof Error ? error.message : "Failed to update category",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteCaste = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this cast?")) {
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this category?")) {
       return;
     }
     try {
-      await deleteCast(id);
-      setCastes(
-        Array.isArray(castes) ? castes.filter((cast) => cast.id !== id) : [],
+      await deleteCategory(id);
+      setCategories(
+        Array.isArray(categories) ? categories.filter((category) => category.id !== id) : [],
       );
       toast({
         title: "Success",
-        description: "Cast deleted successfully",
+        description: "Category deleted successfully",
       });
     } catch (error) {
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to delete cast",
+          error instanceof Error ? error.message : "Failed to delete category",
         variant: "destructive",
       });
     }
@@ -199,71 +199,71 @@ export default function Caste() {
       <AdmissionsSidebar />
       <div className="space-y-6" style={{ flex: 1 }}>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Caste Management</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Category Management</h2>
           <p className="text-gray-600">
-            Manage caste categories and classifications
+            Manage category categories and classifications
           </p>
         </div>
 
-        {/* Add New Caste */}
+        {/* Add New Category */}
         <Card>
           <CardHeader>
-            <CardTitle>Add New Caste</CardTitle>
-            <CardDescription>Create a new caste category</CardDescription>
+            <CardTitle>Add New Category</CardTitle>
+            <CardDescription>Create a new category category</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Caste Name
+                  Category Name
                 </label>
                 <Input
-                  value={newCaste.cast_name}
-                  onChange={(e) => setNewCaste({ cast_name: e.target.value })}
-                  placeholder="Enter caste name"
+                  value={newCategory.category_name}
+                  onChange={(e) => setNewCategory({ category_name: e.target.value })}
+                  placeholder="Enter category name"
                   disabled={creating}
                   onKeyDown={(e) => {
                     if (
                       e.key === "Enter" &&
-                      newCaste.cast_name.trim() &&
+                      newCategory.category_name.trim() &&
                       !creating
                     ) {
-                      handleAddCaste();
+                      handleAddCategory();
                     }
                   }}
                 />
               </div>
               <div className="flex items-end">
                 <Button
-                  onClick={handleAddCaste}
-                  disabled={creating || !newCaste.cast_name.trim()}
+                  onClick={handleAddCategory}
+                  disabled={creating || !newCategory.category_name.trim()}
                 >
                   {creating ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Plus className="w-4 h-4 mr-2" />
                   )}
-                  {creating ? "Creating..." : "Add Caste"}
+                  {creating ? "Creating..." : "Add Category"}
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Existing Castes */}
+        {/* Existing Categories */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Existing Castes</CardTitle>
+                <CardTitle>Existing Categories</CardTitle>
                 <CardDescription>
-                  Manage current caste categories
+                  Manage current category categories
                 </CardDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={fetchCastes}
+                onClick={fetchCategories}
                 disabled={loading}
               >
                 <RefreshCw
@@ -277,51 +277,51 @@ export default function Caste() {
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                <span>Loading castes...</span>
+                <span>Loading categories...</span>
               </div>
-            ) : !Array.isArray(castes) || castes.length === 0 ? (
+            ) : !Array.isArray(categories) || categories.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No castes found. Create your first caste above.
+                No categories found. Create your first category above.
               </div>
             ) : (
               <div className="space-y-4">
-                {castes.map((caste) => (
+                {categories.map((category) => (
                   <div
-                    key={caste.id}
+                    key={category.id}
                     className="flex items-center justify-between p-4 border rounded-lg"
                   >
-                    {editingCaste?.id === caste.id ? (
+                    {editingCategory?.id === category.id ? (
                       <div className="flex items-center gap-4 flex-1">
                         <div className="flex-1">
                           <Input
-                            value={editCaste.cast_name}
+                            value={editCategory.category_name}
                             onChange={(e) =>
-                              setEditCaste({ cast_name: e.target.value })
+                              setEditCategory({ category_name: e.target.value })
                             }
-                            placeholder="Cast name"
+                            placeholder="Category name"
                             onKeyDown={(e) => {
                               if (
                                 e.key === "Enter" &&
-                                editCaste.cast_name.trim()
+                                editCategory.category_name.trim()
                               ) {
-                                handleUpdateCaste();
+                                handleUpdateCategory();
                               } else if (e.key === "Escape") {
-                                setEditingCaste(null);
-                                setEditCaste({ cast_name: "" });
+                                setEditingCategory(null);
+                                setEditCategory({ category_name: "" });
                               }
                             }}
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={handleUpdateCaste}>
+                          <Button size="sm" onClick={handleUpdateCategory}>
                             Save
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              setEditingCaste(null);
-                              setEditCaste({ cast_name: "" });
+                              setEditingCategory(null);
+                              setEditCategory({ category_name: "" });
                             }}
                           >
                             Cancel
@@ -332,23 +332,23 @@ export default function Caste() {
                       <>
                         <div>
                           <h3 className="font-semibold text-gray-900">
-                            {caste.cast_name}
+                            {category.category_name}
                           </h3>
                           <div className="flex gap-2 mt-2">
                             <span
                               className={`px-2 py-1 text-xs rounded ${
-                                caste.status
+                                category.status
                                   ? "bg-green-100 text-green-800"
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {caste.status ? "Active" : "Inactive"}
+                              {category.status ? "Active" : "Inactive"}
                             </span>
                           </div>
-                          {caste.created_at && (
+                          {category.created_at && (
                             <p className="text-xs text-gray-500 mt-1">
                               Created:{" "}
-                              {new Date(caste.created_at).toLocaleDateString()}
+                              {new Date(category.created_at).toLocaleDateString()}
                             </p>
                           )}
                         </div>
@@ -356,14 +356,14 @@ export default function Caste() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleEditCaste(caste)}
+                            onClick={() => handleEditCategory(category)}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDeleteCaste(caste.id)}
+                            onClick={() => handleDeleteCategory(category.id)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>

@@ -17,7 +17,7 @@ interface ExportOptions {
 
 /**
  * Export all applicants to CSV format
- * Uses resolved names from API response (state_name, district_name, block_name, cast_name, qualification_name, current_status_name, stage_name, school_name, campus_name, religion_name)
+ * Uses resolved names from API response (state_name, district_name, block_name, category_name, qualification_name, current_status_name, stage_name, school_name, campus_name, religion_name)
  */
 export const exportApplicantsToCSV = async (options: ExportOptions) => {
   const {
@@ -164,7 +164,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
         maximumMarks: questionSet ? questionSet.maximumMarks : 0,
         // All other resolved names come directly from API response:
         // school_name, campus_name, religion_name, qualification_name, 
-        // cast_name, current_status_name, stage_name, state_name, 
+        // category_name, current_status_name, stage_name, state_name,
         // district_name, block_name
       };
     });
@@ -205,7 +205,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
     "PinCode",
     "Qualification",
     "CurrentStatus",
-    "Cast",
+    "Category",
     // "Religion",
     "School",
     "Campus",
@@ -318,7 +318,7 @@ export const exportApplicantsToCSV = async (options: ExportOptions) => {
         formatValue(applicant.pin_code || applicant.pincode || ""),
         formatValue(applicant.qualification_name || applicant.qualification || ""),
         formatValue(applicant.current_status_name || applicant.current_work),
-        formatValue(applicant.cast_name || applicant.caste),
+        formatValue(applicant.category_name || applicant.caste),
         // formatValue(applicant.religion_name || applicant.religion),
         formatValue(applicant.school_name),
         formatValue(applicant.campus_name),

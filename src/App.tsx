@@ -32,7 +32,7 @@ import SchoolStages from "./pages/SchoolStages";
 import OwnerPage from "./pages/Owner";
 import Settings from "./pages/Settings";
 import UserRole from "./pages/settings/UserRole";
-import Caste from "./pages/settings/Caste";
+import Category from "./pages/settings/Category";
 import Religion from "./pages/settings/Religion";
 import Qualification from "./pages/settings/Qualification";
 // import Questions from "./pages/settings/Questions";
@@ -255,7 +255,8 @@ const App = () => (
                 }
               >
                 <Route path="user-role" element={<UserRole />} />
-                <Route path="caste" element={<Caste />} />
+                <Route path="category" element={<Category />} />
+                <Route path="caste" element={<Category />} />
                 <Route path="religion" element={<Religion />} />
                 <Route path="qualification" element={<Qualification />} />
                 <Route index element={<UserRole />} />

@@ -78,14 +78,14 @@ interface ApplicantTableRowProps {
   campusList: any[];
   schoolList: any[];
   religionList: any[];
-  // casteList: any[];
+  // categoryList: any[];
   currentstatusList: any[];
   stageStatusList?: any[];
   stageStatusesByStageId?: Record<string, any[]>;
   questionSetList: any[];
   partnerList?: any[];
   donorList?: any[];
-  castList?: any[];
+  categoryList?: any[];
   qualificationList?: any[];
   stateList?: any[];
   districtList?: any[];
@@ -107,14 +107,14 @@ export const ApplicantTableRow = ({
   campusList,
   schoolList,
   religionList,
-  // casteList,
+  // categoryList,
   currentstatusList,
   stageStatusList = [],
   stageStatusesByStageId = {},
   questionSetList,
   partnerList = [],
   donorList = [],
-  castList = [],
+  categoryList = [],
   qualificationList = [],
   stateList = [],
   districtList = [],
@@ -722,18 +722,18 @@ export const ApplicantTableRow = ({
         </TableCell>
       )}
 
-      {/* Cast */}
-      {isColumnVisible('cast') && (
+      {/* Category */}
+      {isColumnVisible('category') && (
         <TableCell className="min-w-[100px] max-w-[120px] px-2">
           <EditableCell
             applicant={applicant}
-            field="cast_id"
-            displayValue={applicant.cast_name || castList.find((c) => c.id === applicant.cast_id)?.cast_name || "N/A"}
-            value={applicant.cast_id}
+            field="category_id"
+            displayValue={applicant.category_name || categoryList.find((c) => c.id === applicant.category_id)?.category_name || "N/A"}
+            value={applicant.category_id}
             onUpdate={onUpdate}
-            onEditStart={() => ensureFieldDataLoaded?.('cast_id')}
+            onEditStart={() => ensureFieldDataLoaded?.('category_id')}
             isLoadingOptions={isLoadingReferenceData}
-            options={castList.map((c) => ({ id: c.id, name: c.cast_name }))}
+            options={categoryList.map((c) => ({ id: c.id, name: c.category_name }))}
             forceTextDisplay={true}
             showPencil={canEditApplicantDetails}
             showActionButtons={false}

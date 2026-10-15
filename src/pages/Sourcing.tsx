@@ -36,7 +36,7 @@ type ApplicantData = {
   final_notes: string | null;
   triptis_notes: string | null;
   whatsapp_number: string | null;
-  caste: string | null;
+  category: string | null;
   gender: string | null;
   qualification: string | null;
   current_work: string | null;
