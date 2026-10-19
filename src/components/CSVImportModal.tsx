@@ -169,6 +169,10 @@ const referenceGuide: GuideItem[] = [
     body: ["Male, Female, Other", "Use a consistent value across rows."],
   },
   {
+    title: "Category",
+    body: ["General, OBC, SC, ST, EWS, etc.", "Must match the categories defined in dashboard settings."],
+  },
+  {
     title: "Email Fields",
     body: ["Use a valid email format."],
   },
@@ -388,8 +392,8 @@ const CSVImportModal = ({
   const downloadTemplate = () => {
     // Full student data import (Download static Excel file from public folder)
     const link = document.createElement("a");
-    link.href = "/Applicant_Bulk_Upload_Template.xlsx";
-    link.download = "Applicant_Bulk_Upload_Template.xlsx";
+    link.href = "/Applicants_Bulk_Upload_Template.xlsx";
+    link.download = "Applicants_Bulk_Upload_Template.xlsx";
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
