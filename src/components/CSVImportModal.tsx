@@ -134,19 +134,19 @@ const referenceGuide: GuideItem[] = [
   },
   {
     title: "Category",
-    body: ["General, OBC, SC, ST, Other"],
+    body: ["General, OBC, SC, ST,EWS, etc.", "Must match the categories defined in dashboard settings."],
   },
   // {
   //   title: "Religion",
   //   body: ["Hinduism, Islam, Christianity, Sikhism, Buddhism, Jainism, Other"],
   // },
   {
-    title: "School",
+    title: "*Prefered School",
     body: ["SOP, SOB, SOF, BCA"],
   },
   {
     title: "Campus",
-    body: ["Dantewad, Sarjapur, Pune"],
+    body: ["Dantewada, Sarjapur, Pune"],
   },
   {
     title: "QuestionSetName",
@@ -389,181 +389,11 @@ const CSVImportModal = ({
   // Removed client-side processCSVData as backend now handles everything and returns results
 
 
-  const downloadTemplate = (templateType: 'full' | 'update' = 'full') => {
-    if (templateType === 'update') {
-      // Second format: For updating existing students with multiple session data (Email-based)
-      const headers = [
-        "Email",
-        "QuestionSetName",
-        "ExamCentre",
-        "DateOfTest",
-        "ObtainedMarks",
-        "ExamStatus",
-        "ExamLastUpdatedByEmail",
-        "LearningRoundStatus",
-        "LearningRoundComments",
-        "LearningRoundLastUpdatedByEmail",
-        "CulturalFitStatus",
-        "CulturalFitComments",
-        "CulturalFitLastUpdatedByEmail",
-        "AdmissionLetterStatus",
-        "OnboardedStatus",
-        "FinalNotes",
-        "JoiningDate",
-        "AdmissionLetterSentByEmail",
-        "FinalStatusUpdatedByEmail",
-      ];
-
-      const sampleRow = [
-        "student@example.com",
-        "A",
-        "Jaipur Center",
-        "2025-11-15",
-        "28",
-        "Screening Test Pass",
-        "interviewer1@example.com",
-        "Learning Round Pass",
-        "Excellent problem-solving and logical thinking",
-        "interviewer1@example.com",
-        "Culture Fit Round Pass",
-        "Strong values alignment and team player",
-        "interviewer2@example.com",
-        "Admission letter Sent",
-        "Onboarded",
-        "Selected for January 2025 batch",
-        "2025-01-15",
-        "abc@navgurukul.org",
-        "abc@navgurukul.org",
-      ];
-
-      const csvContent = [headers, sampleRow]
-        .map((row) => row.map((cell) => `"${cell}"`).join(","))
-        .join("\n");
-
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      
-      link.setAttribute("href", url);
-      link.setAttribute("download", "student_sessions_update_template.csv");
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast({
-        title: "✅ Template Downloaded",
-        description: "Student Sessions Update template has been downloaded successfully!",
-        variant: "default",
-        className: "border-green-500 bg-green-50 text-green-900",
-      });
-      return;
-    }
-
-    // First format: Full student data import (default)
-    const headers = [
-      "FirstName",
-      "MiddleName",
-      "LastName",
-      "Gender",
-      "DOB",
-      "Email",
-      "PhoneNumber",
-      "WhatsappNumber",
-      "State",
-      "City",
-      "District",
-      "Block",
-      "PinCode",
-      "Qualification",
-      "CurrentStatus",
-      "PercentageIn10th",
-      "MathMarksIn10th",
-      "PercentageIn12th",
-      "MathMarksIn12th",
-      "Category",
-      // "Religion",
-      "School",
-      "Campus",
-      "CommunicationNotes",
-      "QuestionSetName",
-      "ExamCentre",
-      "DateOfTest",
-      "ObtainedMarks",
-      "ExamStatus",
-      "ExamLastUpdatedByEmail",
-      "LearningRoundStatus",
-      "LearningRoundComments",
-      "LearningRoundLastUpdatedByEmail",
-      "CulturalFitStatus",
-      "CulturalFitComments",
-      "CulturalFitLastUpdatedByEmail",
-      "AdmissionLetterStatus",
-      "OnboardedStatus",
-      "FinalNotes",
-      "JoiningDate",
-      "AdmissionLetterSentByEmail",
-      "FinalStatusUpdatedByEmail",
-    ];
-
-    // Create sample row with example data
-    const sampleRow = [
-      "xyz",
-      "Kumar",
-      "Singh",
-      "Male",
-      "2005-01-15",
-      "A@example.com",
-      "1234567890",
-      "1234567890",
-      "Rajasthan",
-      "Jaipur",
-      "Jaipur",
-      "Mansarovar",
-      "302020",
-      "12th Pass",
-      "Student",
-      "85.5",
-      "90",
-      "78.5",
-      "85",
-      "General",
-      // "Hindu",
-      "SOB",
-      "Kishanganj",
-      "Called on 01-Dec-2025",
-      "screening-test-set",
-      "Jaipur Center",
-      "2025-11-15",
-      "28",
-      "Screening Test Pass",
-      "interviewer1@example.com",
-      "Learning Round Pass",
-      "Excellent problem-solving and logical thinking",
-      "interviewer1@example.com",
-      "Culture Fit Round Pass",
-      "Strong values alignment and team player",
-      "interviewer2@example.com",
-      "Admission Letter Sent",
-      "Onboarded",
-      "Selected for January 2025 batch",
-      "2025-01-15",
-      "abc@navgurukul.org",
-      "abc@navgurukul.org",
-    ];
-
-    // Combine headers and sample row
-    const csvContent = [headers, sampleRow]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
-      .join("\n");
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const downloadTemplate = () => {
+    // Download Applicants_Bulk_Upload_Template.xlsx from public folder
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", "applicants_import_template.csv");
+    link.href = "/Applicants_Bulk_Upload_Template.xlsx";
+    link.download = "Applicants_Bulk_Upload_Template.xlsx";
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -571,7 +401,7 @@ const CSVImportModal = ({
 
     toast({
       title: "✅ Template Downloaded",
-      description: "CSV template has been downloaded successfully!",
+      description: "Excel template has been downloaded successfully!",
       variant: "default",
       className: "border-green-500 bg-green-50 text-green-900",
     });
@@ -657,7 +487,7 @@ const CSVImportModal = ({
             <Label className="text-sm font-medium">Download Template:</Label>
             <div className="flex justify-center py-2">
               <Button
-                onClick={() => downloadTemplate('full')}
+                onClick={() => downloadTemplate()}
                 variant="outline"
                 className="flex items-center gap-2 text-xs sm:text-sm px-8"
                 type="button"
@@ -665,20 +495,9 @@ const CSVImportModal = ({
                 <Download className="h-4 w-4" />
                 Download Import Template
               </Button>
-              {/* <Button
-                onClick={() => downloadTemplate('update')}
-                variant="outline"
-                className="flex items-center gap-2 text-xs sm:text-sm"
-                type="button"
-              >
-                <Download className="h-4 w-4" />
-                Sessions Update
-              </Button> */}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               • <strong>Student Import Template:</strong> Use this template to import student records with all required information.
-              {/* <br/>
-              • <strong>Sessions Update:</strong> Update existing students' stages and Admission letter updates based on their email addresses. */}
             </p>
           </div>
 
