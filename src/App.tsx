@@ -255,7 +255,7 @@ const App = () => (
                 }
               >
                 <Route path="user-role" element={<UserRole />} />
-                <Route path="caste" element={<Caste />} />
+                <Route path="category" element={<Caste />} />
                 <Route path="religion" element={<Religion />} />
                 <Route path="qualification" element={<Qualification />} />
                 <Route index element={<UserRole />} />

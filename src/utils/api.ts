@@ -909,36 +909,38 @@ export const isAuthenticated = (): boolean => {
   return !!(token && user);
 };
 
-export interface Cast {
+export interface Category {
   id: number;
-  cast_name: string;
+  category_name: string;
+  /** Legacy response field retained for existing applicant payload consumers. */
+  cast_name?: string;
   status: boolean;
   created_at: string;
   updated_at: string;
 }
 
-// Create Cast
-export const createCast = async (castData: {
-  cast_name: string;
-}): Promise<Cast> => {
-  const response = await fetch(`${BASE_URL}/casts/createCast`, {
+// Create Category
+export const createCategory = async (categoryData: {
+  category_name: string;
+}): Promise<Category> => {
+  const response = await fetch(`${BASE_URL}/categories/createCategory`, {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify(castData),
+    body: JSON.stringify(categoryData),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "Failed to create cast");
+    throw new Error(data.message || "Failed to create category");
   }
 
   return data;
 };
 
-// Get All Casts
-export const getAllCasts = async (): Promise<Cast[]> => {
-  const response = await fetch(`${BASE_URL}/casts/getCasts`, {
+// Get All Categories
+export const getAllCategories = async (): Promise<Category[]> => {
+  const response = await fetch(`${BASE_URL}/categories/getCategories`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -946,7 +948,7 @@ export const getAllCasts = async (): Promise<Cast[]> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch casts");
+    throw new Error(data.message || "Failed to fetch categories");
   }
 
   // Return the data array from the response
@@ -954,8 +956,8 @@ export const getAllCasts = async (): Promise<Cast[]> => {
     return data.data.data;
   } else if (data && data.data && Array.isArray(data.data)) {
     return data.data;
-  } else if (data && data.castes && Array.isArray(data.castes)) {
-    return data.castes;
+  } else if (data && data.categories && Array.isArray(data.categories)) {
+    return data.categories;
   } else if (Array.isArray(data)) {
     return data;
   } else {
@@ -963,9 +965,9 @@ export const getAllCasts = async (): Promise<Cast[]> => {
   }
 };
 
-// Get Cast By ID
-export const getCastById = async (id: string): Promise<Cast> => {
-  const response = await fetch(`${BASE_URL}/casts/getCastById/${id}`, {
+// Get Category By ID
+export const getCategoryById = async (id: string): Promise<Category> => {
+  const response = await fetch(`${BASE_URL}/categories/getCategoryById/${id}`, {
     method: "GET",
     headers: getAuthHeaders(),
   });
@@ -973,34 +975,34 @@ export const getCastById = async (id: string): Promise<Cast> => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "Failed to fetch cast");
+    throw new Error(data.message || "Failed to fetch category");
   }
 
   return data;
 };
 
-// Update Cast
-export const updateCast = async (
+// Update Category
+export const updateCategory = async (
   id: string,
-  castData: { cast_name: string },
-): Promise<Cast> => {
-  const response = await fetch(`${BASE_URL}/casts/updateCast/${id}`, {
+  categoryData: { category_name: string },
+): Promise<Category> => {
+  const response = await fetch(`${BASE_URL}/categories/updateCategory/${id}`, {
     method: "PUT",
     headers: getAuthHeaders(),
-    body: JSON.stringify(castData),
+    body: JSON.stringify(categoryData),
   });
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "Failed to update cast");
+    throw new Error(data.message || "Failed to update category");
   }
 
   return data;
 };
 
-// Delete Cast
-export const deleteCast = async (id: string): Promise<void> => {
+// Delete Category
+export const deleteCategory = async (id: string): Promise<void> => {
   const headers = getAuthHeaders();
 
   // Remove content-type if no body
@@ -1008,17 +1010,28 @@ export const deleteCast = async (id: string): Promise<void> => {
     delete headers["Content-Type"];
   }
 
-  const response = await fetch(`${BASE_URL}/casts/deleteCast/${id}`, {
+  const response = await fetch(`${BASE_URL}/categories/deleteCategory/${id}`, {
     method: "DELETE",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(id),
+    headers,
   });
 
   if (!response.ok) {
     const data = await response.json();
-    throw new Error(data.message || "Failed to delete cast");
+    throw new Error(data.message || "Failed to delete category");
   }
 };
+
+// Backward-compatible aliases for applicant flows that still use the legacy
+// database field names (cast_id/cast_name). These aliases use the new category
+// endpoints and can be removed once those payloads are renamed server-side.
+export type Cast = Category;
+export const getAllCasts = getAllCategories;
+export const getCastById = getCategoryById;
+export const createCast = (data: { cast_name: string }) =>
+  createCategory({ category_name: data.cast_name });
+export const updateCast = (id: string, data: { cast_name: string }) =>
+  updateCategory(id, { category_name: data.cast_name });
+export const deleteCast = deleteCategory;
 
 export interface Religion {
   id: number;
@@ -1341,7 +1354,7 @@ export const bulkUpdateStudents = async (payload: {
   block?: string;
   current_status_id?: number;
   qualification_id?: number;
-  cast_id?: number;
+  category_id?: number;
   partner_id?: number;
   donor_id?: number;
   offer_letter_status?: string;

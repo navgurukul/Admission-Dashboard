@@ -4,8 +4,8 @@ import { useLanguage } from "@/routes/LaunguageContext.tsx";
 import { useToast } from "@/hooks/use-toast";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
-  getAllCasts,
-  Cast,
+  getAllCategories,
+  Category,
   getAllQualification,
   Qualification,
   getAllStatus,
@@ -64,7 +64,7 @@ const StudentForm: React.FC = () => {
   const { selectedLanguage } = useLanguage();
   const isMobile = useIsMobile();
 
-  const [casts, setCasts] = useState<Cast[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [statuses, setStatuses] = useState<CurrentStatus[]>([]);
   // const [religions, setReligions] = useState<Religion[]>([]);
@@ -1287,7 +1287,7 @@ const StudentForm: React.FC = () => {
     if (data.alternateNumber) payload.phone_number = data.alternateNumber;
     if (data.city) payload.city = data.city;
     if (data.religion) payload.religion_id = Number(data.religion);
-    if (data.casteTribe) payload.cast_id = Number(data.casteTribe);
+    if (data.casteTribe) payload.category_id = Number(data.casteTribe);
     if (partnerId) payload.partner_id = Number(partnerId);
     if (campusId !== null) {
       payload.preferred_campus_id = campusId;
@@ -1348,15 +1348,15 @@ const StudentForm: React.FC = () => {
     }
 
     // Fetch initial data
-    const fetchCasts = async () => {
+    const fetchCategories = async () => {
       try {
-        const response = await getAllCasts();
-        setCasts(response);
+        const response = await getAllCategories();
+        setCategories(response);
       } catch (error) {
-        // console.error("Error fetching casts:", error);
+        // console.error("Error fetching categories:", error);
       }
     };
-    fetchCasts();
+    fetchCategories();
 
     // Fetch qualifications
     const fetchQualifications = async () => {
@@ -1449,7 +1449,7 @@ const StudentForm: React.FC = () => {
           currentStatus: "वर्तमान स्थिति *",
           maximumQualification: "अधिकतम योग्यता *",
           schoolMedium: "स्कूल माध्यम *",
-          casteTribe: "जाति/जनजाति *",
+          casteTribe: "श्रेणी *",
           religion: "धर्म *",
           back: "वापस",
           saveContinue: "सहेजें और जारी रखें",
@@ -1538,7 +1538,7 @@ const StudentForm: React.FC = () => {
           currentStatus: "सध्याची स्थिती *",
           maximumQualification: "कमाल पात्रता *",
           schoolMedium: "शाळेचे माध्यम *",
-          casteTribe: "जात/आदिवासी *",
+          casteTribe: "श्रेणी *",
           religion: "धर्म *",
           back: "मागे",
           saveContinue: "जतन करा आणि सुरू ठेवा",
@@ -1626,7 +1626,7 @@ const StudentForm: React.FC = () => {
           currentStatus: "Current Status *",
           maximumQualification: "Maximum Qualification *",
           schoolMedium: "School Medium *",
-          casteTribe: "Caste/Tribe *",
+          casteTribe: "Category *",
           religion: "Religion *",
           back: "Back",
           saveContinue: "Save & Continue",

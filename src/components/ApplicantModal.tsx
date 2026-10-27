@@ -434,7 +434,7 @@ export function ApplicantModal({
   const castes = useMemo(() =>
     (castList || []).map((c: any) => ({
       value: c.id?.toString(),
-      label: c.cast_name,
+      label: c.category_name || c.cast_name,
     })), [castList]);
 
   const qualifications = useMemo(() =>
@@ -575,6 +575,7 @@ export function ApplicantModal({
           }
         }
         break;
+      case 'category_id':
       case 'cast_id':
         if (castList.length === 0) {
           await fetchCasts();
@@ -2854,16 +2855,16 @@ Interviewer: ${interviewerName}`;
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Cast
+                    Category
                   </label>
                   <EditableCell
                     applicant={currentApplicant}
-                    field="cast_id"
-                    value={currentApplicant.cast_id}
-                    displayValue={getLabel(castes, currentApplicant.cast_id, "", "cast_name")}
+                    field="category_id"
+                    value={currentApplicant.category_id ?? currentApplicant.cast_id}
+                    displayValue={getLabel(castes, currentApplicant.category_id ?? currentApplicant.cast_id, "", "category_name")}
                     onUpdate={handleUpdate}
                     options={castes}
-                    onEditStart={() => ensureFieldDataLoaded('cast_id')}
+                    onEditStart={() => ensureFieldDataLoaded('category_id')}
                     disabled={!canEditApplicantDetails}
                   />
                 </div>
@@ -4257,6 +4258,3 @@ Interviewer: ${interviewerName}`;
     </>
   );
 }
-
-
-

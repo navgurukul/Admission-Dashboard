@@ -16,7 +16,7 @@ export const useOnDemandReferenceData = () => {
     religionList,
     questionSetList,
     qualificationList,
-    castList,
+    categoryList,
     partnerList,
     donorList,
     stateList,
@@ -27,7 +27,7 @@ export const useOnDemandReferenceData = () => {
     fetchReligions,
     fetchQuestionSets,
     fetchQualifications,
-    fetchCasts,
+    fetchCategories,
     fetchPartners,
     fetchDonors,
     fetchStates,
@@ -105,10 +105,12 @@ export const useOnDemandReferenceData = () => {
           }
           break;
 
+        case 'category':
+        case 'category_id':
         case 'cast':
         case 'cast_id':
-          if (castList.length === 0) {
-            await fetchCasts();
+          if (categoryList.length === 0) {
+            await fetchCategories();
           }
           break;
 
@@ -154,7 +156,7 @@ export const useOnDemandReferenceData = () => {
     religionList.length,
     questionSetList.length,
     qualificationList.length,
-    castList.length,
+    categoryList.length,
     partnerList.length,
     donorList.length,
     stateList.length,
@@ -165,7 +167,7 @@ export const useOnDemandReferenceData = () => {
     fetchReligions,
     fetchQuestionSets,
     fetchQualifications,
-    fetchCasts,
+    fetchCategories,
     fetchPartners,
     fetchDonors,
     fetchStates,
@@ -208,7 +210,7 @@ export const useOnDemandReferenceData = () => {
     religionList,
     questionSetList,
     qualificationList,
-    castList,
+    categoryList,
     partnerList,
     donorList,
     stateList,
