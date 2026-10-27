@@ -1359,9 +1359,9 @@ const CampusDetail = () => {
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">
-                                Caste:
+                                Category:
                               </span>{" "}
-                              {student.cast_name || student.caste_name || student.caste || "N/A"}
+                              {student.category_name || student.cast_name || student.caste_name || student.caste || "N/A"}
                             </div>
                             <div>
                               <span className="font-medium text-muted-foreground">

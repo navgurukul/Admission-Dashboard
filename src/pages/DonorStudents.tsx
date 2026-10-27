@@ -67,7 +67,7 @@ const DonorStudents = () => {
             { id: 'whatsapp', label: 'WhatsApp', visible: false },
             { id: 'gender', label: 'Gender', visible: false },
             { id: 'dob', label: 'DOB', visible: false },
-            { id: 'cast', label: 'Cast', visible: false },
+            { id: 'cast', label: 'Category', visible: false },
             { id: 'qualification', label: 'Qualification', visible: false },
             { id: 'state', label: 'State', visible: false },
             { id: 'district', label: 'District', visible: false },
@@ -128,7 +128,7 @@ const DonorStudents = () => {
             { id: 'whatsapp', label: 'WhatsApp', visible: false },
             { id: 'gender', label: 'Gender', visible: false },
             { id: 'dob', label: 'DOB', visible: false },
-            { id: 'cast', label: 'Cast', visible: false },
+            { id: 'cast', label: 'Category', visible: false },
             { id: 'qualification', label: 'Qualification', visible: false },
             { id: 'state', label: 'State', visible: false },
             { id: 'district', label: 'District', visible: false },
@@ -250,7 +250,7 @@ const DonorStudents = () => {
             case 'dob':
                 return student.dob ? new Date(student.dob).toLocaleDateString("en-GB") : "-";
             case 'cast':
-                return student.cast_name || student.cast || "-";
+                return student.category_name || student.cast_name || student.cast || "-";
             case 'religion':
                 return student.religion_name || student.religion || "-";
             case 'qualification':
@@ -487,7 +487,7 @@ const DonorStudents = () => {
                                             {isColumnVisible('whatsapp') && <TableHead className="font-bold min-w-[120px]">WhatsApp</TableHead>}
                                             {isColumnVisible('gender') && <TableHead className="font-bold min-w-[80px]">Gender</TableHead>}
                                             {isColumnVisible('dob') && <TableHead className="font-bold min-w-[100px]">DOB</TableHead>}
-                                            {isColumnVisible('cast') && <TableHead className="font-bold min-w-[100px]">Cast</TableHead>}
+                                            {isColumnVisible('cast') && <TableHead className="font-bold min-w-[100px]">Category</TableHead>}
                                             {isColumnVisible('religion') && <TableHead className="font-bold min-w-[100px]">Religion</TableHead>}
                                             {isColumnVisible('qualification') && <TableHead className="font-bold min-w-[120px]">Qualification</TableHead>}
                                             {isColumnVisible('state') && <TableHead className="font-bold min-w-[100px]">State</TableHead>}

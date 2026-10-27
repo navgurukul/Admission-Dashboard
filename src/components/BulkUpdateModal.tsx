@@ -203,7 +203,7 @@ export function BulkUpdateModal({
           .filter((c: any) => c && c.id)
           .map((c: any) => ({
             value: String(c.id),
-            label: String(c.cast_name || c.name || `Cast #${c.id}`),
+            label: String(c.category_name || c.cast_name || c.name || `Category #${c.id}`),
           }))
           .filter((opt) => opt.value && opt.label) // Extra safety
       );
@@ -407,7 +407,7 @@ export function BulkUpdateModal({
       payload.block = blockName;  // Send NAME to API (e.g., "Block A")
     }
     if (updateData.castId !== "no_change") {
-      payload.cast_id = Number(updateData.castId);
+      payload.category_id = Number(updateData.castId);
     }
     if (updateData.qualificationId !== "no_change") {
       payload.qualification_id = Number(updateData.qualificationId);
@@ -693,7 +693,7 @@ export function BulkUpdateModal({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>Caste</Label>
+                <Label>Category</Label>
                 <Combobox
                   options={[
                     { value: "no_change", label: "No change" },
@@ -707,9 +707,9 @@ export function BulkUpdateModal({
                     setUpdateData((prev) => ({ ...prev, castId: val }))
                   }
                   onOpen={fetchCastOptions}
-                  placeholder="Select caste"
-                  searchPlaceholder="Search caste..."
-                  emptyText="No caste found."
+                  placeholder="Select category"
+                  searchPlaceholder="Search category..."
+                  emptyText="No category found."
                 />
               </div>
 

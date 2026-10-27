@@ -123,7 +123,7 @@ const ApplicantTable = () => {
       { id: 'whatsapp', label: 'WhatsApp', visible: false },
       { id: 'gender', label: 'Gender', visible: true },
       { id: 'dob', label: 'DOB', visible: false },
-      { id: 'cast', label: 'Cast', visible: false },
+      { id: 'cast', label: 'Category', visible: false },
       { id: 'qualification', label: 'Qualification', visible: false },
       { id: 'current_status', label: 'Current Status', visible: false },
 
@@ -318,6 +318,7 @@ const ApplicantTable = () => {
           await fetchStates();
         }
         break;
+      case 'category_id':
       case 'cast_id':
         if (castList.length === 0) {
           // console.log('📥 Fetching casts...');

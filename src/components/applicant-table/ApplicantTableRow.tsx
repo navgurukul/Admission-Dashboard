@@ -722,18 +722,18 @@ export const ApplicantTableRow = ({
         </TableCell>
       )}
 
-      {/* Cast */}
+      {/* Category */}
       {isColumnVisible('cast') && (
         <TableCell className="min-w-[100px] max-w-[120px] px-2">
           <EditableCell
             applicant={applicant}
-            field="cast_id"
-            displayValue={applicant.cast_name || castList.find((c) => c.id === applicant.cast_id)?.cast_name || "N/A"}
-            value={applicant.cast_id}
+            field="category_id"
+            displayValue={applicant.category_name || applicant.cast_name || castList.find((c) => c.id === (applicant.category_id ?? applicant.cast_id))?.category_name || castList.find((c) => c.id === (applicant.category_id ?? applicant.cast_id))?.cast_name || "N/A"}
+            value={applicant.category_id ?? applicant.cast_id}
             onUpdate={onUpdate}
-            onEditStart={() => ensureFieldDataLoaded?.('cast_id')}
+            onEditStart={() => ensureFieldDataLoaded?.('category_id')}
             isLoadingOptions={isLoadingReferenceData}
-            options={castList.map((c) => ({ id: c.id, name: c.cast_name }))}
+            options={castList.map((c) => ({ id: c.id, name: c.category_name || c.cast_name }))}
             forceTextDisplay={true}
             showPencil={canEditApplicantDetails}
             showActionButtons={false}

@@ -7,7 +7,7 @@ import {
   getAllReligions,
   getAllQuestionSets,
   getAllQualification,
-  getAllCasts,
+  getAllCategories,
   getAllPartners,
   getAllDonors,
   getAllStates,
@@ -30,7 +30,7 @@ export const useReferenceData = () => {
   const [religionList, setReligionList] = useState<any[]>([]);
   const [questionSetList, setQuestionSetList] = useState<any[]>([]);
   const [qualificationList, setQualificationList] = useState<any[]>([]);
-  const [castList, setCastList] = useState<any[]>([]);
+  const [categoryList, setCategoryList] = useState<any[]>([]);
   const [partnerList, setPartnerList] = useState<any[]>([]);
   const [donorList, setDonorList] = useState<any[]>([]);
   const [stateList, setStateList] = useState<{ value: string; label: string }[]>([]);
@@ -118,9 +118,8 @@ export const useReferenceData = () => {
     return fetchReferenceData("qualifications", getAllQualification, setQualificationList);
   }, [fetchReferenceData]);
 
-  const fetchCasts = useCallback(() => {
-    // console.log('🔵 fetchCasts called');
-    return fetchReferenceData("casts", getAllCasts, setCastList);
+  const fetchCategories = useCallback(() => {
+    return fetchReferenceData("categories", getAllCategories, setCategoryList);
   }, [fetchReferenceData]);
 
   const fetchPartners = useCallback(async () => {
@@ -171,7 +170,7 @@ export const useReferenceData = () => {
         fetchReligions(),
         fetchQuestionSets(),
         fetchQualifications(),
-        fetchCasts(),
+        fetchCategories(),
         fetchPartners(),
         fetchDonors(),
         fetchStates(),
@@ -188,7 +187,7 @@ export const useReferenceData = () => {
     fetchReligions,
     fetchQuestionSets,
     fetchQualifications,
-    fetchCasts,
+    fetchCategories,
     fetchPartners,
     fetchDonors,
     fetchStates,
@@ -204,7 +203,8 @@ export const useReferenceData = () => {
     religionList,
     questionSetList,
     qualificationList,
-    castList,
+    categoryList,
+    castList: categoryList,
     partnerList,
     donorList,
     stateList,
@@ -217,7 +217,8 @@ export const useReferenceData = () => {
     fetchReligions,
     fetchQuestionSets,
     fetchQualifications,
-    fetchCasts,
+    fetchCategories,
+    fetchCasts: fetchCategories,
     fetchPartners,
     fetchDonors,
     fetchStates,
