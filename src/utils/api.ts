@@ -2486,6 +2486,47 @@ export const updateCampusApi = async (id: number, campus_name: string) => {
   return response.json();
 };
 
+export interface CampusConfigurationPayload {
+  campus_name: string;
+  display_name: string;
+  state: string;
+  gender_allowed: "male" | "female" | "all";
+  gender_tag: string;
+  eligible_districts: string[] | null;
+  eligible_qualifications: string[] | null;
+  status: boolean;
+}
+
+export const updateCampusConfigurationApi = async (
+  id: number,
+  payload: CampusConfigurationPayload,
+) => {
+  const response = await fetch(`${BASE_URL}/campuses/updateCampus/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result?.message || result?.error || "Failed to update campus configuration");
+  }
+
+  return result;
+};
+
+export const getConfigurationStates = async () => {
+  const response = await fetch("https://api.openadmindata.org/api/v1/in/state.json");
+  if (!response.ok) throw new Error("Failed to fetch states");
+  return response.json();
+};
+
+export const getConfigurationDistricts = async () => {
+  const response = await fetch("https://api.openadmindata.org/api/v1/in/district.json");
+  if (!response.ok) throw new Error("Failed to fetch districts");
+  return response.json();
+};
+
 // Update the WhatsApp group link for a campus
 export const updateCampusWhatsappLinkApi = async (id: number, whatsapp_group_link: string) => {
   const response = await fetch(`${BASE_URL}/campuses/updateCampus/${id}`, {
