@@ -34,6 +34,7 @@ import {
   RefreshCw,
   Save,
   Trash2,
+  MessageCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/offer-letters/RichTextEditor";
@@ -47,6 +48,7 @@ import {
 } from "@/services/templateService";
 import {
   getOfferLetterTemplateImagesNew as getOfferLetterTemplateImages,
+  updateCampusWhatsappLinkApi,
   type OfferLetterTemplateImage,
 } from "@/utils/api";
 import { prepareTemplateHtmlForPdf, rewriteTemplateHtmlImageUrls } from "@/utils/templateImageUrls";
@@ -108,6 +110,9 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
   const [campusImages, setCampusImages] = useState<OfferLetterTemplateImage[]>([]);
   const [campusImagesLoading, setCampusImagesLoading] = useState(false);
   const [campusImagesError, setCampusImagesError] = useState("");
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [whatsappLink, setWhatsappLink] = useState("");
+  const [isUpdatingWhatsappLink, setIsUpdatingWhatsappLink] = useState(false);
 
   // Copy template state
   const [copyDialogOpen, setCopyDialogOpen] = useState(false);
@@ -198,6 +203,9 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
   }, [activeTab, onEditorModeChange]);
 
   const templates = templatesQuery.data || [];
+  const selectedCampusSummary = campusesQuery.data?.find(
+    (campus) => campus.campus_name === selectedCampus,
+  );
   const currentTemplate = templates.find((template) => template.file_name === selectedFile);
   const currentPlaceholders = useMemo(() => {
     if (contentQuery.data?.placeholders?.length) {
@@ -283,6 +291,51 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
     setFileNameInput("");
     setHtmlContent("");
     setIsDirty(false);
+    setWhatsappLink(
+      campusesQuery.data?.find((campus) => campus.campus_name === campusName)?.whatsapp_group_link || "",
+    );
+  };
+
+  const openWhatsappDialog = () => {
+    setWhatsappLink(selectedCampusSummary?.whatsapp_group_link || whatsappLink);
+    setWhatsappDialogOpen(true);
+  };
+
+  const updateWhatsappLink = async () => {
+    if (!selectedCampusSummary?.id) {
+      toast({ title: "Campus ID not found", description: "Please select the campus again.", variant: "destructive" });
+      return;
+    }
+
+    const link = whatsappLink.trim();
+    if (!link) {
+      toast({ title: "WhatsApp link is required", variant: "destructive" });
+      return;
+    }
+
+    try {
+      new URL(link);
+    } catch {
+      toast({ title: "Enter a valid URL", description: "Please enter the complete WhatsApp group link.", variant: "destructive" });
+      return;
+    }
+
+    setIsUpdatingWhatsappLink(true);
+    try {
+      await updateCampusWhatsappLinkApi(selectedCampusSummary.id, link);
+      setWhatsappLink(link);
+      await campusesQuery.refetch();
+      setWhatsappDialogOpen(false);
+      toast({ title: "WhatsApp link updated", description: `Link saved for ${selectedCampus}.` });
+    } catch (error) {
+      toast({
+        title: "Unable to update WhatsApp link",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingWhatsappLink(false);
+    }
   };
 
   const openCampusTemplates = () => {
@@ -792,6 +845,14 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Button
+                    variant="outline"
+                    onClick={openWhatsappDialog}
+                    disabled={!selectedCampus || !selectedCampusSummary?.id}
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Whatsapp link
+                  </Button>
                   {/* <Button variant={hasPlaceholdersOnly ? "default" : "outline"} onClick={() => setHasPlaceholdersOnly((value) => !value)}>
                     {hasPlaceholdersOnly ? "Showing with placeholders" : "Has placeholders"}
                   </Button> */}
@@ -856,6 +917,39 @@ export const TemplateEditor = ({ onEditorModeChange }: TemplateEditorProps) => {
           <div className="rounded-md border bg-white p-4">
             <div dangerouslySetInnerHTML={{ __html: previewHtml }} className="prose max-w-none" />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update whatsapp Link</DialogTitle>
+            <DialogDescription>
+              Update the WhatsApp group link for {selectedCampus || "this campus"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="whatsapp-group-link">WhatsApp group link</Label>
+            <Input
+              id="whatsapp-group-link"
+              type="url"
+              value={whatsappLink}
+              onChange={(event) => setWhatsappLink(event.target.value)}
+              placeholder="https://chat.whatsapp.com/..."
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void updateWhatsappLink();
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWhatsappDialogOpen(false)} disabled={isUpdatingWhatsappLink}>
+              Cancel
+            </Button>
+            <Button onClick={() => void updateWhatsappLink()} disabled={isUpdatingWhatsappLink || !whatsappLink.trim()}>
+              {isUpdatingWhatsappLink ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageCircle className="mr-2 h-4 w-4" />}
+              Update link
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

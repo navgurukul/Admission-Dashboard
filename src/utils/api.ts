@@ -2335,6 +2335,7 @@ export const getStageStatuses = async (stage_id: number): Promise<any> => {
 export interface Campus {
   id: number;
   campus_name: string;
+  whatsapp_group_link?: string;
 }
 
 // Get campuses with pagination
@@ -2355,7 +2356,7 @@ export const getCampuses = async (page: number = 1, limit: number = 10) => {
 
 // Get all campuses (legacy/convenience)
 export const getCampusesApi = async (): Promise<
-  { id: number; campus_name: string }[]
+  { id: number; campus_name: string; whatsapp_group_link?: string }[]
 > => {
   const data = await getCampuses(1, 100);
 
@@ -2378,6 +2379,7 @@ export const getCampusesApi = async (): Promise<
     id: item.id || item.campus_id,
     campus_name:
       item.campus_name || item.name || item.campusName || item.campus || "",
+    whatsapp_group_link: item.whatsapp_group_link || item.whatsappGroupLink || "",
   }));
 };
 
@@ -2482,6 +2484,22 @@ export const updateCampusApi = async (id: number, campus_name: string) => {
 
   if (!response.ok) throw new Error("Failed to update campus");
   return response.json();
+};
+
+// Update the WhatsApp group link for a campus
+export const updateCampusWhatsappLinkApi = async (id: number, whatsapp_group_link: string) => {
+  const response = await fetch(`${BASE_URL}/campuses/updateCampus/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ whatsapp_group_link }),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result?.message || result?.error || "Failed to update WhatsApp link");
+  }
+
+  return result;
 };
 
 // Delete campus
