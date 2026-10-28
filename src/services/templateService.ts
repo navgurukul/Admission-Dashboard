@@ -72,6 +72,7 @@ const encodeCampusName = (campusName: string) => encodeURIComponent(campusName);
 export interface CampusSummary {
   campus_name: string;
   id?: number;
+  whatsapp_group_link?: string;
   total_templates?: number;
   templates_with_placeholders?: number;
 }
@@ -130,6 +131,7 @@ export const getCampuses = async (): Promise<CampusSummary[]> => {
     return list.map((campus) => ({
       id: campus.id,
       campus_name: campus.campus_name,
+      whatsapp_group_link: campus.whatsapp_group_link,
       total_templates: 0,
       templates_with_placeholders: 0,
     }));

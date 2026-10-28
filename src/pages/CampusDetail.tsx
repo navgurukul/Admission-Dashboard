@@ -12,11 +12,19 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, Filter, X, ArrowLeft } from "lucide-react";
 import { AdvancedFilterModal } from "@/components/AdvancedFilterModal";
 import { ApplicantModal } from "@/components/ApplicantModal";
 import { Pagination } from "@/components/applicant-table/Pagination";
-import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats, getStatusesByStageId, getAllStates, getCampusSchools, updateCampusSchoolStatus, CampusSchool, getUnassignedCampusSchools, assignCampusSchool } from "@/utils/api";
+import { getFilterStudent, getCampusById, getCampusStudentStats, CampusStudentStats, getStatusesByStageId, getAllStates, getAllQualification, getConfigurationDistricts, getConfigurationStates, getCampusSchools, updateCampusConfigurationApi, updateCampusSchoolStatus, CampusConfigurationPayload, CampusSchool, getUnassignedCampusSchools, assignCampusSchool } from "@/utils/api";
 import { Switch } from "@/components/ui/switch";
 import { useApplicantData } from "@/hooks/useApplicantData";
 import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
@@ -54,9 +62,23 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "student", label: "Student Data" },
   { key: "courses", label: "Course Management" },
+  { key: "configuration", label: "Configuration" },
 ];
 
 const ROWS_PER_PAGE = 10;
+
+type CampusConfigurationForm = CampusConfigurationPayload;
+
+const emptyCampusConfiguration: CampusConfigurationForm = {
+  campus_name: "",
+  display_name: "",
+  state: "",
+  gender_allowed: "all",
+  gender_tag: "Co-ed",
+  eligible_districts: null,
+  eligible_qualifications: null,
+  status: true,
+};
 
 const CampusDetail = () => {
   const { id } = useParams();
@@ -107,6 +129,12 @@ const CampusDetail = () => {
   const [selectedSchoolsToAssign, setSelectedSchoolsToAssign] = useState<string[]>([]);
   const [confirmStatusModalOpen, setConfirmStatusModalOpen] = useState(false);
   const [pendingStatusToggle, setPendingStatusToggle] = useState<{schoolId: number, currentStatus: boolean, schoolName: string} | null>(null);
+  const [campusConfiguration, setCampusConfiguration] = useState<CampusConfigurationForm>(emptyCampusConfiguration);
+  const [configurationStates, setConfigurationStates] = useState<any[]>([]);
+  const [configurationDistricts, setConfigurationDistricts] = useState<any[]>([]);
+  const [configurationQualifications, setConfigurationQualifications] = useState<any[]>([]);
+  const [configurationLoading, setConfigurationLoading] = useState(false);
+  const [configurationSaving, setConfigurationSaving] = useState(false);
 
   // ✅ DRY: Use on-demand reference data for filter tags
   // Data is loaded lazily - only when needed for displaying active filter tags
@@ -244,13 +272,25 @@ const CampusDetail = () => {
     const fetchCampusDetails = async () => {
       try {
         const response = await getCampusById(Number(id));
-        if (response?.data?.campus_name) {
-          setCampusName(response.data.campus_name);
-        } else if (response?.campus_name) {
-          setCampusName(response.campus_name);
-        } else if (response?.success && response?.data) {
-          setCampusName(response.data.campus_name || response.data.name || "");
-        }
+        const campus = response?.data?.data || response?.data || response?.campus || response;
+        const name = campus?.campus_name || campus?.name || "";
+        setCampusName(name);
+        setCampusConfiguration({
+          campus_name: campus?.campus_name || name,
+          display_name: campus?.display_name || "",
+          state: typeof campus?.state === "string"
+            ? campus.state
+            : campus?.state?.state_code || campus?.state?.state_name || campus?.state?.name || "",
+          gender_allowed: campus?.gender_allowed || "all",
+          gender_tag: campus?.gender_tag || "Co-ed",
+          eligible_districts: Array.isArray(campus?.eligible_districts) && campus.eligible_districts.length
+            ? campus.eligible_districts
+            : null,
+          eligible_qualifications: Array.isArray(campus?.eligible_qualifications) && campus.eligible_qualifications.length
+            ? campus.eligible_qualifications
+            : null,
+          status: campus?.status !== false,
+        });
       } catch (error) {
         console.error("Failed to fetch campus details:", error);
       }
@@ -258,6 +298,145 @@ const CampusDetail = () => {
 
     fetchCampusDetails();
   }, [id, refreshKey]);
+
+  useEffect(() => {
+    if (activeTab !== "configuration") return;
+
+    const loadConfigurationOptions = async () => {
+      setConfigurationLoading(true);
+      try {
+        const [statesResponse, districtsResponse, qualificationsResponse] = await Promise.all([
+          getConfigurationStates(),
+          getConfigurationDistricts(),
+          getAllQualification(),
+        ]);
+
+        const extractList = (response: any, keys: string[]): any[] => {
+          if (Array.isArray(response)) return response;
+          if (!response || typeof response !== "object") return [];
+
+          for (const key of keys) {
+            if (Array.isArray(response[key])) return response[key];
+          }
+
+          for (const key of ["data", "result", "items"]) {
+            const nested = extractList(response[key], keys);
+            if (nested.length) return nested;
+          }
+
+          // The openadmindata endpoints can return the collection under a
+          // dataset-specific key, so also inspect unknown object properties.
+          for (const value of Object.values(response)) {
+            if (Array.isArray(value) && value.length && typeof value[0] === "object") return value;
+            const nested = extractList(value, keys);
+            if (nested.length) return nested;
+          }
+
+          return [];
+        };
+
+        setConfigurationStates(extractList(statesResponse, ["entities", "states", "state"]));
+        setConfigurationDistricts(extractList(districtsResponse, ["entities", "districts", "district"]));
+        setConfigurationQualifications(Array.isArray(qualificationsResponse) ? qualificationsResponse : []);
+      } catch (error) {
+        toast({
+          title: "Unable to load configuration options",
+          description: getFriendlyErrorMessage(error),
+          variant: "destructive",
+        });
+      } finally {
+        setConfigurationLoading(false);
+      }
+    };
+
+    void loadConfigurationOptions();
+  }, [activeTab, toast]);
+
+  const getOptionValue = (item: any, keys: string[]) => {
+    if (typeof item === "string" || typeof item === "number") return String(item);
+    for (const key of keys) {
+      const value = item?.[key];
+      if (value !== undefined && value !== null && typeof value !== "object") return String(value);
+    }
+    return "";
+  };
+
+  const stateOptions = configurationStates
+    .map((state) => ({
+      // openadmindata state entities use { id: "IN11", name_en: "Maharashtra" }.
+      // Keep the state name as the payload value and the id as an alias for district matching.
+      value: getOptionValue(state, ["name_en", "state_name", "stateName", "name", "state", "label", "state_code", "stateCode", "code", "id"]),
+      label: getOptionValue(state, ["name_en", "state_name", "stateName", "name", "state", "label", "state_code", "stateCode", "code"]),
+      aliases: [
+        getOptionValue(state, ["name_en", "state_name", "stateName", "name", "state", "label"]),
+        getOptionValue(state, ["state_code", "stateCode", "code"]),
+        getOptionValue(state, ["id", "state_id", "stateId"]),
+      ].filter(Boolean),
+    }))
+    .filter((option) => option.value && option.label)
+    .filter((option, index, options) => options.findIndex((item) => item.value.toLowerCase() === option.value.toLowerCase()) === index);
+
+  const selectedStateOption = stateOptions.find((option) =>
+    option.aliases.some((alias) => alias.toLowerCase() === campusConfiguration.state.toLowerCase()),
+  );
+
+  const districtOptions = configurationDistricts
+    .map((district) => ({
+      value: getOptionValue(district, ["name_en", "district_name", "districtName", "district", "name", "code", "district_code", "districtCode", "id"]),
+      label: getOptionValue(district, ["name_en", "district_name", "districtName", "district", "name"]),
+      stateAliases: [
+        getOptionValue(district, ["state", "state_name", "stateName", "state_code", "stateCode", "code"]),
+        getOptionValue(district, ["state_id", "stateId", "parent_id", "parentId"]),
+        getOptionValue(district?.parent, ["id", "code", "state_id"]),
+      ].filter(Boolean),
+    }))
+    .filter((option) => option.value && option.label)
+    .filter((option) => {
+      if (!campusConfiguration.state || !selectedStateOption) return true;
+      if (!option.stateAliases.length) return true;
+      return option.stateAliases.some((alias) =>
+        selectedStateOption.aliases.some((stateAlias) => stateAlias.toLowerCase() === alias.toLowerCase()),
+      );
+    });
+
+  const qualificationOptions = configurationQualifications
+    .map((qualification) => ({
+      value: String(qualification.qualification_name ?? qualification.name ?? qualification.id),
+      label: qualification.qualification_name || qualification.name || String(qualification.id),
+    }))
+    .filter((option) => option.value && option.label);
+
+  const updateConfigurationField = <K extends keyof CampusConfigurationForm>(
+    field: K,
+    value: CampusConfigurationForm[K],
+  ) => setCampusConfiguration((current) => ({ ...current, [field]: value }));
+
+  const saveCampusConfiguration = async () => {
+    if (!id) return;
+    setConfigurationSaving(true);
+    try {
+      const payload: CampusConfigurationPayload = {
+        ...campusConfiguration,
+        campus_name: campusConfiguration.campus_name.trim(),
+        display_name: campusConfiguration.display_name.trim(),
+        eligible_districts: campusConfiguration.eligible_districts?.length ? campusConfiguration.eligible_districts : null,
+        eligible_qualifications: campusConfiguration.eligible_qualifications?.length ? campusConfiguration.eligible_qualifications : null,
+      };
+      await updateCampusConfigurationApi(Number(id), payload);
+      setCampusName(payload.campus_name);
+      setCampusConfiguration(payload);
+      setRefreshKey((current) => current + 1);
+      toast({ title: "Campus configuration updated", description: "Campus details saved successfully." });
+    } catch (error) {
+      toast({
+        title: "Unable to update campus configuration",
+        description: getFriendlyErrorMessage(error),
+        variant: "destructive",
+      });
+    } finally {
+      setConfigurationSaving(false);
+    }
+  };
 
   // Fetch campus schools for Course Management
   useEffect(() => {
@@ -1016,8 +1195,10 @@ const CampusDetail = () => {
               {activeTab === "overview" 
                 ? "Programs offered" 
                 : activeTab === "student" 
-                  ? "Student Data" 
-                  : "Course Management"}
+                  ? "Student Data"
+                  : activeTab === "courses"
+                    ? "Course Management"
+                    : "Configuration"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1153,6 +1334,121 @@ const CampusDetail = () => {
                     </TableBody>
                   </Table>
                 )}
+              </div>
+            )}
+
+            {activeTab === "configuration" && (
+              <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="configuration-campus-name">Campus name</Label>
+                    <Input
+                      id="configuration-campus-name"
+                      value={campusConfiguration.campus_name}
+                      onChange={(event) => updateConfigurationField("campus_name", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="configuration-display-name">Display name</Label>
+                    <Input
+                      id="configuration-display-name"
+                      value={campusConfiguration.display_name}
+                      onChange={(event) => updateConfigurationField("display_name", event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>State</Label>
+                    <Select
+                      value={selectedStateOption?.value || undefined}
+                      onValueChange={(value) => {
+                        updateConfigurationField("state", value);
+                        updateConfigurationField("eligible_districts", null);
+                      }}
+                      disabled={configurationLoading}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                      <SelectContent>
+                        {stateOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Gender allowed</Label>
+                    <Select
+                      value={campusConfiguration.gender_allowed}
+                      onValueChange={(value: CampusConfigurationForm["gender_allowed"]) => updateConfigurationField("gender_allowed", value)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select gender allowed" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="all">All</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Gender tag</Label>
+                    <Select
+                      value={campusConfiguration.gender_tag}
+                      onValueChange={(value) => updateConfigurationField("gender_tag", value)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select gender tag" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Boys only">Boys only</SelectItem>
+                        <SelectItem value="Girls only">Girls only</SelectItem>
+                        <SelectItem value="Co-ed">Co-ed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={campusConfiguration.status ? "true" : "false"}
+                      onValueChange={(value) => updateConfigurationField("status", value === "true")}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Active</SelectItem>
+                        <SelectItem value="false">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Eligible districts</Label>
+                    <MultiSelectCombobox
+                      options={districtOptions}
+                      value={campusConfiguration.eligible_districts || []}
+                      onValueChange={(value) => updateConfigurationField("eligible_districts", value.length ? value : null)}
+                      placeholder="Any"
+                      searchPlaceholder="Search districts..."
+                      emptyText="No districts found"
+                      disabled={configurationLoading}
+                      className="h-10 border-input shadow-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">Leave empty to allow any district.</p>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Eligible qualifications</Label>
+                    <MultiSelectCombobox
+                      options={qualificationOptions}
+                      value={campusConfiguration.eligible_qualifications || []}
+                      onValueChange={(value) => updateConfigurationField("eligible_qualifications", value.length ? value : null)}
+                      placeholder="Any"
+                      searchPlaceholder="Search qualifications..."
+                      emptyText="No qualifications found"
+                      disabled={configurationLoading}
+                      className="h-10 border-input shadow-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">Leave empty to allow any qualification.</p>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={() => void saveCampusConfiguration()} disabled={configurationSaving || configurationLoading}>
+                    {configurationSaving ? "Saving..." : "Save configuration"}
+                  </Button>
+                </div>
               </div>
             )}
 
