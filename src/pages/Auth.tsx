@@ -1,19 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
-import { User } from "lucide-react";
+import logo from "@/assets/ng-logo-horizontal.png";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const {
     user: googleUser,
     isAuthenticated,
@@ -46,53 +37,45 @@ export default function Auth() {
       if (isTeam) {
         navigate("/donor");
       } else {
-        navigate("/");
+        navigate("/dashboard");
       }
       return;
     }
   }, [googleUser, isAuthenticated, navigate]);
 
-  // Show loading state while checking authentication
-  if (googleLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex items-center justify-center space-x-2 mb-2">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-primary-foreground" />
+    <main className="admin-login">
+      <section className="admin-login__welcome" aria-label="NavGurukul Admin Portal">
+        <div className="admin-login__sun" />
+        <img src={logo} alt="NavGurukul" className="admin-login__logo" />
+        <div className="admin-login__copy">
+          <p className="admin-login__eyebrow">ADMIN PORTAL</p>
+          <h1>Better Management.<br />Greater Impact.</h1>
+          <p>Manage admissions, students, and programs<br />— all in one place.</p>
+        </div>
+        <div className="admin-login__illustration" aria-hidden="true">
+          <div className="admin-login__plant"><i /><i /><i /></div>
+          <div className="admin-login__desk" />
+          <div className="admin-login__laptop"><span /><b /><b /><b /></div>
+        </div>
+      </section>
+      <section className="admin-login__form-panel">
+        <div className="admin-login__form">
+          <div className="admin-login__accent" />
+          <h2>Welcome Back</h2>
+          <p className="admin-login__subtitle">Sign in to access the NavGurukul Admin Portal.</p>
+          <div className="admin-login__divider"><span>SECURE SIGN IN</span></div>
+          {googleLoading ? (
+            <div className="admin-login__google admin-login__google-loading" aria-live="polite">
+              Loading sign-in…
             </div>
-            <CardTitle className="text-2xl font-bold">
-              Admission Dashboard
-            </CardTitle>
-          </div>
-          <CardDescription>
-            Sign in with your Google account to continue
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Google Sign In Button */}
-          <div
-            id="google-signin-button"
-            ref={googleButtonRef}
-            className="w-full flex justify-center"
-          ></div>
-        </CardContent>
-      </Card>
-    </div>
+          ) : (
+            <div id="google-signin-button" ref={googleButtonRef} className="admin-login__google" />
+          )}
+          <p className="admin-login__note">Use your authorized NavGurukul Google account</p>
+        </div>
+        <p className="admin-login__footer"><span>NavGurukul</span><i /> Education for a Brighter Future</p>
+      </section>
+    </main>
   );
 }

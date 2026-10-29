@@ -55,6 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role_id: googleUser.role_id,
           role_name: googleUser.role_name,
         };
+        setUser(localUser);
+        setSession({ user: localUser });
       } else {
         setUser(null);
         setSession(null);
