@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
-import { Calendar, Clock, AlertCircle, Video, MessageSquare, X, Filter } from "lucide-react";
+import { Calendar, Clock, AlertCircle, Video, MessageSquare, X, Filter, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -102,6 +102,23 @@ export default function AdminView() {
   const [slotTotalCount, setSlotTotalCount] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { toast } = useToast();
+
+  const handleCopyMeetingLink = async (meetingLink: string) => {
+    try {
+      await navigator.clipboard.writeText(meetingLink);
+      toast({
+        title: "Meeting link copied",
+        description: "The Google Meet link has been copied to your clipboard.",
+      });
+    } catch (error) {
+      console.error("Failed to copy meeting link:", error);
+      toast({
+        title: "Copy failed",
+        description: "Could not copy the meeting link. Please copy it manually.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Scheduling States
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -863,15 +880,26 @@ export default function AdminView() {
                                           <span>Closed</span>
                                         </span>
                                       ) : (
-                                        <a
-                                          href={interview.meeting_link}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-1 text-primary hover:underline text-xs sm:text-sm"
-                                        >
-                                          <Video className="w-3.5 h-3.5" />
-                                          <span>Join</span>
-                                        </a>
+                                        <div className="flex items-center gap-2">
+                                          <a
+                                            href={interview.meeting_link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 text-primary hover:underline text-xs sm:text-sm"
+                                          >
+                                            <Video className="w-3.5 h-3.5" />
+                                            <span>Join</span>
+                                          </a>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleCopyMeetingLink(interview.meeting_link)}
+                                            className="text-muted-foreground hover:text-primary transition-colors"
+                                            title="Copy meeting link"
+                                            aria-label="Copy meeting link"
+                                          >
+                                            <Copy className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
                                       )
                                     ) : (
                                       <span className="text-muted-foreground text-xs sm:text-sm">No Link</span>
@@ -1303,15 +1331,26 @@ export default function AdminView() {
                                       <span>Closed</span>
                                     </span>
                                   ) : (
-                                    <a
-                                      href={interview.meeting_link}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-1 text-primary hover:underline"
-                                    >
-                                      <Video className="w-4 h-4" />
-                                      <span>Join</span>
-                                    </a>
+                                    <div className="flex items-center gap-2">
+                                      <a
+                                        href={interview.meeting_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-primary hover:underline"
+                                      >
+                                        <Video className="w-4 h-4" />
+                                        <span>Join</span>
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopyMeetingLink(interview.meeting_link)}
+                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                        title="Copy meeting link"
+                                        aria-label="Copy meeting link"
+                                      >
+                                        <Copy className="w-4 h-4" />
+                                      </button>
+                                    </div>
                                   )
                                 ) : (
                                   <span className="text-muted-foreground text-sm">No Link</span>
