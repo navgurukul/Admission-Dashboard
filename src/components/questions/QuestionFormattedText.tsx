@@ -8,7 +8,7 @@ import { useLanguage } from "@/routes/LaunguageContext";
 
 interface QuestionFormattedTextProps {
   // `text` can be a plain string or a language-keyed object
-  text: any;
+  text: unknown;
   className?: string;
 }
 
@@ -93,17 +93,18 @@ export function QuestionFormattedText({ text, className }: QuestionFormattedText
 
     if (typeof text === "string") return text;
 
-    if (typeof text === "object") {
-      // common keys we might encounter
-      return (
-        text[selectedLanguage] ||
-        text[`${selectedLanguage}_text`] ||
-        text.english ||
-        text.english_text ||
+    if (typeof text === "object" && text !== null) {
+      const languageText = text as Record<string, unknown>;
+      const candidates = [
+        languageText[selectedLanguage],
+        languageText[`${selectedLanguage}_text`],
+        languageText.english,
+        languageText.english_text,
         // fallback: first string property found
-        Object.values(text).find((v: any) => typeof v === "string") ||
-        ""
-      );
+        ...Object.values(languageText),
+      ];
+
+      return candidates.find((value): value is string => typeof value === "string") || "";
     }
 
     return String(text || "");

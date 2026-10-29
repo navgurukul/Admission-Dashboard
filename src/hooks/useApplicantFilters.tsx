@@ -38,8 +38,24 @@ export const useApplicantFilters = (
   religionList: any[],
   questionSetList: any[]
 ) => {
-  const [searchTerm, setSearchTerm] = useSessionStorage("applicant_search", "");
+  const [storedSearchTerm, setStoredSearchTerm] = useSessionStorage("applicant_search", "");
+  // Session storage may contain legacy JSON values from before this field was
+  // consistently stored as text. Keep the value passed to consumers string-only
+  // so every search path can safely use string methods.
+  const searchTerm =
+    typeof storedSearchTerm === "string"
+      ? storedSearchTerm
+      : storedSearchTerm == null
+        ? ""
+        : String(storedSearchTerm);
+  const setSearchTerm = (value: string) => setStoredSearchTerm(value);
   const { debouncedValue: debouncedSearchTerm, isPending: isSearchPending } = useDebounce(searchTerm, 800);
+
+  useEffect(() => {
+    if (storedSearchTerm !== searchTerm) {
+      setStoredSearchTerm(searchTerm);
+    }
+  }, [storedSearchTerm, searchTerm]);
   const [filters, setFilters] = useState<FilterState>(() => {
     try {
       const saved = sessionStorage.getItem("applicant_filters");
