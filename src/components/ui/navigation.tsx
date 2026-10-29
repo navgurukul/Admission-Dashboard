@@ -42,7 +42,7 @@ export interface NavigationItem {
 export const navigation: NavigationItem[] = [
   {
     name: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
     component: Dashboard,
     allowedRoles: [1, 2, 3],

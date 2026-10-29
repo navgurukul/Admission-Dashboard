@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
-import NotFound from "./pages/NotFound";
 import AllApplicants from "./pages/AllApplicants";
 import Interviews from "./pages/Interviews";
 import Schedule from "./pages/Schedule";
@@ -40,6 +39,7 @@ import StudentRoutes from "./routes/StudentRoutes";
 import { StudentProvider } from "./utils/StudentContext.tsx";
 import { TestsProvider } from "./utils/TestContext.tsx";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -52,13 +52,17 @@ const App = () => (
           <Sonner />
           <AuthProvider>
             <Routes>
-              {/* Redirect /auth to /students/login - All users login from same page */}
+              {/* The admin portal starts at the branded Google login screen. */}
               <Route
                 path="/auth"
-                element={<Navigate to="/students/login" replace />}
+                element={<Navigate to="/" replace />}
               />
               <Route
                 path="/"
+                element={<Auth />}
+              />
+              <Route
+                path="/dashboard"
                 element={
                   <ProtectedRoute>
                     <Index />
@@ -264,7 +268,8 @@ const App = () => (
               <Route path="/student/*" element={<StudentRoutes />} />
               <Route path="/students/*" element={<StudentRoutes />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              {/* Any manually entered or unknown URL returns to the login landing page. */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AuthProvider>
         </TooltipProvider>

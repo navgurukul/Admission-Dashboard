@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import LanguageSelection from "@/pages/students/LanguageSelection";
 import TestInstructionsPage from "@/pages/students/Introduction";
 import StudentRegistrationForm from "@/pages/students/StudentForm";
@@ -15,12 +16,30 @@ import OfferLetterPage from "@/pages/students/OfferLetterPage";
 import GamifiedLanding from "@/pages/students/GamifiedLanding"; // trigger reload
 
 const StudentRoutes: React.FC = () => {
+  const { user, isAuthenticated, loading } = useGoogleAuth({ skipAutoNavigation: true });
+
+  if (loading) {
+    return <div className="admin-login-loading">Loading…</div>;
+  }
+
+  const roleId = Number(user?.role_id);
+  const roleName = user?.role_name?.toUpperCase();
+  const hasAdminAccess =
+    isAuthenticated &&
+    (roleId === 1 || roleId === 2 || roleId === 3 ||
+      roleName === "ADMIN" || roleName === "USER" || roleName === "TEAM");
+
+  if (!hasAdminAccess) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <Routes>
       {/* ---------- PUBLIC ---------- */}
       {/* <Route index element={<StudentLandingPage />} />
       <Route path="login" element={<StudentLogin />} /> */}
-      <Route index element={<GamifiedLanding />} />
+      {/* Disabled: student landing is no longer publicly accessible. */}
+      {/* <Route index element={<GamifiedLanding />} /> */}
       <Route path="student" element={<GamifiedLanding />} />
       <Route path="gamified" element={<Navigate to="." replace />} />
       <Route path="login" element={<Navigate to="." replace />} />
@@ -48,7 +67,8 @@ const StudentRoutes: React.FC = () => {
         <Route index element={<Navigate to="/students/test/start" replace />} />
         {/* <Route path="instructions" element={<TestInstructionsPage />} /> */}
         <Route path="instructions" element={<Navigate to="/students/test/start" replace />} />
-        <Route path="registration" element={<StudentRegistrationForm />} />
+        {/* Disabled: student registration is no longer accessible. */}
+        {/* <Route path="registration" element={<StudentRegistrationForm />} /> */}
       </Route>
 
       {/* ---------- TEST (start + section + result) ---------- */}
@@ -61,7 +81,8 @@ const StudentRoutes: React.FC = () => {
         }
       >
         <Route index element={<Navigate to="start" replace />} />
-        <Route path="start" element={<ScreeningStartPage />} />
+        {/* Disabled: student test start is no longer accessible. */}
+        {/* <Route path="start" element={<ScreeningStartPage />} /> */}
         <Route path="section" element={<ScreeningTestPage />} />
         <Route path="result" element={<ScreeningResultPage />} />
       </Route>
@@ -101,7 +122,7 @@ const StudentRoutes: React.FC = () => {
       />
 
       {/* ---------- CATCH-ALL ---------- */}
-      <Route path="*" element={<Navigate to="." replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

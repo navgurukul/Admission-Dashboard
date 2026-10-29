@@ -41,13 +41,17 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
   // Initialize Google OAuth
   useEffect(() => {
     const initializeGoogleAuth = () => {
-      if (
-        document.querySelector(
-          'script[src="https://accounts.google.com/gsi/client"]',
-        )
-      ) {
+      const existingScript = document.querySelector(
+        'script[src="https://accounts.google.com/gsi/client"]',
+      );
+
+      if (existingScript) {
         if (window.google) {
           initializeGoogleOAuth();
+        } else {
+          existingScript.addEventListener("load", initializeGoogleOAuth, {
+            once: true,
+          });
         }
         return;
       }
@@ -227,7 +231,7 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
             if (isTeam) {
               navigate("/donor");
             } else {
-              navigate("/");
+              navigate("/dashboard");
             }
 
             toast({
