@@ -363,21 +363,21 @@ export const ApplicantTableRow = ({
     if (offerStatus) return offerStatus;
 
     // 3. Cultural Fit Round
-    const cfrRounds = applicant.interview_cultural_fit_round || [];
+    const cfrRounds = (applicant.interview_cultural_fit_round || []).filter((round: any) => round?.is_archived !== true);
     if (cfrRounds.length > 0) {
       const lastCfr = cfrRounds[cfrRounds.length - 1];
       if (lastCfr?.cultural_fit_status) return lastCfr.cultural_fit_status;
     }
 
     // 4. Learning Round
-    const learnerRounds = applicant.interview_learner_round || [];
+    const learnerRounds = (applicant.interview_learner_round || []).filter((round: any) => round?.is_archived !== true);
     if (learnerRounds.length > 0) {
       const lastLr = learnerRounds[learnerRounds.length - 1];
       if (lastLr?.learning_round_status) return lastLr.learning_round_status;
     }
 
     // 5. Screening Round
-    const examSessions = applicant.exam_sessions || [];
+    const examSessions = (applicant.exam_sessions || []).filter((session: any) => session?.is_archived !== true);
     if (examSessions.length > 0) {
       const lastSession = examSessions[examSessions.length - 1];
       if (lastSession?.status) return lastSession.status;
@@ -915,7 +915,7 @@ export const ApplicantTableRow = ({
             displayValue={
               // Check screening status first
               (() => {
-                const screeningStatus = applicant.exam_sessions?.[0]?.status || "";
+                const screeningStatus = applicant.exam_sessions?.find((session: any) => session?.is_archived !== true)?.status || "";
                 const screeningStatusLower = screeningStatus.toLowerCase();
                 
                 // If screening test failed, show "Not Clear"
@@ -952,7 +952,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.exam_sessions?.[0]?.status || "N/A"}
+                  {applicant.exam_sessions?.find((session: any) => session?.is_archived !== true)?.status || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -969,7 +969,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.exam_sessions?.[0]?.obtained_marks ?? "N/A"}
+                  {applicant.exam_sessions?.find((session: any) => session?.is_archived !== true)?.obtained_marks ?? "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -986,7 +986,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.exam_sessions?.[0]?.exam_centre || "N/A"}
+                  {applicant.exam_sessions?.find((session: any) => session?.is_archived !== true)?.exam_centre || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -1003,7 +1003,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="cursor-not-allowed opacity-70 text-xs whitespace-pre-line">
-                  {formatAuditInfo(applicant.exam_sessions?.[0])}
+                  {formatAuditInfo(applicant.exam_sessions?.find((session: any) => session?.is_archived !== true))}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -1021,8 +1021,8 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {(isLearningStatusLabel(applicant.interview_learner_round?.[0]?.learning_round_status)
-                    ? applicant.interview_learner_round?.[0]?.learning_round_status
+                  {(isLearningStatusLabel(applicant.interview_learner_round?.find((round: any) => round?.is_archived !== true)?.learning_round_status)
+                    ? applicant.interview_learner_round?.find((round: any) => round?.is_archived !== true)?.learning_round_status
                     : null) || getLearningStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
@@ -1040,7 +1040,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.interview_learner_round?.[0]?.comments || "N/A"}
+                  {applicant.interview_learner_round?.find((round: any) => round?.is_archived !== true)?.comments || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -1057,7 +1057,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="cursor-not-allowed opacity-70 text-xs whitespace-pre-line">
-                  {formatAuditInfo(applicant.interview_learner_round?.[0])}
+                  {formatAuditInfo(applicant.interview_learner_round?.find((round: any) => round?.is_archived !== true))}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -1075,8 +1075,8 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {(isCfrStatusLabel(applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status)
-                    ? applicant.interview_cultural_fit_round?.[0]?.cultural_fit_status
+                  {(isCfrStatusLabel(applicant.interview_cultural_fit_round?.find((round: any) => round?.is_archived !== true)?.cultural_fit_status)
+                    ? applicant.interview_cultural_fit_round?.find((round: any) => round?.is_archived !== true)?.cultural_fit_status
                     : null) || getCfrStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
@@ -1094,7 +1094,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {applicant.interview_cultural_fit_round?.[0]?.comments || "N/A"}
+                  {applicant.interview_cultural_fit_round?.find((round: any) => round?.is_archived !== true)?.comments || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -1111,7 +1111,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="cursor-not-allowed opacity-70 text-xs whitespace-pre-line">
-                  {formatAuditInfo(applicant.interview_cultural_fit_round?.[0])}
+                  {formatAuditInfo(applicant.interview_cultural_fit_round?.find((round: any) => round?.is_archived !== true))}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
