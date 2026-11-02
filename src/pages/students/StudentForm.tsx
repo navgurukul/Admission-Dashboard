@@ -2163,7 +2163,9 @@ const StudentForm: React.FC = () => {
                     {content.maximumQualification}
                   </label>
                   <Combobox
-                    options={qualifications?.map((item) => ({
+                    options={qualifications
+                      ?.filter((item) => item.qualification_name?.trim().toLowerCase() !== '10th pass')
+                      .map((item) => ({
                       value: String(item.id),
                       label: item.qualification_name,
                     })) || []}
