@@ -432,7 +432,9 @@ export function ApplicantModal({
     return lrCfrStatusOptions
       .filter((status) => {
         const normalized = status.toLowerCase();
-        if (round === "learning") return !normalized.includes("culture") && !normalized.includes("fit");
+        if (round === "learning") {
+          return !normalized.includes("culture") && !normalized.includes("fit") && !normalized.includes("cfr");
+        }
         return !normalized.includes("learning");
       })
       .map((status) => ({ value: status, label: status }));
