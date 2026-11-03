@@ -322,9 +322,10 @@ export const useGoogleAuth = (options?: UseGoogleAuthOptions) => {
     }
   }, []);
 
-  const getUserRole = () => {
-    return authState.user?.role?.name || null;
-  };
+  const getUserRole = useCallback(
+    () => authState.user?.role?.name || null,
+    [authState.user?.role?.name],
+  );
 
   const hasRole = (roleName: string) => {
     const userRole = getUserRole();
