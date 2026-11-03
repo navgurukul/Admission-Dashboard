@@ -1021,9 +1021,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {(isLearningStatusLabel(applicant.interview_learner_round?.find((round: any) => round?.is_archived !== true)?.learning_round_status)
-                    ? applicant.interview_learner_round?.find((round: any) => round?.is_archived !== true)?.learning_round_status
-                    : null) || getLearningStageStatusName(applicant) || "N/A"}
+                  {applicant.interview_learner_round?.find((round: any) => round?.is_archived !== true)?.learning_round_status || getLearningStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -1075,9 +1073,7 @@ export const ApplicantTableRow = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="truncate cursor-not-allowed opacity-70">
-                  {(isCfrStatusLabel(applicant.interview_cultural_fit_round?.find((round: any) => round?.is_archived !== true)?.cultural_fit_status)
-                    ? applicant.interview_cultural_fit_round?.find((round: any) => round?.is_archived !== true)?.cultural_fit_status
-                    : null) || getCfrStageStatusName(applicant) || "N/A"}
+                  {applicant.interview_cultural_fit_round?.find((round: any) => round?.is_archived !== true)?.cultural_fit_status || getCfrStageStatusName(applicant) || "N/A"}
                 </div>
               </TooltipTrigger>
               <TooltipContent>
