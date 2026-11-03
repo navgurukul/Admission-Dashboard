@@ -64,6 +64,7 @@ import {
   getCampusesApi,
   getAllQuestionSets,
   getAllStages,
+  getStatusesByStageId,
   getAllPartners,
   getAllDonors,
   getAllStates,
@@ -313,6 +314,38 @@ export function ApplicantModal({
 
   // Additional lists needed by ApplicantModal
   const [stageList, setStageList] = useState<any[]>([]);
+  const [lrCfrStatusOptions, setLrCfrStatusOptions] = useState<string[]>([]);
+
+  // LR and CFR share the backend Interview stage. Load its statuses from the
+  // reference endpoint so the round dropdowns stay in sync with backend values.
+  useEffect(() => {
+    let cancelled = false;
+    getStatusesByStageId(4)
+      .then((statuses: any[]) => {
+        if (cancelled) return;
+        const names = statuses
+          .map((status: any) => String(status?.status_name || status?.current_status_name || status?.name || "").trim())
+          .filter(Boolean);
+        setLrCfrStatusOptions([...new Set(names)]);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch Learning/Cultural Fit statuses:", error);
+        if (!cancelled) setLrCfrStatusOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const getRoundStatusOptions = (round: "learning" | "cultural") => {
+    return lrCfrStatusOptions
+      .filter((status) => {
+        const normalized = status.toLowerCase();
+        if (round === "learning") return !normalized.includes("culture") && !normalized.includes("fit");
+        return !normalized.includes("learning");
+      })
+      .map((status) => ({ value: status, label: status }));
+  };
 
   // State for fetched partner and donor names (fallback when backend doesn't provide them)
   const [partnerName, setPartnerName] = useState<string | null>(null);
@@ -2849,23 +2882,7 @@ Interviewer: ${interviewerName}`;
                     label: "Status *",
                     type: "select" as const,
                     disabled: isStageDisabled(currentApplicant, "LR") || isLearningPassed,
-                    options: [
-                      {
-                        value:"Learning Round Pass",
-                        label: "Learning Round Pass"
-                      },
-                      {
-                        value: "Learning Round Fail",
-                        label: "Learning Round Fail",
-                      },
-                      {
-                        value: "Not Eligible",
-                        label: "Not Eligible",
-                      },
-                      { value: "Disinterested", label: "Disinterested" },
-                      { value: "Reschedule", label: "Reschedule" },
-                      { value: "No Show", label: "No Show" },
-                    ],
+                    options: getRoundStatusOptions("learning"),
                   },
                   {
                     name: "school_id",
@@ -2966,23 +2983,7 @@ Interviewer: ${interviewerName}`;
                     label: "Status *",
                     type: "select" as const,
                     disabled: isStageDisabled(currentApplicant, "CFR") || isCulturalPassed,
-                    options: [
-                      {
-                        value: " Culture Fit Round Pass",
-                        label: " Culture Fit Round Pass",
-                      },
-                      {
-                        value: " Culture Fit Round Fail",
-                        label: " Culture Fit Round Fail",
-                      },
-                      {
-                        value: "Not Eligible",
-                        label: "Not Eligible",
-                      },
-                      { value: "Disinterested", label: "Disinterested" },
-                      { value: "Reschedule", label: "Reschedule" },
-                      { value: "No Show", label: "No Show" },
-                    ],
+                    options: getRoundStatusOptions("cultural"),
                   },
                   {
                     name: "comments",

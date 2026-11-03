@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, History } from "lucide-react";
 import {
   getInterviewQuestions,
+  getStatusesByStageId,
   submitCulturalFitRoundFeedback,
   updateCulturalFitRoundFeedback,
 } from "@/utils/api";
@@ -46,6 +47,7 @@ export function CfrFeedbackModal({
   const [activeGroup, setActiveGroup] = useState<string>("");
   
   const [status, setStatus] = useState("");
+  const [statusOptions, setStatusOptions] = useState<string[]>([]);
   const [comments, setComments] = useState("");
 
   useEffect(() => {
@@ -57,6 +59,17 @@ export function CfrFeedbackModal({
          setComments(existingData.comments);
       }
       fetchQuestions();
+      getStatusesByStageId(4)
+        .then((statuses: any[]) => {
+          const names = statuses
+            .map((item: any) => String(item?.status_name || item?.current_status_name || item?.name || "").trim())
+            .filter((name: string) => name && !name.toLowerCase().includes("learning"));
+          setStatusOptions([...new Set(names)]);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch Cultural Fit statuses:", error);
+          setStatusOptions([]);
+        });
     }
   }, [isOpen, existingData]);
 
@@ -285,12 +298,9 @@ export function CfrFeedbackModal({
                     disabled={existingData?._isReadOnly}
                   >
                     <option value="disabled hidden">Selection</option>
-                    <option value="Culture Fit Round Pass">Culture Fit Round Pass</option>
-                    <option value="Culture Fit Round Fail">Culture Fit Round Fail</option>
-                    <option value="Not Eligible">Not Eligible</option>
-                    <option value="Disinterested">Disinterested</option>
-                    <option value="Reschedule">Reschedule</option>
-                    <option value="No Show">No Show</option>
+                    {statusOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
                   </select>
                 </div>
 
