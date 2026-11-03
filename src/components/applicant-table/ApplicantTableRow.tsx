@@ -285,6 +285,7 @@ export const ApplicantTableRow = ({
     if (!value) return false;
     const normalized = value.toLowerCase();
     return (
+      normalized.includes("cfr") ||
       normalized.includes("culture") ||
       normalized.includes("fit")
     );
