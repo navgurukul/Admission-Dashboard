@@ -472,6 +472,7 @@ export function ApplicantModal({
     return lrCfrStatusOptions
       .filter((status) => {
         const normalized = status.toLowerCase();
+        if (normalized === "call booked") return false;
         if (round === "learning") {
           return !normalized.includes("culture") && !normalized.includes("fit") && !normalized.includes("cfr");
         }
@@ -2446,6 +2447,7 @@ Interviewer: ${interviewerName}`;
         !isCfrDetailedFeedbackComplete && gatedCfrStatuses.has(normalizedValue);
 
       return (
+        normalizedValue !== "call booked" &&
         !shouldHideUntilComplete &&
         options.findIndex((candidate) => candidate.value === option.value) === index
       );
