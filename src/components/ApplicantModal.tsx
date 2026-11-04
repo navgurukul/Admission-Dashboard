@@ -109,6 +109,42 @@ import {
 import { useReferenceData } from "@/hooks/useReferenceData";
 import { ScheduleInterviewModal } from "@/components/ScheduleInterviewModal";
 
+const normalizeCfrQna = (value: any): any[] => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const getCfrQnaFromRound = (round: any): any[] => {
+  const candidates = [
+    round?.qna,
+    round?.detailed_feedback?.qna,
+    round?.cfr_feedback?.qna,
+  ];
+  return candidates.map(normalizeCfrQna).find((qna) => qna.length > 0) || [];
+};
+
+const getCfrQnaFromSchedule = (schedule: any): any[] => {
+  const candidates = [
+    schedule?.qna,
+    schedule?.cfr_qna,
+    schedule?.cultural_fit_qna,
+    schedule?.cultural_fit_round?.qna,
+    schedule?.interview_cultural_fit_round?.qna,
+    Array.isArray(schedule?.interview_cultural_fit_round)
+      ? schedule.interview_cultural_fit_round.find((round: any) => Array.isArray(round?.qna))?.qna
+      : undefined,
+  ];
+  return candidates.map(normalizeCfrQna).find((qna) => qna.length > 0) || [];
+};
+
 // Component to display schedule information in compact format (similar to audit info)
 const ScheduleInfoDisplay = ({ row }: any) => {
   const schedules = row.schedule_info;
@@ -328,6 +364,7 @@ export function ApplicantModal({
   const [interviewDetailsRoundType, setInterviewDetailsRoundType] = useState<"LR" | "CFR" | null>(null);
   const [liveScheduleData, setLiveScheduleData] = useState<any[]>([]);
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
+  const [hasLoadedScheduleData, setHasLoadedScheduleData] = useState(false);
   const [studentViewPhone, setStudentViewPhone] = useState("");
   const [studentViewData, setStudentViewData] = useState<CompleteStudentData | null>(null);
   const [showStudentPreviewDialog, setShowStudentPreviewDialog] = useState(false);
@@ -337,6 +374,9 @@ export function ApplicantModal({
   const [selectedCfrRow, setSelectedCfrRow] = useState<any>(null);
   const [cfrApiQuestions, setCfrApiQuestions] = useState<any[]>([]);
   const [isLoadingCfrQuestions, setIsLoadingCfrQuestions] = useState(false);
+  const cfrQuestionsFetchAttemptedRef = useRef(false);
+  const cfrQuestionsLoadedRef = useRef(false);
+  const cfrQuestionsStudentRef = useRef<number | null>(null);
   const [isPendingQuestionsExpanded, setIsPendingQuestionsExpanded] = useState(true);
   const studentPreviewStorageKeys = useMemo(() => [] as string[], []);
   const studentPreviewStorageBackupRef = useRef<Record<string, string | null> | null>(null);
@@ -737,6 +777,7 @@ export function ApplicantModal({
   const fetchScheduleData = useCallback(async () => {
     if (!currentApplicant?.id) {
       setLiveScheduleData([]);
+      setHasLoadedScheduleData(true);
       return;
     }
 
@@ -744,6 +785,7 @@ export function ApplicantModal({
       // Clear old data first to prevent stale data flash
       setLiveScheduleData([]);
       setIsLoadingSchedules(true);
+      setHasLoadedScheduleData(false);
       const scheduleData = await getInterviewByStudentId(currentApplicant.id);
       setLiveScheduleData(scheduleData || []);
     } catch (error) {
@@ -751,6 +793,7 @@ export function ApplicantModal({
       setLiveScheduleData([]);
     } finally {
       setIsLoadingSchedules(false);
+      setHasLoadedScheduleData(true);
     }
   }, [currentApplicant?.id]);
 
@@ -761,19 +804,53 @@ export function ApplicantModal({
     } else if (!isOpen) {
       // Reset schedule data when modal closes to prevent showing stale data
       setLiveScheduleData([]);
+      setHasLoadedScheduleData(false);
     }
   }, [isOpen, currentApplicant?.id, refreshKey, fetchScheduleData]);
 
   // Fetch CFR interview questions to check unanswered status
   useEffect(() => {
     let isMounted = true;
-    if (isOpen) {
+    if (!isOpen) {
+      return () => {
+        isMounted = false;
+      };
+    }
+    const studentId = currentApplicant?.id ?? null;
+    const activeCfrRounds = (currentApplicant?.interview_cultural_fit_round || []).filter(
+      (round: any) => round?.is_archived !== true
+    );
+    const hasExistingQna = activeCfrRounds.some(
+      (round: any) => getCfrQnaFromRound(round).length > 0
+    );
+
+    if (cfrQuestionsStudentRef.current !== studentId) {
+      cfrQuestionsStudentRef.current = studentId;
+      cfrQuestionsFetchAttemptedRef.current = false;
+      cfrQuestionsLoadedRef.current = false;
+      setCfrApiQuestions([]);
+    }
+
+    // Fresh student: load the stage-4 catalog. Existing student: use only the
+    // saved qna from the student API and do not mix in fresh questions.
+    if (!hasExistingQna && !cfrQuestionsFetchAttemptedRef.current) {
+      cfrQuestionsFetchAttemptedRef.current = true;
       setIsLoadingCfrQuestions(true);
       getInterviewQuestions(4)
         .then((res: any) => {
           if (!isMounted) return;
-          const data = res?.data || res || [];
+          const rawData = res?.data ?? res;
+          const data = Array.isArray(rawData)
+            ? rawData
+            : Array.isArray(rawData?.questions)
+              ? rawData.questions
+              : Array.isArray(rawData?.data)
+                ? rawData.data
+                : Array.isArray(rawData?.interview_questions)
+                  ? rawData.interview_questions
+                  : [];
           setCfrApiQuestions(Array.isArray(data) ? data : []);
+          cfrQuestionsLoadedRef.current = true;
         })
         .catch((err: any) => {
           console.error("Failed to load CFR questions:", err);
@@ -781,11 +858,19 @@ export function ApplicantModal({
         .finally(() => {
           if (isMounted) setIsLoadingCfrQuestions(false);
         });
+    } else if (hasExistingQna) {
+      setCfrApiQuestions([]);
+      setIsLoadingCfrQuestions(false);
     }
     return () => {
       isMounted = false;
+      // If the modal closes before the request completes, allow the next open
+      // to retry instead of waiting for a full page refresh.
+      if (!cfrQuestionsLoadedRef.current) {
+        cfrQuestionsFetchAttemptedRef.current = false;
+      }
     };
-  }, [isOpen]);
+  }, [isOpen, currentApplicant?.id]);
 
   // ✅ Load QuestionSets API when modal opens
   // Always load if questionSetList is empty, as we may need it for display or editing
@@ -2268,6 +2353,7 @@ Interviewer: ${interviewerName}`;
           id: null, // No ID means it's a placeholder
           cultural_fit_status: "",
           comments: "",
+          qna: getCfrQnaFromSchedule(schedule),
           schedule_info: [schedule], // Pass single schedule as array
           audit_info: {
             created_at: "",
@@ -2282,9 +2368,13 @@ Interviewer: ${interviewerName}`;
       return culturalRounds.map((round: any, index: number) => {
         // Each row gets its corresponding schedule (if available)
         const scheduleForThisRow = index < schedules.length ? [schedules[index]] : "—";
+        const scheduleQna = Array.isArray(scheduleForThisRow)
+          ? getCfrQnaFromSchedule(scheduleForThisRow[0])
+          : [];
         
         return {
           ...round,
+          qna: getCfrQnaFromRound(round).length > 0 ? getCfrQnaFromRound(round) : scheduleQna,
           schedule_info: scheduleForThisRow,
           audit_info: {
             created_at: round.created_at || "",
@@ -2303,11 +2393,64 @@ Interviewer: ${interviewerName}`;
       (r: any) => r?.is_archived !== true
     );
     const activeCulturalRound =
-      nonArchivedRounds.slice().reverse().find((r: any) => Array.isArray(r?.qna) && r.qna.length > 0) ||
+      nonArchivedRounds.slice().reverse().find((r: any) => getCfrQnaFromRound(r).length > 0) ||
       nonArchivedRounds[nonArchivedRounds.length - 1];
-    const existingQna = activeCulturalRound?.qna;
+    const roundQna = getCfrQnaFromRound(activeCulturalRound);
+    const existingQna = roundQna.length > 0
+      ? roundQna
+      : liveScheduleData
+          .map((schedule: any) => getCfrQnaFromSchedule(schedule))
+          .find((qna: any[]) => qna.length > 0);
     return computeCfrAnswerStatus(cfrApiQuestions, existingQna);
-  }, [cfrApiQuestions, currentApplicant?.interview_cultural_fit_round, refreshKey]);
+  }, [cfrApiQuestions, currentApplicant?.interview_cultural_fit_round, liveScheduleData, refreshKey]);
+
+  // CFR status options that depend on completion of Detailed Feedback.
+  // Pass, Fail, and Review must not be selectable until every question is answered.
+  const isCfrDetailedFeedbackComplete =
+    !isLoadingCfrQuestions &&
+    cfrAnswerStatus.totalQuestions > 0 &&
+    cfrAnswerStatus.isAllAnswered;
+  const fallbackCfrStatusOptions = [
+    { value: "CFR Feedback Pending", label: "CFR Feedback Pending" },
+    { value: "CFR Pending", label: "CFR Pending" },
+    { value: "CFR No Show", label: "CFR No Show" },
+    { value: "CFR Disinterested", label: "CFR Disinterested" },
+    { value: "CFR Not Eligible", label: "CFR Not Eligible" },
+    { value: "Not Eligible", label: "Not Eligible" },
+    { value: "Disinterested", label: "Disinterested" },
+    { value: "Reschedule", label: "Reschedule" },
+    { value: "No Show", label: "No Show" },
+  ];
+  const backendCfrStatusOptions = getRoundStatusOptions("cultural");
+  const gatedCfrStatuses = new Set([
+    "culture fit round pass",
+    "culture fit round fail",
+    "cfr review",
+    // "cfr pass",
+    // "cfr fail",
+    // "review",
+  ]);
+  const cfrStatusOptions = [
+    ...(isCfrDetailedFeedbackComplete
+      ? [
+          { value: "Culture Fit Round Pass", label: "Culture Fit Round Pass" },
+          { value: "Culture Fit Round Fail", label: "Culture Fit Round Fail" },
+          { value: "CFR Review", label: "CFR Review" },
+        ]
+      : []),
+    ...(backendCfrStatusOptions.length > 0 ? backendCfrStatusOptions : fallbackCfrStatusOptions),
+  ].filter(
+    (option, index, options) => {
+      const normalizedValue = option.value.trim().toLowerCase();
+      const shouldHideUntilComplete =
+        !isCfrDetailedFeedbackComplete && gatedCfrStatuses.has(normalizedValue);
+
+      return (
+        !shouldHideUntilComplete &&
+        options.findIndex((candidate) => candidate.value === option.value) === index
+      );
+    }
+  );
 
   const applicantDetailsGuideSteps = useMemo(
     () => [
@@ -2580,9 +2723,25 @@ Interviewer: ${interviewerName}`;
     return status.toLowerCase().includes("pass");
   });
 
-  // Only require CFR feedback if student has passed Cultural Fit Round in status AND there are questions to answer
+  const isCfrFeedbackRequiredStatus = (status: any) => {
+    const normalizedStatus = String(status || "").trim().toLowerCase();
+    return [
+      "cfr no show",
+      "no show",
+      "cfr disinterested",
+      "disinterested",
+      "cfr not eligible",
+      "not eligible",
+      "cfr pending",
+      "cfr feedback pending",
+    ].includes(normalizedStatus);
+  };
+
+  // Require CFR feedback only for the non-pass statuses that need review.
   const isCfrFeedbackPending =
-    isCulturalPassed &&
+    (currentApplicant?.interview_cultural_fit_round || []).some((round: any) =>
+      round?.is_archived !== true && isCfrFeedbackRequiredStatus(round?.cultural_fit_status)
+    ) &&
     !isLoadingCfrQuestions &&
     cfrAnswerStatus.totalQuestions > 0 &&
     cfrAnswerStatus.unansweredCount > 0;
@@ -3328,7 +3487,7 @@ Interviewer: ${interviewerName}`;
 
             <div className="col-span-full w-full">
               <InlineSubform
-                key={`cultural-${currentApplicant.id}-${liveScheduleData.length}`}
+                key={`cultural-${currentApplicant.id}-${liveScheduleData.length}-${refreshKey}`}
                 title="Cultural Fit Round"
                 studentId={currentApplicant.id}
                 initialData={initialCulturalData}
@@ -3351,7 +3510,7 @@ Interviewer: ${interviewerName}`;
                     label: "Status *",
                     type: "select" as const,
                     disabled: isStageDisabled(currentApplicant, "CFR") || isCulturalPassed,
-                    options: getRoundStatusOptions("cultural"),
+                    options: cfrStatusOptions,
                   },
                   {
                     name: "comments",
@@ -3360,27 +3519,84 @@ Interviewer: ${interviewerName}`;
                     disabled: isStageDisabled(currentApplicant, "CFR"),
                     component: ({ row, disabled }: any) => {
                       const isSaved = !!row?.id;
+                      const rowQna = getCfrQnaFromRound(row);
+                      const rowAnswerStatus = rowQna.length > 0
+                        ? computeCfrAnswerStatus(cfrApiQuestions, rowQna)
+                        : cfrAnswerStatus;
+                      const isRowCfrFeedbackPending =
+                        !isLoadingCfrQuestions &&
+                        isCfrFeedbackRequiredStatus(row?.cultural_fit_status) &&
+                        rowAnswerStatus.totalQuestions > 0 &&
+                        rowAnswerStatus.unansweredCount > 0;
                       // Explicitly set read-only if it's a saved row and not currently being edited
-                      const isReadOnly = isCfrFeedbackPending ? false : (isSaved && !row?.isEditing);
+                      const isReadOnly = !isRowCfrFeedbackPending && isSaved && !row?.isEditing;
                       
                       return (
                         <Button
                           size="sm"
-                          variant={isCfrFeedbackPending ? "default" : "outline"}
+                          variant={isRowCfrFeedbackPending ? "default" : "outline"}
                           disabled={isStageDisabled(currentApplicant, "CFR") && !isSaved}
                           className={`w-full text-xs font-medium ${
-                            isCfrFeedbackPending
+                            isRowCfrFeedbackPending
                               ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-2xs"
                               : ""
                           }`}
-                          onClick={() => {
-                            setSelectedCfrRow({ ...row, _isReadOnly: isReadOnly });
+                          onClick={async () => {
+                            let feedbackApplicant = currentApplicant;
+                            let latestApplicantFetched = false;
+                            try {
+                              const response = await getStudentById(String(currentApplicant.id));
+                              const latestApplicant = response && typeof response === "object" && "data" in response
+                                ? (response as any).data
+                                : response;
+                              if (latestApplicant?.id) {
+                                feedbackApplicant = latestApplicant;
+                                latestApplicantFetched = true;
+                                setCurrentApplicant(latestApplicant);
+                              }
+                            } catch (error) {
+                              console.error("Failed to refresh CFR feedback:", error);
+                            }
+                            setRefreshKey((prev) => prev + 1);
+
+                            const apiRounds = (feedbackApplicant?.interview_cultural_fit_round || [])
+                              .filter((round: any) => round?.is_archived !== true);
+                            const apiRound = apiRounds.find(
+                              (round: any) => row?.id && String(round?.id) === String(row.id)
+                            );
+                            const rowScheduleQna = Array.isArray(row?.schedule_info)
+                              ? getCfrQnaFromSchedule(row.schedule_info[0])
+                              : [];
+                            const latestApiQna = apiRounds
+                              .slice()
+                              .reverse()
+                              .map((round: any) => getCfrQnaFromRound(round))
+                              .find((qna: any[]) => qna.length > 0) || [];
+                            const apiQna = getCfrQnaFromRound(apiRound);
+                            const qnaFromLatestData = latestApplicantFetched
+                              ? (apiRound ? apiQna : latestApiQna)
+                              : rowQna.length > 0
+                                ? rowQna
+                                : rowScheduleQna;
+                            setSelectedCfrRow({
+                              ...(apiRound || {}),
+                              ...row,
+                              cultural_fit_status:
+                                apiRound?.cultural_fit_status ||
+                                apiRound?.cultural_fit_round_status ||
+                                row?.cultural_fit_status ||
+                                row?.cultural_fit_round_status ||
+                                row?.status ||
+                                "",
+                              qna: qnaFromLatestData,
+                              _isReadOnly: isReadOnly,
+                            });
                             setIsCfrFeedbackModalOpen(true);
                           }}
                         >
                           <Pencil className="h-3 w-3 mr-1" />
-                          {isCfrFeedbackPending
-                            ? `Answer Questions (${cfrAnswerStatus.unansweredCount} pending)`
+                          {isRowCfrFeedbackPending
+                            ? `Answer Questions (${rowAnswerStatus.unansweredCount} pending)`
                             : (isSaved ? (row?.isEditing ? "View" : "View") : "Add")}
                         </Button>
                       );
@@ -4176,9 +4392,10 @@ Interviewer: ${interviewerName}`;
           onClose={() => setIsCfrFeedbackModalOpen(false)}
           studentId={currentApplicant?.id}
           existingData={selectedCfrRow}
-          onSuccess={() => {
+          questionCatalog={cfrApiQuestions}
+          onSuccess={async () => {
+            await handleUpdate();
             setRefreshKey(prev => prev + 1);
-            handleUpdate();
           }}
           studentDetails={currentApplicant}
         />

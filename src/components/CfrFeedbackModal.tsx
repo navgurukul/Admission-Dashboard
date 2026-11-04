@@ -326,48 +326,16 @@ export const computeCfrAnswerStatus = (
   apiQuestions: any[],
   existingQna?: any[]
 ): CfrAnswerStatus => {
-  const deletedQIds = getStoredDeletedQuestionIds();
-  const modifiedQs = getStoredModifiedQuestions();
-  const deletedTopics = getStoredDeletedTopics();
-  const renamedTopics = getStoredRenamedTopics();
-
-  // 1. Process base API questions
-  let mappedQuestions: { question: string; originalQuestion?: string; topic: string }[] = (apiQuestions || [])
-    .filter((q: any) => !deletedQIds.some((did) => String(did) === String(q.id)))
-    .map((q: any) => {
-      let topic = q.context_text || "General Questions";
-      if (renamedTopics[topic]) {
-        topic = renamedTopics[topic];
-      }
-      let qText = q.question_text || "";
-      if (modifiedQs[q.id]) {
-        qText = modifiedQs[q.id];
-      }
-      return {
-        question: qText,
-        originalQuestion: q.question_text,
-        topic,
-      };
-    })
-    .filter((q) => q.question && q.question.trim() !== "" && !deletedTopics.includes(q.topic));
-
-  // 2. Custom questions
-  const storedCustomQs = getStoredCustomQuestions().filter(
-    (sq) => sq.question && sq.question.trim() !== ""
-  );
-  const customQuestionsMapped = storedCustomQs
-    .map((sq) => {
-      let topic = sq.context_text || "Custom Questions";
-      if (renamedTopics[topic]) {
-        topic = renamedTopics[topic];
-      }
-      return {
-        question: sq.question,
-        originalQuestion: undefined,
-        topic,
-      };
-    })
-    .filter((q) => !deletedTopics.includes(q.topic));
+  // API questions are the source of truth. Do not include global localStorage
+  // questions/topics here, because they can belong to another student/session.
+  const mappedQuestions: { question: string; originalQuestion?: string; topic: string }[] = (apiQuestions || [])
+    .map((q: any) => ({
+      question: q.question_text || "",
+      originalQuestion: q.question_text,
+      topic: q.context_text || "General Questions",
+    }))
+    .filter((q) => q.question.trim() !== "");
+  const customQuestionsMapped: { question: string; originalQuestion?: string; topic: string }[] = [];
 
   // 3. Existing QNA Map (answers)
   const existingQnaMap = new Map<string, string>();
@@ -392,13 +360,13 @@ export const computeCfrAnswerStatus = (
       if (item?.question && item.question.trim() !== "" && !allKnownQuestions.has(item.question.trim().toLowerCase())) {
         additionalQs.push({
           question: item.question.trim(),
-          topic: "Custom Questions",
+          topic: item.context_text || item.topic || "Custom Questions",
         });
       }
     });
   }
 
-  const allActiveQuestions = [...mappedQuestions, ...customQuestionsMapped, ...additionalQs];
+  const allActiveQuestions = [...mappedQuestions, ...additionalQs];
 
   const unansweredByTopic: Record<string, string[]> = {};
   const allQuestionsByTopic: Record<string, { question: string; answered: boolean; answer?: string }[]> = {};
@@ -602,8 +570,9 @@ interface CfrFeedbackModalProps {
   onClose: () => void;
   studentId: number;
   existingData?: any; // The CFR round data from interview_cultural_fit_round
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
   studentDetails?: any;
+  questionCatalog?: any[];
 }
 
 export function CfrFeedbackModal({
@@ -613,6 +582,7 @@ export function CfrFeedbackModal({
   existingData,
   onSuccess,
   studentDetails,
+  questionCatalog,
 }: CfrFeedbackModalProps) {
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -680,7 +650,7 @@ export function CfrFeedbackModal({
 
   // Topic & Question CRUD State
   const [defaultTopics, setDefaultTopics] = useState<string[]>([]);
-  const [customTopics, setCustomTopics] = useState<string[]>(getStoredCustomTopics);
+  const [customTopics, setCustomTopics] = useState<string[]>([]);
   const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
   const [newTopicName, setNewTopicName] = useState("");
   const [editingTopic, setEditingTopic] = useState<{ oldName: string; newName: string } | null>(null);
@@ -689,13 +659,16 @@ export function CfrFeedbackModal({
 
   useEffect(() => {
     if (isOpen) {
-      setCustomTopics(getStoredCustomTopics());
-      if (existingData?.cultural_fit_status) {
-        setStatus(existingData.cultural_fit_status);
-      }
-      if (existingData?.comments) {
-        setComments(existingData.comments);
-      }
+      // Custom topics/questions are session-global localStorage data. Start
+      // each student's feedback from the API catalog instead.
+      setCustomTopics([]);
+      setStatus(
+        existingData?.cultural_fit_status ||
+        existingData?.cultural_fit_round_status ||
+        existingData?.status ||
+        ""
+      );
+      setComments(existingData?.comments || "");
       fetchQuestions();
       getStatusesByStageId(4)
         .then((statuses: any[]) => {
@@ -709,76 +682,60 @@ export function CfrFeedbackModal({
           setStatusOptions([]);
         });
     }
-  }, [isOpen, existingData]);
+  }, [isOpen, existingData, questionCatalog]);
 
   const fetchQuestions = async () => {
     setIsLoading(true);
     try {
-      const stageId = 4;
-      const response = await getInterviewQuestions(stageId);
-      const data = response?.data || response || [];
-
-      const deletedQIds = getStoredDeletedQuestionIds();
-      const modifiedQs = getStoredModifiedQuestions();
-      const deletedTopics = getStoredDeletedTopics();
-      const renamedTopics = getStoredRenamedTopics();
+      const data = Array.isArray(questionCatalog)
+        ? questionCatalog
+        : (() => {
+            throw new Error("CFR question catalog was not provided");
+          })();
+      const hasSavedQna =
+        Array.isArray(existingData?.qna) && existingData.qna.length > 0;
+      const questionSource = hasSavedQna ? existingData.qna : data;
 
       // Collect and process default topics
       const rawDefaultTopics: string[] = Array.from(
-        new Set(data.map((q: any) => q.context_text || "General Questions"))
+        new Set(
+          questionSource.map(
+            (q: any) => q.context_text || q.topic || "General Questions"
+          )
+        )
       );
-      const processedDefaultTopics = rawDefaultTopics
-        .map((t) => renamedTopics[t] || t)
-        .filter((t) => !deletedTopics.includes(t));
-      setDefaultTopics(processedDefaultTopics);
+      setDefaultTopics(rawDefaultTopics);
 
-      let mappedQuestions: Question[] = data
-        .filter((q: any) => !deletedQIds.some((did) => String(did) === String(q.id)))
-        .map((q: any) => {
-          let topic = q.context_text || "General Questions";
-          if (renamedTopics[topic]) {
-            topic = renamedTopics[topic];
-          }
-          let qText = q.question_text;
-          if (modifiedQs[q.id]) {
-            qText = modifiedQs[q.id];
-          }
+      let mappedQuestions: Question[] = questionSource
+        .map((q: any, index: number) => {
+          const questionText = hasSavedQna ? q.question : q.question_text;
           return {
-            id: q.id,
-            question: qText,
-            originalQuestion: q.question_text,
-            context_text: topic,
-            answer: "",
-            isCustom: false,
+            id: hasSavedQna ? q.id || 1000000 + index : q.id,
+            question: questionText,
+            originalQuestion: questionText,
+            context_text: hasSavedQna
+              ? q.context_text || q.topic || "General Questions"
+              : q.context_text || "General Questions",
+            answer: hasSavedQna ? q.answer || "" : "",
+            link: hasSavedQna ? q.link || "" : undefined,
+            isCustom: hasSavedQna ? Boolean(q.isCustom) : false,
           };
         })
-        .filter((q: Question) => !deletedTopics.includes(q.context_text || ""));
+        .filter((q: Question) => q.question && q.question.trim() !== "");
 
-      // Load persistent custom questions (filter out blank questions from previous sessions)
-      const storedCustomQs = getStoredCustomQuestions();
-      const validCustomQs = storedCustomQs.filter(
-        (sq) => sq.question && sq.question.trim() !== ""
-      );
-      if (validCustomQs.length !== storedCustomQs.length) {
-        saveStoredCustomQuestions(validCustomQs);
-      }
-      const customQuestionsMapped: Question[] = validCustomQs.map((sq, idx) => ({
-        id: -1 * (idx + 1) * 1000 - (Date.now() % 1000),
-        question: sq.question,
-        context_text: sq.context_text || "Custom Questions",
-        answer: "",
-        isCustom: true,
-        customUid: sq.id,
-      }));
+      // Do not load custom questions from localStorage into a fresh student's feedback.
+      const customQuestionsMapped: Question[] = [];
 
       // Merge answers and links if we are editing existing data
       if (existingData?.qna && Array.isArray(existingData.qna)) {
-        const existingQnaMap = new Map<string, { answer?: string; link?: string }>();
+        const existingQnaMap = new Map<string, { answer?: string; link?: string; topic?: string; context_text?: string }>();
         existingData.qna.forEach((q: any) => {
           if (q.question) {
             existingQnaMap.set(q.question.trim().toLowerCase(), {
               answer: q.answer || "",
               link: q.link || "",
+              topic: q.topic || "",
+              context_text: q.context_text || "",
             });
           }
         });
@@ -791,6 +748,7 @@ export function CfrFeedbackModal({
             ...q,
             answer: matched?.answer !== undefined ? matched.answer : q.answer,
             link: matched?.link !== undefined ? matched.link : q.link,
+            context_text: q.context_text || matched?.context_text || matched?.topic || "General Questions",
           };
         });
 
@@ -817,7 +775,7 @@ export function CfrFeedbackModal({
             additionalQs.push({
               id: addId,
               question: q.question,
-              context_text: "Custom Questions",
+              context_text: q.context_text || q.topic || "Custom Questions",
               answer: q.answer || "",
               link: q.link || "",
               isCustom: true,
@@ -1218,6 +1176,7 @@ export function CfrFeedbackModal({
           question: q.question!.trim(),
           answer: q.answer || "",
           link: q.link?.trim() || "",
+          context_text: q.context_text || "General Questions",
         }));
 
       const payload = {
@@ -1238,7 +1197,7 @@ export function CfrFeedbackModal({
         description: "Cultural Fit Round feedback saved successfully.",
       });
 
-      if (onSuccess) onSuccess();
+      if (onSuccess) await onSuccess();
       onClose();
     } catch (error) {
       console.error("Failed to save feedback:", error);
@@ -1279,6 +1238,10 @@ export function CfrFeedbackModal({
       ])
     );
   }, [defaultTopics, groupedQuestions, customTopics, existingData?._isReadOnly]);
+
+  const isDetailedFeedbackComplete =
+    questions.length > 0 &&
+    questions.every((question) => question.answer && question.answer.trim() !== "");
 
   useEffect(() => {
     if (groups.length > 0 && (!activeGroup || !groups.includes(activeGroup))) {
@@ -1477,11 +1440,6 @@ export function CfrFeedbackModal({
                                             <p className="text-sm font-semibold text-gray-800 leading-snug break-words break-all">
                                               {q.question}
                                             </p>
-                                            {q.isCustom && (
-                                              <span className="text-[9px] font-bold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-200 inline-block mt-1">
-                                                CUSTOM
-                                              </span>
-                                            )}
                                           </td>
                                           <td className="py-3 px-3 align-top">
                                             {q.answer && q.answer.trim() !== "" ? (
@@ -1549,21 +1507,6 @@ export function CfrFeedbackModal({
                 </TabsContent>
 
                 <TabsContent value="questions" className="space-y-6">
-                  <div className="w-1/2">
-                    <label className="text-sm font-medium">Status *</label>
-                    <select
-                      className="w-full mt-1 p-2 border rounded-md focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                      disabled={existingData?._isReadOnly}
-                    >
-                      <option value="disabled hidden">Selection</option>
-                      {statusOptions.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
-                  </div>
-
                   <div className="flex justify-between items-center border-t pt-4">
                     <h3 className="text-lg font-semibold">Questions</h3>
                   </div>
@@ -1755,11 +1698,6 @@ export function CfrFeedbackModal({
                                       ) : (
                                         <div className="flex-1">
                                           <h4 className="font-medium text-md text-gray-800 leading-snug">{q.question}</h4>
-                                          {q.isCustom && (
-                                            <span className="text-[10px] font-semibold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100 inline-block mt-1">
-                                              Custom Question
-                                            </span>
-                                          )}
                                         </div>
                                       )}
                                     </div>
