@@ -326,13 +326,18 @@ export const computeCfrAnswerStatus = (
   apiQuestions: any[],
   existingQna?: any[]
 ): CfrAnswerStatus => {
-  // API questions are the source of truth. Do not include global localStorage
-  // questions/topics here, because they can belong to another student/session.
-  const mappedQuestions: { question: string; originalQuestion?: string; topic: string }[] = (apiQuestions || [])
+  // For saved feedback, the student's qna is the source of truth. This keeps
+  // deleted questions out of the pending count. Fresh students still use the
+  // stage question catalog until their first qna is saved.
+  const hasSavedQna = Array.isArray(existingQna) && existingQna.length > 0;
+  const questionSource = hasSavedQna ? existingQna : apiQuestions || [];
+  const mappedQuestions: { question: string; originalQuestion?: string; topic: string }[] = questionSource
     .map((q: any) => ({
-      question: q.question_text || "",
-      originalQuestion: q.question_text,
-      topic: q.context_text || "General Questions",
+      question: hasSavedQna ? q.question || "" : q.question_text || "",
+      originalQuestion: hasSavedQna ? q.question : q.question_text,
+      topic: hasSavedQna
+        ? q.context_text || q.topic || "General Questions"
+        : q.context_text || "General Questions",
     }))
     .filter((q) => q.question.trim() !== "");
   const customQuestionsMapped: { question: string; originalQuestion?: string; topic: string }[] = [];
@@ -1512,9 +1517,9 @@ export function CfrFeedbackModal({
                   </div>
 
                   {groups.length > 0 ? (
-                    <div className="flex flex-col md:flex-row gap-4 border rounded-md min-h-[500px]">
+                    <div className="flex flex-col md:flex-row gap-4 border rounded-md min-h-[650px]">
                       {/* Sidebar */}
-                      <div className="w-full md:w-1/3 border-r bg-gray-50/50 p-2 overflow-y-auto max-h-[500px] flex flex-col">
+                      <div className="w-full md:w-1/3 border-r bg-gray-50/50 p-2 overflow-y-auto max-h-[650px] flex flex-col">
                         <div className="flex justify-between items-center mb-2 px-1 pb-1 border-b">
                           <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Topics</span>
                           {!existingData?._isReadOnly && (
@@ -1605,7 +1610,7 @@ export function CfrFeedbackModal({
                       </div>
 
                       {/* Content */}
-                      <div className="w-full md:w-2/3 p-4 overflow-y-auto max-h-[500px]">
+                      <div className="w-full md:w-2/3 p-4 overflow-y-auto max-h-[650px]">
                         <div className="flex justify-between items-center border-b pb-2 mb-4">
                           <div className="flex items-center gap-2">
                             <h3 className="text-lg font-semibold text-gray-800">
