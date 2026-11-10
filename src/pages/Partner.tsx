@@ -579,9 +579,22 @@ const PartnerPage = () => {
   };
 
   // Logic handlers
+  const getPartnerTestLink = (partner) => {
+    const studentPortalUrl = (
+      import.meta.env.VITE_STUDENT_PORTAL_URL ||
+      "https://main.d21uhswepr92zc.amplifyapp.com/"
+    ).replace(/\/$/, "");
+
+    return `${studentPortalUrl}/partner/${encodeURIComponent(partner.slug)}`;
+  };
+
   const handleCreateMerakiLink = (idOrIdx) => {
     // If passed ID, find by ID. If passed index, fallback (though logic updated to pass ID now)
     const pId = typeof idOrIdx === 'object' ? idOrIdx.id : idOrIdx;
+    const studentPortalUrl = (
+      import.meta.env.VITE_STUDENT_PORTAL_URL ||
+      "https://main.d21uhswepr92zc.amplifyapp.com/"
+    ).replace(/\/$/, "");
 
     setPartners((prev) => {
       return prev.map(p => {
@@ -589,7 +602,7 @@ const PartnerPage = () => {
         if (p.id === idOrIdx) {
           return {
             ...p,
-            meraki_link: `${window.location.origin}${import.meta.env.BASE_URL}partnerLanding/${p.slug}`,
+            meraki_link: `${studentPortalUrl}/partner/${encodeURIComponent(p.slug)}`,
           };
         }
         return p;
@@ -597,7 +610,10 @@ const PartnerPage = () => {
     });
 
     // Also update global cache
-    setAllPartnersForStats(prev => prev.map(p => p.id === idOrIdx ? { ...p, meraki_link: `${window.location.origin}${import.meta.env.BASE_URL}partnerLanding/${p.slug}` } : p));
+    setAllPartnersForStats(prev => prev.map(p => p.id === idOrIdx ? {
+      ...p,
+      meraki_link: `${studentPortalUrl}/partner/${encodeURIComponent(p.slug)}`,
+    } : p));
     
     // Show success toast
     toast({
@@ -1500,23 +1516,17 @@ const PartnerPage = () => {
                                 <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDeletePartner(partner.id)}>
                                   <Trash2 className="mr-2 h-4 w-4" /> Delete Partner
                                 </DropdownMenuItem>
-                                {partner.meraki_link ? (
-                                  <DropdownMenuItem onClick={() => {
-                                    navigator.clipboard.writeText(partner.meraki_link);
-                                    toast({
-                                      title: "✅ Link Copied",
-                                      description: "Link copied to clipboard.",
-                                      variant: "default",
-                                      className: "border-green-500 bg-green-50 text-green-900"
-                                    });
-                                  }}>
-                                    <ExternalLink className="mr-2 h-4 w-4" /> Copy Test Link
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem onClick={() => handleCreateMerakiLink(partner.id)}>
-                                    <ExternalLink className="mr-2 h-4 w-4" /> Generate Link
-                                  </DropdownMenuItem>
-                                )}
+                                <DropdownMenuItem onClick={() => {
+                                  navigator.clipboard.writeText(getPartnerTestLink(partner));
+                                  toast({
+                                    title: "✅ Link Copied",
+                                    description: "Link copied to clipboard.",
+                                    variant: "default",
+                                    className: "border-green-500 bg-green-50 text-green-900"
+                                  });
+                                }}>
+                                  <ExternalLink className="mr-2 h-4 w-4" /> Copy Test Link
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
