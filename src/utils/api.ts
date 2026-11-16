@@ -3281,7 +3281,12 @@ export const createPartner = async (payload: Partial<Partner>) => {
   return data;
 };
 
-export const getPartners = async (page: number = 1, limit: number = 10, partnerName?: string) => {
+export const getPartners = async (
+  page: number = 1,
+  limit: number = 10,
+  partnerName?: string,
+  signal?: AbortSignal,
+) => {
   // Build query parameters
   let queryParams = `page=${page}&pageSize=${limit}`;
 
@@ -3293,6 +3298,7 @@ export const getPartners = async (page: number = 1, limit: number = 10, partnerN
   const response = await fetch(`${BASE_URL}/partners/getPartners?${queryParams}`, {
     method: "GET",
     headers: getAuthHeaders(),
+    signal,
   });
 
   const data = await response.json();
