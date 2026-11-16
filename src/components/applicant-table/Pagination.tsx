@@ -12,6 +12,8 @@ interface PaginationProps {
   totalStudents: number;
   searchTerm: string;
   hasActiveFilters: boolean;
+  itemLabel?: string;
+  minJumpDigits?: number;
 }
 
 export const Pagination = ({
@@ -26,6 +28,8 @@ export const Pagination = ({
   totalStudents: _totalStudents,
   searchTerm: _searchTerm,
   hasActiveFilters: _hasActiveFilters,
+  itemLabel = "applicants",
+  minJumpDigits,
 }: PaginationProps) => {
   // Guard: totalPages should never be less than 1
   const totalPages = Math.max(1, rawTotalPages || 1);
@@ -89,12 +93,18 @@ export const Pagination = ({
   };
 
   const totalPagesDigits = String(totalPages).length;
+  const jumpMaxLength = minJumpDigits === undefined
+    ? totalPagesDigits + 1
+    : Math.max(minJumpDigits, totalPagesDigits);
+  const jumpInputWidth = minJumpDigits === undefined
+    ? Math.max(3, totalPagesDigits + 1.5)
+    : Math.max(minJumpDigits + 2, totalPagesDigits + 3);
 
   return (
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mt-4">
       {/* Showing count */}
       <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left order-2 sm:order-1">
-        Showing {showingStart} – {showingEnd} of {currentTotalCount} applicants
+        Showing {showingStart} – {showingEnd} of {currentTotalCount} {itemLabel}
       </p>
 
       {/* Pagination controls */}
@@ -130,13 +140,13 @@ export const Pagination = ({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={String(currentPage)}
-            maxLength={totalPagesDigits + 1}
-            className={`border rounded px-2 py-1.5 bg-white text-xs sm:text-sm text-center focus:outline-none focus:ring-2 transition-colors ${
+            maxLength={jumpMaxLength}
+            className={`border rounded px-2 py-1.5 bg-white text-xs sm:text-sm text-center ${minJumpDigits !== undefined ? "shrink-0" : ""} focus:outline-none focus:ring-2 transition-colors ${
               jumpError
                 ? "border-red-400 ring-2 ring-red-300 bg-red-50"
                 : "focus:ring-primary"
             }`}
-            style={{ width: `${Math.max(3, totalPagesDigits + 1.5)}ch` }}
+            style={{ width: `${jumpInputWidth}ch` }}
             aria-label={`Jump to page, 1 to ${totalPages}`}
           />
           <button

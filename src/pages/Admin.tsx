@@ -34,6 +34,7 @@ import { AdmissionsSidebar } from "@/components/AdmissionsSidebar";
 import { ContextualHelpWidget } from "@/components/onboarding/ContextualHelpWidget";
 import { searchUsers } from "@/utils/api";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
+import { Pagination } from "@/components/applicant-table/Pagination";
 
 const ROWS_PER_PAGE = 10;
 
@@ -45,6 +46,7 @@ const AdminPage: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(ROWS_PER_PAGE);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -107,13 +109,13 @@ const AdminPage: React.FC = () => {
   const fetchUsers = async (pageNo: number = page): Promise<void> => {
     setLoading(true);
     try {
-      const res = await getAllUsers(pageNo, ROWS_PER_PAGE, true);
+      const res = await getAllUsers(pageNo, rowsPerPage, true);
       const users = getActiveUsers(res?.users || []);
       const total = res?.total || 0;
 
       setUsers(users);
       setTotalUsers(total);
-      setTotalPages(Math.ceil(total / ROWS_PER_PAGE));
+      setTotalPages(Math.ceil(total / rowsPerPage));
     } catch (err) {
       console.error("Error fetching users:", err);
       setUsers([]);
@@ -138,7 +140,7 @@ const AdminPage: React.FC = () => {
     if (!debouncedSearchQuery.trim()) {
       fetchUsers(page);
     }
-  }, [page, debouncedSearchQuery]);
+  }, [page, rowsPerPage, debouncedSearchQuery]);
 
   // Fetch roles once on mount
   useEffect(() => {
@@ -170,12 +172,12 @@ const AdminPage: React.FC = () => {
     performSearch();
   }, [debouncedSearchQuery]);
 
-  // Reset to page 1 when search query changes
+  // Reset to page 1 as soon as the search query changes.
   useEffect(() => {
-    if (page !== 1 && debouncedSearchQuery.trim() !== searchQuery.trim()) {
+    if (page !== 1) {
       setPage(1);
     }
-  }, [debouncedSearchQuery]);
+  }, [searchQuery]);
 
   const handleAddUserSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -454,13 +456,16 @@ const AdminPage: React.FC = () => {
   // Client-side pagination for search results only
   // For regular users, server already sends paginated data
   const paginatedUsers = searchQuery.trim()
-    ? filteredUsers.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE)
+    ? filteredUsers.slice((page - 1) * rowsPerPage, page * rowsPerPage)
     : users;
 
   // Calculate total pages based on whether we're searching or not
   const totalPagesCount = searchQuery.trim()
-    ? Math.ceil(filteredUsers.length / ROWS_PER_PAGE)
+    ? Math.ceil(filteredUsers.length / rowsPerPage)
     : totalPages;
+  const paginationTotal = searchQuery.trim() ? filteredUsers.length : totalUsers;
+  const showingStart = paginationTotal === 0 ? 0 : (page - 1) * rowsPerPage + 1;
+  const showingEnd = Math.min(page * rowsPerPage, paginationTotal);
 
   return (
     <div className="min-h-screen bg-background">
@@ -882,53 +887,21 @@ const AdminPage: React.FC = () => {
               </div>
             )}
 
-            {/* Pagination */}
-            {totalPagesCount > 1 && (
-              <div className="flex justify-center mt-6">
-                <nav className="bg-card rounded-lg shadow-sm border border-border p-2">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${page === 1
-                          ? "bg-muted text-muted-foreground cursor-not-allowed"
-                          : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
-                        }`}
-                    >
-                      Previous
-                    </button>
-
-                    <div className="flex gap-1 mx-2">
-                      {[...Array(totalPagesCount)].map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setPage(i + 1)}
-                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${page === i + 1
-                              ? "bg-primary text-white shadow-sm"
-                              : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
-                            }`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        setPage((p) => Math.min(totalPagesCount, p + 1))
-                      }
-                      disabled={page === totalPagesCount}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${page === totalPagesCount
-                          ? "bg-muted text-muted-foreground cursor-not-allowed"
-                          : "bg-card text-foreground hover:bg-primary/10 hover:text-primary"
-                        }`}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </nav>
-              </div>
-            )}
+            <Pagination
+              currentPage={page}
+              setCurrentPage={setPage}
+              itemsPerPage={rowsPerPage}
+              setItemsPerPage={setRowsPerPage}
+              totalPages={totalPagesCount}
+              showingStart={showingStart}
+              showingEnd={showingEnd}
+              currentTotalCount={paginationTotal}
+              totalStudents={paginationTotal}
+              searchTerm={searchQuery}
+              hasActiveFilters={false}
+              itemLabel="users"
+              minJumpDigits={3}
+            />
 
             {/* Add/Edit Dialog */}
             {addUserDialog.open && (
