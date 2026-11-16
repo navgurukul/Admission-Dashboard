@@ -220,7 +220,7 @@ const PartnerPage = () => {
       const trimmedSearch = search?.trim() || "";
 
       // Pass search query to API only if it's not empty
-      const response = await getPartners(p, rowsPerPage, trimmedSearch); // Use rowsPerPage state and search
+      const response = await getPartners(p, rowsPerPage, trimmedSearch, newAbortController.signal);
 
       // Extract data based on typical API structure
       let partnersArray = [];
@@ -241,7 +241,7 @@ const PartnerPage = () => {
         pages = 1;
       }
 
-      // Filter out "No Partner Assigned" from backend response
+      // Filter out "No Partner Assigned" from the current page.
       partnersArray = partnersArray.filter(p => p.partner_name !== "No Partner Assigned");
 
       // Normalize districts: 'districts' for IDs, 'displayDistricts' for Names
@@ -262,9 +262,10 @@ const PartnerPage = () => {
       });
 
       setPartners(normalizedPartners);
-      // Adjust total count to exclude filtered partners
-      setTotalPartnersCount(partnersArray.length);
-      setTotalPages(Math.ceil(partnersArray.length / rowsPerPage));
+      // The API response contains the total number of matching partners. Do not
+      // derive pagination from partnersArray because it only contains one page.
+      setTotalPartnersCount(total);
+      setTotalPages(Math.max(1, pages));
       setLoading(false);
       setLoadingAbortController(null);
     } catch (error) {
