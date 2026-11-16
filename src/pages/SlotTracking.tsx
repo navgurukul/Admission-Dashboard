@@ -31,6 +31,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Search,
   RefreshCw,
   CalendarDays,
@@ -53,6 +59,7 @@ import {
   EyeOff,
   Frown,
   UserX,
+  ChevronDown,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -853,31 +860,38 @@ const SlotTracking = () => {
                 Refresh
               </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportCSV}
-                disabled={loading}
-                className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-zinc-900 border-slate-200 shadow-sm"
-              >
-                <Download className="w-3.5 h-3.5 text-slate-700" />
-                Export
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadPDF}
-                disabled={loading || generatingPdf}
-                className="h-9 gap-1.5 text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950 dark:hover:bg-rose-900 dark:text-rose-300 border-rose-200 dark:border-rose-800 shadow-sm"
-              >
-                {generatingPdf ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <FileDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                )}
-                PDF Download
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loading || generatingPdf}
+                    className="h-9 gap-1.5 text-xs font-medium bg-white dark:bg-zinc-900 border-slate-200 shadow-sm"
+                  >
+                    {generatingPdf ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 text-slate-700" />
+                    )}
+                    Export
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportCSV} disabled={loading || generatingPdf}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    Export CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadPDF} disabled={loading || generatingPdf}>
+                    {generatingPdf ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileDown className="w-4 h-4 mr-2" />
+                    )}
+                    PDF Download
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
