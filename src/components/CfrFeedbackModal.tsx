@@ -1797,12 +1797,13 @@ export function CfrFeedbackModal({
                                   const inputType = q.input_type?.trim().toLowerCase();
                                   const hasInputType = Boolean(inputType);
                                   const isDropdown = hasInputType ? inputType === "select" : Boolean(dropdownConfig);
-                                  if (isDropdown) {
+                                  const isMultiselect = hasInputType ? inputType === "multi-select":false;
+                                  if (isDropdown ||isMultiselect ) {
                                     const optionsList = hasInputType
                                       ? (Array.isArray(q.option) ? q.option : [])
                                       : getActiveOptions(dropdownConfig!);
-                                    const isEconomicQ12 = activeGroup.toLowerCase().includes("economic") && index === 11;
-                                    if (isEconomicQ12) {
+                                    // const isEconomicQ12 = activeGroup.toLowerCase().includes("economic") && index === 11;
+                                    if (isMultiselect) {
                                       return (
                                         <MultiSelectCombobox
                                           options={optionsList.map((option) => ({ value: option, label: option }))}
