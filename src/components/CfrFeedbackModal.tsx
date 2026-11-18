@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { MultiSelectCombobox } from "@/components/ui/multi-select-combobox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Trash2, History, Settings2, RotateCcw, Pencil, FolderPlus, Link2, ExternalLink, X } from "lucide-react";
 import {
@@ -22,7 +23,10 @@ interface Question {
   id?: number;
   question?: string;
   originalQuestion?: string;
+  topic_category?: string;
   context_text?: string;
+  input_type?: string;
+  option?: string[];
   answer?: string;
   link?: string;
   isCustom?: boolean;
@@ -136,6 +140,26 @@ export const getMatchedDropdownValue = (val: string | undefined, options: string
   return found || val;
 };
 
+const parseMultiSelectAnswer = (answer?: string): string[] => {
+  if (!answer) return [];
+  try {
+    const parsed = JSON.parse(answer);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [answer];
+  } catch {
+    return [answer];
+  }
+};
+
+const formatAnswerForDisplay = (answer?: string) => {
+  if (!answer) return "";
+  try {
+    const parsed = JSON.parse(answer);
+    return Array.isArray(parsed) ? parsed.join(", ") : answer;
+  } catch {
+    return answer;
+  }
+};
+
 export interface QuestionDropdownConfig {
   key: string;
   title: string;
@@ -177,7 +201,7 @@ export const removeStoredOptions = (key: string) => {
 export interface StoredCustomQuestion {
   id: string;
   question: string;
-  context_text: string;
+  topic_category: string;
 }
 
 const STORAGE_CUSTOM_TOPICS_KEY = "cfr_custom_topics_list";
@@ -335,9 +359,7 @@ export const computeCfrAnswerStatus = (
     .map((q: any) => ({
       question: hasSavedQna ? q.question || "" : q.question_text || "",
       originalQuestion: hasSavedQna ? q.question : q.question_text,
-      topic: hasSavedQna
-        ? q.context_text || q.topic || "General Questions"
-        : q.context_text || "General Questions",
+      topic: q.topic_category || q.context_text || q.topic || "General Questions",
     }))
     .filter((q) => q.question.trim() !== "");
   const customQuestionsMapped: { question: string; originalQuestion?: string; topic: string }[] = [];
@@ -362,10 +384,12 @@ export const computeCfrAnswerStatus = (
   const additionalQs: { question: string; originalQuestion?: string; topic: string }[] = [];
   if (Array.isArray(existingQna)) {
     existingQna.forEach((item: any) => {
-      if (item?.question && item.question.trim() !== "" && !allKnownQuestions.has(item.question.trim().toLowerCase())) {
+      if (
+        item?.question && item.question.trim() !== "" && !allKnownQuestions.has(item.question.trim().toLowerCase())
+      ) {
         additionalQs.push({
           question: item.question.trim(),
-          topic: item.context_text || item.topic || "Custom Questions",
+          topic: item.topic_category || item.context_text || item.topic || "Custom Questions",
         });
       }
     });
@@ -705,7 +729,7 @@ export function CfrFeedbackModal({
       const rawDefaultTopics: string[] = Array.from(
         new Set(
           questionSource.map(
-            (q: any) => q.context_text || q.topic || "General Questions"
+            (q: any) => q.topic_category || q.context_text || q.topic || "General Questions"
           )
         )
       );
@@ -718,9 +742,10 @@ export function CfrFeedbackModal({
             id: hasSavedQna ? q.id || 1000000 + index : q.id,
             question: questionText,
             originalQuestion: questionText,
-            context_text: hasSavedQna
-              ? q.context_text || q.topic || "General Questions"
-              : q.context_text || "General Questions",
+            input_type: q.input_type,
+            option: Array.isArray(q.option) ? q.option : [],
+            topic_category: q.topic_category || q.context_text || q.topic || "General Questions",
+            context_text: q.context_text || q.topic_category || q.topic || "General Questions",
             answer: hasSavedQna ? q.answer || "" : "",
             link: hasSavedQna ? q.link || "" : undefined,
             isCustom: hasSavedQna ? Boolean(q.isCustom) : false,
@@ -733,13 +758,14 @@ export function CfrFeedbackModal({
 
       // Merge answers and links if we are editing existing data
       if (existingData?.qna && Array.isArray(existingData.qna)) {
-        const existingQnaMap = new Map<string, { answer?: string; link?: string; topic?: string; context_text?: string }>();
+        const existingQnaMap = new Map<string, { answer?: string; link?: string; topic?: string; topic_category?: string; context_text?: string }>();
         existingData.qna.forEach((q: any) => {
           if (q.question) {
             existingQnaMap.set(q.question.trim().toLowerCase(), {
               answer: q.answer || "",
               link: q.link || "",
               topic: q.topic || "",
+              topic_category: q.topic_category || "",
               context_text: q.context_text || "",
             });
           }
@@ -753,7 +779,8 @@ export function CfrFeedbackModal({
             ...q,
             answer: matched?.answer !== undefined ? matched.answer : q.answer,
             link: matched?.link !== undefined ? matched.link : q.link,
-            context_text: q.context_text || matched?.context_text || matched?.topic || "General Questions",
+            topic_category: q.topic_category || q.context_text || matched?.topic_category || matched?.context_text || matched?.topic || "General Questions",
+            context_text: q.context_text || q.topic_category || matched?.context_text || matched?.topic_category || matched?.topic || "General Questions",
           };
         });
 
@@ -780,7 +807,10 @@ export function CfrFeedbackModal({
             additionalQs.push({
               id: addId,
               question: q.question,
-              context_text: q.context_text || q.topic || "Custom Questions",
+              topic_category: q.topic_category || q.context_text || q.topic || "Custom Questions",
+              context_text: q.context_text || q.topic_category || q.topic || "Custom Questions",
+              input_type: q.input_type,
+              option: Array.isArray(q.option) ? q.option : [],
               answer: q.answer || "",
               link: q.link || "",
               isCustom: true,
@@ -799,8 +829,8 @@ export function CfrFeedbackModal({
       const firstPending = mappedQuestions.find(
         (q) => !q.answer || q.answer.trim() === ""
       );
-      if (firstPending && firstPending.context_text) {
-        setActiveGroup(firstPending.context_text);
+      if (firstPending && firstPending.topic_category) {
+        setActiveGroup(firstPending.topic_category);
         setTimeout(() => {
           const el = document.getElementById(`cfr-q-item-${firstPending.id}`);
           if (el) {
@@ -885,12 +915,12 @@ export function CfrFeedbackModal({
     }
 
     setQuestions((prev) =>
-      prev.map((q) => (q.context_text === oldName ? { ...q, context_text: newName } : q))
+      prev.map((q) => (q.topic_category === oldName ? { ...q, topic_category: newName } : q))
     );
 
     const storedQs = getStoredCustomQuestions();
     const updatedStoredQs = storedQs.map((sq) =>
-      sq.context_text === oldName ? { ...sq, context_text: newName } : sq
+      sq.topic_category === oldName ? { ...sq, topic_category: newName } : sq
     );
     saveStoredCustomQuestions(updatedStoredQs);
 
@@ -931,7 +961,7 @@ export function CfrFeedbackModal({
     }
 
     setQuestions((prev) => {
-      const toDelete = prev.filter((q) => q.context_text === topicToDelete);
+      const toDelete = prev.filter((q) => q.topic_category === topicToDelete);
       const defaultIds = toDelete.filter((q) => !q.isCustom && q.id).map((q) => q.id!);
       if (defaultIds.length > 0) {
         const deletedIds = getStoredDeletedQuestionIds();
@@ -943,11 +973,11 @@ export function CfrFeedbackModal({
         });
         saveStoredDeletedQuestionIds(newDeleted);
       }
-      return prev.filter((q) => q.context_text !== topicToDelete);
+      return prev.filter((q) => q.topic_category !== topicToDelete);
     });
 
     const storedQs = getStoredCustomQuestions();
-    const updatedStoredQs = storedQs.filter((sq) => sq.context_text !== topicToDelete);
+    const updatedStoredQs = storedQs.filter((sq) => sq.topic_category !== topicToDelete);
     saveStoredCustomQuestions(updatedStoredQs);
 
     if (activeGroup === topicToDelete) {
@@ -966,7 +996,7 @@ export function CfrFeedbackModal({
     const newQ: Question = {
       id: newId,
       question: "",
-      context_text: topicName,
+      topic_category: topicName,
       answer: "",
       isCustom: true,
       customUid: newUid,
@@ -976,7 +1006,7 @@ export function CfrFeedbackModal({
     const storedQs = getStoredCustomQuestions();
     saveStoredCustomQuestions([
       ...storedQs,
-      { id: newUid, question: "", context_text: topicName },
+      { id: newUid, question: "", topic_category: topicName },
     ]);
 
     setEditingQuestionId(newId);
@@ -1181,7 +1211,10 @@ export function CfrFeedbackModal({
           question: q.question!.trim(),
           answer: q.answer || "",
           link: q.link?.trim() || "",
-          context_text: q.context_text || "General Questions",
+          topic_category: q.topic_category || "General Questions",
+          context_text: q.topic_category || "General Questions",
+          input_type: q.input_type || "text",
+          option: Array.isArray(q.option) ? q.option : [],
         }));
 
       const payload = {
@@ -1224,7 +1257,7 @@ export function CfrFeedbackModal({
   // Group questions by context
   const groupedQuestions = useMemo(() => {
     return displayQuestions.reduce((acc: Record<string, Question[]>, q) => {
-      const group = q.context_text || "General Questions";
+      const group = q.topic_category || "General Questions";
       if (!acc[group]) acc[group] = [];
       acc[group].push(q);
       return acc;
@@ -1450,7 +1483,7 @@ export function CfrFeedbackModal({
                                             {q.answer && q.answer.trim() !== "" ? (
                                               <div className="space-y-2">
                                                 <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed break-words break-all">
-                                                  {q.answer}
+                                                  {formatAnswerForDisplay(q.answer)}
                                                 </p>
                                                 {q.link && q.link.trim() !== "" && (
                                                   <div className="mt-1.5">
@@ -1739,7 +1772,8 @@ export function CfrFeedbackModal({
                                   <label className="text-sm font-medium text-gray-700">Answer</label>
                                   {(() => {
                                     const dropdownConfig = getQuestionDropdownConfig(q.question);
-                                    if (dropdownConfig && !existingData?._isReadOnly) {
+                                    const hasInputType = Boolean(q.input_type?.trim());
+                                    if (dropdownConfig && !hasInputType && !existingData?._isReadOnly) {
                                       return (
                                         <button
                                           type="button"
@@ -1760,8 +1794,27 @@ export function CfrFeedbackModal({
                                 </div>
                                 {(() => {
                                   const dropdownConfig = getQuestionDropdownConfig(q.question);
-                                  if (dropdownConfig) {
-                                    const optionsList = getActiveOptions(dropdownConfig);
+                                  const inputType = q.input_type?.trim().toLowerCase();
+                                  const hasInputType = Boolean(inputType);
+                                  const isDropdown = hasInputType ? inputType === "select" : Boolean(dropdownConfig);
+                                  const isMultiselect = hasInputType ? inputType === "multi-select":false;
+                                  if (isDropdown ||isMultiselect ) {
+                                    const optionsList = hasInputType
+                                      ? (Array.isArray(q.option) ? q.option : [])
+                                      : getActiveOptions(dropdownConfig!);
+                                    // const isEconomicQ12 = activeGroup.toLowerCase().includes("economic") && index === 11;
+                                    if (isMultiselect) {
+                                      return (
+                                        <MultiSelectCombobox
+                                          options={optionsList.map((option) => ({ value: option, label: option }))}
+                                          value={parseMultiSelectAnswer(q.answer)}
+                                          onValueChange={(values) => handleAnswerChange(q.id!, JSON.stringify(values))}
+                                          placeholder="Select one or more options"
+                                          disabled={existingData?._isReadOnly}
+                                          className="w-full"
+                                        />
+                                      );
+                                    }
                                     const matchedValue = getMatchedDropdownValue(q.answer, optionsList);
                                     return (
                                       <select
@@ -1770,7 +1823,7 @@ export function CfrFeedbackModal({
                                         className="w-full p-2.5 border border-gray-300 rounded-md bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-sm text-gray-800 disabled:opacity-75 disabled:bg-gray-100 disabled:cursor-not-allowed transition-all"
                                         disabled={existingData?._isReadOnly}
                                       >
-                                        <option value="">{dropdownConfig.placeholder}</option>
+                                        <option value="">{dropdownConfig?.placeholder || "Select an option"}</option>
                                         {q.answer && !optionsList.includes(matchedValue) && (
                                           <option value={q.answer}>{q.answer}</option>
                                         )}
@@ -1780,6 +1833,18 @@ export function CfrFeedbackModal({
                                           </option>
                                         ))}
                                       </select>
+                                    );
+                                  }
+                                  if (inputType === "text") {
+                                    return (
+                                      <Textarea
+                                        rows={4}
+                                        placeholder="Type the answer here..."
+                                        value={q.answer || ""}
+                                        onChange={(e) => handleAnswerChange(q.id!, e.target.value)}
+                                        className="bg-gray-50 focus:bg-white"
+                                        disabled={existingData?._isReadOnly}
+                                      />
                                     );
                                   }
                                   return (
