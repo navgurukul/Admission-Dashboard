@@ -222,8 +222,17 @@ export const ApplicantTableRow = ({
     setIsCheckingEmail(true);
     try {
       const existingStudent = await getStudentDataByEmail(newEmail);
+      const existingStudentId =
+        (existingStudent as any)?.data?.student?.student_id ??
+        (existingStudent as any)?.data?.student?.id ??
+        (existingStudent as any)?.student_id ??
+        (existingStudent as any)?.id ??
+        (existingStudent as any)?.studentId ??
+        null;
+      const currentStudentId =
+        applicant?.student_id ?? applicant?.id ?? applicant?.studentId ?? null;
 
-      if (existingStudent && existingStudent.id !== applicant?.id) {
+      if (existingStudent && existingStudentId !== currentStudentId) {
         const errorMsg = "This email already exists, please use another email";
         setEmailError(errorMsg);
         return false;

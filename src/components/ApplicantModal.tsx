@@ -1051,6 +1051,10 @@ Interviewer: ${interviewerName}`;
         throw new Error("Failed to create calendar event");
       }
 
+      if (!calendarEvent.meetLink) {
+        throw new Error("Google Meet link was not created. Please reconnect Google Calendar and try again.");
+      }
+
       // Check if this is a reschedule or new schedule
       if (rescheduleData) {
         // Reschedule existing interview
@@ -1095,7 +1099,12 @@ Interviewer: ${interviewerName}`;
       console.error("Failed to schedule interview:", error);
       toast({
         title: "Error",
-        description: rescheduleData ? "Failed to reschedule interview" : "Failed to schedule interview",
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : rescheduleData
+              ? "Failed to reschedule interview"
+              : "Failed to schedule interview",
         variant: "destructive",
       });
     } finally {
