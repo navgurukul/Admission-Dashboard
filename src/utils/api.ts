@@ -1208,6 +1208,11 @@ export const getStudentById = async (id: string): Promise<Student> => {
   try {
     const response = await axios.get<Student>(
       `${BASE_URL}/students/getStudentsById/${id}`,
+      {
+        headers: {
+          ...(getAuthHeaders() as Record<string, string>),
+        },
+      }
     );
 
     return response.data;
