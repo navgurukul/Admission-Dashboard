@@ -3,7 +3,6 @@
 const CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
   "203783247002-amrp0mkp58jna7mhcf368vcn0ilnq7hd.apps.googleusercontent.com";
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || "";
 const SCOPES = "https://www.googleapis.com/auth/calendar.events";
 
 interface EventDetails {
@@ -22,16 +21,6 @@ let tokenClient: any = null;
 // Initialize Google Identity Services
 export const initClient = (): Promise<boolean> => {
   return new Promise((resolve, reject) => {
-    // Check if API_KEY is configured
-    if (!API_KEY || API_KEY === "") {
-      reject(
-        new Error(
-          "Google API Key is not configured. Please add VITE_GOOGLE_API_KEY in .env file.",
-        ),
-      );
-      return;
-    }
-
     try {
       // Load Google Identity Services script
       if (typeof window === "undefined") {
@@ -95,40 +84,47 @@ const initTokenClient = () => {
 // Request access token (triggers sign-in popup)
 export const signIn = async (): Promise<boolean> => {
   return new Promise((resolve, reject) => {
-    try {
-      if (!tokenClient) {
-        throw new Error(
-          "Token client not initialized. Please refresh the page.",
-        );
-      }
-
-      // console.log("Requesting access token...");
-
-      // Set up callback for token response
-      tokenClient.callback = (response: any) => {
-        if (response.error) {
-          console.error("Sign-in error:", response);
-          reject(
-            new Error(
-              response.error_description ||
-                response.error ||
-                "Failed to sign in",
-            ),
-          );
-          return;
+    const requestAccess = async () => {
+      try {
+        // The page may be opened directly or after a hot reload, so ensure
+        // the GIS token client exists before requesting an access token.
+        if (!tokenClient) {
+          await initClient();
         }
 
-        accessToken = response.access_token;
-        // console.log("Sign-in successful, access token received");
-        resolve(true);
-      };
+        if (!tokenClient) {
+          throw new Error(
+            "Google token client could not be initialized. Please check the Google Client ID.",
+          );
+        }
 
-      // Request access token - this opens the popup
-      tokenClient.requestAccessToken({ prompt: "select_account" });
-    } catch (error: any) {
-      console.error("Error during sign-in:", error);
-      reject(error);
+        // Set up callback for token response
+        tokenClient.callback = (response: any) => {
+          if (response.error) {
+            console.error("Sign-in error:", response);
+            reject(
+              new Error(
+                response.error_description ||
+                  response.error ||
+                  "Failed to sign in",
+              ),
+            );
+            return;
+          }
+
+          accessToken = response.access_token;
+          resolve(true);
+        };
+
+        // Request access token - this opens the popup
+        tokenClient.requestAccessToken({ prompt: "select_account" });
+      } catch (error: any) {
+        console.error("Error during sign-in:", error);
+        reject(error);
+      }
     }
+
+    requestAccess();
   });
 };
 
