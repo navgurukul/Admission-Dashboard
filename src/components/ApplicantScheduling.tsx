@@ -23,6 +23,7 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
 
   const [status, setStatus] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [expandedRemarks, setExpandedRemarks] = useState<Set<string>>(new Set());
 
   const isScreeningPassed = (student?.exam_sessions || []).some((session: any) => {
     if (session?.is_archived === true) return false;
@@ -132,16 +133,16 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
       {loading ? (
         <div className="text-sm text-gray-500 px-1">Loading history...</div>
       ) : (
-        <div className="border rounded-md shadow-sm bg-white overflow-y-auto max-h-[250px] relative">
-          <Table>
+        <div className="border rounded-md shadow-sm bg-white">
+          <Table className="table-fixed min-w-0">
             <TableHeader className="bg-gray-50 sticky top-0 z-10 shadow-[0_1px_3px_0_rgba(0,0,0,0.1)]">
               <TableRow>
-                <TableHead className="font-semibold text-gray-700 w-[80px]">Round</TableHead>
-                <TableHead className="font-semibold text-gray-700">Method</TableHead>
-                <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                <TableHead className="font-semibold text-gray-700">Remarks</TableHead>
-                <TableHead className="font-semibold text-gray-700">Logged By</TableHead>
-                <TableHead className="font-semibold text-gray-700 text-right">Date</TableHead>
+                <TableHead className="font-semibold text-gray-700 w-[9%]">Round</TableHead>
+                <TableHead className="font-semibold text-gray-700 w-[14%]">Method</TableHead>
+                <TableHead className="font-semibold text-gray-700 w-[15%]">Status</TableHead>
+                <TableHead className="font-semibold text-gray-700 w-[34%]">Remarks</TableHead>
+                <TableHead className="font-semibold text-gray-700 w-[14%]">Logged By</TableHead>
+                <TableHead className="font-semibold text-gray-700 w-[14%] text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,7 +156,7 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
                 </TableRow>
               ) : (
                 tableRows.map((row, idx) => (
-                  <TableRow key={idx}>
+                  <TableRow key={row.id ?? idx} className="[&>td]:align-top">
                     <TableCell className="font-medium text-gray-900">{row.displayRound}</TableCell>
                     <TableCell className="text-gray-600">{row.isPlaceholder ? "—" : (row.scheduling_method || "—")}</TableCell>
                     <TableCell>
@@ -168,8 +169,35 @@ export function ApplicantScheduling({ student, targetRound, onProfileUpdate }: A
                         {row.status || "—"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-gray-600 max-w-[200px] truncate" title={row.remarks}>
-                      {row.isPlaceholder ? "—" : (row.remarks || "—")}
+                    <TableCell className="text-gray-600 break-all">
+                      {row.isPlaceholder ? "—" : (() => {
+                        const remark = row.remarks || "—";
+                        const rowKey = String(row.id ?? `${row.created_at ?? ""}-${idx}`);
+                        const isLong = remark.length > 90;
+                        const isExpanded = expandedRemarks.has(rowKey);
+                        return (
+                          <div>
+                            <p className={isExpanded ? "whitespace-pre-wrap break-all" : "break-all max-h-[4.5rem] overflow-hidden"}>
+                              {isExpanded || !isLong ? remark : `${remark.slice(0, 90).trimEnd()}…`}
+                            </p>
+                            {isLong && (
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRemarks((current) => {
+                                  const next = new Set(current);
+                                  if (next.has(rowKey)) next.delete(rowKey);
+                                  else next.add(rowKey);
+                                  return next;
+                                })}
+                                className="mt-1 text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                                aria-expanded={isExpanded}
+                              >
+                                {isExpanded ? "Read less" : "Read more"}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-gray-600">
                       {row.isPlaceholder ? "—" : (row.logged_by || "—")}
