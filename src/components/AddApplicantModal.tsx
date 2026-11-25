@@ -10,14 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
   CheckCircle2,
@@ -35,12 +27,47 @@ import {
   submitScreeningRound,
   uploadProfileImage,
   getStudentDataByEmail,
+  getStudentDataByPhone,
+  getConfigurationStates,
+  getConfigurationDistricts,
+  getEligibleCampuses,
+  type EligibleCampusSchoolResponse,
+  type EligibleCampusesResponse,
 } from "@/utils/api";
 import { detectHumanFace } from "@/utils/faceVerification";
 import { useOnDemandReferenceData } from "@/hooks/useOnDemandReferenceData";
 
 const cn = (...classes: (string | undefined | null | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
+};
+
+interface CampusEligibilityItem {
+  id: string;
+  name: string;
+  eligible: boolean;
+  reason?: string;
+  schools: EligibleCampusSchoolResponse[];
+}
+
+const normalizeCampusEligibility = (response: EligibleCampusesResponse): CampusEligibilityItem[] =>
+  (Array.isArray(response.data) ? response.data : []).map((campus) => ({
+    id: String(campus.id),
+    name: campus.display_name,
+    eligible: campus.is_eligible,
+    reason: campus.ineligible_reasons.length ? campus.ineligible_reasons.join(", ") : undefined,
+    schools: campus.schools,
+  }));
+
+const getEligibleCampusSchools = (campus: CampusEligibilityItem | undefined) => {
+  if (!campus) return [];
+
+  return campus.schools
+    .filter((school) => school.is_open && school.is_eligible)
+    .map((school) => ({
+      id: String(school.school_id),
+      name: school.display_name,
+    }))
+    .filter((school) => school.id && school.name);
 };
 
 interface AddApplicantModalProps {
@@ -59,11 +86,10 @@ export function AddApplicantModal({
   // ✅ DRY: Use on-demand reference data loading hook
   const {
     schoolList,
-    currentstatusList,
     // religionList,
     questionSetList,
     qualificationList,
-    castList,
+    categoryList,
     partnerList,
     donorList,
     loadFieldData, // ✅ For on-demand loading when dropdowns open
@@ -75,15 +101,19 @@ export function AddApplicantModal({
   const [activeTab, setActiveTab] = useState("basic");
   const { toast } = useToast();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [states, setStates] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [emailExists, setEmailExists] = useState(false);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [campusEligibility, setCampusEligibility] = useState<CampusEligibilityItem[]>([]);
+  const [isCheckingCampusEligibility, setIsCheckingCampusEligibility] = useState(false);
+  const [campusEligibilityError, setCampusEligibilityError] = useState("");
 
   const [formData, setFormData] = useState({
     image_url: "",
     first_name: "",
-    middle_name: "",
     last_name: "",
     phone_number: "",
     whatsapp_number: "",
@@ -94,17 +124,19 @@ export function AddApplicantModal({
     stateCode: "",
     district: "",
     districtCode: "",
-    pin_code: "",
     category_id: "",
     gender: "",
     qualification_id: "",
-    current_status_id: "",
+    school_name: "",
+    graduation_year: "",
+    graduation_mode: "",
+    preferred_campus_id: "",
+    initial_school_id: "",
     religion_id: "",
     partner_id: "",
     donor_id: "",
     qualifying_school_id: "",
     // campus_id: "",
-    school_medium: "",
     status: "",
     is_passed: false,
     question_set_id: "",
@@ -112,14 +144,12 @@ export function AddApplicantModal({
     obtained_marks: "",
     exam_centre: "",
     date_of_test: "",
-    communication_notes: "",
   });
 
   const resetForm = () => {
     setFormData({
       image_url: "",
       first_name: "",
-      middle_name: "",
       last_name: "",
       phone_number: "",
       whatsapp_number: "",
@@ -130,12 +160,15 @@ export function AddApplicantModal({
       stateCode: "",
       district: "",
       districtCode: "",
-      pin_code: "",
       category_id: "",
       gender: "",
       // campus_id: "",
       qualification_id: "",
-      current_status_id: "",
+      school_name: "",
+      graduation_year: "",
+      graduation_mode: "",
+      preferred_campus_id: "",
+      initial_school_id: "",
       qualifying_school_id: "",
       religion_id: "",
       partner_id: "",
@@ -147,13 +180,29 @@ export function AddApplicantModal({
       obtained_marks: "",
       exam_centre: "",
       date_of_test: "",
-      communication_notes: "",
-      school_medium: "",
     });
     setActiveTab("basic");
     setErrors({});
     setImagePreview(null);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setIsLocationLoading(true);
+    Promise.all([getConfigurationStates(), getConfigurationDistricts()])
+      .then(([statesData, districtsData]) => {
+        setStates(statesData);
+        setDistricts(districtsData);
+      })
+      .catch((error) => {
+        toast({
+          title: "Unable to load locations",
+          description: getFriendlyErrorMessage(error),
+          variant: "destructive",
+        });
+      })
+      .finally(() => setIsLocationLoading(false));
+  }, [isOpen, toast]);
 
   useEffect(() => {
     if (formData.question_set_id && questionSetList.length > 0) {
@@ -175,77 +224,77 @@ export function AddApplicantModal({
     }
   }, [guidedTab, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || !formData.gender || !formData.qualification_id || !formData.district.trim()) {
+      setCampusEligibility([]);
+      setCampusEligibilityError("");
+      setIsCheckingCampusEligibility(false);
+      setFormData((prev) => prev.preferred_campus_id || prev.initial_school_id
+        ? { ...prev, preferred_campus_id: "", initial_school_id: "" }
+        : prev);
+      return;
+    }
+
+    let isCurrentRequest = true;
+    setIsCheckingCampusEligibility(true);
+    setCampusEligibilityError("");
+    setCampusEligibility([]);
+    setFormData((prev) => ({ ...prev, preferred_campus_id: "", initial_school_id: "" }));
+
+    getEligibleCampuses({
+      gender: formData.gender,
+      qualification_id: Number(formData.qualification_id),
+      district: formData.district.trim(),
+      include_ineligible: true,
+      include_schools: true,
+    })
+      .then((response) => {
+        if (isCurrentRequest) setCampusEligibility(normalizeCampusEligibility(response));
+      })
+      .catch((error) => {
+        if (isCurrentRequest) {
+          setCampusEligibility([]);
+          setCampusEligibilityError(getFriendlyErrorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (isCurrentRequest) setIsCheckingCampusEligibility(false);
+      });
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [isOpen, formData.gender, formData.qualification_id, formData.district]);
+
   const handleInputChange = (field: string, value: string | boolean) => {
     // Handle name fields - only allow letters and spaces (no numbers)
-    if ((field === "first_name" || field === "middle_name" || field === "last_name") && typeof value === "string") {
+    if ((field === "first_name" || field === "last_name") && typeof value === "string") {
       const lettersOnly = value.replace(/[0-9]/g, "");
       setFormData((prev) => ({
         ...prev,
         [field]: lettersOnly,
       }));
     }
-    // Handle PIN code - only allow 6 digits + auto-fill state/district
-    else if (field === "pin_code" && typeof value === "string") {
-      const digitsOnly = value.replace(/\D/g, "");
-      const truncated = digitsOnly.slice(0, 6);
+    else if (field === "qualification_id") {
+      const selectedQualification = qualificationList.find(
+        (qualification: any) => String(qualification.id) === String(value),
+      );
+      const isPursuing = selectedQualification?.qualification_name
+        ?.toLowerCase()
+        .includes("pursuing");
+      const qualificationId = typeof value === "string" && value !== "none" ? value : "";
       setFormData((prev) => ({
         ...prev,
-        [field]: truncated,
+        qualification_id: qualificationId,
+        graduation_year: isPursuing ? prev.graduation_year : "",
+        graduation_mode: isPursuing ? prev.graduation_mode : "",
       }));
-      // When 6 digits entered, fetch state & district from pincode API
-      if (truncated.length === 6) {
-        setIsPincodeLoading(true);
-        const capturedPin = truncated;
-        fetch(`https://api.postalpincode.in/pincode/${capturedPin}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (Array.isArray(data) && data[0]?.Status === "Success" && data[0]?.PostOffice?.length > 0) {
-              const record = data[0].PostOffice[0];
-              setFormData((prev) => ({
-                ...prev,
-                pin_code: capturedPin,
-                state: record.State || "",
-                stateCode: record.State || "",
-                district: record.District || "",
-                districtCode: record.District || "",
-              }));
-            } else {
-              setFormData((prev) => ({
-                ...prev,
-                pin_code: capturedPin,
-                state: "",
-                stateCode: "",
-                district: "",
-                districtCode: "",
-              }));
-              toast({
-                title: "⚠️ Invalid PIN Code",
-                description: "No location found for this PIN code.",
-                variant: "default",
-                className: "border-orange-500 bg-orange-50 text-orange-900",
-              });
-            }
-          })
-          .catch(() => {
-            toast({
-              title: "❌ PIN Code Lookup Failed",
-              description: "Unable to fetch location details. Please try again.",
-              variant: "destructive",
-              className: "border-red-500 bg-red-50 text-red-900",
-            });
-          })
-          .finally(() => setIsPincodeLoading(false));
-      } else {
-        // Less than 6 digits — clear state/district
-        setFormData((prev) => ({
-          ...prev,
-          pin_code: truncated,
-          state: "",
-          stateCode: "",
-          district: "",
-          districtCode: "",
-        }));
-      }
+    } else if (field === "preferred_campus_id") {
+      setFormData((prev) => ({
+        ...prev,
+        preferred_campus_id: typeof value === "string" ? value : "",
+        initial_school_id: "",
+      }));
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -257,6 +306,15 @@ export function AddApplicantModal({
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
+        return newErrors;
+      });
+    }
+    if (["first_name", "last_name", "email", "phone_number"].includes(field)) {
+      setEmailExists(false);
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.email;
+        delete newErrors.phone_number;
         return newErrors;
       });
     }
@@ -331,32 +389,47 @@ export function AddApplicantModal({
     }
   };
 
-  const handleEmailBlur = async () => {
-    if (!formData.email) return;
+  const handleDuplicateStudentBlur = async () => {
+    const email = formData.email.trim().toLowerCase();
+    const phone = formData.phone_number.trim();
+    const firstName = formData.first_name.trim().toLowerCase();
+    const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-    // basic format check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) return;
+    setEmailExists(false);
+    setErrors((prev) => {
+      const nextErrors = { ...prev };
+      delete nextErrors.email;
+      delete nextErrors.phone_number;
+      return nextErrors;
+    });
+    if (!firstName || (!validEmail && !phone)) return;
 
     setIsCheckingEmail(true);
-
     try {
-      const existingStudent = await getStudentDataByEmail(formData.email);
+      const lookups = await Promise.all([
+        validEmail ? getStudentDataByEmail(email, formData.first_name.trim()).catch(() => null) : Promise.resolve(null),
+        phone ? getStudentDataByPhone(phone, formData.first_name.trim()).catch(() => null) : Promise.resolve(null),
+      ]);
+      const getStudents = (response: any) => {
+        if (!response) return [];
+        const student = response?.data?.student ?? response?.student ?? response?.data ?? response;
+        return Array.isArray(student) ? student : [student];
+      };
+      const sameFirstName = (student: any) =>
+        String(student?.first_name ?? "").trim().toLowerCase() === firstName;
+      const emailDuplicate = validEmail && getStudents(lookups[0]).some((student: any) =>
+        sameFirstName(student) && String(student?.email ?? "").trim().toLowerCase() === email,
+      );
+      const phoneDuplicate = !!phone && getStudents(lookups[1]).some((student: any) =>
+        sameFirstName(student) && String(student?.phone_number ?? student?.mobile_no ?? "").replace(/\D/g, "") === phone.replace(/\D/g, ""),
+      );
 
-      if (existingStudent) {
-        setErrors((prev) => ({
-          ...prev,
-          email: "This email already exists, you can use another email",
-        }));
-        setEmailExists(true);
-      }
-    } catch (err) {
-      // email NOT found = valid case
-      setEmailExists(false);
-      setErrors((prev) => {
-        const { email, ...rest } = prev;
-        return rest;
-      });
+      if (emailDuplicate || phoneDuplicate) setEmailExists(true);
+      setErrors((prev) => ({
+        ...prev,
+        ...(emailDuplicate ? { email: "Student already exists with this first name and email." } : {}),
+        ...(phoneDuplicate ? { phone_number: "Student already exists with this first name and phone number." } : {}),
+      }));
     } finally {
       setIsCheckingEmail(false);
     }
@@ -386,9 +459,7 @@ export function AddApplicantModal({
       newErrors.whatsapp_number = "WhatsApp number must be 10 digits";
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
@@ -407,13 +478,7 @@ export function AddApplicantModal({
     }
 
     if (!formData.state) {
-      newErrors.state = "State is required (enter a valid PIN code)";
-    }
-
-    if (!formData.pin_code.trim()) {
-      newErrors.pin_code = "PIN Code is required";
-    } else if (formData.pin_code.length !== 6) {
-      newErrors.pin_code = "PIN Code must be 6 digits";
+      newErrors.state = "State is required";
     }
 
     if (!formData.category_id) {
@@ -424,8 +489,17 @@ export function AddApplicantModal({
       newErrors.qualification_id = "Qualification is required";
     }
 
-    if (!formData.current_status_id) {
-      newErrors.current_status_id = "Current work is required";
+    const selectedQualification = qualificationList.find(
+      (qualification: any) => String(qualification.id) === formData.qualification_id,
+    );
+    const isPursuing = selectedQualification?.qualification_name
+      ?.toLowerCase()
+      .includes("pursuing");
+    if (isPursuing && !formData.graduation_year) {
+      newErrors.graduation_year = "Year is required for pursuing qualification";
+    }
+    if (isPursuing && !formData.graduation_mode) {
+      newErrors.graduation_mode = "Study mode is required for pursuing qualification";
     }
 
     // if (!formData.campus_id) {
@@ -435,10 +509,6 @@ export function AddApplicantModal({
     // if (!formData.religion_id) {
     //   newErrors.religion_id = "Religion is required";
     // }
-
-    if (!formData.communication_notes.trim()) {
-      newErrors.communication_notes = "Communication notes are required";
-    }
 
     // Screening section validation: These fields are always mandatory
     if (!formData.question_set_id) {
@@ -483,12 +553,9 @@ export function AddApplicantModal({
         dob: "Date of Birth",
         state: "State",
         district: "District",
-        pin_code: "PIN Code",
         category_id: "Category",
         qualification_id: "Qualification",
-        current_status_id: "Current Work",
         // religion_id: "Religion",
-        communication_notes: "Communication Notes",
         question_set_id: "Question Set",
         exam_centre: "Exam Centre",
         date_of_test: "Date of Test",
@@ -555,29 +622,31 @@ export function AddApplicantModal({
       const studentData = {
         image_url: formData.image_url || null,
         first_name: formData.first_name,
-        middle_name: formData.middle_name,
         last_name: formData.last_name,
         gender: formData.gender || null,
         dob: formData.dob || null,
         email: formData.email || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
-        state: formData.stateCode || null, 
-        city: formData.city || null,
-        district: formData.district || null, // Send NAME instead of code
-        pin_code: formData.pin_code || null,
+        state: formData.state || null,
+        district: formData.district || null,
         category_id: formData.category_id ? Number(formData.category_id) : null,
         qualification_id: formData.qualification_id
           ? Number(formData.qualification_id)
           : null,
-        current_status_id: formData.current_status_id
-          ? Number(formData.current_status_id)
-          : null,
-        religion_id: formData.religion_id ? Number(formData.religion_id) : null,
+        school_name: formData.school_name.trim() || null,
+        graduation_year: formData.graduation_year || null,
+        graduation_mode: formData.graduation_mode || null,
+        preferred_campus_id:
+          formData.preferred_campus_id && Number.isFinite(Number(formData.preferred_campus_id))
+            ? Number(formData.preferred_campus_id)
+            : null,
+        initial_school_id:
+          formData.initial_school_id && Number.isFinite(Number(formData.initial_school_id))
+            ? Number(formData.initial_school_id)
+            : null,
         partner_id: formData.partner_id ? Number(formData.partner_id) : null,
         donor_id: formData.donor_id ? Number(formData.donor_id) : null,
-        school_medium: formData.school_medium || null,
-        communication_notes: formData.communication_notes || "",
         // campus_id: formData.campus_id ? Number(formData.campus_id) : null,
       };
 
@@ -614,9 +683,6 @@ export function AddApplicantModal({
         id: studentId,
         name:
           (response?.data?.first_name || response?.first_name || "") +
-          (response?.data?.middle_name || response?.middle_name
-            ? ` ${response?.data?.middle_name || response?.middle_name}`
-            : "") +
           (response?.data?.last_name || response?.last_name
             ? ` ${response?.data?.last_name || response?.last_name}`
             : ""),
@@ -646,15 +712,6 @@ export function AddApplicantModal({
               q.id ===
               (response?.data?.qualification_id || response?.qualification_id),
           )?.qualification_name || "",
-        current_status_id:
-          response?.data?.current_status_id || response?.current_status_id,
-        current_work:
-          currentstatusList?.find(
-            (c) =>
-              c.id ===
-              (response?.data?.current_status_id ||
-                response?.current_status_id),
-          )?.current_status_name || "",
         status: formData.status,
         obtained_marks: formData.obtained_marks,
         question_set_id: formData.question_set_id,
@@ -713,13 +770,10 @@ export function AddApplicantModal({
           !emailExists &&
           !errors.email &&
           formData.state &&
-          formData.pin_code &&
           formData.category_id &&
-          formData.qualification_id &&
-          formData.current_status_id &&
+          formData.qualification_id
           // formData.campus_id &&
           // formData.religion_id &&
-          formData.communication_notes
         );
       case "screening":
         return !!formData.status;
@@ -728,17 +782,36 @@ export function AddApplicantModal({
     }
   };
 
-  const getMaxDOB = () => {
-    const today = new Date();
-    today.setFullYear(today.getFullYear() - 16);
-    today.setMonth(today.getMonth() - 6);
-    return today.toISOString().split("T")[0];
-  };
-
   const handleClose = () => {
     resetForm();
     onClose();
   };
+
+  const locationStateOptions = states
+    .map((state: any) => ({
+      id: String(state.id ?? state.state_id ?? state.state_code ?? state.code ?? ""),
+      name: String(state.name_en ?? state.state_name ?? state.name ?? ""),
+    }))
+    .filter((state) => state.id && state.name);
+  const locationDistrictOptions = districts
+    .filter((district: any) => {
+      if (!formData.stateCode) return false;
+      const parentId = String(
+        district.state_id ?? district.stateId ?? district.state_code ?? district.stateCode ??
+        district.parent_id ?? district.parentId ?? district.parent?.id ?? district.parent?.code ??
+        district.state?.id ?? district.state?.code ?? district.state ?? "",
+      );
+      return !parentId || parentId === formData.stateCode || parentId === formData.state;
+    })
+    .map((district: any) => ({
+      id: String(district.id ?? district.district_id ?? district.district_code ?? district.code ?? ""),
+      name: String(district.name_en ?? district.district_name ?? district.name ?? ""),
+    }))
+    .filter((district) => district.id && district.name);
+  const selectedCampus = campusEligibility.find(
+    (campus) => campus.id === formData.preferred_campus_id,
+  );
+  const eligibleCampusSchools = getEligibleCampusSchools(selectedCampus);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -899,6 +972,7 @@ export function AddApplicantModal({
                       onChange={(e) =>
                         handleInputChange("first_name", e.target.value)
                       }
+                      onBlur={handleDuplicateStudentBlur}
                       placeholder="Enter first name"
                       className={errors.first_name ? "border-red-500" : ""}
                     />
@@ -910,22 +984,6 @@ export function AddApplicantModal({
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="middle_name"
-                      className="text-sm font-medium"
-                    >
-                      Middle Name
-                    </Label>
-                    <Input
-                      id="middle_name"
-                      value={formData.middle_name}
-                      onChange={(e) =>
-                        handleInputChange("middle_name", e.target.value)
-                      }
-                      placeholder="Enter middle name"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="last_name" className="text-sm font-medium">
                       Last Name 
                     </Label>
@@ -935,6 +993,7 @@ export function AddApplicantModal({
                       onChange={(e) =>
                         handleInputChange("last_name", e.target.value)
                       }
+                      onBlur={handleDuplicateStudentBlur}
                       placeholder="Enter last name"
                       className={errors.last_name ? "border-red-500" : ""}
                     />
@@ -951,6 +1010,7 @@ export function AddApplicantModal({
                         const digitsOnly = e.target.value.replace(/\D/g, '');
                         handleInputChange("phone_number", digitsOnly.slice(0, 10));
                       }}
+                      onBlur={handleDuplicateStudentBlur}
                       placeholder="Enter 10-digit phone number"
                       maxLength={10}
                       inputMode="numeric"
@@ -993,7 +1053,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-sm font-medium">
-                      Email *
+                      Email
                     </Label>
                     <Input
                       id="email"
@@ -1002,7 +1062,7 @@ export function AddApplicantModal({
                       onChange={(e) =>
                         handleInputChange("email", e.target.value)
                       }
-                      onBlur={handleEmailBlur}
+                      onBlur={handleDuplicateStudentBlur}
                       placeholder="Enter email address"
                       className={errors.email ? "border-red-500" : ""}
                     />
@@ -1025,7 +1085,6 @@ export function AddApplicantModal({
                       id="dob"
                       type="date"
                       value={formData.dob}
-                      max={getMaxDOB()}
                       onChange={(e) => handleInputChange("dob", e.target.value)}
                       className={errors.dob ? "border-red-500" : ""}
                     />
@@ -1070,65 +1129,51 @@ export function AddApplicantModal({
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Location Details
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="pin_code" className="text-sm font-medium">
-                      PIN Code *
+                    <Label htmlFor="state" className="text-sm font-medium">
+                      State *
                     </Label>
-                    <Input
-                      type="text"
-                      id="pin_code"
-                      value={formData.pin_code}
-                      onChange={(e) =>
-                        handleInputChange("pin_code", e.target.value)
-                      }
-                      placeholder="Enter PIN code"
-                      maxLength={6}
-                      pattern="[0-9]{6}"
-                      inputMode="numeric"
-                      className={errors.pin_code ? "border-red-500" : ""}
+                    <Combobox
+                      options={locationStateOptions.map((state) => ({ value: state.id, label: state.name }))}
+                      value={formData.stateCode}
+                      onValueChange={(value) => {
+                        const selected = locationStateOptions.find((item) => item.id === value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          stateCode: value,
+                          state: selected?.name || "",
+                          districtCode: "",
+                          district: "",
+                        }));
+                        setErrors((prev) => ({ ...prev, state: "", district: "" }));
+                      }}
+                      disabled={isLocationLoading}
+                      placeholder={isLocationLoading ? "Loading states..." : "Select state"}
+                      searchPlaceholder="Search state..."
+                      emptyText="No state found."
+                      className={cn("h-10 border shadow-sm hover:bg-accent", errors.state && "border-red-500")}
                     />
-                    {errors.pin_code && (
-                      <p className="text-red-500 text-xs flex items-center">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.pin_code}
-                      </p>
-                    )}
+                    {errors.state && <p className="text-red-500 text-xs flex items-center"><AlertCircle className="w-3 h-3 mr-1" />{errors.state}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="district" className="text-sm font-medium">
                       District
                     </Label>
-                    <Input
-                      id="district"
-                      value={isPincodeLoading ? "Loading..." : formData.district}
-                      readOnly
-                      disabled
-                      placeholder="Auto-filled from PIN code"
-                      className="bg-gray-100 cursor-not-allowed text-gray-600"
+                    <Combobox
+                      options={locationDistrictOptions.map((district) => ({ value: district.id, label: district.name }))}
+                      value={formData.districtCode}
+                      onValueChange={(value) => {
+                        const selected = locationDistrictOptions.find((item) => item.id === value);
+                        setFormData((prev) => ({ ...prev, districtCode: value, district: selected?.name || "" }));
+                        setErrors((prev) => ({ ...prev, district: "" }));
+                      }}
+                      disabled={!formData.stateCode || isLocationLoading}
+                      placeholder={isLocationLoading ? "Loading districts..." : "Select district"}
+                      searchPlaceholder="Search district..."
+                      emptyText="No district found."
+                      className="h-10 border shadow-sm hover:bg-accent"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state" className="text-sm font-medium">
-                      State *
-                    </Label>
-                    <Input
-                      id="state"
-                      value={isPincodeLoading ? "Loading..." : formData.state}
-                      readOnly
-                      disabled
-                      placeholder="Auto-filled from PIN code"
-                      className={cn(
-                        "bg-gray-100 cursor-not-allowed text-gray-600",
-                        errors.state && "border-red-500"
-                      )}
-                    />
-                    {errors.state && (
-                      <p className="text-red-500 text-xs flex items-center">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.state}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1144,9 +1189,9 @@ export function AddApplicantModal({
                       Category *
                     </Label>
                     <Combobox
-                      options={(Array.isArray(castList) ? castList : [])?.map((caste: any) => ({
-                        value: String(caste.id),
-                        label: caste.category_name || caste.cast_name,
+                      options={(Array.isArray(categoryList) ? categoryList : []).map((category: any) => ({
+                        value: String(category.id),
+                        label: category.category_name,
                       })) || []}
                       value={formData.category_id ? String(formData.category_id) : ""}
                       onValueChange={(value) =>
@@ -1209,45 +1254,124 @@ export function AddApplicantModal({
                     )}
                   </div>
 
+                  {formData.qualification_id && (
+                    <div className="space-y-2">
+                      <Label htmlFor="school_name" className="text-sm font-medium">
+                        School / college name
+                      </Label>
+                      <Input
+                        id="school_name"
+                        value={formData.school_name}
+                        onChange={(e) => handleInputChange("school_name", e.target.value)}
+                        placeholder="Enter school or college name"
+                        maxLength={150}
+                      />
+                    </div>
+                  )}
+
+                  {qualificationList
+                    .find((qualification: any) => String(qualification.id) === formData.qualification_id)
+                    ?.qualification_name?.toLowerCase().includes("pursuing") && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="graduation_year" className="text-sm font-medium">
+                          Pursuing year *
+                        </Label>
+                        <Combobox
+                          options={["1st Year", "2nd Year", "3rd Year", "4th Year", "Final Year"].map((year) => ({ value: year, label: year }))}
+                          value={formData.graduation_year}
+                          onValueChange={(value) => handleInputChange("graduation_year", value)}
+                          placeholder="Select year"
+                          searchPlaceholder="Search year..."
+                          emptyText="No year found."
+                          className={cn("h-10 border shadow-sm hover:bg-accent", errors.graduation_year && "border-red-500")}
+                        />
+                        {errors.graduation_year && <p className="text-xs text-red-500">{errors.graduation_year}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="graduation_mode" className="text-sm font-medium">
+                          Study mode *
+                        </Label>
+                        <Combobox
+                          options={[
+                            {
+                              value: "Regular",
+                              label: "Regular",
+                              subLabel: "I go to college regularly and attend classes daily.",
+                            },
+                            {
+                              value: "Distance",
+                              label: "Distance",
+                              subLabel: "I only go to college for exams and study at home.",
+                            },
+                          ]}
+                          value={formData.graduation_mode}
+                          onValueChange={(value) => handleInputChange("graduation_mode", value)}
+                          placeholder="Select study mode"
+                          searchPlaceholder="Search mode..."
+                          emptyText="No study mode found."
+                          popoverClassName="w-[380px] max-w-[calc(100vw-2rem)]"
+                          className={cn("h-10 border shadow-sm hover:bg-accent", errors.graduation_mode && "border-red-500")}
+                        />
+                        {errors.graduation_mode && <p className="text-xs text-red-500">{errors.graduation_mode}</p>}
+                      </div>
+                    </>
+                  )}
+
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="current_work"
-                      className="text-sm font-medium"
-                    >
-                      Current Work *
+                    <Label htmlFor="preferred_campus_id" className="text-sm font-medium">
+                      Preferred Campus
                     </Label>
                     <Combobox
-                      options={(Array.isArray(currentstatusList) ? currentstatusList : [])?.map((work: any) => ({
-                        value: String(work.id),
-                        label: work.current_status_name,
-                      })) || []}
-                      value={
-                        formData.current_status_id
-                          ? String(formData.current_status_id)
-                          : ""
-                      }
-                      onValueChange={(value) =>
-                        handleInputChange(
-                          "current_status_id",
-                          value === "none" ? "" : value
-                        )
-                      }
-                      onOpen={() => loadFieldData('current_status')}
-                      placeholder="Select current work"
-                      searchPlaceholder="Search current work..."
-                      emptyText="No current work found."
-                      className={cn(
-                        "h-10 border shadow-sm hover:bg-accent",
-                        errors.current_status_id && "border-red-500"
-                      )}
+                      options={campusEligibility.map((campus) => ({
+                        value: campus.id,
+                        label: campus.name,
+                        subLabel: [
+                          campus.eligible ? "Eligible" : "Not eligible",
+                          campus.reason,
+                        ]
+                          .filter(Boolean)
+                          .join(" · "),
+                        disabled: campus.eligible === false,
+                      }))}
+                      value={formData.preferred_campus_id}
+                      onValueChange={(value) => handleInputChange("preferred_campus_id", value)}
+                      disabled={isCheckingCampusEligibility || campusEligibility.length === 0}
+                      placeholder={isCheckingCampusEligibility ? "Checking campuses..." : "Select eligible campus"}
+                      searchPlaceholder="Search campuses..."
+                      emptyText="No campus found."
+                      className="h-10 border shadow-sm hover:bg-accent"
                     />
-                    {errors.current_status_id && (
-                      <p className="text-red-500 text-xs flex items-center">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {errors.current_status_id}
-                      </p>
-                    )}
+                    {campusEligibilityError ? (
+                      <p className="text-xs text-red-500">Unable to load campus eligibility: {campusEligibilityError}</p>
+                    ) : !formData.gender || !formData.qualification_id || !formData.district.trim() ? (
+                      <p className="text-xs text-muted-foreground">Select gender, qualification, and district to check eligibility.</p>
+                    ) : campusEligibility.length === 0 && !isCheckingCampusEligibility ? (
+                      <p className="text-xs text-muted-foreground">No campuses were returned for these details.</p>
+                    ) : null}
                   </div>
+
+                  {formData.preferred_campus_id && (
+                    <div className="space-y-2">
+                      <Label htmlFor="initial_school_id" className="text-sm font-medium">
+                        Preferred School / Course
+                      </Label>
+                      <Combobox
+                        options={eligibleCampusSchools.map((school) => ({ value: school.id, label: school.name }))}
+                        value={formData.initial_school_id}
+                        onValueChange={(value) => handleInputChange("initial_school_id", value)}
+                        disabled={eligibleCampusSchools.length === 0}
+                        placeholder="Select eligible school"
+                        searchPlaceholder="Search schools..."
+                        emptyText="No eligible school found."
+                        className="h-10 border shadow-sm hover:bg-accent"
+                      />
+                      {eligibleCampusSchools.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No open school is eligible for the selected qualification at this campus.</p>
+                      ) : null}
+                    </div>
+                  )}
+
                   {/* 
                   <div className="space-y-2">
                     <Label htmlFor="campus_id" className="text-sm font-medium">
@@ -1381,34 +1505,6 @@ export function AddApplicantModal({
                   </div>
                 </div>
 
-                <div className="space-y-2 mt-4">
-                  <Label
-                    htmlFor="communication_notes"
-                    className="text-sm font-medium"
-                  >
-                    Communication Notes *
-                  </Label>
-                  <Textarea
-                    id="communication_notes"
-                    value={formData.communication_notes}
-                    onChange={(e) =>
-                      handleInputChange("communication_notes", e.target.value)
-                    }
-                    placeholder="Enter communication notes"
-                    rows={3}
-                    className={
-                      errors.communication_notes
-                        ? "resize-none border-red-500"
-                        : "resize-none"
-                    }
-                  />
-                  {errors.communication_notes && (
-                    <p className="text-red-500 text-xs flex items-center">
-                      <AlertCircle className="w-3 h-3 mr-1" />
-                      {errors.communication_notes}
-                    </p>
-                  )}
-                </div>
               </div>
             </TabsContent>
 

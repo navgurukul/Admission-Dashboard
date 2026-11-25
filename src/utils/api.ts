@@ -1225,12 +1225,16 @@ export const getStudentById = async (id: string): Promise<Student> => {
 
 // Get Student By Email
 export const getStudentDataByEmail = async (
-  email: string
+  email: string,
+  firstName?: string,
 ): Promise<CompleteStudentData> => {
   try {
     const response = await axios.get<CompleteStudentData>(
-      `${BASE_URL}/students/getByEmail/${email}`,
+      `${BASE_URL}/students/getByEmail/${encodeURIComponent(email)}`,
       {
+        params: {
+          ...(firstName ? { firstName } : {}),
+        },
         headers: {
           ...(getAuthHeaders() as Record<string, string>),
         },
@@ -1254,7 +1258,9 @@ export const getStudentDataByPhone = async (
     const response = await axios.get<CompleteStudentData>(
       `${BASE_URL}/students/getByPhone/${phone}`,
       {
-        params: firstName ? { firstName } : {},
+        params: {
+          ...(firstName ? { firstName } : {}),
+        },
         headers: {
           ...(getAuthHeaders() as Record<string, string>),
         },
@@ -2308,6 +2314,57 @@ export interface Campus {
   whatsapp_group_link?: string;
 }
 
+export interface EligibleCampusesParams {
+  gender: string;
+  qualification_id: number;
+  district: string;
+  include_ineligible?: boolean;
+  include_schools?: boolean;
+}
+
+export interface EligibleCampusSchoolResponse {
+  school_id: number;
+  display_name: string;
+  is_open: boolean;
+  is_eligible: boolean;
+}
+
+export interface EligibleCampusResponseItem {
+  id: number;
+  display_name: string;
+  is_eligible: boolean;
+  ineligible_reasons: string[];
+  schools: EligibleCampusSchoolResponse[];
+}
+
+export interface EligibleCampusesResponse {
+  success: boolean;
+  data: EligibleCampusResponseItem[];
+}
+
+export const getEligibleCampuses = async (
+  params: EligibleCampusesParams,
+): Promise<EligibleCampusesResponse> => {
+  const query = new URLSearchParams({
+    gender: params.gender,
+    qualification_id: String(params.qualification_id),
+    district: params.district,
+    include_ineligible: String(params.include_ineligible ?? true),
+    include_schools: String(params.include_schools ?? true),
+  });
+  const response = await fetch(`${BASE_URL}/campuses/eligible?${query.toString()}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message || "Failed to fetch campus eligibility");
+  }
+
+  return data as EligibleCampusesResponse;
+};
+
 // Get campuses with pagination
 export const getCampuses = async (page: number = 1, limit: number = 10) => {
   const response = await fetch(`${BASE_URL}/campuses/getCampuses?page=${page}&pageSize=${limit}`, {
@@ -2485,16 +2542,37 @@ export const updateCampusConfigurationApi = async (
   return result;
 };
 
-export const getConfigurationStates = async () => {
-  const response = await fetch("https://api.openadmindata.org/api/v1/in/state.json");
-  if (!response.ok) throw new Error("Failed to fetch states");
-  return response.json();
+const extractOpenAdminEntities = (payload: any): any[] => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+  if (Array.isArray(payload.entities)) return payload.entities;
+
+  for (const key of ["data", "result", "items"]) {
+    const nested = extractOpenAdminEntities(payload[key]);
+    if (nested.length) return nested;
+  }
+
+  for (const value of Object.values(payload)) {
+    if (Array.isArray(value) && value.length > 0 && value.every((item) => item && typeof item === "object")) {
+      return value;
+    }
+    const nested = extractOpenAdminEntities(value);
+    if (nested.length) return nested;
+  }
+
+  return [];
 };
 
-export const getConfigurationDistricts = async () => {
+export const getConfigurationStates = async (): Promise<any[]> => {
+  const response = await fetch("https://api.openadmindata.org/api/v1/in/state.json");
+  if (!response.ok) throw new Error("Failed to fetch states");
+  return extractOpenAdminEntities(await response.json());
+};
+
+export const getConfigurationDistricts = async (): Promise<any[]> => {
   const response = await fetch("https://api.openadmindata.org/api/v1/in/district.json");
   if (!response.ok) throw new Error("Failed to fetch districts");
-  return response.json();
+  return extractOpenAdminEntities(await response.json());
 };
 
 // Update the WhatsApp group link for a campus
