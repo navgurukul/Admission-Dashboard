@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -15,7 +15,11 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getStudentDataByEmail, getCurrentUser } from "@/utils/api";
+import {
+  getStudentById,
+  searchStudentsApi,
+  getCurrentUser,
+} from "@/utils/api";
 import { useToast } from "@/components/ui/use-toast";
 import { getFriendlyErrorMessage } from "@/utils/errorUtils";
 import { useEffect } from "react";
@@ -85,6 +89,8 @@ export const ScheduleInterviewModal = ({
 }: ScheduleInterviewModalProps) => {
   const [studentId, setStudentId] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
+  const [studentPhone, setStudentPhone] = useState("");
+  const [studentLookupMethod, setStudentLookupMethod] = useState<"email" | "phone">("email");
   const [studentName, setStudentName] = useState("");
   const [topicName, setTopicName] = useState("");
   const [interviewerEmail, setInterviewerEmail] = useState("");
@@ -94,6 +100,8 @@ export const ScheduleInterviewModal = ({
   const [isFetchingStudent, setIsFetchingStudent] = useState(false);
   const [studentDataFetched, setStudentDataFetched] = useState(false);
   const [completeStudentData, setCompleteStudentData] = useState<any>(null);
+  const [studentSearchResults, setStudentSearchResults] = useState<any[]>([]);
+  const studentSelectionRequestRef = useRef(0);
   const { toast } = useToast();
 
   // New states for date and slot selection
@@ -108,9 +116,12 @@ export const ScheduleInterviewModal = ({
         // Reset all fields when modal closes
         setStudentId("");
         setStudentEmail("");
+        setStudentPhone("");
+        setStudentLookupMethod("email");
         setStudentName("");
         setStudentDataFetched(false);
         setCompleteStudentData(null);
+        setStudentSearchResults([]);
         setSelectedDate("");
         setSelectedSlotId(null);
         setTopicName("");
@@ -118,9 +129,10 @@ export const ScheduleInterviewModal = ({
         return;
       }
 
-      // Modal is open - check if we have at least student ID and email to auto-fetch
-      if (initialStudentId && initialStudentEmail) {
-        // console.log("Auto-fetching student data for:", initialStudentEmail);
+      // Applicant details already contain the canonical student ID. Use it as the
+      // lookup key for this flow; email is only retained for the calendar invite.
+      if (initialStudentId) {
+        // console.log("Auto-fetching student data for ID:", initialStudentId);
         
         // Set initial values immediately
         setStudentId(initialStudentId);
@@ -129,14 +141,16 @@ export const ScheduleInterviewModal = ({
           setStudentName(initialStudentName);
         }
         
-        // Automatically fetch complete student data
+        // Automatically fetch student data by ID so a stale/missing email cannot
+        // resolve the wrong applicant.
         setIsFetchingStudent(true);
         try {
-          const response = await getStudentDataByEmail(initialStudentEmail);
+          const response = await getStudentById(initialStudentId);
           // console.log("Student data fetched:", response);
           
           // Normalize the response - handle both axios.data and nested data.data structures
-          const payload = (response as any)?.data ?? response;
+          const responseData = (response as any)?.data ?? response;
+          const payload = responseData?.data ?? responseData;
           const studentData = payload?.student ?? payload;
           
           // Update with fetched data
@@ -148,19 +162,19 @@ export const ScheduleInterviewModal = ({
           
           if (studentId) {
             setStudentId(String(studentId));
+            setStudentEmail(studentData.email || initialStudentEmail || "");
             setStudentName(fullName);
             setCompleteStudentData(payload);
             setStudentDataFetched(true);
             // console.log("Student data set successfully:", fullName);
           } else {
             console.warn("No student ID found in response");
-            // Still mark as fetched to keep fields disabled with initial data
-            setStudentDataFetched(true);
+            setStudentDataFetched(false);
           }
         } catch (error) {
           console.error("Failed to fetch student data:", error);
-          // Still mark as fetched to keep fields disabled with initial data
-          setStudentDataFetched(true);
+          // Do not allow booking when the ID lookup failed.
+          setStudentDataFetched(false);
         } finally {
           setIsFetchingStudent(false);
         }
@@ -207,9 +221,73 @@ export const ScheduleInterviewModal = ({
     }
   }, [isOpen, slotData, isDirectScheduleMode]);
 
-  // Fetch student details by email
+  const getStudentDisplayName = (student: any) =>
+    student.full_name ||
+    student.name ||
+    `${student.first_name || ""} ${student.last_name || ""}`.trim() ||
+    "Unnamed student";
+
+  const handleSelectStudent = async (student: any) => {
+    const selectedStudentId = student.student_id || student.id;
+    if (!selectedStudentId) return;
+
+    const selectionRequestId = ++studentSelectionRequestRef.current;
+
+    setStudentId(String(selectedStudentId));
+    setStudentEmail(student.email || "");
+    setStudentPhone(student.phone_number || student.phone || "");
+    setStudentName(getStudentDisplayName(student));
+    setStudentSearchResults([]);
+    setStudentDataFetched(false);
+    setCompleteStudentData(null);
+    setIsFetchingStudent(true);
+
+    try {
+      // Always load the selected row by its unique student ID. Looking up by
+      // phone/email here can return the first matching student when duplicates
+      // exist, which would overwrite the selected result with the wrong data.
+      const response = await getStudentById(String(selectedStudentId));
+      if (selectionRequestId !== studentSelectionRequestRef.current) return;
+
+      const responseData = (response as any)?.data ?? response;
+      const payload = responseData?.data ?? responseData ?? student;
+      const selectedStudent = payload?.student ?? payload;
+      const fetchedStudentId = selectedStudent?.student_id || selectedStudent?.id;
+      const fetchedName = getStudentDisplayName(selectedStudent);
+
+      setStudentId(String(fetchedStudentId || selectedStudentId));
+      setStudentEmail(selectedStudent?.email || student.email || "");
+      setStudentPhone(
+        selectedStudent?.phone_number ||
+          selectedStudent?.phone ||
+          student.phone_number ||
+          student.phone ||
+          ""
+      );
+      setStudentName(fetchedName !== "Unnamed student" ? fetchedName : getStudentDisplayName(student));
+      setCompleteStudentData(payload);
+      setStudentDataFetched(true);
+    } catch (error) {
+      if (selectionRequestId !== studentSelectionRequestRef.current) return;
+      console.error("Failed to load selected student details:", error);
+      setCompleteStudentData(null);
+      toast({
+        title: "Student Details Unavailable",
+        description: "Could not load the selected student's interview history. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      if (selectionRequestId === studentSelectionRequestRef.current) {
+        setIsFetchingStudent(false);
+      }
+    }
+  };
+
+  // Search students by either email or phone using the common search endpoint.
   const handleFetchStudent = useCallback(async () => {
-    if (!studentEmail || !studentEmail.includes("@")) {
+    const lookupValue = studentLookupMethod === "email" ? studentEmail.trim() : studentPhone.trim();
+
+    if (studentLookupMethod === "email" && (!lookupValue || !lookupValue.includes("@"))) {
       toast({
         title: "⚠️ Invalid Email",
         description: "Please enter a valid email address",
@@ -219,31 +297,33 @@ export const ScheduleInterviewModal = ({
       return;
     }
 
+    if (studentLookupMethod === "phone" && !lookupValue) {
+      toast({
+        title: "⚠️ Invalid Phone",
+        description: "Please enter a valid phone number",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
     setIsFetchingStudent(true);
     try {
-      const response = await getStudentDataByEmail(studentEmail);
-      // Normalize the response - handle both axios.data and nested data.data structures
-      const payload = (response as any)?.data ?? response;
-      const studentData = payload?.student ?? payload;
-      const studentId = studentData.student_id || studentData.id;
-      const fullName =
-        studentData.full_name ||
-        studentData.name ||
-        `${studentData.first_name || ""} ${studentData.last_name || ""}`.trim();
+      const response = await searchStudentsApi(lookupValue);
+      const results = Array.isArray(response)
+        ? response
+        : (response as any)?.data || (response as any)?.students || [];
 
-      if (studentId) {
-        setStudentId(String(studentId));
-        setStudentName(fullName);
-        setCompleteStudentData(payload); // Store the complete payload with all interview data
-        setStudentDataFetched(true);
+      if (results.length > 0) {
+        setStudentSearchResults(results);
         toast({
-          title: "✅ Student Found",
-          description: `${fullName} has been successfully found`,
+          title: "✅ Students Found",
+          description: `${results.length} matching student${results.length === 1 ? "" : "s"} found. Select one to continue.`,
           variant: "default",
           className: "border-green-500 bg-green-50 text-green-900",
         });
       } else {
-        throw new Error("Student ID not found in response");
+        throw new Error("No students found for this search");
       }
     } catch (error: any) {
       console.error("Error fetching student:", error);
@@ -258,20 +338,45 @@ export const ScheduleInterviewModal = ({
       setStudentName("");
       setCompleteStudentData(null);
       setStudentDataFetched(false);
+      setStudentSearchResults([]);
     } finally {
       setIsFetchingStudent(false);
     }
-  }, [studentEmail, toast]);
+  }, [studentEmail, studentPhone, studentLookupMethod, toast]);
 
   // Reset student data when email changes
   const handleEmailChange = (email: string) => {
     setStudentEmail(email);
+    setStudentSearchResults([]);
     if (studentDataFetched) {
       setStudentId("");
       setStudentName("");
       setCompleteStudentData(null);
       setStudentDataFetched(false);
     }
+  };
+
+  const handlePhoneChange = (phone: string) => {
+    setStudentPhone(phone);
+    setStudentSearchResults([]);
+    if (studentDataFetched) {
+      setStudentId("");
+      setStudentName("");
+      setStudentEmail("");
+      setCompleteStudentData(null);
+      setStudentDataFetched(false);
+    }
+  };
+
+  const handleLookupMethodChange = (method: "email" | "phone") => {
+    setStudentLookupMethod(method);
+    setStudentEmail("");
+    setStudentPhone("");
+    setStudentId("");
+    setStudentName("");
+    setCompleteStudentData(null);
+    setStudentDataFetched(false);
+    setStudentSearchResults([]);
   };
 
   // Helper function to check interview round status
@@ -286,10 +391,12 @@ export const ScheduleInterviewModal = ({
     const cfrRounds = (completeStudentData.interview_cultural_fit_round || []).filter((r: any) => !r.is_archived);
     const examSessions = (completeStudentData.exam_sessions || []).filter((e: any) => !e.is_archived);
 
-    // Check if student has passed screening test (exam_sessions)
+    // Screening must have a real, active exam result with a passing status.
+    // A missing exam session or an empty/non-passing record is not eligible.
     const hasPassedScreening = examSessions.some(
       (exam: any) =>
-        exam.status?.toLowerCase().includes("pass")
+        typeof exam.status === "string" &&
+        exam.status.toLowerCase().includes("pass")
     );
 
     // console.log(hasPassedScreening);
@@ -298,13 +405,13 @@ export const ScheduleInterviewModal = ({
     const activeLRSchedules = lrSchedules.filter(
       (schedule: any) => {
         const status = schedule.status?.toLowerCase() || "";
-        return status === "scheduled" || status === "rescheduled";
+        return status && !["cancelled", "completed", "expired"].includes(status);
       }
     );
     const activeCFRSchedules = cfrSchedules.filter(
       (schedule: any) => {
         const status = schedule.status?.toLowerCase() || "";
-        return status === "scheduled" || status === "rescheduled";
+        return status && !["cancelled", "completed", "expired"].includes(status);
       }
     );
 
@@ -382,7 +489,7 @@ export const ScheduleInterviewModal = ({
       if (!hasPassedLR) {
         return {
           canBook: false,
-          message: "Student must pass LR round before CFR booking",
+          message: "Student must pass screening or Learning round before CFR slot booking",
           type: "warning",
         };
       }
@@ -541,7 +648,17 @@ export const ScheduleInterviewModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!studentId || !studentEmail || !studentName || !topicName) {
+    // A student can be resolved by email or phone. Email is optional after a
+    // phone lookup because it is only used as a calendar invite attendee.
+    const hasRequiredStudentData = Boolean(
+      !isFetchingStudent &&
+      studentId.trim() &&
+      studentName.trim() &&
+      topicName.trim() &&
+      studentDataFetched
+    );
+
+    if (!hasRequiredStudentData) {
       toast({
         title: "⚠️ Incomplete Information",
         description: "Please fill all required fields",
@@ -572,6 +689,20 @@ export const ScheduleInterviewModal = ({
       return;
     }
 
+    // Never allow a booking when round eligibility could not be determined.
+    // This prevents CFR scheduling when the student has no passed LR round.
+    if (!isRescheduleMode && (!interviewStatus || !interviewStatus.canBook)) {
+      toast({
+        title: "⚠️ Interview Not Eligible",
+        description:
+          interviewStatus?.message ||
+          "Student interview history is not available. Please reload student details and try again.",
+        variant: "default",
+        className: "border-orange-500 bg-orange-50 text-orange-900",
+      });
+      return;
+    }
+
     const finalInterviewerEmail =
       interviewerEmail || slotToUse.interviewer_email || "";
     if (!finalInterviewerEmail) {
@@ -590,8 +721,8 @@ export const ScheduleInterviewModal = ({
         parseInt(studentId),
         studentEmail,
         studentName,
-        interviewerEmail,
-        interviewerName || interviewerEmail,
+        finalInterviewerEmail,
+        interviewerName || finalInterviewerEmail,
         slotToUse.date,
         slotToUse.start_time,
         slotToUse.end_time,
@@ -603,6 +734,8 @@ export const ScheduleInterviewModal = ({
       // Reset form
       setStudentId("");
       setStudentEmail("");
+      setStudentPhone("");
+      setStudentLookupMethod("email");
       setStudentName("");
       setTopicName("");
       setInterviewerEmail("");
@@ -822,37 +955,88 @@ export const ScheduleInterviewModal = ({
               />
             </div>
 
+            {!initialStudentId && (
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Student Email <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={studentEmail}
-                  onChange={(e) => handleEmailChange(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
-                  placeholder="student@example.com"
-                  required
-                  disabled={isFetchingStudent || (studentDataFetched && (!!initialStudentId || !!initialStudentEmail))}
-                />
-                <Button
-                  type="button"
-                  onClick={handleFetchStudent}
-                  disabled={isFetchingStudent || !studentEmail || (studentDataFetched && (!!initialStudentId || !!initialStudentEmail))}
-                  className="bg-primary hover:bg-primary/90"
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Find Student By <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={studentLookupMethod}
+                  onChange={(e) => handleLookupMethodChange(e.target.value as "email" | "phone")}
+                  disabled={isFetchingStudent}
+                  className="w-full mb-2 px-3 py-2 border border-border rounded-md bg-card focus:ring-2 focus:ring-primary focus:border-primary disabled:bg-muted disabled:cursor-not-allowed"
                 >
-                  {isFetchingStudent ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                </Button>
+                  <option value="email">Student Email</option>
+                  <option value="phone">Phone</option>
+                </select>
+                <div className="flex gap-2">
+                  <input
+                    type={studentLookupMethod === "email" ? "email" : "tel"}
+                    value={studentLookupMethod === "email" ? studentEmail : studentPhone}
+                    onChange={(e) => studentLookupMethod === "email"
+                      ? handleEmailChange(e.target.value)
+                      : handlePhoneChange(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
+                    placeholder={studentLookupMethod === "email" ? "student@example.com" : "Enter phone number"}
+                    required
+                    disabled={isFetchingStudent}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleFetchStudent}
+                    disabled={isFetchingStudent || !(studentLookupMethod === "email" ? studentEmail : studentPhone)}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    {isFetchingStudent ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {studentDataFetched
+                    ? "Student details loaded"
+                    : `Enter ${studentLookupMethod === "email" ? "email" : "phone number"} and click search`}
+                </p>
+                {studentSearchResults.length > 0 && (
+                  <div className="mt-2 overflow-hidden rounded-md border border-primary/30 bg-card shadow-sm">
+                    <div className="flex items-center justify-between border-b border-border bg-primary/5 px-3 py-2">
+                      <span className="text-xs font-semibold text-foreground">
+                        Select a student
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        Click on a result to continue
+                      </span>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto">
+                    {studentSearchResults.map((student, index) => {
+                      const resultId = student.student_id || student.id;
+                      return (
+                        <button
+                          key={resultId || index}
+                          type="button"
+                          onClick={() => handleSelectStudent(student)}
+                          aria-label={`Select ${getStudentDisplayName(student)}`}
+                          className="group flex w-full items-center justify-between border-b border-border px-3 py-2 text-left last:border-b-0 hover:bg-primary/5 focus:bg-primary/5 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-sm font-medium text-foreground">
+                              {getStudentDisplayName(student)}
+                            </span>
+                            <span className="block text-xs text-muted-foreground">
+                              {[student.email, student.phone_number || student.phone]
+                                .filter(Boolean)
+                                .join(" • ") || `Student ID: ${resultId || "—"}`}
+                            </span>
+                          </span>
+                          <span className="ml-3 shrink-0 text-[11px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100">
+                            Select →
+                          </span>
+                        </button>
+                      );
+                    })}
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {studentDataFetched ? "Student details loaded" : "Enter email and click search to student details"}
-              </p>
-            </div>
+            )}
 
             {/* Hidden Student ID field - value sent in payload but not shown in UI */}
             <input type="hidden" value={studentId} required />
@@ -861,15 +1045,26 @@ export const ScheduleInterviewModal = ({
               <label className="block text-sm font-medium text-foreground mb-1">
                 Student Name <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
-                placeholder="Auto-filled from email"
-                required
-                disabled={studentDataFetched}
-              />
+              {studentDataFetched && !initialStudentId ? (
+                <div className="w-full rounded-md border border-border bg-muted px-3 py-2">
+                  <span className="block text-sm font-medium text-foreground">
+                    {studentName}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {[studentEmail, studentPhone].filter(Boolean).join(" • ")}
+                  </span>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-card disabled:bg-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
+                  placeholder={initialStudentId ? "Auto-filled from student ID" : "Auto-filled from email"}
+                  required
+                  disabled={studentDataFetched}
+                />
+              )}
               {studentDataFetched && interviewStatus && (
                 <div
                   className={`text-xs mt-2 px-3 py-2 rounded-md flex items-start gap-2 font-medium ${
@@ -1007,9 +1202,11 @@ export const ScheduleInterviewModal = ({
               type="submit"
               className="flex-1 bg-primary hover:bg-primary/90 text-white py-3 font-medium shadow-soft hover:shadow-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               data-onboarding="schedule-interview-submit"
-              disabled={
-                isLoading || (!isRescheduleMode && interviewStatus && !interviewStatus.canBook)
-              }
+                disabled={
+                  isLoading ||
+                  (!isRescheduleMode &&
+                    (!interviewStatus || !interviewStatus.canBook))
+                }
             >
               {isLoading ? (
                 <>
