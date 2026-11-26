@@ -1203,6 +1203,29 @@ export const getStudents = async (page, limit) => {
   };
 };
 
+export const exportStudents = async (payload: {
+  student_ids: Array<string | number>;
+  columns: string[];
+  filters: Record<string, any>;
+}): Promise<Blob> => {
+  const response = await fetch(`${BASE_URL}/students/export`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let message = "Failed to export students";
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch { /* response may be plain text */ }
+    throw new Error(message);
+  }
+
+  return response.blob();
+};
+
 // Get Student By ID
 export const getStudentById = async (id: string): Promise<Student> => {
   try {
