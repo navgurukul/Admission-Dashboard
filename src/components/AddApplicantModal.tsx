@@ -484,6 +484,9 @@ export function AddApplicantModal({
     if (!formData.state) {
       newErrors.state = "State is required";
     }
+    if (!formData.district.trim()) {
+      newErrors.district = "District is required";
+    }
 
     if (!formData.category_id) {
       newErrors.category_id = "Category is required";
@@ -1191,8 +1194,14 @@ export function AddApplicantModal({
                       placeholder={isLocationLoading ? "Loading districts..." : "Select district"}
                       searchPlaceholder="Search district..."
                       emptyText="No district found."
-                      className="h-10 border shadow-sm hover:bg-accent"
+                      className={cn("h-10 border shadow-sm hover:bg-accent", errors.district && "border-red-500")}
                     />
+                    {errors.district && (
+                      <p className="text-red-500 text-xs flex items-center">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {errors.district}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
