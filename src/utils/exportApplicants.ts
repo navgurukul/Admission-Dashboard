@@ -26,8 +26,7 @@ export const exportApplicantsToCSV = async ({
   toast,
 }: ExportOptions) => {
   const columns = selectedFields
-    .map((fieldId) => ALL_CSV_FIELDS.find((field) => field.id === fieldId)?.label?.replace(/^\*/, ""))
-    .filter((label): label is string => Boolean(label));
+    .filter((fieldId) => ALL_CSV_FIELDS.some((field) => field.id === fieldId));
 
   if (!columns.length) {
     toast({

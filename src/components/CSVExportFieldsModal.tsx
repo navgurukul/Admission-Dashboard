@@ -39,6 +39,9 @@ export const ALL_CSV_FIELDS: CSVField[] = [
   { id: 'email', label: 'Email', category: 'Personal Information' },
   { id: 'phone_number', label: '*Phone Number', category: 'Personal Information' },
   { id: 'whatsapp_number', label: 'WhatsApp Number', category: 'Personal Information' },
+  { id: 'mode', label: 'Mode', category: 'Personal Information' },
+  { id: 'imported_at', label: 'Imported At', category: 'Personal Information' },
+  { id: 'is_duplicate', label: 'Is Duplicate', category: 'Personal Information' },
   
   // Address Information
   { id: 'state', label: 'State', category: 'Address Information' },
@@ -48,41 +51,62 @@ export const ALL_CSV_FIELDS: CSVField[] = [
   { id: 'pin_code', label: 'Pincode', category: 'Address Information' },
   
   // Academic & Background
+  {id: 'school_college_name', label: 'School/College Name', category: 'Academic & Background' },
   { id: 'qualification', label: 'Qualification', category: 'Academic & Background' },
-  { id: 'qualifying_school', label: 'Qualifying School', category: 'Academic & Background' },
-  { id: 'partner_name', label: 'Partner Name', category: 'Academic & Background' },
+  { id: 'graduation_mode', label: 'Graduation Mode', category: 'Academic & Background' },
+  { id: 'graduation_year', label: 'Graduation Year', category: 'Academic & Background' },
+  { id: 'partner_name', label: 'Partner Name', category: 'Partner & Donor' },
+  {id:'donor_name',label:'Donor Name',category:'Partner & Donor'},
+
   
   // School & Campus
-  { id: 'preferred_school', label: '*Prefered School', category: 'School & Campus' },
-  { id: 'campus', label: 'Campus', category: 'School & Campus' },
+  { id: 'initial_school', label: '*Preferred School', category: 'Preferred School & Campus' },
+  { id: 'preferred_campus', label: 'Preferred Campus', category: 'Preferred School & Campus' },
+
+  { id: 'qualifying_school', label: 'Qualifying School', category: 'Assigned School and Campus' },
+  { id: 'attempt_number', label: 'Attempt Number', category: 'Personal Information' },
   
   // Communication
   { id: 'communication_notes', label: 'Communication Notes', category: 'Communication' },
   
   // Screening Round
-  { id: 'question_set_name', label: 'Question Set Name', category: 'Screening Round' },
+  { id: 'exam_status', label: 'Status', category: 'Screening Round' },
+  { id: 'question_set_name', label: 'Set Name', category: 'Screening Round' },
+  { id: 'obtained_marks', label: 'Mark', category: 'Screening Round' },
+  { id: 'screening_qualifying_school', label: 'Qualifying School', category: 'Screening Round' },
   { id: 'exam_centre', label: 'Exam Centre', category: 'Screening Round' },
   { id: 'date_of_test', label: 'Date of Test', category: 'Screening Round' },
-  { id: 'obtained_marks', label: 'Obtained Marks', category: 'Screening Round' },
-  { id: 'exam_status', label: 'Screening Round Status', category: 'Screening Round' },
-  { id: 'exam_last_updated_by', label: 'Screening Round Updated By (Email)', category: 'Screening Round' },
+  { id: 'screening_created_at', label: 'Created At', category: 'Screening Round' },
+  { id: 'screening_updated_at', label: 'Updated At', category: 'Screening Round' },
+  { id: 'screening_updated_by', label: 'Updated By', category: 'Screening Round' },
   
   // Learning Round
-  { id: 'learning_round_status', label: 'Learning Round Status', category: 'Learning Round' },
+  { id: 'learning_round_status', label: 'Status', category: 'Learning Round' },
+  { id: 'learning_round_qualifying_school', label: 'Qualifying School', category: 'Learning Round' },
   { id: 'learning_round_comments', label: 'Learning Round Comments', category: 'Learning Round' },
-  { id: 'learning_round_last_updated_by', label: 'Learning Round Updated By (Email)', category: 'Learning Round' },
+  { id: 'learning_round_created_at', label: 'Created At', category: 'Learning Round' },
+  { id: 'learning_round_updated_at', label: 'Updated At', category: 'Learning Round' },
+  { id: 'learning_round_updated_by', label: 'Updated By', category: 'Learning Round' },
   
   // Cultural Fit Round
-  { id: 'cultural_fit_status', label: 'Culture Fit Status', category: 'Cultural Fit Round' },
-  { id: 'cultural_fit_comments', label: 'Culture Fit Comments', category: 'Cultural Fit Round' },
-  { id: 'cultural_fit_last_updated_by', label: 'Culture Fit Updated By (Email)', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_status', label: 'Status', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_overall_feedback', label: 'Overall Feedback', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_created_at', label: 'Created At', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_updated_at', label: 'Updated At', category: 'Cultural Fit Round' },
+  { id: 'cultural_fit_updated_by', label: 'Updated By', category: 'Cultural Fit Round' },
+
+  { id: 'campus', label: 'Campus', category: 'Assigned School and Campus' },
+
   
   // Final Decision
-  { id: 'offer_letter_status', label: 'Admission Letter Status', category: 'Final Decision' },
+  { id: 'admission_letter_status', label: 'Admission Letter Status', category: 'Final Decision' },
+  { id: 'admission_letter_sent_at', label: 'Admission Letter Sent At', category: 'Final Decision' },
+  { id: 'admission_letter_sent_by', label: 'Admission Letter Sent By (Email)', category: 'Final Decision' },
   { id: 'onboarded_status', label: 'Onboarded Status', category: 'Final Decision' },
   { id: 'final_notes', label: 'Final Notes', category: 'Final Decision' },
   { id: 'joining_date', label: 'Joining Date', category: 'Final Decision' },
-  { id: 'offer_letter_sent_by', label: 'Admission Letter Sent By (Email)', category: 'Final Decision' },
+  { id: 'final_decisions_created_at', label: 'Final Decision Created At', category: 'Final Decision' },
+  { id: 'final_decisions_updated_at', label: 'Final Decision Updated At', category: 'Final Decision' },
   { id: 'final_status_updated_by', label: 'Final Status Updated By (Email)', category: 'Final Decision' },
 ];
 
