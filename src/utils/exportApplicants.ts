@@ -44,10 +44,16 @@ export const exportApplicantsToCSV = async ({
         .filter((id) => id !== undefined && id !== null)
     : [];
 
-  const filters = {
-    ...(filterParams || {}),
-    ...(searchTerm.trim() ? { search: searchTerm.trim() } : {}),
-  };
+  const filters = { ...(filterParams || {}) };
+  const stageStatus = filters.stage_status;
+
+  if (Array.isArray(stageStatus)) {
+    filters.stage_status = stageStatus.join(",");
+  }
+
+  if (searchTerm.trim()) {
+    filters.search = searchTerm.trim();
+  }
 
   try {
     toast({ title: "Preparing Export", description: "Generating student export..." });
