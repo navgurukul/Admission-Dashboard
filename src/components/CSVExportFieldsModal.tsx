@@ -29,7 +29,7 @@ interface CSVExportFieldsModalProps {
 }
 
 // Define all available CSV fields organized by category
-const ALL_CSV_FIELDS: CSVField[] = [
+export const ALL_CSV_FIELDS: CSVField[] = [
   // Personal Information
   { id: 'first_name', label: '*First Name', category: 'Personal Information', required: true },
   { id: 'middle_name', label: 'Middle Name', category: 'Personal Information' },
