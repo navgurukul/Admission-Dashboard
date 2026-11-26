@@ -618,7 +618,7 @@ export function ApplicantModal({
 
   const graduationModeOptions = useMemo(() => [
     { value: "Regular", label: "Regular" },
-    { value: "Distance", label: "Only Exam" },
+    { value: "Distance", label: "Distance" },
   ], []);
 
   const graduationYearDisplay = useMemo(() => {

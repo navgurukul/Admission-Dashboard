@@ -798,12 +798,12 @@ const ApplicantTable = () => {
     return visibleColumns.filter(col => col.visible).length;
   }, [visibleColumns]);
 
-  const refreshData = useCallback(async () => {
+  const refreshData = useCallback(async (skipSearch = false) => {
     // Trigger dashboard stats refresh
     triggerRefresh();
 
     // If searching without active filters, use standard search logic
-    if (searchTerm.trim() && !hasActiveFilters) {
+    if (!skipSearch && searchTerm.trim() && !hasActiveFilters) {
       try {
         const results = await searchStudentsApi(searchTerm.trim());
         setSearchResults(results || []);
@@ -817,7 +817,7 @@ const ApplicantTable = () => {
         const apiParams = transformFiltersToAPI(filters);
 
         // Inject search term if present
-        if (debouncedSearchTerm && debouncedSearchTerm.trim()) {
+        if (!skipSearch && debouncedSearchTerm && debouncedSearchTerm.trim()) {
           apiParams.search = debouncedSearchTerm.trim();
         }
 
@@ -2233,7 +2233,10 @@ const ApplicantTable = () => {
           setShowAddModal(false);
           setGuidedApplicantTab(null);
         }}
-        onSuccess={refreshData}
+        onSuccess={() => {
+          setSearchTerm("");
+          refreshData(true);
+        }}
         guidedTab={guidedApplicantTab}
       />
       <CSVImportModal

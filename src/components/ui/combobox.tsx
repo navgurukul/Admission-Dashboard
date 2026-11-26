@@ -35,6 +35,7 @@ interface ComboboxProps {
   emptyText?: string
   disabled?: boolean
   className?: string
+  popoverClassName?: string
   onOpen?: () => void
 }
 
@@ -47,6 +48,7 @@ export const Combobox = React.memo(function Combobox({
   emptyText = "No option found.",
   disabled = false,
   className,
+  popoverClassName,
   onOpen,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
@@ -132,7 +134,7 @@ export const Combobox = React.memo(function Combobox({
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0" align="start">
+      <PopoverContent className={cn("w-[300px] p-0", popoverClassName)} align="start">
         <Command shouldFilter={false}>
           <CommandInput 
             placeholder={searchPlaceholder}
@@ -182,7 +184,7 @@ export const Combobox = React.memo(function Combobox({
                       </span>
                     </div>
                     {option.subLabel && (
-                      <span className="text-[10px] text-gray-400 pl-6 w-full text-left truncate">
+                      <span className="text-xs text-gray-500 pl-6 w-full text-left whitespace-normal break-words">
                         {option.subLabel}
                       </span>
                     )}
