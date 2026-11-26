@@ -654,7 +654,7 @@ export function AddApplicantModal({
         qualification_id: formData.qualification_id
           ? Number(formData.qualification_id)
           : null,
-        school_name: formData.school_name.trim() || null,
+        school_college_name: formData.school_name.trim() || null,
         graduation_year: formData.graduation_year || null,
         graduation_mode: formData.graduation_mode || null,
         preferred_campus_id:
@@ -1306,7 +1306,13 @@ export function AddApplicantModal({
                           Pursuing year *
                         </Label>
                         <Combobox
-                          options={["1st Year", "2nd Year", "3rd Year", "4th Year", "Final Year"].map((year) => ({ value: year, label: year }))}
+                          options={[
+                            { value: "1", label: "1st Year" },
+                            { value: "2", label: "2nd Year" },
+                            { value: "3", label: "3rd Year" },
+                            { value: "4", label: "4th Year" },
+                            { value: "final", label: "Final Year" },
+                          ]}
                           value={formData.graduation_year}
                           onValueChange={(value) => handleInputChange("graduation_year", value)}
                           placeholder="Select year"
@@ -1385,7 +1391,7 @@ export function AddApplicantModal({
                   {formData.preferred_campus_id && (
                     <div className="space-y-2">
                       <Label htmlFor="initial_school_id" className="text-sm font-medium">
-                        Preferred School / Course
+                        Preferred School / Course*
                       </Label>
                       <Combobox
                         options={eligibleCampusSchools.map((school) => ({ value: school.id, label: school.name }))}

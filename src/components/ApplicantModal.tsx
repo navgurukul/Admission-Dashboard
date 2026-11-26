@@ -609,16 +609,16 @@ export function ApplicantModal({
   }, [stateList]);
 
   const graduationYearOptions = useMemo(() => [
-    { value: "1st Year", label: "1st Year" },
-    { value: "2nd Year", label: "2nd Year" },
-    { value: "3rd Year", label: "3rd Year" },
-    { value: "4th Year", label: "4th Year" },
-    { value: "Final Year", label: "Final Year" },
+    { value: "1", label: "1st Year" },
+    { value: "2", label: "2nd Year" },
+    { value: "3", label: "3rd Year" },
+    { value: "4", label: "4th Year" },
+    { value: "final", label: "Final Year" },
   ], []);
 
   const graduationModeOptions = useMemo(() => [
     { value: "Regular", label: "Regular" },
-    { value: "Only Exam", label: "Only Exam" },
+    { value: "Distance", label: "Distance" },
   ], []);
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -3106,7 +3106,7 @@ Interviewer: ${interviewerName}`;
                         applicant={currentApplicant}
                         field="graduation_year"
                         value={currentApplicant.graduation_year}
-                        displayValue={currentApplicant.graduation_year || "—"}
+                        displayValue={currentApplicant.graduation_year ?? "—"}
                         onUpdate={handleUpdate}
                         options={graduationYearOptions}
                         disabled={!canEditApplicantDetails}
@@ -3120,7 +3120,7 @@ Interviewer: ${interviewerName}`;
                         applicant={currentApplicant}
                         field="graduation_mode"
                         value={currentApplicant.graduation_mode}
-                        displayValue={currentApplicant.graduation_mode || "—"}
+                        displayValue={currentApplicant.graduation_mode ?? "—"}
                         onUpdate={handleUpdate}
                         options={graduationModeOptions}
                         disabled={!canEditApplicantDetails}
