@@ -9,6 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import {
@@ -118,6 +119,7 @@ export function AddApplicantModal({
     phone_number: "",
     whatsapp_number: "",
     email: "",
+    communication_notes: "",
     dob: "",
     city: "",
     state: "",
@@ -154,6 +156,7 @@ export function AddApplicantModal({
       phone_number: "",
       whatsapp_number: "",
       email: "",
+      communication_notes: "",
       dob: "",
       city: "",
       state: "",
@@ -295,6 +298,7 @@ export function AddApplicantModal({
         preferred_campus_id: typeof value === "string" ? value : "",
         initial_school_id: "",
       }));
+      setErrors((prev) => ({ ...prev, initial_school_id: "" }));
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -488,6 +492,15 @@ export function AddApplicantModal({
     if (!formData.qualification_id) {
       newErrors.qualification_id = "Qualification is required";
     }
+    if (!formData.preferred_campus_id) {
+      newErrors.preferred_campus_id = "Preferred campus is required";
+    }
+    if (formData.preferred_campus_id && !formData.initial_school_id) {
+      newErrors.initial_school_id = "Preferred school / course is required";
+    }
+    if (!formData.communication_notes.trim()) {
+      newErrors.communication_notes = "Communication notes are required";
+    }
 
     const selectedQualification = qualificationList.find(
       (qualification: any) => String(qualification.id) === formData.qualification_id,
@@ -555,6 +568,9 @@ export function AddApplicantModal({
         district: "District",
         category_id: "Category",
         qualification_id: "Qualification",
+        preferred_campus_id: "Preferred Campus",
+        initial_school_id: "Preferred School / Course",
+        communication_notes: "Communication Notes",
         // religion_id: "Religion",
         question_set_id: "Question Set",
         exam_centre: "Exam Centre",
@@ -626,6 +642,7 @@ export function AddApplicantModal({
         gender: formData.gender || null,
         dob: formData.dob || null,
         email: formData.email || null,
+        communication_notes: formData.communication_notes.trim() || null,
         phone_number: formData.phone_number,
         whatsapp_number: formData.whatsapp_number || null,
         state: formData.state || null,
@@ -718,7 +735,7 @@ export function AddApplicantModal({
         exam_centre: formData.exam_centre,
         date_of_test: formData.date_of_test,
         communication_notes:
-          response?.data?.communication_notes || response?.communication_notes,
+          response?.data?.communication_notes || response?.communication_notes || formData.communication_notes,
       };
 
       if (!response || response.status >= 400) {
@@ -792,7 +809,8 @@ export function AddApplicantModal({
       id: String(state.id ?? state.state_id ?? state.state_code ?? state.code ?? ""),
       name: String(state.name_en ?? state.state_name ?? state.name ?? ""),
     }))
-    .filter((state) => state.id && state.name);
+    .filter((state) => state.id && state.name)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   const locationDistrictOptions = districts
     .filter((district: any) => {
       if (!formData.stateCode) return false;
@@ -807,7 +825,8 @@ export function AddApplicantModal({
       id: String(district.id ?? district.district_id ?? district.district_code ?? district.code ?? ""),
       name: String(district.name_en ?? district.district_name ?? district.name ?? ""),
     }))
-    .filter((district) => district.id && district.name);
+    .filter((district) => district.id && district.name)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   const selectedCampus = campusEligibility.find(
     (campus) => campus.id === formData.preferred_campus_id,
   );
@@ -1320,7 +1339,7 @@ export function AddApplicantModal({
 
                   <div className="space-y-2">
                     <Label htmlFor="preferred_campus_id" className="text-sm font-medium">
-                      Preferred Campus
+                      Preferred Campus *
                     </Label>
                     <Combobox
                       options={campusEligibility.map((campus) => ({
@@ -1340,8 +1359,11 @@ export function AddApplicantModal({
                       placeholder={isCheckingCampusEligibility ? "Checking campuses..." : "Select eligible campus"}
                       searchPlaceholder="Search campuses..."
                       emptyText="No campus found."
-                      className="h-10 border shadow-sm hover:bg-accent"
+                      className={cn("h-10 border shadow-sm hover:bg-accent", errors.preferred_campus_id && "border-red-500")}
                     />
+                    {errors.preferred_campus_id && (
+                      <p className="text-xs text-red-500">{errors.preferred_campus_id}</p>
+                    )}
                     {campusEligibilityError ? (
                       <p className="text-xs text-red-500">Unable to load campus eligibility: {campusEligibilityError}</p>
                     ) : !formData.gender || !formData.qualification_id || !formData.district.trim() ? (
@@ -1364,8 +1386,11 @@ export function AddApplicantModal({
                         placeholder="Select eligible school"
                         searchPlaceholder="Search schools..."
                         emptyText="No eligible school found."
-                        className="h-10 border shadow-sm hover:bg-accent"
+                        className={cn("h-10 border shadow-sm hover:bg-accent", errors.initial_school_id && "border-red-500")}
                       />
+                      {errors.initial_school_id && (
+                        <p className="text-xs text-red-500">{errors.initial_school_id}</p>
+                      )}
                       {eligibleCampusSchools.length === 0 ? (
                         <p className="text-xs text-muted-foreground">No open school is eligible for the selected qualification at this campus.</p>
                       ) : null}
@@ -1502,6 +1527,26 @@ export function AddApplicantModal({
                       emptyText="No donor found."
                       className="h-10 border shadow-sm hover:bg-accent"
                     />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2 lg:col-span-3">
+                    <Label htmlFor="communication_notes" className="text-sm font-medium">
+                      Communication Notes *
+                    </Label>
+                    <Textarea
+                      id="communication_notes"
+                      value={formData.communication_notes}
+                      onChange={(e) => {
+                        handleInputChange("communication_notes", e.target.value);
+                        setErrors((prev) => ({ ...prev, communication_notes: "" }));
+                      }}
+                      placeholder="Enter communication notes"
+                      rows={3}
+                      className={cn(errors.communication_notes && "border-red-500")}
+                    />
+                    {errors.communication_notes && (
+                      <p className="text-xs text-red-500">{errors.communication_notes}</p>
+                    )}
                   </div>
                 </div>
 
