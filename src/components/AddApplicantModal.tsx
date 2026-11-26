@@ -1180,7 +1180,7 @@ export function AddApplicantModal({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="district" className="text-sm font-medium">
-                      District
+                      District*
                     </Label>
                     <Combobox
                       options={locationDistrictOptions.map((district) => ({ value: district.id, label: district.name }))}
