@@ -609,17 +609,40 @@ export function ApplicantModal({
   }, [stateList]);
 
   const graduationYearOptions = useMemo(() => [
-    { value: "1st Year", label: "1st Year" },
-    { value: "2nd Year", label: "2nd Year" },
-    { value: "3rd Year", label: "3rd Year" },
-    { value: "4th Year", label: "4th Year" },
-    { value: "Final Year", label: "Final Year" },
+    { value: "1", label: "1st Year" },
+    { value: "2", label: "2nd Year" },
+    { value: "3", label: "3rd Year" },
+    { value: "4", label: "4th Year" },
+    { value: "final", label: "Final Year" },
   ], []);
 
   const graduationModeOptions = useMemo(() => [
     { value: "Regular", label: "Regular" },
-    { value: "Only Exam", label: "Only Exam" },
+    { value: "Distance", label: "Distance" },
   ], []);
+
+  const graduationYearDisplay = useMemo(() => {
+    const value = String(currentApplicant?.graduation_year ?? "").trim().toLowerCase();
+    const legacyValues: Record<string, string> = {
+      "1st year": "1st Year",
+      "2nd year": "2nd Year",
+      "3rd year": "3rd Year",
+      "4th year": "4th Year",
+      "final year": "Final Year",
+    };
+
+    return graduationYearOptions.find((option) => option.value === value)?.label
+      || legacyValues[value]
+      || currentApplicant?.graduation_year
+      || "—";
+  }, [currentApplicant?.graduation_year, graduationYearOptions]);
+
+  const graduationModeDisplay = useMemo(() => {
+    const value = String(currentApplicant?.graduation_mode ?? "").trim().toLowerCase();
+    if (value === "distance" || value === "only exam") return "Only Exam";
+    if (value === "regular") return "Regular";
+    return currentApplicant?.graduation_mode || "—";
+  }, [currentApplicant?.graduation_mode]);
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
@@ -3106,7 +3129,7 @@ Interviewer: ${interviewerName}`;
                         applicant={currentApplicant}
                         field="graduation_year"
                         value={currentApplicant.graduation_year}
-                        displayValue={currentApplicant.graduation_year || "—"}
+                        displayValue={graduationYearDisplay}
                         onUpdate={handleUpdate}
                         options={graduationYearOptions}
                         disabled={!canEditApplicantDetails}
@@ -3120,7 +3143,7 @@ Interviewer: ${interviewerName}`;
                         applicant={currentApplicant}
                         field="graduation_mode"
                         value={currentApplicant.graduation_mode}
-                        displayValue={currentApplicant.graduation_mode || "—"}
+                        displayValue={graduationModeDisplay}
                         onUpdate={handleUpdate}
                         options={graduationModeOptions}
                         disabled={!canEditApplicantDetails}

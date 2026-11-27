@@ -51,6 +51,7 @@ export const useOnDemandReferenceData = () => {
 // 
     // console.log(`🔄 Loading data on-demand for field: "${fieldName}"`);
     loadingFields.current.add(fieldName);
+    let shouldMarkLoaded = true;
 
     try {
       switch (fieldName) {
@@ -110,7 +111,8 @@ export const useOnDemandReferenceData = () => {
         case 'cast':
         case 'cast_id':
           if (categoryList.length === 0) {
-            await fetchCategories();
+            const categories = await fetchCategories();
+            shouldMarkLoaded = Array.isArray(categories) && categories.length > 0;
           }
           break;
 
@@ -141,7 +143,9 @@ export const useOnDemandReferenceData = () => {
           console.warn(`⚠️ No loader defined for field: "${fieldName}"`);
       }
 
-      loadedFields.current.add(fieldName);
+      if (shouldMarkLoaded) {
+        loadedFields.current.add(fieldName);
+      }
       // console.log(`✅ Successfully loaded data for field: "${fieldName}"`);
     } catch (error) {
       console.error(`❌ Failed to load data for field: "${fieldName}"`, error);
